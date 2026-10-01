@@ -10,6 +10,12 @@
       "port": 4200
     },
     {
+      "name": "studio-worker",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "tsx", "--env-file=.env", "--env-file=.env.local", "src/worker/index.ts"],
+      "port": 4299
+    },
+    {
       "name": "studio-prod",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [

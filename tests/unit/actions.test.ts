@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { seed } from '@/demo/fixtures';
-import { acceptProposal, addCharacter, addLocalAsset, addProduction, addScene, addShot, addShow, addTake, addVoiceRecording, deleteAsset, deleteCharacter, deleteShot, duplicateProduction, emptyStudio, markStepDone, moveShot, removeTake, reorderShot, selectTake, setPendingReference, updateCharacter, updateSettings } from '@/demo/actions';
-import { appearanceLock } from '@/demo/rules';
-import { sampleProposal } from '@/demo/proposals';
+import { seed } from '@/domain/sample';
+import { acceptProposal, addAsset, addCharacter, addProduction, addScene, addShot, addShow, addTake, addVoiceRecording, deleteAsset, deleteCharacter, deleteShot, duplicateProduction, emptyStudio, markStepDone, moveShot, rejectTake, removeTake, reorderShot, replaceSceneShots, selectTake, setPendingReference, updateCharacter, updateSettings } from '@/domain/actions';
+import { appearanceLock } from '@/domain/rules';
+import { sampleProposal } from '@/domain/proposals';
+import { StudioError } from '@/domain/errors';
 import type { StudioState } from '@/domain/types';
-import { attentionItems, castOf, nextStep, productionHref, progressOf, shotLabel } from '@/demo/selectors';
+import { attentionItems, castOf, nextStep, productionHref, progressOf, shotLabel } from '@/studio/selectors';
 
-/** The store's pure actions: state in, state out, nothing else touched. */
+/** The studio's pure actions: state in, state out, nothing else touched. The same functions run in the browser and
+ *  on the server, so these tests cover the rules both sides enforce. */
 
 describe('fixtures', () => {
   it('seed is self-consistent: every referenced asset, character and location exists', () => {
@@ -23,7 +25,7 @@ describe('fixtures', () => {
         expect(p.scenes.some((sc) => sc.id === sh.sceneId), `${p.id} ${sh.id} scene`).toBe(true);
         if (sh.openingFrameAssetId) expect(assets.has(sh.openingFrameAssetId), `${sh.id} opening`).toBe(true);
         if (sh.endingFrameAssetId) expect(assets.has(sh.endingFrameAssetId), `${sh.id} ending`).toBe(true);
-        for (const t of sh.takes) expect(assets.has(t.assetId), `${sh.id} take ${t.id}`).toBe(true);
+        for (const t of sh.takes) { expect(assets.has(t.assetId), `${sh.id} take ${t.id}`).toBe(true); expect(t.status).toBe('READY'); expect(t.provider).toBe('SAMPLE'); }
         if (sh.selectedTakeId) expect(sh.takes.some((t) => t.id === sh.selectedTakeId)).toBe(true);
         for (const id of sh.characterIds) expect(chars.has(id)).toBe(true);
       }
@@ -34,7 +36,7 @@ describe('fixtures', () => {
     for (const se of s.seasons) expect(s.shows.some((x) => x.id === se.showId)).toBe(true);
   });
   it('every asset is marked sample and lives under /sample/', () => {
-    for (const a of seed().assets) { expect(a.sample).toBe(true); expect(a.src.startsWith('/sample/')).toBe(true); }
+    for (const a of seed().assets) { expect(a.sample).toBe(true); expect(a.origin).toBe('SAMPLE'); expect(a.src.startsWith('/sample/')).toBe(true); }
   });
 });
 
@@ -48,6 +50,9 @@ describe('shows and productions', () => {
     expect(e2.production.episodeNumber).toBe(2);
     expect(e2.production.stage).toBe('STORY');
     expect(productionHref(e2.production)).toBe(`/shows/${r.show.id}/seasons/${r.season.id}/episodes/${e2.production.id}`);
+  });
+  it('an episode without a show is refused', () => {
+    expect(() => addProduction(seed(), { kind: 'EPISODE', title: 'Orphan', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 60, brief: { mode: 'MANUAL', text: '' }, castIds: [], locationIds: [] })).toThrow(StudioError);
   });
   it('an episode inherits its show’s cast', () => {
     const s = seed();
@@ -79,12 +84,10 @@ describe('scenes and shots', () => {
     let p = s1.productions.find((x) => x.id === 's1e1')!;
     expect(p.shots.filter((sh) => sh.sceneId === sc1.id).map((sh) => sh.number)).toEqual([1, 2, 3, 4]);
     expect(shotLabel(p, shot)).toBe('1.4');
-    // new shot sits at the end of its scene, before scene 2's shots
     expect(p.shots.findIndex((sh) => sh.id === shot.id)).toBe(3);
     const s2 = moveShot(s1, 's1e1', shot.id, -1);
     p = s2.productions.find((x) => x.id === 's1e1')!;
     expect(p.shots.find((sh) => sh.id === shot.id)!.number).toBe(3);
-    // cannot cross into another scene
     const s3 = moveShot(s2, 's1e1', p.shots[3].id, 1);
     expect(s3.productions.find((x) => x.id === 's1e1')!.shots[3].id).toBe(p.shots[3].id);
     const s4 = deleteShot(s3, 's1e1', shot.id);
@@ -109,8 +112,27 @@ describe('scenes and shots', () => {
     const p1 = s1.productions.find((x) => x.id === 's1e2')!;
     expect(progressOf(p1).chosen).toBe(1);
     expect(nextStep(p1).tab).toBe('produce');
-    const s2 = selectTake(s1, 's1e2', 's1e2-2', 't-02');
+    const s2 = selectTake(s1, 's1e2', 's1e2-2', 's1e2-2-t1');
     expect(progressOf(s2.productions.find((x) => x.id === 's1e2')!).chosen).toBe(2);
+  });
+  it('a rejected take leaves the cut and cannot be chosen', () => {
+    let s = seed();
+    s = rejectTake(s, 's1e1', 's1e1-1', 's1e1-1-t2', 'face changes mid-shot');
+    const sh = s.productions.find((x) => x.id === 's1e1')!.shots[0];
+    expect(sh.selectedTakeId).toBeUndefined();
+    expect(sh.takes.find((t) => t.id === 's1e1-1-t2')).toMatchObject({ status: 'REJECTED', rejectionReason: 'face changes mid-shot' });
+    expect(() => selectTake(s, 's1e1', 's1e1-1', 's1e1-1-t2')).toThrow(StudioError);
+  });
+  it('replanning a scene with takes is refused unless forced', () => {
+    const s = seed();
+    const sc = s.productions.find((x) => x.id === 's1e1')!.scenes[0];
+    const shots = [{ sceneId: sc.id, purpose: 'new', action: 'a', framing: 'WIDE' as const, cameraMove: 'STATIC' as const, durationSeconds: 4, characterIds: [], dialogue: [], transition: 'CUT' as const }];
+    expect(() => replaceSceneShots(s, 's1e1', sc.id, shots)).toThrow(StudioError);
+    const forced = replaceSceneShots(s, 's1e1', sc.id, shots, true);
+    const p = forced.productions.find((x) => x.id === 's1e1')!;
+    expect(p.shots.filter((x) => x.sceneId === sc.id)).toHaveLength(1);
+    expect(p.shots[0].number).toBe(1);
+    expect(p.shots.filter((x) => x.sceneId !== sc.id)).toHaveLength(4);
   });
 });
 
@@ -135,45 +157,45 @@ describe('characters, settings, attention', () => {
   });
 });
 
-describe('empty studio and local files', () => {
+describe('empty studio and assets', () => {
   it('an empty studio keeps only the settings', () => {
     const s = emptyStudio({ ...seed().settings, uiLanguage: 'ar' });
     expect(s.shows).toEqual([]); expect(s.productions).toEqual([]); expect(s.characters).toEqual([]); expect(s.locations).toEqual([]); expect(s.assets).toEqual([]);
     expect(s.settings.uiLanguage).toBe('ar');
     expect(attentionItems(s)).toEqual([]);
   });
-  it('a local file record is marked local with an empty src, never sample', () => {
-    const r = addLocalAsset(seed(), { kind: 'IMAGE', src: 'ignored', label: 'me.png', tags: ['added'], mimeType: 'image/png', bytes: 12 });
-    expect(r.asset.local).toBe(true); expect(r.asset.sample).toBe(false); expect(r.asset.src).toBe('');
+  it('an uploaded asset is never sample and is served from the library', () => {
+    const r = addAsset(seed(), { kind: 'IMAGE', src: '/api/media/up-1', label: 'me.png', tags: ['added'], mimeType: 'image/png', bytes: 12, sample: false, origin: 'UPLOAD', id: 'up-1' });
+    expect(r.asset.sample).toBe(false); expect(r.asset.src).toBe('/api/media/up-1');
+    expect(() => addAsset(r.state, { kind: 'IMAGE', src: '/api/media/up-1', label: 'again', tags: [], sample: false, origin: 'UPLOAD', id: 'up-1' })).toThrow(StudioError);
   });
 });
 
-
-/** THE CONTINUITY RULE — see src/demo/rules.ts and docs/CHARACTER-CONTINUITY.md. */
+/** THE CONTINUITY RULE — see src/domain/rules.ts and docs/CHARACTER-CONTINUITY.md. */
 describe('character continuity', () => {
   const ch = (s: StudioState, id: string) => s.characters.find((c) => c.id === id)!;
+  const codeOf = (fn: () => unknown) => { try { fn(); return null; } catch (e) { return e instanceof StudioError ? e.code : 'OTHER'; } };
 
   it('usage comes from takes: characters in a filmed shot are used; cast alone is not; unknown history counts as used', () => {
     const s = seed();
     expect(appearanceLock(ch(s, 'layla'))).toMatchObject({ locked: true, reason: 'USED' });
     expect(ch(s, 'layla').usage!.videos.length).toBeGreaterThan(0);
-    // Nour is cast in River Lights and in its storyboard, but no shot of hers has a take
     expect(s.productions.find((p) => p.id === 'river-lights')!.castIds).toContain('nour');
     expect(appearanceLock(ch(s, 'nour'))).toMatchObject({ locked: false });
     expect(appearanceLock(ch(s, 'um-hassan'))).toMatchObject({ locked: true, reason: 'UNKNOWN' });
-    // a character with no usage record at all is not assumed unused
     expect(appearanceLock({ usage: undefined }).locked).toBe(true);
   });
 
-  it('appearance changes are dropped for a used character, profile and voice changes are kept', () => {
+  it('an appearance change on a used character is refused; profile and voice changes are kept', () => {
     const s = seed();
     const before = ch(s, 'layla');
-    const next = updateCharacter(s, 'layla', { portraitAssetId: 'ref-nour-front', hair: 'Bleached', refs: [], style: 'ANIME', notes: 'Hums when counting.', role: 'Runs the café now' });
-    const after = ch(next, 'layla');
-    expect(after.portraitAssetId).toBe(before.portraitAssetId);
+    expect(codeOf(() => updateCharacter(s, 'layla', { hair: 'Bleached' }))).toBe('APPEARANCE_LOCKED');
+    expect(codeOf(() => updateCharacter(s, 'layla', { portraitAssetId: 'ref-nour-front' }))).toBe('APPEARANCE_LOCKED');
+    expect(codeOf(() => updateCharacter(s, 'layla', { refs: [] }))).toBe('APPEARANCE_LOCKED');
+    // the same values again are not a change
+    const same = updateCharacter(s, 'layla', { hair: before.hair, style: before.style, notes: 'Hums when counting.', role: 'Runs the café now' });
+    const after = ch(same, 'layla');
     expect(after.hair).toBe(before.hair);
-    expect(after.refs).toEqual(before.refs);
-    expect(after.style).toBe(before.style);
     expect(after.notes).toBe('Hums when counting.');
     expect(after.role).toBe('Runs the café now');
     expect(after.voice).toEqual(before.voice);
@@ -187,22 +209,20 @@ describe('character continuity', () => {
     expect(ch(s, 'nour').portraitAssetId).toBe('ref-nour-side');
     s = setPendingReference(s, 'nour', undefined);
     expect(ch(s, 'nour').pendingReference).toBeUndefined();
-    const locked = setPendingReference(seed(), 'layla', 'ref-nour-side');
-    expect(ch(locked, 'layla').pendingReference).toBeUndefined();
-    const unknown = setPendingReference(seed(), 'um-hassan', 'ref-nour-side');
-    expect(ch(unknown, 'um-hassan').pendingReference).toBeUndefined();
+    expect(codeOf(() => setPendingReference(seed(), 'layla', 'ref-nour-side'))).toBe('APPEARANCE_LOCKED');
+    expect(codeOf(() => setPendingReference(seed(), 'um-hassan', 'ref-nour-side'))).toBe('APPEARANCE_LOCKED');
   });
 
   it('a new take records usage for the shot’s characters, and removing the take keeps the record, marked', () => {
     let s = seed();
-    // put Nour in a shot of River Lights that has no takes, then a take arrives
     expect(appearanceLock(ch(s, 'nour')).locked).toBe(false);
-    const r = addTake(s, 'river-lights', 'rl-2', { assetId: 'take-01' });
+    const r = addTake(s, 'river-lights', 'rl-2', { assetId: 'take-01', provider: 'MINIMAX', model: 'MiniMax-H3', requestId: 'req-1' });
     s = r.state;
+    expect(r.take.status).toBe('READY');
     const lock = appearanceLock(ch(s, 'nour'));
     expect(lock).toMatchObject({ locked: true, reason: 'USED' });
-    expect(lock.videos[0]).toMatchObject({ productionId: 'river-lights', shotId: 'rl-2', takeId: r.take!.id, status: 'IN_TAKE' });
-    s = removeTake(s, 'river-lights', 'rl-2', r.take!.id);
+    expect(lock.videos[0]).toMatchObject({ productionId: 'river-lights', shotId: 'rl-2', takeId: r.take.id, status: 'IN_TAKE' });
+    s = removeTake(s, 'river-lights', 'rl-2', r.take.id);
     expect(s.productions.find((p) => p.id === 'river-lights')!.shots.find((x) => x.id === 'rl-2')!.takes).toHaveLength(0);
     const kept = appearanceLock(ch(s, 'nour'));
     expect(kept.locked).toBe(true);
@@ -212,7 +232,7 @@ describe('character continuity', () => {
   it('a picture a used character’s appearance rests on cannot be deleted; an unused character’s can', () => {
     const s = seed();
     const portrait = ch(s, 'layla').portraitAssetId!;
-    expect(deleteAsset(s, portrait)).toBe(s);
+    expect(codeOf(() => deleteAsset(s, portrait))).toBe('ASSET_PROTECTED');
     const nourView = ch(s, 'nour').refs[0].assetId;
     const after = deleteAsset(s, nourView);
     expect(after.assets.some((a) => a.id === nourView)).toBe(false);
@@ -268,5 +288,12 @@ describe('Auto Idea', () => {
     expect(newcomer.portraitAssetId).toBeUndefined();
     expect(appearanceLock(newcomer).locked).toBe(false);
     expect(r.state.characters).toHaveLength(s.characters.length + 1);
+  });
+  it('a music video proposal carries its song into timed sections', () => {
+    const s = seed();
+    const p = sampleProposal(s, { kind: 'MUSIC_VIDEO', preferences: {} });
+    const r = acceptProposal(s, { kind: 'MUSIC_VIDEO', aspect: 'WIDE_16_9', proposal: p, keepCast: p.cast.map((c) => c.key), keepLocations: p.locations.map((l) => l.key), preferences: {} });
+    expect(r.production.song?.sections.length).toBeGreaterThan(0);
+    expect(r.production.song?.sections.every((x) => x.singerIds.length > 0)).toBe(true);
   });
 });

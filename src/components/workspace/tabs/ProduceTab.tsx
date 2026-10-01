@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Production, Shot } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { markStepDone, selectTake } from '@/demo/actions';
-import { assetById, shotHref, shotLabel } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, shotHref, shotLabel } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Notice, SampleMark, Segmented, Status, Thumb } from '@/components/ui/kit';
@@ -18,7 +17,7 @@ import { fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
  *  The takes here are sample clips: this is the layout, working, without a render behind it. */
 export function ProduceTab({ p }: { p: Production }) {
   const T = useT();
-  const { update } = useStudio();
+  const { act } = useStudio();
   const toast = useToast();
   const [filter, setFilter] = useState<'all' | 'open' | 'chosen'>('all');
   const shots = p.shots.filter((s) => filter === 'all' || (filter === 'chosen' ? Boolean(s.selectedTakeId) : !s.selectedTakeId));
@@ -31,8 +30,8 @@ export function ProduceTab({ p }: { p: Production }) {
         <Segmented label={T('label.status')} value={filter} onChange={setFilter} options={[{ value: 'all', label: T('label.all') }, { value: 'open', label: T('produce.chooseTake') }, { value: 'chosen', label: T('board.chosen') }]} />
       </div>
       {p.shots.some((s) => s.takes.length) && <p className="text-xs text-faint">{T('produce.sampleNote')}</p>}
-      <ol className="space-y-4">{shots.map((sh) => <ShotRow key={sh.id} p={p} sh={sh} onSelect={(id) => { update((s) => selectTake(s, p.id, sh.id, id)); if (id) toast.ok(T('toast.takeSelected')); }} />)}</ol>
-      {chosen === p.shots.length && p.stage === 'PRODUCE' && <Button onClick={() => { update((s) => markStepDone(s, p.id, 'PRODUCE')); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
+      <ol className="space-y-4">{shots.map((sh) => <ShotRow key={sh.id} p={p} sh={sh} onSelect={(id) => { act('selectTake', p.id, sh.id, id); if (id) toast.ok(T('toast.takeSelected')); }} />)}</ol>
+      {chosen === p.shots.length && p.stage === 'PRODUCE' && <Button onClick={() => { act('markStepDone', p.id, 'PRODUCE'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
     </div>
   );
 }

@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Production, Shot } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { deleteShot, duplicateShot, noteTake, removeTake, selectTake, updateShot } from '@/demo/actions';
-import { assetById, assetSrc, castOf, locationById, productionHref, seasonById, shotHref, shotLabel, showById } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, assetSrc, castOf, locationById, productionHref, seasonById, shotHref, shotLabel, showById } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
@@ -22,7 +21,7 @@ import { fmtSeconds, ratioClass, words, ratioCss } from '@/lib/format';
  *  frame), its takes and frames beneath; what happens in it on the end side. Save is explicit; leaving with edits asks. */
 export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const base = productionHref(p);
@@ -33,7 +32,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
   const show = showById(state, p.showId); const season = seasonById(state, p.seasonId);
   const { draft, patch, dirty, reset } = useDraft<ShotDraft>({ sceneId: shot.sceneId, purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, transition: shot.transition, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, songWindow: shot.songWindow, notes: shot.notes });
   useUnsavedGuard(dirty, T('shot.leave'));
-  const save = () => { update((s) => updateShot(s, p.id, shot.id, draft)); toast.ok(T('toast.saved')); };
+  const save = () => { act('updateShot', p.id, shot.id, draft); toast.ok(T('toast.saved')); };
 
   const [view, setView] = useState<'take' | 'frame'>(shot.selectedTakeId ? 'take' : 'frame');
   const [previewTake, setPreviewTake] = useState<string | null>(null);
@@ -64,8 +63,8 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
           <LinkButton href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev} size="sm" variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} aria-label={T('shot.previous')} className={prev ? '' : 'pointer-events-none opacity-40'} />
           <LinkButton href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next} size="sm" variant="ghost" icon={<IconChevronRight className="rtl:rotate-180" />} aria-label={T('shot.nextShot')} className={next ? '' : 'pointer-events-none opacity-40'} />
           <Menu label={T('nav.more')}>
-            <MenuItem icon={<IconDuplicate />} onClick={() => { update((s) => duplicateShot(s, p.id, shot.id)); toast.ok(T('toast.created')); router.push(`${base}?tab=storyboard`); }}>{T('btn.duplicate')}</MenuItem>
-            <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { update((s) => deleteShot(s, p.id, shot.id)); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); } }}>{T('btn.delete')}</MenuItem>
+            <MenuItem icon={<IconDuplicate />} onClick={() => { act('duplicateShot', p.id, shot.id); toast.ok(T('toast.created')); router.push(`${base}?tab=storyboard`); }}>{T('btn.duplicate')}</MenuItem>
+            <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { act('deleteShot', p.id, shot.id); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); } }}>{T('btn.delete')}</MenuItem>
           </Menu>
         </div>
       </header>
@@ -92,9 +91,9 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
                         <Thumb src={a?.poster ?? a?.src} alt="" ratio={ratio} className="rounded-none" />
                         {on && <span className="absolute end-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-ok text-white"><IconCheck className="size-3.5" /></span>}
                       </button>
-                      <div className="mt-1 flex items-center justify-between gap-1 text-xs"><span className="font-medium">{t.label}</span>{on ? <span className="text-ok">{T('btn.selected')}</span> : <button type="button" className="font-medium text-accent-text hover:underline" onClick={() => { update((s) => selectTake(s, p.id, shot.id, t.id)); toast.ok(T('toast.takeSelected')); }}>{T('btn.select')}</button>}</div>
-                      <Input value={t.note ?? ''} placeholder={T('label.notes')} aria-label={`${t.label} ${T('label.notes')}`} onChange={(e) => update((s) => noteTake(s, p.id, shot.id, t.id, e.target.value))} className="mt-1 !h-7 text-xs" />
-                      <button type="button" className="mt-1 text-[11px] text-faint hover:text-bad" onClick={() => { if (window.confirm(`${T('btn.remove')} ${t.label}?`)) update((s) => removeTake(s, p.id, shot.id, t.id)); }}>{T('btn.remove')}</button>
+                      <div className="mt-1 flex items-center justify-between gap-1 text-xs"><span className="font-medium">{t.label}</span>{on ? <span className="text-ok">{T('btn.selected')}</span> : <button type="button" className="font-medium text-accent-text hover:underline" onClick={() => { act('selectTake', p.id, shot.id, t.id); toast.ok(T('toast.takeSelected')); }}>{T('btn.select')}</button>}</div>
+                      <Input value={t.note ?? ''} placeholder={T('label.notes')} aria-label={`${t.label} ${T('label.notes')}`} onChange={(e) => act('noteTake', p.id, shot.id, t.id, e.target.value)} className="mt-1 !h-7 text-xs" />
+                      <button type="button" className="mt-1 text-[11px] text-faint hover:text-bad" onClick={() => { if (window.confirm(`${T('btn.remove')} ${t.label}?`)) act('removeTake', p.id, shot.id, t.id); }}>{T('btn.remove')}</button>
                     </li>
                   );
                 })}
@@ -132,7 +131,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
         <div className="flex items-center gap-2">
           {dirty && <Button variant="ghost" onClick={reset}>{T('btn.discard')}</Button>}
           <Button variant="primary" disabled={!dirty} onClick={save}>{dirty ? T('btn.save') : T('btn.saved')}</Button>
-          {!dirty && <ConfirmButton variant="ghost" label="" icon={<IconDelete />} aria-label={T('btn.delete')} title={T('shot.deleteConfirm')} onConfirm={() => { update((s) => deleteShot(s, p.id, shot.id)); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); }} />}
+          {!dirty && <ConfirmButton variant="ghost" label="" icon={<IconDelete />} aria-label={T('btn.delete')} title={T('shot.deleteConfirm')} onConfirm={() => { act('deleteShot', p.id, shot.id); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); }} />}
         </div>
       </div>
     </>

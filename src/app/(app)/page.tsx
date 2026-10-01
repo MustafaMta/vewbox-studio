@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { assetById, musicVideos, nextStep, productionHref, recentProductions, shorts, showById } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, musicVideos, nextStep, productionHref, recentProductions, shorts, showById } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { PageHeader, Section } from '@/components/ui/page';
 import { MusicVideoCard, ShortCard, ShowCard } from '@/components/library/Cards';

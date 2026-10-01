@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import type { Production, Song } from '@/domain/types';
 import { LYRIC_KINDS, type LyricKind } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { nid, updateSong } from '@/demo/actions';
-import { castOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { nid } from '@/domain/actions';
+import { castOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea } from '@/components/ui/kit';
@@ -24,7 +24,7 @@ import { fmtSeconds, words } from '@/lib/format';
  *  the words beneath in their own script. The section being sung lights up; select one to edit it. */
 export function SongLyricsTab({ p, track }: { p: Production; track: Track | null }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const player = usePlayer();
   const song = p.song;
@@ -37,9 +37,9 @@ export function SongLyricsTab({ p, track }: { p: Production; track: Track | null
   const total = st.duration || song.durationSeconds || 1;
   const selected = song.sections.find((s) => s.id === selectedId) ?? null;
   const asset = state.assets.find((a) => a.id === song.assetId);
-  const setSec = (id: string, patch: Partial<Song['sections'][number]>) => update((s) => updateSong(s, p.id, { sections: song.sections.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const setSec = (id: string, patch: Partial<Song['sections'][number]>) => act('updateSong', p.id, { sections: song.sections.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
   const playFrom = (from: number) => { if (track) player.play(track, from + 0.001); };
-  const addSection = () => { const last = song.sections[song.sections.length - 1]; const from = last?.to ?? 0; const id = nid('sec'); update((s) => updateSong(s, p.id, { sections: [...song.sections, { id, kind: 'VERSE', text: '', singerIds: song.singerIds, from, to: Math.min(from + 16, song.durationSeconds) }] })); setSelectedId(id); };
+  const addSection = () => { const last = song.sections[song.sections.length - 1]; const from = last?.to ?? 0; const id = nid('sec'); act('updateSong', p.id, { sections: [...song.sections, { id, kind: 'VERSE', text: '', singerIds: song.singerIds, from, to: Math.min(from + 16, song.durationSeconds) }] }); setSelectedId(id); };
   const quiet = (k: LyricKind) => k === 'INSTRUMENTAL' || k === 'INTRO' || k === 'OUTRO';
 
   return (
@@ -103,7 +103,7 @@ export function SongLyricsTab({ p, track }: { p: Production; track: Track | null
           </div>
         ) : (
           <div className="card space-y-4 p-5 fade-in" key={selected.id}>
-            <div className="flex items-center justify-between gap-2"><h3 className="h3">{words(selected.kind)}</h3><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={T('btn.remove')} onClick={() => { update((s) => updateSong(s, p.id, { sections: song.sections.filter((x) => x.id !== selected.id) })); setSelectedId(null); toast.ok(T('toast.deleted')); }} /></div>
+            <div className="flex items-center justify-between gap-2"><h3 className="h3">{words(selected.kind)}</h3><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={T('btn.remove')} onClick={() => { act('updateSong', p.id, { sections: song.sections.filter((x) => x.id !== selected.id) }); setSelectedId(null); toast.ok(T('toast.deleted')); }} /></div>
             <Field label={T('label.kind')}><Select value={selected.kind} onChange={(e) => setSec(selected.id, { kind: e.target.value as LyricKind })} options={LYRIC_KINDS.map((k) => ({ value: k, label: words(k) }))} /></Field>
             {!quiet(selected.kind) && (
               <>

@@ -5,7 +5,7 @@ import { useT } from '@/components/ui/locale';
 import { MobileBar, SideNav } from '@/components/ui/nav';
 import { VewboxLogo } from '@/components/ui/brand';
 import { IconPlus } from '@/components/ui/icons';
-import { useStudio } from '@/demo/store';
+import { useStudio } from '@/studio/store';
 
 /** THE SHELL — a fixed 244px sidebar in the panel colour: the brand, one primary action, the grouped navigation,
  *  and at the foot the one honest line about this build (generation is not connected; changes live in this

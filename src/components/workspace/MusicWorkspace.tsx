@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { assetById, castOf, nextStep, productionHref, progressOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, castOf, nextStep, productionHref, progressOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useTab } from '@/lib/hooks';
 import { TabBar } from '@/components/ui/kit';

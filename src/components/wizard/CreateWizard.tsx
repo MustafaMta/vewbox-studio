@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { AutoIdeaRequest, IdeaPreferences, IdeaProposal, Production, Song } from '@/domain/types';
 import { ASPECTS, DIALECTS, DURATIONS, STYLES, type Aspect, type Dialect, type Language, type Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { acceptProposal, addProduction, addShow, nid } from '@/demo/actions';
-import { assetSrc, productionHref, seasonById, showById } from '@/demo/selectors';
-import { SAMPLE_VARIANTS, sampleProposal } from '@/demo/proposals';
+import { useStudio } from '@/studio/store';
+import { nid } from '@/domain/actions';
+import { splitLyrics } from '@/domain/lyrics';
+import { assetSrc, productionHref, seasonById, showById } from '@/studio/selectors';
+import { SAMPLE_VARIANTS, sampleProposal } from '@/domain/proposals';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { AddTile, Button, ChoiceCards, Details, Dropzone, Field, Input, Modal, Notice, PickGrid, Segmented, Select, Textarea } from '@/components/ui/kit';
@@ -125,11 +126,11 @@ function Preferences({ kind, prefs, setPrefs, inheritsFromShow }: { kind: Wizard
 }
 
 /** THE REVIEW — the whole proposal, editable, before anything exists. */
-function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, onAnother }: { kind: WizardKind; showId?: string; seasonId?: string; proposal: IdeaProposal; setProposal: (p: IdeaProposal) => void; prefs: IdeaPreferences; onBack: () => void; onAnother?: () => void }) {
+function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, onAnother, proposalJobId }: { kind: WizardKind; showId?: string; seasonId?: string; proposal: IdeaProposal; setProposal: (p: IdeaProposal) => void; prefs: IdeaPreferences; onBack: () => void; onAnother?: () => void; proposalJobId?: string }) {
   const T = useT();
   const router = useRouter();
   const toast = useToast();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const [keepCast, setKeepCast] = useState<string[]>(proposal.cast.map((c) => c.key));
   const [keepLocs, setKeepLocs] = useState<string[]>(proposal.locations.map((l) => l.key));
   const [error, setError] = useState<string | null>(null);
@@ -139,10 +140,11 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
   const isMV = kind === 'music-video';
   const create = () => {
     if (!proposal.title.trim()) { setError(T('wizard.needTitle')); return; }
-    let href = '/';
-    update((s) => { const r = acceptProposal(s, { kind: REQ_KIND[kind], showId, seasonId, aspect, proposal, keepCast, keepLocations: keepLocs, preferences: prefs, lyricsToSections: splitLyrics }); href = productionHref(r.production); return r.state; });
-    toast.ok(T('toast.created'));
-    router.push(href);
+    try {
+      const r = act('acceptProposal', { kind: REQ_KIND[kind], showId, seasonId, aspect, proposal, keepCast, keepLocations: keepLocs, preferences: prefs, proposalJobId });
+      toast.ok(T('toast.created'));
+      router.push(productionHref(r.production));
+    } catch (e) { setError((e as Error).message); }
   };
   const badge = (x: { isNew: boolean; fromPreference: boolean }) => x.fromPreference ? <span className="badge badge-accent">{T('auto.yourChoice')}</span> : x.isNew ? <span className="badge badge-info">{T('auto.new')}</span> : <span className="badge">{T('auto.existing')}</span>;
   return (
@@ -239,7 +241,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
   const T = useT();
   const router = useRouter();
   const toast = useToast();
-  const { state, update, addFile } = useStudio();
+  const { state, act, addFile } = useStudio();
   const show = showById(state, showId);
   const season = seasonById(state, seasonId);
   const def = state.settings.defaults;
@@ -285,17 +287,17 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
     const brief = { mode: 'MANUAL' as const, text: text.trim() };
     const common = { title: finalTitle, titleAr: titleAr || undefined, logline: logline.trim(), style, language, dialect: language === 'AR' ? dialect : undefined, aspect, targetSeconds: duration, brief, castIds: cast, locationIds: locs };
     let href = '/';
-    update((s) => {
+    try {
       if (kind === 'show') {
-        const r = addShow(s, { ...common, logline: common.logline || brief.text, genre: genre.trim(), castIds: cast, locationIds: locs });
-        const ep = addProduction(r.state, { ...common, title: `${T('kind.EPISODE')} 1`, titleAr: undefined, kind: 'EPISODE', showId: r.show.id, seasonId: r.season.id, castIds: [], locationIds: [] });
+        const r = act('addShow', { ...common, logline: common.logline || brief.text, genre: genre.trim(), castIds: cast, locationIds: locs });
+        const ep = act('addProduction', { ...common, title: `${T('kind.EPISODE')} 1`, titleAr: undefined, kind: 'EPISODE', showId: r.show.id, seasonId: r.season.id, castIds: [], locationIds: [] });
         href = productionHref(ep.production);
-        return ep.state;
+      } else {
+        const r = act('addProduction', { ...common, kind: prodKind, showId: show?.id, seasonId: season?.id, song: buildSong() });
+        href = productionHref(r.production);
+        if (isMV || genre.trim()) act('updateProduction', r.production.id, { genre: genre.trim() || undefined, ...(isMV ? { concept, artist: state.characters.filter((c) => cast.includes(c.id)).map((c) => c.name).join(' & ') || undefined } : {}) });
       }
-      const r = addProduction(s, { ...common, kind: prodKind, showId: show?.id, seasonId: season?.id, song: buildSong() });
-      href = productionHref(r.production);
-      return isMV || genre.trim() ? { ...r.state, productions: r.state.productions.map((p) => (p.id === r.production.id ? { ...p, genre: genre.trim() || undefined, ...(isMV ? { concept, artist: state.characters.filter((c) => cast.includes(c.id)).map((c) => c.name).join(' & ') || undefined } : {}) } : p)) } : r.state;
-    });
+    } catch (e) { setError((e as Error).message); return; }
     toast.ok(T('toast.created'));
     router.push(href);
   };
@@ -426,18 +428,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
   );
 }
 
-/** Lyrics typed with blank lines between sections become timed sections spread evenly over the song. */
-export function splitLyrics(text: string, total: number): Array<Song['sections'][number]> {
-  const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  const n = Math.max(blocks.length, 1); const each = total / n;
-  return blocks.map((b, i) => {
-    const m = /^\[(intro|verse|pre[- ]?chorus|chorus|bridge|outro|instrumental)\]\s*/i.exec(b);
-    const kind = (m ? m[1].toUpperCase().replace(/[- ]/g, '_') : 'VERSE') as Song['sections'][number]['kind'];
-    const body = m ? b.slice(m[0].length) : b;
-    const isAr = /[؀-ۿ]/.test(body);
-    return { id: nid('sec'), kind, text: isAr ? '' : body, textAr: isAr ? body : undefined, singerIds: [], from: Math.round(i * each), to: Math.round((i + 1) * each) };
-  });
-}
+export { splitLyrics };
 
 /** Three small drawings that say what a style is, without a picture from anywhere. */
 export function StylePreview({ style }: { style: Style }) {

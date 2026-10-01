@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Production, Scene, Shot } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { addShot, deleteShot, duplicateShot, markStepDone, moveShot, reorderShot } from '@/demo/actions';
-import { assetById, castOf, locationById, shotHref, shotLabel } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, castOf, locationById, shotHref, shotLabel } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Button, Menu, MenuItem, MenuLink, Modal, Notice, Status, Thumb } from '@/components/ui/kit';
@@ -17,7 +16,7 @@ import { fmtSeconds, ratioClass, words } from '@/lib/format';
 /** STORYBOARD — the shots as pictures, scene by scene. Drag to reorder within a scene; open one to edit it. */
 export function StoryboardTab({ p }: { p: Production }) {
   const T = useT();
-  const { update } = useStudio();
+  const { act } = useStudio();
   const toast = useToast();
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -43,16 +42,16 @@ export function StoryboardTab({ p }: { p: Production }) {
                 {shots.map((sh, i) => (
                   <ShotCard key={sh.id} p={p} sh={sh} first={i === 0} last={i === shots.length - 1} dragging={dragging === sh.id} over={over === sh.id && dragging !== sh.id}
                     onDragStart={() => setDragging(sh.id)} onDragEnd={() => { setDragging(null); setOver(null); }} onDragOver={() => setOver(sh.id)}
-                    onDrop={() => { if (dragging && dragging !== sh.id) update((s) => reorderShot(s, p.id, dragging, sh.id)); setDragging(null); setOver(null); }} />
+                    onDrop={() => { if (dragging && dragging !== sh.id) act('reorderShot', p.id, dragging, sh.id); setDragging(null); setOver(null); }} />
                 ))}
-                {dragging && <li className={`rounded-xl border-2 border-dashed ${over === `end-${sc.id}` ? 'border-accent' : 'border-line'} min-h-16`} onDragOver={(e) => { e.preventDefault(); setOver(`end-${sc.id}`); }} onDrop={() => { if (dragging) update((s) => reorderShot(s, p.id, dragging, null)); setDragging(null); setOver(null); }} aria-hidden />}
+                {dragging && <li className={`rounded-xl border-2 border-dashed ${over === `end-${sc.id}` ? 'border-accent' : 'border-line'} min-h-16`} onDragOver={(e) => { e.preventDefault(); setOver(`end-${sc.id}`); }} onDrop={() => { if (dragging) act('reorderShot', p.id, dragging, null); setDragging(null); setOver(null); }} aria-hidden />}
               </ol>
             )}
           </section>
         );
       })}
       <p className="text-xs text-faint">{T('board.dragHint')}</p>
-      {p.shots.length > 0 && p.stage === 'STORYBOARD' && <Button size="sm" onClick={() => { update((s) => markStepDone(s, p.id, 'STORYBOARD')); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
+      {p.shots.length > 0 && p.stage === 'STORYBOARD' && <Button size="sm" onClick={() => { act('markStepDone', p.id, 'STORYBOARD'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
     </div>
   );
 }
@@ -70,7 +69,7 @@ function SceneHeading({ p, sc, count }: { p: Production; sc: Scene; count: numbe
 
 function ShotCard({ p, sh, first, last, dragging, over, onDragStart, onDragEnd, onDragOver, onDrop }: { p: Production; sh: Shot; first: boolean; last: boolean; dragging: boolean; over: boolean; onDragStart: () => void; onDragEnd: () => void; onDragOver: () => void; onDrop: () => void }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const frame = assetById(state, sh.openingFrameAssetId);
   const take = sh.takes.find((t) => t.id === sh.selectedTakeId);
@@ -98,10 +97,10 @@ function ShotCard({ p, sh, first, last, dragging, over, onDragStart, onDragEnd, 
         <span className="hidden cursor-grab p-1 text-white/80 sm:inline-flex" title={T('board.dragHint')}><IconDrag className="size-4" /></span>
         <Menu label={`${T('label.shot')} ${shotLabel(p, sh)}: ${T('nav.more')}`} className="[&>summary]:text-white [&>summary:hover]:bg-white/20">
           <MenuLink href={href} icon={<IconEdit />}>{T('board.editShot')}</MenuLink>
-          <MenuItem icon={<IconUp />} disabled={first} onClick={() => update((s) => moveShot(s, p.id, sh.id, -1))}>{T('btn.moveUp')}</MenuItem>
-          <MenuItem icon={<IconDown />} disabled={last} onClick={() => update((s) => moveShot(s, p.id, sh.id, 1))}>{T('btn.moveDown')}</MenuItem>
-          <MenuItem icon={<IconDuplicate />} onClick={() => { update((s) => duplicateShot(s, p.id, sh.id)); toast.ok(T('toast.created')); }}>{T('btn.duplicate')}</MenuItem>
-          <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { update((s) => deleteShot(s, p.id, sh.id)); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem>
+          <MenuItem icon={<IconUp />} disabled={first} onClick={() => act('moveShot', p.id, sh.id, -1)}>{T('btn.moveUp')}</MenuItem>
+          <MenuItem icon={<IconDown />} disabled={last} onClick={() => act('moveShot', p.id, sh.id, 1)}>{T('btn.moveDown')}</MenuItem>
+          <MenuItem icon={<IconDuplicate />} onClick={() => { act('duplicateShot', p.id, sh.id); toast.ok(T('toast.created')); }}>{T('btn.duplicate')}</MenuItem>
+          <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { act('deleteShot', p.id, sh.id); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem>
         </Menu>
       </span>
     </li>
@@ -109,12 +108,12 @@ function ShotCard({ p, sh, first, last, dragging, over, onDragStart, onDragEnd, 
 }
 
 export function AddShot({ p, sceneId, variant = 'primary' }: { p: Production; sceneId?: string; variant?: 'primary' | 'secondary' }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast();
+  const T = useT(); const { act } = useStudio(); const toast = useToast();
   const [draft, setDraft] = useState<ShotDraft>(() => emptyShot(sceneId ?? p.scenes[p.scenes.length - 1]?.id ?? ''));
   return (
     <Modal size="lg" title={T('btn.addShot')} trigger={(open) => <Button size="sm" variant={variant} icon={<IconPlus />} disabled={p.scenes.length === 0} onClick={() => { setDraft(emptyShot(sceneId ?? p.scenes[p.scenes.length - 1]?.id ?? '')); open(); }}>{T('btn.addShot')}</Button>}>
       {(close) => (
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (!draft.sceneId) return; update((s) => addShot(s, p.id, draft).state); toast.ok(T('toast.created')); close(); }}>
+        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (!draft.sceneId) return; act('addShot', p.id, draft); toast.ok(T('toast.created')); close(); }}>
           <ShotFields p={p} draft={draft} onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))} showScene />
           <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
         </form>

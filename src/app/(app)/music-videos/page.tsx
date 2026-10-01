@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { musicVideos, search } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { musicVideos, search } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { LinkButton } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';

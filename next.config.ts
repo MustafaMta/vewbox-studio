@@ -1,10 +1,13 @@
 import type { NextConfig } from 'next';
 
-/** A frontend-only application: no server actions, no database, no API routes. Every page renders from local
- *  fixtures and the browser's own storage. */
+/** The studio's web server: pages, the JSON API under /api, media streaming, the event stream. Database and
+ *  library paths come from the environment; the worker is a separate process on the same code. */
 const config: NextConfig = {
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: false },
+  output: 'standalone',
+  serverExternalPackages: ['postgres', 'pino', 'pino-pretty', 'file-type', 'drizzle-orm'],
+  experimental: { serverActions: { bodySizeLimit: '2gb' } },
   agentRules: false,
 };
 

@@ -3,20 +3,19 @@
 import { useState } from 'react';
 import type { Character } from '@/domain/types';
 import { DIALECTS, LANGUAGES, PACES, PITCHES, SEXES, STYLES, type Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { addCharacter, updateCharacter } from '@/demo/actions';
+import { useStudio } from '@/studio/store';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Select, Textarea } from '@/components/ui/kit';
 import { dialectLabel, words } from '@/lib/format';
-import { appearanceLock } from '@/demo/rules';
+import { appearanceLock } from '@/domain/rules';
 import { Notice } from '@/components/ui/kit';
 
 /** THE CHARACTER FORM — who they are and what they look like, in plain fields. The same form creates a character
  *  from the library, from a show's canon, or inline from the wizard; with `initial` it edits one. */
 export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, section = 'all' }: { initial?: Character; defaultStyle?: Style; onSaved: (id: string) => void; onCancel?: () => void; section?: 'all' | 'appearance' | 'profile' }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const def = state.settings.defaults;
   const [d, setD] = useState({
@@ -35,12 +34,11 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
     if (!d.name.trim()) { setError(T('label.name')); return; }
     const base = { name: d.name.trim(), nameAr: d.nameAr.trim() || undefined, role: d.role.trim(), style: d.style, sex: d.sex, species: d.species.trim() || undefined, ageYears: Number(d.ageYears) || 1, build: d.build, face: d.face, hair: d.hair, skin: d.skin, eyes: d.eyes, distinguishing: d.distinguishing.split(',').map((x) => x.trim()).filter(Boolean), wardrobe: d.wardrobe, personality: d.personality, language: d.language, dialect: d.language === 'AR' ? d.dialect : undefined };
     if (initial) {
-      update((s) => updateCharacter(s, initial.id, { ...base, voice: { ...initial.voice, pitch: d.pitch, pace: d.pace, timbre: d.timbre, notes: d.notes } }));
+      act('updateCharacter', initial.id, { ...base, voice: { ...initial.voice, pitch: d.pitch, pace: d.pace, timbre: d.timbre, notes: d.notes } });
       toast.ok(T('toast.saved')); onSaved(initial.id);
     } else {
-      let id = '';
-      update((s) => { const r = addCharacter(s, { ...base, voice: { pitch: d.pitch, pace: d.pace, timbre: d.timbre, notes: d.notes } }); id = r.character.id; return r.state; });
-      toast.ok(T('toast.created')); onSaved(id);
+      const r = act('addCharacter', { ...base, voice: { pitch: d.pitch, pace: d.pace, timbre: d.timbre, notes: d.notes } });
+      toast.ok(T('toast.created')); onSaved(r.character.id);
     }
   };
 

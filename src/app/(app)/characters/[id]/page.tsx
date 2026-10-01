@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound, useParams } from 'next/navigation';
-import { useStudio } from '@/demo/store';
+import { useStudio } from '@/studio/store';
 import { CharacterPage } from '@/components/character/CharacterPage';
 
 export default function Page() {

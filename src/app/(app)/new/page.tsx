@@ -1,7 +1,7 @@
 'use client';
 
-import { useStudio } from '@/demo/store';
-import { assetSrc } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { PageHeader } from '@/components/ui/page';
 import { StartCard } from '@/components/library/Cards';

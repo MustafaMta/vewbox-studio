@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { assetById, nextStep, productionHref, progressOf, seasonById, showById } from '@/demo/selectors';
-import { updateProduction } from '@/demo/actions';
+import { useStudio } from '@/studio/store';
+import { assetById, nextStep, productionHref, progressOf, seasonById, showById } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -31,7 +30,7 @@ const ALIAS: Record<string, Tab> = { cast: 'characters' };
 
 export function FilmWorkspace({ p }: { p: Production }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const [rawTab] = useTab([...FILM_TABS, 'cast'] as const, 'overview');
   const tab: Tab = (ALIAS[rawTab] ?? rawTab) as Tab;
@@ -61,8 +60,8 @@ export function FilmWorkspace({ p }: { p: Production }) {
 
       <div role="tabpanel" hidden={tab !== 'overview'}><OverviewTab p={p} /></div>
       <div role="tabpanel" hidden={tab !== 'story'}><StoryTab p={p} /></div>
-      <div role="tabpanel" hidden={tab !== 'characters'}><CanonPicker only="cast" castIds={p.castIds} locationIds={p.locationIds} inheritedCast={show?.castIds} inheritedLocations={show?.locationIds} style={p.style} onChange={(patch) => { update((s) => updateProduction(s, p.id, patch)); toast.ok(T('toast.saved')); }} /></div>
-      <div role="tabpanel" hidden={tab !== 'locations'}><CanonPicker only="locations" castIds={p.castIds} locationIds={p.locationIds} inheritedCast={show?.castIds} inheritedLocations={show?.locationIds} style={p.style} onChange={(patch) => { update((s) => updateProduction(s, p.id, patch)); toast.ok(T('toast.saved')); }} /></div>
+      <div role="tabpanel" hidden={tab !== 'characters'}><CanonPicker only="cast" castIds={p.castIds} locationIds={p.locationIds} inheritedCast={show?.castIds} inheritedLocations={show?.locationIds} style={p.style} onChange={(patch) => { act('updateProduction', p.id, patch); toast.ok(T('toast.saved')); }} /></div>
+      <div role="tabpanel" hidden={tab !== 'locations'}><CanonPicker only="locations" castIds={p.castIds} locationIds={p.locationIds} inheritedCast={show?.castIds} inheritedLocations={show?.locationIds} style={p.style} onChange={(patch) => { act('updateProduction', p.id, patch); toast.ok(T('toast.saved')); }} /></div>
       <div role="tabpanel" hidden={tab !== 'storyboard'}>{tab === 'storyboard' && <StoryboardTab p={p} />}</div>
       <div role="tabpanel" hidden={tab !== 'produce'}>{tab === 'produce' && <ProduceTab p={p} />}</div>
       <div role="tabpanel" hidden={tab !== 'final'}>{tab === 'final' && <FinalCutTab p={p} />}</div>

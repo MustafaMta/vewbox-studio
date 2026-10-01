@@ -1,4 +1,5 @@
-import type { Character, Production, StudioState, VideoUsage } from '@/domain/types';
+import type { Character, Production, StudioState, VideoUsage } from './types';
+import { StudioError } from './errors';
 
 /** THE CONTINUITY RULE — a character's appearance may be generated, regenerated or replaced only while that character
  *  has never been in a video. Once a take of any video contains them, their appearance is preserved.
@@ -8,14 +9,12 @@ import type { Character, Production, StudioState, VideoUsage } from '@/domain/ty
  *  - Every take counts, chosen or not, approved or rejected. Removing a take marks its record; it never erases it.
  *  - When the history is unknown (`usage` absent, or `known: false`), the character is treated as used.
  *
- *  The interface enforces this in three places: the controls (disabled, with the reason), the shared state actions
- *  (appearance fields are dropped from updates to a locked character; locked pictures cannot be deleted), and this
- *  module, which both use. A future backend must enforce the same rule on its side — a request to regenerate or
- *  replace the appearance of a used character must be refused there too, whatever the client sends. See
- *  docs/CHARACTER-CONTINUITY.md. */
+ *  This module is shared by the browser (to disable controls and explain why) and the server (to refuse). The server
+ *  is the enforcement: a command that would change a used character's appearance fails with APPEARANCE_LOCKED,
+ *  whatever the client sent. See docs/CHARACTER-CONTINUITY.md. */
 
 /** The fields that make up how a character looks. Voice and the written profile are not among them. */
-export const APPEARANCE_KEYS = ['portraitAssetId', 'refs', 'pendingReference', 'style', 'species', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'distinguishing', 'wardrobe'] as const satisfies ReadonlyArray<keyof Character>;
+export const APPEARANCE_KEYS = ['portraitAssetId', 'refs', 'pendingReference', 'style', 'species', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'distinguishing', 'wardrobe', 'canon'] as const satisfies ReadonlyArray<keyof Character>;
 
 export type AppearanceLock =
   | { locked: false; reason: null; videos: VideoUsage[] }
@@ -29,10 +28,21 @@ export function appearanceLock(c: Pick<Character, 'usage'>): AppearanceLock {
 
 export const canChangeAppearance = (c: Pick<Character, 'usage'>) => !appearanceLock(c).locked;
 
-/** Drop appearance fields from a patch when the character is locked. The rest (name, role, personality, notes,
- *  language, voice) passes through. */
+/** The appearance keys a patch touches with a real change. */
+export function appearanceChanges(c: Character, patch: Partial<Character>): string[] {
+  const out: string[] = [];
+  for (const k of APPEARANCE_KEYS) {
+    if (!(k in patch)) continue;
+    if (JSON.stringify(patch[k] ?? null) !== JSON.stringify(c[k] ?? null)) out.push(k);
+  }
+  return out;
+}
+
+/** Refuse a patch that changes the appearance of a locked character; pass everything else through unchanged. */
 export function guardCharacterPatch<P extends Partial<Character>>(c: Character, patch: P): P {
   if (canChangeAppearance(c)) return patch;
+  const changed = appearanceChanges(c, patch);
+  if (changed.length > 0) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity (${changed.join(', ')}).`, { characterId: c.id, fields: changed, reason: appearanceLock(c).reason });
   const out = { ...patch } as Record<string, unknown>;
   for (const k of APPEARANCE_KEYS) delete out[k];
   return out as P;

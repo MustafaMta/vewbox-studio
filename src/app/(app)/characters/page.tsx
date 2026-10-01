@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { assignmentsOf, search } from '@/demo/selectors';
-import { deleteCharacter } from '@/demo/actions';
-import { appearanceLock } from '@/demo/rules';
+import { useStudio } from '@/studio/store';
+import { assignmentsOf, search } from '@/studio/selectors';
+import { appearanceLock } from '@/domain/rules';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { LinkButton, Menu, MenuItem, MenuLink, Select } from '@/components/ui/kit';
@@ -23,7 +22,7 @@ type Usage = '' | 'used' | 'unused' | 'unknown';
  *  been in a video, and their voice. Search, and three compact filters: style, production, usage. */
 export default function CharactersPage() {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const [q, setQ] = useState(''); const [style, setStyle] = useState<Style | ''>(''); const [home, setHome] = useState(''); const [usage, setUsage] = useState<Usage>(''); const [sort, setSort] = useState<'recent' | 'title'>('title');
@@ -50,7 +49,7 @@ export default function CharactersPage() {
                   <MenuLink href={`/characters/${c.id}`} icon={<IconOpen />}>{T('btn.open')}</MenuLink>
                   <MenuLink href={`/characters/${c.id}?tab=voice`} icon={<IconVoice />}>{T('tab.voice')}</MenuLink>
                   <MenuLink href={`/characters/${c.id}?tab=profile`} icon={<IconEdit />}>{T('tab.profile')}</MenuLink>
-                  <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${c.name}”? ${T('char.deleteConfirm')}`)) { update((s) => deleteCharacter(s, c.id)); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
+                  <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${c.name}”? ${T('char.deleteConfirm')}`)) { act('deleteCharacter', c.id); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
                 </Menu>} />)}
             </ul>
           )}

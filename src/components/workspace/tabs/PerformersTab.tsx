@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { updateProduction, updateSong } from '@/demo/actions';
-import { assetById, assetSrc, castOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, assetSrc, castOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Status } from '@/components/ui/kit';
@@ -17,11 +16,11 @@ import { words } from '@/lib/format';
  *  it is previewed through the studio's one player. */
 export function PerformersTab({ p }: { p: Production }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p);
   const song = p.song;
-  const setCast = (ids: string[]) => { update((s) => { let next = updateProduction(s, p.id, { castIds: ids }); if (song) next = updateSong(next, p.id, { singerIds: ids }); return next; }); toast.ok(T('toast.saved')); };
+  const setCast = (ids: string[]) => { act('updateProduction', p.id, { castIds: ids }); if (song) act('updateSong', p.id, { singerIds: ids }); toast.ok(T('toast.saved')); };
   return (
     <Block title={T('tab.performers')} count={cast.length} description={T('mv.performers.hint')} actions={<Picker kind="cast" style={p.style} selected={p.castIds} onChange={setCast} label={T('mv.addPerformer')} />}>
       {cast.length === 0 ? <Empty title={T('empty.cast')} hint={T('mv.performers.hint')} action={<Picker kind="cast" style={p.style} selected={p.castIds} onChange={setCast} label={T('mv.addPerformer')} />} /> : (

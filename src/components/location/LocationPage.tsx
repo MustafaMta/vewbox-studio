@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Location } from '@/domain/types';
 import { LOCATION_REF_ROLES, TIMES_OF_DAY, type LocationRefRole, type TimeOfDay } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { deleteLocation, updateLocation } from '@/demo/actions';
-import { assetById, productionHref } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, productionHref } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -25,7 +24,7 @@ const TABS = ['overview', 'views', 'lighting', 'props', 'used'] as const;
  *  Pictures and camera views first; the words after; nothing technical in the way. */
 export function LocationPage({ l }: { l: Location }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const [tab] = useTab(TABS, 'overview');
@@ -37,7 +36,7 @@ export function LocationPage({ l }: { l: Location }) {
       <Hero backdropSrc={master?.src} art={<Art src={master?.src} ratio="wide" title={l.name} sample={master?.sample} unavailable={master?.unavailable} />}
         eyebrow={<>{l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior')} · {T.dyn(`style.${l.style}`)}</>} title={l.name} titleAr={l.nameAr} description={l.description}
         meta={<Dots items={[l.lighting.map(words).join(', '), `${l.refs.length} ${T('tab.views').toLowerCase()}`, `${usedBy.length + shows.length} ${T('tab.usedIn').toLowerCase()}`]} />}
-        actions={<><Modal title={`${T('btn.edit')}: ${l.name}`} size="lg" trigger={(open) => <Button variant="primary" icon={<IconEdit />} onClick={open}>{T('btn.edit')}</Button>}>{(close) => <LocationForm initial={l} onSaved={close} onCancel={close} />}</Modal><ConfirmDelete title={l.name} onDelete={() => { update((s) => deleteLocation(s, l.id)); toast.ok(T('toast.deleted')); router.push('/locations'); }} variant="ghost" icon={<IconDelete />}>{T('loc.deleteConfirm')}</ConfirmDelete></>}
+        actions={<><Modal title={`${T('btn.edit')}: ${l.name}`} size="lg" trigger={(open) => <Button variant="primary" icon={<IconEdit />} onClick={open}>{T('btn.edit')}</Button>}>{(close) => <LocationForm initial={l} onSaved={close} onCancel={close} />}</Modal><ConfirmDelete title={l.name} onDelete={() => { act('deleteLocation', l.id); toast.ok(T('toast.deleted')); router.push('/locations'); }} variant="ghost" icon={<IconDelete />}>{T('loc.deleteConfirm')}</ConfirmDelete></>}
         back={{ href: '/locations', label: T('nav.locations') }} />
 
       <TabBar ariaLabel={l.name} current={tab} hrefFor={(id) => `/locations/${l.id}?tab=${id}`} className="mb-6" tabs={[{ id: 'overview', label: T('tab.overview') }, { id: 'views', label: T('tab.views'), count: l.refs.filter((r) => r.role !== 'STATE').length }, { id: 'lighting', label: T('tab.lighting'), count: l.refs.filter((r) => r.role === 'STATE').length }, { id: 'props', label: T('tab.props'), count: l.props.length }, { id: 'used', label: T('tab.usedIn'), count: usedBy.length + shows.length }]} />
@@ -60,7 +59,7 @@ export function LocationPage({ l }: { l: Location }) {
         {tab === 'lighting' && (
           <div className="space-y-10">
             <Block title={T('label.lighting')} description={T('loc.lighting.hint')}>
-              <div className="flex flex-wrap gap-x-5 gap-y-2">{TIMES_OF_DAY.map((tod) => <Checkbox key={tod} label={words(tod)} checked={l.lighting.includes(tod)} onChange={(e) => update((s) => updateLocation(s, l.id, { lighting: e.target.checked ? [...l.lighting, tod as TimeOfDay] : l.lighting.filter((x) => x !== tod) }))} />)}</div>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">{TIMES_OF_DAY.map((tod) => <Checkbox key={tod} label={words(tod)} checked={l.lighting.includes(tod)} onChange={(e) => act('updateLocation', l.id, { lighting: e.target.checked ? [...l.lighting, tod as TimeOfDay] : l.lighting.filter((x) => x !== tod) })} />)}</div>
             </Block>
             <Views l={l} roles={['STATE']} title={T('loc.states')} />
           </div>
@@ -83,14 +82,14 @@ export function LocationPage({ l }: { l: Location }) {
 
 function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; title: string }) {
   const T = useT();
-  const { state, update, addFile } = useStudio();
+  const { state, act, addFile } = useStudio();
   const toast = useToast();
   const [role, setRole] = useState<LocationRefRole>(roles.includes('VIEW') ? 'VIEW' : roles[0]);
   const refs = l.refs.filter((r) => roles.includes(r.role));
   const onFile = async (file: File) => {
     const r = await addFile(file, { label: `${l.name} — ${words(role)}`, tags: ['location'] });
     if (!r.ok) { toast.bad(r.error); return; }
-    update((s) => updateLocation(s, l.id, { refs: [...l.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id, label: words(role) }], masterAssetId: l.masterAssetId ?? r.asset.id }));
+    act('updateLocation', l.id, { refs: [...l.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id, label: words(role) }], masterAssetId: l.masterAssetId ?? r.asset.id });
     toast.ok(T('media.added'));
   };
   const actions = (
@@ -110,8 +109,8 @@ function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; tit
               <li key={r.id} className="group">
                 <Art src={a?.src} ratio="wide" title={r.label} sample={a?.sample} unavailable={a?.unavailable}>
                   <span className="card-tools absolute end-2 bottom-2 flex gap-1">
-                    {l.masterAssetId !== r.assetId && <button type="button" className="btn btn-secondary btn-xs" onClick={() => update((s) => updateLocation(s, l.id, { masterAssetId: r.assetId }))}><IconCheck />{T('label.masterPlate')}</button>}
-                    <button type="button" className="btn btn-secondary btn-xs btn-icon" aria-label={`${T('btn.remove')} ${r.label}`} onClick={() => update((s) => updateLocation(s, l.id, { refs: l.refs.filter((x) => x.id !== r.id) }))}><IconDelete /></button>
+                    {l.masterAssetId !== r.assetId && <button type="button" className="btn btn-secondary btn-xs" onClick={() => act('updateLocation', l.id, { masterAssetId: r.assetId })}><IconCheck />{T('label.masterPlate')}</button>}
+                    <button type="button" className="btn btn-secondary btn-xs btn-icon" aria-label={`${T('btn.remove')} ${r.label}`} onClick={() => act('updateLocation', l.id, { refs: l.refs.filter((x) => x.id !== r.id) })}><IconDelete /></button>
                   </span>
                 </Art>
                 <p className="poster-title text-sm">{r.label}</p>
@@ -127,9 +126,9 @@ function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; tit
 
 function Props({ l }: { l: Location }) {
   const T = useT();
-  const { update } = useStudio();
+  const { act } = useStudio();
   const [draft, setDraft] = useState('');
-  const add = () => { const v = draft.trim(); if (!v) return; update((s) => updateLocation(s, l.id, { props: [...l.props, v] })); setDraft(''); };
+  const add = () => { const v = draft.trim(); if (!v) return; act('updateLocation', l.id, { props: [...l.props, v] }); setDraft(''); };
   return (
     <Block title={T('tab.props')} count={l.props.length} description={T('loc.props.hint')}>
       <form className="mb-4 flex max-w-md gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
@@ -138,7 +137,7 @@ function Props({ l }: { l: Location }) {
       </form>
       {l.props.length === 0 ? <Empty title={T('tab.props')} hint={T('loc.props.hint')} /> : (
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {l.props.map((p) => <li key={p} className="panel flex items-center justify-between gap-3 px-4 py-3 text-sm"><span dir="auto">{p}</span><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={`${T('btn.remove')} ${p}`} onClick={() => update((s) => updateLocation(s, l.id, { props: l.props.filter((x) => x !== p) }))} /></li>)}
+          {l.props.map((p) => <li key={p} className="panel flex items-center justify-between gap-3 px-4 py-3 text-sm"><span dir="auto">{p}</span><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={`${T('btn.remove')} ${p}`} onClick={() => act('updateLocation', l.id, { props: l.props.filter((x) => x !== p) })} /></li>)}
         </ul>
       )}
     </Block>

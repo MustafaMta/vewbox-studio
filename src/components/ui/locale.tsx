@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect } from 'react';
 import { t, tt, type Key, type Locale } from '@/lib/i18n';
-import { useStudio } from '@/demo/store';
+import { useStudio } from '@/studio/store';
 
 const Ctx = createContext<Locale>('en');
 

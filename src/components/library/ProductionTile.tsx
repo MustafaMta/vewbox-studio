@@ -2,9 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { deleteProduction, duplicateProduction } from '@/demo/actions';
-import { nextStep, productionHref } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { nextStep, productionHref } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Menu, MenuItem, MenuLink, Status, type Tone } from '@/components/ui/kit';
@@ -22,7 +21,7 @@ export function StageStatus({ p, className = '' }: { p: Production; className?: 
 
 export function ProductionMenu({ p }: { p: Production }) {
   const T = useT();
-  const { update } = useStudio();
+  const { act } = useStudio();
   const router = useRouter();
   const toast = useToast();
   const href = productionHref(p);
@@ -31,8 +30,8 @@ export function ProductionMenu({ p }: { p: Production }) {
   return (
     <Menu label={`${p.title}: ${T('nav.more')}`}>
       <MenuLink href={`${href}?tab=${nextTab}`} icon={<IconOpen />}>{T.dyn(next.key)}</MenuLink>
-      <MenuItem icon={<IconDuplicate />} onClick={() => { let created: Production | null = null; update((s) => { const r = duplicateProduction(s, p.id); created = r.production; return r.state; }); if (created) toast.ok(T('toast.created'), { label: T('btn.open'), href: productionHref(created) }); }}>{T('btn.duplicate')}</MenuItem>
-      <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${p.title}”?`)) { update((s) => deleteProduction(s, p.id)); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
+      <MenuItem icon={<IconDuplicate />} onClick={() => { const r = act('duplicateProduction', p.id); if (r.production) toast.ok(T('toast.created'), { label: T('btn.open'), href: productionHref(r.production) }); }}>{T('btn.duplicate')}</MenuItem>
+      <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${p.title}”?`)) { act('deleteProduction', p.id); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
     </Menu>
   );
 }

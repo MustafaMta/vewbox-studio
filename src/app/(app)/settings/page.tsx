@@ -1,8 +1,8 @@
 'use client';
 
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { updateSettings } from '@/demo/actions';
+import { useStudio } from '@/studio/store';
+import { updateSettings } from '@/domain/actions';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader, Section } from '@/components/ui/page';
@@ -14,10 +14,10 @@ import { aspectLabel, dialectLabel } from '@/lib/format';
  *  Quiet and practical: a heading, a card, the controls. */
 export default function SettingsPage() {
   const T = useT();
-  const { state, update, reset, startEmpty, modified } = useStudio();
+  const { state, act, reset, startEmpty, modified } = useStudio();
   const toast = useToast();
   const s = state.settings;
-  const set = (patch: Parameters<typeof updateSettings>[1]) => update((st) => updateSettings(st, patch));
+  const set = (patch: Parameters<typeof updateSettings>[1]) => act('updateSettings', patch);
   const empty = state.productions.length + state.characters.length + state.locations.length + state.shows.length === 0;
   return (
     <div className="mx-auto max-w-3xl space-y-10">

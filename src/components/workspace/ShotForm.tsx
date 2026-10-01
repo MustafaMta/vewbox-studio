@@ -2,9 +2,9 @@
 
 import type { Production, Shot } from '@/domain/types';
 import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
-import { nid } from '@/demo/actions';
-import { castOf } from '@/demo/selectors';
-import { useStudio } from '@/demo/store';
+import { nid } from '@/domain/actions';
+import { castOf } from '@/studio/selectors';
+import { useStudio } from '@/studio/store';
 import { useT } from '@/components/ui/locale';
 import { Button, Checkbox, Details, Field, Input, Select, Textarea } from '@/components/ui/kit';
 import { IconDelete, IconPlus } from '@/components/ui/icons';

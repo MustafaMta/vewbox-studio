@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { assetSrc } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { AddTile, Button, Modal, PickGrid } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';

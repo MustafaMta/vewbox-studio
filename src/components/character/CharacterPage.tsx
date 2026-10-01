@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Character, VideoUsage } from '@/domain/types';
 import { CHARACTER_REF_ROLES, type CharacterRefRole } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { addVoiceRecording, deleteCharacter, selectVoiceSample, setPendingReference, updateCharacter } from '@/demo/actions';
-import { assetById, assignmentsOf, productionHref } from '@/demo/selectors';
-import { appearanceLock, type AppearanceLock } from '@/demo/rules';
+import { useStudio } from '@/studio/store';
+import { assetById, assignmentsOf, productionHref } from '@/studio/selectors';
+import { appearanceLock, type AppearanceLock } from '@/domain/rules';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -29,7 +28,7 @@ const VIEW_ROLES: CharacterRefRole[] = ['FACE', 'FRONT', 'THREE_QUARTER', 'SIDE'
  *  stay editable. */
 export function CharacterPage({ c }: { c: Character }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const [tab] = useTab(TABS, 'appearance');
@@ -44,7 +43,7 @@ export function CharacterPage({ c }: { c: Character }) {
         description={c.role} meta={<><UsageStatus lock={lock} /><span className="text-ink-500" aria-hidden>·</span><Dots items={[`${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`, c.voice.selectedSampleId ? T('lib.voiceSelected') : T('lib.noVoice')]} /></>}
         actions={<>
           <Modal title={`${T('btn.edit')}: ${c.name}`} size="lg" trigger={(open) => <Button variant="primary" icon={<IconEdit />} onClick={open}>{T('char.editProfile')}</Button>}>{(close) => <CharacterForm initial={c} onSaved={close} onCancel={close} />}</Modal>
-          <ConfirmDelete title={c.name} onDelete={() => { update((s) => deleteCharacter(s, c.id)); toast.ok(T('toast.deleted')); router.push('/characters'); }} variant="ghost" icon={<IconDelete />}>{T('char.deleteConfirm')}</ConfirmDelete>
+          <ConfirmDelete title={c.name} onDelete={() => { act('deleteCharacter', c.id); toast.ok(T('toast.deleted')); router.push('/characters'); }} variant="ghost" icon={<IconDelete />}>{T('char.deleteConfirm')}</ConfirmDelete>
         </>}
         back={{ href: '/characters', label: T('nav.characters') }} compact />
 
@@ -95,7 +94,7 @@ function LockNotice({ c, lock }: { c: Character; lock: AppearanceLock }) {
  *  shown side by side and never confused. */
 function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
   const T = useT();
-  const { state, update, addFile, removeAsset } = useStudio();
+  const { state, act, addFile, removeAsset } = useStudio();
   const toast = useToast();
   const [role, setRole] = useState<CharacterRefRole>('FRONT');
   const [busy, setBusy] = useState<'ref' | 'view' | null>(null);
@@ -110,18 +109,18 @@ function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
     const r = await addFile(file, { label: `${c.name} — ${T('char.ref.label')}`, tags: ['character', 'reference upload'] });
     setBusy(null);
     if (!r.ok) { toast.bad(r.error); return; }
-    update((s) => setPendingReference(s, c.id, r.asset.id));
+    act('setPendingReference', c.id, r.asset.id);
     if (previous) await removeAsset(previous);
     toast.ok(previous ? T('char.ref.replaced') : T('char.ref.added'));
   };
-  const removeReference = async () => { const id = c.pendingReference?.assetId; update((s) => setPendingReference(s, c.id, undefined)); if (id) await removeAsset(id); toast.ok(T('char.ref.removed')); };
+  const removeReference = async () => { const id = c.pendingReference?.assetId; act('setPendingReference', c.id, undefined); if (id) await removeAsset(id); toast.ok(T('char.ref.removed')); };
   const addView = async (file: File) => {
     if (!file.type.startsWith('image/')) { toast.bad(T('char.ref.notImage')); return; }
     setBusy('view');
     const r = await addFile(file, { label: `${c.name} — ${words(role)}`, tags: ['character', 'reference'] });
     setBusy(null);
     if (!r.ok) { toast.bad(r.error); return; }
-    update((s) => updateCharacter(s, c.id, { refs: [...c.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id }], portraitAssetId: c.portraitAssetId ?? r.asset.id }));
+    act('updateCharacter', c.id, { refs: [...c.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id }], portraitAssetId: c.portraitAssetId ?? r.asset.id });
     toast.ok(T('media.added'));
   };
   const views = c.refs.filter((r) => VIEW_ROLES.includes(r.role));
@@ -134,8 +133,8 @@ function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
           <li key={r.id} className="poster-card group relative">
             <Art src={a?.src} ratio="portrait" title={words(r.role)} sample={a?.sample} unavailable={a?.unavailable}>
               {!lock.locked && <span className="card-tools absolute bottom-2 end-2 flex gap-1">
-                {c.portraitAssetId !== r.assetId && <button type="button" className="btn btn-secondary btn-xs" onClick={() => update((s) => updateCharacter(s, c.id, { portraitAssetId: r.assetId }))}><IconCheck />{T('char.setPortrait')}</button>}
-                <button type="button" className="btn btn-secondary btn-xs btn-icon" aria-label={`${T('btn.remove')} ${words(r.role)}`} onClick={() => update((s) => updateCharacter(s, c.id, { refs: c.refs.filter((x) => x.id !== r.id) }))}><IconDelete /></button>
+                {c.portraitAssetId !== r.assetId && <button type="button" className="btn btn-secondary btn-xs" onClick={() => act('updateCharacter', c.id, { portraitAssetId: r.assetId })}><IconCheck />{T('char.setPortrait')}</button>}
+                <button type="button" className="btn btn-secondary btn-xs btn-icon" aria-label={`${T('btn.remove')} ${words(r.role)}`} onClick={() => act('updateCharacter', c.id, { refs: c.refs.filter((x) => x.id !== r.id) })}><IconDelete /></button>
               </span>}
             </Art>
             <p className="poster-title text-sm">{words(r.role)}</p>
@@ -154,7 +153,7 @@ function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
         <div>
           <h2 id="look-h" className="section-title mb-3">{T('char.appearance')}</h2>
           <div className="max-w-sm"><Art src={portrait?.src} alt={`${c.name}`} ratio="portrait" title={hasAppearance ? c.name : T('char.noAppearance')} sample={portrait?.sample} unavailable={portrait?.unavailable} /></div>
-          <p className="mt-2 text-[12px] text-faint">{hasAppearance ? (portrait?.sample ? T('char.appearance.sample') : portrait?.local ? T('char.appearance.uploaded') : T('char.appearance.current')) : T('char.noAppearance.hint')}</p>
+          <p className="mt-2 text-[12px] text-faint">{hasAppearance ? (portrait?.sample ? T('char.appearance.sample') : portrait?.origin === 'UPLOAD' ? T('char.appearance.uploaded') : T('char.appearance.current')) : T('char.noAppearance.hint')}</p>
         </div>
         <div className="card p-5">
           <h2 className="section-title">{hasAppearance ? T('char.regenerate.title') : T('char.generate.title')}</h2>
@@ -201,7 +200,7 @@ function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
  *  studio voice that will exist once generation is connected. Choosing a voice never touches the appearance. */
 function VoiceTab({ c }: { c: Character }) {
   const T = useT();
-  const { state, update, addFile } = useStudio();
+  const { state, act, addFile } = useStudio();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const portrait = assetById(state, c.portraitAssetId)?.src;
@@ -216,7 +215,7 @@ function VoiceTab({ c }: { c: Character }) {
     const r = await addFile(file, { label: `${c.name} — ${file.name}`, tags: ['voice', 'recording'] });
     setBusy(false);
     if (!r.ok) { toast.bad(r.error); return; }
-    update((s) => addVoiceRecording(s, c.id, r.asset.id, file.name.replace(/\.[a-z0-9]+$/i, '')));
+    act('addVoiceRecording', c.id, r.asset.id, file.name.replace(/\.[a-z0-9]+$/i, ''));
     toast.ok(T('voice.added'));
   };
   return (
@@ -236,7 +235,7 @@ function VoiceTab({ c }: { c: Character }) {
                 return (
                   <li key={sm.id}>
                     <VoicePreview track={track} name={sm.label} detail={lang} source={sm.source} selected={on} unavailableText={unavailable(sm)}
-                      action={<button type="button" role="radio" aria-checked={on} disabled={!track && !on} onClick={() => { update((s) => selectVoiceSample(s, c.id, on ? undefined : sm.id)); if (!on) toast.ok(T('char.selectedVoice')); }} aria-label={`${T('btn.select')} ${sm.label}`} className={`btn btn-sm ${on ? 'btn-primary' : 'btn-secondary'}`}>{on ? <><IconCheck />{T('btn.selected')}</> : T('btn.select')}</button>} />
+                      action={<button type="button" role="radio" aria-checked={on} disabled={!track && !on} onClick={() => { act('selectVoiceSample', c.id, on ? undefined : sm.id); if (!on) toast.ok(T('char.selectedVoice')); }} aria-label={`${T('btn.select')} ${sm.label}`} className={`btn btn-sm ${on ? 'btn-primary' : 'btn-secondary'}`}>{on ? <><IconCheck />{T('btn.selected')}</> : T('btn.select')}</button>} />
                   </li>
                 );
               })}
@@ -253,7 +252,7 @@ function VoiceTab({ c }: { c: Character }) {
 /** PROFILE — who they are, their traits, and the creative notes, which save in place. */
 function Profile({ c }: { c: Character }) {
   const T = useT();
-  const { update } = useStudio();
+  const { act } = useStudio();
   const toast = useToast();
   const [notes, setNotes] = useState(c.notes ?? '');
   const dirty = notes !== (c.notes ?? '');
@@ -269,7 +268,7 @@ function Profile({ c }: { c: Character }) {
           <div className="mt-5"><KV rows={[[T('label.build'), c.build || '—'], [T('label.face'), c.face || '—'], [T('label.hair'), c.hair || '—'], [T('label.eyes'), c.eyes || '—'], [T('label.skin'), c.skin || '—'], [T('label.wardrobe'), c.wardrobe || '—']]} /></div>
         </Block>
       </div>
-      <form className="card h-fit space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); update((s) => updateCharacter(s, c.id, { notes })); toast.ok(T('toast.saved')); }}>
+      <form className="card h-fit space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); act('updateCharacter', c.id, { notes }); toast.ok(T('toast.saved')); }}>
         <Field label={T('char.notes')} help={T('char.notes.hint')}><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={6} /></Field>
         <div className="flex items-center justify-end gap-3">{dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}<Button type="submit" variant="primary" disabled={!dirty}>{dirty ? T('btn.save') : T('btn.saved')}</Button></div>
         <KV rows={[[T('label.role'), c.role || '—'], [T('label.language'), `${c.language}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`], [T('label.style'), T.dyn(`style.${c.style}`)], [T('label.age'), c.ageYears], ...(c.species ? [[T('label.species'), c.species] as [string, string]] : [])]} />

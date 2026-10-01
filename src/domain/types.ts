@@ -1,28 +1,34 @@
 import type { Aspect, CameraMove, CharacterRefRole, Dialect, Framing, Kind, Language, LocationRefRole, LyricKind, Sex, Stage, Style, TimeOfDay, Transition } from './vocabulary';
 
-/** WHAT THE STUDIO KEEPS — the shapes every page reads and writes. This is the whole model of the prototype; the
- *  fixtures in `src/demo` fill it with clearly labelled sample content and the store keeps it in the browser. */
+/** WHAT THE STUDIO KEEPS — the shapes every page reads and writes, and the shapes the server persists. The
+ *  database is the source of truth; the browser holds a snapshot of it and the workers write into it. */
 
-export type AssetKind = 'IMAGE' | 'VIDEO' | 'AUDIO';
+export type AssetKind = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SUBTITLE';
+export type AssetOrigin = 'SAMPLE' | 'UPLOAD' | 'GENERATED' | 'DERIVED';
 
 export interface Asset {
   id: string;
   kind: AssetKind;
-  /** A path under /public. Every bundled file is sample media made for this prototype. */
+  /** Where the browser loads it from: `/sample/…` for bundled sample media, `/api/media/{id}` for library files. */
   src: string;
   poster?: string;
   label: string;
   width?: number;
   height?: number;
   durationSeconds?: number;
+  fps?: number;
   tags: string[];
   /** Sample content is marked so the interface can say so wherever it appears. */
   sample: boolean;
-  /** A file the producer added: the bytes live in this browser's IndexedDB under the asset id; `src` is empty and
-   *  resolved to a session URL by the media store. */
-  local?: boolean;
+  origin: AssetOrigin;
   mimeType?: string;
   bytes?: number;
+  sha256?: string;
+  /** Who made it and from what: job id, provider, model, request id, prompt, references, workflow version. */
+  provenance?: Record<string, unknown>;
+  jobId?: string;
+  /** Set by the server when the file behind the record cannot be found. */
+  unavailable?: boolean;
   createdAt: string;
 }
 
@@ -43,6 +49,8 @@ export interface Show {
   /** Show-level canon: the cast and world every episode inherits. */
   castIds: string[];
   locationIds: string[];
+  /** World rules, relationships and timeline facts every episode must respect. */
+  bible?: { worldRules?: string[]; relationships?: string[]; timeline?: string[]; styleNotes?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -56,7 +64,7 @@ export interface Season {
   createdAt: string;
 }
 
-export interface Line { id: string; characterId: string; text: string; textAr?: string; delivery?: string }
+export interface Line { id: string; characterId: string; text: string; textAr?: string; delivery?: string; audioAssetId?: string; durationSeconds?: number }
 export interface Beat { id: string; action: string; lines: Line[] }
 
 export interface Scene {
@@ -67,16 +75,70 @@ export interface Scene {
   timeOfDay: TimeOfDay;
   characterIds: string[];
   beats: Beat[];
+  /** Story planning: why the scene exists, what it must achieve, how it starts and ends. */
+  purpose?: string;
+  emotionalObjective?: string;
+  entryState?: string;
+  exitState?: string;
 }
+
+export type TakeStatus = 'READY' | 'REJECTED';
+
+export interface TakeReference { kind: 'FIRST_FRAME' | 'LAST_FRAME' | 'SUBJECT' | 'CHARACTER' | 'LOCATION' | 'VIDEO' | 'AUDIO'; assetId?: string; characterId?: string; locationId?: string; note?: string }
+
+export interface QaCheck { name: string; ok: boolean; value?: number | string; threshold?: number | string; detail?: string }
+export interface QaReport { ok: boolean; checks: QaCheck[]; reviewedAt?: string; reviewer?: 'AUTO' | 'HUMAN'; notes?: string }
 
 export interface Take {
   id: string;
   label: string;
-  /** A sample clip. The prototype never generates a take; it shows how takes are laid out and chosen. */
   assetId: string;
   createdAt: string;
   note?: string;
+  status: TakeStatus;
+  /** Provenance: who generated it and how. Sample takes carry `provider: 'SAMPLE'`. */
+  provider?: 'MINIMAX' | 'UPLOAD' | 'SAMPLE';
+  model?: string;
+  requestId?: string;
+  prompt?: string;
+  params?: Record<string, unknown>;
+  seed?: number;
+  references?: TakeReference[];
+  width?: number;
+  height?: number;
+  durationSeconds?: number;
+  fps?: number;
+  generationMs?: number;
+  costUsd?: number;
+  qa?: QaReport;
+  rejectionReason?: string;
+  jobId?: string;
+  codeVersion?: string;
+  workflowVersion?: string;
+  thumbnailAssetId?: string;
 }
+
+export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
+
+/** The continuity state of a shot: what must match the shot before and carry into the shot after. Versioned on
+ *  the server; the current version travels with the shot. */
+export interface ContinuityState {
+  version: number;
+  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[] }>;
+  props: Array<{ name: string; ownerCharacterId?: string; state?: string; position?: string }>;
+  environment: { locationId?: string; timeOfDay?: TimeOfDay; weather?: string; lighting?: string; state?: string };
+  camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string };
+  previousShotId?: string;
+  nextShotId?: string;
+  /** Continuation: the same action continues from the previous shot. Cut: a new framing of the same moment.
+   *  Transition: the story moves in place, time or state. */
+  relationToPrevious?: 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
+  notes?: string;
+}
+
+export type PerformanceMode = 'SOLO' | 'DUET' | 'ALTERNATING' | 'ENSEMBLE' | 'LISTENER' | 'INSTRUMENTAL';
+
+export interface ShotDialogue { id: string; characterId: string; text: string; textAr?: string; audioAssetId?: string; durationSeconds?: number }
 
 export interface Shot {
   id: string;
@@ -88,15 +150,19 @@ export interface Shot {
   cameraMove: CameraMove;
   durationSeconds: number;
   characterIds: string[];
-  dialogue: Array<{ id: string; characterId: string; text: string; textAr?: string }>;
+  dialogue: ShotDialogue[];
   transition: Transition;
   openingFrameAssetId?: string;
   endingFrameAssetId?: string;
   takes: Take[];
   selectedTakeId?: string;
-  /** Music video: the song window this shot covers. */
+  /** Music video: the song window this shot covers, and who performs in it. */
   songWindow?: { from: number; to: number };
+  performance?: { mode: PerformanceMode; singerIds: string[]; listenerIds?: string[] };
   notes?: string;
+  continuity?: ContinuityState;
+  /** The generation prompt the studio wrote for this shot; editable. Empty means "write it from the shot". */
+  prompt?: string;
 }
 
 export interface LyricSection {
@@ -107,17 +173,29 @@ export interface LyricSection {
   singerIds: string[];
   from: number;
   to: number;
+  performanceMode?: PerformanceMode;
+  /** Alternating vocals: who sings which line, in order, with timing when known. */
+  lines?: Array<{ singerId: string; text: string; from?: number; to?: number }>;
 }
 
 export interface Song {
   id: string;
   title: string;
-  source: 'GENERATED_EXAMPLE' | 'UPLOADED';
+  source: 'GENERATED' | 'GENERATED_EXAMPLE' | 'UPLOADED';
   assetId?: string;
   durationSeconds: number;
   caption: string;
   sections: LyricSection[];
   singerIds: string[];
+  lyrics?: string;
+  genre?: string;
+  mood?: string;
+  bpm?: number;
+  provider?: string;
+  model?: string;
+  requestId?: string;
+  stems?: { vocals?: string; instrumental?: string };
+  jobId?: string;
 }
 
 export interface Brief {
@@ -125,10 +203,11 @@ export interface Brief {
   text: string;
   /** Auto Idea: the title of the proposal the project started from. */
   ideaTitle?: string;
-  /** Auto Idea: the preferences the producer set (all optional), kept so a real backend could re-run the request. */
+  /** Auto Idea: the preferences the producer set (all optional), kept so the request can be re-run. */
   preferences?: IdeaPreferences;
-  /** Set when the project was created from the labelled sample proposal (automatic writing is not connected). */
+  /** Set when the project was created from the bundled sample proposal rather than a generated one. */
   fromSampleProposal?: boolean;
+  proposalJobId?: string;
 }
 
 // ------------------------------------------------------------------------------------------------- Auto Idea
@@ -148,7 +227,7 @@ export interface IdeaPreferences {
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
 }
 
-/** The request a future backend receives: what to make, where it belongs, and the optional preferences. For an
+/** The request the story engine receives: what to make, where it belongs, and the optional preferences. For an
  *  episode or season the show's world, cast, style and continuity are the context. */
 export interface AutoIdeaRequest {
   kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO';
@@ -158,14 +237,15 @@ export interface AutoIdeaRequest {
 }
 
 /** A proposed cast member: an existing character reused (with the reason), or a new one the story needs. */
-export interface ProposedCast { key: string; characterId?: string; name: string; role: string; reason: string; isNew: boolean; fromPreference: boolean; sex?: Sex }
+export interface ProposedCast { key: string; characterId?: string; name: string; role: string; reason: string; isNew: boolean; fromPreference: boolean; sex?: Sex; appearance?: string; personality?: string; ageYears?: number }
 export interface ProposedLocation { key: string; locationId?: string; name: string; description: string; isNew: boolean; fromPreference: boolean; kind?: 'INTERIOR' | 'EXTERIOR' }
 
-/** What the automatic workflow returns, for the producer to review and edit before anything is created. In this
- *  prototype every proposal is a labelled sample (`sample: true`): nothing is researched or written. */
+/** What the story engine returns, for the producer to review and edit before anything is created. */
 export interface IdeaProposal {
-  sample: true;
+  /** True only for the bundled written examples; a generated proposal is `false`. */
+  sample: boolean;
   title: string;
+  titleAr?: string;
   logline: string;
   premise: string;
   genre: string;
@@ -180,6 +260,8 @@ export interface IdeaProposal {
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
   song?: { title: string; caption: string; lyrics: string };
 }
+
+export interface ExportRecord { id: string; assetId: string; format: string; resolution: string; subtitles: string; createdAt: string; jobId?: string; durationSeconds?: number; bytes?: number }
 
 export interface Production {
   id: string;
@@ -211,13 +293,27 @@ export interface Production {
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
   genre?: string;
   mood?: string;
-  /** A sample assembled cut, when the fixture carries one. */
+  /** The assembled cut, when one has been rendered, and every export made from it. */
   cutAssetId?: string;
+  exports?: ExportRecord[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CharacterRef { id: string; role: CharacterRefRole; assetId: string }
+export interface CharacterRef { id: string; role: CharacterRefRole; assetId: string; approved?: boolean }
+
+/** The one voice a character speaks with: which engine, which reference recording, which revision. */
+export interface VoiceIdentity {
+  provider: 'LOCAL_TTS' | 'MINIMAX';
+  model: string;
+  referenceAssetId?: string;
+  providerVoiceId?: string;
+  revision: number;
+  language: Language;
+  dialect?: Dialect;
+  params?: Record<string, unknown>;
+  createdAt: string;
+}
 
 export interface Voice {
   pitch: 'LOW' | 'MID' | 'HIGH';
@@ -225,13 +321,13 @@ export interface Voice {
   timbre: string;
   notes: string;
   /** Voice lines. A selected voice is the one the character speaks with. `source` says where it came from: a bundled
-   *  sample, a recording the producer uploaded (kept in this browser), or a voice the studio will generate — which
-   *  has no audio until generation is connected. */
+   *  sample, a recording the producer uploaded, or a voice the studio generated. */
   samples: VoiceSample[];
   selectedSampleId?: string;
+  identity?: VoiceIdentity;
 }
 
-export interface VoiceSample { id: string; label: string; assetId?: string; source: 'SAMPLE' | 'UPLOADED' | 'GENERATED' }
+export interface VoiceSample { id: string; label: string; assetId?: string; source: 'SAMPLE' | 'UPLOADED' | 'GENERATED'; text?: string; language?: Language; jobId?: string }
 
 /** One fact: a character appeared in a take of a video. Recorded when the take exists and never erased — removing or
  *  rejecting the take marks it, but the character has still been seen. Titles are copied so the record stays
@@ -252,7 +348,7 @@ export interface VideoUsage {
 export interface CharacterUsage { known: boolean; videos: VideoUsage[] }
 
 /** A reference picture uploaded to generate (or regenerate) an unused character's appearance from. It is not the
- *  appearance: it stays pending until a generation replaces the portrait, which needs the backend. */
+ *  appearance: it stays pending until a generation replaces the portrait. */
 export interface PendingReference { assetId: string; addedAt: string }
 
 export interface Character {
@@ -280,13 +376,15 @@ export interface Character {
   /** Absent means unknown, and unknown means locked. */
   usage?: CharacterUsage;
   pendingReference?: PendingReference;
+  /** Durable identity details beyond the written look. */
+  canon?: { heightCm?: number; accessories?: string[]; visualRestrictions?: string[]; agePresentation?: string; speech?: string };
   /** Creative notes: free text for the writers, never used to draw the character. */
   notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface LocationRef { id: string; role: LocationRefRole; assetId: string; label: string }
+export interface LocationRef { id: string; role: LocationRefRole; assetId: string; label: string; timeOfDay?: TimeOfDay }
 
 export interface Location {
   id: string;
@@ -300,14 +398,26 @@ export interface Location {
   props: string[];
   refs: LocationRef[];
   masterAssetId?: string;
+  layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GenerationSettings {
+  /** MiniMax video model and resolution for new takes. */
+  videoModel?: string;
+  videoResolution?: string;
+  /** Which story engine answers: 'minimax' | 'anthropic' | 'openai-compatible'. Empty means the server default. */
+  llmProvider?: string;
+  /** Which voice engine new identities use. */
+  voiceProvider?: 'LOCAL_TTS' | 'MINIMAX';
 }
 
 export interface Settings {
   uiLanguage: 'en' | 'ar';
   reducedMotion: boolean;
   defaults: { style: Style; language: Language; dialect: Dialect; aspect: Aspect };
+  generation?: GenerationSettings;
 }
 
 export interface StudioState {

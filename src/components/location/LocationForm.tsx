@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import type { Location } from '@/domain/types';
 import { STYLES, TIMES_OF_DAY, type Style, type TimeOfDay } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { addLocation, updateLocation } from '@/demo/actions';
+import { useStudio } from '@/studio/store';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, Segmented, Select, Textarea } from '@/components/ui/kit';
@@ -13,7 +12,7 @@ import { words } from '@/lib/format';
 /** THE LOCATION FORM — a place described well enough to draw: what it is, what stands where, how it is lit. */
 export function LocationForm({ initial, defaultStyle, onSaved, onCancel }: { initial?: Location; defaultStyle?: Style; onSaved: (id: string) => void; onCancel?: () => void }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const [d, setD] = useState({ name: initial?.name ?? '', nameAr: initial?.nameAr ?? '', kind: initial?.kind ?? 'INTERIOR', style: initial?.style ?? defaultStyle ?? state.settings.defaults.style, description: initial?.description ?? '', landmarks: initial?.landmarks.join('\n') ?? '', props: initial?.props.join('\n') ?? '', lighting: initial?.lighting ?? (['MORNING', 'NIGHT'] as TimeOfDay[]) });
   const set = (p: Partial<typeof d>) => setD((x) => ({ ...x, ...p }));
@@ -22,8 +21,8 @@ export function LocationForm({ initial, defaultStyle, onSaved, onCancel }: { ini
     e.preventDefault();
     if (!d.name.trim()) { setError(T('wizard.needTitle')); return; }
     const base = { name: d.name.trim(), nameAr: d.nameAr.trim() || undefined, kind: d.kind, style: d.style, description: d.description, landmarks: d.landmarks.split('\n').map((x) => x.trim()).filter(Boolean), props: d.props.split('\n').map((x) => x.trim()).filter(Boolean), lighting: d.lighting };
-    if (initial) { update((s) => updateLocation(s, initial.id, base)); toast.ok(T('toast.saved')); onSaved(initial.id); }
-    else { let id = ''; update((s) => { const r = addLocation(s, base); id = r.location.id; return r.state; }); toast.ok(T('toast.created')); onSaved(id); }
+    if (initial) { act('updateLocation', initial.id, base); toast.ok(T('toast.saved')); onSaved(initial.id); }
+    else { const r = act('addLocation', base); toast.ok(T('toast.created')); onSaved(r.location.id); }
   };
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>

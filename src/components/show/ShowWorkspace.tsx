@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import type { Production, Season, Show } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { addSeason, deleteSeason, deleteShow, updateSeason, updateShow } from '@/demo/actions';
-import { assetById, assetSrc, episodesOf, nextStep, productionHref, progressOf, seasonsOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, assetSrc, episodesOf, nextStep, productionHref, progressOf, seasonsOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -29,7 +28,7 @@ const ALIAS: Record<string, (typeof TABS)[number]> = { gallery: 'overview' };
 
 export function ShowWorkspace({ show }: { show: Show }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const sp = useSearchParams();
@@ -67,9 +66,9 @@ export function ShowWorkspace({ show }: { show: Show }) {
       <div role="tabpanel" className="fade-in" key={tab}>
         {tab === 'overview' && <Overview show={show} seasons={seasons} episodes={episodes} />}
         {tab === 'seasons' && <Seasons show={show} seasons={seasons} selected={selectedSeason} />}
-        {tab === 'characters' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.canonHint')}</p><CanonPicker only="cast" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { update((s) => updateShow(s, show.id, patch)); toast.ok(T('toast.saved')); }} /></div>}
-        {tab === 'locations' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.worldHint')}</p><CanonPicker only="locations" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { update((s) => updateShow(s, show.id, patch)); toast.ok(T('toast.saved')); }} /></div>}
-        {tab === 'settings' && <ShowSettings show={show} onDeleted={() => { update((s) => deleteShow(s, show.id)); toast.ok(T('toast.deleted')); router.push('/shows'); }} />}
+        {tab === 'characters' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.canonHint')}</p><CanonPicker only="cast" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { act('updateShow', show.id, patch); toast.ok(T('toast.saved')); }} /></div>}
+        {tab === 'locations' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.worldHint')}</p><CanonPicker only="locations" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { act('updateShow', show.id, patch); toast.ok(T('toast.saved')); }} /></div>}
+        {tab === 'settings' && <ShowSettings show={show} onDeleted={() => { act('deleteShow', show.id); toast.ok(T('toast.deleted')); router.push('/shows'); }} />}
       </div>
     </>
   );
@@ -163,7 +162,7 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
  *  is the banner's; this tab only names the season it goes to. */
 function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; selected?: Season }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   if (seasons.length === 0 || !selected) return <Empty title={T('empty.seasons')} hint={T('show.firstSeason')} action={<AddSeason showId={show.id} variant="primary" />} />;
@@ -184,7 +183,7 @@ function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; s
         <Section title={<span className="bi"><span>{selected.title || `${T('kind.SEASON')} ${selected.number}`}</span><span className="text-[13px] font-medium text-faint">{T('kind.SEASON')} {selected.number} · {eps.length} {T(eps.length === 1 ? 'meta.episode' : 'meta.episodes')}</span></span>} description={selected.arc || undefined}
           action={<Menu label={`${T('kind.SEASON')} ${selected.number}: ${T('nav.more')}`}>
             <EditSeasonItem season={selected} />
-            <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('kind.SEASON')} ${selected.number}?`)) { update((s) => deleteSeason(s, selected.id)); toast.ok(T('toast.deleted')); router.replace(`/shows/${show.id}?tab=seasons`); } }}>{T('btn.delete')}</MenuItem>
+            <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('kind.SEASON')} ${selected.number}?`)) { act('deleteSeason', selected.id); toast.ok(T('toast.deleted')); router.replace(`/shows/${show.id}?tab=seasons`); } }}>{T('btn.delete')}</MenuItem>
           </Menu>}>
           {eps.length === 0 ? <Empty compact title={T('show.noEpisodes')} hint={`${T('btn.addEpisode')} · ${T('kind.SEASON')} ${selected.number}`} action={<LinkButton href={`/new/episode?show=${show.id}&season=${selected.id}`} variant="primary" icon={<IconPlus />}>{T('btn.addEpisode')}</LinkButton>} /> : (
             <ol className="card divide-y divide-line/70">{eps.map((p) => <EpisodeRow key={p.id} p={p} seasons={seasons} />)}</ol>
@@ -220,14 +219,14 @@ export function EpisodeRow({ p, seasons, showSeason }: { p: Production; seasons:
 }
 
 function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast();
+  const T = useT(); const { act } = useStudio(); const toast = useToast();
   const initial = { title: show.title, titleAr: show.titleAr ?? '', logline: show.logline, synopsis: show.synopsis ?? '', genre: show.genre, style: show.style, language: show.language, dialect: show.dialect ?? 'IRAQI_BAGHDADI', aspect: show.aspect };
   const [d, setD] = useState(initial);
   const set = (p: Partial<typeof d>) => setD((x) => ({ ...x, ...p }));
   const dirty = JSON.stringify(d) !== JSON.stringify(initial);
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,40rem)_1fr]">
-      <form className="card space-y-5 p-5 sm:p-6" onSubmit={(e) => { e.preventDefault(); if (!d.title.trim()) return; update((s) => updateShow(s, show.id, { ...d, titleAr: d.titleAr || undefined, dialect: d.language === 'AR' ? d.dialect : undefined })); toast.ok(T('toast.saved')); }}>
+      <form className="card space-y-5 p-5 sm:p-6" onSubmit={(e) => { e.preventDefault(); if (!d.title.trim()) return; act('updateShow', show.id, { ...d, titleAr: d.titleAr || undefined, dialect: d.language === 'AR' ? d.dialect : undefined }); toast.ok(T('toast.saved')); }}>
         <p className="text-[13px] text-muted">{T('show.settings.hint')}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={T('label.title')} required><Input value={d.title} onChange={(e) => set({ title: e.target.value })} required /></Field>
@@ -254,12 +253,12 @@ function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }
 }
 
 export function AddSeason({ showId, variant = 'secondary' }: { showId: string; variant?: 'primary' | 'secondary' | 'ghost' }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast(); const router = useRouter();
+  const T = useT(); const { act } = useStudio(); const toast = useToast(); const router = useRouter();
   const [title, setTitle] = useState(''); const [arc, setArc] = useState('');
   return (
     <Modal title={T('btn.addSeason')} trigger={(open) => <Button size={variant === 'primary' ? undefined : 'sm'} variant={variant} icon={<IconPlus />} onClick={open} className={variant === 'ghost' ? 'flex-none xl:justify-start' : ''}>{T('btn.addSeason')}</Button>}>
       {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); let id = ''; update((s) => { const r = addSeason(s, showId, title, arc); id = r.season.id; return r.state; }); toast.ok(T('toast.created')); setTitle(''); setArc(''); close(); router.replace(`/shows/${showId}?tab=seasons&season=${id}`); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const id = act('addSeason', showId, title, arc).season.id; toast.ok(T('toast.created')); setTitle(''); setArc(''); close(); router.replace(`/shows/${showId}?tab=seasons&season=${id}`); }}>
           <Field label={T('label.title')} hint={T('wizard.optional')}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <Field label={T('label.arc')} hint={T('wizard.optional')}><Textarea value={arc} onChange={(e) => setArc(e.target.value)} rows={3} /></Field>
           <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
@@ -270,12 +269,12 @@ export function AddSeason({ showId, variant = 'secondary' }: { showId: string; v
 }
 
 function EditSeasonItem({ season }: { season: Season }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast();
+  const T = useT(); const { act } = useStudio(); const toast = useToast();
   const [title, setTitle] = useState(season.title); const [arc, setArc] = useState(season.arc);
   return (
     <Modal title={`${T('kind.SEASON')} ${season.number}`} trigger={(open) => <MenuItem icon={<IconEdit />} onClick={(e) => { e.stopPropagation(); open(); }}>{T('btn.edit')}</MenuItem>}>
       {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); update((s) => updateSeason(s, season.id, { title: title.trim() || `Season ${season.number}`, arc })); toast.ok(T('toast.saved')); close(); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); act('updateSeason', season.id, { title: title.trim() || `Season ${season.number}`, arc }); toast.ok(T('toast.saved')); close(); }}>
           <Field label={T('label.title')}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <Field label={T('label.arc')}><Textarea value={arc} onChange={(e) => setArc(e.target.value)} rows={3} /></Field>
           <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.save')}</Button></div>

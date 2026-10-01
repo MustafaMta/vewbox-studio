@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { StudioProvider } from '@/demo/store';
+import { StudioProvider } from '@/studio/store';
 import { LocaleProvider } from '@/components/ui/locale';
 import { ToastProvider } from '@/components/ui/toast';
 import { PlayerProvider } from '@/components/players/PlayerProvider';

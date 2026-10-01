@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/demo/store';
-import { markStepDone } from '@/demo/actions';
-import { assetById, castOf, shotHref, shotLabel } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, castOf, shotHref, shotLabel } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Card, Details, Field, Notice, SampleMark, Select, Status, Thumb } from '@/components/ui/kit';
@@ -18,7 +17,7 @@ import { aspectLabel, fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
  *  sample episode is a sample clip; when there is none, the sequence below is the cut, described. */
 export function FinalCutTab({ p }: { p: Production }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const cut = assetById(state, p.cutAssetId);
   const seq = p.shots.map((sh) => ({ sh, take: sh.takes.find((t) => t.id === sh.selectedTakeId) }));
@@ -73,7 +72,7 @@ export function FinalCutTab({ p }: { p: Production }) {
           </div>
         </Card>
         <Details summary={T('shot.advanced')}><p className="text-xs text-muted">Loudness −23 LUFS · true peak −1 dB · dialogue 0 dB · music −14 dB · ambience −12 dB</p></Details>
-        {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { update((s) => markStepDone(s, p.id, 'FINAL_CUT')); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
+        {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { act('markStepDone', p.id, 'FINAL_CUT'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
       </aside>
     </div>
   );

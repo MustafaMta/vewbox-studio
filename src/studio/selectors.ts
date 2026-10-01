@@ -1,17 +1,14 @@
 import type { Asset, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
 import type { Stage } from '@/domain/vocabulary';
-import { isMissing, localUrl } from './media';
 
 /** READING THE STUDIO — small pure helpers over the state, so pages ask questions in one line. */
 
-/** An asset as the page can show it: a bundled file's path, or a local file's session URL. `unavailable` marks a
- *  record whose file is not in this browser. */
+/** An asset as the page can show it. `unavailable` marks a record whose file the server could not find. */
 export type AssetView = Asset & { unavailable: boolean };
 export function assetById(s: StudioState, id: string | undefined | null): AssetView | undefined {
   const a = id ? s.assets.find((x) => x.id === id) : undefined;
   if (!a) return undefined;
-  if (!a.local) return { ...a, unavailable: false };
-  return { ...a, src: localUrl(a.id) ?? '', unavailable: isMissing(a.id) };
+  return { ...a, unavailable: Boolean(a.unavailable) };
 }
 export const assetSrc = (s: StudioState, id: string | undefined | null): string | undefined => assetById(s, id)?.src || undefined;
 export const characterById = (s: StudioState, id: string | undefined | null): Character | undefined => (id ? s.characters.find((c) => c.id === id) : undefined);
@@ -52,16 +49,19 @@ export const shotLabel = (p: Production, sh: Shot): string => {
 };
 
 export const selectedTake = (sh: Shot) => sh.takes.find((t) => t.id === sh.selectedTakeId);
+export const readyTakes = (sh: Shot) => sh.takes.filter((t) => t.status !== 'REJECTED');
 
 /** How far along a production is, counted from what it has rather than from a flag. */
 export function progressOf(p: Production) {
   const shots = p.shots.length;
   const framed = p.shots.filter((sh) => sh.openingFrameAssetId).length;
-  const withTake = p.shots.filter((sh) => sh.takes.length > 0).length;
+  const withTake = p.shots.filter((sh) => readyTakes(sh).length > 0).length;
   const chosen = p.shots.filter((sh) => sh.selectedTakeId).length;
   const runtime = p.shots.reduce((a, sh) => a + sh.durationSeconds, 0);
   const lines = p.scenes.reduce((a, sc) => a + sc.beats.reduce((b, bt) => b + bt.lines.length, 0), 0);
-  return { scenes: p.scenes.length, shots, framed, withTake, chosen, runtime, lines, hasScript: p.scenes.some((sc) => sc.beats.length > 0), hasSynopsis: Boolean(p.synopsis.trim()) };
+  const voiced = p.shots.reduce((a, sh) => a + sh.dialogue.filter((d) => d.audioAssetId).length, 0);
+  const dialogue = p.shots.reduce((a, sh) => a + sh.dialogue.length, 0);
+  return { scenes: p.scenes.length, shots, framed, withTake, chosen, runtime, lines, voiced, dialogue, hasScript: p.scenes.some((sc) => sc.beats.length > 0), hasSynopsis: Boolean(p.synopsis.trim()), hasCut: Boolean(p.cutAssetId), exports: p.exports?.length ?? 0 };
 }
 
 export const STAGE_ORDER: Stage[] = ['STORY', 'CAST_AND_WORLD', 'STORYBOARD', 'PRODUCE', 'FINAL_CUT', 'COMPLETE'];
@@ -75,6 +75,7 @@ export function nextStep(p: Production): { tab: 'story' | 'cast' | 'storyboard' 
   if (pr.scenes === 0 || !pr.hasScript) return { tab: 'story', key: 'next.writeScript' };
   if (pr.shots === 0) return { tab: 'storyboard', key: 'next.planShots' };
   if (pr.chosen < pr.shots) return { tab: 'produce', key: 'next.chooseTakes' };
+  if (!pr.hasCut) return { tab: 'final', key: 'next.assemble' };
   return { tab: 'final', key: 'next.reviewCut' };
 }
 

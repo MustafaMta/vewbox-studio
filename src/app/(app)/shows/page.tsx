@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Style } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { search } from '@/demo/selectors';
-import { deleteShow } from '@/demo/actions';
+import { useStudio } from '@/studio/store';
+import { search } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { LinkButton, Menu, MenuItem, MenuLink } from '@/components/ui/kit';
@@ -19,7 +18,7 @@ import { IconDelete, IconEdit, IconPlus, IconShows } from '@/components/ui/icons
 /** SHOWS — the series library: wide key art, the numbers, the cast, the progress. One action: Add show. */
 export default function ShowsPage() {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const [q, setQ] = useState(''); const [style, setStyle] = useState<Style | ''>(''); const [sort, setSort] = useState<'recent' | 'title'>('recent');
@@ -36,7 +35,7 @@ export default function ShowsPage() {
               {items.map((s) => <ShowCard key={s.id} show={s} menu={
                 <Menu label={`${s.title}: ${T('nav.more')}`}>
                   <MenuLink href={`/shows/${s.id}?tab=settings`} icon={<IconEdit />}>{T('btn.edit')}</MenuLink>
-                  <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${s.title}”?`)) { update((st) => deleteShow(st, s.id)); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
+                  <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${s.title}”?`)) { act('deleteShow', s.id); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
                 </Menu>} />)}
             </ul>
           )}

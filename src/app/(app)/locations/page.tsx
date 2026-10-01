@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useStudio } from '@/demo/store';
-import { search } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { search } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import type { Style } from '@/domain/vocabulary';
 import { LinkButton, Select } from '@/components/ui/kit';

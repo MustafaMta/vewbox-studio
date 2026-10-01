@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import type { Beat, Line, Production, Scene } from '@/domain/types';
 import { TIMES_OF_DAY, type TimeOfDay } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { addScene, deleteScene, markStepDone, nid, updateProduction, updateScene } from '@/demo/actions';
-import { castOf, worldOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { nid } from '@/domain/actions';
+import { castOf, worldOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
@@ -19,12 +19,12 @@ import { words } from '@/lib/format';
  *  song sits here too. Every edit is yours; drafting help arrives with the backend. */
 export function StoryTab({ p }: { p: Production }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p); const world = worldOf(state, p);
   const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, briefText: p.brief.text });
   useUnsavedGuard(dirty, T('shot.leave'));
-  const save = () => { update((s) => updateProduction(s, p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText } })); toast.ok(T('toast.saved')); };
+  const save = () => { act('updateProduction', p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText } }); toast.ok(T('toast.saved')); };
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -48,7 +48,7 @@ export function StoryTab({ p }: { p: Production }) {
           {p.scenes.length === 0 ? <Notice tone="info">{T('empty.scenes')}</Notice> : (
             <ol className="space-y-6">{p.scenes.map((sc) => <SceneEditor key={sc.id} p={p} scene={sc} cast={cast.map((c) => ({ id: c.id, name: c.name }))} locations={world.map((l) => ({ id: l.id, name: l.name }))} />)}</ol>
           )}
-          {p.scenes.length > 0 && p.stage === 'STORY' && <div className="mt-4"><Button size="sm" onClick={() => { update((s) => markStepDone(s, p.id, 'STORY')); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button></div>}
+          {p.scenes.length > 0 && p.stage === 'STORY' && <div className="mt-4"><Button size="sm" onClick={() => { act('markStepDone', p.id, 'STORY'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button></div>}
         </Block>
       </div>
 
@@ -64,13 +64,13 @@ export function StoryTab({ p }: { p: Production }) {
 }
 
 function AddScene({ p }: { p: Production }) {
-  const T = useT(); const { state, update } = useStudio(); const toast = useToast();
+  const T = useT(); const { state, act } = useStudio(); const toast = useToast();
   const world = worldOf(state, p);
   const [title, setTitle] = useState(''); const [loc, setLoc] = useState(''); const [tod, setTod] = useState<TimeOfDay>('MIDDAY');
   return (
     <Modal title={T('btn.addScene')} trigger={(open) => <Button size="sm" variant="primary" icon={<IconPlus />} onClick={open}>{T('btn.addScene')}</Button>}>
       {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; update((s) => addScene(s, p.id, { title, locationId: loc || undefined, timeOfDay: tod }).state); toast.ok(T('toast.created')); setTitle(''); close(); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; act('addScene', p.id, { title, locationId: loc || undefined, timeOfDay: tod }); toast.ok(T('toast.created')); setTitle(''); close(); }}>
           <Field label={T('label.title')} required><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus required /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={T('label.location')}><Select value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="—" options={world.map((l) => ({ value: l.id, label: l.name }))} /></Field>
@@ -84,8 +84,8 @@ function AddScene({ p }: { p: Production }) {
 }
 
 function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Array<{ id: string; name: string }>; locations: Array<{ id: string; name: string }> }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast();
-  const set = (patch: Partial<Scene>) => update((s) => updateScene(s, p.id, scene.id, patch));
+  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const set = (patch: Partial<Scene>) => act('updateScene', p.id, scene.id, patch);
   const setBeat = (id: string, patch: Partial<Beat>) => set({ beats: scene.beats.map((b) => (b.id === id ? { ...b, ...patch } : b)) });
   const setLine = (bid: string, lid: string, patch: Partial<Line>) => setBeat(bid, { lines: scene.beats.find((b) => b.id === bid)!.lines.map((l) => (l.id === lid ? { ...l, ...patch } : l)) });
   const nameOf = (id: string) => cast.find((c) => c.id === id)?.name ?? '?';
@@ -96,7 +96,7 @@ function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scen
         <Input value={scene.title} onChange={(e) => set({ title: e.target.value })} aria-label={`${T('label.scene')} ${scene.number} ${T('label.title')}`} className="min-w-0 flex-1 basis-40 font-medium" />
         <Select aria-label={T('label.location')} value={scene.locationId ?? ''} onChange={(e) => set({ locationId: e.target.value || undefined })} placeholder="—" options={locations.map((l) => ({ value: l.id, label: l.name }))} className="w-auto" />
         <Select aria-label={T('label.timeOfDay')} value={scene.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value as TimeOfDay })} options={TIMES_OF_DAY.map((t) => ({ value: t, label: words(t) }))} className="w-auto" />
-        <Menu label={`${T('label.scene')} ${scene.number}`}><MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('label.scene')} ${scene.number}?`)) { update((s) => deleteScene(s, p.id, scene.id)); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem></Menu>
+        <Menu label={`${T('label.scene')} ${scene.number}`}><MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('label.scene')} ${scene.number}?`)) { act('deleteScene', p.id, scene.id); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem></Menu>
       </div>
       <fieldset className="mb-4">
         <legend className="mb-1.5 text-xs font-medium text-muted">{T('story.present')}</legend>

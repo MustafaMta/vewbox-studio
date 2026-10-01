@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
-import { useStudio } from '@/demo/store';
-import { deleteProduction, duplicateProduction, markStepDone, updateProduction } from '@/demo/actions';
-import { assetById, assetSrc, castOf, nextStep, productionHref, progressOf, shotHref, worldOf } from '@/demo/selectors';
+import { useStudio } from '@/studio/store';
+import { assetById, assetSrc, castOf, nextStep, productionHref, progressOf, shotHref, worldOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, ConfirmDelete, Field, Input, KV, Modal, Select, Textarea } from '@/components/ui/kit';
@@ -19,7 +18,7 @@ import { aspectLabel, dialectLabel, fmtAgo, fmtSeconds } from '@/lib/format';
  *  and the details behind Edit. The header above already carries the art and the synopsis. */
 export function OverviewTab({ p }: { p: Production }) {
   const T = useT();
-  const { state, update } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const pr = progressOf(p);
@@ -40,7 +39,7 @@ export function OverviewTab({ p }: { p: Production }) {
           </dl>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link href={`${base}?tab=${tabOf(next.tab)}`} className="btn btn-primary btn-sm">{T.dyn(next.key)}</Link>
-            {p.stage !== 'COMPLETE' && <Button size="sm" variant="ghost" onClick={() => { update((s) => markStepDone(s, p.id, p.stage)); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}: {T.dyn(`stage.${p.stage}`)}</Button>}
+            {p.stage !== 'COMPLETE' && <Button size="sm" variant="ghost" onClick={() => { act('markStepDone', p.id, p.stage); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}: {T.dyn(`stage.${p.stage}`)}</Button>}
             <span className="text-sm text-muted">{T('label.runtime')}: <span className="num text-fg">{fmtSeconds(pr.runtime)}</span> {T('misc.of')} {fmtSeconds(p.targetSeconds)} · {T('label.updated')} {fmtAgo(p.updatedAt, T.locale)}</span>
           </div>
         </section>
@@ -62,8 +61,8 @@ export function OverviewTab({ p }: { p: Production }) {
         <KV rows={[[T('label.style'), T.dyn(`style.${p.style}`)], [T('label.language'), `${p.language}${p.dialect ? ` · ${dialectLabel(p.dialect, T.locale)}` : ''}`], [T('label.aspect'), aspectLabel(p.aspect)], [T('label.target'), fmtSeconds(p.targetSeconds)], [T('label.created'), fmtAgo(p.createdAt, T.locale)]]} />
         <div className="flex flex-wrap items-center gap-2">
           <EditDetails p={p} />
-          <Button size="sm" icon={<IconDuplicate />} onClick={() => { let href = base; update((s) => { const r = duplicateProduction(s, p.id); if (r.production) href = productionHref(r.production); return r.state; }); toast.ok(T('toast.created')); router.push(href); }}>{T('btn.duplicate')}</Button>
-          <ConfirmDelete title={p.title} onDelete={() => { const back = p.kind === 'SHORT' ? '/shorts' : p.kind === 'MUSIC_VIDEO' ? '/music-videos' : `/shows/${p.showId}?tab=seasons`; update((s) => deleteProduction(s, p.id)); toast.ok(T('toast.deleted')); router.push(back); }} variant="ghost" icon={<IconDelete />} />
+          <Button size="sm" icon={<IconDuplicate />} onClick={() => { const r = act('duplicateProduction', p.id); toast.ok(T('toast.created')); router.push(r.production ? productionHref(r.production) : base); }}>{T('btn.duplicate')}</Button>
+          <ConfirmDelete title={p.title} onDelete={() => { const back = p.kind === 'SHORT' ? '/shorts' : p.kind === 'MUSIC_VIDEO' ? '/music-videos' : `/shows/${p.showId}?tab=seasons`; act('deleteProduction', p.id); toast.ok(T('toast.deleted')); router.push(back); }} variant="ghost" icon={<IconDelete />} />
         </div>
       </aside>
     </div>
@@ -71,13 +70,13 @@ export function OverviewTab({ p }: { p: Production }) {
 }
 
 function EditDetails({ p }: { p: Production }) {
-  const T = useT(); const { update } = useStudio(); const toast = useToast();
+  const T = useT(); const { act } = useStudio(); const toast = useToast();
   const [d, setD] = useState({ title: p.title, titleAr: p.titleAr ?? '', logline: p.logline, style: p.style, language: p.language, dialect: p.dialect ?? 'IRAQI_BAGHDADI', aspect: p.aspect, targetSeconds: p.targetSeconds, artist: p.artist ?? '', genre: p.genre ?? '' });
   const set = (x: Partial<typeof d>) => setD((y) => ({ ...y, ...x }));
   return (
     <Modal title={T('misc.details')} trigger={(open) => <Button size="sm" icon={<IconEdit />} onClick={open}>{T('btn.edit')}</Button>}>
       {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!d.title.trim()) return; update((s) => updateProduction(s, p.id, { ...d, titleAr: d.titleAr || undefined, dialect: d.language === 'AR' ? d.dialect : undefined, targetSeconds: Number(d.targetSeconds) || p.targetSeconds, artist: d.artist || undefined, genre: d.genre || undefined })); toast.ok(T('toast.saved')); close(); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!d.title.trim()) return; act('updateProduction', p.id, { ...d, titleAr: d.titleAr || undefined, dialect: d.language === 'AR' ? d.dialect : undefined, targetSeconds: Number(d.targetSeconds) || p.targetSeconds, artist: d.artist || undefined, genre: d.genre || undefined }); toast.ok(T('toast.saved')); close(); }}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={T('label.title')} required><Input value={d.title} onChange={(e) => set({ title: e.target.value })} required /></Field>
             <Field label={T('label.titleAr')}><Input value={d.titleAr} dir="rtl" onChange={(e) => set({ titleAr: e.target.value })} /></Field>
