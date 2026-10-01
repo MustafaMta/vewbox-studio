@@ -1,0 +1,11 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+
+# test evidence written by Playwright and the screenshot tool
+test-results/
+playwright-report/
+var/

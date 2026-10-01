@@ -1,0 +1,53 @@
+'use client';
+
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+/** The current tab lives in the URL (`?tab=`), so a reload and the back button both work. */
+export function useTab<T extends string>(all: readonly T[], fallback: T): [T, (t: T) => void] {
+  const sp = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const raw = sp.get('tab');
+  const tab = (all as readonly string[]).includes(raw ?? '') ? (raw as T) : fallback;
+  const set = useCallback((t: T) => { const q = new URLSearchParams(sp.toString()); q.set('tab', t); router.replace(`${pathname}?${q}`, { scroll: false }); }, [sp, router, pathname]);
+  return [tab, set];
+}
+
+/** Warn before leaving with unsaved edits: the browser's own prompt on close/reload, and a confirm on in-app links. */
+export function useUnsavedGuard(dirty: boolean, message: string) {
+  useEffect(() => {
+    if (!dirty) return;
+    const onUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
+      if (!a || a.target === '_blank' || a.hasAttribute('download') || e.defaultPrevented) return;
+      if (a.origin !== location.origin || a.pathname === location.pathname) return;
+      if (!window.confirm(message)) { e.preventDefault(); e.stopPropagation(); }
+    };
+    window.addEventListener('beforeunload', onUnload);
+    document.addEventListener('click', onClick, true);
+    return () => { window.removeEventListener('beforeunload', onUnload); document.removeEventListener('click', onClick, true); };
+  }, [dirty, message]);
+}
+
+/** A draft of an object with a dirty flag and reset, for forms that edit a stored thing in place. */
+export function useDraft<T>(source: T) {
+  const [draft, setDraft] = useState<T>(source);
+  const [base, setBase] = useState<T>(source);
+  // callers pass a fresh object each render; only a change in its contents resets the draft
+  const sourceKey = JSON.stringify(source);
+  const latest = useRef(source); latest.current = source;
+  useEffect(() => { setDraft(latest.current); setBase(latest.current); }, [sourceKey]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(base);
+  const patch = useCallback((p: Partial<T>) => setDraft((d) => ({ ...d, ...p })), []);
+  const reset = useCallback(() => setDraft(base), [base]);
+  return { draft, setDraft, patch, dirty, reset };
+}
+
+/** Small screens get the same layout, stacked; this says which we are on. */
+export function useNarrow(px = 1024) {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => { const mq = window.matchMedia(`(max-width: ${px - 1}px)`); const on = () => setNarrow(mq.matches); on(); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); }, [px]);
+  return narrow;
+}

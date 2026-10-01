@@ -1,0 +1,56 @@
+'use client';
+
+import { useState } from 'react';
+import type { Production } from '@/domain/types';
+import { useStudio } from '@/demo/store';
+import { nid, setSong } from '@/demo/actions';
+import { useT } from '@/components/ui/locale';
+import { useToast } from '@/components/ui/toast';
+import { Button, Field, Input, Modal, Notice, Segmented, Textarea } from '@/components/ui/kit';
+import { splitLyrics } from '@/components/wizard/CreateWizard';
+import { IconUpload } from '@/components/ui/icons';
+
+/** Give a music video its song, or replace it: describe and write it (saved as an example song), or bring a file. */
+export function ReplaceSong({ p }: { p: Production }) {
+  const T = useT(); const { state, update, addFile } = useStudio(); const toast = useToast();
+  const [mode, setMode] = useState<'GENERATE' | 'UPLOAD'>('GENERATE');
+  const [caption, setCaption] = useState(p.song?.caption ?? ''); const [lyrics, setLyrics] = useState(''); const [title, setTitle] = useState(p.song?.title ?? p.title);
+  const submit = (close: () => void) => {
+    if (!caption.trim()) return;
+    const sections = lyrics.trim() ? splitLyrics(lyrics, p.targetSeconds) : p.song?.sections ?? [];
+    update((s) => setSong(s, p.id, { id: nid('song'), title: title.trim() || p.title, source: 'GENERATED_EXAMPLE', durationSeconds: p.targetSeconds, caption: caption.trim(), sections: sections.map((x) => ({ ...x, singerIds: x.singerIds.length ? x.singerIds : p.castIds })), singerIds: p.castIds }));
+    toast.ok(T('toast.saved')); close();
+  };
+  const onFile = async (f: File, close: () => void) => {
+    const r = await addFile(f, { label: f.name, tags: ['song', 'upload'] });
+    if (!r.ok) { toast.bad(r.error); return; }
+    update((s) => setSong(s, p.id, { id: nid('song'), title: title.trim() || f.name, source: 'UPLOADED', assetId: r.asset.id, durationSeconds: p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds: p.castIds }));
+    toast.ok(T('toast.saved')); close();
+  };
+  const sampleTrack = state.assets.find((x) => x.id === 'song-uploaded');
+  const useSample = (close: () => void) => { if (!sampleTrack) return; update((s) => setSong(s, p.id, { id: nid('song'), title: title.trim() || p.title, source: 'UPLOADED', assetId: sampleTrack.id, durationSeconds: sampleTrack.durationSeconds ?? p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds: p.castIds })); toast.ok(T('toast.saved')); close(); };
+  return (
+    <Modal title={p.song ? T('song.replace') : T('wizard.song')} trigger={(open) => <Button size="sm" onClick={open}>{p.song ? T('song.replace') : T('btn.add')}</Button>}>
+      {(close) => (
+        <div className="space-y-4">
+          <Segmented label={T('wizard.song')} value={mode} onChange={setMode} options={[{ value: 'GENERATE', label: T('wizard.generateSong') }, { value: 'UPLOAD', label: T('wizard.uploadSong') }]} />
+          <Field label={T('label.title')}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+          {mode === 'GENERATE' ? (
+            <>
+              <Field label={T('wizard.songCaption')} help={T('wizard.songCaption.help')} required><Textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} /></Field>
+              <Field label={T('wizard.lyrics')} help={T('wizard.lyrics.help')}><Textarea value={lyrics} onChange={(e) => setLyrics(e.target.value)} rows={6} className="display text-base" /></Field>
+              <Notice tone="info">{T('wizard.createdSong')}</Notice>
+              <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button variant="primary" onClick={() => submit(close)} disabled={!caption.trim()}>{T('btn.save')}</Button></div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <label className="btn btn-secondary cursor-pointer"><IconUpload aria-hidden />{T('wizard.uploadSong')}<input type="file" accept="audio/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f, close); }} /></label>
+              {sampleTrack && <button type="button" className="block text-sm text-fg underline-offset-2 hover:underline" onClick={() => useSample(close)}>{T('label.sampleContent')}: {T('song.uploaded').toLowerCase()}</button>}
+              <p className="text-xs text-muted">{T('lib.uploadHint')}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}

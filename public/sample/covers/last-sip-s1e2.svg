@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="The Debt — sample illustration">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f9ccc"/><stop offset="0.55" stop-color="#bcd7e6"/><stop offset="1" stop-color="#efe0b9"/></linearGradient>
+<linearGradient id="vig" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.38"/></linearGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff0c6" stop-opacity="0.9"/><stop offset="0.35" stop-color="#fff0c6" stop-opacity="0.25"/><stop offset="1" stop-color="#fff0c6" stop-opacity="0"/></radialGradient>
+</defs>
+<rect x="0" y="0" width="1280" height="720" fill="#b8895c" />
+<rect x="0" y="0" width="1280" height="115.2" fill="#936e4a" />
+<rect x="0" y="489.6" width="1280" height="230.4" fill="#7a5238" />
+<rect x="0" y="489.6" width="1280" height="7.2" fill="#5c452e" />
+<rect x="793.6" y="144" width="281.6" height="230.4" fill="url(#sky)" />
+<rect x="793.6" y="144" width="281.6" height="230.4" fill="none" stroke="#533e29" stroke-width="10.2"/>
+<rect x="933.1" y="144" width="7.7" height="230.4" fill="#533e29" />
+<circle cx="576" cy="64.8" r="14.4" fill="#3b2f2a" />
+<ellipse cx="576" cy="64.8" rx="140.8" ry="8.6" fill="#4d3d35" transform="rotate(0 576 64.8)"/>
+<ellipse cx="576" cy="64.8" rx="140.8" ry="8.6" fill="#4d3d35" transform="rotate(60 576 64.8)"/>
+<ellipse cx="576" cy="64.8" rx="140.8" ry="8.6" fill="#4d3d35" transform="rotate(120 576 64.8)"/>
+<line x1="256" y1="0" x2="256" y2="100.8" stroke="#2a2220" stroke-width="2" stroke-linecap="round" />
+<path d="M204.8 144 L307.2 144 L275.2 100.8 L236.8 100.8 Z" fill="#5a3f2a" />
+<circle cx="256" cy="151.2" r="21.6" fill="#fff0c6" opacity="0.9"/>
+<rect x="640" y="172.8" width="89.6" height="86.4" fill="#2a1e18" />
+<rect x="649" y="180" width="71.7" height="72" fill="#6a8f5a" />
+<circle cx="684.8" cy="208.8" r="14.4" fill="#e0c9a8" />
+<rect x="0" y="360" width="588.8" height="201.6" fill="#5b3a25" />
+<rect x="0" y="360" width="588.8" height="21.6" fill="#8a5a36" />
+<rect x="0" y="381.6" width="588.8" height="2.9" fill="#c99a5a" opacity="0.7"/>
+<rect x="102.4" y="316.8" width="76.8" height="43.2" fill="#c9a24a" />
+<ellipse cx="140.8" cy="259.2" rx="57.6" ry="64.8" fill="#d9b35a" />
+<rect x="128" y="180" width="25.6" height="28.8" fill="#c9a24a" />
+<path d="M192 259.2 q38.4 14.4 25.6 57.6" fill="none" stroke="#c9a24a" stroke-width="10.2"/>
+<polygon points="256,316.8 284.2,316.8 280.3,360 259.8,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="256,316.8 284.2,316.8 281.6,331.2 258.6,331.2" fill="#f7d9a0" />
+<polygon points="300.8,316.8 329,316.8 325.1,360 304.6,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="300.8,316.8 329,316.8 326.4,331.2 303.4,331.2" fill="#f7d9a0" />
+<polygon points="345.6,316.8 373.8,316.8 369.9,360 349.4,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="345.6,316.8 373.8,316.8 371.2,331.2 348.2,331.2" fill="#f7d9a0" />
+<polygon points="390.4,316.8 418.6,316.8 414.7,360 394.2,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="390.4,316.8 418.6,316.8 416,331.2 393,331.2" fill="#f7d9a0" />
+<polygon points="435.2,316.8 463.4,316.8 459.5,360 439,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="435.2,316.8 463.4,316.8 460.8,331.2 437.8,331.2" fill="#f7d9a0" />
+<polygon points="480,316.8 508.2,316.8 504.3,360 483.8,360" fill="#c9782e" opacity="0.9"/>
+<polygon points="480,316.8 508.2,316.8 505.6,331.2 482.6,331.2" fill="#f7d9a0" />
+<rect x="716.8" y="417.6" width="153.6" height="14.4" fill="#3a2a22" />
+<rect x="780.8" y="432" width="25.6" height="72" fill="#3a2a22" />
+<rect x="665.6" y="403.2" width="44.8" height="100.8" fill="#4a3328" />
+<polygon points="716.8,414 755.2,406.8 768,417.6 729.6,424.8" fill="#f7d9a0" />
+<rect x="947.2" y="417.6" width="130.6" height="14.4" fill="#3a2a22" />
+<rect x="1001.6" y="432" width="21.8" height="61.2" fill="#3a2a22" />
+<rect x="903.7" y="403.2" width="38.1" height="85.7" fill="#4a3328" />
+<polygon points="947.2,414 979.8,406.8 990.7,417.6 958.1,424.8" fill="#f7d9a0" />
+<path d="M161.6 143.5 Q204.8 126.2 248 143.5 L244.5 360 L165.1 360 Z" fill="#dbe4ee" /><path d="M161.6 143.5 L189.7 137.7 L191.8 360 L165.1 360 Z M248 143.5 L219.9 137.7 L217.8 360 L244.5 360 Z" fill="#37527a" /><line x1="163.8" y1="152.1" x2="159.4" y2="354.2" stroke="#37527a" stroke-width="13" stroke-linecap="round" /><line x1="245.8" y1="152.1" x2="250.2" y2="354.2" stroke="#37527a" stroke-width="13" stroke-linecap="round" /><rect x="197.5" y="118.5" width="14.7" height="14.7" fill="#b89877" /><ellipse cx="204.8" cy="98.9" rx="22" ry="24.5" fill="#d9b38c" /><path d="M182.3 96.5 Q204.8 69.6 227.3 96.5 Q204.8 86.7 182.3 96.5 Z" fill="#1d1a1f" /><path d="M181.5 90.4 Q204.8 74.4 228.1 90.4 Q204.8 81.3 181.5 90.4 Z" fill="#3f8f5a" /><circle cx="186.4" cy="96.5" r="7.8" fill="#1d1a1f" />
+<rect x="808" y="451.6" width="33.5" height="187.5" fill="#5a4023" /><rect x="848.1" y="451.6" width="33.5" height="187.5" fill="#523a20" /><path d="M777.8 312.4 Q844.8 285.6 911.8 312.4 L906.4 460.5 L783.2 460.5 Z" fill="#2b2b34" /><path d="M777.8 312.4 L821.4 303.5 L824.7 460.5 L783.2 460.5 Z M911.8 312.4 L868.2 303.5 L864.9 460.5 L906.4 460.5 Z" fill="#a3743f" /><line x1="781.2" y1="325.8" x2="774.5" y2="451.6" stroke="#a3743f" stroke-width="20.1" stroke-linecap="round" /><line x1="908.4" y1="325.8" x2="915.1" y2="451.6" stroke="#a3743f" stroke-width="20.1" stroke-linecap="round" /><rect x="833.4" y="273.7" width="22.8" height="22.8" fill="#754d32" /><ellipse cx="844.8" cy="243.3" rx="34.1" ry="37.9" fill="#8a5a3b" /><circle cx="810.7" cy="215.6" r="12.1" fill="#221c1e" /><circle cx="822" cy="212.9" r="12.1" fill="#221c1e" /><circle cx="833.4" cy="211" r="12.1" fill="#221c1e" /><circle cx="844.8" cy="210.3" r="12.1" fill="#221c1e" /><circle cx="856.2" cy="211" r="12.1" fill="#221c1e" /><circle cx="867.6" cy="212.9" r="12.1" fill="#221c1e" /><circle cx="878.9" cy="215.6" r="12.1" fill="#221c1e" /><rect x="887.2" y="415.9" width="40.2" height="49.1" fill="#7a4a2a" rx="2"/>
+<rect width="1280" height="720" fill="url(#vig)"/>
+<g transform="translate(1161.2, 657.9)"><rect width="102.6" height="33.5" rx="7.6" fill="black" opacity="0.5"/><text x="51.3" y="23.8" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16.2" font-weight="700" letter-spacing="1" fill="white" opacity="0.9">SAMPLE</text></g>
+</svg>

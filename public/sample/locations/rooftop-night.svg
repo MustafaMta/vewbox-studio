@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Karim’s Rooftop — sample illustration">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0f22"/><stop offset="0.55" stop-color="#172344"/><stop offset="1" stop-color="#24345c"/></linearGradient>
+<linearGradient id="vig" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.38"/></linearGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd98c" stop-opacity="0.9"/><stop offset="0.35" stop-color="#ffd98c" stop-opacity="0.25"/><stop offset="1" stop-color="#ffd98c" stop-opacity="0"/></radialGradient>
+</defs>
+<rect x="0" y="0" width="1280" height="720" fill="url(#sky)" />
+<circle cx="921.6" cy="158.4" r="216" fill="url(#glow)" />
+<circle cx="921.6" cy="158.4" r="39.6" fill="#ffd98c" opacity="0.95"/>
+<rect x="-25.6" y="280.7" width="53.2" height="237.7" fill="#5a5f6b" />
+<rect x="6.3" y="305.6" width="10.6" height="23.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="-17.6" y="371.8" width="10.6" height="23.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="6.3" y="371.8" width="10.6" height="23.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="37.9" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="55.1" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="106.9" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="55.1" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="106.9" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="163.1" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="180.3" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="232.1" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="180.3" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="232.1" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="288.3" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="305.5" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="357.3" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="305.5" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="357.3" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="413.5" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="430.8" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="482.5" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="430.8" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="482.5" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="538.7" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="556" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="607.7" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="556" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="607.7" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="663.9" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="681.2" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="732.9" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="681.2" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="732.9" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="789.2" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="806.4" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="858.1" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="806.4" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="858.1" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="914.4" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="931.6" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="983.4" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="931.6" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="983.4" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1039.6" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="1056.8" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1108.6" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1056.8" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1108.6" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1164.8" y="245.2" width="115" height="273.2" fill="#5a5f6b" />
+<rect x="1182.1" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1233.8" y="275.4" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1182.1" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="1233.8" y="355.9" width="23" height="28.2" fill="#ffd98c" opacity="0.85"/>
+<rect x="0" y="475.2" width="1280" height="244.8" fill="#131a2b" />
+<rect x="0" y="446.4" width="1280" height="36" fill="#4e5360" />
+<rect x="102.4" y="259.2" width="179.2" height="216" fill="#898d95" />
+<ellipse cx="192" cy="259.2" rx="89.6" ry="25.2" fill="#d0d1d5" />
+<rect x="128" y="475.2" width="25.6" height="43.2" fill="#0f1522" />
+<rect x="230.4" y="475.2" width="25.6" height="43.2" fill="#0f1522" />
+<ellipse cx="1126.4" cy="360" rx="57.6" ry="79.2" fill="#e7e8ea" transform="rotate(-20 1126.4 360)"/>
+<line x1="1126.4" y1="360" x2="1152" y2="475.2" stroke="#898d95" stroke-width="10.2" stroke-linecap="round" />
+<line x1="307.2" y1="302.4" x2="896" y2="288" stroke="#d9d3c7" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+<path d="M384 295.2 L460.8 295.2 L454.4 396 L390.4 396 Z" fill="#e8e2d2" />
+<path d="M512 295.2 L588.8 295.2 L582.4 367.2 L518.4 367.2 Z" fill="#3f6fb0" />
+<path d="M640 295.2 L716.8 295.2 L710.4 410.4 L646.4 410.4 Z" fill="#d9a441" />
+<path d="M793.6 295.2 L870.4 295.2 L864 381.6 L800 381.6 Z" fill="#e0e0d8" />
+<rect x="947.2" y="396" width="76.8" height="21.6" fill="#e8e8e2" />
+<rect x="947.2" y="331.2" width="15.4" height="86.4" fill="#e8e8e2" />
+<rect x="1011.2" y="410.4" width="10.2" height="72" fill="#e8e8e2" />
+<rect x="953.6" y="410.4" width="10.2" height="72" fill="#e8e8e2" />
+<path d="M25.6 216 Q640 288 1254.4 201.6" fill="none" stroke="#3a3a44" stroke-width="1.5"/>
+<circle cx="25.6" cy="224.6" r="21.6" fill="url(#glow)" />
+<circle cx="25.6" cy="224.6" r="5.8" fill="#ffd98c" />
+<circle cx="128" cy="232.8" r="21.6" fill="url(#glow)" />
+<circle cx="128" cy="232.8" r="5.8" fill="#ffd98c" />
+<circle cx="230.4" cy="240.2" r="21.6" fill="url(#glow)" />
+<circle cx="230.4" cy="240.2" r="5.8" fill="#ffd98c" />
+<circle cx="332.8" cy="246.5" r="21.6" fill="url(#glow)" />
+<circle cx="332.8" cy="246.5" r="5.8" fill="#ffd98c" />
+<circle cx="435.2" cy="251" r="21.6" fill="url(#glow)" />
+<circle cx="435.2" cy="251" r="5.8" fill="#ffd98c" />
+<circle cx="537.6" cy="253.4" r="21.6" fill="url(#glow)" />
+<circle cx="537.6" cy="253.4" r="5.8" fill="#ffd98c" />
+<circle cx="640" cy="253.4" r="21.6" fill="url(#glow)" />
+<circle cx="640" cy="253.4" r="5.8" fill="#ffd98c" />
+<circle cx="742.4" cy="251" r="21.6" fill="url(#glow)" />
+<circle cx="742.4" cy="251" r="5.8" fill="#ffd98c" />
+<circle cx="844.8" cy="246.2" r="21.6" fill="url(#glow)" />
+<circle cx="844.8" cy="246.2" r="5.8" fill="#ffd98c" />
+<circle cx="947.2" cy="239.3" r="21.6" fill="url(#glow)" />
+<circle cx="947.2" cy="239.3" r="5.8" fill="#ffd98c" />
+<circle cx="1049.6" cy="230.6" r="21.6" fill="url(#glow)" />
+<circle cx="1049.6" cy="230.6" r="5.8" fill="#ffd98c" />
+<circle cx="1152" cy="220.8" r="21.6" fill="url(#glow)" />
+<circle cx="1152" cy="220.8" r="5.8" fill="#ffd98c" />
+<circle cx="1254.4" cy="210.2" r="21.6" fill="url(#glow)" />
+<circle cx="1254.4" cy="210.2" r="5.8" fill="#ffd98c" />
+<rect width="1280" height="720" fill="url(#vig)"/>
+<g transform="translate(1161.2, 657.9)"><rect width="102.6" height="33.5" rx="7.6" fill="black" opacity="0.5"/><text x="51.3" y="23.8" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16.2" font-weight="700" letter-spacing="1" fill="white" opacity="0.9">SAMPLE</text></g>
+</svg>

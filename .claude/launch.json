@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "studio-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "next",
+        "start",
+        "-p",
+        "4210"
+      ],
+      "port": 4210
+    }
+  ]
+}
