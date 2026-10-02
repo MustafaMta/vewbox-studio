@@ -2,7 +2,7 @@ import type { Asset, Character, Production, Shot, StudioState } from '@/domain/t
 import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem, voiceLock } from '@/domain/rules';
-import { isIdentityApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
 
@@ -16,12 +16,12 @@ export interface PreflightCheck { name: string; ok: boolean; detail?: string; fa
 export interface PreflightWarning { name: string; detail: string; characterIds?: string[] }
 export interface Preflight { ok: boolean; checks: PreflightCheck[]; warnings: PreflightWarning[] }
 
-/** The identity warning (docs/CONTRACTS-IDENTITY-PACK.md §3): a character without an APPROVED pack can be cast and
- *  filmed, but the producer is told. */
+/** The identity warning (docs/CONTRACTS-IDENTITY-PACK.md v2 §3): a character whose canonical image is not APPROVED
+ *  can be cast and filmed, but the producer is told. */
 function identityWarning(characters: Character[]): PreflightWarning | null {
-  const pending = characters.filter((c) => !isIdentityApproved(c));
+  const pending = characters.filter((c) => !isCanonicalApproved(c));
   if (!pending.length) return null;
-  return { name: 'identity-approved', detail: `identity not approved: ${pending.map((c) => `${c.name} (${c.identityPack ? `draft v${c.identityPack.version}` : 'no identity pack'})`).join(', ')}`, characterIds: pending.map((c) => c.id) };
+  return { name: 'identity-approved', detail: `identity not approved: ${pending.map((c) => `${c.name} (${c.canonicalImage ? `draft v${c.canonicalImage.version}` : primaryImageSourceOf(c) === 'PORTRAIT' ? 'legacy portrait, no canonical image' : 'no canonical image'})`).join(', ')}`, characterIds: pending.map((c) => c.id) };
 }
 
 /** MiniMax H3 limits as the local graphs apply them. */
@@ -52,21 +52,21 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   add('lines-have-text', emptyLines.length === 0, 'PROMPT_AMBIGUITY', emptyLines.length ? `${emptyLines.length} empty line(s)` : undefined);
   // the parameters
   add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s (engine: ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s)`);
-  // references and their limits: each character's primary image is the FRONT view of the identity pack (a character
-  // drawn before packs falls back to the legacy portrait)
+  // references and their limits: each character's primary image is the canonical front full-body image (a character
+  // drawn before canonical images falls back to the legacy portrait)
   const opening = byId(sh.openingFrameAssetId);
   const inShot = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter((c): c is Character => Boolean(c));
-  const fronts = inShot.map((c) => byId(primaryImageOf(c))).filter(usableImage);
+  const primaries = inShot.map((c) => byId(primaryImageOf(c))).filter(usableImage);
   const plate = byId(loc?.masterAssetId);
-  const pictures = (usableImage(opening) ? 1 : 0) + fronts.length + (usableImage(plate) ? 1 : 0);
+  const pictures = (usableImage(opening) ? 1 : 0) + primaries.length + (usableImage(plate) ? 1 : 0);
   add('reference-pictures-within-limit', pictures <= H3_LIMITS.maxReferenceImages, 'UNSUPPORTED_CAPABILITY', `${pictures} picture(s), limit ${H3_LIMITS.maxReferenceImages}`);
   const identityNeeded = sh.characterIds.length > 0;
-  const identityOk = !identityNeeded || usableImage(opening) || fronts.length > 0;
-  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (usableImage(opening) ? 'opening frame' : `${fronts.length} front view(s)`) : 'the shot has characters but neither an opening frame nor a front view to hold their identity; draw them first');
+  const identityOk = !identityNeeded || usableImage(opening) || primaries.length > 0;
+  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (usableImage(opening) ? 'opening frame' : `${primaries.length} character image(s)`) : 'the shot has characters but neither an opening frame nor a character image to hold their identity; draw them first');
   if (identityNeeded) {
     const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
     const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));
-    add('every-character-has-front-view', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no front view for ${missing.map((c) => c.name).join(', ')}; draw the identity pack first` : legacy.length ? `legacy portrait for ${legacy.map((c) => c.name).join(', ')}` : undefined);
+    add('every-character-has-image', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no canonical image for ${missing.map((c) => c.name).join(', ')}; draw the character first` : legacy.length ? `legacy portrait for ${legacy.map((c) => c.name).join(', ')}` : undefined);
     const w = identityWarning(inShot);
     if (w) warnings.push(w);
   }
@@ -127,11 +127,12 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
   const checks: PreflightCheck[] = [];
   const warnings: PreflightWarning[] = [];
   const add = (name: string, ok: boolean, failureClass: FailureClass, detail?: string) => checks.push({ name, ok, failureClass, detail });
-  const draws = type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS';
-  if (draws) {
+  if (type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS') {
     add('appearance-unlocked', canChangeAppearance(c), 'INCONSISTENT_PLAN', canChangeAppearance(c) ? undefined : `${c.name} has been used in a video; the appearance is preserved`);
-    // a redraw of an approved pack returns it to DRAFT until the producer approves it again
-    if (canChangeAppearance(c) && isIdentityApproved(c)) warnings.push({ name: 'approved-identity-redrawn', detail: `${c.name}’s approved identity pack (v${c.identityPack!.version}) returns to draft until it is approved again`, characterIds: [c.id] });
+  }
+  if (type === 'CHARACTER_APPEARANCE') {
+    // a redraw of an approved image is a new DRAFT version until the producer approves it again
+    if (canChangeAppearance(c) && isCanonicalApproved(c)) warnings.push({ name: 'approved-identity-redrawn', detail: `${c.name}’s approved canonical image (v${c.canonicalImage!.version}) is replaced by a draft until the new one is approved`, characterIds: [c.id] });
   } else {
     const w = identityWarning([c]);
     if (w) warnings.push(w);
@@ -141,10 +142,10 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
     add('reference-picture-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; upload another picture or clear the reference to draw from the description` : 'reference picture ready');
   }
   if (type === 'CHARACTER_REFS') {
-    // the directional views (and any secondary material) are drawn from the primary image: the FRONT view, or the
-    // legacy portrait of a character drawn before identity packs
+    // optional secondary material is drawn from the primary image: the canonical image, or the legacy portrait of a
+    // character drawn before canonical images
     const problem = referenceImageProblem(state, primaryImageOf(c));
-    add('front-view-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; draw the front view first` : primaryImageSourceOf(c) === 'FRONT' ? 'front view ready' : 'legacy portrait ready');
+    add('primary-image-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; draw the character first` : primaryImageSourceOf(c) === 'CANONICAL' ? 'canonical image ready' : 'legacy portrait ready');
   }
   if (type === 'VOICE_BUILD') {
     const mode = (payload.mode as string | undefined) ?? 'AUTOMATIC';

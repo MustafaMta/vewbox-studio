@@ -3,7 +3,7 @@ import type { Asset, Character, Production, Scene, Shot, StudioState, Take, Vide
 import { canonical, hashString } from '@/domain/hash';
 import { schema, type Db } from '../db/client';
 import type { RowHashes } from './snapshot';
-import { packToColumns } from './identity-pack';
+import { canonicalToColumns } from './canonical-image';
 
 /** WRITING THE STUDIO — compare the state after a command with the fingerprints taken on load, then insert, update
  *  and delete only the rows that changed. Everything runs inside the caller's transaction. */
@@ -186,7 +186,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
 }
 
 export function characterRow(c: Character) {
-  return { id: c.id, name: c.name, nameAr: nul(c.nameAr), role: c.role, style: c.style, sex: c.sex, species: nul(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language, dialect: nul(c.dialect), voice: c.voice, refs: c.refs, portraitAssetId: nul(c.portraitAssetId), usageKnown: c.usage?.known ?? false, pendingReference: nul(c.pendingReference), canon: nul(c.canon), notes: nul(c.notes), ...packToColumns(c.identityPack), createdAt: c.createdAt, updatedAt: c.updatedAt };
+  return { id: c.id, name: c.name, nameAr: nul(c.nameAr), role: c.role, style: c.style, sex: c.sex, species: nul(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language, dialect: nul(c.dialect), voice: c.voice, refs: c.refs, portraitAssetId: nul(c.portraitAssetId), usageKnown: c.usage?.known ?? false, pendingReference: nul(c.pendingReference), canon: nul(c.canon), notes: nul(c.notes), ...canonicalToColumns(c.canonicalImage), createdAt: c.createdAt, updatedAt: c.updatedAt };
 }
 function productionRow(p: Production) {
   return { id: p.id, kind: p.kind, showId: nul(p.showId), seasonId: nul(p.seasonId), episodeNumber: nul(p.episodeNumber), title: p.title, titleAr: nul(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style, language: p.language, dialect: nul(p.dialect), aspect: p.aspect, targetSeconds: p.targetSeconds, stage: p.stage, brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, song: nul(p.song), coverAssetId: nul(p.coverAssetId), posterAssetId: nul(p.posterAssetId), artist: nul(p.artist), concept: nul(p.concept), genre: nul(p.genre), mood: nul(p.mood), cutAssetId: nul(p.cutAssetId), exports: nul(p.exports), createdAt: p.createdAt, updatedAt: p.updatedAt };

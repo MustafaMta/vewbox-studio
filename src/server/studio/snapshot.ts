@@ -4,7 +4,7 @@ import { STATE_VERSION } from '@/domain/version';
 import { DEFAULT_SETTINGS } from '@/domain/sample';
 import { canonical, hashString } from '@/domain/hash';
 import { db, schema, type Db } from '../db/client';
-import { packFromColumns } from './identity-pack';
+import { canonicalFromColumns } from './canonical-image';
 
 /** READING THE STUDIO — the whole state assembled from the tables, plus a fingerprint of every row so the saver can
  *  write back only what a command changed. */
@@ -58,10 +58,10 @@ export function usageFromRow(u: UsageRowRead): VideoUsage {
   return { productionId: u.productionId, productionTitle: u.productionTitle, shotId: u.shotId, shotLabel: u.shotLabel, takeId: u.takeId, takeLabel: u.takeLabel, recordedAt: u.recordedAt, status: u.status as VideoUsage['status'], canonicalImageVersion: undef(u.canonicalImageVersion) };
 }
 
-/** A character as the domain holds it, from its row, its usage records and (for a pack view written outside the
- *  studio without metadata) the creation time of an asset. */
+/** A character as the domain holds it, from its row, its usage records and (for a canonical image written outside
+ *  the studio without metadata) the creation time of an asset. */
 export function characterFromRow(c: CharacterRowRead, videos: VideoUsage[], assetCreatedAt: (assetId: string) => string | undefined = () => undefined): Character {
-  return { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), identityPack: packFromColumns(c, (id) => assetCreatedAt(id) ?? c.updatedAt), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
+  return { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), canonicalImage: canonicalFromColumns(c, (id) => assetCreatedAt(id) ?? c.updatedAt), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
 }
 
 export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {

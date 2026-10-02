@@ -4,6 +4,7 @@ import type { Dialect, Language, Style } from '@/domain/vocabulary';
 import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
 import { nid } from '@/domain/ids';
 import { StudioError } from '@/domain/errors';
+import { primaryImageOf } from '@/domain/identity';
 import { json as llmJson, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
@@ -33,7 +34,7 @@ const STYLE_RULES = (style: Style) => { const d = styleDirection(style); return 
 const compact = (v: unknown) => JSON.stringify(v);
 
 function castSummary(c: Character) {
-  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(c.portraitAssetId) };
+  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(primaryImageOf(c)) };
 }
 function locationSummary(l: Location) {
   return { id: l.id, name: l.name, nameAr: l.nameAr, kind: l.kind, description: l.description, landmarks: l.landmarks, props: l.props, lighting: l.lighting, layout: l.layout };
