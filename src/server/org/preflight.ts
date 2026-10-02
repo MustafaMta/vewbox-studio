@@ -1,7 +1,8 @@
 import type { Asset, Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
-import { canChangeAppearance, isCloneSource, voiceBuildLockProblem, voiceLock } from '@/domain/rules';
+import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
+import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, isConsentedUpload, isIraqi } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
@@ -150,21 +151,52 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
   if (type === 'VOICE_BUILD') {
     const mode = (payload.mode as string | undefined) ?? 'AUTOMATIC';
     // a voice locked by its chosen recording alone may be built only from that recording (AUTOMATIC is held to it)
-    const lockedToSelection = voiceLock(c).locked && !c.voice.identity;
     const lockProblem = voiceBuildLockProblem(c, mode === 'REFERENCE' ? (payload.referenceSampleId as string | undefined) : mode === 'AUTOMATIC' ? c.voice.selectedSampleId : undefined);
     add('voice-unlocked', !lockProblem, 'INCONSISTENT_PLAN', lockProblem ?? undefined);
     if (mode === 'REFERENCE') {
       const sample = c.voice.samples.find((s) => s.id === payload.referenceSampleId);
       const problem = referenceAudioProblem(state, sample);
       add('reference-recording-usable', !problem, 'MISSING_REFERENCE', problem ?? `cloning from “${sample?.label}”`);
+      // contract v2 §1: a real person's recording is cloned only with the producer's consent statement
+      if (!problem && sample) add('reference-recording-consented', isConsentedUpload(sample), 'INVALID_INPUT', isConsentedUpload(sample) ? `consent: ${sample.consent!.statement}` : `“${sample.label}” has no consent statement (CONSENT_REQUIRED); confirm that it is your voice or that the speaker gave permission`);
     } else if (mode === 'AUTOMATIC') {
-      const usable = c.voice.samples.filter((s) => (!lockedToSelection || s.id === c.voice.selectedSampleId) && !referenceAudioProblem(state, s));
-      add('uploaded-recording-present', usable.length > 0, 'MISSING_REFERENCE', usable.length ? `${usable.length} uploaded recording(s)` : lockedToSelection ? `${c.name} has spoken in a video with the chosen recording, and that recording cannot be cloned from (it is not an upload)` : `${c.name} has no uploaded recording to clone from; upload a 3–30 second recording of the voice on the Voice tab`);
+      // contract v2 §2: a consented recording, else a design (EN/MSA), else the Iraqi refusal
+      const plan = automaticVoicePlan(c, state.assets, state.settings);
+      add('automatic-voice-source', plan.kind !== 'REFUSE', plan.kind === 'REFUSE' && plan.code === 'CONSENT_REQUIRED' ? 'INVALID_INPUT' : 'MISSING_REFERENCE', plan.kind === 'UPLOAD' ? `cloning from the consented recording “${plan.label}”` : plan.kind === 'DESIGN' ? (plan.experiment ? 'designing an Arabic seed for the Iraqi engine (experiment: dialect unverified, REVIEW)' : `designing a voice from ${c.name}’s profile (studio-designed synthetic voice)`) : plan.message);
+    } else if (mode === 'DESIGN') {
+      const problem = designChoiceProblem(state, c, payload.designId as string | undefined, payload.candidate as number | undefined);
+      add('design-candidate-usable', !problem, 'MISSING_REFERENCE', problem ?? `design ${String(payload.designId)} candidate ${String(payload.candidate)}`);
     } else if (mode === 'MANUAL') {
       add('catalogue-voice-named', Boolean(payload.providerVoiceId), 'INVALID_INPUT', payload.providerVoiceId ? String(payload.providerVoiceId) : 'a catalogue voice needs providerVoiceId');
     }
   }
+  if (type === 'VOICE_DESIGN') {
+    const lockProblem = voiceBuildLockProblem(c, undefined);
+    add('voice-unlocked', !lockProblem, 'INCONSISTENT_PLAN', lockProblem ?? undefined);
+    const iraqiRefused = isIraqi(c) && !state.settings.generation?.allowDesignedIraqi;
+    add('design-language', !iraqiRefused, 'MISSING_REFERENCE', iraqiRefused ? IRAQI_NEEDS_RECORDING : isIraqi(c) ? 'Iraqi designed-seed experiment (dialect unverified, REVIEW)' : `${c.language === 'AR' ? 'MSA' : 'English'} design`);
+    const description = typeof payload.description === 'string' ? payload.description : undefined;
+    if (description !== undefined) {
+      const problem = descriptionProblem(description, castNames(state));
+      add('description-describes-attributes', !problem, 'INVALID_INPUT', problem ? `the description is refused (Rule V-DESIGN): ${problem}` : undefined);
+    }
+  }
   return { ok: checks.every((x) => x.ok), checks, warnings };
+}
+
+/** Why a design candidate cannot be pinned (VOICE_BUILD DESIGN), or null: the record and candidate exist on this
+ *  character, its seed file is there, it can be a clone reference (≤ 11.5 s, no clipped samples), and an Iraqi design
+ *  needs the experiment switch. The file's sha256 is checked by the worker at the clone boundary (Rule V-DESIGN). */
+export function designChoiceProblem(state: StudioState, c: Character, designId: string | undefined, candidate: number | undefined): string | null {
+  const rec = c.voice.designs?.find((d) => d.id === designId);
+  if (!rec) return `${c.name} has no voice design ${designId ?? '(none named)'}; design a voice first`;
+  const cand = rec.candidates.find((x) => x.index === candidate);
+  if (!cand) return `design ${rec.id} has no candidate ${candidate ?? '(none named)'}`;
+  const a = state.assets.find((x) => x.id === cand.assetId);
+  if (!a || a.kind !== 'AUDIO' || a.unavailable) return `candidate ${cand.index}'s seed file is missing from the library`;
+  if (!cloneEligible(cand)) return `candidate ${cand.index} cannot be a voice reference (${cand.durationSeconds.toFixed(2)} s, ${cand.measured.clippedSamples ?? 0} clipped samples; a reference is at most 11.5 s with none)`;
+  if (isIraqi(c) && !state.settings.generation?.allowDesignedIraqi) return IRAQI_NEEDS_RECORDING;
+  return null;
 }
 
 /** What must exist before a scene can be planned into shots. */

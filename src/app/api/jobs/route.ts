@@ -22,7 +22,7 @@ const Body = z.object({ type: z.enum(JOB_TYPES), payload: z.unknown(), idempoten
  *  `VOICE_BUILD:${characterId}:${revision}` so a double submission is one job. A second request for a character
  *  with a build or a drawing already running gets that job back (created: false). */
 async function prepareCharacterJob(type: JobType, payload: unknown, key: string | undefined): Promise<{ key: string | undefined; warnings: PreflightWarning[] }> {
-  if (!(type === 'VOICE_BUILD' || type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS')) return { key, warnings: [] };
+  if (!(type === 'VOICE_BUILD' || type === 'VOICE_DESIGN' || type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS')) return { key, warnings: [] };
   const characterId = (payload as { characterId?: unknown } | null)?.characterId;
   if (typeof characterId !== 'string') return { key, warnings: [] };
   const { state } = await readState();
@@ -31,7 +31,9 @@ async function prepareCharacterJob(type: JobType, payload: unknown, key: string 
   const pre = preflightCharacter(state, c, type, payload as Record<string, unknown>);
   if (!pre.ok) {
     const failed = pre.checks.filter((x) => !x.ok);
-    throw new StudioError('INVALID', failed.map((x) => x.detail ?? x.name).join('; '), { failureClass: failed[0].failureClass, checks: pre.checks });
+    // a recording without its consent statement is refused as such (contract v2 §1), so the page asks for the consent
+    const code = failed.some((x) => x.name === 'reference-recording-consented' || (x.name === 'automatic-voice-source' && x.failureClass === 'INVALID_INPUT')) ? 'CONSENT_REQUIRED' : 'INVALID';
+    throw new StudioError(code, failed.map((x) => x.detail ?? x.name).join('; '), { failureClass: failed[0].failureClass, checks: pre.checks });
   }
   if (type === 'VOICE_BUILD' && !key) return { key: voiceBuildKey(characterId, c.voice.identity?.revision ?? 0), warnings: pre.warnings };
   return { key, warnings: pre.warnings };

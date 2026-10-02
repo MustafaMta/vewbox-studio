@@ -348,8 +348,91 @@ export interface CharacterRef {
   view?: string; references?: string[]; seed?: number;
 }
 
-export type VoiceIdentityMode = 'REFERENCE' | 'AUTOMATIC' | 'MANUAL';
+export type VoiceIdentityMode = 'REFERENCE' | 'AUTOMATIC' | 'MANUAL' | 'DESIGN';
 export type VoiceIdentityStatus = 'ACTIVE' | 'REVIEW' | 'STALE';
+
+/** Where a voice comes from (docs/CONTRACTS-VOICE-IDENTITY-V2.md §1). UPLOAD_CONSENTED: a real person's recording with
+ *  the producer's consent statement. DESIGNED: a studio-designed synthetic voice (VoxCPM2, from a description only),
+ *  its seed file's sha256 matching a design record (Rule V-DESIGN). HOSTED: a MiniMax voice. GENERATED: a line spoken
+ *  from a voice — never the origin of an identity, never a clone source. */
+export type VoiceOrigin = 'UPLOAD_CONSENTED' | 'DESIGNED' | 'HOSTED' | 'GENERATED';
+
+/** The producer's consent statement for an uploaded or recorded voice (the upload is refused without one). */
+export interface VoiceConsent { statement: 'MY_VOICE' | 'SPEAKER_PERMISSION'; by: 'PRODUCER'; at: string }
+
+/** Whether a listener judged the accent or dialect. Only a listener's record (`recordVoiceListening`) moves it to
+ *  LISTENER_APPROVED / LISTENER_REJECTED; ASR success never does. English voices are NOT_APPLICABLE. */
+export type DialectStatus = 'NOT_APPLICABLE' | 'UNVERIFIED' | 'LISTENER_APPROVED' | 'LISTENER_REJECTED';
+
+/** What was MEASURED on the proof line when the identity was pinned (contract v2 §4): intelligibility (CER and word
+ *  coverage against the intended text, Arabic folded), loudness, true peak, clipped samples, and the ECAPA cosine
+ *  between the reference the engine heard and the line it spoke. Never a naturalness or dialect claim. */
+export interface VoiceEvaluation {
+  cer?: number; coverage?: number; lufs?: number; truePeakDbtp?: number; clipped?: number;
+  seedToLineSimilarity?: number;
+  measuredAt: string;
+  asrModel?: string; similarityModel?: string;
+}
+
+/** A listener's record ("I listened"): naturalness 1–5 and, for Arabic, whether the accent/dialect is authentic. */
+export interface VoiceListeningRecord { by: 'PRODUCER'; natural: number; dialectAuthentic?: boolean; note?: string; at: string }
+
+/** What was measured on one design candidate (its 24 kHz reference) or one preview rendering. */
+export interface VoiceDesignMeasure {
+  durationSeconds: number;
+  cer?: number; coverage?: number; heard?: string; asrModel?: string;
+  lufs?: number; truePeakDbtp?: number; clippedSamples?: number;
+}
+
+/** One preview sentence spoken by the LINE engine with a candidate as the reference, and ECAPA(seed, rendering). */
+export interface VoiceDesignPreview { text: string; assetId?: string; engine: string; cosine?: number; cer?: number; coverage?: number; /** Arabic: letters heard in order, spaces ignored (src/server/media/arabic-align.ts) */ letterCoverage?: number; heard?: string; durationSeconds?: number }
+
+export interface VoiceDesignCandidate {
+  /** 1-based, as the design service numbers them (seed = record seed + index − 1). */
+  index: number;
+  seed: number;
+  /** The 24 kHz mono reference the line engines clone from: Rule V-DESIGN pins THIS file's sha256. */
+  assetId: string; sha256: string; durationSeconds: number;
+  /** VoxCPM2's own 48 kHz output, kept for listening. */
+  nativeAssetId?: string; nativeSha256?: string;
+  measured: VoiceDesignMeasure;
+  /** The contract's candidate gates (CER, loudness, true peak, clipping, ≤ 11.5 s) and why it failed them. */
+  gate: { ok: boolean; reasons: string[] };
+  previews?: VoiceDesignPreview[];
+  /** Mean ECAPA(seed, line-engine rendering) over the preview sentences: what AUTOMATIC ranks EN/MSA on. */
+  similarityMean?: number;
+  /** Mean letter coverage and CER of the previews: what the Iraqi experiment ranks on (the Iraqi A/B's screening). */
+  letterCoverageMean?: number; cerMean?: number;
+}
+
+/** A VOICE_DESIGN result (Rule V-DESIGN §1, contract v2 §3): the description, engine and version, the seeds, every
+ *  candidate with its file's sha256 and measurements, the ranking, and the candidate pinned. Kept on the character
+ *  (`voice.designs`) with every candidate file — the same seed reproduces the voice, not the bytes. */
+export interface VoiceDesignRecord {
+  id: string;
+  characterId: string;
+  mode: 'AUTOMATIC' | 'DESIGN';
+  engine: string; model: string; engineVersion: string;
+  description: string; descriptionSource: 'PROFILE' | 'PRODUCER';
+  language: Language; dialect?: Dialect;
+  /** Set only by the opt-in experiment: a designed Arabic seed for the Iraqi engine (dialect never verified). */
+  experiment?: 'DESIGNED_IRAQI';
+  /** The calibration sentence every candidate speaks (also the reference text a Habibi line conditions on). */
+  text: string;
+  seed: number; seeds: number[]; params: Record<string, number>;
+  /** The line engine the candidates were previewed through, and the speaker-similarity model. */
+  lineEngine: string; similarityModel?: string;
+  candidates: VoiceDesignCandidate[];
+  /** Pairwise ECAPA cosine between the candidates (index order). */
+  similarity?: number[][];
+  /** Candidate indices, best first, and what decided the order. */
+  ranking?: number[]; rankedBy?: string;
+  /** The candidate an identity was pinned from, and who chose it (written only by `setVoiceIdentity`). */
+  chosen?: number; chosenBy?: 'AUTOMATIC' | 'PRODUCER';
+  label: string;
+  jobId: string;
+  createdAt: string;
+}
 
 /** The one voice a character speaks with: which engine, which reference recording (always the producer's upload,
  *  never a generated line), the parameters every line is spoken with, and the proof line that was spoken and heard
@@ -384,6 +467,17 @@ export interface VoiceIdentity {
   createdAt: string;
   /** The VOICE_BUILD job that pinned it. */
   jobId?: string;
+  // ---- voice identity v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md §3); absent on identities pinned before it ----
+  /** Where the voice comes from; required for every identity pinned since v2. */
+  origin?: VoiceOrigin;
+  /** DESIGNED: the design record and the sha256 of the seed file the engine clones from (Rule V-DESIGN). */
+  designId?: string; seedSha256?: string;
+  /** UPLOAD_CONSENTED (and a hosted clone of an upload): the consent statement of the recording. */
+  consent?: VoiceConsent;
+  dialectStatus?: DialectStatus;
+  evaluation?: VoiceEvaluation;
+  /** "I listened" records, newest last; allowed on a locked voice. */
+  listening?: VoiceListeningRecord[];
 }
 
 export interface Voice {
@@ -396,6 +490,9 @@ export interface Voice {
   samples: VoiceSample[];
   selectedSampleId?: string;
   identity?: VoiceIdentity;
+  /** Every voice design made for this character (VOICE_DESIGN, or the design step of an AUTOMATIC build). Written only
+   *  by the design commands; a whole-form save never touches it. */
+  designs?: VoiceDesignRecord[];
 }
 
 /** What the upload endpoint measured on a voice reference before accepting it (docs/research/CHARACTER-VOICE-DIAGNOSIS.md §3.2). */
@@ -424,6 +521,9 @@ export interface VoiceSample {
   dialect?: Dialect;
   durationSeconds?: number;
   jobId?: string;
+  /** For an upload: the producer's consent statement (contract v2 §1). An upload without one is never cloned from in
+   *  a new build (`CONSENT_REQUIRED`); `confirmVoiceConsent` records it for a recording uploaded before consent existed. */
+  consent?: VoiceConsent;
   /** For an upload: the validation it passed and the trimmed 24 kHz window stored beside it. */
   provenance?: { validation?: VoiceReferenceValidation; trimmedAssetId?: string; window?: { from: number; to: number }; [k: string]: unknown };
 }
@@ -552,6 +652,9 @@ export interface GenerationSettings {
   llmProvider?: string;
   /** Which voice engine new identities use. */
   voiceProvider?: 'LOCAL_TTS' | 'MINIMAX';
+  /** EXPERIMENT (default off): an Iraqi character without an Iraqi recording may get a designed Arabic seed spoken by
+   *  the Iraqi engine — always `dialectStatus: UNVERIFIED` and identity status REVIEW (contract v2 §2). */
+  allowDesignedIraqi?: boolean;
 }
 
 export interface Settings {

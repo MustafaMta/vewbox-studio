@@ -19,6 +19,7 @@ export const COMMANDS = {
   setSong: A.setSong, updateSong: A.updateSong,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference, setCharacterAppearance: A.setCharacterAppearance, addCharacterRefs: A.addCharacterRefs,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
+  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent,
   setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
@@ -84,16 +85,41 @@ const voiceSource = z.enum(['SAMPLE', 'UPLOADED', 'GENERATED']);
 const validation = z.object({ durationSeconds: z.number(), sampleRate: z.number(), channels: z.number(), integratedLufs: z.number(), truePeakDbtp: z.number(), speech: z.object({ present: z.boolean(), words: z.number(), language: z.enum(['EN', 'AR', 'UNKNOWN']), transcript: z.string(), confidence: z.number() }), snrDb: z.number().optional(), music: z.boolean().optional() });
 const sampleProvenance = z.object({ validation: validation.optional(), trimmedAssetId: id.optional(), window: z.object({ from: z.number(), to: z.number() }).optional() }).passthrough();
 const sampleExtra = { text: short(4000).optional(), language: z.enum(LANGUAGES).optional(), dialect: z.enum(DIALECTS).optional(), durationSeconds: z.number().nonnegative().optional(), provenance: sampleProvenance.optional() };
-const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), ...sampleExtra });
+/** The producer's consent statement (contract v2 §1). */
+const consentStatement = z.enum(['MY_VOICE', 'SPEAKER_PERMISSION']);
+const consent = z.object({ statement: consentStatement, by: z.literal('PRODUCER'), at: z.string().min(1).max(40) });
+const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), consent: consent.optional(), ...sampleExtra });
+const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
+const measure = z.object({ cer: z.number().min(0).optional(), coverage: z.number().min(0).max(1).optional(), lufs: z.number().optional(), truePeakDbtp: z.number().optional() });
 const VoiceIdentitySchema = z.object({
   provider: z.enum(['LOCAL_TTS', 'MINIMAX']), model: z.string().min(1).max(120), fallbackModel: z.literal('indextts').optional(),
-  mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL']), referenceSampleId: id.optional(), referenceAssetId: id.optional(),
+  mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL', 'DESIGN']), referenceSampleId: id.optional(), referenceAssetId: id.optional(),
   referenceWindow: z.object({ from: z.number().nonnegative(), to: z.number().positive(), assetId: id }).optional(), referenceText: short(4000).optional(), providerVoiceId: short(200).optional(),
   language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(),
   params: z.object({ speed: z.number().positive().max(3), emotionAlpha: z.number().min(0).max(2), seed: z.number().int().optional(), nfe: z.number().int().positive().optional(), cfg: z.number().optional() }),
   proof: z.object({ sampleId: id, assetId: id, text: short(4000), wer: z.number().optional(), cer: z.number().optional(), coverage: z.number().optional(), heard: short(4000).optional() }),
   status: z.enum(['ACTIVE', 'REVIEW', 'STALE']).optional(), engineVersion: short(120).optional(), jobId: id.optional(),
+  // voice identity v2 (the reducer enforces origin, consent and Rule V-DESIGN)
+  origin: z.enum(['UPLOAD_CONSENTED', 'DESIGNED', 'HOSTED', 'GENERATED']).optional(), designId: id.optional(), seedSha256: sha256.optional(), consent: consent.optional(),
+  dialectStatus: z.enum(['NOT_APPLICABLE', 'UNVERIFIED', 'LISTENER_APPROVED', 'LISTENER_REJECTED']).optional(),
+  evaluation: measure.extend({ clipped: z.number().int().nonnegative().optional(), seedToLineSimilarity: z.number().min(-1).max(1).optional(), measuredAt: z.string().min(1).max(40), asrModel: short(120).optional(), similarityModel: short(200).optional() }).optional(),
 });
+
+const designMeasure = measure.extend({ durationSeconds: z.number().nonnegative(), heard: short(4000).optional(), asrModel: short(120).optional(), clippedSamples: z.number().int().nonnegative().optional() });
+const designGate = z.object({ ok: z.boolean(), reasons: z.array(short(400)).max(20) });
+const designPreview = z.object({ text: short(1000), assetId: id.optional(), engine: short(40), cosine: z.number().min(-1).max(1).optional(), cer: z.number().min(0).optional(), coverage: z.number().min(0).max(1).optional(), letterCoverage: z.number().min(0).max(1).optional(), heard: short(4000).optional(), durationSeconds: z.number().nonnegative().optional() });
+const designScores = { previews: z.array(designPreview).max(8).optional(), similarityMean: z.number().min(-1).max(1).optional(), letterCoverageMean: z.number().min(0).max(1).optional(), cerMean: z.number().min(0).optional() };
+const designCandidate = z.object({ index: z.number().int().min(1).max(3), seed: z.number().int().nonnegative(), assetId: id, sha256, durationSeconds: z.number().positive(), nativeAssetId: id.optional(), nativeSha256: sha256.optional(), measured: designMeasure, gate: designGate, ...designScores });
+/** A VOICE_DESIGN record as the worker writes it (label, chosen and createdAt are the reducer's). */
+const VoiceDesignRecordSchema = z.object({
+  id, characterId: id, mode: z.enum(['AUTOMATIC', 'DESIGN']), engine: short(80).min(1), model: short(200), engineVersion: short(400).min(1),
+  description: z.string().min(1).max(300), descriptionSource: z.enum(['PROFILE', 'PRODUCER']), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), experiment: z.literal('DESIGNED_IRAQI').optional(),
+  text: z.string().min(1).max(1000), seed: z.number().int().nonnegative(), seeds: z.array(z.number().int().nonnegative()).min(1).max(3), params: z.record(z.string(), z.number()),
+  lineEngine: short(40), similarityModel: short(200).optional(), candidates: z.array(designCandidate).min(1).max(3), similarity: z.array(z.array(z.number())).max(3).optional(),
+  ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), jobId: id, createdAt: z.string().max(40).optional(),
+});
+const VoiceDesignPatchSchema = z.object({ candidates: z.array(z.object({ index: z.number().int().min(1).max(3), measured: designMeasure, gate: designGate, ...designScores })).max(3), ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), similarityModel: short(200).optional() });
+const ListeningSchema = z.object({ natural: z.number().int().min(1).max(5), dialectAuthentic: z.boolean().optional(), note: short(1000).optional() });
 
 /** The canonical image (docs/CONTRACTS-IDENTITY-PACK.md v2) as the worker reports a drawing. Status, version and
  *  approval are never taken from the caller (the reducer sets them). */
@@ -113,10 +139,14 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   updateCharacter: z.tuple([id, CharacterPatchSchema]),
   setPendingReference: z.tuple([id, id.optional().nullable(), imageValidation.optional()]).rest(z.unknown()),
   addVoiceSample: z.tuple([id, VoiceSampleInputSchema]).rest(z.boolean().optional()),
-  addVoiceRecording: z.tuple([id, id, short(200)]).rest(z.object(sampleExtra).optional()),
+  addVoiceRecording: z.tuple([id, id, short(200)]).rest(z.object({ ...sampleExtra, consent: consent.optional() }).optional()),
   updateVoiceSample: z.tuple([id, id, z.object({ label: short(200).optional(), ...sampleExtra })]),
   selectVoiceSample: z.tuple([id, id.optional().nullable()]).rest(z.unknown()),
   setVoiceIdentity: z.tuple([id, VoiceIdentitySchema]),
+  addVoiceDesign: z.tuple([id, VoiceDesignRecordSchema]),
+  updateVoiceDesign: z.tuple([id, id, VoiceDesignPatchSchema]),
+  recordVoiceListening: z.tuple([id, ListeningSchema]),
+  confirmVoiceConsent: z.tuple([id, id, consentStatement]),
 };
 
 /** Refuse malformed arguments with INVALID and the field named; commands without a schema pass through. */

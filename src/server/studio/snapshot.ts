@@ -27,7 +27,7 @@ const undef = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
  *  an identity without a proof line is reported as REVIEW, and the proof is taken from the generated line the same
  *  build stored when there is one. */
 export function normalizeVoice(v: Voice | null | undefined): Voice {
-  const base: Voice = { pitch: v?.pitch ?? 'MID', pace: v?.pace ?? 'MEASURED', timbre: v?.timbre ?? '', notes: v?.notes ?? '', samples: Array.isArray(v?.samples) ? v.samples : [], selectedSampleId: v?.selectedSampleId, identity: v?.identity };
+  const base: Voice = { pitch: v?.pitch ?? 'MID', pace: v?.pace ?? 'MEASURED', timbre: v?.timbre ?? '', notes: v?.notes ?? '', samples: Array.isArray(v?.samples) ? v.samples : [], selectedSampleId: v?.selectedSampleId, identity: v?.identity, ...(Array.isArray(v?.designs) ? { designs: v.designs } : {}) };
   const id = base.identity;
   if (!id) return base;
   if (id.mode && id.params && id.status) return base;
