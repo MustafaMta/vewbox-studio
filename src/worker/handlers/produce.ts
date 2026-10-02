@@ -5,6 +5,7 @@ import { readState } from '@/server/studio/engine';
 import { enqueue, getJob, listJobs } from '@/server/jobs/queue';
 import { isTerminalStatus } from '@/domain/jobs';
 import { needsTake } from '@/studio/selectors';
+import { orderedShots } from '@/domain/timeline';
 import * as comfy from '@/server/providers/comfy';
 
 /** PRODUCE — the "make everything" button: for each shot without an accepted take, draw the opening frame (when
@@ -43,12 +44,18 @@ export const produce: Handler = async (ctx) => {
   }
   await waitFor(ctx, children, 'drawing frames');
   if (framesOnly) return { frames: children.length, shots: targets.length };
+  // a shot that continues the previous one is generated from that take's last frames, so it must wait for its
+  // predecessor when the predecessor is in this run; everything else runs in parallel
   const takeJobs: string[] = [];
-  for (const sh of targets) {
+  const jobOfShot = new Map<string, string>();
+  const order = orderedShots(p);
+  const targetIds = new Set(targets.map((t) => t.id));
+  for (const sh of order.filter((x) => targetIds.has(x.id))) {
+    const prev = order[order.findIndex((x) => x.id === sh.id) - 1];
+    if (sh.continuity?.relationToPrevious === 'CONTINUATION' && prev && prev.sceneId === sh.sceneId && jobOfShot.has(prev.id)) await waitFor(ctx, [jobOfShot.get(prev.id)!], `waiting for the shot this one continues`);
     const existing = adopt('GENERATE_TAKE', sh.id);
-    if (existing) { takeJobs.push(existing); continue; }
-    const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 });
-    takeJobs.push(r.job.id);
+    const id = existing ?? (await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 })).job.id;
+    takeJobs.push(id); jobOfShot.set(sh.id, id);
   }
   const outcome = await waitFor(ctx, takeJobs, respeak ? 're-recording speaking shots' : 'generating takes');
   const fresh = (await readState()).state.productions.find((x) => x.id === productionId)!;

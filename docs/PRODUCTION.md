@@ -29,15 +29,30 @@ same jobs appear in **Activity** with their log, attempts, errors and a retry.
    cuts within the scene or marks a story transition. Replanning asks first; editing a shot's continuity records a new
    version. Drag shots within a scene; add or delete; open the shot editor for the prompt and the frames.
 3. **Production.** For a shot: *Prepare frames* draws an opening (and optionally closing) still from the location
-   plate and the character sheets, in the production's visual direction; *Generate* makes a MiniMax H3 take. A take
-   arrives as READY (chosen automatically if it is the first clean one) or REJECTED with the failed checks named
-   (duration, size, black frames, frozen video, flicker, silence, true peak). Regenerate as often as you like: each
-   attempt is a new take with full provenance (model, request id, prompt, references, seed, cost, time, QA, workflow
-   version); accepted takes are never overwritten. *Produce every shot* queues the whole production.
-4. **Final cut.** *Assemble* conforms and joins the chosen takes, mixes dialogue recordings into silent takes, adds
-   the song for a music video, normalises loudness (EBU R128) and makes a cut with sidecar subtitles (Arabic and
-   English). *Export* renders the delivery file at the chosen size with optional burned-in subtitles. Sample takes
-   cannot be exported; the button says so.
+   plate and the character sheets, in the production's visual direction; *Generate* makes a MiniMax H3 take. A
+   **speaking shot starts from its sound**: every line is recorded first with the character's canonical voice and
+   checked by transcription, the shot is cut to its words, the recording is anchored in the clip as time-positioned
+   voice context, and the exact script lines go to MiniMax as its dialogue (its own paraphrases are never used). The
+   finished clip is transcribed back: a take that does not say its lines is REJECTED with the `script-spoken` check
+   named; a passing take records where each line is actually spoken, and the subtitles use those times. A shot that
+   *continues* the previous one (continuity: CONTINUATION) is generated from the previous take's last frames and
+   sound, so the picture carries straight on; the cut drops the repeated frames. A take arrives as READY (chosen
+   automatically if it is the first clean one) or REJECTED with the failed checks named (duration, size, black frames,
+   frozen video, flicker, silence, true peak, script spoken). Regenerate as often as you like: each attempt is a new
+   take with full provenance (model, request id, prompt, references, seed, cost, time, QA, workflow version);
+   accepted takes are never overwritten. *Produce every shot* queues the whole production; *Re-record speaking shots*
+   makes new takes for the speaking shots whose chosen take was never checked against the script, and a passing new
+   take becomes the choice.
+4. **Final cut.** *Assemble* conforms and joins the chosen takes' pictures frame-exactly, then mixes the sound from a
+   **typed mix plan**: every source once, placed to the sample (a take's own sound at unity; recorded lines only
+   under takes without sound; in a music video the song master alone, with every take's own singing muted), brought
+   to broadcast loudness (EBU R128: −23 LUFS for films, −14 for music videos). The plan is shown under *Sound in
+   this cut* with each track's placement, level and the policy that set it. In a music video each performer is
+   aligned to the song: the take's lag against the master is measured and that many head frames are dropped, so the
+   mouths land on the beat; nothing is stretched. Every cut and export is validated before it is recorded (picture
+   and sound lengths within a frame, frame rate, size, timestamps, no black stretches); a failed check fails the job.
+   *Export* renders the delivery file at the chosen size with optional burned-in subtitles (one lyric line per cue,
+   on the vocal track's real timing). Sample takes cannot be exported; the button says so.
 
 ## Characters
 
@@ -52,8 +67,11 @@ wardrobe), a canon (height, accessories, visual restrictions, age presentation, 
 - **Voice.** Choose a studio voice or upload a recording (any character, used or not), then *Build the voice*: the
   identity is pinned (engine, reference, revision) and a preview line is spoken and checked by transcription. Iraqi
   Arabic uses the dialect engine; English and Arabic use IndexTTS; a MiniMax voice can be chosen when a key exists.
-- In a video take, the character's voice recording is passed to MiniMax as the audio reference for their lines, so
-  the spoken voice matches the recorded one.
+- In a video take, the character's lines are first recorded with that voice and the recording is anchored in the
+  clip as voice context; MiniMax renders the performance itself (it always generates its own speech, in sync with
+  the mouths it draws), so the result is checked by transcription and the voice stays close to, not identical with,
+  the recording. An Iraqi voice needs an Arabic reference recording; a line that switches into English is spoken by
+  the bilingual engine.
 
 ## Locations
 
@@ -66,8 +84,12 @@ alternate angles that storyboard frames and takes are built from, so the place l
 A music video has a song (written by Auto Idea, pasted, or uploaded), split into sections with timing. *Generate the
 song* produces the track (ACE-Step locally, MiniMax Music where available) and stems. The **performance plan**
 assigns each section to its singer or singers (solo, duet, alternating, ensemble, listener, instrumental); only an
-assigned performer sings in the picture, and their lines are passed to the video generation for that section. Nobody
-else mouths the words.
+assigned performer who is in the shot sings in the picture, and their lines are passed to the video generation for
+that section; a listener keeps their lips closed; when nobody on screen is a singer the song continues off camera.
+*Assign the singing* first places the written lines on the real vocal track (the vocal stem is transcribed and each
+line aligned), so the sections, the shot windows and the lyric cues follow the recording. Each take gets its stretch
+of the song as a time-positioned guide, and the cut aligns the performer to the master and keeps the master as the
+only soundtrack.
 
 ## Languages
 
