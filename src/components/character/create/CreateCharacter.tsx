@@ -96,7 +96,9 @@ export function CreateCharacter() {
   const steps = useMemo(() => creationSteps(parent, jobs, retries), [parent, jobs, retries]);
   const characterId = createdCharacterId(parent, jobs);
   const created = characterId ? state.characters.find((c) => c.id === characterId) : undefined;
-  const recordingBusy = Boolean(voiceUpload && voiceUpload.forJob === parentId && (voiceUpload.state === 'waiting' || voiceUpload.state === 'uploading'));
+  // the recording keeps the page "running" while it is being checked, or while it waits for a character that is still
+  // being made (a creation that ended without a character has nothing to attach it to)
+  const recordingBusy = Boolean(voiceUpload && voiceUpload.forJob === parentId && (voiceUpload.state === 'uploading' || (voiceUpload.state === 'waiting' && (Boolean(characterId) || !parent || isActiveStatus(parent.status)))));
   const settled = creationSettled(parent, steps) && !recordingBusy;
   const allGood = settled && parent?.status === 'COMPLETED' && steps.every((s) => s.state === 'done' || s.state === 'skipped') && Boolean(created);
   const running = Boolean(parentId) && !allGood;
