@@ -1,4 +1,5 @@
 import type { Handler } from './index';
+import { step } from './step';
 import type { IdeaPreferences, Scene } from '@/domain/types';
 import type { Dialect } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
@@ -11,7 +12,7 @@ import { command, commands, readState, stampCommands, type CommandSpec } from '@
 import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
-import { continuityUpdate, designCharacter as design, developStory as develop, libraryGuests, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
 import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
@@ -26,7 +27,7 @@ export const autoIdea: Handler = async (ctx) => {
   const payload = ctx.job.payload as { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string };
   await ctx.progress('GENERATING', { phase: 'writing', message: 'Writing a proposal' });
   const { state } = await readState();
-  const proposal = await ctx.tool('story.structured_answer', () => proposeIdea(state, payload, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'proposal' });
+  const proposal = await ctx.tool('story.structured_answer', () => proposeIdea(state, payload, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'proposal', input: { task: 'proposal', kind: payload.kind, showId: payload.showId } });
   await ctx.checkpoint();
   const id = nid('proposal');
   await db().insert(schema.proposals).values({ id, jobId: ctx.job.id, request: payload, proposal, createdAt: new Date().toISOString() });
@@ -44,7 +45,7 @@ export const episodeContinuity: Handler = async (ctx) => {
   const show = p.showId ? state.shows.find((x) => x.id === p.showId) : undefined;
   if (!show) throw new StudioError('INVALID', 'Only an episode of a show is recorded in a bible.');
   await ctx.progress('GENERATING', { phase: 'writing', message: `Recording ${p.title} in the bible of ${show.title}` });
-  const out = await ctx.tool('story.structured_answer', () => continuityUpdate(state, show, p, castOf(state, p), { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'continuity' });
+  const out = await ctx.tool('story.structured_answer', () => continuityUpdate(state, show, p, castOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'continuity', input: { task: 'continuity', productionId: p.id, showId: show.id } });
   await ctx.checkpoint();
   const b = show.bible ?? {};
   const season = state.seasons.find((x) => x.id === p.seasonId);
@@ -79,7 +80,7 @@ export const designCharacter: Handler = async (ctx) => {
   const line = payload.brief?.trim();
   const brief = [line, known.length ? `Known so far — keep these exactly and fill only what is missing: ${known.join('; ')}.` : '', !line && !known.length ? `A character named ${name} for a ${style.toLowerCase()} production; invent a fitting role, look and personality.` : ''].filter(Boolean).join('\n');
   await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${name ?? 'a character'}` });
-  const d = await ctx.tool('story.structured_answer', () => design(state, { brief, name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design' });
+  const d = await ctx.tool('story.structured_answer', () => design(state, { brief, name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design', input: { task: 'character-design', productionId: p?.id, showId: show?.id } });
   await ctx.checkpoint();
   // the producer's fields win over the model's; the voice profile too
   const input: CharacterInput = {
@@ -108,7 +109,7 @@ export const developStory: Handler = async (ctx) => {
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   await ctx.progress('GENERATING', { phase: 'developing', message: 'Developing the story, cast and world' });
-  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'develop' });
+  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'develop', input: { task: 'develop', productionId: p.id } });
   await ctx.checkpoint();
   await ctx.progress('POSTPROCESSING', { phase: 'saving', message: 'Saving characters, places and scenes' });
   // new characters and places first
@@ -179,7 +180,7 @@ export const writeScript: Handler = async (ctx) => {
   let written = 0;
   for (const [bi, batch] of batches.entries()) {
     await ctx.progress('GENERATING', { phase: 'writing', message: `Writing scenes ${batch[0].number}–${batch[batch.length - 1].number}`, step: bi + 1, total: batches.length });
-    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}` });
+    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
     await ctx.checkpoint();
     const byName = (n: string) => cast.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim());
     for (const sc of out.scenes) {
@@ -219,9 +220,12 @@ export const planShots: Handler = async (ctx) => {
     if (p.song.stems?.vocals) await alignSongLyrics(ctx, p.id, p.song.stems.vocals);
     await ctx.progress('GENERATING', { phase: 'performance', message: 'Assigning the singing' });
   } else {
-    const pre = preflightPlan(p, sceneIds);
-    await ctx.event(pre.ok ? 'info' : 'error', `preflight ${pre.ok ? 'passed' : 'FAILED'}`, { checks: pre.checks });
-    if (!pre.ok) { const failed = pre.checks.filter((c) => !c.ok); throw Object.assign(new StudioError('INVALID', failed.some((c) => c.name === 'scenes-present') ? 'There are no scenes to plan.' : failed.some((c) => c.name === 'scenes-written') ? 'Write the script before planning shots: some scenes have no beats.' : `Cannot plan: ${failed.map((c) => `${c.name} (${c.detail ?? ''})`).join('; ')}`), { failureClass: failed[0].failureClass }); }
+    // PREFLIGHT (the Executive Producer's step): nothing is planned from unwritten or unlocated scenes
+    await step(ctx, 'executive-producer', `plan-preflight: “${p.title}”`, async () => {
+      const pre = preflightPlan(p, sceneIds);
+      await ctx.event(pre.ok ? 'info' : 'error', `preflight ${pre.ok ? 'passed' : 'FAILED'}`, { checks: pre.checks });
+      if (!pre.ok) { const failed = pre.checks.filter((c) => !c.ok); throw Object.assign(new StudioError('INVALID', failed.some((c) => c.name === 'scenes-present') ? 'There are no scenes to plan.' : failed.some((c) => c.name === 'scenes-written') ? 'Write the script before planning shots: some scenes have no beats.' : `Cannot plan: ${failed.map((c) => `${c.name} (${c.detail ?? ''})`).join('; ')}`), { failureClass: failed[0].failureClass }); }
+    });
   }
   let previous: { shot?: PlannedShot; sceneExit?: string } = {};
   // continuity carries over from the last planned shot before the first target
@@ -231,7 +235,9 @@ export const planShots: Handler = async (ctx) => {
   let total = 0;
   for (const [i, scene] of targets.entries()) {
     await ctx.progress('GENERATING', { phase: 'planning', message: `Planning scene ${scene.number}: ${scene.title}`, step: i + 1, total: targets.length });
-    const shots = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scene ${scene.number}` });
+    const draft = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scene ${scene.number}`, input: { task: 'shot-plan', productionId: p.id, sceneIds: [scene.id] } });
+    // TIMING FIT (the Shot Planner's step): the scene's shots stretched evenly to fill its running-time budget
+    const shots = await step(ctx, 'shot-planner', `timing-fit: scene ${scene.number}`, async () => fitDurations(draft.shots, draft.budget, draft.maxShot));
     await ctx.checkpoint();
     await command('replaceSceneShots', [p.id, scene.id, shots.map((sh) => ({ sceneId: scene.id, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, continuity: { ...sh.continuity, version: 1 }, prompt: sh.prompt })), Boolean(force)], 'worker');
     previous = { shot: shots[shots.length - 1], sceneExit: scene.exitState };
@@ -240,7 +246,7 @@ export const planShots: Handler = async (ctx) => {
   // music video: make sure the singing assignment exists per section and copy it onto shots by song window
   if (p.kind === 'MUSIC_VIDEO' && p.song) {
     try {
-      const plan2 = await ctx.tool('story.structured_answer', () => planPerformance(p, cast, { jobId: ctx.job.id }), { label: 'performance' });
+      const plan2 = await ctx.tool('story.structured_answer', () => planPerformance(p, cast, { jobId: ctx.job.id, agentId: ctx.agent.id }), { label: 'performance', input: { task: 'performance-plan', productionId: p.id } });
       const sections = p.song.sections.map((sec) => { const a = plan2.find((x) => x.sectionId === sec.id); return a ? { ...sec, performanceMode: a.mode, singerIds: a.singerIds, lines: a.lines } : sec; });
       await command('updateSong', [p.id, { sections }], 'worker');
     } catch (e) { await ctx.event('warn', `performance plan skipped: ${(e as Error).message}`); }

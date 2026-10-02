@@ -318,8 +318,11 @@ export const departments = pgTable('departments', {
   nameAr: text('name_ar'),
   directorId: text('director_id').notNull(),
   responsibility: text('responsibility').notNull(),
+  responsibilityAr: text('responsibility_ar'),
   stages: text('stages').array().notNull().default([]),
   order: integer('order').notNull().default(0),
+  /** roles the department would need but nobody executes yet (model.ts PLANNED_ROLES) */
+  plannedRoles: jsonb('planned_roles').$type<Array<{ id: string; name: string; nameAr: string; would: string; reason: string; reasonAr: string; phase: string }>>().notNull().default([]),
   orgVersion: integer('org_version').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -327,9 +330,15 @@ export const departments = pgTable('departments', {
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  nameAr: text('name_ar'),
   departmentId: text('department_id').notNull(),
   role: text('role').notNull(),
+  roleAr: text('role_ar'),
   description: text('description').notNull(),
+  descriptionAr: text('description_ar'),
+  /** delegated steps it performs inside other agents' jobs, and payload routes of a job type it executes */
+  steps: jsonb('steps').$type<Array<{ id: string; name: string; nameAr: string; where: string }>>().notNull().default([]),
+  payloadRoutes: jsonb('payload_routes').$type<Array<{ jobType: string; when: string }>>().notNull().default([]),
   systemInstructions: text('system_instructions').notNull(),
   model: text('model').notNull(),
   skills: text('skills').array().notNull().default([]),
@@ -368,8 +377,12 @@ export const skills = pgTable('skills', {
   sourceVersion: text('source_version').notNull(),
   supportedModels: text('supported_models').array().notNull().default([]),
   requiredTools: text('required_tools').array().notNull().default([]),
+  /** computed at sync from evidence (VERIFIED / UNAVAILABLE / DRAFT); `note` holds the reason */
   status: text('status').notNull(),
   note: text('note'),
+  /** PROMPT / PROCEDURE / REFERENCE, and the evidence the status was computed from */
+  kind: text('kind'),
+  evidence: jsonb('evidence').$type<{ implementedBy: Array<{ path: string; present: boolean }>; verifiedBy: Array<{ path: string; present: boolean }>; usedBy: string[]; injectedInto: string[] }>(),
   /** the SKILL.md body as read from disk at sync time (so the page shows what the agent reads) */
   instructions: text('instructions'),
   orgVersion: integer('org_version').notNull(),
@@ -391,12 +404,16 @@ export const agentRuns = pgTable('agent_runs', {
   outcome: text('outcome'),
   failureClass: text('failure_class'),
   errorMessage: text('error_message'),
-  toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; ms: number; ok: boolean; error?: string; at: string }>>().notNull().default([]),
+  toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; version?: string; ms: number; ok: boolean; error?: string; failureClass?: string; at: string }>>().notNull().default([]),
   ms: integer('ms'),
   costUsd: doublePrecision('cost_usd'),
   /** A delegated step: the run of the agent whose job this step belongs to, and what the step does. */
   parentRunId: text('parent_run_id'),
   purpose: text('purpose'),
+  /** What the run ran with: the agent's version, the organisation version, the model, skill and tool versions. */
+  agentVersion: text('agent_version'),
+  orgVersion: integer('org_version'),
+  versions: jsonb('versions').$type<{ model: string; skills: Record<string, string>; tools: Record<string, string> }>(),
 }, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId), index('agent_runs_parent_idx').on(t.parentRunId)]);
 
 /** A department's explicit delivery to the next one. */

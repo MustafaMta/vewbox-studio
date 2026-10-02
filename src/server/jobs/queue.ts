@@ -183,18 +183,35 @@ export async function heartbeat(id: string, workerId: string): Promise<{ cancelR
   return { cancelRequested: rows[0].cancelRequested };
 }
 
-export async function setProgress(id: string, status: JobStatus, progress: JobProgress, extra: { providerTaskId?: string; takeId?: string } = {}) {
+/** The lease a worker's attempt holds (claim sets `locked_by` and increments `attempts`). A write fenced on it touches
+ *  the row only while that attempt still owns it: a worker whose lease went stale and was reclaimed cannot
+ *  overwrite the attempt that took over. Without a lease (tests, tools) the write is by id, as before. */
+export interface Lease { workerId: string; attempt: number }
+const owned = (id: string, lease?: Lease) => (lease ? and(eq(schema.jobs.id, id), eq(schema.jobs.lockedBy, lease.workerId), eq(schema.jobs.attempts, lease.attempt)) : eq(schema.jobs.id, id));
+const leaseLost = async (id: string, lease: Lease | undefined, what: string) => {
+  log.warn({ jobId: id, lease, what }, 'write refused: this attempt no longer holds the lease');
+  await addEvent(id, 'warn', `${what} discarded: attempt ${lease?.attempt} on ${lease?.workerId} no longer holds the lease`).catch(() => undefined);
+  return false;
+};
+
+/** Returns false when the lease was lost (nothing was written). */
+export async function setProgress(id: string, status: JobStatus, progress: JobProgress, extra: { providerTaskId?: string; takeId?: string } = {}, lease?: Lease): Promise<boolean> {
   if (!isActiveStatus(status) && status !== 'AWAITING_REVIEW') throw new Error(`setProgress with terminal status ${status}`);
   const now = new Date().toISOString();
-  await db().update(schema.jobs).set({ status, progress, heartbeatAt: now, updatedAt: now, ...(extra.providerTaskId ? { providerTaskId: extra.providerTaskId } : {}), ...(extra.takeId ? { takeId: extra.takeId } : {}) }).where(eq(schema.jobs.id, id));
+  const rows = await db().update(schema.jobs).set({ status, progress, heartbeatAt: now, updatedAt: now, ...(extra.providerTaskId ? { providerTaskId: extra.providerTaskId } : {}), ...(extra.takeId ? { takeId: extra.takeId } : {}) }).where(owned(id, lease)).returning({ id: schema.jobs.id });
+  if (lease && rows.length === 0) return leaseLost(id, lease, 'progress');
   await notifyJobs(id, status);
+  return true;
 }
 
-export async function complete(id: string, result: Record<string, unknown>, status: 'COMPLETED' | 'AWAITING_REVIEW' = 'COMPLETED') {
+/** Returns false when the lease was lost (the result was not written). */
+export async function complete(id: string, result: Record<string, unknown>, status: 'COMPLETED' | 'AWAITING_REVIEW' = 'COMPLETED', lease?: Lease): Promise<boolean> {
   const now = new Date().toISOString();
-  await db().update(schema.jobs).set({ status, result, finishedAt: status === 'COMPLETED' ? now : null, progress: { phase: status === 'COMPLETED' ? 'done' : 'awaiting review', percent: status === 'COMPLETED' ? 100 : null }, lockedBy: null, updatedAt: now }).where(eq(schema.jobs.id, id));
+  const rows = await db().update(schema.jobs).set({ status, result, finishedAt: status === 'COMPLETED' ? now : null, progress: { phase: status === 'COMPLETED' ? 'done' : 'awaiting review', percent: status === 'COMPLETED' ? 100 : null }, lockedBy: null, updatedAt: now }).where(owned(id, lease)).returning({ id: schema.jobs.id });
+  if (lease && rows.length === 0) return leaseLost(id, lease, 'result');
   await addEvent(id, 'info', status === 'COMPLETED' ? 'completed' : 'awaiting review', result);
   await notifyJobs(id, status);
+  return true;
 }
 
 /** Backoff: 15 s, 60 s, 4 min, 15 min, capped. Jitter stops a fleet from retrying in lockstep. */
@@ -203,26 +220,33 @@ export function backoffMs(attempt: number): number {
   return Math.round(base * (0.8 + Math.random() * 0.4));
 }
 
-export async function fail(id: string, error: JobError, attempts: number, maxAttempts: number) {
+/** Returns false when the lease was lost (the failure was not written). */
+export async function fail(id: string, error: JobError, attempts: number, maxAttempts: number, lease?: Lease): Promise<boolean> {
   const now = new Date();
   const retryable = error.retryable !== false && attempts < maxAttempts;
   if (retryable) {
     const runAfter = new Date(now.getTime() + backoffMs(attempts)).toISOString();
-    await db().update(schema.jobs).set({ status: 'QUEUED', error, runAfter, lockedBy: null, lockedAt: null, heartbeatAt: null, progress: { phase: 'retry scheduled', message: error.message }, updatedAt: now.toISOString() }).where(eq(schema.jobs.id, id));
+    const rows = await db().update(schema.jobs).set({ status: 'QUEUED', error, runAfter, lockedBy: null, lockedAt: null, heartbeatAt: null, progress: { phase: 'retry scheduled', message: error.message }, updatedAt: now.toISOString() }).where(owned(id, lease)).returning({ id: schema.jobs.id });
+    if (lease && rows.length === 0) return leaseLost(id, lease, 'failure');
     await addEvent(id, 'warn', `attempt ${attempts} failed; retrying`, { error, runAfter });
     await notifyJobs(id, 'QUEUED');
   } else {
-    await db().update(schema.jobs).set({ status: 'FAILED', error, finishedAt: now.toISOString(), lockedBy: null, updatedAt: now.toISOString() }).where(eq(schema.jobs.id, id));
+    const rows = await db().update(schema.jobs).set({ status: 'FAILED', error, finishedAt: now.toISOString(), lockedBy: null, updatedAt: now.toISOString() }).where(owned(id, lease)).returning({ id: schema.jobs.id });
+    if (lease && rows.length === 0) return leaseLost(id, lease, 'failure');
     await addEvent(id, 'error', 'failed', { error });
     await notifyJobs(id, 'FAILED');
   }
+  return true;
 }
 
-export async function cancelled(id: string) {
+/** Returns false when the lease was lost (nothing was written). */
+export async function cancelled(id: string, lease?: Lease): Promise<boolean> {
   const now = new Date().toISOString();
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: now, lockedBy: null, updatedAt: now, progress: { phase: 'cancelled' } }).where(eq(schema.jobs.id, id));
+  const rows = await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: now, lockedBy: null, updatedAt: now, progress: { phase: 'cancelled' } }).where(owned(id, lease)).returning({ id: schema.jobs.id });
+  if (lease && rows.length === 0) return leaseLost(id, lease, 'cancellation');
   await addEvent(id, 'info', 'cancelled');
   await notifyJobs(id, 'CANCELLED');
+  return true;
 }
 
 /** A studio reset takes the job history with it: running jobs lose their lease (the worker stops at its next

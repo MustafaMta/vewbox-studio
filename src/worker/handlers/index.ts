@@ -34,11 +34,9 @@ export interface HandlerContext {
 
 export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> & { awaitingReview?: boolean }) | void>;
 
-/** A specialist's step inside this job, recorded as that agent's delegated run (docs/CONTRACTS-PHASE2-STUDIO.md §2).
- *  Without a delegator (a test context) the step runs with the job's own tool runner. */
-export function step<T>(ctx: Pick<HandlerContext, 'delegate' | 'tool'>, agentId: string, purpose: string, fn: (tool: ToolRunner) => Promise<T>): Promise<T> {
-  return ctx.delegate ? ctx.delegate(agentId, purpose, fn) : fn(ctx.tool);
-}
+/** `step(ctx, '<agent>', '<step id>: <detail>', fn)` — a specialist's delegated step; see ./step.ts (import it from
+ *  there inside a handler, so the handler does not import this table). */
+export { step } from './step';
 
 import { mediaProbe } from './media-probe';
 import { autoIdea, designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';

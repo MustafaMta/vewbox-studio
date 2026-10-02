@@ -2,9 +2,10 @@
 name: world-continuity
 description: Keeping characters and places the same across shots, scenes and episodes — canonical identities, the appearance lock, reference sheets and plates on every shot, the returning-location rule, the Character/World/Location Bibles. Use whenever a picture or video is conditioned on identity.
 license: Proprietary to this studio; references-on-every-shot after lumosai8/MinimaxStoryBuilder (MIT)
-allowed-tools: image.edit_with_references studio.read
+allowed-tools: image.generate image.edit_with_references
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
+  kind: "PROCEDURE"
   source: docs/CHARACTER-CONTINUITY.md, docs/research/CHARACTER-IMAGE-STACK.md §4, src/domain/rules.ts (canChangeAppearance), src/server/workflows/identity.ts, src/server/story/engine.ts (establishedAt)
   models: Qwen-Image-2512, Qwen-Image-Edit-2511 (+ fal Multiple-Angles LoRA, MediaPipe face check), MiniMax-H3
 ---
@@ -33,9 +34,10 @@ metadata:
 - **Appearance lock.** A character who has appeared in any generated video cannot have the appearance regenerated
   (`APPEARANCE_LOCKED`, HTTP 423). The page shows the preservation notice. A redraw of an unlocked character keeps
   the previous portrait, sheet and tiles as assets; only the character's pointers move.
-- Every shot the character is in receives the FRONT tile (fallback: the portrait) as a reference picture (ref2va) or
-  starts on a drawn frame made from it (fl2va); a lone character also gets the face crop. The Character Continuity
-  Agent records every take a character appears in.
+- A shot's opening frame is drawn from the FRONT tile (fallback: the portrait) of up to two characters, a lone
+  character also giving the face crop; the take then starts on that frame (fl2va). Without a drawn frame the take is
+  conditioned on each character's portrait as a reference picture (ref2va), handed over by the Character Continuity
+  Agent. Every take a character appears in is recorded in the character's usage.
 
 ## Places
 

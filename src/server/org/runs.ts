@@ -4,13 +4,21 @@ import { isStudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema, sql } from '../db/client';
 import { log } from '../log';
-import { AGENTS, FAILURE_CLASSES, PIPELINE, agentById, agentIdForJob, type DepartmentId, type FailureClass, type PipelineStage } from './model';
+import { AGENTS, FAILURE_CLASSES, ORG_VERSION, PIPELINE, agentById, agentIdForJob, toolById, type AgentDef, type DepartmentId, type FailureClass, type PipelineStage } from './model';
+import { skillVersions } from './skills';
 
 /** THE RECORD OF WORK — every job runs as an agent and leaves an agent run (tool calls, outcome, failure class), the
  *  departments leave handoffs and QA reports, people leave approvals, and everything that happened is a studio event
  *  the pages read back. Nothing here is derived from a timer or invented: an event is written when the thing happened. */
 
-export type ToolCall = { tool: string; ms: number; ok: boolean; error?: string; at: string };
+/** One recorded tool call: the tool's version, how long, whether it worked, and the failure class when it did not
+ *  (WRONG_PARAMETERS / OUTPUT_CORRUPTION when the contract refused the input or the output). */
+export type ToolCall = { tool: string; version?: string; ms: number; ok: boolean; error?: string; failureClass?: string; at: string };
+
+/** What a run ran with, so a change of prompt, skill, tool or model can be compared before and after. */
+export interface RunVersions { model: string; skills: Record<string, string>; tools: Record<string, string> }
+export const runVersions = (a: AgentDef): RunVersions => ({ model: a.model, skills: skillVersions(a), tools: Object.fromEntries(a.tools.map((t) => [t, toolById(t)?.version ?? '?'])) });
+const versionColumns = (a: AgentDef | undefined) => (a ? { agentVersion: a.version, orgVersion: ORG_VERSION, versions: runVersions(a) } : { orgVersion: ORG_VERSION });
 
 // ---------------------------------------------------------------------------------------------- failure classes
 
@@ -48,6 +56,16 @@ export function classifyFailure(e: unknown): FailureClass {
 /** Only infrastructure and provider failures may be retried without a change; everything else needs a correction. */
 export const RETRYABLE_CLASSES: readonly FailureClass[] = ['INFRASTRUCTURE', 'PROVIDER', 'RESOURCE_EXHAUSTION'];
 
+/** Whether a manual retry must say what was changed: a FAILED job whose recorded failure class is not transient (or,
+ *  without a class, whose error was not marked retryable). A cancelled job restarts as it was. Pure. */
+export function retryNeedsChange(job: Pick<Job, 'status' | 'error'>): { needed: boolean; failureClass?: FailureClass } {
+  if (job.status !== 'FAILED') return { needed: false };
+  const fc = job.error?.details?.failureClass;
+  const failureClass = typeof fc === 'string' && (FAILURE_CLASSES as readonly string[]).includes(fc) ? (fc as FailureClass) : undefined;
+  const transient = failureClass ? RETRYABLE_CLASSES.includes(failureClass) : job.error?.retryable === true;
+  return { needed: !transient, failureClass };
+}
+
 // --------------------------------------------------------------------------------------------------- agent runs
 
 export const agentForJob = (job: Pick<Job, 'type' | 'payload'>) => agentById(agentIdForJob(job)) ?? AGENTS.find((a) => a.id === 'production-coordinator')!;
@@ -59,7 +77,7 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   // a run of this job still open belongs to a worker that died (the job was reclaimed): close it as abandoned so
   // the pages never show a ghost "running" and the statistics count it as the infrastructure failure it was
   await db().update(schema.agentRuns).set({ finishedAt: now, outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'worker lost (lease expired); the job was reclaimed by another attempt' }).where(and(eq(schema.agentRuns.jobId, job.id), isNull(schema.agentRuns.outcome)));
-  await db().insert(schema.agentRuns).values({ id, agentId, departmentId: agent?.department ?? 'EXECUTIVE', jobId: job.id, jobType: job.type, attempt: job.attempts, productionId: job.productionId ?? null, shotId: job.shotId ?? null, startedAt: now, toolCalls: [] });
+  await db().insert(schema.agentRuns).values({ id, agentId, departmentId: agent?.department ?? 'EXECUTIVE', jobId: job.id, jobType: job.type, attempt: job.attempts, productionId: job.productionId ?? null, shotId: job.shotId ?? null, startedAt: now, toolCalls: [], ...versionColumns(agent) });
   return id;
 }
 
@@ -70,7 +88,7 @@ export async function startDelegatedRun(input: { job: Pick<Job, 'id' | 'type' | 
   const agent = agentById(input.agentId);
   if (!agent) throw new Error(`Unknown agent ${input.agentId}`);
   const id = nid('run');
-  await db().insert(schema.agentRuns).values({ id, agentId: agent.id, departmentId: agent.department, jobId: input.job.id, jobType: input.job.type, attempt: input.job.attempts, productionId: input.job.productionId ?? null, shotId: input.job.shotId ?? null, startedAt: new Date().toISOString(), toolCalls: [], parentRunId: input.parentRunId, purpose: input.purpose.slice(0, 300) });
+  await db().insert(schema.agentRuns).values({ id, agentId: agent.id, departmentId: agent.department, jobId: input.job.id, jobType: input.job.type, attempt: input.job.attempts, productionId: input.job.productionId ?? null, shotId: input.job.shotId ?? null, startedAt: new Date().toISOString(), toolCalls: [], parentRunId: input.parentRunId, purpose: input.purpose.slice(0, 300), ...versionColumns(agent) });
   return id;
 }
 
@@ -210,7 +228,7 @@ export async function agentStats(hours = 24 * 30): Promise<AgentStat[]> {
   return rows.map((r) => ({ agentId: r.agent_id, runs: Number(r.runs), completed: Number(r.completed), failed: Number(r.failed), cancelled: Number(r.cancelled), running: Number(r.running), firstAttemptOk: Number(r.first_ok), firstAttempts: Number(r.firsts), p50Ms: r.p50_ms === null ? null : Number(r.p50_ms), lastRunAt: r.last_run_at, toolCalls: Number(r.tool_calls), toolFailures: Number(r.tool_failures) }));
 }
 
-export interface AgentRunRow { id: string; agentId: string; departmentId: string; jobId: string; jobType: string; attempt: number; productionId: string | null; shotId: string | null; startedAt: string; finishedAt: string | null; outcome: string | null; failureClass: string | null; errorMessage: string | null; toolCalls: ToolCall[]; ms: number | null; costUsd: number | null }
+export interface AgentRunRow { id: string; agentId: string; departmentId: string; jobId: string; jobType: string; attempt: number; productionId: string | null; shotId: string | null; startedAt: string; finishedAt: string | null; outcome: string | null; failureClass: string | null; errorMessage: string | null; toolCalls: ToolCall[]; ms: number | null; costUsd: number | null; /** a delegated step: the run of the job it belongs to, and what the step did */ parentRunId: string | null; purpose: string | null; agentVersion: string | null; orgVersion: number | null; versions: RunVersions | null }
 
 export async function listAgentRuns(opts: { agentId?: string; departmentId?: string; productionId?: string; jobId?: string; limit?: number }): Promise<AgentRunRow[]> {
   const conds = [];
