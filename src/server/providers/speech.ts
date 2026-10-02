@@ -122,8 +122,14 @@ export function normalizeArabic(s: string): string {
 
 /** Share of the intended words heard in order (longest common subsequence over normalised words). Insertions —
  *  a repeated phrase, a filler — do not lower it; missing or wrong words do. */
+/** English words as the comparison sees them: typographic apostrophes folded to the plain one (a script's “I’ll” and
+ *  Whisper's "I'll" are one word), everything that is not a letter, digit or apostrophe dropped. */
+export function normalizeLatin(s: string): string {
+  return s.replace(/[‘’ʼ`´]/g, "'").toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export function scriptCoverage(reference: string, hypothesis: string, lang: Language): number {
-  const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : x.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim());
+  const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : normalizeLatin(x));
   const r = norm(reference).split(' ').filter(Boolean); const h = norm(hypothesis).split(' ').filter(Boolean);
   if (r.length === 0) return 1;
   const dp: number[][] = Array.from({ length: r.length + 1 }, () => Array<number>(h.length + 1).fill(0));
@@ -133,7 +139,7 @@ export function scriptCoverage(reference: string, hypothesis: string, lang: Lang
 
 /** Word error rate between the intended line and the transcript (both normalised). */
 export function wordErrorRate(reference: string, hypothesis: string, lang: Language): number {
-  const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : x.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim());
+  const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : normalizeLatin(x));
   const r = norm(reference).split(' ').filter(Boolean); const h = norm(hypothesis).split(' ').filter(Boolean);
   if (r.length === 0) return h.length === 0 ? 0 : 1;
   const d: number[][] = Array.from({ length: r.length + 1 }, (_, i) => [i, ...Array(h.length).fill(0)]);

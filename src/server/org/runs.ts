@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, sql as dsql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, sql as dsql } from 'drizzle-orm';
 import type { Job } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
@@ -56,6 +56,9 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   const agent = agentById(agentId);
   const id = nid('run');
   const now = new Date().toISOString();
+  // a run of this job still open belongs to a worker that died (the job was reclaimed): close it as abandoned so
+  // the pages never show a ghost "running" and the statistics count it as the infrastructure failure it was
+  await db().update(schema.agentRuns).set({ finishedAt: now, outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'worker lost (lease expired); the job was reclaimed by another attempt' }).where(and(eq(schema.agentRuns.jobId, job.id), isNull(schema.agentRuns.outcome)));
   await db().insert(schema.agentRuns).values({ id, agentId, departmentId: agent?.department ?? 'EXECUTIVE', jobId: job.id, jobType: job.type, attempt: job.attempts, productionId: job.productionId ?? null, shotId: job.shotId ?? null, startedAt: now, toolCalls: [] });
   return id;
 }

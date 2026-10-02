@@ -3,6 +3,19 @@
 How a show, a short or a music video goes from nothing to an exported file, what each step does for you, and what
 the studio refuses to do.
 
+## The six areas
+
+**Studio** is the company: the Executive Office and eight departments, each with named agents that show what they
+have actually run (nothing decorative), the pipeline every production moves along, the live activity feed and the
+reliability figures. **Projects** holds every show, short and music video and the three ways to start one.
+**Library** is the canonical cast, the places and every file. **Production** shows where each production stands in
+the pipeline (from the recorded handoffs), what waits for your decision, and everything the studio is running.
+**Screening Room** lists the finished cuts and exports. **Settings** keeps the interface, engines, models and
+reliability panels.
+
+Two decisions are yours and block the pipeline until given: **approve the story** (on the Produce tab or in
+Production) before any take is generated, and **approve the cut** (on the Final Cut tab) before it is exported.
+
 ## Two ways to start
 
 **Auto Idea.** New production → *Create an idea for me*. Optional: a line of your own, a style, a language, a mood,

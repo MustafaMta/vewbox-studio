@@ -84,7 +84,9 @@ The host needs Node 22 and pnpm. Start only the infrastructure in Docker and run
 docker compose up -d db llm comfyui tts tts-habibi asr
 pnpm install
 pnpm dev            # web on :4200, reads .env + .env.local
-pnpm worker         # the worker, same env
+pnpm worker         # the worker, same env (no hot reload: restart it after changes under src/worker or src/server)
+# a schema change: pnpm db:generate, then apply now (a running dev web process does not re-run migrations):
+pnpm exec tsx --env-file=.env --env-file=.env.local src/server/db/cli.ts migrate
 ```
 
 `.env.local` points the host processes at the published ports (`DATABASE_URL=postgres://…@127.0.0.1:5432/vewbox`,

@@ -50,9 +50,27 @@ carries its `requestId`. Secrets are redacted at the logger by key name (`apiKey
 provider clients never log request headers.
 `LOG_LEVEL=debug` adds request bodies without secrets. `LOG_PRETTY=1` renders human-readable lines (host development).
 
+## The organisation
+
+The worker runs every job *as* a registered agent of a department (`src/server/org/model.ts`). On boot the web process
+and the worker sync the organisation into the database with its version; the Studio area (`/studio`) reads it back with
+each agent's real runs. Changing an agent, a tool or a skill is a code change: edit `model.ts` (and the skill's
+`SKILL.md`), bump `ORG_VERSION`, restart the worker and the web process. A host-run worker (`tsx`) does not hot-reload:
+restart it after any change under `src/worker` or `src/server`.
+
+Two decisions are a person's and block the pipeline until given: the **story** (before "Produce every shot") and the
+**cut** (before "Export"). Give them on the Produce / Final Cut tab or on `/production`; the worker refuses the gated
+job with a message naming the gate, and the refusal is not retried.
+
+A failed job carries a failure class (`INVALID_INPUT`, `MISSING_REFERENCE`, `INCONSISTENT_PLAN`, `PROMPT_AMBIGUITY`,
+`WRONG_PARAMETERS`, `INFRASTRUCTURE`, `PROVIDER`, `RESOURCE_EXHAUSTION`, `OUTPUT_CORRUPTION`, `LIP_SYNC_FAILURE`, …).
+Only the three transient classes are retried automatically; the others wait for a correction (fix the reference, the
+plan or the parameter, then Retry). Every failure is a reliability event on `/studio`; a later success resolves it.
+
 ## Jobs
 
-Activity (`/jobs`) lists every job with its phase, attempt, error and log. From there:
+Production (`/production`) shows each production's position in the pipeline and, below it, Activity: every job with
+its phase, attempt, error and log. From there:
 
 - **Cancel** marks the job; a queued job stops at once, a running one at its next checkpoint (a MiniMax task that is
   already running is cancelled at MiniMax too, and nothing is billed twice).
@@ -63,6 +81,22 @@ Activity (`/jobs`) lists every job with its phase, attempt, error and log. From 
 
 Backoff after a retryable failure: 15 s, 1 min, 4 min, then 15 min, with jitter. Attempts per type are set in
 `src/server/jobs/queue.ts` (`DEFAULT_ATTEMPTS`).
+
+## Start, stop, migrate, recover
+
+- **Start**: `docker compose up -d` (db, llm, comfyui, asr, tts, tts-habibi, web, worker). Migrations run on boot under
+  an advisory lock (`runMigrations()`), then the organisation sync. During host development the worker runs on the
+  host (`pnpm worker`, or detached as in `SETUP.md`) with the container worker stopped.
+- **Stop**: `docker compose stop worker web` first (a running job finishes or is reclaimed later), then the rest.
+  Nothing is lost: a job holds a 90 s lease; a stopped worker's job is reclaimed by the next worker as the next attempt,
+  a ComfyUI prompt it had submitted is adopted rather than resubmitted, and an orchestrator adopts its in-flight
+  children.
+- **Migrate**: `pnpm db:generate` after a schema change writes `drizzle/NNNN_*.sql`; the next boot applies it, or
+  `pnpm exec tsx --env-file=.env --env-file=.env.local src/server/db/cli.ts migrate` applies it now. A running dev web
+  process keeps its cached bootstrap: restart it after adding a migration.
+- **Recover**: a stuck job (no heartbeat) is reclaimed automatically; a job in `FAILED` with a non-transient class
+  needs its correction and then Retry; the database is backed up with `docker exec vewbox-db-1 pg_dump -U vewbox vewbox
+  > var/backups/<name>.sql`, the library by copying `var/library/`.
 
 ## Several workers
 

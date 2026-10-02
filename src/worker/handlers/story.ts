@@ -48,8 +48,11 @@ export const developStory: Handler = async (ctx) => {
   // regulars plus at most the guests its brief names; any other library name the model used is dropped)
   const guests = libraryGuests(state, p, castOf(state, p));
   for (const c of guests) if (!nameToChar.has(c.name.toLowerCase())) nameToChar.set(`lib:${c.name.toLowerCase()}`, c.id);
+  // a name the story invents (newCharacters) is a member, not a foreigner: it is registered below before the
+  // scene breakdown is resolved; only a library name outside the offered list is dropped
   const dropped = new Set<string>();
-  for (const sc of out.scenes) for (const n of sc.characterNames) if (!nameToChar.has(n.toLowerCase()) && !nameToChar.has(`lib:${n.toLowerCase()}`)) dropped.add(n);
+  const invented = new Set(out.newCharacters.map((c) => c.name.toLowerCase()));
+  for (const sc of out.scenes) for (const n of sc.characterNames) if (!nameToChar.has(n.toLowerCase()) && !nameToChar.has(`lib:${n.toLowerCase()}`) && !invented.has(n.toLowerCase())) dropped.add(n);
   if (dropped.size) await ctx.event('warn', `characters outside this story's cast were dropped from the scene breakdown: ${Array.from(dropped).join(', ')}`);
   for (const l of state.locations) if (!nameToLoc.has(l.name.toLowerCase())) nameToLoc.set(`lib:${l.name.toLowerCase()}`, l.id);
   const castIds = [...p.castIds]; const locationIds = [...p.locationIds];

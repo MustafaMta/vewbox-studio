@@ -12,7 +12,7 @@ import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exp
 import { takeLagAgainstMaster } from '@/server/media/sync';
 import { recordMetric } from '@/server/jobs/queue';
 import { ASPECT_INFO } from '@/domain/vocabulary';
-import { recordHandoff, recordQaReport } from '@/server/org/runs';
+import { listQaReports, recordHandoff, recordQaReport } from '@/server/org/runs';
 import { requireApproval } from '@/server/org/gates';
 
 /** ASSEMBLE the chosen takes into a review cut (1080-class H.264, subtitles as sidecars); EXPORT renders the
@@ -30,6 +30,14 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const sampleTakes = timeline.items.filter((it) => it.take.sample);
   if (sampleTakes.length) throw new StudioError('INVALID', `${sampleTakes.length} chosen take(s) are bundled sample clips, not generated footage. Generate real takes before assembling.`);
   await ctx.progress('PREPARING', { phase: 'preparing', message: `Assembling ${timeline.items.length} shots (${Math.round(timeline.total)} s)` });
+  // the QA stage's handoff to Post: every chosen take carries its inspectors' reports; a chosen take that failed a
+  // check is the producer's own choice and is named here, not hidden
+  if (opts.kind === 'cut') {
+    const reports = await listQaReports({ productionId: p.id, limit: 1000 });
+    const perTake = timeline.items.map((it) => { const takeId = p.shots.find((s) => s.id === it.shot.id)?.selectedTakeId; const mine = reports.filter((r) => r.subjectKind === 'TAKE' && r.subjectId === takeId); return { shotId: it.shot.id, inspected: mine.length > 0, rejected: mine.some((r) => r.decision === 'REJECT') }; });
+    const uninspected = perTake.filter((t) => !t.inspected).length; const rejected = perTake.filter((t) => t.rejected).length;
+    await recordHandoff({ productionId: p.id, stage: 'QA', producerDepartment: 'QA', receiverDepartment: 'POST', artifactIds: timeline.items.map((it) => it.take.id), outputVersions: { takes: timeline.items.length }, validation: { ok: uninspected === 0 && rejected === 0, checks: [{ name: 'every-chosen-take-inspected', ok: uninspected === 0, detail: uninspected ? `${uninspected} take(s) without a report (uploaded or older takes)` : `${perTake.length} takes` }, { name: 'no-chosen-take-rejected', ok: rejected === 0, detail: rejected ? `${rejected} chosen take(s) were rejected by an inspector; the producer chose them anyway` : undefined }] }, jobId: ctx.job.id });
+  }
   const size = exportSize(p.aspect, opts.resolution);
   const song = p.song?.assetId ? state.assets.find((a) => a.id === p.song!.assetId && !a.sample) : undefined;
   // music video: bring each take's mouths onto the master's beat. The take's own (muted) sound says where its mouths

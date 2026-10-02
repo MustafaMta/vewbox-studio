@@ -95,7 +95,45 @@ second attempt raises a reliability event; the dashboard shows first-attempt tec
 creative acceptance, retry rate, failure classes, cost and latency per accepted shot, QA rejection and export
 success rates.
 
-## 7. What stays from the previous build
+## 7. As built (2026-10-02)
+
+### Modules
+
+| Module | Responsibility |
+|---|---|
+| `src/server/org/model.ts` | the organisation as code: `DEPARTMENTS` (Executive Office + 8), `AGENTS` (51, each with id, department, role, description, system instructions, model, skills, tools, I/O schema names, limits, version, quality requirements, job types), `TOOLS` (18 typed contracts), `SKILLS` (11), `PIPELINE` (10 stages with dependencies, owning department, receiver, human gates), `JOB_AGENT` / `agentIdForJob`, `FAILURE_CLASSES` |
+| `src/server/org/registry.ts` | `syncOrg()` persists the organisation with `ORG_VERSION` into `departments`, `agents`, `tools`, `skills` (reading each `skills/<name>/SKILL.md`; a missing file demotes the skill to DRAFT); referential checks refuse a dangling tool, skill or director; `readOrg()` |
+| `src/server/org/runs.ts` | agent runs (`startRun`, `recordToolCall`, `finishRun`), `classifyFailure`, `RETRYABLE_CLASSES`, studio events (`studioEvent` + NOTIFY `activity`), reliability events, handoffs, QA reports, approvals, the per-agent statistics and the reliability summary |
+| `src/server/org/tools.ts` | `makeToolRunner(agent, runId)`: refuses a tool outside the agent's allow-list, bounds it by the tool's timeout, times it, records it on the run |
+| `src/server/org/preflight.ts` | `preflightTake` / `preflightPlan`: pure checks with a failure class each (plan consistency, prompt completeness, parameters, reference limits, identity references, voices before video, song present, continuation source) |
+| `src/server/org/gates.ts` | the two human gates (STORY before PRODUCE, EDIT before EXPORT) as recorded approvals; `requireApproval` throws a non-retryable `INVALID_INPUT` |
+| `src/worker/index.ts` | every job runs as its agent: a run is opened, `ctx.tool` / `ctx.activity` are given to the handler, the outcome is classified, a reliability event is written on failure, a later success resolves it; blind retries only for `INFRASTRUCTURE`, `PROVIDER`, `RESOURCE_EXHAUSTION` |
+| `src/worker/handlers/*` | provider calls go through `ctx.tool(...)`; each stage records its handoff with named checks; the inspectors' QA reports are recorded on takes, songs, cuts and exports; activity events describe what was made |
+| `src/app/api/studio/org/*` | `GET /api/studio/org` (organisation + stats + events + queue), `/events`, `/agents/[id]`, `/reliability`, `/pipeline`, `/productions/[id]` (GET stages/handoffs/QA/approvals/runs; POST an approval) |
+| `src/app/(app)/{studio,projects,library,production,screening}` | the six areas; `src/components/studio/org.tsx` (department card, agent row, activity feed, pipeline graph, reliability panel), `Approve.tsx` (the gate in the workspace) |
+
+### Tables (migration `0002`)
+
+`departments`, `agents`, `tools`, `skills` (the registry with `org_version`); `agent_runs` (agent, job, attempt, outcome,
+failure class, tool calls as JSON, duration, cost); `handoffs` (stage, producer, receiver, artifact ids, input/output
+versions, validation checks, quality status, remaining dependencies); `qa_reports` (subject kind/id, inspector, checks,
+failure class, decision, evidence); `approvals` (stage, subject, decision, by); `studio_events` (the activity feed);
+`reliability_events` (attempt, failure class, message, change made, resolved).
+
+### Where the inspectors run
+
+The QA inspectors are registered agents with their own thresholds, but their checks execute inside the producing job
+(a take is inspected by the take job right after generation) and are recorded as separate `qa_reports` rows attributed
+to the inspector. This keeps one durable job per generation; the independence is in the record and the thresholds, not
+in a second process. Subjective judgements (acting, dialect, frame-level lip-sync) are human approvals.
+
+### What the Studio pages show
+
+Only persisted records: an agent that has never run says "Has not run yet"; the department cards carry the last
+recorded event; the reliability panel shows counts with their denominators; a hosted MiniMax skill is listed with
+"needs a MiniMax API key" and is assigned as a live capability to no agent.
+
+## 8. What stays from the previous build
 
 The Next.js application, the command engine and snapshot, the Postgres schema and migrations, the job queue and
 worker, the GPU lease, the providers (ComfyUI, MiniMax, voice, transcription, music), the media toolchain

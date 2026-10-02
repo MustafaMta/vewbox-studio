@@ -18,7 +18,7 @@ import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
-import { recordQaReport } from '@/server/org/runs';
+import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 
 /** GENERATE A TAKE — the heart of production. Gather the shot's references (opening frame, character portraits,
@@ -64,6 +64,7 @@ export const generateTake: Handler = async (ctx) => {
   let trimStartFrames = 0;
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
+  const spokenChecks: Array<{ wer: number; heard: string } | null> = [];
 
   // 1) SOUND FIRST. A speaking shot starts from its sound: every line recorded with its character's canonical voice
   //    and checked by transcription, joined with natural gaps. The recording sets the shot's length and is anchored
@@ -86,6 +87,7 @@ export const generateTake: Handler = async (ctx) => {
       if (check && check.wer > 0.35) { line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work); check = await verifyLine(ctx, line.file, text, c.language); }
       const pr = await ctx.tool('media.probe', () => ffprobe(line.file));
       spoken.push({ file: line.file, durationSeconds: pr.durationSeconds ?? ('durationSeconds' in line ? line.durationSeconds : 2), lineId: d.id, check });
+      spokenChecks.push(check);
     }
     if (spoken.length) {
       const joined = await joinSpeech(spoken, path.join(work, 'dialogue.wav'));
@@ -196,7 +198,16 @@ export const generateTake: Handler = async (ctx) => {
       await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
     } catch (e) { report.checks.push({ name: 'script-spoken', ok: true, detail: `not checked: ${(e as Error).message}` }); scriptCheck = { ok: true, detail: `not checked: ${(e as Error).message}` }; }
   }
-  if (soundtrackFile) { const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' }); await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker'); soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id }; }
+  if (soundtrackFile) {
+    const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' });
+    await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker');
+    soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id };
+    // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
+    if (soundtrack.kind === 'DIALOGUE') {
+      const flagged = spokenChecks.filter((c) => c && c.wer > 0.35).length;
+      await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length }, validation: { ok: flagged === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices` }, { name: 'lines-verified-by-transcription', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted (WER > 0.35)` : undefined }] }, jobId: ctx.job.id });
+    }
+  }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
   const playable = path.join(dir, 'take.mp4');
@@ -228,6 +239,16 @@ export const generateTake: Handler = async (ctx) => {
   const pictureOk = pictureChecks.every((c) => c.ok);
   await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id });
   if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: 0.7, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok ? undefined : 'LIP_SYNC_FAILURE', decision: scriptCheck.ok ? (scriptCheck.coverage === undefined ? 'REVIEW' : 'ACCEPT') : 'REJECT', evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
+  // VIDEO handoff to QA once every shot of the production has an accepted, chosen take
+  const after = (await readState()).state.productions.find((x) => x.id === p.id);
+  if (after) {
+    const chosen = after.shots.map((x) => x.takes.find((t) => t.id === x.selectedTakeId));
+    const withReal = chosen.filter((t) => t && t.provider !== 'SAMPLE').length;
+    if (withReal === after.shots.length) {
+      const failing = chosen.filter((t) => t && !t.qa?.ok).length;
+      await recordHandoff({ productionId: p.id, stage: 'VIDEO', producerDepartment: 'VIDEO', receiverDepartment: 'QA', artifactIds: chosen.map((t) => t!.assetId), outputVersions: { shots: after.shots.length }, validation: { ok: failing === 0, checks: [{ name: 'every-shot-has-chosen-take', ok: true, detail: `${after.shots.length} shots` }, { name: 'chosen-takes-passed-inspection', ok: failing === 0, detail: failing ? `${failing} chosen take(s) failed a check` : undefined }] }, jobId: ctx.job.id });
+    }
+  }
   await ctx.activity(report.ok ? 'TAKE_ACCEPTED' : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? 'accepted' : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok });
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, awaitingReview: false, libraryRoot: libraryRoot() };
 };
