@@ -8,6 +8,7 @@ import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
 import { developStory as develop, libraryGuests, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 
 /** THE STORY HANDLERS — Auto Idea, Manual Brief development, script writing, shot planning. Each runs the engine,
@@ -114,6 +115,8 @@ export const planShots: Handler = async (ctx) => {
   if (performanceOnly) {
     if (p.kind !== 'MUSIC_VIDEO' || !p.song) throw new StudioError('INVALID', 'Only a music video has a singing assignment.');
     if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots first; the singing assignment is copied onto them.');
+    // the real vocal track first: lines placed where they are sung, so the assignment and the shot windows follow it
+    if (p.song.stems?.vocals) await alignSongLyrics(ctx, p.id, p.song.stems.vocals);
     await ctx.progress('GENERATING', { phase: 'performance', message: 'Assigning the singing' });
   } else {
     if (targets.length === 0) throw new StudioError('INVALID', 'There are no scenes to plan.');
