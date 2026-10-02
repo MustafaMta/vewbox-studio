@@ -1,165 +1,111 @@
-# Final report — Vewbox Studio on the RTX 5090 machine
+# Final report — Vewbox Studio, the multi-agent AI film studio on the RTX 5090
 
-Status as of 2026-10-02, early morning. This report is kept current with `IMPLEMENTATION-CHECKLIST.md`, which holds the
-evidence row by row; nothing below is marked done unless it was exercised on this machine.
+Status as of 2026-10-02, evening. The evidence behind every row is in `IMPLEMENTATION-CHECKLIST.md`; nothing below is
+called done unless it ran on this machine and left a record. Earlier phases of the same build (the MiniMax-only
+pipeline, the audiovisual corrections) are summarised in §1 and kept in the checklist rows 0–13.
 
-## 1. Completed
+## 1. What exists
 
-- **Backend from zero**: Postgres 17 as the authoritative studio; a command engine whose pure reducers run in the
-  browser (optimistic) and on the server (authoritative) with deterministic ids and a state hash; LISTEN/NOTIFY →
-  SSE change feed; a media library with sniffing, ffprobe and full-decode validation, Range streaming; durable jobs
-  (leases, heartbeats, bounded retries with backoff, cancellation, stale-lease recovery, idempotency keys).
-- **Story engine** on three providers (MiniMax M3, Anthropic, any OpenAI-compatible server; the bundled Ollama
-  qwen3:14b runs on the GPU with no key): Auto Idea proposals, Manual Brief development (characters with full designs,
-  places, scene breakdown), script writing in Iraqi dialect with an English gloss, shot planning with versioned
-  continuity state, a performance plan for music videos. Strict schemas with tolerant parsing and a repair loop.
-- **MiniMax video stack**: one request shape, two backends — the hosted MiniMax H3 API (`/v2/video_generation`,
-  first/last frame or reference images + reference audio, task id persisted for restart-safe polling, cancellation
-  forwarded to MiniMax) and the open-weights MiniMax H3 in ComfyUI on the 5090 (FL2VA and Ref2VA workflows, every
-  node and input verified against the running ComfyUI v0.38.1). No other video model exists in the tree.
-- **Images**: Qwen-Image-2512 and Qwen-Image-Edit-2511 workflows (character sheets, location plates, storyboard
-  frames) in ComfyUI, node-verified.
-- **Audio**: audio service with faster-whisper large-v3 (weights present) and Demucs stem separation (verified on the
-  GPU); IndexTTS 2.5 and Habibi-TTS IRQ services (images building at the time of writing); voice identity per
-  character; transcript check with word error rate; song generation (MiniMax Music API, ACE-Step 1.5, MiniMax Music 3)
-  with stems as derived assets; music-video shots that know their song window, their performers and the lines they
-  sing, with the real song segment passed as reference audio.
-- **Assembly and export** with ffmpeg: conform, concat, dialogue/song mix, EBU R128 normalisation, H.264/H.265/ProRes,
-  720/1080/2160, Arabic + English subtitles burned in (libass, verified visually) and as SRT/VTT sidecars; take QA
-  (ten named checks) on every generated clip.
-- **Interface**: the Screening Room design kept and extended — Activity page, live job buttons with cancel/retry,
-  provenance on takes, upload-a-clip takes, Settings → Engines / Models / Reliability, honest copy everywhere, fonts
-  self-hosted, RTL and phone layouts tested.
-- **Operations**: Docker Compose with pinned images, GPU reservations, healthchecks, rotated JSON logs, loopback-only
-  ports, `init`, migrations on boot, model registry and workflow versions in the database, HTTP Basic access gate,
-  a resumable sha256-verified model fetcher, a ComfyUI node-check script.
-- **Tests**: unit 42, API 22 (dev server and production container), worker 13 (queue, MiniMax client against the
-  real endpoint, media toolchain), Playwright 54 through the real interface — all green at the time of writing.
+**The product.** Shows (seasons, episodes, cast, world, bible), Shorts, Music Videos and Characters, each with its
+own catalog and detail page, and a Studio Company page that shows the virtual film studio making them. Five areas
+first; Production (pipeline positions, activity), Locations, Assets and Settings behind the scenes.
 
-## 2. Architecture
+**The studio.** An Executive Office and eight departments (Story Development, Casting & Character Design, World
+Building & Art Direction, Pre-Production, Video Production, Sound & Music, Post-Production, Quality Assurance) with
+51 named agents, 18 typed tool contracts and 11 versioned skills (Anthropic Agent Skills format), defined in code and
+persisted with a version. Every job the worker runs is executed *as* an agent: a run record with its tool calls and
+outcome, a failure class on failure, a reliability event per repeated attempt, a studio event per thing done. The
+Studio Orchestrator's state and every department's light on the company page are derived from those records.
 
-See `ARCHITECTURE.md`. In short: Next.js 16 web (pages + `/api`), a Node worker, Postgres, ComfyUI, two voice
-services, an audio service, Ollama; the browser never talks to an engine directly; the database is the truth; every
-generated file carries its provenance.
+**The pipeline.** Story → Cast & world → Script → Storyboard → Shot plan → Audio preparation → Video → QA → Edit →
+Export, each stage owned by a department and ending in a handoff artifact with named checks; QA inspectors record
+reports on takes, songs, cuts and exports; two decisions are a person's (the story before production, the cut before
+export) and block the gated jobs until given. Preflight validation refuses a generation that could not succeed, with
+a failure class; only infrastructure/provider/resource failures are retried blindly; a retry asks what changed and
+records it.
 
-## 3. MiniMax video stack
+**Continuity.** A show's language, dialect and direction are its identity and are never changed by a season or
+episode proposal; seasons and episodes are proposed from every season's arc, the previous episodes and where each
+left the story, the bible (rules, relationships, timeline, open storylines) and the locked cast by id; the
+Continuity Writer records each cut episode in the bible. Characters lock their appearance *and* their voice once they
+have been in a video (`APPEARANCE_LOCKED`, `VOICE_LOCKED`, enforced in the reducers the server runs and refused with
+HTTP 423). Audio is authoritative: speaking shots are recorded first in the character's canonical voice (Habibi-TTS
+IRQ for Iraqi Arabic, IndexTTS 2.5 otherwise), verified by transcription, anchored in the MiniMax H3 request, and the
+finished take is transcribed back and rejected if it does not say its lines; a music video's mix carries the song
+master once with every take's own singing muted.
 
-| Aspect | Hosted API | Local open weights |
+**The engines.** MiniMax H3 (open weights, ComfyUI 0.38.1, int8, turbo LoRAs) is the only video engine; Qwen-Image /
+Qwen-Image-Edit for pictures; ACE-Step 1.5 and MiniMax Music 3 for songs; IndexTTS 2.5 and Habibi-TTS IRQ for
+voices; faster-whisper large-v3 and Demucs for transcription and stems; qwen3:14b (Ollama) as the story model; ffmpeg
+for the sample-exact assembly, loudness and validation. No hosted MiniMax key exists on this machine, so the hosted
+paths are implemented and tested against the real endpoint's refusals but have never produced media here.
+
+## 2. Acceptance productions (through the real browser)
+
+| | Acceptance A — "The Lamp Shop" | Acceptance B — "بيت أبو كريم" |
 |---|---|---|
-| Model | `MiniMax-H3` (768P default) | `minimax_h3_fl2va_pruned_int8_convrot` / `…ref2va…`, nvfp4 text encoder, int8 video VAE, fp32 audio VAE, turbo LoRAs |
-| Conditioning | first/last frame, or ≤9 reference images + ≤3 reference audio | same (ComfyUI nodes `MiniMaxH3ImageToVideo`, `MiniMaxH3ReferenceToVideo`) |
-| Audio | native, with `<d>[Arabic] …</d>` dialogue tags | native (VAEDecodeAudio) |
-| Lifecycle | create → poll → download; task id stored at creation; cancel forwarded | ComfyUI queue; interrupt on cancel |
-| Status | **blocked**: no API key on this machine (client verified against the real endpoint with a wrong key) | weights downloading (text encoder, VAEs, LoRA present; DiT in flight) |
+| Kind, language | Short, English, cartoon, 1:00 | Show (manual brief), Arabic — Iraqi Baghdadi, cartoon, 2:00 episodes |
+| Story / script | develop 53 s → 2 scenes at one place (morning, dusk); 15 lines | develop 24 s → 3 scenes; 18 Iraqi lines with English gloss |
+| Cast & world | 2 portraits, 2×5 reference views, plates (master, 2 views, dusk); voices built, proof lines WER 0 | 2 portraits, sheets, plates; Iraqi voices from Arabic reference clips, proof lines WER 0.13 / 0.14 |
+| Shot plan | 10 shots / 60 s, 15 lines assigned once; shot 1.2 set to CONTINUATION | 15 shots / 120 s, 18 lines assigned once, 4 continuations — after 3 failed attempts (tool timeout under GPU contention, then an invalid answer), fixed and retried with the change recorded |
+| Gate | story approved on the Produce tab | story approved on the Produce tab |
+| Takes | 10/10 generated, 0 failed jobs, 37.9 min; 8 accepted at once, 2 rejected by a measurement bug (typographic apostrophe), fixed, re-recorded in 5.7 min, both at coverage 1.0 | in progress at the time of writing |
+| Cut, gate, export | cut 28 s, −23.0 LUFS, one sound per stretch; cut approved on the Final Cut tab; export 1080p H.264 64.2 s, validation 8/8 | pending |
+| Continuity | same two characters and the same shop across both scenes (`docs/evidence/lamp-shop-export-contact-sheet.png`); shot 1.2 opens on shot 1.1's last frames | pending: Continuity Writer → Auto episode 2 → Auto season 2 |
 
-## 4. Local RTX 5090 stack
+Evidence: `docs/evidence/lamp-shop-*.png`, `company-*.png`, `studio-*.png`; the handoffs, QA reports, approvals,
+agent runs and events of both productions are in the database and on the Studio Company pages.
 
-ComfyUI v0.38.1 / torch 2.13.0+cu130 sees the card (32 607 MB). Audio service on CUDA 12.8 (Whisper fp16, Demucs
-htdemucs, 2.3 GB). Ollama qwen3:14b (~10 GB, unloads after 2 min). Voice services on torch 2.8 cu128 (building).
-The worker holds one model family on the card at a time and records waits/holds as metrics.
+## 3. The Studio Company interface
 
-## 5. Hosted dependencies
+`docs/evidence/company-studio.png` (desktop), `company-phone-studio.png` (phone), `company-ar-*.png` (Arabic, RTL),
+`company-studio-departments-VIDEO.png`, `company-studio-agents-minimax-video-specialist.png`.
 
-MiniMax (video, optionally text/speech/music) — requires `MINIMAX_API_KEY`. Anthropic (optional story engine).
-Nothing else; the studio makes no other outbound call (fonts and all engines are local).
+- The orchestrator at the centre reads *Coordinating* while the story model plans, *Producing* while the GPU
+  generates, *Awaiting review* when a story or a cut waits for a decision, *Blocked* on a refused handoff, *Ready*
+  or *Idle* otherwise. Selecting it lists the productions in flight with their pipeline progress, the departments at
+  work, the decisions waiting, the blockers and the recent decisions.
+- A department node lights teal only while one of its agents has a run open; the Executive Office turns gold while
+  a decision waits; connections follow the pipeline and light from recorded handoffs; selecting one shows the latest
+  handoff artifact with its checks. Nodes are links (keyboard: Tab, Enter); hover and focus show the responsibility
+  and the director. Below the large breakpoint the ring becomes a column in production order.
+- Department pages: director first, agents as profile cards, models, verified tools and skills, active assignments,
+  deliverables with their checks, quality results, activity. Agent pages: current assignment and execution state,
+  instructions, runs with tool calls and timings, failure history, quality requirements, tools, skills with the
+  SKILL.md text.
 
-## 6. Docker services
+## 4. Reliability (from the records at the time of writing)
 
-db, web, worker, comfyui, tts, tts-habibi, asr, llm, models (profile). Six were running healthy together at the time
-of writing (db, llm, comfyui, asr, web, worker); tts/tts-habibi images were still building on the ~5 MB/s link.
+| Measure | Value |
+|---|---|
+| First-attempt technical success (all agents, 7 days) | 59 / 60 runs (98 %) — the one failure: the three PLAN_SHOTS attempts of B counted as one job |
+| First-attempt creative acceptance (takes whose first inspection accepted them) | 12 / 12 of A's takes (after the apostrophe fix; before it, 10 / 12) |
+| Retry rate | 2 / 29 jobs (A's two re-takes are new jobs, not retries; B's plan is the retried job) |
+| MiniMax H3 engine time | 122–356 s per 5–9 s take at 1344×768 (median 7.8 min including the recording of the lines and the inspection) |
+| Cut / export | 28 s / 29 s for a 64 s film |
+| Export validation | 1 / 1 passed |
+| Reliability events | 3 (PLAN_SHOTS: 2 × INFRASTRUCTURE timeouts, 1 × PROVIDER invalid answer), all resolved by attempt 4 with the change recorded |
 
-## 7. UI test results
+## 5. Limitations and blockers
 
-Playwright: 54/54 (desktop + phone + RTL), including two proposals written by the real story engine. Manual browser
-checks of Settings (engines, models, reliability) and Final Cut (cut player, export list, measured loudness).
-See `TEST-RESULTS.md`.
+- **No MiniMax API key**: the hosted video, speech and music paths are implemented and refused correctly by the real
+  endpoint with a wrong key, but no hosted generation has run here. The two hosted MiniMax skills are registered as
+  "needs a MiniMax API key" and assigned to no agent as a live capability.
+- **Subjective quality is a person's call.** Dialect authenticity of the Iraqi voices, acting, and frame-level
+  lip-sync are marked *pending review*; the machine proves intelligibility (transcription), timing (envelope lag) and
+  integrity (validation), not taste.
+- **The QA inspectors run inside the producing job.** Their reports are separate records with their own thresholds,
+  but the inspection code executes in the take/cut job, not in a second process; the Character Consistency, World
+  Continuity and Lip-Sync inspectors still rely on a human review (no vision model is wired).
+- **The story model's quality**: qwen3:14b occasionally invents a character it does not use (now dropped), writes
+  mixed-script Arabic titles, and needs lenient parsing; a hosted LLM would do better and is one env variable away.
+- **GPU contention**: the 14B story model and ComfyUI share the card; planning under an image or video batch is slow
+  (the story tool now allows 10 minutes) and a video batch should not be started while the model is loaded.
+- **Agents' names and instructions are English** in the Arabic interface; department names are bilingual.
 
-## 8. Acceptance productions
+## 6. How to run it
 
-| Stage | Status | Evidence |
-|---|---|---|
-| Story: one-line brief → developed story → script → shots | done | "The Last Bus to Karrada" (AR Iraqi, cartoon): new character + place, 2 scenes, 7 shots with continuity |
-| Auto Idea → project | done | "The Forgotten Observatory" (local model, 5 scenes, 11 shots); E2E creates two more per run |
-| Assembly/export on real clips | done (CPU path) | S1E1 with uploaded clips: 10.5 s cut, 1080p export with burned-in AR+EN subtitles, sidecars, −23 LUFS |
-| Stage 1 — a MiniMax H3 take generated locally | **done** | S1E1 shot 1.3 from the shot editor: 1344×768, 3.75 s, native audio; ComfyUI 87.7 s (8 steps × 7.0 s), 94.6 s end to end; QA 8/8; the spoken Iraqi line transcribed back as «البيت ما بيه تشاي.» (scripted «البيت ما بي چاي») |
-| Stage 4 (prompt-only continuity) — a whole episode's shots generated and cut | **done** | "Produce every shot" on S1E1: 7/7 takes, 0 failures, QA 7/7, 10.4 min for the batch; assembled 31.25 s 1080p cut (−22.7 LUFS); exported with burned AR+EN subtitles; contact sheet in `docs/evidence/` |
-| Stage 5 (without drawn frames) — a short from a one-line brief, entirely through the UI | **done** | "The Last Bus to Karrada": brief → story (18 s) → script (14 s) → 11 shots (78 s) → 11/11 takes (25 min) → auto-assembled 64 s cut → export; prompt-only conditioning lets a character's look drift between shots (recorded with a contact sheet), which is what Stage 2's character sheets and frames address |
-| Stage 2 — character sheets + location plates, then frame-conditioned takes | **done** | "The Kite Mender of Adhamiya" (AR Iraqi, cartoon): Samir and Amina portraits + 5-view sheets, 4 rooftop plates (redrawn unoccupied), script 22 s, 10 shots, 10/10 opening frames from plate + portraits (9–15 s each), 10/10 H3 takes starting on their frames (engine p50 132 s), auto-assembled 53 s cut, 1080p export with AR+EN cues; the same two characters and the same rooftop hold across every shot (`docs/evidence/kite-*.png`), unlike the prompt-only Karrada run |
-| Stage 3 — voices: build, preview, dialogue with transcript checks (EN, AR, Iraqi) | **done** | IndexTTS 2.5 and Habibi-TTS IRQ services; Hana (EN) voice built and previewed from the Voice tab, both lines read back by Whisper with WER 0; MSA line identical; Kite Mender dialogue: 8 Iraqi lines in 131 s, 6 within tolerance, 2 short exclamations flagged → job awaits review |
-| Stage 6 — a music video with a generated song, performer-aware shots, stems | **done** | "Whispers of the Midnight Bus" (EN, anime, 1:30): ACE-Step song whose vocals sing the written lyrics (Whisper check), Demucs stems, singing assignment per section (solo/duet), 20/20 MiniMax H3 reference-to-video takes conditioned on the opening frame and the shot's song segment, 92.75 s cut at −14 LUFS, 1080p export with lyric cues |
-| Stages 7–8 | in progress | an episode of a show with a locked cast, 5–10 minutes, exported — see checklist 11.7/11.8 |
-
-## 9. Reliability
-
-From `/api/metrics` (7 days): DEVELOP_STORY p50 19 s, WRITE_SCRIPT 16 s, PLAN_SHOTS 2.5 min (mean 1.5 attempts: the
-14B model needs a repair round roughly every other scene), `llm.ms` p50 17 s / p95 40 s. Restart drill: a killed
-worker's job was reclaimed after the 90 s lease and completed. Reset with a running job: the worker survives (fixed).
-
-## 10. Performance
-
-Measured on the RTX 5090 (from `/api/metrics` and job results):
-
-| Step | Engine | Measured |
-|---|---|---|
-| Structured story answer | qwen3:14b (Ollama) | ~17 s median; PLAN_SHOTS 1.5 attempts on average |
-| Portrait / reference view / plate / opening frame | Qwen-Image-2512, Qwen-Image-Edit-2511 (Lightning) | `image.generation_ms` p50 8.5 s, p95 23 s (n=33); a 5-view sheet ≈ 60 s; 4 plates ≈ 50–75 s |
-| 5 s video take, 1344×768, first-frame conditioned | MiniMax H3 local (int8, 8-step turbo) | engine p50 132 s, p95 215 s (n=10); 10-shot short produced and assembled in 24 min |
-| 5 s video take, prompt only | same | 60–95 s warm (S1E1, Karrada) |
-| Speech line | IndexTTS 2.5 / Habibi-TTS IRQ | ~1–3 s of audio in 3–6 s warm; 35–63 s on the first call (model load); 8 dialogue lines with transcription checks in 131 s |
-| 90 s song with vocals | ACE-Step 1.5 XL turbo | 34 s engine time; 66 s including Demucs stems |
-| Transcription | faster-whisper large-v3 | 5.4 s for a 90 s vocal stem |
-| Assemble / export 1080p | ffmpeg | 24 s cut, 24 s export for a 53 s short |
-
-## 11. Bugs fixed (selection)
-
-Stale "browser storage" copy; external font dependency; reset aborted by navigation (keepalive writes); jobs and
-settings leaking between tests; worker crash on reset (FK on job events); NOT_CONFIGURED masked as retryable; SVG
-uploads accepted; worker container healthcheck without a liveness file; stale page after fast navigation (own-origin
-change events); freezedetect missing an unfinished freeze; a parallel fetcher run deleting the other run's partial and
-overwriting its state; PyAV pairing in faster-whisper; ACE-Step node name; Music 3 CLIP type; Final Cut hardcoded
-loudness and 0 MB sizes; location plates with a stray figure (positive "unoccupied" wording, redraw with `force`);
-Arabic left in the English script slot (gloss pass); IndexTTS entrypoint (`uv run` at boot) and Habibi's shadowed
-model name (repo files mounted into the containers); Habibi blocking on its own Whisper when no reference transcript
-is given (the worker transcribes the reference once); placeholder sample voices shadowing a real recording; the host
-worker without a Habibi URL; `ImageScaleToTotalPixels.resolution_steps`; ACE-Step encoder refusing `bpm 0` /
-`keyscale ""` and the missing 0.6B text encoder (dual loader, manifest); Music 3 manifest paths (404); a music video
-with no way to develop scenes, write its script or redo the singing assignment; take prompts naming an assigned singer
-who was not in the shot; the wizard's "everyone sings everything" placeholder kept as six duets.
-
-## 12. Remaining limitations
-
-- Hosted MiniMax path unexercised (no key on this machine). Every acceptance stage ran on the local MiniMax H3
-  weights in ComfyUI (first-to-last-frame and reference-to-video graphs); the hosted client is implemented and its
-  error paths are tested against the real endpoint.
-- The local 14B story model needs guard rails that a hosted model would not: lenient schemas and repair rounds,
-  an English-gloss pass when it leaves Arabic in the English slot, a cast rule that stops it filling an episode with
-  the whole library, a placeholder-aware singing planner, and a duration fit when it under-plans a scene. Its Iraqi
-  dialogue mixes in Egyptian/Levantine forms and its English glosses are approximate. A hosted model (MiniMax M3 or
-  Anthropic) is a configuration change.
-- Qwen-Image-Edit keeps the plate's composition, so a requested close-up or insert often comes out as a wide frame;
-  the reference-to-video takes vary framing more than the frame-conditioned ones.
-- Voice cloning in the acceptance runs used test reference clips (synthesised speech, the same voice for two
-  characters); a producer uploads real recordings. Short Iraqi exclamations are the lines most often flagged by the
-  transcription check.
-- Music-video takes sing along to their reference segment, so the cut keeps them as faint ambience under the song
-  master; lip timing follows the segment but is not frame-exact.
-- No post-hoc lipsync model is shipped (MiniMax H3 speaks natively; MuseTalk/KeySync noted as candidates; LatentSync
-  excluded by policy).
-- The IndexTTS and Habibi images carry the pre-fix entrypoint and app; the containers run the repository copies
-  through bind mounts, and a rebuild is scheduled when bandwidth allows.
-
-## 13. External blockers
-
-| Blocker | Evidence | Smallest action |
-|---|---|---|
-| No MiniMax API key on this machine | no `MINIMAX_API_KEY` in any env/file; client returns NOT_CONFIGURED; wrong key → real 401-class refusal | put `MINIMAX_API_KEY=…` in `.env` and restart web + worker |
-| Internet ~5–8 MB/s | 143 GB of pinned weights fetched over the session with resumes (two H3 models of 21 GB each, the 15.7 GB text encoder, Qwen stack, ACE-Step, Music 3); image builds of 12–20 GB had to run from a detached client | none required now: every pinned file is present and verified; a faster link shortens any re-fetch |
-
-## 14. Startup
-
-```bash
-cp .env.example .env
-docker compose --profile models run --rm models
-docker compose up -d --build
-# http://localhost:4200  → Settings → Engines
-```
+`docs/SETUP.md` (install, env, first start), `docs/OPERATIONS.md` (services, the organisation, gates, failure classes,
+start/stop/migrate/recover, GPU), `docs/PRODUCTION.md` (producing with it), `docs/STUDIO-ARCHITECTURE.md` (the ADR
+and the as-built architecture), `docs/MODELS.md` (weights and licences), `docs/AUDIOVISUAL-QA.md` (the audio and
+lip-sync experiments and measurements), `docs/research/PRODUCT-DESIGN.md` (the design references and what was taken).

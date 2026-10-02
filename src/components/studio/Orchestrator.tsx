@@ -82,6 +82,8 @@ export function CompanyDiagram({ org, selectedEdge, onSelectEdge, onSelectOrches
   const [hover, setHover] = useState<string | null>(null);
   const director = (d: DepartmentDef): AgentDef | undefined => org.agents.find((a) => a.id === d.directorId);
   const stateLabel = T.dyn(`orch.state.${c.state}`);
+  // the department's name in the interface language (the agents' names stay as registered)
+  const label = (d: DepartmentDef) => (T.locale === 'ar' && d.nameAr ? d.nameAr : d.name);
   return (
     <div className="org-stage" data-state={c.state.toLowerCase()}>
       {/* desktop: the ring */}
@@ -111,8 +113,8 @@ export function CompanyDiagram({ org, selectedEdge, onSelectEdge, onSelectOrches
         {depts.map((d) => { const p = at(d.id); const Icon = DEPT_ICON[d.id]; const st = c.nodeState(d.id); const dir = director(d); const agents = org.agents.filter((a) => a.department === d.id).length; return (
           <Link key={d.id} href={`/studio/departments/${d.id}`} className="org-node" style={{ left: `${p.x}%`, top: `${p.y}%` }} data-state={st} onMouseEnter={() => setHover(d.id)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(d.id)} onBlur={() => setHover(null)} aria-label={`${d.name}: ${T.dyn(`orch.node.${st}`)}`} aria-describedby={hover === d.id ? `org-tip-${d.id}` : undefined}>
             <span className="org-node-circle"><Icon className="size-5" />{st === 'active' && <span className="org-node-pulse" aria-hidden />}</span>
-            <span className="org-node-label"><span className="org-node-name" dir="auto">{d.name}</span><span className="org-node-meta">{st === 'active' ? T('jobs.running') : st === 'awaiting' ? T('studio.stage.AWAITING_APPROVAL') : st === 'blocked' ? T('orch.blocked') : `${agents} ${T('studio.agents').toLowerCase()}`}</span></span>
-            {hover === d.id && <span role="tooltip" id={`org-tip-${d.id}`} className={cls('org-tip', p.y > 55 ? 'org-tip-above' : 'org-tip-below', p.x < 30 ? 'org-tip-start' : p.x > 70 ? 'org-tip-end' : '')}><span className="block text-[12.5px] font-semibold text-fg" dir="auto">{d.name}</span><span className="mt-0.5 block text-[12px] text-muted" dir="auto">{d.responsibility}</span><span className="mt-1.5 block text-[11.5px] text-faint">{T('studio.director')}: {dir?.name}</span></span>}
+            <span className="org-node-label"><span className="org-node-name" dir="auto">{label(d)}</span><span className="org-node-meta">{st === 'active' ? T('jobs.running') : st === 'awaiting' ? T('studio.stage.AWAITING_APPROVAL') : st === 'blocked' ? T('orch.blocked') : `${agents} ${T('studio.agents').toLowerCase()}`}</span></span>
+            {hover === d.id && <span role="tooltip" id={`org-tip-${d.id}`} className={cls('org-tip', p.y > 55 ? 'org-tip-above' : 'org-tip-below', p.x < 30 ? 'org-tip-start' : p.x > 70 ? 'org-tip-end' : '')}><span className="block text-[12.5px] font-semibold text-fg" dir="auto">{label(d)}</span><span className="mt-0.5 block text-[12px] text-muted" dir="auto">{d.responsibility}</span><span className="mt-1.5 block text-[11.5px] text-faint">{T('studio.director')}: {dir?.name}</span></span>}
           </Link>
         ); })}
       </div>
@@ -129,7 +131,7 @@ export function CompanyDiagram({ org, selectedEdge, onSelectEdge, onSelectOrches
             <li key={d.id}>
               <Link href={`/studio/departments/${d.id}`} className="org-row" data-state={st}>
                 <span className="org-node-circle org-node-circle-sm"><Icon className="size-4" />{st === 'active' && <span className="org-node-pulse" aria-hidden />}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-semibold text-fg" dir="auto">{d.name}</span><span className="block truncate text-[12px] text-faint" dir="auto">{d.responsibility}</span><span className="block text-[11.5px] text-faint">{T('studio.director')}: {dir?.name}</span></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-semibold text-fg" dir="auto">{label(d)}</span><span className="block truncate text-[12px] text-faint" dir="auto">{d.responsibility}</span><span className="block text-[11.5px] text-faint">{T('studio.director')}: {dir?.name}</span></span>
                 <Status tone={st === 'active' ? 'info' : st === 'awaiting' ? 'warn' : st === 'blocked' ? 'bad' : 'neutral'} live={st === 'active'} className="flex-none">{T.dyn(`orch.node.${st}`)}</Status>
               </Link>
             </li>
