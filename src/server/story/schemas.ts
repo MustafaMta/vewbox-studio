@@ -64,8 +64,22 @@ export const ScriptSceneSchema = z.preprocess(aliases({ sceneId: ['id', 'scene']
 }));
 export const ScriptSchema = z.object({ scenes: looseArray(ScriptSceneSchema, { min: 1 }) });
 
+const personAliases = aliases({ characterName: ['name', 'character', 'characterId', 'who', 'id'], wardrobe: ['clothing', 'outfit', 'costume'], holding: ['props', 'items'] });
+/** A continuity entry whose character is an object ({name}) or a bare string is unwrapped; one with no name at all is
+ *  dropped — it cannot be attached to anyone and is not worth a repair round. */
+const continuityPeople = (v: unknown): unknown => {
+  const arr = Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v as Record<string, unknown>) : v ? [v] : [];
+  return arr.map((x) => {
+    if (typeof x === 'string') return { characterName: x };
+    if (!x || typeof x !== 'object') return undefined;
+    const o = personAliases(x) as Record<string, unknown>;
+    if (o.characterName && typeof o.characterName === 'object') o.characterName = (o.characterName as Record<string, unknown>).name ?? (o.characterName as Record<string, unknown>).characterName;
+    return typeof o.characterName === 'string' && o.characterName.trim() ? o : undefined;
+  }).filter(Boolean);
+};
+
 export const ContinuitySchema = z.preprocess(aliases({ characters: ['cast', 'people'], relationToPrevious: ['relation', 'relationship', 'relationToPreviousShot', 'continuity'] }), z.object({
-  characters: looseArray(z.preprocess(aliases({ characterName: ['name', 'character', 'characterId', 'who', 'id'], wardrobe: ['clothing', 'outfit', 'costume'], holding: ['props', 'items'] }), z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), screenDirection: screenDirection.optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: strs(60, 4).optional() })), { max: 8 }),
+  characters: z.preprocess(continuityPeople, z.array(z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), screenDirection: screenDirection.optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: strs(60, 4).optional() })).max(8)),
   props: looseArray(z.preprocess(aliases({ name: ['prop', 'item'], ownerCharacterName: ['owner', 'heldBy', 'character'] }), z.object({ name: str(60), ownerCharacterName: str(60).optional(), state: str(120).optional(), position: str(120).optional() })), { max: 10 }),
   environment: z.preprocess((v) => v ?? {}, z.object({ timeOfDay: timeOfDay.optional(), weather: str(80).optional(), lighting: str(200).optional(), state: str(200).optional() })),
   camera: z.preprocess((v) => v ?? {}, z.object({ lensIntent: str(120).optional(), angle: str(120).optional() })),
@@ -73,7 +87,7 @@ export const ContinuitySchema = z.preprocess(aliases({ characters: ['cast', 'peo
   notes: str(300).optional(),
 }));
 
-export const ShotPlanSchema = z.object({
+export const ShotPlanSchema = z.preprocess(aliases({ shots: ['shotList', 'shot_list', 'sequence', 'plan', 'storyboard', 'sceneShots', 'scene_shots', 'list'] }), z.object({
   shots: looseArray(z.preprocess(aliases({ purpose: ['intent', 'goal', 'title'], action: ['description', 'beat'], framing: ['shotSize', 'size', 'shotType'], cameraMove: ['camera', 'move', 'movement', 'cameraMovement'], durationSeconds: ['duration', 'seconds', 'length'], characterNames: ['characters', 'cast'], dialogueLineIndexes: ['lines', 'dialogue', 'lineIndexes', 'dialogueLines'], prompt: ['videoPrompt', 'generationPrompt'] }), z.object({
     purpose: req(160),
     action: req(600),
@@ -86,7 +100,7 @@ export const ShotPlanSchema = z.object({
     continuity: z.preprocess((v) => v ?? {}, ContinuitySchema),
     prompt: str(1600).optional(),
   })), { min: 1, max: 14 }),
-});
+}));
 export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;
 
 export const PerformancePlanSchema = z.object({

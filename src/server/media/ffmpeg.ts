@@ -104,6 +104,12 @@ export async function qaTake(file: string, expect: { durationSeconds: number; wi
   return { report: { ok, checks, reviewedAt: new Date().toISOString(), reviewer: 'AUTO' }, probe };
 }
 
+/** Cut a stretch of an audio file to mono 44.1 kHz WAV (what the video engines take as reference audio). */
+export async function trimAudio(input: string, out: string, from: number, to: number): Promise<string> {
+  await ffmpeg(['-y', '-v', 'error', '-ss', String(Math.max(0, from)), '-t', String(Math.max(0.1, to - from)), '-i', input, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', out]);
+  return out;
+}
+
 export async function fileExists(p: string): Promise<boolean> { try { await fsp.access(p); return true; } catch { return false; } }
 
 export async function ffmpegVersion(): Promise<string> { try { const { stdout } = await execFileP('ffmpeg', ['-version']); return stdout.split('\n')[0]; } catch { return 'unavailable'; } }

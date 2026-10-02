@@ -1,4 +1,5 @@
 import type { Character, Location, Production, Shot } from '@/domain/types';
+import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
@@ -26,6 +27,23 @@ export function dialogueTags(p: Production, sh: Shot, cast: Character[]): string
   return sh.dialogue.map((d) => { const c = cast.find((x) => x.id === d.characterId); const who = c ? `(${describeCharacter(c).split(',').slice(0, 2).join(',')})` : ''; const text = p.language === 'AR' ? (d.textAr || d.text) : d.text; return `${who} <d>[${lang}] ${clean(text)}</d>`; }).join(' ');
 }
 
+/** Music video: the lines the shot's window covers, sung by their assigned performer (described, never named), and
+ *  nobody else. Listeners are told not to mouth the words; an instrumental window says so. */
+export function singingTags(p: Production, sh: Shot, cast: Character[]): string {
+  if (p.kind !== 'MUSIC_VIDEO' || !p.song) return '';
+  const w = shotWindows(p).get(sh.id);
+  if (!w) return '';
+  const perf = sh.performance ?? performanceFor(p.song, w);
+  const lang = LANG_TAG[p.language] ?? 'English';
+  if (!perf || perf.mode === 'INSTRUMENTAL') return 'Instrumental passage: nobody sings or mouths words.';
+  const lines = sungLinesFor(p.song, w, p.language).filter((l) => perf.singerIds.includes(l.singerId));
+  const who = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `(${describeCharacter(c).split(',').slice(0, 2).join(',')})` : ''; };
+  const sung = lines.map((l) => `${who(l.singerId)} sings <d>[${lang}] ${clean(p.language === 'AR' ? l.textAr || l.text : l.text)}</d>`).join(' ');
+  const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
+  const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
+  return [sung || `${perf.singerIds.map(who).join(' and ')} performing the song, singing in sync with the music.`, listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing.` : ''].filter(Boolean).join(' ');
+}
+
 /** The full prompt for a video take: look + setting + people + action + camera + dialogue. The shot's own `prompt`
  *  (written by the story engine or the producer) replaces the generated middle when present. */
 export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean } = {}): string {
@@ -38,7 +56,7 @@ export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Loca
     `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, ${sh.cameraMove === 'STATIC' ? 'static camera' : sh.cameraMove.toLowerCase().replace(/_/g, ' ')}.`,
     sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : '',
   ].filter(Boolean).join(' ');
-  const dialogue = opts.includeDialogue === false ? '' : dialogueTags(p, sh, cast);
+  const dialogue = opts.includeDialogue === false ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast) : dialogueTags(p, sh, cast);
   const hasTagsAlready = /<d>/.test(middle);
   return [d.visual + '.', middle, hasTagsAlready ? '' : dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }

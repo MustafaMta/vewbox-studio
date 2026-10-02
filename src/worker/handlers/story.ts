@@ -2,6 +2,7 @@ import type { Handler } from './index';
 import type { IdeaPreferences, Scene } from '@/domain/types';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
+import { performanceFor, shotWindows } from '@/domain/timeline';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
@@ -127,6 +128,16 @@ export const planShots: Handler = async (ctx) => {
       const sections = p.song.sections.map((sec) => { const a = plan2.find((x) => x.sectionId === sec.id); return a ? { ...sec, performanceMode: a.mode, singerIds: a.singerIds, lines: a.lines } : sec; });
       await command('updateSong', [p.id, { sections }], 'worker');
     } catch (e) { await ctx.event('warn', `performance plan skipped: ${(e as Error).message}`); }
+    // every shot learns who performs in its window of the song (and who only listens), so prompts and takes follow it
+    const fresh = (await readState()).state.productions.find((x) => x.id === p.id);
+    if (fresh?.song) {
+      const windows = shotWindows(fresh);
+      for (const sh of fresh.shots) {
+        const w = windows.get(sh.id); if (!w) continue;
+        const perf = performanceFor(fresh.song, w);
+        if (perf && JSON.stringify(perf) !== JSON.stringify(sh.performance)) await command('updateShot', [fresh.id, sh.id, { performance: perf }], 'worker');
+      }
+    }
   }
   await command('markStepDone', [p.id, 'STORYBOARD'], 'worker');
   return { shots: total, scenes: targets.length };

@@ -146,10 +146,13 @@ Places: ${compact(world.map(locationSummary))}
 Scenes to write (keep sceneId): ${compact(sceneCards)}
 Each scene plays for about ${perScene} seconds, so 2–6 beats per scene; a beat is one piece of action (what we see, present tense, specific and filmable in a few seconds) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
 If a scene already has beats, improve and complete them rather than discarding what is there.
-Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }] }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").`;
+Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }] }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
   const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
   const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
   opts.onResult?.(r.result);
+  // Arabic that landed in the English slot moves to textAr (the gloss is then the same text until the producer edits it)
+  const arabic = /[؀-ۿ]/;
+  for (const sc of r.data.scenes) for (const b of sc.beats) for (const l of b.lines) if (arabic.test(l.text) && !l.textAr) l.textAr = l.text;
   return r.data;
 }
 
@@ -181,11 +184,15 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
   const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
   const r = await llmJson(ShotPlanSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.6 });
   opts.onResult?.(r.result);
-  const byName = (name: string) => cast.find((c) => c.name.toLowerCase() === name.trim().toLowerCase() || c.nameAr === name.trim());
+  const norm = (s: string) => s.trim().toLowerCase().replace(/^(the|a|an)\s+/, '');
+  const byName = (name: string) => { const n = norm(name); return cast.find((c) => norm(c.name) === n || c.nameAr?.trim() === name.trim()) ?? cast.find((c) => n.includes(norm(c.name)) || norm(c.name).includes(n) || (c.nameAr && name.includes(c.nameAr))); };
   const used = new Set<number>();
   const shots: PlannedShot[] = r.data.shots.map((sh) => {
-    const characterIds = sh.characterNames.map((n) => byName(n)?.id).filter((x): x is string => Boolean(x));
     const dialogue = (sh.dialogueLineIndexes ?? []).filter((i) => i >= 0 && i < lines.length && !used.has(i)).map((i) => { used.add(i); const l = lines[i]; return { id: l.id || nid('line'), characterId: l.characterId, text: l.text, textAr: l.textAr }; });
+    // who is in frame: the names given, else the continuity entries, else whoever speaks in the shot
+    const named = sh.characterNames.map((n) => byName(n)?.id).filter((x): x is string => Boolean(x));
+    const fromContinuity = sh.continuity.characters.map((c) => byName(c.characterName)?.id).filter((x): x is string => Boolean(x));
+    const characterIds = Array.from(new Set([...named, ...(named.length ? [] : fromContinuity), ...dialogue.map((d) => d.characterId)]));
     const cont = sh.continuity;
     const continuity: Omit<ContinuityState, 'version'> = {
       characters: cont.characters.map((c) => ({ characterId: byName(c.characterName)?.id ?? c.characterName, wardrobe: c.wardrobe, pose: c.pose, position: c.position, screenDirection: c.screenDirection, eyeline: c.eyeline, emotion: c.emotion, holding: c.holding })),
@@ -196,9 +203,21 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
     };
     return { purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: Math.min(maxShot, Math.max(3, Math.round(sh.durationSeconds))), characterIds, dialogue, transition: sh.transition, continuity, prompt: sh.prompt?.trim() ?? '' };
   });
-  // lines the model forgot are attached to the last shot of their speaker (or the last shot)
-  lines.forEach((l, i) => { if (used.has(i)) return; const target = [...shots].reverse().find((sh) => sh.characterIds.includes(l.characterId)) ?? shots[shots.length - 1]; if (target) target.dialogue.push({ id: l.id || nid('line'), characterId: l.characterId, text: l.text, textAr: l.textAr }); });
   if (shots.length === 0) throw new StudioError('PROVIDER', 'The story engine returned no shots.');
+  // lines the model forgot: spread in script order over the shots, each line going to the next shot (from where the
+  // previous forgotten line went) that holds its speaker — or simply the next shot — so dialogue is not piled on one
+  const forgotten = lines.map((l, i) => ({ l, i })).filter(({ i }) => !used.has(i));
+  if (forgotten.length) {
+    const unassigned = shots.every((sh) => sh.dialogue.length === 0);
+    let cursor = 0;
+    for (const [k, { l }] of forgotten.entries()) {
+      const target = unassigned ? Math.min(shots.length - 1, Math.floor((k * shots.length) / forgotten.length)) : (() => { for (let j = 0; j < shots.length; j++) { const idx = (cursor + j) % shots.length; if (shots[idx].characterIds.includes(l.characterId)) return idx; } return Math.min(shots.length - 1, cursor); })();
+      cursor = target;
+      const sh = shots[target];
+      sh.dialogue.push({ id: l.id || nid('line'), characterId: l.characterId, text: l.text, textAr: l.textAr });
+      if (!sh.characterIds.includes(l.characterId)) sh.characterIds.push(l.characterId);
+    }
+  }
   return shots;
 }
 

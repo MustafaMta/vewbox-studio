@@ -8,7 +8,8 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, libraryRoot } from '@/server/media';
-import { qaTake, thumbnail, tmpDir, webReady } from '@/server/media/ffmpeg';
+import { qaTake, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
+import { shotWindows } from '@/domain/timeline';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
@@ -41,12 +42,22 @@ export const generateTake: Handler = async (ctx) => {
   const references: TakeReference[] = [];
   const opening = byId(sh.openingFrameAssetId);
   const ending = byId(sh.endingFrameAssetId);
-  const firstFrame = opening && opening.kind === 'IMAGE' && opening.mimeType !== 'image/svg+xml' ? { file: assetFile(opening), mime: opening.mimeType ?? 'image/png' } : undefined;
-  const lastFrame = ending && ending.kind === 'IMAGE' && ending.mimeType !== 'image/svg+xml' ? { file: assetFile(ending), mime: ending.mimeType ?? 'image/png' } : undefined;
+  // Music video with a song file: the shot's stretch of the song goes in as reference audio, so the performer's
+  // mouth follows the real track. MiniMax takes audio only in reference mode, so the opening frame (when there is
+  // one) becomes the first reference picture instead of a first frame.
+  const songAsset = p.kind === 'MUSIC_VIDEO' && p.song?.assetId ? byId(p.song.assetId) : undefined;
+  const window = songAsset ? shotWindows(p).get(sh.id) : undefined;
+  const songSegment = songAsset && songAsset.kind === 'AUDIO' && window && window.to > window.from && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL'
+    ? await trimAudio(assetFile(songAsset), path.join(await tmpDir('song'), `${sh.id}.wav`), window.from, Math.min(window.to, window.from + seconds))
+    : undefined;
+  const useFrames = !songSegment;
+  const firstFrame = useFrames && opening && opening.kind === 'IMAGE' && opening.mimeType !== 'image/svg+xml' ? { file: assetFile(opening), mime: opening.mimeType ?? 'image/png' } : undefined;
+  const lastFrame = useFrames && ending && ending.kind === 'IMAGE' && ending.mimeType !== 'image/svg+xml' ? { file: assetFile(ending), mime: ending.mimeType ?? 'image/png' } : undefined;
   if (firstFrame) references.push({ kind: 'FIRST_FRAME', assetId: opening!.id });
   if (lastFrame) references.push({ kind: 'LAST_FRAME', assetId: ending!.id });
   // without an opening frame, condition on identity references instead: character portraits and the location plate
   const referenceImages: Array<{ file: string; mime: string }> = [];
+  if (songSegment && opening && opening.kind === 'IMAGE' && opening.mimeType !== 'image/svg+xml') { referenceImages.push({ file: assetFile(opening), mime: opening.mimeType ?? 'image/png' }); references.push({ kind: 'FIRST_FRAME', assetId: opening.id }); }
   if (!firstFrame) {
     for (const cid of sh.characterIds.slice(0, 4)) {
       const c = cast.find((x) => x.id === cid); const a = byId(c?.portraitAssetId);
@@ -57,7 +68,8 @@ export const generateTake: Handler = async (ctx) => {
   }
   // voice identity for speaking characters: the chosen voice sample as audio reference (timbre)
   const referenceAudio: Array<{ file: string }> = [];
-  for (const cid of Array.from(new Set(sh.dialogue.map((d) => d.characterId))).slice(0, 3)) {
+  if (songSegment) { referenceAudio.push({ file: songSegment }); references.push({ kind: 'AUDIO', assetId: songAsset!.id }); }
+  for (const cid of Array.from(new Set(sh.dialogue.map((d) => d.characterId))).slice(0, songSegment ? 2 : 3)) {
     const c = cast.find((x) => x.id === cid);
     const sample = c?.voice.samples.find((v) => v.id === c.voice.selectedSampleId);
     const a = byId(sample?.assetId);
