@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Asset, CanonicalImage, Character, Production } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
 import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf, materialByTier, primaryImage, statusWords, usageGroups, voiceListened, voiceMeasures, voiceOrigin, voiceState, voiceTrackSource } from '@/components/character/identity';
-import { designResultOf, designedIraqiAllowed, jobSecondary, retryNeedsChange, secondaryPayload, voiceDescriptionOf, voiceExtras } from '@/components/character/contract';
+import { designResultOf, designedIraqiAllowed, jobSecondary, secondaryPayload, voiceDescriptionOf, voiceExtras } from '@/components/character/contract';
 import { ageBandOf, sheetAge, sheetPayload, sheetStepProblem, EMPTY_SHEET } from '@/components/character/sheetModel';
 import { primaryImageSrc } from '@/studio/selectors';
 import { KEYS, t, type Key } from '@/lib/i18n';
@@ -223,17 +223,5 @@ describe('the written sheet sends only what the producer chose', () => {
     expect(sheetStepProblem('identity', EMPTY_SHEET)).toBe('NAME');
     expect(sheetStepProblem('identity', { ...EMPTY_SHEET, name: 'Noor' })).toBeNull();
     expect(sheetStepProblem('look', EMPTY_SHEET)).toBeNull();
-  });
-});
-
-describe('retrying a failed job', () => {
-  it('a transient failure is retried as it was; anything else asks what changed', () => {
-    const failed = (details: Record<string, unknown> | undefined, retryable?: boolean) => ({ status: 'FAILED' as const, error: { code: 'X', message: 'm', details, retryable } });
-    expect(retryNeedsChange(failed({ failureClass: 'INFRASTRUCTURE' }))).toBe(false);
-    expect(retryNeedsChange(failed({ failureClass: 'PROVIDER' }))).toBe(false);
-    expect(retryNeedsChange(failed({ failureClass: 'WRONG_PARAMETERS' }))).toBe(true);
-    expect(retryNeedsChange(failed(undefined, true))).toBe(false);
-    expect(retryNeedsChange(failed(undefined))).toBe(true);
-    expect(retryNeedsChange({ status: 'CANCELLED', error: undefined })).toBe(false);
   });
 });

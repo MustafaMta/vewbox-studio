@@ -24,7 +24,7 @@ export function SettingsSummary({ value, onChange, disabled }: { value: HeaderVa
   return (
     <div className="min-w-0">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] leading-5 text-muted">
-        <span className="min-w-0" dir="auto">{home ? `${T('cast.new.for')} ${home.label}` : T('cast.new.forLibrary')}</span>
+        <span className="min-w-0" dir="auto">{home ? T('cast.new.for').replace('{name}', home.label) : T('cast.new.forLibrary')}</span>
         <span aria-hidden className="text-ink-500">·</span><span>{T.dyn(`style.${value.style}`)}</span>
         <span aria-hidden className="text-ink-500">·</span><span>{langWords}</span>
         <button type="button" disabled={disabled} aria-expanded={open} aria-controls="new-settings" onClick={() => setOpen((o) => !o)} className="ms-1 font-medium text-fg underline decoration-line-field underline-offset-4 hover:decoration-fg disabled:text-disabled">{open ? T('btn.done') : T('cast.new.change')}</button>

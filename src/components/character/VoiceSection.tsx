@@ -14,11 +14,11 @@ import { useToast } from '@/components/ui/toast';
 import { Button, Details, Dropzone, Field, Input, KV, Segmented, Status, Textarea, cls } from '@/components/ui/kit';
 import { FactList } from '@/components/ui/page';
 import { FailureNotice, useErrorCopy } from '@/components/ui/progress';
+import { RetryControl } from '@/components/ui/jobs';
 import { IconCheck, IconGenerate, IconShield, IconVoice } from '@/components/ui/icons';
 import type { Track } from '@/components/players/PlayerProvider';
 import { dialectLabel, fmtSeconds } from '@/lib/format';
 import { designResultOf, designedIraqiAllowed, listeningReady, recordVoiceListening, startVoiceBuild, startVoiceBuildV2, startVoiceDesign, voiceDescriptionOf, voiceDesignReady, voiceExtras, type ConsentStatement, type VoiceReferenceRefusal } from './contract';
-import { RetryWithChange } from './RetryWithChange';
 import { voiceListened, voiceMeasures, voiceOrigin, voiceState } from './identity';
 import { VoicePlayer } from './VoicePlayer';
 import { VoiceTraitsDialog } from './EditDialogs';
@@ -275,7 +275,7 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
       {running ? <JobPhase job={running} /> : (
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={blocked} onClick={() => void run(() => startVoiceBuildV2(startJob, { characterId: c.id, mode: 'AUTOMATIC' }))}>{T('cast.voice.auto.go')}</Button>
-          {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryWithChange job={last} />} /></div>}
+          {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryControl job={last} size="sm" />} /></div>}
         </div>
       )}
     </div>
@@ -302,7 +302,7 @@ function Design({ c }: { c: Character }) {
       </Field>
       {c.dialect === 'IRAQI_BAGHDADI' && <p className="text-[13px] text-warn">{T('cast.voice.design.iraqiNote')}</p>}
       {running ? <JobPhase job={running} /> : <Button variant="secondary" icon={<IconGenerate />} loading={busy} disabled={description.trim().length < 12} onClick={() => void run(() => startVoiceDesign(startJob, c.id, description.trim()))}>{T('cast.voice.design.go')}</Button>}
-      {last?.status === 'FAILED' && !running && <FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryWithChange job={last} />} />}
+      {last?.status === 'FAILED' && !running && <FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryControl job={last} size="sm" />} />}
       {result && !running && (
         <div>
           <h3 className="h3">{T('cast.voice.design.candidates')}</h3>
@@ -455,7 +455,7 @@ function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; loc
     <div className="flex flex-wrap items-center gap-3 border-t border-line-soft pt-5">
       <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={!from || locked} aria-describedby={locked ? 'voice-lock' : undefined} onClick={() => { if (from) void run(() => startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id })); }} className="max-w-full"><span className="truncate">{from ? `${T('cast.voice.buildFrom')} “${from.label}”` : T('gen.voiceBuild')}</span></Button>
       {!from && <span className="text-[13px] text-faint" role="status">{T('voice.build.needRecording')}</span>}
-      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={copyOf(last.error).fix.kind === 'reference' ? <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> : <RetryWithChange job={last} />} /></div>}
+      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={copyOf(last.error).fix.kind === 'reference' ? <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> : <RetryControl job={last} size="sm" />} /></div>}
     </div>
   );
 }

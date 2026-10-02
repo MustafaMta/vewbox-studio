@@ -95,18 +95,6 @@ export function jobSecondary(j: Pick<Job, 'type' | 'payload'>): SecondaryKind[] 
   return Array.isArray(roles) ? roles.map(String).filter((x): x is SecondaryKind => (SECONDARY_KINDS as readonly string[]).includes(x)) : [];
 }
 
-/* ---- retries ----------------------------------------------------------------------------------------------- */
-
-/** The retry route refuses an unchanged retry of a failure that is not transient (src/server/org/runs.ts
- *  `retryNeedsChange`, mirrored here because that module is server-only): only infrastructure, provider and
- *  resource failures — or an error the engine marked retryable — may be retried as they were; otherwise the producer
- *  says what changed. */
-const TRANSIENT_CLASSES = ['INFRASTRUCTURE', 'PROVIDER', 'RESOURCE_EXHAUSTION'];
-export function retryNeedsChange(j: Pick<Job, 'status' | 'error'>): boolean {
-  if (j.status !== 'FAILED') return false;
-  const fc = j.error?.details?.failureClass;
-  return typeof fc === 'string' ? !TRANSIENT_CLASSES.includes(fc) : j.error?.retryable !== true;
-}
 
 /* ---- the voice identity, v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md) ------------------------------------------ */
 /* PENDING-BACKEND: the VOICE_DESIGN job, the AUTOMATIC/DESIGN/REFERENCE build modes, the identity's origin, consent,
