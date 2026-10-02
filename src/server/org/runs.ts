@@ -56,6 +56,16 @@ export function classifyFailure(e: unknown): FailureClass {
 /** Only infrastructure and provider failures may be retried without a change; everything else needs a correction. */
 export const RETRYABLE_CLASSES: readonly FailureClass[] = ['INFRASTRUCTURE', 'PROVIDER', 'RESOURCE_EXHAUSTION'];
 
+/** Whether a manual retry must say what was changed: a FAILED job whose recorded failure class is not transient (or,
+ *  without a class, whose error was not marked retryable). A cancelled job restarts as it was. Pure. */
+export function retryNeedsChange(job: Pick<Job, 'status' | 'error'>): { needed: boolean; failureClass?: FailureClass } {
+  if (job.status !== 'FAILED') return { needed: false };
+  const fc = job.error?.details?.failureClass;
+  const failureClass = typeof fc === 'string' && (FAILURE_CLASSES as readonly string[]).includes(fc) ? (fc as FailureClass) : undefined;
+  const transient = failureClass ? RETRYABLE_CLASSES.includes(failureClass) : job.error?.retryable === true;
+  return { needed: !transient, failureClass };
+}
+
 // --------------------------------------------------------------------------------------------------- agent runs
 
 export const agentForJob = (job: Pick<Job, 'type' | 'payload'>) => agentById(agentIdForJob(job)) ?? AGENTS.find((a) => a.id === 'production-coordinator')!;

@@ -6,7 +6,7 @@ import { CONTRACTS, SCHEMAS } from '@/server/org/contracts';
 import { checkOrganisation, checkSkillFiles } from '@/server/org/registry';
 import { computeSkillStatus, fileExists, skillEvidence } from '@/server/org/skills';
 import { JOB_TYPES } from '@/domain/jobs';
-import { classifyFailure, RETRYABLE_CLASSES } from '@/server/org/runs';
+import { classifyFailure, RETRYABLE_CLASSES, retryNeedsChange } from '@/server/org/runs';
 import { StudioError } from '@/domain/errors';
 
 /** The organisation is code; these tests keep it honest (docs/CONTRACTS-PHASE2-STUDIO.md): every agent has an
@@ -269,5 +269,15 @@ describe('failure classification', () => {
     expect(classifyFailure(Object.assign(new Error('cancelled'), { name: 'Cancelled' }))).toBe('CANCELLED');
     expect(RETRYABLE_CLASSES).toEqual(['INFRASTRUCTURE', 'PROVIDER', 'RESOURCE_EXHAUSTION']);
     expect(RETRYABLE_CLASSES).not.toContain('MISSING_REFERENCE');
+  });
+  it('a manual retry needs a stated change unless the failure was transient (or the job was cancelled)', () => {
+    const failed = (failureClass?: string, retryable?: boolean) => ({ status: 'FAILED' as const, error: { code: 'X', message: 'm', retryable, details: failureClass ? { failureClass } : undefined } });
+    expect(retryNeedsChange(failed('MISSING_REFERENCE'))).toEqual({ needed: true, failureClass: 'MISSING_REFERENCE' });
+    expect(retryNeedsChange(failed('WRONG_PARAMETERS'))).toEqual({ needed: true, failureClass: 'WRONG_PARAMETERS' });
+    expect(retryNeedsChange(failed('PROVIDER'))).toEqual({ needed: false, failureClass: 'PROVIDER' });
+    expect(retryNeedsChange(failed('INFRASTRUCTURE'))).toEqual({ needed: false, failureClass: 'INFRASTRUCTURE' });
+    expect(retryNeedsChange(failed(undefined, true)).needed).toBe(false);
+    expect(retryNeedsChange(failed(undefined, false)).needed).toBe(true);
+    expect(retryNeedsChange({ status: 'CANCELLED', error: undefined }).needed).toBe(false);
   });
 });
