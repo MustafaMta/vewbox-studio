@@ -65,7 +65,7 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 | IndexTTS 2.5 / Habibi | to be measured | 1 (unloads on request) |
 | faster-whisper large-v3 fp16 | ~3.7 GB; 6 s of speech in 1.2 s warm, 8.9 s with the first load | 1 |
 | Demucs htdemucs | ~2.3 GB; 1.5 s clip in ~1 s warm, 27 s with the first download + load | 1 |
-| ACE-Step 1.5 XL | to be measured | 1 |
+| ACE-Step 1.5 XL turbo | 34 s of engine time for a 90 s song (8 steps); plus ~30 s of Demucs for the stems | 1 |
 | qwen3:14b (Ollama, Q4) | 10 GB, 100% GPU even beside ComfyUI's staged H3; ~17 s median per structured answer; unloads after 2 min idle | 1 |
 
 `GPU_VRAM_BUDGET_MB` (default 30000) is the worker's ceiling; the GPU lease serialises families and records waits.

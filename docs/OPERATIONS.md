@@ -17,6 +17,19 @@
 Only `web` is published beyond the loopback interface. Everything else is reachable from the host for debugging and
 from the other services by name.
 
+### Voice services
+
+- Both voice containers fetch their weights on first start into the `models` volume (`/models/tts/indextts-2.5`,
+  10.1 GB; `/models/tts/habibi`, 1.3 GB) and only then serve; `start_period` of the healthcheck allows for it.
+  `HF_HOME=/models/hf-home` keeps auxiliary downloads (vocoder, tokenizers) on the volume across recreates.
+- `docker/tts/entrypoint.sh` and `docker/tts/app.py` are mounted from the repository over the copies baked into the
+  images, so a fix to either takes effect on `docker compose up -d tts tts-habibi` without rebuilding 12 GB images.
+  The images still carry the copies, so the stack also runs from the images alone.
+- The worker transcribes a character's reference recording once with the `asr` service and passes the text to the
+  Iraqi engine; Habibi would otherwise transcribe it with a Whisper it downloads on first use, blocking the service.
+- A host-run worker needs `TTS_URL`, `TTS_HABIBI_URL` and `ASR_URL` in `.env.local` pointing at the published ports
+  (`http://127.0.0.1:8020`, `:8021`, `:8030`); the compose defaults use the service names.
+
 ## Health
 
 - `GET /api/health` — web process and database. Used by the container healthcheck; never requires the password.

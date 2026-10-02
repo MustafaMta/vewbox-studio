@@ -116,7 +116,14 @@ settings leaking between tests; worker crash on reset (FK on job events); NOT_CO
 uploads accepted; worker container healthcheck without a liveness file; stale page after fast navigation (own-origin
 change events); freezedetect missing an unfinished freeze; a parallel fetcher run deleting the other run's partial and
 overwriting its state; PyAV pairing in faster-whisper; ACE-Step node name; Music 3 CLIP type; Final Cut hardcoded
-loudness and 0 MB sizes.
+loudness and 0 MB sizes; location plates with a stray figure (positive "unoccupied" wording, redraw with `force`);
+Arabic left in the English script slot (gloss pass); IndexTTS entrypoint (`uv run` at boot) and Habibi's shadowed
+model name (repo files mounted into the containers); Habibi blocking on its own Whisper when no reference transcript
+is given (the worker transcribes the reference once); placeholder sample voices shadowing a real recording; the host
+worker without a Habibi URL; `ImageScaleToTotalPixels.resolution_steps`; ACE-Step encoder refusing `bpm 0` /
+`keyscale ""` and the missing 0.6B text encoder (dual loader, manifest); Music 3 manifest paths (404); a music video
+with no way to develop scenes, write its script or redo the singing assignment; take prompts naming an assigned singer
+who was not in the shot; the wizard's "everyone sings everything" placeholder kept as six duets.
 
 ## 12. Remaining limitations
 
