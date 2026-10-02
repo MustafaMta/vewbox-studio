@@ -22,7 +22,8 @@ import { recordMetric } from '@/server/jobs/queue';
 
 const IMAGE_VRAM_MB = 24000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
-const usable = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && a.mimeType !== 'image/svg+xml');
+// bundled sample pictures are placeholders for the UI, never references for generation
+const usable = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
 
 async function requireComfy() {
   const h = await comfy.health();
@@ -110,7 +111,8 @@ export const locationPlates: Handler = async (ctx) => {
   if (!l) throw new StudioError('NOT_FOUND', 'Location not found');
   await requireComfy();
   const refs: LocationRef[] = [];
-  const existingMaster = force ? undefined : state.assets.find((a) => a.id === l.masterAssetId);
+  // a bundled sample plate is a placeholder, not a master to build views from
+  const existingMaster = force ? undefined : state.assets.find((a) => a.id === l.masterAssetId && !a.sample);
   let master: Asset | undefined = usable(existingMaster) ? existingMaster : undefined;
   const primaryTod = (timesOfDay?.[0] ?? l.lighting[0] ?? 'MORNING') as TimeOfDay;
   if (!master) {
