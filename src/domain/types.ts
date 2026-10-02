@@ -308,7 +308,13 @@ export interface Production {
   updatedAt: string;
 }
 
-export interface CharacterRef { id: string; role: CharacterRefRole; assetId: string; approved?: boolean }
+export interface CharacterRef {
+  id: string; role: CharacterRefRole; assetId: string; approved?: boolean;
+  /** How the picture was made (image agent, wave 2): the view drawn ('SHEET_TILE' for a tile cut from the identity
+   *  sheet, else the view name), the asset ids of the references actually given to the model in order (a tile lists
+   *  the sheet it was cut from; a derived view lists FRONT tile, face crop, sheet), and the seed used. */
+  view?: string; references?: string[]; seed?: number;
+}
 
 /** The one voice a character speaks with: which engine, which reference recording, which revision. */
 export interface VoiceIdentity {
@@ -385,7 +391,13 @@ export interface Character {
   usage?: CharacterUsage;
   pendingReference?: PendingReference;
   /** Durable identity details beyond the written look. */
-  canon?: { heightCm?: number; accessories?: string[]; visualRestrictions?: string[]; agePresentation?: string; speech?: string };
+  canon?: {
+    heightCm?: number; accessories?: string[]; visualRestrictions?: string[]; agePresentation?: string; speech?: string;
+    /** Image agent (wave 2): the fixed identity tokens repeated verbatim in every prompt that draws the character,
+     *  and the one seed the sheet and every derived view start from. Kept in `canon` (jsonb) so they persist
+     *  without a schema change; a dedicated column can replace this later. */
+    identityLine?: string; identitySeed?: number;
+  };
   /** Creative notes: free text for the writers, never used to draw the character. */
   notes?: string;
   createdAt: string;

@@ -4,7 +4,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenEdit, qwenTextToImage, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, faceCheck, minimaxH3Video, minimaxMusic3Song, qwenEdit, qwenIdentitySheet, qwenTextToImage, qwenView, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -28,6 +28,11 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
   return [
     { name: 'qwen-image.t2i', graph: qwenTextToImage({ prompt: '', width: 1024, height: 1024 }) },
     { name: 'qwen-image.edit', graph: qwenEdit({ prompt: '', references: ['a.png', 'b.png', 'c.png'] }) },
+    { name: 'qwen-image.edit-quality', graph: qwenEdit({ prompt: '', references: ['a.png', 'b.png', 'c.png'], quality: true, extraLoras: [{ name: MODELS.qwenMultiAngleLora, strength: 1.0 }] }) },
+    { name: 'qwen-image.identity-sheet', graph: qwenIdentitySheet({ portrait: 'a.png', prompt: '' }) },
+    { name: 'qwen-image.identity-sheet-from-face', graph: qwenIdentitySheet({ portrait: 'a.png', faceCrop: 'b.png', prompt: '', quality: false }) },
+    { name: 'qwen-image.view', graph: qwenView({ references: ['a.png', 'b.png', 'c.png'], view: 'FULL_BODY', prompt: '', angleLora: true }) },
+    { name: 'qwen-image.face-check', graph: faceCheck({ image: 'a.png', mask: true }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
     { name: 'ace-step-1.5.song', graph: aceStepSong({ caption: '', lyrics: '', seconds: 60 }) },
