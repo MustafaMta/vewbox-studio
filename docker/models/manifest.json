@@ -57,9 +57,9 @@
       "name": "music-minimax-3",
       "purpose": "MiniMax Music 3 open weights (int8) for ComfyUI as a second music engine; MiniMax-Music3 Community License (UI attribution required).",
       "files": [
-        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_dav.safetensors", "folder": "vae", "bytes": 216696128, "sha256": "2a32155b769be01445fcc2a8663b910fc9e1751e18dc1c3ec528064512d9ef0c", "license": "MiniMax-Music3 Community License" },
-        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_dit_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 2502161682, "sha256": "d6b959633e69899f99f3a92d6741c0fe79f26958a30811e50e372ef978b24d5f", "license": "MiniMax-Music3 Community License" },
-        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_text_encoder_pruned_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9196611886, "sha256": "010b7416d2336a08c711bc22ee65849c9623069ddb7d89bec011a75699e52014", "license": "MiniMax-Music3 Community License" }
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "vae/minimax_music3_dav.safetensors", "folder": "vae", "bytes": 216696128, "sha256": "2a32155b769be01445fcc2a8663b910fc9e1751e18dc1c3ec528064512d9ef0c", "license": "MiniMax-Music3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "diffusion_models/minimax_music3_dit_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 2502161682, "sha256": "d6b959633e69899f99f3a92d6741c0fe79f26958a30811e50e372ef978b24d5f", "license": "MiniMax-Music3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9196611886, "sha256": "010b7416d2336a08c711bc22ee65849c9623069ddb7d89bec011a75699e52014", "license": "MiniMax-Music3 Community License" }
       ]
     }
   ]
