@@ -19,6 +19,14 @@ decide. Nothing here is assumed approved unless marked **Proceeding**.
 | V10 | Audio watermark (AudioSeal) at export if films go to the EU | AI Act Art. 50 marking | Not added |
 | V11 | Habibi licence: Hugging Face tag says CC-BY-NC-SA, README grants Apache-2.0 for IRQ/MSA | Commercial use certainty | Dated README copy archived; flagged |
 
+## Character images (source: `docs/research/CHARACTER-IMAGE-V2.md`)
+
+| # | Decision | Until you decide |
+|---|---|---|
+| I1 | Priority-1/2 downloads for the image workflow: Qwen3.5-4B vision model for ComfyUI (9.32 GB, Apache-2.0), YuNet / SFace / DINOv2-small / CCIP identity models (≈0.2 GB, MIT / Apache-2.0 / OpenRAIL), Lightning LoRA for Edit-2511 (0.85 GB) | **Proceeding**: Phase 3 asks to research and select the strongest practical workflow; these are what the selected workflow needs |
+| I2 | Optional challengers: JoyAI-Image-Edit-Plus (26.75 GB), HiDream-O1 (17.1 GB) | Not downloaded; only if the A/B shows the installed stack falls short |
+| I3 | IndexTTS commercial use: its LICENSE allows commercial use under 100M MAU, its DISCLAIMER says no commercial use without permission | Written confirmation from the authors before any commercial release |
+
 ## Studio Company
 
 | # | Decision | Until you decide |
