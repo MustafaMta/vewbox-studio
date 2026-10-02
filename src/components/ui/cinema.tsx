@@ -13,14 +13,14 @@ export type Ratio = 'poster' | 'square' | 'portrait' | 'wide' | 'vertical';
 export const RATIO: Record<Ratio, string> = { poster: 'aspect-[2/3]', square: 'aspect-square', portrait: 'aspect-[4/5]', wide: 'aspect-video', vertical: 'aspect-[9/16]' };
 
 /** A picture in its frame; with no picture, the title set as type — never a fake image. */
-export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode }) {
+export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children, top }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode; /** faces first: crop from the top (portraits) */ top?: boolean }) {
   const T = useT();
   void sample;
   const r = (RATIO as Record<string, string>)[ratio] ?? ratio;
   return (
     <div className={cls('poster', r, className)}>
       {unavailable ? <div className="poster-text absolute inset-0 items-center justify-center text-center text-sm !font-sans !font-medium">{T('media.unavailable')}</div>
-        : src ? <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute inset-0" />
+        : src ? <img src={src} alt={alt} loading="lazy" decoding="async" className={cls('absolute inset-0', top && 'object-top')} />
         : <div className="poster-text absolute inset-0" aria-hidden><span dir="auto" className="line-clamp-4">{title ?? T('misc.noArtwork')}</span></div>}
       {children}
     </div>
