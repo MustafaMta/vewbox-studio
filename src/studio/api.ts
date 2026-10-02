@@ -66,9 +66,10 @@ export const api = {
   /** contract §1.4 — `POST /api/characters/{id}/voice-reference` (multipart: file, label, language, dialect). The
    *  server validates the recording (duration, sample rate, loudness, peak, speech by ASR, language), trims the window
    *  and records the sample; a refusal comes back as `{ ok: false, code, message }` (HTTP 4xx), not as an exception. */
-  uploadVoiceReference: async (id: string, file: File, meta: { label?: string; language?: string; dialect?: string; transcript?: string }): Promise<VoiceReferenceResult> => {
+  uploadVoiceReference: async (id: string, file: File, meta: { label?: string; language?: string; dialect?: string; transcript?: string; /** voice identity v2: the producer's consent statement, required for a real person's recording */ consent?: 'MY_VOICE' | 'SPEAKER_PERMISSION' }): Promise<VoiceReferenceResult> => {
     const fd = new FormData();
     fd.set('file', file, file.name);
+    if (meta.consent) fd.set('consent', meta.consent);
     if (meta.label) fd.set('label', meta.label);
     if (meta.language) fd.set('language', meta.language);
     if (meta.dialect) fd.set('dialect', meta.dialect);

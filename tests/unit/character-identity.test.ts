@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, CanonicalImage, Character, Production } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
-import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf, materialByTier, primaryImage, statusWords, usageGroups, voiceState, voiceTrackSource } from '@/components/character/identity';
-import { jobSecondary, retryNeedsChange, secondaryPayload } from '@/components/character/contract';
+import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf, materialByTier, primaryImage, statusWords, usageGroups, voiceListened, voiceMeasures, voiceOrigin, voiceState, voiceTrackSource } from '@/components/character/identity';
+import { designResultOf, designedIraqiAllowed, jobSecondary, retryNeedsChange, secondaryPayload, voiceDescriptionOf, voiceExtras } from '@/components/character/contract';
 import { ageBandOf, sheetAge, sheetPayload, sheetStepProblem, EMPTY_SHEET } from '@/components/character/sheetModel';
 import { primaryImageSrc } from '@/studio/selectors';
 import { KEYS, t, type Key } from '@/lib/i18n';
@@ -161,9 +161,46 @@ describe('usage and the voice', () => {
     const identity = { provider: 'LOCAL_TTS' as const, model: 'indextts', mode: 'REFERENCE' as const, language: 'EN' as const, params: { speed: 1, emotionAlpha: 0.6 }, status: 'ACTIVE' as const, revision: 1, createdAt: at(2), proof: { sampleId: 'p1', assetId: 'a-proof', text: 'I have been here a while', heard: 'I have been here a while', coverage: 1 } };
     const voiced = character({ voice: { ...character().voice, samples: [sample], selectedSampleId: 'v1', identity } });
     expect(voiceTrackSource(voiced)).toMatchObject({ kind: 'PROOF', assetId: 'a-proof', text: 'I have been here a while' });
-    expect(voiceState(voiced)).toBe('VERIFIED');
+    // a proof line transcribed back is measured, never "verified"
+    expect(voiceState(voiced)).toBe('MEASURED');
     expect(voiceState(character({ voice: { ...voiced.voice, identity: { ...identity, status: 'STALE' } } }))).toBe('STALE');
     expect(voiceState(character({ voice: { ...voiced.voice, identity: { ...identity, status: 'REVIEW' } } }))).toBe('REVIEW');
+    expect(voiceMeasures(voiced)).toEqual({ intelligible: 1, loudnessOk: undefined, lufs: undefined });
+  });
+});
+
+describe('the voice identity v2: origin, measured vs listened, design', () => {
+  const base = { provider: 'LOCAL_TTS' as const, model: 'voxcpm2', mode: 'AUTOMATIC' as const, language: 'AR' as const, params: { speed: 1, emotionAlpha: 0.6 }, status: 'ACTIVE' as const, revision: 1, createdAt: at(2) };
+  const withIdentity = (extra: Record<string, unknown>, p: Partial<Character> = {}) => character({ language: 'AR', ...p, voice: { ...character().voice, identity: { ...base, ...extra } as unknown as NonNullable<Character['voice']['identity']> } });
+  it('the origin is read from the record; an older identity is a wave-2 one', () => {
+    expect(voiceOrigin(withIdentity({ origin: 'DESIGNED', designId: 'd1' }))).toBe('DESIGNED');
+    expect(voiceOrigin(withIdentity({}))).toBe('LEGACY');
+    expect(voiceOrigin(character())).toBe('NONE');
+    expect(voiceExtras(undefined).listening).toEqual([]);
+  });
+  it('measured numbers come from the evaluation, loudness against the reference gates; nothing is assumed', () => {
+    expect(voiceMeasures(withIdentity({ evaluation: { cer: 0.04, lufs: -20, clipped: 0 } }))).toEqual({ intelligible: 0.96, loudnessOk: true, lufs: -20 });
+    expect(voiceMeasures(withIdentity({ evaluation: { coverage: 0.98, lufs: -8, clipped: 0 } })).loudnessOk).toBe(false);
+    expect(voiceMeasures(withIdentity({ evaluation: { coverage: 0.98, lufs: -20, clipped: 3 } })).loudnessOk).toBe(false);
+    expect(voiceMeasures(withIdentity({}))).toEqual({ intelligible: undefined, loudnessOk: undefined, lufs: undefined });
+    expect(voiceState(withIdentity({ evaluation: { cer: 0.1 } }))).toBe('MEASURED');
+    expect(voiceState(withIdentity({}))).toBe('UNCHECKED');
+  });
+  it('an Iraqi voice is never called Iraqi without a listener; the latest listening wins', () => {
+    const iraqi = { dialect: 'IRAQI_BAGHDADI' as const };
+    expect(voiceListened(withIdentity({}, iraqi))).toEqual({ last: undefined, dialect: 'UNVERIFIED' });
+    expect(voiceListened(withIdentity({ dialectStatus: 'UNVERIFIED', evaluation: { coverage: 1 } }, iraqi)).dialect).toBe('UNVERIFIED');
+    const listened = withIdentity({ listening: [{ by: 'PRODUCER', natural: 3, dialectAuthentic: false, at: at(3) }, { by: 'PRODUCER', natural: 4, dialectAuthentic: true, at: at(4) }] }, iraqi);
+    expect(voiceListened(listened)).toMatchObject({ last: { natural: 4 }, dialect: 'APPROVED' });
+    expect(voiceListened(withIdentity({ dialectStatus: 'LISTENER_REJECTED' }, iraqi)).dialect).toBe('REJECTED');
+    expect(voiceListened(withIdentity({})).dialect).toBe('NOT_APPLICABLE');
+  });
+  it('a design job’s result is read defensively; the description is written from the profile without a model', () => {
+    expect(designResultOf({ result: { designId: 'd1', candidates: [{ index: 1, assetId: 'a1', cer: 0.05, duration: 9.2 }, { assetId: 'a2', passed: false }] } })).toEqual({ designId: 'd1', description: undefined, candidates: [{ index: 1, assetId: 'a1', seed: undefined, durationSeconds: 9.2, cer: 0.05, coverage: undefined, lufs: undefined, passed: undefined, reasons: undefined }, { index: 2, assetId: 'a2', seed: undefined, durationSeconds: undefined, cer: undefined, coverage: undefined, lufs: undefined, passed: false, reasons: undefined }] });
+    expect(designResultOf({ result: { steps: [] } })).toBeNull();
+    expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English. Patient and wry.');
+    expect(designedIraqiAllowed({ uiLanguage: 'en' })).toBe(false);
+    expect(designedIraqiAllowed({ generation: { allowDesignedIraqi: true } })).toBe(true);
   });
 });
 

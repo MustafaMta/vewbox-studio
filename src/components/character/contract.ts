@@ -1,12 +1,16 @@
 import type { CreateCharacterResult, Job, JobPayload, JobType } from '@/domain/jobs';
 import type { Character, VideoUsage, VoiceIdentity, VoiceSample } from '@/domain/types';
+import { JOB_TYPES } from '@/domain/jobs';
 import type { Language } from '@/domain/vocabulary';
+import { isCommandName } from '@/domain/commands';
+import { StudioError } from '@/domain/errors';
 import type { StartedJob } from '@/studio/api';
 
 /** THE CONTRACTS, AS THE FRONTEND CODES AGAINST THEM — docs/CONTRACTS-CHARACTER-VOICE.md §1.1, §1.2, §1.4 and
  *  docs/CONTRACTS-IDENTITY-PACK.md (v2: one canonical front full-body image + one voice identity). The shapes live
- *  in src/domain/*; this file names the frontend's views of them. The one bridge left is the creation chain's step
- *  names (`PENDING-BACKEND`): the worker still reports the wave-2 names, which map onto the v2 chain here. */
+ *  in src/domain/*; this file names the frontend's views of them and is the ONLY place the character pages cast.
+ *  Two bridges are left (`PENDING-BACKEND`): the creation chain's step names (the worker still reports the wave-2
+ *  names, mapped onto the v2 chain here) and the voice identity v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md). */
 
 /* ---- the creation chain (CREATE_CHARACTER) ------------------------------------------------------------------ */
 
@@ -102,6 +106,76 @@ export function retryNeedsChange(j: Pick<Job, 'status' | 'error'>): boolean {
   if (j.status !== 'FAILED') return false;
   const fc = j.error?.details?.failureClass;
   return typeof fc === 'string' ? !TRANSIENT_CLASSES.includes(fc) : j.error?.retryable !== true;
+}
+
+/* ---- the voice identity, v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md) ------------------------------------------ */
+/* PENDING-BACKEND: the VOICE_DESIGN job, the AUTOMATIC/DESIGN/REFERENCE build modes, the identity's origin, consent,
+   evaluation and listening records, and the recordVoiceListening command are being built now. Every read below is
+   defensive (absent fields render as "not recorded"); every write goes through one cast here; and until the job type
+   and the command exist the panel says so instead of failing. */
+
+export type VoiceOrigin = 'UPLOAD_CONSENTED' | 'DESIGNED' | 'HOSTED' | 'GENERATED';
+export type ConsentStatement = 'MY_VOICE' | 'SPEAKER_PERMISSION';
+export type DialectStatus = 'NOT_APPLICABLE' | 'UNVERIFIED' | 'LISTENER_APPROVED' | 'LISTENER_REJECTED';
+export interface VoiceEvaluation { cer?: number; coverage?: number; lufs?: number; truePeakDbtp?: number; clipped?: number; seedToLineSimilarity?: number; measuredAt?: string }
+export interface VoiceListening { by: 'PRODUCER'; natural: number; dialectAuthentic?: boolean; note?: string; at: string }
+export interface VoiceIdentityExtras { origin?: VoiceOrigin; designId?: string; seedSha256?: string; consent?: { statement: ConsentStatement; by: 'PRODUCER'; at: string }; dialectStatus?: DialectStatus; evaluation?: VoiceEvaluation; listening: VoiceListening[] }
+
+/** The v2 fields of a voice identity, read defensively (the wave-2 identity has none of them). */
+export function voiceExtras(identity: VoiceIdentity | undefined): VoiceIdentityExtras {
+  const x = (identity ?? {}) as Partial<VoiceIdentityExtras> & { listening?: unknown };
+  return { origin: x.origin, designId: x.designId, seedSha256: x.seedSha256, consent: x.consent, dialectStatus: x.dialectStatus, evaluation: x.evaluation, listening: Array.isArray(x.listening) ? (x.listening as VoiceListening[]) : [] };
+}
+
+/** The voice-design job type exists on this server (the panel offers Automatic and Design only then). */
+export const voiceDesignReady = (): boolean => (JOB_TYPES as readonly string[]).includes('VOICE_DESIGN');
+/** The listening command exists on this server. */
+export const listeningReady = (): boolean => isCommandName('recordVoiceListening');
+
+type LooseStart = (type: string, payload: Record<string, unknown>, opts?: { idempotencyKey?: string }) => Promise<StartedJob>;
+/** `VOICE_DESIGN { characterId, description }` → three candidates speaking a calibration sentence. */
+export const startVoiceDesign = (startJob: StartJob, characterId: string, description: string): Promise<StartedJob> => (startJob as unknown as LooseStart)('VOICE_DESIGN', { characterId, description });
+/** `VOICE_BUILD` in the v2 modes: AUTOMATIC (designed from the profile, or for Iraqi from an Iraqi recording), DESIGN
+ *  (a chosen candidate of a design), REFERENCE (a consented recording). */
+export const startVoiceBuildV2 = (startJob: StartJob, p: { characterId: string; mode: 'AUTOMATIC' } | { characterId: string; mode: 'DESIGN'; designId: string; candidate: number } | { characterId: string; mode: 'REFERENCE'; referenceSampleId: string }): Promise<StartedJob> => (startJob as unknown as LooseStart)('VOICE_BUILD', p);
+
+export interface DesignCandidate { index: number; assetId?: string; seed?: number; durationSeconds?: number; cer?: number; coverage?: number; lufs?: number; passed?: boolean; reasons?: string[] }
+export interface DesignResult { designId: string; description?: string; candidates: DesignCandidate[] }
+/** The candidates a finished VOICE_DESIGN job returned (each with the asset that plays it), or null. */
+export function designResultOf(j: Pick<Job, 'result'> | undefined): DesignResult | null {
+  const r = j?.result as { designId?: unknown; description?: unknown; candidates?: unknown } | undefined;
+  if (!r || typeof r.designId !== 'string' || !Array.isArray(r.candidates)) return null;
+  const candidates = (r.candidates as Array<Record<string, unknown>>).map((c, i) => ({
+    index: typeof c.index === 'number' ? c.index : i + 1,
+    assetId: typeof c.assetId === 'string' ? c.assetId : undefined, seed: typeof c.seed === 'number' ? c.seed : undefined,
+    durationSeconds: typeof c.durationSeconds === 'number' ? c.durationSeconds : typeof c.duration === 'number' ? c.duration : undefined,
+    cer: typeof c.cer === 'number' ? c.cer : undefined, coverage: typeof c.coverage === 'number' ? c.coverage : undefined, lufs: typeof c.lufs === 'number' ? c.lufs : undefined,
+    passed: typeof c.passed === 'boolean' ? c.passed : undefined, reasons: Array.isArray(c.reasons) ? c.reasons.map(String) : undefined,
+  }));
+  return { designId: r.designId, description: typeof r.description === 'string' ? r.description : undefined, candidates };
+}
+
+/** `recordVoiceListening(characterId, { natural 1–5, dialectAuthentic?, note? })` — the producer's own listening. */
+export function recordVoiceListening(act: unknown, characterId: string, record: { natural: number; dialectAuthentic?: boolean; note?: string }): void {
+  if (!listeningReady()) throw new StudioError('NOT_CONFIGURED', 'Recording a listening needs the voice-identity update of the studio server.');
+  (act as (name: string, ...args: unknown[]) => unknown)('recordVoiceListening', characterId, record);
+}
+
+/** The Settings experiment switch that lets an Iraqi voice start from a designed Arabic seed (default off). */
+export const designedIraqiAllowed = (settings: unknown): boolean => {
+  const s = settings as { allowDesignedIraqi?: unknown; generation?: { allowDesignedIraqi?: unknown }; experiments?: { allowDesignedIraqi?: unknown } } | undefined;
+  return s?.allowDesignedIraqi === true || s?.generation?.allowDesignedIraqi === true || s?.experiments?.allowDesignedIraqi === true;
+};
+
+/** A deterministic description of the voice from the profile (contract v2 §2: sex, age, pitch, pace, timbre,
+ *  personality — no language model), as the starting text of a design the producer may edit. */
+export function voiceDescriptionOf(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'personality' | 'species'> & { voice: Pick<Character['voice'], 'pitch' | 'pace' | 'timbre'> }): string {
+  const who = c.species ? c.species : `${c.sex === 'FEMALE' ? 'woman' : 'man'} of about ${c.ageYears}`;
+  const pitch = { LOW: 'a low', MID: 'a middle', HIGH: 'a high' }[c.voice.pitch];
+  const pace = { SLOW: 'slow, unhurried', MEASURED: 'measured', QUICK: 'quick' }[c.voice.pace];
+  const parts = [`A ${who}`, `${pitch} voice`, `${pace} delivery`, c.voice.timbre.trim() ? c.voice.timbre.trim().toLowerCase() : '', c.language === 'AR' ? 'speaking Modern Standard Arabic' : 'speaking English'];
+  const feel = c.personality.trim().split(/[.!?]/)[0]?.trim();
+  return `${parts.filter(Boolean).join(', ')}.${feel ? ` ${feel}.` : ''}`;
 }
 
 /* ---- usage ------------------------------------------------------------------------------------------------- */

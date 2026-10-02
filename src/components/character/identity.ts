@@ -4,7 +4,7 @@ import { isActiveStatus } from '@/domain/jobs';
 import { appearanceLock, type AppearanceLock } from '@/domain/rules';
 import { canonicalCheckFailed, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import type { Key } from '@/lib/i18n';
-import { jobSecondary, usageImageVersion, type SecondaryKind } from './contract';
+import { jobSecondary, usageImageVersion, voiceExtras, type SecondaryKind, type VoiceListening, type VoiceOrigin } from './contract';
 
 /** THE CAST PROFILE'S VIEW-MODEL — pure functions over a character, its assets and the jobs, so every page reads the
  *  identity the same way (docs/CONTRACTS-IDENTITY-PACK.md v2: one canonical front full-body image + one voice
@@ -164,12 +164,49 @@ export function voiceTrackSource(c: Pick<Character, 'voice'>): { assetId?: strin
   return sel?.assetId ? { assetId: sel.assetId, text: sel.text, kind: 'SAMPLE', source: sel.source } : { kind: 'NONE' };
 }
 
-/** The voice identity's state in one word: verified (proved by listening back), needs a listen, out of date, not
- *  checked, or none. */
-export function voiceState(c: Pick<Character, 'voice'>): 'NONE' | 'VERIFIED' | 'REVIEW' | 'STALE' | 'UNCHECKED' {
+/** The voice identity's state in one word — never "verified": a proof line transcribed back is MEASURED
+ *  (intelligible), a doubtful one needs a listen (REVIEW), a changed language makes it STALE, no proof is UNCHECKED.
+ *  Whether it sounds natural (or Iraqi) is only ever said from a listening record (`voiceListened`). */
+export function voiceState(c: Pick<Character, 'voice'>): 'NONE' | 'MEASURED' | 'REVIEW' | 'STALE' | 'UNCHECKED' {
   const id = c.voice.identity;
   if (!id) return 'NONE';
   if (id.status === 'STALE') return 'STALE';
   if (id.status === 'REVIEW' || (id.proof && !id.proof.heard && id.proof.coverage !== undefined && id.proof.coverage < 0.85)) return 'REVIEW';
-  return id.proof ? 'VERIFIED' : 'UNCHECKED';
+  return id.proof || voiceExtras(id).evaluation ? 'MEASURED' : 'UNCHECKED';
+}
+
+/** The loudness gates of a reference recording (src/server/media/voice-check.ts REFERENCE_RULES), mirrored for
+ *  display: integrated loudness within −30…−10 LUFS and no clipped samples. */
+const LUFS_RANGE = { min: -30, max: -10 } as const;
+
+/** What was measured on the voice, in numbers a sentence can say: the share of words heard back (intelligibility)
+ *  and whether the loudness sat within the gates. Absent numbers stay absent — nothing is assumed. */
+export function voiceMeasures(c: Pick<Character, 'voice'>): { intelligible?: number; loudnessOk?: boolean; lufs?: number } {
+  const id = c.voice.identity; if (!id) return {};
+  const ev = voiceExtras(id).evaluation;
+  const coverage = ev?.coverage ?? id.proof?.coverage;
+  const cer = ev?.cer ?? id.proof?.cer;
+  const intelligible = coverage !== undefined ? coverage : cer !== undefined ? Math.max(0, 1 - cer) : undefined;
+  const lufs = ev?.lufs;
+  const loudnessOk = lufs === undefined ? undefined : lufs >= LUFS_RANGE.min && lufs <= LUFS_RANGE.max && (ev?.clipped ?? 0) === 0;
+  return { intelligible, loudnessOk, lufs };
+}
+
+/** The producer's latest listening, and the dialect verdict that only a listener can give. */
+export function voiceListened(c: Pick<Character, 'voice' | 'dialect'>): { last?: VoiceListening; dialect: 'NOT_APPLICABLE' | 'UNVERIFIED' | 'APPROVED' | 'REJECTED' } {
+  const x = voiceExtras(c.voice.identity);
+  const last = [...x.listening].sort((a, b) => b.at.localeCompare(a.at))[0];
+  const iraqi = c.dialect === 'IRAQI_BAGHDADI';
+  const recorded = x.dialectStatus === 'LISTENER_APPROVED' ? 'APPROVED' : x.dialectStatus === 'LISTENER_REJECTED' ? 'REJECTED' : undefined;
+  const fromListening = last?.dialectAuthentic === true ? 'APPROVED' : last?.dialectAuthentic === false ? 'REJECTED' : undefined;
+  return { last, dialect: !iraqi && !recorded ? 'NOT_APPLICABLE' : recorded ?? fromListening ?? 'UNVERIFIED' };
+}
+
+/** Where the voice comes from, as the label every voice carries. */
+export function voiceOrigin(c: Pick<Character, 'voice'>): VoiceOrigin | 'LEGACY' | 'NONE' {
+  const id = c.voice.identity; if (!id) return 'NONE';
+  const o = voiceExtras(id).origin;
+  if (o) return o;
+  // an identity built before origins were recorded: cloned from a recording (wave 2), or hosted
+  return id.provider === 'MINIMAX' ? 'HOSTED' : 'LEGACY';
 }
