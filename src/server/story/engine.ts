@@ -201,6 +201,20 @@ export async function glossLines(lines: Array<{ text: string; textAr?: string }>
 
 // ------------------------------------------------------------------------------------------------------- shots
 
+/** When a scene returns to a place the story has already shown, the planner is told what was established there:
+ *  the place's own layout, what state it was last left in and which props were seen, so the return reuses the same
+ *  world (the plates are reused by id regardless; this keeps the staging and props consistent too). Architecture may
+ *  not change; light, weather, time of day and movable things may. */
+export function establishedAt(p: Production, scene: Scene): string {
+  if (!scene.locationId) return '';
+  const earlier = p.shots.filter((sh) => { const sc = p.scenes.find((x) => x.id === sh.sceneId); return sc && sc.number < scene.number && sc.locationId === scene.locationId && sh.continuity; });
+  if (!earlier.length) return '';
+  const last = earlier[earlier.length - 1];
+  const scenes = Array.from(new Set(earlier.map((sh) => p.scenes.find((x) => x.id === sh.sceneId)?.number))).filter(Boolean);
+  const props = Array.from(new Set(earlier.flatMap((sh) => sh.continuity?.props.map((pr) => `${pr.name}${pr.position ? ` (${pr.position})` : ''}`) ?? []))).slice(0, 12);
+  return `RETURNING LOCATION: this place already appeared in scene${scenes.length > 1 ? 's' : ''} ${scenes.join(', ')}. It is the same place with the same architecture, layout and fixed features; do not redesign it. Last seen: ${compact({ environment: last.continuity?.environment, camera: last.continuity?.camera })}. Props established here: ${props.join('; ') || 'none noted'}. Only light, weather, time of day and movable things may differ now, and the shots should say how.`;
+}
+
 export interface PlannedShot { purpose: string; action: string; framing: ShotPlanOut['shots'][number]['framing']; cameraMove: ShotPlanOut['shots'][number]['cameraMove']; durationSeconds: number; characterIds: string[]; dialogue: Array<{ id: string; characterId: string; text: string; textAr?: string }>; transition: ShotPlanOut['shots'][number]['transition']; continuity: Omit<ContinuityState, 'version'>; prompt: string }
 
 export async function planShots(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}): Promise<PlannedShot[]> {
@@ -217,6 +231,7 @@ Characters present (exact names; include their look so prompts can describe them
 Beats and lines of the scene, in order: ${compact(scene.beats.map((b, i) => ({ beat: i + 1, action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })))}
 Dialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): ${compact(lines.map((l, i) => ({ index: i, who: l.characterName, line: l.textAr || l.text })))}
 ${previous.shot ? `The previous shot (from the preceding scene or earlier in this scene) ended like this; keep continuity or mark a clear transition: ${compact({ action: previous.shot.action, continuity: previous.shot.continuity })}` : 'This is the first shot of the production.'}
+${establishedAt(p, scene)}
 Camera rules for this direction: ${d.camera}
 For each shot write "prompt": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look ("${d.visual.slice(0, 80)}…" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. ${p.language === 'AR' ? 'If the shot has dialogue, add at the end: <d>[Arabic] الجملة </d> for each line in speaking order (the exact Arabic text).' : 'If the shot has dialogue, add at the end: <d>[English] the line </d> for each line in speaking order.'} Do not describe what to avoid.
 Continuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.
