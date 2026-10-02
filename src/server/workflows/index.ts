@@ -2,6 +2,8 @@
  *  shapes follow the official templates for each model family. Model filenames are the pinned files from
  *  docker/models/manifest.json. */
 
+import { createHash } from 'node:crypto';
+
 export type Graph = Record<string, { class_type: string; inputs: Record<string, unknown>; _meta?: { title: string } }>;
 
 export const MODELS = {
@@ -28,6 +30,15 @@ export const MODELS = {
   music3Clip: 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors',
   music3Vae: 'minimax_music3_dav.safetensors',
 } as const;
+
+/** A workflow's version: a hash of its structure (node classes, wiring and fixed parameters) with the per-run values
+ *  (prompt, seed, files, sizes, durations) blanked, so the same template always has the same version. Recorded on
+ *  every take and listed in the registry. */
+export function workflowVersion(graph: Graph): string {
+  const VOLATILE = new Set(['prompt', 'text', 'tags', 'lyrics', 'caption', 'seed', 'noise_seed', 'image', 'audio', 'filename_prefix', 'width', 'height', 'length', 'seconds', 'duration', 'max_duration', 'megapixels', 'bpm', 'language', 'strength_model', 'batch_size']);
+  const shape = Object.fromEntries(Object.entries(graph).sort(([a], [b]) => a.localeCompare(b)).map(([id, n]) => [id, { c: n.class_type, i: Object.fromEntries(Object.entries(n.inputs).filter(([k]) => !VOLATILE.has(k)).map(([k, v]) => [k, Array.isArray(v) ? `@${v[0]}:${v[1]}` : v])) }]));
+  return createHash('sha256').update(JSON.stringify(shape)).digest('hex').slice(0, 16);
+}
 
 export const seed32 = (seed?: number) => (seed === undefined || !Number.isFinite(seed) ? Math.floor(Math.random() * 2 ** 31) : Math.abs(Math.floor(seed)) % 2 ** 31);
 

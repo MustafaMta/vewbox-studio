@@ -38,6 +38,8 @@ export const generateTake: Handler = async (ctx) => {
   await ctx.progress('PREPARING', { phase: 'preparing', message: 'Gathering references and writing the prompt' });
   const prompt = payload.prompt?.trim() || takePrompt(p, sh, cast, loc, scene);
   const seconds = Math.min(15, Math.max(4, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
+  // the seed is chosen here, not inside the engine, so the take records the number that made it
+  const seed = payload.seed ?? Math.floor(Math.random() * 2 ** 31);
   const info = ASPECT_INFO[p.aspect];
   const references: TakeReference[] = [];
   const opening = byId(sh.openingFrameAssetId);
@@ -81,7 +83,7 @@ export const generateTake: Handler = async (ctx) => {
   let lastStatus = '';
   const result = await generateVideo({
     prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined,
-    seed: payload.seed, model: payload.model, resolution: payload.resolution,
+    seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
     onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
@@ -109,12 +111,14 @@ export const generateTake: Handler = async (ctx) => {
   await fsp.rm(path.dirname(result.file), { recursive: true, force: true }).catch(() => {});
   const takeNumber = sh.takes.length + 1;
   const label = `Take ${takeNumber}`;
-  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed: payload.seed, params: result.params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id };
+  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params: result.params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id };
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
   await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` })], 'worker');
-  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params: result.params, seed: payload.seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId }], 'worker');
-  // the first accepted take of a shot is selected automatically so the cut can be assembled; the producer can change it
-  if (report.ok && !sh.selectedTakeId) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
+  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params: result.params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId }], 'worker');
+  // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
+  // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
+  const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
+  if (report.ok && (!current || current.provider === 'SAMPLE')) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
   await recordMetric('take.qa_ok', report.ok ? 1 : 0, 'bool', { backend }, ctx.job.id);
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, awaitingReview: false, libraryRoot: libraryRoot() };
 };

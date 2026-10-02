@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import { workflowVersion as structuralWorkflowVersion, type Graph } from '../workflows';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { log } from '../log';
@@ -73,7 +74,7 @@ export async function uploadInput(file: string, opts: { ext?: string; subfolder?
   return r.subfolder ? `${r.subfolder}/${r.name}` : r.name;
 }
 
-export const workflowVersion = (graph: Record<string, unknown>) => `comfy-${crypto.createHash('sha256').update(JSON.stringify(graph)).digest('hex').slice(0, 12)}`;
+export const workflowVersion = (graph: Record<string, unknown>) => structuralWorkflowVersion(graph as Graph);
 
 /** Submit a graph and wait for it. Progress reports the current node and sampler step when ComfyUI exposes them. */
 export async function run(graph: Record<string, unknown>, opts: { timeoutMs?: number; onProgress?: (p: { node?: string; value?: number; max?: number; queue?: number }) => Promise<void> | void; shouldStop?: () => Promise<boolean> | boolean; clientId?: string } = {}): Promise<ComfyRunResult> {

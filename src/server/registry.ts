@@ -1,11 +1,10 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenEdit, qwenTextToImage, type Graph } from './workflows';
+import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenEdit, qwenTextToImage, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -23,14 +22,6 @@ export async function readManifest(): Promise<Manifest | null> {
 }
 
 const KIND_BY_FOLDER: Record<string, string> = { diffusion_models: 'DIFFUSION', text_encoders: 'TEXT_ENCODER', vae: 'VAE', loras: 'LORA' };
-
-/** A workflow's version: a hash of its structure (node classes, wiring and fixed parameters), with the per-run
- *  values (prompt, seed, files, sizes, durations) blanked, so the same template always has the same version. */
-export function workflowVersion(graph: Graph): string {
-  const VOLATILE = new Set(['prompt', 'text', 'tags', 'lyrics', 'caption', 'seed', 'noise_seed', 'image', 'audio', 'filename_prefix', 'width', 'height', 'length', 'seconds', 'duration', 'max_duration', 'megapixels', 'bpm', 'language', 'strength_model', 'batch_size']);
-  const shape = Object.fromEntries(Object.entries(graph).sort(([a], [b]) => a.localeCompare(b)).map(([id, n]) => [id, { c: n.class_type, i: Object.fromEntries(Object.entries(n.inputs).filter(([k]) => !VOLATILE.has(k)).map(([k, v]) => [k, Array.isArray(v) ? `@${v[0]}:${v[1]}` : v])) }]));
-  return crypto.createHash('sha256').update(JSON.stringify(shape)).digest('hex').slice(0, 16);
-}
 
 /** The templates, rendered once with placeholder inputs, so their structure can be versioned. */
 export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
