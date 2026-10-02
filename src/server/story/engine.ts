@@ -182,7 +182,10 @@ Example of ONE complete shot (shape only; write your own content): {"purpose":"E
 Every continuity.characters entry must use the key "characterName" with the exact character name. relationToPrevious ∈ CONTINUATION (same moment continues), CUT (new angle in the same scene), STORY_TRANSITION (time or place changes). Use null for nothing; never omit required keys.
 framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
   const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
-  const r = await llmJson(ShotPlanSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.6 });
+  // a scene's running time needs enough shots at ≤ maxShot seconds each; a one-shot scene is sent back for more
+  const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
+  const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
+  const r = await llmJson(schema, messages, { ...opts, maxTokens: 9000, temperature: 0.6 });
   opts.onResult?.(r.result);
   const norm = (s: string) => s.trim().toLowerCase().replace(/^(the|a|an)\s+/, '');
   const byName = (name: string) => { const n = norm(name); return cast.find((c) => norm(c.name) === n || c.nameAr?.trim() === name.trim()) ?? cast.find((c) => n.includes(norm(c.name)) || norm(c.name).includes(n) || (c.nameAr && name.includes(c.nameAr))); };
