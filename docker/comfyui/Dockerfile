@@ -22,6 +22,10 @@ RUN git clone --depth 1 --branch ${COMFYUI_REF} https://github.com/Comfy-Org/Com
 COPY docker/comfyui/extra_model_paths.yaml /opt/comfyui/extra_model_paths.yaml
 COPY docker/comfyui/entrypoint.sh /opt/entrypoint.sh
 RUN chmod +x /opt/entrypoint.sh && mkdir -p /models /opt/comfyui/output /opt/comfyui/input /opt/comfyui/temp
+# Triton compiles the nvfp4/int8 kernels the MiniMax H3 text encoder and DiT use at first run; it needs a C compiler
+# and Python headers in the container (found at the first real generation: "Failed to find C compiler").
+RUN for i in 1 2 3 4; do apt-get update && apt-cache policy gcc | grep -q Candidate && break; sleep 15; done \
+ && apt-get install -y --no-install-recommends gcc libc6-dev python3-dev && rm -rf /var/lib/apt/lists/*
 EXPOSE 8188
 HEALTHCHECK --interval=20s --timeout=10s --start-period=120s --retries=10 CMD curl -fsS http://127.0.0.1:8188/system_stats || exit 1
 ENTRYPOINT ["/opt/entrypoint.sh"]
