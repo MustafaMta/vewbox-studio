@@ -19,7 +19,7 @@ import { recordMetric } from '@/server/jobs/queue';
 import { registerUnloader } from '../gpu';
 import { unloadAsr, unloadTts } from '@/server/providers/speech';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
-import { guardVoiceChange, isCloneSource } from '@/domain/rules';
+import { guardVoiceBuild, isCloneSource, voiceLock } from '@/domain/rules';
 import type { VoiceIdentityInput } from '@/domain/actions';
 
 /** VOICES — one persistent identity per character (which engine, which reference recording, which revision), a
@@ -216,8 +216,11 @@ export const voiceBuild: Handler = async (ctx) => {
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === payload.characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
-  // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED)
-  if (c.voice.identity) guardVoiceChange(c, 'rebuild the voice');
+  // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED): with an identity it
+  // is never rebuilt; locked by the chosen recording alone, it is built only from that recording (AUTOMATIC is held
+  // to it, REFERENCE must name it, a catalogue voice is refused) — finding 8
+  const locked = voiceLock(c).locked;
+  guardVoiceBuild(c, mode === 'REFERENCE' ? payload.referenceSampleId : mode === 'AUTOMATIC' ? c.voice.selectedSampleId : undefined, 'build the voice');
   const dir = await tmpDir('voice');
   const useMinimax = mode === 'MANUAL' || ((payload.provider ?? state.settings.generation?.voiceProvider) === 'MINIMAX' && Boolean(env().MINIMAX_API_KEY));
   if (mode === 'MANUAL' && !env().MINIMAX_API_KEY) throw new StudioError('NOT_CONFIGURED', 'A catalogue voice needs the hosted speech provider: MINIMAX_API_KEY is not set.');
@@ -225,7 +228,7 @@ export const voiceBuild: Handler = async (ctx) => {
   // 1) the reference: the producer's upload, never a generated line
   let ref: Reference | null = null;
   if (mode !== 'MANUAL') {
-    ref = await referenceWav(c, state.assets, dir, mode === 'REFERENCE' ? { sampleId: payload.referenceSampleId } : {});
+    ref = await referenceWav(c, state.assets, dir, mode === 'REFERENCE' ? { sampleId: payload.referenceSampleId } : locked ? { sampleId: c.voice.selectedSampleId } : {});
     if (!ref) throw missingReference(mode === 'REFERENCE' ? `The requested recording is not an uploaded recording of ${c.name} (or its file is gone). Upload a 3–30 second recording of the voice on the Voice tab.` : `${c.name} has no uploaded recording to clone from. Upload a 3–30 second recording of the voice on the Voice tab first.`, { characterId: c.id, mode });
     await ctx.progress('PREPARING', { phase: 'preparing', message: `Reference recording for ${c.name}: “${ref.sample?.label ?? ref.asset.label}” (${ref.window ? `${ref.window.from}–${ref.window.to} s` : 'whole file'})` });
     await ctx.event('info', 'reference chosen', { assetId: ref.asset.id, sampleId: ref.sample?.id, via: ref.via, window: ref.window, hasText: Boolean(ref.text) });

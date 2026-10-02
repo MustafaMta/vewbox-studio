@@ -196,6 +196,20 @@ describe('VOICE_BUILD', () => {
     expect(ch('nour').voice.identity).toBeUndefined();
     expect(fake.synth).toHaveLength(0);
   });
+  it('a character that spoke in a video with its chosen recording is re-voiced from nothing else (finding 8): REFERENCE to another upload is VOICE_LOCKED, AUTOMATIC clones the chosen one', async () => {
+    const first = prepare({ text: 'hello there this is my voice' });
+    fake.state = addAsset(fake.state, { id: 'up-2', kind: 'AUDIO', src: '/api/media/up-2', label: 'second', tags: [], sample: false, origin: 'UPLOAD', provenance: { path: 'audio/up-2.wav' } }).state;
+    fake.state = addVoiceRecording(fake.state, 'nour', 'up-2', 'second take', { text: 'another take of my voice here' });
+    const second = ch('nour').voice.samples.at(-1)!;
+    fake.state = selectVoiceSample(fake.state, 'nour', first.id);
+    fake.state = { ...fake.state, characters: fake.state.characters.map((x) => (x.id === 'nour' ? { ...x, usage: { known: true, videos: [{ productionId: 'p', productionTitle: 'P', shotId: 's', shotLabel: '1.1', takeId: 't', takeLabel: 'A', recordedAt: 'x', status: 'IN_TAKE' as const }] } } : x)) };
+    const before = JSON.stringify(fake.state);
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'REFERENCE', referenceSampleId: second.id } }))).rejects.toMatchObject({ code: 'VOICE_LOCKED' });
+    expect(fake.synth).toHaveLength(0);
+    expect(JSON.stringify(fake.state)).toBe(before);
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }));
+    expect(ch('nour').voice.identity).toMatchObject({ referenceSampleId: first.id, referenceAssetId: 'up-ref' });
+  });
   it('an "upload" that is the studio’s own engine output (tagged by docker/tts) is never cloned from, whatever path brought it in', async () => {
     prepare({ text: 'hello there this is my voice' });
     fake.engineFiles.add('/lib/audio/up-ref.wav');
