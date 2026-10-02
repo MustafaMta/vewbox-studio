@@ -66,7 +66,7 @@ export function StoryTab({ p }: { p: Production }) {
   );
 }
 
-function AddScene({ p }: { p: Production }) {
+export function AddScene({ p }: { p: Production }) {
   const T = useT(); const { state, act } = useStudio(); const toast = useToast();
   const world = worldOf(state, p);
   const [title, setTitle] = useState(''); const [loc, setLoc] = useState(''); const [tod, setTod] = useState<TimeOfDay>('MIDDAY');
@@ -86,7 +86,7 @@ function AddScene({ p }: { p: Production }) {
   );
 }
 
-function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Array<{ id: string; name: string }>; locations: Array<{ id: string; name: string }> }) {
+export function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Array<{ id: string; name: string }>; locations: Array<{ id: string; name: string }> }) {
   const T = useT(); const { act } = useStudio(); const toast = useToast();
   const set = (patch: Partial<Scene>) => act('updateScene', p.id, scene.id, patch);
   const setBeat = (id: string, patch: Partial<Beat>) => set({ beats: scene.beats.map((b) => (b.id === id ? { ...b, ...patch } : b)) });

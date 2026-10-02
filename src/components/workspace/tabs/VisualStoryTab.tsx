@@ -3,22 +3,26 @@
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { assetSrc, worldOf } from '@/studio/selectors';
+import { assetSrc, castOf, worldOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
-import { Button, ChoiceCards, Field, Input, Status, Textarea } from '@/components/ui/kit';
+import { Button, ChoiceCards, Field, Input, Notice, Status, Textarea } from '@/components/ui/kit';
 import { Art, Block } from '@/components/ui/cinema';
+import { JobButton } from '@/components/ui/jobs';
 import { Picker } from '@/components/library/CanonPicker';
-import { IconMusicVideos, IconStory, IconVersions } from '@/components/ui/icons';
+import { IconAuto, IconGenerate, IconMusicVideos, IconStory, IconVersions } from '@/components/ui/icons';
+import { AddScene, SceneEditor } from './StoryTab';
 
-/** VISUAL STORY — how the song is seen: a performance, a story under it, or both; then the idea in words, and
+/** VISUAL STORY — how the song is seen: a performance, a story under it, or both; then the idea in words, the
+ *  scenes that map onto the song's sections (developed and scripted by the story engine, or written by hand), and
  *  where it happens. */
 export function VisualStoryTab({ p }: { p: Production }) {
   const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const world = worldOf(state, p);
+  const cast = castOf(state, p);
   const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, mood: p.mood ?? '', genre: p.genre ?? '' });
   useUnsavedGuard(dirty, T('shot.leave'));
   return (
@@ -40,6 +44,15 @@ export function VisualStoryTab({ p }: { p: Production }) {
               <Field label="Mood"><Input value={draft.mood} onChange={(e) => patch({ mood: e.target.value })} placeholder="Dusk, warm, unhurried" /></Field>
             </div>
           </div>
+        </Block>
+        <Block title={T('story.script')} count={p.scenes.length} actions={<div className="flex flex-wrap items-center gap-2">
+          <JobButton type="DEVELOP_STORY" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconAuto />} title={T('gen.writeStory.hint')}>{T('gen.writeStory')}</JobButton>
+          <JobButton type="WRITE_SCRIPT" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconGenerate />} disabled={p.scenes.length === 0} title={p.scenes.length === 0 ? T('empty.scenes') : undefined}>{T('gen.writeScript')}</JobButton>
+          <AddScene p={p} /></div>}>
+          {p.scenes.length === 0 ? <Notice tone="info">{T('empty.scenes')}</Notice> : (
+            <ol className="space-y-6">{p.scenes.map((sc) => <SceneEditor key={sc.id} p={p} scene={sc} cast={cast.map((c) => ({ id: c.id, name: c.name }))} locations={world.map((l) => ({ id: l.id, name: l.name }))} />)}</ol>
+          )}
+          {p.scenes.length > 0 && p.stage === 'STORY' && <div className="mt-4"><Button size="sm" onClick={() => { act('markStepDone', p.id, 'STORY'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button></div>}
         </Block>
       </div>
       <aside>
