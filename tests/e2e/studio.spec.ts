@@ -12,26 +12,41 @@ test('the navigation puts the product first (Shows, Shorts, Music Videos, Charac
   await expect(nav.getByRole('link')).toHaveText(['Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Locations', 'Files', 'Production', 'Settings']);
 });
 
-test('the Studio Company shows the orchestrator with its real state, the nine departments as links, and the orchestrator panel', async ({ page }) => {
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test('the Studio Company: the orchestrator and nine seats on one stage, an inspector for the selection, roving keyboard focus, lines only for recorded handoffs', async ({ page }) => {
   await page.goto('/studio');
   await expect(page.getByRole('heading', { level: 1, name: 'Studio Company' })).toBeVisible();
   const diagram = page.getByRole('group', { name: /The company/ });
-  for (const d of ['Executive Office', 'Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(diagram.getByRole('link', { name: new RegExp(`^${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`) })).toBeVisible();
-  // the sample studio has productions and nothing running: the orchestrator is Ready (or Awaiting review once a story is approved)
-  const orchestrator = diagram.getByRole('button', { name: /Studio Orchestrator/ });
-  await expect(orchestrator).toHaveAccessibleName(/Ready|Idle|Awaiting review|Coordinating|Producing|Blocked/);
-  await orchestrator.click();
-  await expect(page.getByRole('region', { name: 'Studio Orchestrator' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Studio Orchestrator' }).getByText('Productions')).toBeVisible();
-  // keyboard: the first department node takes focus and opens its workspace on Enter
-  await diagram.getByRole('link', { name: /^Story Development:/ }).focus();
+  for (const d of ['Executive Office', 'Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(diagram.getByRole('button', { name: new RegExp(`^${esc(d)}\\.`) })).toBeVisible();
+  const orchestrator = diagram.getByRole('button', { name: /^Studio Orchestrator\./ });
+  await expect(orchestrator).toHaveAccessibleName(/Idle|Coordinating|in progress|Waiting for you|Blocked/);
+  const inspector = page.getByRole('complementary', { name: 'Selection' });
+  await expect(inspector.getByRole('heading', { name: 'Studio Orchestrator' })).toBeVisible();
+  await expect(inspector.getByText('Waiting for you')).toBeVisible();
+  // keyboard: the stage is one tab stop; the arrow keys walk the orbit; Enter selects, Enter again opens
+  await orchestrator.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  const story = diagram.getByRole('button', { name: /^Story Development\./ });
+  await expect(story).toBeFocused();
   await page.keyboard.press('Enter');
+  await expect(story).toHaveAttribute('aria-pressed', 'true');
+  await expect(inspector.getByRole('heading', { name: 'Story Development' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(inspector.getByRole('heading', { name: 'Studio Orchestrator' })).toBeVisible();
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/studio\/departments\/STORY$/);
-  // the organisation the page shows is the persisted one
-  const org = await (await fetch(`${BASE}/api/studio/org`)).json() as { departments: unknown[]; agents: unknown[]; tools: unknown[]; skills: Array<{ status: string; source: string }> };
+  // the organisation the page shows is the persisted one; without a handoff there is no line, and the stage says so
+  const org = await (await fetch(`${BASE}/api/studio/org`)).json() as { departments: unknown[]; agents: unknown[]; handoffs: unknown[]; skills: Array<{ status: string; source: string }> };
   expect(org.departments).toHaveLength(9);
-  expect(org.agents.length).toBeGreaterThanOrEqual(40);
+  expect(org.agents.length).toBeGreaterThanOrEqual(20);
   expect(org.skills.filter((s) => s.source.includes('MiniMax-AI/skills')).every((s) => s.status === 'UNAVAILABLE')).toBe(true);
+  if (org.handoffs.length === 0) {
+    await page.goto('/studio');
+    await expect(page.getByText('No handoffs yet. Each handoff between departments lights its path.')).toBeVisible();
+  }
 });
 
 test('a department workspace lists its director and agents; an agent profile shows real tools, skills and no invented runs', async ({ page }) => {

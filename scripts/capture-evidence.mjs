@@ -36,6 +36,8 @@ for (const p of paths) {
   await page.goto(`${base}${p}`, { waitUntil: 'domcontentloaded' });
   // the shell renders a skeleton until the snapshot and the event stream are in; wait for the page's own heading
   await page.waitForFunction(() => document.querySelector('main h1') && !/Reconnecting/.test(document.body.innerText), null, { timeout: 90_000 });
+  // pages draw a skeleton (aria-busy) until their live data is in; wait for it to go, then let fades settle
+  await page.waitForFunction(() => !document.querySelector('main [aria-busy="true"]'), null, { timeout: 30_000 }).catch(() => {});
   await page.waitForTimeout(2500);
   const file = path.join(out, `${prefix}-${slug}${suffix}.png`);
   await page.screenshot({ path: file, fullPage: true });
