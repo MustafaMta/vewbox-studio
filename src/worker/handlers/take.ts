@@ -207,6 +207,7 @@ export const generateTake: Handler = async (ctx) => {
   const pictureChecks = report.checks.map((c) => ({ ...c }));
   await ctx.checkpoint();
   let scriptCheck: { ok: boolean; coverage?: number; wer?: number; heard?: string; detail?: string } | undefined;
+  let takeUnverified = false;
   // MiniMax H3 always renders its own speech (an anchored audio guide is context, not a pinned soundtrack — see
   // docs/AUDIOVISUAL-QA.md, E1), so a speaking take is proven by listening back: the clip is transcribed, compared
   // with the script, and each line is placed where it is actually spoken. A take that does not say its lines fails.
@@ -232,10 +233,12 @@ export const generateTake: Handler = async (ctx) => {
       soundtrack = { kind: 'DIALOGUE', assetId: soundtrack?.assetId, lines: sh.dialogue.map((d, i) => { const w = placed[i]; return { lineId: d.id, from: w?.from ?? 0, to: w?.to ?? clipSeconds }; }) };
       await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
     } catch (e) {
-      // the take could not be heard back: it is not passed on trust — the inspector sends it to review
-      report.checks.push({ name: 'script-spoken', ok: false, detail: `not checked (transcription unavailable): ${(e as Error).message}` });
-      scriptCheck = { ok: false, detail: `not checked: ${(e as Error).message}` };
-      report.ok = false;
+      // the take could not be heard back: it is not passed on trust. The picture checks stand (the take stays
+      // READY, so nobody regenerates it blindly), but the script check is recorded as not passed, the take is not
+      // chosen for the cut, the inspector's decision is REVIEW and the job awaits a human ear.
+      report.checks.push({ name: 'script-spoken', ok: false, detail: `not verified (transcription unavailable): ${(e as Error).message}` });
+      scriptCheck = { ok: false, detail: `not verified: ${(e as Error).message}` };
+      takeUnverified = true;
     }
   }
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
@@ -278,13 +281,13 @@ export const generateTake: Handler = async (ctx) => {
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
-  if (report.ok && (!current || current.provider === 'SAMPLE' || payload.select)) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
+  if (report.ok && !takeUnverified && (!current || current.provider === 'SAMPLE' || payload.select)) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
   await recordMetric('take.qa_ok', report.ok ? 1 : 0, 'bool', { backend }, ctx.job.id);
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself: the picture checks
   // (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization Inspector)
   const pictureOk = pictureChecks.every((c) => c.ok);
   await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id });
-  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: 0.7, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok ? undefined : 'LIP_SYNC_FAILURE', decision: scriptCheck.ok ? (scriptCheck.coverage === undefined ? 'REVIEW' : 'ACCEPT') : 'REJECT', evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
+  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: 0.7, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
   // VIDEO handoff to QA once every shot of the production has an accepted, chosen take
   const after = (await readState()).state.productions.find((x) => x.id === p.id);
   if (after) {
@@ -295,7 +298,7 @@ export const generateTake: Handler = async (ctx) => {
       await recordHandoff({ productionId: p.id, stage: 'VIDEO', producerDepartment: 'VIDEO', receiverDepartment: 'QA', artifactIds: chosen.map((t) => t!.assetId), outputVersions: { shots: after.shots.length }, validation: { ok: failing === 0, checks: [{ name: 'every-shot-has-chosen-take', ok: true, detail: `${after.shots.length} shots` }, { name: 'chosen-takes-passed-inspection', ok: failing === 0, detail: failing ? `${failing} chosen take(s) failed a check` : undefined }] }, jobId: ctx.job.id });
     }
   }
-  await ctx.activity(report.ok ? 'TAKE_ACCEPTED' : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? 'accepted' : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok });
-  // a line that could not be heard back (transcription away) leaves the take for a human: never passed silently
-  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, awaitingReview: unverifiedLines > 0, libraryRoot: libraryRoot() };
+  await ctx.activity(report.ok ? (takeUnverified ? 'TAKE_REVIEW' : 'TAKE_ACCEPTED') : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? (takeUnverified ? 'made, not verified (transcription unavailable)' : 'accepted') : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok, unverified: takeUnverified });
+  // a take or a line that could not be heard back (transcription away) waits for a human ear: never passed silently
+  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, takeUnverified, awaitingReview: unverifiedLines > 0 || takeUnverified, libraryRoot: libraryRoot() };
 };
