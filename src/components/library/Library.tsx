@@ -31,8 +31,11 @@ export function LibraryBar({ q, onQ, style, onStyle, view, onView, extra, sort, 
         <IconSearch aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
         <Input type="search" value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? T('lib.search')} aria-label={T('label.search')} className="ps-9" />
       </label>
-      {onStyle && <Select aria-label={T('lib.filterStyle')} value={style ?? ''} onChange={(e) => onStyle(e.target.value as Style | '')} placeholder={`${T('lib.filterStyle')}: ${T('label.all')}`} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} className="w-auto" />}
-      {extra}
+      {/* on a phone the filters are one row that scrolls sideways under the full-width search */}
+      <div className="-mx-5 flex basis-full gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:contents">
+        {onStyle && <Select aria-label={T('lib.filterStyle')} value={style ?? ''} onChange={(e) => onStyle(e.target.value as Style | '')} placeholder={`${T('lib.filterStyle')}: ${T('label.all')}`} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} className="w-auto flex-none" />}
+        {extra}
+      </div>
       {onSort && <Select aria-label={T('lib.sort')} value={sort} onChange={(e) => onSort(e.target.value as 'recent' | 'title')} options={[{ value: 'recent', label: T('lib.sortRecent') }, { value: 'title', label: T('lib.sortTitle') }]} className="w-auto" />}
       {onView && view && <Segmented label={T('view.grid')} value={view} onChange={onView} options={[{ value: 'grid', label: <IconGrid className="size-4" aria-label={T('view.grid')} /> }, { value: 'list', label: <IconList className="size-4" aria-label={T('view.list')} /> }]} />}
     </div>
