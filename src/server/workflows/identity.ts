@@ -9,10 +9,13 @@ import { VIEW_SPEC } from './qwen-image';
 
 const clean = (s?: string | false | null) => (s || '').replace(/\s+/g, ' ').replace(/[.;]+$/, '').trim();
 
-/** Deterministic: the same record always yields the same line. Pieces are de-duplicated case-insensitively. */
-export function identityLine(c: Pick<Character, 'hair' | 'eyes' | 'skin' | 'build' | 'distinguishing' | 'wardrobe'> & { canon?: Character['canon'] }): string {
+export type IdentitySource = Pick<Character, 'hair' | 'eyes' | 'skin' | 'build' | 'distinguishing' | 'wardrobe'> & { id?: string; canon?: Character['canon'] };
+
+/** Deterministic: the same record always yields the same line. Pieces are de-duplicated case-insensitively. A line
+ *  stored on the record (written at casting, editable by the producer) wins over the derived one. */
+export function identityLine(c: IdentitySource): string {
   const stored = clean(c.canon?.identityLine);
-  if (stored) return stored;
+  if (stored) return `${stored}.`;
   const parts: string[] = [];
   const push = (s?: string | false | null) => { const v = clean(s); if (v && !parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v); };
   push(c.hair && `${c.hair} hair`);

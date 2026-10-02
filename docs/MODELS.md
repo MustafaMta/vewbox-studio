@@ -24,9 +24,81 @@ The worker never loads both H3 variants at once (the GPU lease switches families
 |---|---|---|---|
 | Character sheets, location views, storyboard frames (edit from up to 3 references) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), `qwen_2.5_vl_7b_fp8_scaled` encoder (9.4 GB), `qwen_image_vae`, Lightning 4-step LoRA | Apache-2.0 |
 | Text to image (portraits, plates from nothing) | Qwen-Image-2512 | `qwen_image_2512_fp8_e4m3fn` (20.4 GB), same encoder/VAE, Lightning 8-step LoRA | Apache-2.0 |
+| Camera control for derived character views (`<sks> {azimuth} {elevation} {distance}`, 96 poses) | fal Qwen-Image-Edit-2511 Multiple-Angles LoRA | `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (295 MB) | Apache-2.0 |
+| Face detection for reference validation and face crops (ComfyUI core `MediaPipeFaceLandmarker`) | MediaPipe BlazeFace + Face Landmarker (Comfy-Org/mediapipe) | `detection/mediapipe_face_fp32.safetensors` (5.4 MB) | Apache-2.0 |
 
 Three visual directions (Cartoon, Anime, Realistic) are prompt languages on the same models (`src/server/story/style.ts`),
 so a character keeps one identity across productions and directions are genuinely different in design, lighting and camera.
+
+### Character identity pipeline (wave 2, `src/server/workflows/qwen-image.ts`, `src/worker/handlers/images.ts`)
+
+Research and the drift evidence: `docs/research/CHARACTER-IMAGE-STACK.md`. What is implemented:
+
+| Step | Graph (registry template) | Mode | References, in order | Output |
+|---|---|---|---|---|
+| Portrait | `qwen-image.t2i` (or `qwen-image.edit` from an upload) | Lightning | — (or the validated upload) | 1024×1280, seed = the character's identity seed |
+| Identity sheet | `qwen-image.identity-sheet` (`qwenIdentitySheet`) | **quality**: no Lightning, 24 steps, cfg 4.0, euler/simple, shift 3.1 | image1 = portrait, image2 = face crop (cut in the graph from the centre-top of the normalised portrait, upscaled to 1024²) | one 1664×1216 sheet, cut by `ImageCrop` into FRONT / THREE_QUARTER / SIDE / BACK tiles of 416×1216, plus the face crop: six files from one run |
+| Derived views (FULL_BODY, EXPRESSION, OUTFIT, or a redrawn tile) | `qwen-image.view` (`qwenView`) | Lightning (+ Multiple-Angles LoRA at 1.0 when present in `/models/loras`) | image1 = FRONT tile, image2 = face crop, image3 = the sheet — always this order | per `VIEW_SPEC` (full body 832×1472, expressions 1280², …), seed = identity seed + the view's offset; a redraw bumps the previous seed by one |
+| Shot frames | `qwen-image.edit` | Lightning | image1 = plate, image2/3 = each character's FRONT tile (fallback portrait); a lone character also gets the face crop | as before |
+| Face check | `qwen-image.face-check` (`faceCheck`) | — | the picture | bounding boxes as text (`PreviewAny`), optional face-oval mask |
+
+- **Identity line** (`identityLine(c)` in `src/server/workflows/identity.ts`): the fixed tokens that drifted in the first
+  sheets — hair, eyes, skin, build, wardrobe, every distinguishing mark, accessories, visual restrictions — written once
+  and repeated verbatim in the portrait, sheet, view and frame prompts. Stored on `character.canon.identityLine`
+  (editable; a stored line wins). **Identity seed** (`identitySeedFor(c)`): `canon.identitySeed`, else FNV-1a of the id.
+- Provenance on every asset: model, LoRAs, prompt, seed, the asset ids of the references given to the model, the
+  workflow version, the ComfyUI prompt id and engine time. Every `CharacterRef` carries `view`, `references`, `seed`.
+  The activity feed says which references were used for each picture.
+- An uploaded reference is validated on the CPU (`src/server/media/image-check.ts`: short side ≥ 512, ≤ 24 MP,
+  Laplacian-variance sharpness ≥ 30; face detection is **not** available on the CPU in this build) and
+  `CHARACTER_APPEARANCE` refuses an unusable one with `MISSING_REFERENCE` instead of drawing from text.
+- `CHARACTER_APPEARANCE` queues `CHARACTER_REFS` as a child (key `appearance:${jobId}:refs`) unless it is itself a child
+  of an orchestrating job (`CREATE_CHARACTER` queues its own sheet step). A redraw never deletes the previous portrait,
+  sheet or tiles; a full pack replaces the refs list, a partial redraw (`roles`) replaces only those roles.
+
+#### One-off fetch of the two identity helpers (no fetcher image rebuild)
+
+The manifest group `images-qwen-identity` is not in the compose `MODEL_GROUPS` default; fetch it once into the
+`vewbox_models` volume (the ComfyUI container mounts it at `/models`), as root because the volume is root-owned:
+
+```powershell
+docker run --rm --user 0:0 -v vewbox_models:/models curlimages/curl:8.11.1 -sSL --fail --create-dirs -o /models/detection/mediapipe_face_fp32.safetensors "https://huggingface.co/Comfy-Org/mediapipe/resolve/main/detection/mediapipe_face_fp32.safetensors"
+docker run --rm --user 0:0 -v vewbox_models:/models curlimages/curl:8.11.1 -sSL --fail --create-dirs -o /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors "https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA/resolve/main/qwen-image-edit-2511-multiple-angles-lora.safetensors"
+docker run --rm -v vewbox_models:/models alpine:latest sha256sum /models/detection/mediapipe_face_fp32.safetensors /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors
+```
+
+Expected hashes (the Hub's LFS oids, also in the manifest): `a98c4806…888a` (mediapipe), `42426ded…6765` (LoRA). Done on
+2026-10-02: both verified; `GET /models/loras` listed the LoRA at once, `GET /models/detection` still answered `[]`
+because ComfyUI cached the folder listing while the folder did not exist — it refreshes on the next ComfyUI start
+(or when the folder's mtime changes again); `node scripts/check-comfy-nodes.mjs` reports it until then.
+`docker compose --profile models run --rm -e MODEL_GROUPS=images-qwen-identity models` does the same through the fetcher.
+
+#### GPU test plan — identity sheet A/B (run only when the architect says the GPU is free)
+
+Subjects: **Nadia** `char-69c05af166` and **Abu Kareem** `char-7d1a3d6880` (both CARTOON, portraits and six old
+per-view refs exist, so the "before" set is already in the library: keep it, nothing is deleted).
+
+1. Preflight (read-only): `node scripts/check-comfy-nodes.mjs` must show every template valid and
+   `detection/mediapipe_face_fp32.safetensors` present; `GET /models/loras` must list the Multiple-Angles LoRA.
+2. For each character queue `CHARACTER_REFS` with no `roles` (the full pack: sheet → tiles → FULL_BODY, EXPRESSION).
+   Expect one quality-mode sheet pass (watch `image.generation_ms` with `sheet: 1`; estimate 1.5–3 min, note the real
+   number and ComfyUI's `engineMs`) and two Lightning view passes (~12–20 s each with three references).
+3. Record in the VRAM table below: sheet pass seconds and peak VRAM (`/system_stats` during the run), derived-view
+   seconds with three references and the LoRA.
+4. Compare, per character, the new tiles against the old per-view refs (`refs` before the job: FRONT, THREE_QUARTER,
+   SIDE, FULL_BODY, EXPRESSION drawn from the portrait alone). Look at, in this order: facial hair state (Abu Kareem:
+   "No mustache" is a visual restriction — it must hold in all four tiles and the full body), hair length and tie,
+   shoe colour, accessory presence (Nadia: locket and gloves in every view; Abu Kareem: keychain, antenna pin), fabric
+   pattern layout, head-to-body ratio between tiles, and whether the portrait's pose or props leaked into the views.
+   Then the expression grid: four heads of the same face, no body, no props.
+5. Pass = every tile shows the same person with the identity-line tokens all present and unchanged (no beard/shoe/
+   accessory flips) and the derived views keep them too; the old set is the baseline that failed on these very
+   tokens. Fail = any token flips between tiles, a tile is not the view it is labelled (profile not a profile), or
+   the sheet collapses into fewer than four figures. Partial = tiles agree but a derived view drifts: then redraw the
+   view once with the LoRA off (`angleLora` false) to tell the LoRA's effect from the reference order's.
+6. Face check: run `qwen-image.face-check` on each tile; expect exactly one box per tile with height ≥ 18 % of the
+   tile; record the box text in the asset provenance for the next wave's identity metric.
+7. Write the outcome with the asset ids and the activity lines into `docs/evidence/identity-sheet-ab.md`.
 
 ## Voices and transcription
 
@@ -61,7 +133,9 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 | Family | Measured on the RTX 5090 | Concurrency |
 |---|---|---|
 | MiniMax H3 fl2va int8 + nvfp4 encoder | 22–32 GB card total while generating (DiT staged dynamically, 20 GB); 60–95 s per 3.75–5.9 s clip at 1344×768, 8 turbo steps ≈ 7 s each | 1 (ComfyUI serialises) |
-| Qwen-Image-Edit fp8 + encoder fp8 | to be measured (weights in flight) | 1 |
+| Qwen-Image-Edit fp8 + encoder fp8 (Lightning) | engine time from `/history`: T2I 8 steps 1024×1280 11.5 s warm (75 s with the first load); Edit 4 steps, 1 reference, 1024×1280 18–22 s; 3 references 1344×768 12–13.5 s; VRAM peak not yet recorded | 1 |
+| Qwen-Image-Edit fp8, quality mode (identity sheet: 24 steps, cfg 4, 1664×1216, 2 references) | to be measured in the GPU test plan above (estimate 1.5–3 min) | 1 |
+| Qwen-Image-Edit fp8 + Multiple-Angles LoRA (derived view, 3 references) | to be measured in the GPU test plan above | 1 |
 | IndexTTS 2.5 / Habibi | to be measured | 1 (unloads on request) |
 | faster-whisper large-v3 fp16 | ~3.7 GB; 6 s of speech in 1.2 s warm, 8.9 s with the first load | 1 |
 | Demucs htdemucs | ~2.3 GB; 1.5 s clip in ~1 s warm, 27 s with the first download + load | 1 |
@@ -72,7 +146,8 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 
 ## Changing a model
 
-1. Add the file to the manifest with repository, path, folder, size and SHA-256 (from the Hugging Face LFS listing).
-2. Run `docker compose --profile models run --rm models`.
+1. Add the file to the manifest with repository, path, folder, size and SHA-256 (from the Hugging Face LFS listing:
+   `https://huggingface.co/api/models/<repo>/tree/main?recursive=true` gives `lfs.oid`, which is the sha256).
+2. Run `docker compose --profile models run --rm models` (or the one-off `curl` container above for a small file).
 3. If a workflow changes, bump nothing by hand: `src/server/workflows` hashes each template, and every take records the
    hash it was generated with.
