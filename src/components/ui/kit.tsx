@@ -30,18 +30,23 @@ export function Spinner({ className = '' }: { className?: string }) {
 /** AN UPLOAD AREA — click or drop a file. It says what it accepts; the chosen file is handed to `onFile` (the caller
  *  keeps it and says what happened). A label is always visible; the input underneath is the real, keyboard-reachable
  *  control. */
-export function Dropzone({ label, hint, accept, onFile, disabled, icon, busy, className = '' }: { label: ReactNode; hint?: ReactNode; accept: string; onFile: (f: File) => void; disabled?: boolean; icon?: ReactNode; busy?: boolean; className?: string }) {
+export function Dropzone({ label, hint, accept, onFile, disabled, icon, busy, className = '', error, row }: { label: ReactNode; hint?: ReactNode; accept: string; onFile: (f: File) => void; disabled?: boolean; icon?: ReactNode; busy?: boolean; className?: string; /** the last file was refused: the message sits under the zone with role=alert and the zone stays usable */ error?: ReactNode; /** the 56 px "add another" row */ row?: boolean }) {
   const [over, setOver] = useState(false);
   const id = useId();
   return (
-    <label htmlFor={id} className={cls('dropzone', className)} data-over={over || undefined} aria-disabled={disabled || undefined}
-      onDragOver={(e) => { if (disabled) return; e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f && !disabled) onFile(f); }}>
-      <span aria-hidden className="grid size-9 place-items-center rounded-full bg-raised-2 text-accent [&>svg]:size-4">{busy ? <Spinner /> : icon}</span>
-      <span className="text-[13.5px] font-semibold text-fg">{label}</span>
-      {hint && <span className="text-[12px] text-faint">{hint}</span>}
-      <input id={id} type="file" accept={accept} disabled={disabled} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
-    </label>
+    <div className={className}>
+      <label htmlFor={id} className={cls('dropzone', row && 'dropzone-row')} data-over={over || undefined} data-error={error ? 'true' : undefined} aria-disabled={disabled || undefined} aria-busy={busy || undefined}
+        onDragOver={(e) => { if (disabled) return; e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f && !disabled) onFile(f); }}>
+        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-raised-2 text-accent [&>svg]:size-4">{busy ? <Spinner /> : icon}</span>
+        <span className={row ? 'flex min-w-0 flex-col' : 'contents'}>
+          <span className="text-[13.5px] font-semibold text-fg">{label}</span>
+          {hint && <span className="text-[12px] text-faint">{hint}</span>}
+        </span>
+        <input id={id} type="file" accept={accept} disabled={disabled} className="sr-only" aria-describedby={error ? `${id}-err` : undefined} onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+      </label>
+      {error && <p id={`${id}-err`} role="alert" className="help text-bad">{error}</p>}
+    </div>
   );
 }
 
@@ -163,7 +168,9 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
 
 /* ---- status ------------------------------------------------------------------------------------------------ */
 
-export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral' | 'accent';
+/** ok = done/validated · info = running · teal = live right now · gold = waiting for your decision · warn = provisional
+ *  · bad = failed/blocked · accent = selected/in use · neutral = idle. */
+export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral' | 'accent' | 'gold' | 'teal';
 
 /** A pill, for a word that must stand apart from the text around it. Use sparingly; a Status line usually reads better. */
 export function Badge({ children, tone = 'neutral', title, className = '' }: { children: ReactNode; tone?: Tone; title?: string; className?: string }) {
@@ -246,7 +253,8 @@ export function Modal({ trigger, title, description, children, size }: { trigger
   return (
     <>
       {trigger(() => { setOpen(true); ref.current?.showModal(); })}
-      <dialog ref={ref} className="dlg w-[min(94vw,var(--w))] overflow-hidden" style={{ '--w': width } as React.CSSProperties} aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
+      {/* below 640 px the same dialog is a bottom sheet (.sheet) */}
+      <dialog ref={ref} className="dlg sheet w-[min(94vw,var(--w))] overflow-hidden" style={{ '--w': width } as React.CSSProperties} aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
         <div className="flex max-h-[88dvh] flex-col">
           <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3.5">
             <div className="min-w-0"><h2 id={`${id}-h`} className="h2">{title}</h2>{description && <p className="mt-0.5 text-sm text-muted">{description}</p>}</div>
@@ -281,8 +289,19 @@ export function ChoiceCards<T extends string>({ name, value, onChange, options, 
   );
 }
 
-export function Notice({ tone = 'info', children, title, action, className = '' }: { tone?: 'info' | 'warn' | 'bad' | 'ok'; children?: ReactNode; title?: ReactNode; action?: ReactNode; className?: string }) {
-  const Icon = tone === 'bad' ? IconBad : tone === 'warn' ? IconWarn : tone === 'ok' ? IconOk : IconInfo;
+/** One icon, a title, a muted body and one action row. `gold` is the notice for a decision that waits for a person. */
+export function Notice({ tone = 'info', children, title, action, className = '', icon }: { tone?: 'info' | 'warn' | 'bad' | 'ok' | 'gold'; children?: ReactNode; title?: ReactNode; action?: ReactNode; className?: string; icon?: ReactNode }) {
+  const Icon = tone === 'bad' ? IconBad : tone === 'warn' || tone === 'gold' ? IconWarn : tone === 'ok' ? IconOk : IconInfo;
+  if (icon) return (
+    <div role="note" className={cls('notice', `notice-${tone}`, className)}>
+      {icon}
+      <div className="min-w-0 flex-1">
+        {title && <p className="font-medium">{title}</p>}
+        {children && <div className={title ? 'mt-0.5 text-muted' : ''}>{children}</div>}
+        {action && <div className="mt-2">{action}</div>}
+      </div>
+    </div>
+  );
   return (
     <div role={tone === 'bad' ? 'alert' : 'note'} className={cls('notice', `notice-${tone}`, className)}>
       <Icon aria-hidden />
@@ -311,7 +330,7 @@ function UnavailableNote() {
 }
 
 /** Tabs as links: the URL is the state, so a reload and the back button both behave. */
-export function TabBar({ tabs, current, hrefFor, ariaLabel, className = '' }: { tabs: Array<{ id: string; label: ReactNode; count?: number; icon?: ReactNode }>; current: string; hrefFor: (id: string) => string; ariaLabel: string; className?: string }) {
+export function TabBar({ tabs, current, hrefFor, ariaLabel, className = '', sticky }: { tabs: Array<{ id: string; label: ReactNode; count?: number; icon?: ReactNode }>; current: string; hrefFor: (id: string) => string; ariaLabel: string; className?: string; /** the strip stays at the top while the panel scrolls */ sticky?: boolean }) {
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const links = Array.from(e.currentTarget.querySelectorAll<HTMLAnchorElement>('a[role=tab]'));
     const i = links.indexOf(document.activeElement as HTMLAnchorElement);
@@ -322,14 +341,14 @@ export function TabBar({ tabs, current, hrefFor, ariaLabel, className = '' }: { 
     e.preventDefault(); links[next].focus(); links[next].click();
   };
   return (
-    <div role="tablist" aria-label={ariaLabel} className={cls('tabs -mx-4 px-4 sm:mx-0 sm:px-0', className)} onKeyDown={onKey}>
+    <div role="tablist" aria-label={ariaLabel} className={cls('tabs -mx-4 px-4 sm:mx-0 sm:px-0', sticky && 'tabs-sticky', className)} onKeyDown={onKey}>
       {tabs.map((x) => <Link key={x.id} role="tab" aria-selected={x.id === current} tabIndex={x.id === current ? 0 : -1} href={hrefFor(x.id)} className="tab" scroll={false}>{x.icon}{x.label}{x.count !== undefined && x.count > 0 && <span className="count">{x.count}</span>}</Link>)}
     </div>
   );
 }
 
 /** A drawer for a quick edit: the same native dialog, docked to the end side. */
-export function Drawer({ trigger, title, description, children }: { trigger: (open: () => void) => ReactNode; title: ReactNode; description?: ReactNode; children: (close: () => void) => ReactNode }) {
+export function Drawer({ trigger, title, description, children, size }: { trigger: (open: () => void) => ReactNode; title: ReactNode; description?: ReactNode; children: (close: () => void) => ReactNode; /** `lg` (40rem) for job and activity detail */ size?: 'md' | 'lg' }) {
   const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -338,7 +357,7 @@ export function Drawer({ trigger, title, description, children }: { trigger: (op
   return (
     <>
       {trigger(() => { setOpen(true); ref.current?.showModal(); })}
-      <dialog ref={ref} className="drawer" aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
+      <dialog ref={ref} className={cls('drawer', size === 'lg' && 'drawer-lg')} aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
             <div className="min-w-0"><h2 id={`${id}-h`} className="h2">{title}</h2>{description && <p className="mt-0.5 text-sm text-muted">{description}</p>}</div>

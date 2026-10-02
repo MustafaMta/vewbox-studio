@@ -11,12 +11,12 @@ import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, ConfirmDelete, Field, Input, LinkButton, Menu, MenuItem, Modal, Select, Status, TabBar, Textarea, Thumb } from '@/components/ui/kit';
-import { Art, Empty } from '@/components/ui/cinema';
+import { Art, Empty, Hero } from '@/components/ui/cinema';
 import { FactList, ProgressBar, Section } from '@/components/ui/page';
 import { CanonPicker } from '@/components/library/CanonPicker';
 import { StageStatus } from '@/components/library/ProductionTile';
 import { stageFraction } from '@/components/library/Cards';
-import { IconArrowRight, IconAspect, IconChevronLeft, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
+import { IconArrowRight, IconAspect, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/players/VideoPlayer';
 import { aspectLabel, aspectShort, dialectLabel, fmtAgo, fmtSeconds, ratioCss } from '@/lib/format';
 
@@ -49,26 +49,19 @@ export function ShowWorkspace({ show }: { show: Show }) {
 
   return (
     <>
-      <header className="hero -mx-5 -mt-6 mb-8 px-5 pt-24 sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-32 lg:-mt-10 lg:pt-36">
-        <div className="hero-backdrop">{cover && !cover.unavailable ? <img src={cover.src} alt="" aria-hidden /> : <div className="hero-plain h-full w-full" />}</div>
-        <Link href="/shows" className="mb-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{T('nav.shows')}</Link>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="eyebrow mb-2">{T('kind.SHOW')}{show.genre ? ` · ${show.genre}` : ''}{cover?.sample ? ` · ${T('label.sample')}` : ''}</p>
-            <h1 className="page-title bi text-[1.75rem] sm:text-[2.1rem] lg:text-[2.25rem]" dir="auto"><span>{show.title}</span>{show.titleAr && <span className="bi-ar" dir="rtl">{show.titleAr}</span>}</h1>
-            <p className="mt-2 line-clamp-3 max-w-3xl text-[14px] leading-relaxed text-body" dir="auto">{show.synopsis || show.logline}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">{preview && <Button variant="secondary" icon={<IconPlay />} onClick={() => setShowPreview((v) => !v)} aria-expanded={showPreview}>{T('show.preview')}</Button>}{primary}</div>
-        </div>
+      <Hero layout="wide" backdropSrc={cover && !cover.unavailable ? cover.src : undefined} back={{ href: '/shows', label: T('nav.shows') }}
+        eyebrow={<>{T('kind.SHOW')}{show.genre ? ` · ${show.genre}` : ''} · {seasons.length} {T(seasons.length === 1 ? 'meta.season' : 'meta.seasons')} · {episodes.length} {T(episodes.length === 1 ? 'meta.episode' : 'meta.episodes')}{cover?.sample ? ` · ${T('label.sample')}` : ''}</>}
+        title={show.title} titleAr={show.titleAr} description={show.synopsis || show.logline}
+        actions={<>{primary}{preview && <Button variant="secondary" icon={<IconPlay />} onClick={() => setShowPreview((v) => !v)} aria-expanded={showPreview}>{T('show.preview')}</Button>}</>}>
         {preview && showPreview && (
           <div className="mt-6 max-w-3xl fade-in">
             <VideoPlayer src={preview.cut!.src} poster={preview.cut!.poster} title={`${show.title} — ${preview.p.title}`} aspect={ratioCss(show.aspect)} />
             <p className="mt-2 text-[12px] text-muted" dir="auto">{T('show.preview.hint')} · <Link href={productionHref(preview.p)} className="hover:text-fg">{preview.p.title}</Link></p>
           </div>
         )}
-      </header>
+      </Hero>
 
-      <TabBar ariaLabel={show.title} current={tab} hrefFor={hrefFor} className="mb-8" tabs={[
+      <TabBar ariaLabel={show.title} current={tab} hrefFor={hrefFor} className="mb-8" sticky tabs={[
         { id: 'overview', label: T('tab.overview') }, { id: 'seasons', label: T('tab.seasons'), count: seasons.length }, { id: 'episodes', label: T('tab.episodes'), count: episodes.length }, { id: 'characters', label: T('tab.showCast'), count: show.castIds.length },
         { id: 'locations', label: T('show.world'), count: show.locationIds.length }, { id: 'settings', label: T('tab.settings') },
       ]} />
