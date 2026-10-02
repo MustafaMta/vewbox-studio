@@ -17,7 +17,7 @@ const NEEDED = {
   // images: Qwen-Image / Qwen-Image-Edit
   ModelSamplingAuraFlow: ['model', 'shift'], CLIPTextEncode: ['clip', 'text'], EmptySD3LatentImage: ['width', 'height', 'batch_size'],
   KSampler: ['model', 'positive', 'negative', 'latent_image', 'seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'], SaveImage: ['images', 'filename_prefix'],
-  ImageScaleToTotalPixels: ['image', 'upscale_method', 'megapixels'], TextEncodeQwenImageEditPlus: ['clip', 'prompt', 'vae', 'image1', 'image2', 'image3'], VAEEncode: ['pixels', 'vae'],
+  ImageScaleToTotalPixels: ['image', 'upscale_method', 'megapixels', 'resolution_steps'], TextEncodeQwenImageEditPlus: ['clip', 'prompt', 'vae', 'image1', 'image2', 'image3'], VAEEncode: ['pixels', 'vae'],
   // music: ACE-Step 1.5 and MiniMax Music 3
   'TextEncodeAceStepAudio1.5': ['clip', 'tags', 'lyrics', 'seed', 'bpm', 'duration', 'timesignature', 'language', 'keyscale', 'generate_audio_codes', 'cfg_scale', 'temperature', 'top_p', 'top_k', 'min_p'],
   ConditioningZeroOut: ['conditioning'], 'EmptyAceStep1.5LatentAudio': ['seconds', 'batch_size'], SaveAudio: ['audio', 'filename_prefix'],
@@ -43,6 +43,25 @@ const clipTypes = info.CLIPLoader ? options(inputsOf(info.CLIPLoader).type) : []
 for (const t of CLIP_TYPES) if (!clipTypes.includes(t)) problems.push(`CLIPLoader.type lacks "${t}" (has: ${clipTypes.join(', ')})`);
 const samplers = info.KSamplerSelect ? options(inputsOf(info.KSamplerSelect).sampler_name) : [];
 for (const s of SAMPLERS) if (!samplers.includes(s)) problems.push(`sampler "${s}" not available`);
+
+// every workflow template the studio renders, from the registry: each node must provide every REQUIRED input of
+// its class (a ComfyUI upgrade that adds a required input — as `ImageScaleToTotalPixels.resolution_steps` did —
+// fails here instead of at the first real job)
+const studio = process.env.STUDIO_URL || 'http://localhost:4200';
+try {
+  const reg = await fetch(`${studio}/api/registry`).then((r) => r.json());
+  const seenWf = new Set();
+  for (const wf of reg.workflows ?? []) {
+    if (seenWf.has(wf.name)) continue; seenWf.add(wf.name);
+    const graph = (await fetch(`${studio}/api/registry/workflow/${encodeURIComponent(wf.name)}`).then((r) => (r.ok ? r.json() : null)).catch(() => null))?.graph;
+    if (!graph) continue;
+    for (const [id, node] of Object.entries(graph)) {
+      const cls = info[node.class_type];
+      if (!cls) { problems.push(`${wf.name}: node ${id} uses unknown class ${node.class_type}`); continue; }
+      for (const req of Object.keys(cls.input?.required ?? {})) if (!(req in node.inputs)) problems.push(`${wf.name}: ${node.class_type} (${id}) does not provide required input "${req}"`);
+    }
+  }
+} catch (e) { console.log(`(workflow templates not checked: ${e.message})`); }
 
 // model files the templates name, as ComfyUI sees them
 const want = {

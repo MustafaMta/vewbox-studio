@@ -41,7 +41,8 @@ export function qwenEdit(i: EditInput): Graph {
     const id = `img${k + 1}`;
     g[id] = { class_type: 'LoadImage', inputs: { image: ref } };
     // the editor works at ~1 megapixel per reference; scale each so the long side is 1328
-    g[`${id}s`] = { class_type: 'ImageScaleToTotalPixels', inputs: { image: [id, 0], upscale_method: 'lanczos', megapixels: 1.0 } };
+    // resolution_steps became a required input in ComfyUI 0.38 (found by the first real reference-conditioned job)
+    g[`${id}s`] = { class_type: 'ImageScaleToTotalPixels', inputs: { image: [id, 0], upscale_method: 'lanczos', megapixels: 1.0, resolution_steps: 16 } };
     imgNodes.push(`${id}s`);
   });
   const enc = (text: string, id: string) => { g[id] = { class_type: 'TextEncodeQwenImageEditPlus', inputs: { clip: ['2', 0], prompt: text, vae: ['3', 0], ...(imgNodes[0] ? { image1: [imgNodes[0], 0] } : {}), ...(imgNodes[1] ? { image2: [imgNodes[1], 0] } : {}), ...(imgNodes[2] ? { image3: [imgNodes[2], 0] } : {}) } }; };
