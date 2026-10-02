@@ -18,9 +18,9 @@ export function SharedHeader({ value, onChange, disabled }: { value: HeaderValue
   const homes = [...state.shows.map((s) => ({ value: `show:${s.id}`, label: s.title })), ...state.productions.filter((p) => !p.showId).map((p) => ({ value: `p:${p.id}`, label: p.title }))];
   const home = homes.find((h) => h.value === value.forId);
   return (
-    <fieldset disabled={disabled} className="card grid gap-4 p-4 sm:grid-cols-[minmax(0,1.2fr)_auto_auto] sm:items-end sm:p-5">
+    <fieldset disabled={disabled} className="card flex flex-wrap items-end gap-x-6 gap-y-4 p-4 sm:p-5">
       <legend className="sr-only">{T('char.create.header')}</legend>
-      <Field label={T('char.create.for')} hint={T('wizard.optional')}>
+      <Field label={T('char.create.for')} hint={T('wizard.optional')} className="min-w-[14rem] flex-1 basis-56">
         <Select value={value.forId} onChange={(e) => set({ forId: e.target.value })} placeholder={T('char.create.forNone')} options={homes} />
       </Field>
       <div><p className="label">{T('label.style')}</p><Segmented label={T('label.style')} value={value.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></div>
@@ -28,7 +28,7 @@ export function SharedHeader({ value, onChange, disabled }: { value: HeaderValue
         <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={value.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: T('label.english') }, { value: 'AR' as Language, label: T('label.arabic') }]} /></div>
         {value.language === 'AR' && <Field label={T('label.dialect')} className="min-w-[11rem]"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d, T.locale) }))} /></Field>}
       </div>
-      {home && <p className="text-[12px] text-faint sm:col-span-3" dir="auto"><span className="badge badge-accent me-2">{T('char.create.forChip')} {home.label}</span>{T('char.create.forHint')}</p>}
+      {home && <p className="basis-full text-[12px] text-faint" dir="auto"><span className="badge badge-accent me-2">{T('char.create.forChip')} {home.label}</span>{T('char.create.forHint')}</p>}
     </fieldset>
   );
 }

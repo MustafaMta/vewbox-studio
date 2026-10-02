@@ -18,7 +18,7 @@ test('the creation page offers three starts and refuses an empty Describe start 
   await expect(starts.getByText('Write the sheet')).toBeVisible();
   await expect(starts.getByText('From a picture')).toBeVisible();
   // the shared header: for whom, style, language (dialect only for Arabic)
-  await expect(page.getByLabel('For')).toBeVisible();
+  await expect(page.getByLabel('For', { exact: true })).toBeVisible();
   await expect(page.getByRole('radiogroup', { name: 'Style' })).toBeVisible();
   await expect(page.getByLabel('Dialect')).toHaveCount(0);
   await page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'Arabic' }).click();

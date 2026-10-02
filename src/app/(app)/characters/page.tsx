@@ -8,7 +8,7 @@ import { assetById, assignmentsOf, search } from '@/studio/selectors';
 import { appearanceLock } from '@/domain/rules';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
-import { ConfirmButton, LinkButton, Menu, MenuLink, Select, Status } from '@/components/ui/kit';
+import { LinkButton, Menu, MenuItem, MenuLink, Select, Status } from '@/components/ui/kit';
 import { ArtRow, Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
 import { LibraryBar, NoMatches, useView } from '@/components/library/Library';
@@ -42,7 +42,7 @@ export default function CharactersPage() {
       <MenuLink href={`/characters/${c.id}`} icon={<IconOpen />}>{T('btn.open')}</MenuLink>
       <MenuLink href={`/characters/${c.id}?tab=appearance`} icon={<IconImageAdd />}>{T('tab.appearance')}</MenuLink>
       <MenuLink href={`/characters/${c.id}?tab=voice`} icon={<IconVoice />}>{T('tab.voice')}</MenuLink>
-      <div className="px-1 pt-1"><ConfirmButton variant="ghost" size="sm" className="w-full justify-start border-0 text-bad" icon={<IconDelete />} label={T('btn.delete')} title={`${T('btn.delete')}: ${c.name}`} message={T('char.deleteConfirm')} onConfirm={() => { act('deleteCharacter', c.id); toast.ok(T('toast.deleted')); router.refresh(); }} /></div>
+      <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} “${c.name}”? ${T('char.deleteConfirm')}`)) { act('deleteCharacter', c.id); toast.ok(T('toast.deleted')); router.refresh(); } }}>{T('btn.delete')}</MenuItem>
     </Menu>
   );
   return (

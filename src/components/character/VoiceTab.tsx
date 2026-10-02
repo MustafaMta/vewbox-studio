@@ -190,11 +190,11 @@ function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; loc
   if (locked) return <Button size="sm" icon={<IconGenerate />} disabled aria-describedby="voice-lock">{T('gen.voiceBuild')}</Button>;
   const reason = !from ? T('voice.build.needRecording') : null;
   return (
-    <span className="inline-flex max-w-full flex-wrap items-center gap-2">
+    <div className="flex max-w-full flex-wrap items-center gap-2">
       <Button size="sm" icon={<IconGenerate />} loading={busy} disabled={Boolean(reason)} onClick={() => void build()}>{T('gen.voiceBuild')}{from ? <span className="hidden max-w-[8rem] truncate font-normal opacity-80 sm:inline" dir="auto">· {from.label}</span> : null}</Button>
       {reason && <span className="text-[12px] text-faint" role="status">{reason}</span>}
-      {last?.status === 'FAILED' && <FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RecoveryAction copy={copyOf(last.error)} size="xs" onRetry={() => void retryJob(last.id)} jobId={last.id} custom={{ reference: <span className="text-[12px] text-muted">{T('voice.build.needRecording')}</span> }} />} />}
-    </span>
+      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RecoveryAction copy={copyOf(last.error)} size="xs" onRetry={() => void retryJob(last.id)} jobId={last.id} custom={{ reference: <span className="text-[12px] text-muted">{T('voice.build.needRecording')}</span> }} />} /></div>}
+    </div>
   );
 }
 
