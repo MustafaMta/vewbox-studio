@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useT } from './locale';
 import { cls } from './kit';
-import { IconChevronLeft, IconAuto } from './icons';
+import { IconChevronLeft } from './icons';
 
 /** THE OBJECTS OF EACH SECTION — a poster for a film, a square for a record, a portrait for a person, a wide plate
  *  for a place — and the banner header they sit in. Shared by the libraries and the detail pages. */
@@ -74,7 +74,7 @@ export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, m
     </div>
   );
   return (
-    <header className={cls('hero -mx-5 -mt-6 mb-8 px-5 sm:-mx-8 sm:-mt-8 sm:px-8 lg:-mt-10', wide && 'hero-wide', pad)}>
+    <header className={cls('hero -mx-[var(--gutter)] -mt-6 mb-8 px-[var(--gutter)] sm:-mt-8 lg:-mt-10', wide && 'hero-wide', pad)}>
       <div className="hero-backdrop">{backdropSrc ? <img src={backdropSrc} alt="" aria-hidden /> : <div className="hero-plain h-full w-full" />}</div>
       {back && <Link href={back.href} className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link>}
       {wide ? words : (
@@ -114,16 +114,15 @@ export function Dots({ items }: { items: Array<ReactNode | false | null | undefi
   return <>{xs.map((x, i) => <span key={i} className="contents">{i > 0 && <span className="text-ink-500" aria-hidden>·</span>}<span>{x}</span></span>)}</>;
 }
 
-/** A section's empty state: what is missing, in words, and the one action that fixes it. */
-export function Empty({ title, hint, action, art, icon, compact }: { title: ReactNode; hint?: ReactNode; action?: ReactNode; art?: ReactNode; icon?: ReactNode; compact?: boolean }) {
+/** A section's empty state (§6): one honest sentence in the muted tone at the section's start edge and the one
+ *  action that fixes it. No dashed box, no icon tile, no box inside a box. `art` is for a page-level invitation
+ *  composed by the page itself. (`icon` and `compact` are accepted for older callers and no longer drawn.) */
+export function Empty({ title, hint, action, art, className = '' }: { title: ReactNode; hint?: ReactNode; action?: ReactNode; art?: ReactNode; icon?: ReactNode; compact?: boolean; className?: string }) {
   return (
-    <div className={cls('rounded-2xl border border-dashed border-line bg-raised/40 text-center', compact ? 'px-6 py-10' : 'px-8 py-16')}>
-      {art ? <div className="mb-4 flex justify-center opacity-70">{art}</div> : (
-        <div className={cls('mx-auto mb-4 grid place-items-center rounded-2xl border border-line bg-input text-muted', compact ? 'size-11 [&>svg]:size-[18px]' : 'size-14 [&>svg]:size-[22px]')}>{icon ?? <IconAuto />}</div>
-      )}
-      <p className={cls('font-semibold text-fg', compact ? 'text-[14px]' : 'text-[16px]')}>{title}</p>
-      {hint && <p className={cls('mx-auto mt-2 max-w-md leading-relaxed text-faint', compact ? 'text-[12.5px]' : 'text-[13.5px]')}>{hint}</p>}
-      {action && <div className={cls('flex flex-wrap justify-center gap-2', compact ? 'mt-5' : 'mt-6')}>{action}</div>}
+    <div className={cls('flex flex-col items-start gap-3', className)}>
+      {art}
+      <p className="max-w-[64ch] text-[14px] leading-[22px] text-muted">{title}{hint && <span className="mt-1 block text-sm text-faint">{hint}</span>}</p>
+      {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
     </div>
   );
 }
