@@ -165,13 +165,23 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("auto"),
         lang = None if language in ("", "auto") else language
         initial = prompt or (IRAQI_PROMPT if lang == "ar" else None)
         t0 = time.time()
+        # decode with ffmpeg to 16 kHz mono float32 and hand the samples over: independent of the PyAV version
+        # faster-whisper happens to be paired with, and accepts every container ffmpeg does
+        import numpy as np  # type: ignore
+
+        pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-f", "f32le", "-ac", "1", "-ar", "16000", "-"], check=True, capture_output=True, timeout=600).stdout
+        audio = np.frombuffer(pcm, dtype=np.float32)
+        if audio.size == 0:
+            raise HTTPException(status_code=400, detail="no audio could be decoded from the file")
         m = model()
         with _lock:
-            segments, info = m.transcribe(path, language=lang, task="transcribe", beam_size=beam_size, word_timestamps=words == "1", vad_filter=True, vad_parameters={"min_silence_duration_ms": 300}, initial_prompt=initial, condition_on_previous_text=False)
+            segments, info = m.transcribe(audio, language=lang, task="transcribe", beam_size=beam_size, word_timestamps=words == "1", vad_filter=True, vad_parameters={"min_silence_duration_ms": 300}, initial_prompt=initial, condition_on_previous_text=False)
             out = []
             for s in segments:
                 out.append({"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip(), "avg_logprob": round(s.avg_logprob, 3), "no_speech_prob": round(s.no_speech_prob, 3), "words": [{"start": round(w.start, 3), "end": round(w.end, 3), "word": w.word, "probability": round(w.probability, 3)} for w in (s.words or [])]})
         return JSONResponse({"language": info.language, "language_probability": round(info.language_probability, 3), "duration": round(info.duration, 3), "segments": out, "text": " ".join(x["text"] for x in out).strip(), "ms": int((time.time() - t0) * 1000), "model": MODEL_NAME})
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
     finally:
         try:
             os.unlink(path)

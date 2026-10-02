@@ -13,6 +13,9 @@ ENV PATH=/opt/venv/bin:$PATH
 RUN pip install --upgrade pip && pip install "ctranslate2==4.8.2" "faster-whisper==1.2.1" "fastapi==0.118.0" "uvicorn[standard]==0.37.0" "python-multipart==0.0.20" "pynvml==12.0.0"
 # Demucs needs torch; the cu128 wheels run on the RTX 5090 (sm_120)
 RUN pip install torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128 && pip install "demucs==4.0.1" "soundfile==0.13.1"
+# faster-whisper 1.2.1 calls PyAV with `metadata_errors=`, which newer PyAV removed: pin the pairing that works.
+# (The service decodes with ffmpeg itself and hands samples over, so PyAV is only a fallback.)
+RUN pip install "av==13.1.0"
 WORKDIR /app
 COPY docker/asr/app.py ./app.py
 RUN mkdir -p /models /cache/nv-jit
