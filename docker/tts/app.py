@@ -109,7 +109,8 @@ class HabibiEngine:
         cfg = OmegaConf.load(str(files("f5_tts").joinpath("configs/F5TTS_v1_Base.yaml")))
         model_cls = get_class(f"f5_tts.model.{cfg.model.backbone}")
         self.vocoder = load_vocoder(vocoder_name="vocos", is_local=False, local_path="", device="cuda")
-        self.model = load_model(model_cls, cfg.model.arch, os.path.join(hb, "model_100000.safetensors"), mel_spec_type="vocos", vocab_file=os.path.join(hb, "vocab.txt"), device="cuda")
+        # `net`, not `model`: the class attribute `model` is the human-readable name sent back in the x-model header
+        self.net = load_model(model_cls, cfg.model.arch, os.path.join(hb, "model_100000.safetensors"), mel_spec_type="vocos", vocab_file=os.path.join(hb, "vocab.txt"), device="cuda")
 
     def synthesize(self, text: str, language: str, ref: str, ref_text: str | None, emotion: str | None, alpha: float, speed: float, seed: int | None) -> tuple[np.ndarray, int]:
         import torch  # type: ignore
@@ -119,7 +120,7 @@ class HabibiEngine:
         ref_audio, ref_txt = preprocess_ref_audio_text(ref, ref_text or "")
         if seed is not None:
             torch.manual_seed(seed)
-        wav, sr, _ = infer_process(ref_audio, ref_txt, text, self.model, self.vocoder, mel_spec_type="vocos", nfe_step=32, cfg_strength=2.0, sway_sampling_coef=-1.0, speed=speed or 1.0, cross_fade_duration=0.15, target_rms=0.1, device="cuda", dialect_id=None)
+        wav, sr, _ = infer_process(ref_audio, ref_txt, text, self.net, self.vocoder, mel_spec_type="vocos", nfe_step=32, cfg_strength=2.0, sway_sampling_coef=-1.0, speed=speed or 1.0, cross_fade_duration=0.15, target_rms=0.1, device="cuda", dialect_id=None)
         return np.asarray(wav, dtype=np.float32), int(sr)
 
 

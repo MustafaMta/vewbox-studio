@@ -155,8 +155,9 @@ services:
     restart: unless-stopped
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
-    # the entrypoint is mounted from the repo so a fix to it takes effect on restart without rebuilding the 12 GB image
-    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro" ]
+    # the entrypoint and the small service app are mounted from the repo so a fix to either takes effect on restart
+    # without rebuilding the 12 GB images (the images still carry copies for a run without the repo)
+    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/index-tts/vewbox_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_PORT:-8020}:8020" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8020/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
@@ -169,7 +170,7 @@ services:
     restart: unless-stopped
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
-    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro" ]
+    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/habibi/vewbox_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_HABIBI_PORT:-8021}:8021" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8021/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
