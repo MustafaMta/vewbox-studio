@@ -11,7 +11,7 @@ import { Button, Card, Details, Field, Notice, SampleMark, Select, Status, Thumb
 import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { VideoPlaceholder, VideoPlayer } from '@/components/players/VideoPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
-import { aspectLabel, fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
+import { aspectLabel, fmtBytes, fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
 
 /** FINAL CUT — the chosen takes in order with the sound under them, then export. The assembled cut shown for the
  *  sample episode is a sample clip; when there is none, the sequence below is the cut, described. */
@@ -70,7 +70,7 @@ export function FinalCutTab({ p }: { p: Production }) {
             <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value)} options={[{ value: 'none', label: '—' }, { value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }, { value: 'both', label: 'AR + EN' }]} /></Field>
             <p className="text-xs text-muted">{aspectLabel(p.aspect)} · {fmtSeconds(total)}</p>
             <Button variant="primary" icon={<IconDownload />} className="w-full" loading={busy} disabled={missing > 0 || anySample} title={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : undefined} onClick={() => void start('EXPORT', { productionId: p.id, format: format as 'mp4-h264' | 'mp4-h265' | 'mov-prores', resolution: res as '720' | '1080' | '2160', subtitles: subs as 'none' | 'ar' | 'en' | 'both' })}>{T('gen.export')}</Button>
-            <p className="text-xs text-faint">{T('final.exportStarted')}</p>
+            {busy && <p className="text-xs text-faint">{T('final.exportStarted')}</p>}
           </div>
         </Card>
         {(p.exports?.length ?? 0) > 0 && (
@@ -79,14 +79,14 @@ export function FinalCutTab({ p }: { p: Production }) {
             <ul className="space-y-2 text-sm">
               {[...(p.exports ?? [])].reverse().map((ex) => { const a = assetById(state, ex.assetId); return (
                 <li key={ex.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-input px-3 py-2">
-                  <span className="min-w-0"><span className="font-medium">{ex.resolution}p · {ex.format.toUpperCase()}</span>{ex.subtitles !== 'none' && <span className="text-muted"> · {T('final.subtitles')} {ex.subtitles}</span>}<span className="block text-xs text-faint">{ex.durationSeconds ? fmtSeconds(ex.durationSeconds) : ''}{ex.bytes ? ` · ${(ex.bytes / 1048576).toFixed(0)} MB` : ''}</span></span>
+                  <span className="min-w-0"><span className="font-medium">{ex.resolution}p · {ex.format.toUpperCase()}</span>{ex.subtitles !== 'none' && <span className="text-muted"> · {T('final.subtitles')} {ex.subtitles}</span>}<span className="block text-xs text-faint">{ex.durationSeconds ? fmtSeconds(ex.durationSeconds) : ''}{ex.bytes ? ` · ${fmtBytes(ex.bytes)}` : ''}</span></span>
                   {a && <a href={`${a.src}?download=1`} className="btn btn-secondary btn-xs" download><IconDownload />{T('final.download')}</a>}
                 </li>
               ); })}
             </ul>
           </Card>
         )}
-        <Details summary={T('shot.advanced')}><p className="text-xs text-muted">Loudness −23 LUFS · true peak −1 dB · dialogue 0 dB · music −14 dB · ambience −12 dB</p></Details>
+        <Details summary={T('shot.advanced')}>{(() => { const cut = assetById(state, p.cutAssetId); const l = (cut?.provenance as { loudness?: { integrated?: number; truePeak?: number } } | undefined)?.loudness; return <p className="num text-xs text-muted">{l?.integrated !== undefined ? `${T('final.measured')}: ${l.integrated.toFixed(1)} LUFS · ${T('final.truePeak')} ${l.truePeak?.toFixed(1) ?? '—'} dBTP` : `${T('final.target')}: −23 LUFS · ${T('final.truePeak')} −1 dBTP`} · ${T('final.mixTargets')}</p>; })()}</Details>
         {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { act('markStepDone', p.id, 'FINAL_CUT'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
       </aside>
     </div>
