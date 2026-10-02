@@ -724,6 +724,8 @@ const D = {
   'gen.voicePreview': ['Preview a line', 'معاينة جملة'],
   'gen.voicePreview.text': ['Text to speak', 'النص المنطوق'],
   'gen.dialogue': ['Record the dialogue', 'سجّل الحوار'],
+  'gen.dialogue.hint': ['Speaks every line with its character’s studio voice and checks each one by transcription. The cut uses these recordings for takes without their own sound (uploaded clips); MiniMax takes speak natively.', 'ينطق كل جملة بصوت شخصيتها المبني في الاستوديو ويتحقق منها بالتفريغ. يستخدم المونتاج هذه التسجيلات للقطات بلا صوت خاص (المقاطع المرفوعة)؛ لقطات MiniMax تنطق بنفسها.'],
+  'produce.linesVoiced': ['lines recorded', 'جمل مسجّلة'],
   'gen.song': ['Generate the song', 'ولّد الأغنية'],
   'gen.rejectTake': ['Reject', 'ارفض'],
   'gen.rejectReason': ['Why is this take rejected?', 'لماذا تُرفض هذه اللقطة؟'],
