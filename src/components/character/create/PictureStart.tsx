@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Asset } from '@/domain/types';
+import { SEXES, type Sex } from '@/domain/vocabulary';
 import { api, type ImageReferenceValidation } from '@/studio/api';
 import { useStudio } from '@/studio/store';
 import { isStudioError } from '@/domain/errors';
@@ -9,10 +10,10 @@ import { useT } from '@/components/ui/locale';
 import { Button, Dropzone, Field, Input, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { ImagePreview } from '@/components/ui/preview';
 import { IconImageAdd, IconWand } from '@/components/ui/icons';
-import { IMAGE_RULES, checkImageDims, checkImageFile, measureImage, type ImageRefusal } from './preflight';
+import { IMAGE_RULES, checkImageDims, checkImageFile, measureImage, refusalReasons, type ImageRefusal } from './preflight';
 import { fmtBytes } from '@/lib/format';
 
-export interface PictureValues { asset?: Asset; validation?: ImageReferenceValidation; measured?: { width: number; height: number; bytes: number; name: string }; name: string; role: string; keep: 'FACE' | 'FACE_HAIR_WARDROBE'; note: string }
+export interface PictureValues { asset?: Asset; validation?: ImageReferenceValidation; measured?: { width: number; height: number; bytes: number; name: string }; name: string; role: string; keep: 'FACE' | 'FACE_HAIR_WARDROBE'; note: string; /** who the picture shows, as the producer says it: the text-only designer cannot see the picture */ sex?: Sex; ageYears?: number; /** keep FACE: the hair and clothes the producer writes instead of the picture's (empty: the picture's) */ hair?: string; wardrobe?: string }
 
 /** FROM A PICTURE — drop the picture first (the thing in hand). It is checked in the browser before anything is
  *  uploaded: PNG, JPEG or WebP, at most 20 MB, shortest side 512 px; SVG and GIF are refused with a sentence, never
@@ -61,8 +62,8 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
           {value.validation && (
             <div className="mt-3 text-[12px]">
               {value.validation.ok
-                ? <p className="status status-ok">{T('char.create.img.checked')}{typeof value.validation.faces === 'number' ? ` · ${value.validation.faces === 1 ? T('char.create.img.oneFace') : `${value.validation.faces} ${T('char.create.img.faces')}`}` : ''}</p>
-                : <Notice tone="bad" title={T('char.create.img.refused')}><ul className="list-disc ps-4">{value.validation.reasons.map((r) => <li key={r} dir="auto">{T.dyn(`char.create.img.reason.${r}`, r)}</li>)}</ul></Notice>}
+                ? <p className="status status-ok">{T('char.create.img.checked')}{typeof value.validation.faces === 'number' ? ` · ${value.validation.faces === 1 ? T('char.create.img.oneFace') : `${value.validation.faces} ${T('char.create.img.faces')}`}` : ` · ${T('char.create.img.noFaceCheck')}`}</p>
+                : <Notice tone="bad" title={T('char.create.img.refused')}><ul className="list-disc ps-4">{refusalReasons(value.validation.reasons).map((r) => <li key={r} dir="auto">{T.dyn(`char.create.img.reason.${r}`, r)}</li>)}</ul></Notice>}
             </div>
           )}
         </div>
@@ -70,11 +71,21 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={T('label.name')} hint={T('wizard.optional')}><Input value={value.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} /></Field>
             <Field label={T('label.role')} hint={T('wizard.optional')}><Input value={value.role} onChange={(e) => set({ role: e.target.value })} maxLength={200} placeholder={T('char.form.rolePh')} /></Field>
+            <div><p className="label">{T('label.sex')}</p><Segmented label={T('label.sex')} value={value.sex ?? 'ANY'} onChange={(v) => set({ sex: v === 'ANY' ? undefined : (v as Sex) })} options={[{ value: 'ANY', label: T('auto.decide') }, ...SEXES.map((x) => ({ value: x as string, label: x === 'FEMALE' ? T('label.female') : T('label.male') }))]} /></div>
+            <Field label={T('label.age')} hint={T('wizard.optional')}><Input type="number" min={1} max={120} value={value.ageYears ?? ''} onChange={(e) => set({ ageYears: e.target.value ? Number(e.target.value) : undefined })} /></Field>
           </div>
+          <p className="help">{T('char.create.pictureLookHint')}</p>
           <div>
             <p className="label">{T('char.create.keep')}</p>
             <Segmented label={T('char.create.keep')} value={value.keep} onChange={(v) => set({ keep: v })} options={[{ value: 'FACE' as const, label: T('char.create.keepFace') }, { value: 'FACE_HAIR_WARDROBE' as const, label: T('char.create.keepAll') }]} />
             <p className="help">{T('char.create.keepHint')}</p>
+            {value.keep === 'FACE' && (
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <Field label={T('label.hair')} hint={T('wizard.optional')}><Input value={value.hair ?? ''} onChange={(e) => set({ hair: e.target.value })} maxLength={200} placeholder={T('char.look.fromReference')} /></Field>
+                <Field label={T('label.wardrobe')} hint={T('wizard.optional')}><Input value={value.wardrobe ?? ''} onChange={(e) => set({ wardrobe: e.target.value })} maxLength={300} placeholder={T('char.look.fromReference')} /></Field>
+                <p className="help sm:col-span-2">{T('char.create.keepFaceChangeHint')}</p>
+              </div>
+            )}
           </div>
           <Field label={T('char.create.keepChange')} hint={T('wizard.optional')} help={T('char.create.keepChangeHelp')}><Textarea value={value.note} onChange={(e) => set({ note: e.target.value })} rows={2} maxLength={600} /></Field>
         </div>

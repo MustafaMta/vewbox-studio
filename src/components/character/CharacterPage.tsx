@@ -17,6 +17,7 @@ import { CharacterForm } from './CharacterForm';
 import { AppearanceTab } from './AppearanceTab';
 import { VoiceTab, engineName } from './VoiceTab';
 import { createResultOf, type VoiceIdentityV2 } from './contract';
+import { lookFieldText, lookFromReference } from './look';
 import { IconClose, IconDelete, IconEdit, IconShield, IconVoice } from '@/components/ui/icons';
 import { dialectLabel, fmtAgo, words } from '@/lib/format';
 
@@ -112,10 +113,13 @@ function JustCreated({ c }: { c: Character }) {
 /** PROFILE — who they are, their traits, and the creative notes, which save in place. */
 function Profile({ c }: { c: Character }) {
   const T = useT();
-  const { act } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const [notes, setNotes] = useState(c.notes ?? '');
   const dirty = notes !== (c.notes ?? '');
+  // a character made from a picture has no written look: those fields say so until the producer writes them
+  const fromPicture = lookFromReference(c, state.assets);
+  const look = (v: string) => lookFieldText(v, fromPicture, T('char.look.fromReference'));
   return (
     <div className="grid gap-10 lg:grid-cols-2">
       <div className="space-y-8">
@@ -125,7 +129,7 @@ function Profile({ c }: { c: Character }) {
         </Block>
         <Block title={T('char.traits')}>
           {c.distinguishing.length ? <ul className="flex flex-wrap gap-2">{c.distinguishing.map((x) => <li key={x} className="badge" dir="auto">{x}</li>)}</ul> : <p className="text-sm text-faint">—</p>}
-          <div className="mt-5"><KV rows={[[T('label.build'), c.build || '—'], [T('label.face'), c.face || '—'], [T('label.hair'), c.hair || '—'], [T('label.eyes'), c.eyes || '—'], [T('label.skin'), c.skin || '—'], [T('label.wardrobe'), c.wardrobe || '—']]} /></div>
+          <div className="mt-5"><KV rows={[[T('label.build'), look(c.build)], [T('label.face'), look(c.face)], [T('label.hair'), look(c.hair)], [T('label.eyes'), look(c.eyes)], [T('label.skin'), look(c.skin)], [T('label.wardrobe'), look(c.wardrobe)]]} /></div>
         </Block>
       </div>
       <form className="card h-fit space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); act('updateCharacter', c.id, { notes }); toast.ok(T('toast.saved')); }}>

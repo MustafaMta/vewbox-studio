@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from '@/domain/jobs';
-import { checkAudioDuration, checkBrief, checkImageDims, checkImageFile, creationSettled, creationSteps, createdCharacterId, engineGate } from '@/components/character/create/preflight';
+import { DESCRIBE_VOICE_MODES, checkAudioDuration, checkBrief, checkImageDims, checkImageFile, creationSettled, creationSteps, createdCharacterId, describeVoiceMode, describeVoicePayload, engineGate } from '@/components/character/create/preflight';
+import { KEYS, t } from '@/lib/i18n';
 import type { EngineStatus } from '@/studio/api';
 
 /** The browser-side preflight of character creation and the derivation of the four-step stepper from the parent
@@ -87,5 +88,21 @@ describe('the creation stepper', () => {
     const s = creationSteps(p, [p]);
     expect(s.map((x) => x.state)).toEqual(['done', 'failed', 'skipped', 'skipped']);
     expect(s[1].error?.code).toBe('CANCELLED');
+  });
+});
+
+describe('the voice of a Describe start (finding 15)', () => {
+  it('offers only what can produce a voice: no voice yet, or a recording added now — never a "studio voice" with no bank behind it', () => {
+    expect(DESCRIBE_VOICE_MODES).toEqual(['NONE', 'RECORDING']);
+    expect(KEYS).not.toContain('char.create.voiceAuto');
+    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/no bank of voices/);
+    expect(t('ar', 'char.create.voiceRecording')).toMatch(/[؀-ۿ]/);
+  });
+  it('asks CREATE_CHARACTER for an AUTOMATIC voice only when a recording travels with the request', () => {
+    expect(describeVoicePayload('RECORDING', true)).toEqual({ mode: 'AUTOMATIC' });
+    expect(describeVoicePayload('RECORDING', false)).toEqual({ mode: 'NONE' });
+    expect(describeVoicePayload('NONE', true)).toEqual({ mode: 'NONE' });
+    // a draft remembered from the old page ("Studio voice" = AUTOMATIC) comes back as no voice
+    expect(describeVoiceMode('AUTOMATIC')).toBe('NONE'); expect(describeVoiceMode('RECORDING')).toBe('RECORDING'); expect(describeVoiceMode(undefined)).toBe('NONE');
   });
 });

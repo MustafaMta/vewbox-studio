@@ -1,7 +1,7 @@
 import type { Asset, Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
-import { canChangeAppearance, isCloneSource, voiceLock } from '@/domain/rules';
+import { canChangeAppearance, isCloneSource, voiceBuildLockProblem, voiceLock } from '@/domain/rules';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
 
@@ -121,15 +121,17 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
   }
   if (type === 'VOICE_BUILD') {
     const mode = (payload.mode as string | undefined) ?? 'AUTOMATIC';
-    const lock = voiceLock(c);
-    add('voice-unlocked', !(lock.locked && c.voice.identity), 'INCONSISTENT_PLAN', lock.locked && c.voice.identity ? `${c.name} has spoken in a video; the voice is preserved` : undefined);
+    // a voice locked by its chosen recording alone may be built only from that recording (AUTOMATIC is held to it)
+    const lockedToSelection = voiceLock(c).locked && !c.voice.identity;
+    const lockProblem = voiceBuildLockProblem(c, mode === 'REFERENCE' ? (payload.referenceSampleId as string | undefined) : mode === 'AUTOMATIC' ? c.voice.selectedSampleId : undefined);
+    add('voice-unlocked', !lockProblem, 'INCONSISTENT_PLAN', lockProblem ?? undefined);
     if (mode === 'REFERENCE') {
       const sample = c.voice.samples.find((s) => s.id === payload.referenceSampleId);
       const problem = referenceAudioProblem(state, sample);
       add('reference-recording-usable', !problem, 'MISSING_REFERENCE', problem ?? `cloning from “${sample?.label}”`);
     } else if (mode === 'AUTOMATIC') {
-      const usable = c.voice.samples.filter((s) => !referenceAudioProblem(state, s));
-      add('uploaded-recording-present', usable.length > 0, 'MISSING_REFERENCE', usable.length ? `${usable.length} uploaded recording(s)` : `${c.name} has no uploaded recording to clone from; upload a 3–30 second recording of the voice on the Voice tab`);
+      const usable = c.voice.samples.filter((s) => (!lockedToSelection || s.id === c.voice.selectedSampleId) && !referenceAudioProblem(state, s));
+      add('uploaded-recording-present', usable.length > 0, 'MISSING_REFERENCE', usable.length ? `${usable.length} uploaded recording(s)` : lockedToSelection ? `${c.name} has spoken in a video with the chosen recording, and that recording cannot be cloned from (it is not an upload)` : `${c.name} has no uploaded recording to clone from; upload a 3–30 second recording of the voice on the Voice tab`);
     } else if (mode === 'MANUAL') {
       add('catalogue-voice-named', Boolean(payload.providerVoiceId), 'INVALID_INPUT', payload.providerVoiceId ? String(payload.providerVoiceId) : 'a catalogue voice needs providerVoiceId');
     }

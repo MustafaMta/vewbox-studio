@@ -65,6 +65,23 @@ export function guardVoiceChange(c: Character, what: string): void {
   throw new StudioError('VOICE_LOCKED', `${c.name} has been used in a video; the voice is preserved for continuity (${what}).`, { characterId: c.id, reason: voiceLock(c).reason });
 }
 
+/** THE VOICE BUILD RULE (review finding 8) — may an identity be built (pinned) for this character from this
+ *  recording? Unlocked: yes. Locked with an identity: never (the voice is preserved). Locked by the chosen recording
+ *  alone (the character spoke in a video before any identity existed): only from that very recording — building from
+ *  another upload would re-voice every line already spoken. Null = allowed; otherwise the reason. Shared by the
+ *  enqueue preflight, the VOICE_BUILD handler and `setVoiceIdentity`. */
+export function voiceBuildLockProblem(c: Pick<Character, 'name' | 'usage' | 'voice'>, referenceSampleId: string | undefined): string | null {
+  if (!voiceLock(c).locked) return null;
+  if (c.voice.identity) return `${c.name} has spoken in a video; the voice is preserved`;
+  if (referenceSampleId && referenceSampleId === c.voice.selectedSampleId) return null;
+  return `${c.name} has spoken in a video with the chosen recording; the voice can only be built from that recording`;
+}
+
+export function guardVoiceBuild(c: Character, referenceSampleId: string | undefined, what: string): void {
+  const problem = voiceBuildLockProblem(c, referenceSampleId);
+  if (problem) throw new StudioError('VOICE_LOCKED', `${problem} (${what}).`, { characterId: c.id, reason: voiceLock(c).reason, selectedSampleId: c.voice.selectedSampleId, referenceSampleId });
+}
+
 /** The assets a locked character's appearance rests on: its portrait and reference views. They cannot be deleted. */
 export function protectedAssetOwner(s: StudioState, assetId: string): Character | undefined {
   return s.characters.find((c) => appearanceLock(c).locked && (c.portraitAssetId === assetId || c.refs.some((r) => r.assetId === assetId)));

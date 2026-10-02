@@ -2,13 +2,13 @@ import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import type { Job, JobType } from '@/domain/jobs';
-import { JOB_RESOURCE, JOB_TYPES } from '@/domain/jobs';
+import { JOB_TYPES } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
 import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
-import { addEvent, cancelled, claim, complete, fail, heartbeat, setProgress } from '@/server/jobs/queue';
+import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, setProgress, type Lane } from '@/server/jobs/queue';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { gpuLease } from './gpu';
 import { syncRegistry } from '@/server/registry';
@@ -18,7 +18,8 @@ import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
 
 /** THE WORKER — claims jobs from Postgres and runs them. Lanes: hosted (MiniMax, many at once), LLM (a few), CPU
- *  (ffmpeg, a few) and GPU (one at a time against the RTX 5090's VRAM budget). Each running job heartbeats its lease;
+ *  (ffmpeg, a few), GPU (one at a time against the RTX 5090's VRAM budget) and orchestration (chains that wait on
+ *  their child jobs, so a waiting chain never holds a CPU slot). Each running job heartbeats its lease;
  *  a job whose worker dies is reclaimed by the next worker after the lease expires. Cancellation is cooperative:
  *  handlers call `ctx.checkpoint()` between steps and stop when asked. */
 
@@ -28,14 +29,15 @@ const workerId = env().WORKER_ID || `${os.hostname()}-${process.pid}`;
 const ALIVE_FILE = process.env.WORKER_ALIVE_FILE || path.join(os.tmpdir(), 'worker.alive');
 const touchAlive = () => fsp.writeFile(ALIVE_FILE, new Date().toISOString()).catch(() => undefined);
 
-type Lane = 'HOSTED' | 'LLM' | 'CPU' | 'GPU';
+// orchestrators (CREATE_CHARACTER, PRODUCE) wait on their children in a lane of their own (src/server/jobs/queue.ts)
 const LANES: Record<Lane, { limit: number; types: JobType[] }> = {
-  HOSTED: { limit: env().WORKER_CONCURRENCY_HOSTED, types: JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'HOSTED') },
-  LLM: { limit: env().WORKER_CONCURRENCY_LLM, types: JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'LLM') },
-  CPU: { limit: env().WORKER_CONCURRENCY_CPU, types: JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'CPU') },
-  GPU: { limit: 1, types: JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'GPU') },
+  HOSTED: { limit: env().WORKER_CONCURRENCY_HOSTED, types: JOB_TYPES.filter((t) => laneOf(t) === 'HOSTED') },
+  LLM: { limit: env().WORKER_CONCURRENCY_LLM, types: JOB_TYPES.filter((t) => laneOf(t) === 'LLM') },
+  CPU: { limit: env().WORKER_CONCURRENCY_CPU, types: JOB_TYPES.filter((t) => laneOf(t) === 'CPU') },
+  GPU: { limit: 1, types: JOB_TYPES.filter((t) => laneOf(t) === 'GPU') },
+  ORCHESTRATION: { limit: ORCHESTRATION_LANE.limit, types: JOB_TYPES.filter((t) => laneOf(t) === 'ORCHESTRATION') },
 };
-const running: Record<Lane, Set<string>> = { HOSTED: new Set(), LLM: new Set(), CPU: new Set(), GPU: new Set() };
+const running: Record<Lane, Set<string>> = { HOSTED: new Set(), LLM: new Set(), CPU: new Set(), GPU: new Set(), ORCHESTRATION: new Set() };
 let stopping = false;
 
 class Cancelled extends Error { constructor() { super('cancelled'); this.name = 'Cancelled'; } }

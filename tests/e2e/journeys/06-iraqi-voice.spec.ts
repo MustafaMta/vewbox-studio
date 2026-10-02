@@ -1,20 +1,50 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assetOf, characterById, characterErrorRate, coverage, createCharacter, expect, expectAudioLoaded, expectRealAsset, findJob, jobOutcome, payloadOf, requireEngines, snapshot, test, WAIT, waitForApp, waitForJob, type Snap } from '../helpers';
+import { BASE, assetOf, characterById, characterErrorRate, coverage, createCharacter, expect, expectAudioLoaded, expectRealAsset, findJob, jobOutcome, payloadOf, requireEngines, snapshot, test, WAIT, waitForApp, waitForJob, type Snap } from '../helpers';
 
-/** TEST 6 — IRAQI ARABIC VOICE. An Iraqi-Baghdadi character built from an Arabic reference clip, then the preview
- *  «شلونك حبيبي، شخبارك؟». The reference is docs/evidence/iraqi-suite/male-long.wav, which is ENGINE OUTPUT, not an
- *  authorised recording (contract §1.5): the test therefore asserts intelligibility only — the preview transcribes
- *  with coverage ≥ 0.85 after the dialect fold — and that the audio plays. Dialect authenticity is not judged here. */
+/** TEST 6 — IRAQI ARABIC VOICE. An Iraqi-Baghdadi character built from a REAL, AUTHORISED Arabic recording, then the
+ *  preview «شلونك حبيبي، شخبارك؟».
+ *
+ *  Contract §1.5: the reference must be a real person's recording with consent, never engine output. The studio has
+ *  none yet (docs/evidence/iraqi-suite-phase2-plan.md): the clips in docs/evidence/iraqi-suite/ are synthesised, and
+ *  the upload route now refuses the studio's own engine output (finding 7). So the generation half NEEDS A RECORDING —
+ *  put a 6–20 s authorised Iraqi recording at tests/fixtures/voice/iraqi-reference.wav (or point QA_IRAQI_REFERENCE at
+ *  one) with its consent note beside it; until then it is skipped and says why. Nothing here fakes a recording.
+ *  The first test needs no GPU: engine output uploaded as a "recording" is refused before anything is cloned. */
 
 const NAME = 'Abu Haider';
 const LINE = 'شلونك حبيبي، شخبارك؟';
-const REFERENCE = path.join('docs', 'evidence', 'iraqi-suite', 'male-long.wav');
+const REFERENCE = process.env.QA_IRAQI_REFERENCE || path.join('tests', 'fixtures', 'voice', 'iraqi-reference.wav');
+const CONSENT = `${REFERENCE.replace(/\.[a-z0-9]+$/i, '')}.consent.md`;
 
-test('an Iraqi voice from a (synthetic) Arabic reference speaks the greeting intelligibly and the preview plays @gpu', async ({ page }, info) => {
+/** Upload to the voice-reference endpoint the Voice tab uses; never throws. */
+async function uploadVoiceReference(characterId: string, file: { name: string; mimeType: string; buffer: Buffer }) {
+  const fd = new FormData();
+  fd.set('file', new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }), file.name);
+  const r = await fetch(`${BASE}/api/characters/${encodeURIComponent(characterId)}/voice-reference`, { method: 'POST', body: fd });
+  return { status: r.status, body: (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string } };
+}
+
+test('a line the studio synthesised, uploaded back as a "recording", is refused before anything is cloned', async ({}, info) => {
+  const c = await createCharacter({ name: 'Umm Ali', nameAr: 'أم علي', language: 'AR', dialect: 'IRAQI_BAGHDADI', role: 'Runs the corner bakery', sex: 'FEMALE', ageYears: 55 });
+  // the provenance tag docker/tts/app.py writes on every synthesised line (WAV INFO ICMT → ffprobe "comment")
+  const out = path.join(info.outputDir, 'engine-line.wav');
+  fs.mkdirSync(info.outputDir, { recursive: true });
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', "aevalsrc='0.2*sin(220*2*PI*t)*(0.6+0.4*sin(3*2*PI*t))':s=24000:d=6", '-metadata', 'comment=synthetic speech; engine=habibi; seed=7; not a voice reference', '-c:a', 'pcm_s16le', out]);
+  const r = await uploadVoiceReference(c.id, { name: 'engine-line.wav', mimeType: 'audio/wav', buffer: fs.readFileSync(out) });
+  expect(r.status).toBe(400);
+  expect(r.body).toMatchObject({ ok: false, code: 'BAD_FORMAT' });
+  expect(r.body.message).toMatch(/engine output/i);
+  const s = await snapshot<Snap>();
+  expect(characterById(s, c.id)!.voice.samples.filter((x) => x.source === 'UPLOADED'), 'nothing is kept').toHaveLength(0);
+});
+
+test('an Iraqi voice from an authorised Arabic recording speaks the greeting intelligibly and the preview plays @gpu', async ({ page }, info) => {
+  test.skip(!fs.existsSync(REFERENCE), `NEEDS A RECORDING: no authorised Iraqi reference at ${REFERENCE} (contract §1.5 — engine output is refused; see docs/evidence/iraqi-suite-phase2-plan.md)`);
+  test.skip(!fs.existsSync(CONSENT), `NEEDS A CONSENT NOTE: ${CONSENT} (who recorded it, who authorised its use for synthesis, when)`);
   await requireEngines(['voice', 'transcription']);
-  info.annotations.push({ type: 'reference', description: `${REFERENCE} is engine output used as a stand-in; only intelligibility is asserted, not dialect authenticity` });
-  test.skip(!fs.existsSync(REFERENCE), `${REFERENCE} is missing`);
+  info.annotations.push({ type: 'reference', description: `${REFERENCE} — authorised recording (${CONSENT}); intelligibility is asserted, dialect authenticity is a listening review` });
   const c = await createCharacter({ name: NAME, nameAr: 'أبو حيدر', language: 'AR', dialect: 'IRAQI_BAGHDADI', role: 'A taxi driver who knows every street in Karrada', sex: 'MALE', ageYears: 48 });
   let t0 = new Date().toISOString();
 
@@ -22,7 +52,7 @@ test('an Iraqi voice from a (synthetic) Arabic reference speaks the greeting int
   await waitForApp(page);
   // the Iraqi path names the engine and asks for an Arabic recording — TODO(copy)
   await expect.soft(page.getByText(/Arabic recording|Iraqi/i).first()).toBeVisible();
-  await page.getByLabel(/Upload a recording|recording/i).first().setInputFiles({ name: 'male-long.wav', mimeType: 'audio/wav', buffer: fs.readFileSync(REFERENCE) });
+  await page.getByLabel(/Upload a recording|recording/i).first().setInputFiles({ name: path.basename(REFERENCE), mimeType: 'audio/wav', buffer: fs.readFileSync(REFERENCE) });
   await expect.poll(async () => characterById(await snapshot<Snap>(), c.id)!.voice.samples.filter((s) => s.source === 'UPLOADED' && s.assetId).length, { timeout: 60_000 }).toBe(1);
   let s = await snapshot<Snap>();
   const upload = characterById(s, c.id)!.voice.samples.find((x) => x.source === 'UPLOADED')!;
@@ -38,6 +68,7 @@ test('an Iraqi voice from a (synthetic) Arabic reference speaks the greeting int
   expect(identity.model, 'the Iraqi dialect engine').toBe('habibi');
   expect(identity.dialect).toBe('IRAQI_BAGHDADI');
   expect(identity.referenceAssetId).toBe(upload.assetId);
+  expect(typeof identity.proof?.cer, 'the proof carries its CER (the gate)').toBe('number');
 
   // the preview line, through the real dialog
   t0 = new Date().toISOString();
@@ -60,7 +91,7 @@ test('an Iraqi voice from a (synthetic) Arabic reference speaks the greeting int
   const cer = result.check!.cer ?? characterErrorRate(LINE, heard);
   info.annotations.push({ type: 'intelligibility', description: `heard «${heard}» — coverage ${cov.toFixed(2)}, CER ${cer.toFixed(2)}, WER ${(result.check!.wer ?? NaN).toFixed(2)}` });
   expect(cov, `coverage of «${LINE}» in «${heard}»`).toBeGreaterThanOrEqual(0.85);
-  expect.soft(cer, 'character error rate after the fold').toBeLessThanOrEqual(0.15);
+  expect(cer, 'character error rate after the fold (the gate)').toBeLessThanOrEqual(0.15);
 
   s = await snapshot<Snap>();
   await expectRealAsset(assetOf(s, result.assetId), 'preview line');

@@ -17,14 +17,11 @@ import { ImagePair, ImagePreview, ResultSlot } from '@/components/ui/preview';
 import { FailureNotice, RecoveryAction, useErrorCopy } from '@/components/ui/progress';
 import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { IconArrowRight, IconCheck, IconDelete, IconGenerate, IconImageAdd, IconRetry, IconShield, IconUpload } from '@/components/ui/icons';
-import { checkImageDims, checkImageFile, measureImage } from './create/preflight';
+import { checkImageDims, checkImageFile, measureImage, refusalReasons } from './create/preflight';
+import { SHEET_VIEWS, sheetLayout, viewOf } from './sheet';
 import { fmtBytes } from '@/lib/format';
 
-/** The identity sheet, in a fixed order; FACE is the crop the portrait rests on, OUTFIT is a wardrobe variant. */
-export const SHEET_VIEWS: CharacterRefRole[] = ['FRONT', 'THREE_QUARTER', 'SIDE', 'BACK', 'FULL_BODY', 'EXPRESSION'];
-/** The ROLE is the view a tile stands for; `ref.view` is provenance (how it was drawn: 'SHEET_TILE' for a tile
- *  cut from the identity sheet, 'FACE' for the crop, else the view name) and never decides where a tile sits. */
-const viewOf = (r: Character['refs'][number]): string => r.role;
+export { SHEET_VIEWS };
 
 /** APPEARANCE — the portrait beside the generate card with the reference → result pair; the running job's phase
  *  sits in the result frame where the eye waits, a failure sits there with its one recovery action, and a picture
@@ -59,8 +56,9 @@ export function AppearanceTab({ c, lock }: { c: Character; lock: AppearanceLock 
     try {
       const r = await api.uploadReference(file, { label: `${c.name} — ${T('char.ref.label')}`, tags: ['character', 'reference upload'] });
       await refresh();
-      if (r.validation && !r.validation.ok) { setRefError(`${T('char.create.img.refused')}: ${r.validation.reasons.map((x) => T.dyn(`char.create.img.reason.${x}`, x)).join(' · ')}`); await removeAsset(r.asset.id); return; }
-      act('setPendingReference', c.id, r.asset.id);
+      if (r.validation && !r.validation.ok) { setRefError(`${T('char.create.img.refused')}: ${refusalReasons(r.validation.reasons).map((x) => T.dyn(`char.create.img.reason.${x}`, x)).join(' · ')}`); await removeAsset(r.asset.id); return; }
+      // the server's measurement travels with the reference (contract §1.2: stored on character.pendingReference)
+      act('setPendingReference', c.id, r.asset.id, r.validation);
       if (previous) await removeAsset(previous);
       toast.ok(previous ? T('char.ref.replaced') : T('char.ref.added'));
     } catch (e) { setRefError((e as Error).message); }
@@ -79,8 +77,9 @@ export function AppearanceTab({ c, lock }: { c: Character; lock: AppearanceLock 
     finally { setBusy(null); }
   };
 
-  const sheet = SHEET_VIEWS.map((v) => ({ view: v, ref: c.refs.find((r) => viewOf(r) === v) }));
-  const others = c.refs.filter((r) => !SHEET_VIEWS.includes(viewOf(r) as CharacterRefRole) && r.assetId !== c.portraitAssetId);
+  // the sheet slots by ROLE; the face crop beside the portrait; the rest under "views and outfits" (findings 1, 21)
+  const { sheet, faceCrop, others } = sheetLayout(c);
+  const faceAsset = assetById(state, faceCrop?.assetId);
 
   const tileTools = (r: Character['refs'][number]) => !lock.locked && (
     <span className="card-tools absolute bottom-2 end-2 flex gap-1">
@@ -105,6 +104,12 @@ export function AppearanceTab({ c, lock }: { c: Character; lock: AppearanceLock 
           <h2 id="look-h" className="section-title mb-3">{T('char.appearance')}</h2>
           <div className="max-w-sm"><Art src={portrait?.src} alt={c.name} ratio="portrait" title={hasAppearance ? c.name : T('char.noAppearance')} sample={portrait?.sample} unavailable={portrait?.unavailable} /></div>
           <p className="mt-2 text-[12px] text-faint">{hasAppearance ? (portrait?.sample ? T('char.appearance.sample') : portrait?.origin === 'UPLOAD' ? T('char.appearance.uploaded') : T('char.appearance.current')) : T('char.noAppearance.hint')}</p>
+          {faceCrop && faceAsset && (
+            <div className="mt-3 flex max-w-sm items-center gap-3">
+              <div className="w-16 flex-none"><Art src={faceAsset.src} ratio="square" title={T('char.faceCrop')} sample={faceAsset.sample} unavailable={faceAsset.unavailable} /></div>
+              <p className="text-[12px] text-faint">{T('char.faceCrop')} · {T('char.faceCrop.hint')}</p>
+            </div>
+          )}
         </div>
         <div className="card p-4 sm:p-5">
           <h2 className="section-title">{hasAppearance ? T('char.regenerate.title') : T('char.generate.title')}</h2>

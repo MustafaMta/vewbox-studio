@@ -31,6 +31,18 @@ this file decides what lands now; the rest is backlog.
   carry `parentId` and idempotency keys `create:${jobId}:${step}`; a restart adopts in-flight children (as PRODUCE).
   Partial success keeps the record: the result lists each step's outcome (`done` / `skipped(reason)` / `failed(class,
   message)`), the page shows them and offers the single recovery action per failed step.
+  *Wave-2 fix (review finding 15):* the Describe start no longer offers a "Studio voice" (there is no voice bank, so
+  AUTOMATIC with no upload can never produce one). It offers "No voice yet" (and says why: a voice is always built
+  from a real person's recording) or "Add a recording now": the page checks the file in the browser, uploads it to
+  `/api/characters/:id/voice-reference` as soon as the character exists, and asks the chain for `voice.mode:
+  'AUTOMATIC'`, which builds from that upload; if the chain passed the voice step before the upload landed, the page
+  starts the `VOICE_BUILD` itself and the voice row follows it; a refused recording is shown with its reason.
+  *Wave-2 fix (review findings 10, 12, 19):* orchestrators (`CREATE_CHARACTER`, `PRODUCE`) run in an `ORCHESTRATION`
+  lane of their own (`laneOf` in `src/server/jobs/queue.ts`), so a waiting chain never holds a CPU slot; the chain is
+  bounded by the Casting Director's `limits.timeoutMs` and then fails `INFRASTRUCTURE` naming its children (which keep
+  running and are adopted by a retry); a retried parent re-runs an adopted child that had failed or been cancelled; the
+  page sends `CREATE_CHARACTER:<hash of the payload>:<minute>` so a double submit is one parent (a relaunch after a
+  failure gets a fresh key on the server).
 - Payload (zod in `src/domain/jobs.ts`):
   ```ts
   CREATE_CHARACTER: {
@@ -60,6 +72,29 @@ this file decides what lands now; the rest is backlog.
   available"). Rules: min side 512, exactly one face when detection runs, face box ≥ 18 % of height, not blurry.
   Stored on `character.pendingReference.validation`. `CHARACTER_APPEARANCE` refuses an unusable reference with
   `MISSING_REFERENCE` instead of silently drawing from text.
+  *Wave-2 fix (review finding 2):* the upload route computes this on the CPU and stores it on the asset as
+  `provenance.validation`; no face detector is installed, so `faces` is absent and `reasons` carries "face detection
+  not available (size and sharpness only)" — never an invented count. `MISSING_REFERENCE` is a `StudioErrorCode`
+  (HTTP 400, failure class `MISSING_REFERENCE`).
+
+### 1.2a From a picture without a vision model (review finding 3)
+- The story model (`qwen3:14b`) is text-only and no vision model is installed, so nothing may describe a picture
+  nobody looked at. In REFERENCE mode the look fields (`face`, `hair`, `skin`, `eyes`, `build`, `wardrobe`) and the
+  distinguishing marks are **not designed**: they stay empty unless the producer writes them, and empty means "as in
+  the reference picture". `DESIGN_CHARACTER` runs only for who the character is (role, personality, sex/age from
+  the producer's words or the name, voice description); the orchestrator marks the brief with
+  `REFERENCE_LOOK_BRIEF` (`src/server/story/schemas.ts`), the one channel through the `DESIGN_CHARACTER` job.
+- The portrait prompt names the person in the reference picture as the look and states only the fields the producer
+  wrote (keeping the face only: the hair and clothes written on the Picture start are deliberate changes); the
+  identity line persisted to `canon.identityLine` reads "… exactly as in the reference picture" plus the written
+  tokens, so every later sheet, view and frame repeats the picture, not an invention. The portrait's provenance says
+  `lookFrom: 'REFERENCE'`; the profile shows the empty look fields as "from the reference picture".
+- **What a vision model would add** (backlog, needs a VLM in the story service — e.g. a Qwen2.5-VL / Qwen3-VL class
+  model behind `story.structured_answer` with image input): read the validated picture (and the drawn portrait) and
+  fill the look fields and distinguishing marks *from what it sees*, marked `source: 'VISION'` so the producer can
+  tell seen from written; check sex/age presentation against the producer's words; give a face count and box height
+  for the §1.2 face rules (with a detector); and compare the drawn portrait and sheet tiles with the reference
+  (identity drift) before the sheet is accepted. Until then the picture itself is the only description.
 
 ### 1.3 Appearance and the reference sheet — Image agent
 - Keep Qwen-Image-2512 / Qwen-Image-Edit-2511 (Apache-2.0). Implement from `CHARACTER-IMAGE-STACK.md` §4–5:
@@ -112,6 +147,27 @@ this file decides what lands now; the rest is backlog.
   after an Arabic dialect fold (گ↔ق/ك, چ↔ج/ك, ـه/ـة, ى/ي, hamza forms, diacritics, Iraqi spellings table). `verifyLine`
   on an ASR outage marks the line `REVIEW` (never passes it silently). (Voice owns `speech.ts` metrics; Backend applies
   them in handlers.)
+  *Wave-2 fix (review findings 6, 11, 16, 17, 18):* the server derives the build key and, whoever supplied a
+  `VOICE_BUILD:` key, a finished build under it never turns a new request into a no-op (`requeueKeyFor`,
+  `src/server/jobs/keys.ts`; the Voice tab sends no key). The hosted MiniMax clone gets the ORIGINAL upload and
+  refuses one outside 10 s – 5 min / 20 MB up front. The upload route keeps nothing of a failed upload and refuses
+  files over 50 MB before reading them. A Habibi line never runs on a guessed reference transcript: without one the
+  job is `UNAVAILABLE` (retried) or `MISSING_REFERENCE` (no words), so an identity is never pinned without its
+  `referenceText`.
+  *Wave-2 fix (review findings 7, 9, 20):* one measurement stack — `src/server/media/voice-check.ts` measures
+  provenance, format, level, clipping (samples counted at full scale, not guessed from the true peak) and the window,
+  and trims with a static gain measured on the mono 24 kHz cut; `src/server/studio/voice-reference.ts` keeps only the
+  speech judgement (`heardSpeech`, `judgeSpeech`) and composes the two; the stored record is the domain's
+  `VoiceReferenceValidation`. A file carrying docker/tts's synthetic-speech tag (ISFT/ICMT → ffprobe
+  `encoder`/`comment`) is refused `BAD_FORMAT` at upload and `MISSING_REFERENCE` if it reaches a build another way.
+  Journey 06 needs an authorised recording (`tests/fixtures/voice/iraqi-reference.wav` + consent note) and skips
+  with that reason until one exists.
+  *Wave-2 fix (review findings 4, 5):* one routing rule — `lineScript`/`routeLine` in `speech.ts` (punctuation and
+  digits are not script, so «،» does not flip an English line; a mixed line is heard in the language most of its
+  letters are in); `voice.ts` routes through a thin adapter that adds the pinned engine, and the suite calls the rule
+  directly. The gate is `judgeHeard`/`verifyLine` in `voice.ts` over `verdict()`: PASS needs coverage AND CER; FAIL is
+  regenerated once (`shouldRegenerate`), REVIEW is flagged for a person; `proof.cer` is recorded and the take's QA
+  report carries a `character-error-rate` row.
 - Dialogue reuse: a take records a line only when `d.audioAssetId` is missing or stale (identity revision changed);
   recorded lines are written back with `setDialogueAudio`; the take's soundtrack is joined from the stored lines.
   (Backend)
@@ -129,6 +185,11 @@ this file decides what lands now; the rest is backlog.
   `identity.referenceAssetId` of a used character, lock reasons surfaced in `GET /api/studio` through the existing
   `usage` record. The frontend shows the lock in the hero, on the Appearance tab and on the Voice tab with the reason
   and the videos.
+
+- *Wave-2 fix (review finding 8):* a voice locked by its chosen recording alone (the character spoke in a video
+  before any identity existed) may be built only from that very recording — `voiceBuildLockProblem` /
+  `guardVoiceBuild` in `rules.ts`, applied by the enqueue preflight, the `VOICE_BUILD` handler (AUTOMATIC is held to
+  the chosen recording, a catalogue voice is refused) and `setVoiceIdentity`.
 
 ### 1.7 Assets — Backend
 - `assets.unavailable` persisted (migration), set by `MEDIA_PROBE`/the file sweep; the UI reads it.

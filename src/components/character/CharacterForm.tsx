@@ -12,6 +12,7 @@ import { dialectLabel, words } from '@/lib/format';
 import { appearanceLock } from '@/domain/rules';
 import { IconGenerate } from '@/components/ui/icons';
 import type { CharacterProfileInput } from './contract';
+import { lookFromReference } from './look';
 
 /** THE CHARACTER SHEET — who they are and what they look like, in plain fields, laid out Identity → Look → Voice
  *  with the rarely needed fields behind a disclosure. The minimum is a name (style and language come from the
@@ -51,6 +52,8 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
   // the header owns style, language and dialect on the creation page
   const style = create ? create.style : d.style; const language = create ? create.language : d.language; const dialect = create ? create.dialect : d.dialect;
   const arabicName = language === 'AR' || T.locale === 'ar';
+  // a character made from a picture: an empty look field is the picture's (finding 3), and the form says so
+  const lookPh = initial && lookFromReference(initial, state.assets) ? T('char.look.fromReference') : undefined;
 
   const profile = (): CharacterProfileInput => ({ name: d.name.trim(), nameAr: d.nameAr.trim() || undefined, role: d.role.trim(), style, sex: d.sex, species: d.species.trim() || undefined, ageYears: Number(d.ageYears) || 1, build: d.build, face: d.face, hair: d.hair, skin: d.skin, eyes: d.eyes, distinguishing: d.distinguishing.split(',').map((x) => x.trim()).filter(Boolean), wardrobe: d.wardrobe, personality: d.personality, language, dialect: language === 'AR' ? dialect : undefined, voice: { pitch: d.pitch, pace: d.pace, timbre: d.timbre, notes: d.notes } });
 
@@ -102,13 +105,13 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
           {create && <p className="text-[12.5px] text-faint">{T('char.form.lookHint')}</p>}
           <Details summary={T('misc.details')} open={!create}>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label={T('label.build')}><Input value={d.build} onChange={(e) => set({ build: e.target.value })} /></Field>
-              <Field label={T('label.hair')}><Input value={d.hair} onChange={(e) => set({ hair: e.target.value })} /></Field>
-              <Field label={T('label.eyes')}><Input value={d.eyes} onChange={(e) => set({ eyes: e.target.value })} /></Field>
-              <Field label={T('label.skin')}><Input value={d.skin} onChange={(e) => set({ skin: e.target.value })} /></Field>
-              <Field label={T('label.face')} className="sm:col-span-2"><Input value={d.face} onChange={(e) => set({ face: e.target.value })} /></Field>
+              <Field label={T('label.build')}><Input value={d.build} onChange={(e) => set({ build: e.target.value })} placeholder={lookPh} /></Field>
+              <Field label={T('label.hair')}><Input value={d.hair} onChange={(e) => set({ hair: e.target.value })} placeholder={lookPh} /></Field>
+              <Field label={T('label.eyes')}><Input value={d.eyes} onChange={(e) => set({ eyes: e.target.value })} placeholder={lookPh} /></Field>
+              <Field label={T('label.skin')}><Input value={d.skin} onChange={(e) => set({ skin: e.target.value })} placeholder={lookPh} /></Field>
+              <Field label={T('label.face')} className="sm:col-span-2"><Input value={d.face} onChange={(e) => set({ face: e.target.value })} placeholder={lookPh} /></Field>
               <Field label={T('label.distinguishing')} help={T('char.form.distinguishingHelp')} className="sm:col-span-3"><Input value={d.distinguishing} onChange={(e) => set({ distinguishing: e.target.value })} /></Field>
-              <Field label={T('label.wardrobe')} className="sm:col-span-3"><Textarea value={d.wardrobe} onChange={(e) => set({ wardrobe: e.target.value })} rows={2} /></Field>
+              <Field label={T('label.wardrobe')} className="sm:col-span-3"><Textarea value={d.wardrobe} onChange={(e) => set({ wardrobe: e.target.value })} rows={2} placeholder={lookPh} /></Field>
             </div>
           </Details>
         </fieldset>

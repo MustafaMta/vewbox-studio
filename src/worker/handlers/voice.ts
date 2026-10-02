@@ -1,24 +1,25 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
-import { StudioError } from '@/domain/errors';
+import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, Production, VoiceIdentity, VoiceSample } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, fileFor, removeFile } from '@/server/media';
-import { tmpDir } from '@/server/media/ffmpeg';
-import { REFERENCE_WINDOW, analyseSilence, chooseWindow, parseSilences, staticGainDb, trimReference } from '@/server/studio/voice-reference';
-import { pickEngine, scriptCoverage, synthesize, transcribe, wordErrorRate, type TtsEngine } from '@/server/providers/speech';
+import { adoptFile, assetFromStored, ffprobe, fileFor, removeFile } from '@/server/media';
+import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
+import { engineOutputTag, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
+import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
+import { VOICE_GATES, charErrorRate, lineScript, pickEngine, routeLine as routeLineByScript, scriptCoverage, synthesize, transcribe, verdict, wordErrorRate, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
 import { registerUnloader } from '../gpu';
 import { unloadAsr, unloadTts } from '@/server/providers/speech';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
-import { guardVoiceChange, isCloneSource } from '@/domain/rules';
+import { guardVoiceBuild, isCloneSource, voiceLock } from '@/domain/rules';
 import type { VoiceIdentityInput } from '@/domain/actions';
 
 /** VOICES — one persistent identity per character (which engine, which reference recording, which revision), a
@@ -33,44 +34,53 @@ registerUnloader('ASR', unloadAsr);
 const TTS_VRAM = 8000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
-/** Gates (contract §1.4): a recorded line must cover this much of its script, in order; WER is reported, not gated.
- *  CER after the dialect fold joins the gate when the Voice agent's metric lands in speech.ts. */
-export const LINE_COVERAGE = 0.85;
-export const PROOF_COVERAGE = 0.85;
-export { REFERENCE_WINDOW, chooseWindow, parseSilences, staticGainDb, analyseSilence, trimReference };
-
-const missingReference = (message: string, details: Record<string, unknown> = {}) => Object.assign(new StudioError('INVALID', message, { ...details, failureClass: 'MISSING_REFERENCE' }), { failureClass: 'MISSING_REFERENCE' });
+/** Gates (contract §1.4, `VOICE_GATES` in speech.ts): a recorded line (and the proof line) must cover this much of
+ *  its script, in order, AND be within CER ≤ 0.15 after the dialect fold; a take's clip ≥ 0.7 with the same CER.
+ *  WER is reported, not gated. */
+export const LINE_COVERAGE = VOICE_GATES.coverage.line;
+export const PROOF_COVERAGE = VOICE_GATES.coverage.line;
+export const TAKE_COVERAGE = VOICE_GATES.coverage.take;
 
 // ----------------------------------------------------------------------------------------------- pure helpers
 
-/** Which script a line is written in: Arabic letters only, Latin letters only, both, or neither (numerals, marks). */
-export function lineScript(text: string): 'AR' | 'LATIN' | 'MIXED' | 'NONE' {
-  const ar = /[؀-ۿݐ-ݿ]/.test(text);
-  const latin = /[A-Za-z]{2,}/.test(text);
-  return ar && latin ? 'MIXED' : ar ? 'AR' : latin ? 'LATIN' : 'NONE';
-}
+export { lineScript };
 
-/** The language a line is spoken and verified in: its script decides; a line with no letters follows the character. */
-export function lineLanguage(text: string, fallback: Language): Language {
-  const s = lineScript(text);
-  return s === 'AR' ? 'AR' : s === 'LATIN' ? 'EN' : fallback;
-}
+export interface LineRoute { engine: Exclude<TtsEngine, 'auto'>; language: Language; script: LineScript; /** set when the line left the character's engine: the reason, for the job event */ fallback?: string }
 
-export interface LineRoute { engine: Exclude<TtsEngine, 'auto'>; language: Language; script: ReturnType<typeof lineScript>; /** set when the line left the identity's engine: the reason, for the job event */ fallback?: string }
-
-/** ROUTING PARITY — the engine and the verification language follow the line's script, identically in every
- *  handler: Arabic script → the character's Arabic engine (the pinned one when the identity is Arabic, else the
- *  one its dialect calls for); Latin only → IndexTTS; mixed → IndexTTS with the fallback named. The identity's
- *  `model` is never rewritten by a fallback. */
-export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string): LineRoute {
-  const script = lineScript(text);
+/** The engine a character's identity pins, when it is a local engine built for the language the character speaks
+ *  now (a STALE identity of another language does not decide). */
+const pinnedEngine = (c: Pick<Character, 'language' | 'voice'>): 'habibi' | 'indextts' | undefined => {
   const id = c.voice.identity;
-  const pinned = id?.provider === 'LOCAL_TTS' && (id.model === 'habibi' || id.model === 'indextts') ? (id.model as 'habibi' | 'indextts') : undefined;
-  const arabicEngine = id?.language === 'AR' && pinned ? pinned : pickEngine('AR', c.dialect);
-  if (script === 'AR') return { engine: arabicEngine, language: 'AR', script };
-  if (script === 'LATIN') return { engine: 'indextts', language: 'EN', script, fallback: pinned === 'habibi' ? 'Latin-only line: the Iraqi engine has no English, spoken by IndexTTS with the same reference' : undefined };
-  if (script === 'MIXED') return { engine: 'indextts', language: c.language, script, fallback: pinned === 'habibi' ? 'mixed-script line: spoken by IndexTTS (bilingual) instead of the Iraqi engine, same reference' : undefined };
-  return { engine: pinned ?? pickEngine(c.language, c.dialect), language: c.language, script };
+  return id?.provider === 'LOCAL_TTS' && id.language === c.language && (id.model === 'habibi' || id.model === 'indextts') ? id.model : undefined;
+};
+
+/** ROUTING PARITY — a thin adapter over THE routing rule (`routeLine` in src/server/providers/speech.ts, which the
+ *  Iraqi suite uses too): the engine and the verification language follow the line's script — Arabic script → the
+ *  character's engine (the pinned one); Latin only → IndexTTS; mixed → IndexTTS, heard in the language most of its
+ *  letters are in; the fallback is named for the job event. The identity's `model` is never rewritten. */
+export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string): LineRoute {
+  const r = routeLineByScript(text, c.language, c.dialect, pinnedEngine(c));
+  return { engine: r.engine, language: r.asrLanguage === 'ar' ? 'AR' : 'EN', script: r.script, fallback: r.fallback ? `${r.fallback} (same reference)` : undefined };
+}
+
+/** The language a line is spoken and verified in: its script decides; a line with no letters follows the character
+ *  (or the production) — `routeLine`'s verification language. */
+export function lineLanguage(text: string, fallback: Language): Language {
+  return routeLineByScript(text, fallback).asrLanguage === 'ar' ? 'AR' : 'EN';
+}
+
+/** What the hosted clone (MiniMax) takes: the ORIGINAL recording, 10 s – 5 min, at most 20 MB, mp3/m4a/wav
+ *  (VOICE-STACK §3). The trimmed ≤ 12 s window the local engines use is not it (finding 11). */
+export const MINIMAX_CLONE = { minSeconds: 10, maxSeconds: 300, maxBytes: 20 * 1024 * 1024, types: ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac'] as readonly string[] };
+
+/** Why an original recording cannot be sent to the hosted clone, or null. Pure. */
+export function minimaxCloneProblem(a: Pick<Asset, 'durationSeconds' | 'bytes'>): string | null {
+  const d = a.durationSeconds;
+  if (d === undefined || !Number.isFinite(d)) return 'its length could not be read';
+  if (d < MINIMAX_CLONE.minSeconds) return `it is ${d.toFixed(1)} s long; the hosted clone needs at least ${MINIMAX_CLONE.minSeconds} s`;
+  if (d > MINIMAX_CLONE.maxSeconds) return `it is ${Math.round(d)} s long; the hosted clone takes at most ${MINIMAX_CLONE.maxSeconds / 60} min`;
+  if (a.bytes !== undefined && a.bytes > MINIMAX_CLONE.maxBytes) return `it is ${(a.bytes / 1024 / 1024).toFixed(1)} MB; the hosted clone takes at most 20 MB`;
+  return null;
 }
 
 /** The profile's pace as the engine's speed factor. */
@@ -117,10 +127,14 @@ export interface Reference {
 }
 
 /** The character's reference recording as the engine takes it (mono 24 kHz, ≤ 12 s, −20 LUFS), or null when
- *  there is nothing to clone from. The window stored at upload is used as it is; otherwise it is cut here. */
+ *  there is nothing to clone from. The window stored at upload is used as it is; otherwise it is cut here with the
+ *  one measurement stack (voice-check). A file the studio's own engine made is refused whatever path brought it in
+ *  (finding 7: the synthetic-speech tag docker/tts writes is read here and at upload). */
 export async function referenceWav(c: Character, assets: Asset[], dir: string, opts: { sampleId?: string } = {}): Promise<Reference | null> {
   const pick = pickReference(c, assets, opts);
   if (!pick) return null;
+  const engine = await engineOutputTag(assetFile(pick.asset));
+  if (engine) throw missingReference(`“${pick.sample?.label ?? pick.asset.label}” is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; upload a real recording of ${c.name}'s voice.`, { characterId: c.id, assetId: pick.asset.id, engineOutput: engine });
   const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
   const text = pick.sample?.text?.trim() || c.voice.identity?.referenceText?.trim() || undefined;
   // the trimmed window stored with the upload, or the one the identity was built with
@@ -131,23 +145,33 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string, o
     return { file: assetFile(stored), asset: pick.asset, sample: pick.sample, text, window: w ? { from: w.from, to: w.to, assetId: stored.id } : { from: 0, to: stored.durationSeconds ?? 0, assetId: stored.id }, via: pick.via };
   }
   const src = assetFile(pick.asset);
-  const { silences, durationSeconds } = await analyseSilence(src);
-  const window = chooseWindow(silences, durationSeconds || pick.asset.durationSeconds || REFERENCE_WINDOW.maxSeconds);
+  const speech = await speechRegions(src, { durationSeconds: pick.asset.durationSeconds });
+  const found = pickReferenceWindow(speech.regions, speech.durationSeconds);
+  // no clear run of speech found: the head of the file, as long as the engines take
+  const window = found ? { from: found.from, to: found.to } : { from: 0, to: Math.min(speech.durationSeconds || REFERENCE_WINDOW.maxSeconds, REFERENCE_WINDOW.maxSeconds) };
   const out = path.join(dir, `ref-${c.id}.wav`);
   await trimReference(src, out, window);
   return { file: out, asset: pick.asset, sample: pick.sample, text, window, via: pick.via };
 }
 
 /** What the reference recording says. Habibi (F5-TTS) conditions on the reference transcript; it is stored once on
- *  the sample (at upload, or here on first use) and never transcribed again. */
-export async function referenceText(ctx: HandlerContext, c: Character, ref: Reference): Promise<string | undefined> {
-  if (ref.text !== undefined) return ref.text || undefined;
+ *  the sample (at upload, or here on first use) and never transcribed again. Without it the engine would run its own
+ *  Whisper inside the container on every line — a different transcript each time, an identity pinned with none
+ *  (finding 17) — so a transcript that cannot be had is a refusal: UNAVAILABLE while the transcription service is
+ *  away (the job is retried when it is back), MISSING_REFERENCE when the recording yields no words. */
+export async function referenceText(ctx: HandlerContext, c: Character, ref: Reference): Promise<string> {
+  if (ref.text) return ref.text;
+  let heard: Awaited<ReturnType<typeof transcribe>>;
   try {
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
-    ref.text = t.text.trim();
-    if (ref.sample && ref.text) await command('updateVoiceSample', [c.id, ref.sample.id, { text: ref.text, language: t.language === 'ar' ? 'AR' : t.language === 'en' ? 'EN' : undefined }], 'worker');
-  } catch (e) { await ctx.event('warn', `reference transcription skipped: ${(e as Error).message}`); ref.text = ''; }
-  return ref.text || undefined;
+    heard = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
+  } catch (e) {
+    throw new StudioError('UNAVAILABLE', `The Iraqi engine needs the words of ${c.name}'s reference recording and the transcription service could not provide them (${(e as Error).message}); nothing was spoken with a guessed transcript — retry when the service is back.`, { failureClass: 'INFRASTRUCTURE', characterId: c.id, sampleId: ref.sample?.id });
+  }
+  const text = heard.text.trim();
+  if (!text) throw missingReference(`No words were heard in ${c.name}'s reference recording “${ref.sample?.label ?? ref.asset.label}”; the Iraqi engine needs a recording of clear speech.`, { characterId: c.id, sampleId: ref.sample?.id });
+  ref.text = text;
+  if (ref.sample) await command('updateVoiceSample', [c.id, ref.sample.id, { text, language: heard.language === 'ar' ? 'AR' : heard.language === 'en' ? 'EN' : undefined }], 'worker');
+  return text;
 }
 
 export interface SpokenLine { file: string; engine: string; model: string; ms: number; language: Language; durationSeconds?: number; fallback?: string }
@@ -174,15 +198,29 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };
 }
 
-export interface LineCheck { ok: boolean; wer: number; coverage: number; heard: string }
+/** What hearing a line back proved. `ok` only on PASS (coverage AND CER within the gate); `status` is the contract's
+ *  verdict — FAIL is regenerated once, REVIEW (just below the gate) goes to a person. */
+export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string }
 
-/** Say the line back: transcribe in the line's language and compare. `null` means the line could not be heard
- *  back (the transcription service was away): callers treat that as unverified — flagged for review, never passed. */
-export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, gate = LINE_COVERAGE): Promise<LineCheck | null> {
+/** THE GATE (contract §1.4) on a line and what was heard: coverage over folded words, CER after the dialect fold,
+ *  WER for the report — and the verdict for a recorded line ('line') or a take's clip ('take'). Pure. */
+export function judgeHeard(text: string, heard: string, language: Language, context: 'line' | 'take' = 'line'): LineCheck {
+  const coverage = scriptCoverage(text, heard, language);
+  const cer = charErrorRate(text, heard, language);
+  const v = verdict({ coverage, cer, context });
+  return { ok: v.status === 'PASS', status: v.status, reasons: v.reasons, wer: wordErrorRate(text, heard, language), cer, coverage, heard };
+}
+
+/** A heard line that failed the gate outright is spoken once more; one just below the gate is kept and flagged for a
+ *  person to listen to; an unheard one (null) is flagged too. */
+export const shouldRegenerate = (check: LineCheck | null): boolean => check?.status === 'FAIL';
+
+/** Say the line back: transcribe in the line's language and judge it (`judgeHeard`). `null` means the line could not
+ *  be heard back (the transcription service was away): callers treat that as unverified — flagged, never passed. */
+export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, context: 'line' | 'take' = 'line'): Promise<LineCheck | null> {
   try {
     const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(file, { language: language === 'AR' ? 'ar' : 'en' }), { label: 'verify line' }), { jobId: ctx.job.id });
-    const coverage = scriptCoverage(text, t.text, language);
-    return { ok: coverage >= gate, wer: wordErrorRate(text, t.text, language), coverage, heard: t.text };
+    return judgeHeard(text, t.text, language, context);
   } catch (e) { await ctx.event('warn', `transcription unavailable; the line is flagged for review: ${(e as Error).message}`); return null; }
 }
 
@@ -200,8 +238,11 @@ export const voiceBuild: Handler = async (ctx) => {
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === payload.characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
-  // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED)
-  if (c.voice.identity) guardVoiceChange(c, 'rebuild the voice');
+  // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED): with an identity it
+  // is never rebuilt; locked by the chosen recording alone, it is built only from that recording (AUTOMATIC is held
+  // to it, REFERENCE must name it, a catalogue voice is refused) — finding 8
+  const locked = voiceLock(c).locked;
+  guardVoiceBuild(c, mode === 'REFERENCE' ? payload.referenceSampleId : mode === 'AUTOMATIC' ? c.voice.selectedSampleId : undefined, 'build the voice');
   const dir = await tmpDir('voice');
   const useMinimax = mode === 'MANUAL' || ((payload.provider ?? state.settings.generation?.voiceProvider) === 'MINIMAX' && Boolean(env().MINIMAX_API_KEY));
   if (mode === 'MANUAL' && !env().MINIMAX_API_KEY) throw new StudioError('NOT_CONFIGURED', 'A catalogue voice needs the hosted speech provider: MINIMAX_API_KEY is not set.');
@@ -209,7 +250,7 @@ export const voiceBuild: Handler = async (ctx) => {
   // 1) the reference: the producer's upload, never a generated line
   let ref: Reference | null = null;
   if (mode !== 'MANUAL') {
-    ref = await referenceWav(c, state.assets, dir, mode === 'REFERENCE' ? { sampleId: payload.referenceSampleId } : {});
+    ref = await referenceWav(c, state.assets, dir, mode === 'REFERENCE' ? { sampleId: payload.referenceSampleId } : locked ? { sampleId: c.voice.selectedSampleId } : {});
     if (!ref) throw missingReference(mode === 'REFERENCE' ? `The requested recording is not an uploaded recording of ${c.name} (or its file is gone). Upload a 3–30 second recording of the voice on the Voice tab.` : `${c.name} has no uploaded recording to clone from. Upload a 3–30 second recording of the voice on the Voice tab first.`, { characterId: c.id, mode });
     await ctx.progress('PREPARING', { phase: 'preparing', message: `Reference recording for ${c.name}: “${ref.sample?.label ?? ref.asset.label}” (${ref.window ? `${ref.window.from}–${ref.window.to} s` : 'whole file'})` });
     await ctx.event('info', 'reference chosen', { assetId: ref.asset.id, sampleId: ref.sample?.id, via: ref.via, window: ref.window, hasText: Boolean(ref.text) });
@@ -222,9 +263,16 @@ export const voiceBuild: Handler = async (ctx) => {
   if (useMinimax) {
     if (mode === 'MANUAL') head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: payload.providerVoiceId };
     else {
+      // the hosted clone hears the ORIGINAL upload (10 s – 5 min), never the trimmed ≤ 12 s window; one that cannot
+      // qualify is refused before anything is sent
+      const original = ref!.asset;
+      const problem = minimaxCloneProblem({ durationSeconds: original.durationSeconds ?? (await ffprobe(assetFile(original)).catch(() => undefined))?.durationSeconds, bytes: original.bytes });
+      if (problem) throw new StudioError('INVALID', `The hosted voice clone (MiniMax) needs the original recording to be 10 s – 5 min and at most 20 MB: “${ref!.sample?.label ?? original.label}” — ${problem}. Upload a longer recording, or build the voice with the local engines.`, { failureClass: 'INVALID_INPUT', characterId: c.id, assetId: original.id, durationSeconds: original.durationSeconds });
+      let cloneFrom = assetFile(original);
+      if (!MINIMAX_CLONE.types.includes(original.mimeType ?? '')) { const wav = path.join(dir, `clone-${original.id}.wav`); await ffmpeg(['-v', 'error', '-i', cloneFrom, '-vn', '-c:a', 'pcm_s16le', wav], { timeoutMs: 120_000 }); cloneFrom = wav; }
       await ctx.progress('GENERATING', { phase: 'cloning', message: 'Cloning the voice with MiniMax' });
       const voiceId = `vb_${c.id.replace(/[^a-z0-9]/gi, '').slice(0, 20)}_${Date.now().toString(36)}`;
-      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: ref!.file, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
+      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: cloneFrom, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
       head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: r.voiceId };
     }
   } else {
@@ -238,7 +286,8 @@ export const voiceBuild: Handler = async (ctx) => {
   const text = proofLineFor(c);
   await ctx.progress('GENERATING', { phase: 'speaking', message: 'Speaking a proof line' });
   const line = await speakLine(ctx, trial, text, ref, dir);
-  const check = await verifyLine(ctx, line.file, text, line.language, PROOF_COVERAGE);
+  // the proof is a recorded line: coverage ≥ 0.85 and CER ≤ 0.15 (anything else, or unheard, is REVIEW)
+  const check = await verifyLine(ctx, line.file, text, line.language, 'line');
   const status: VoiceIdentity['status'] = check?.ok ? 'ACTIVE' : 'REVIEW';
 
   // 4) into the studio in one batch: the audio first, then its sample, then the identity that cites both
@@ -246,7 +295,7 @@ export const voiceBuild: Handler = async (ctx) => {
   const stored = await adoptFile(assetId, line.file, { expectKind: 'AUDIO' });
   const identity: VoiceIdentityInput = {
     ...head, mode, referenceSampleId: ref?.sample?.id, referenceAssetId: ref?.asset.id, referenceWindow: ref?.window?.assetId ? { from: ref.window.from, to: ref.window.to, assetId: ref.window.assetId } : undefined, referenceText: ref?.text,
-    language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
+    language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, cer: check?.cer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
   };
   try {
     await commands([
@@ -258,8 +307,8 @@ export const voiceBuild: Handler = async (ctx) => {
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await recordMetric('voice.build_ms', line.ms, 'ms', { engine: line.engine }, ctx.job.id);
   // the voice is handed to the production only with its proof: a line spoken and heard back
-  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-coverage', ok: Boolean(check?.ok), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE }, { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' }], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()})` });
-  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard` : 'not verified — review'}`, { characterId: c.id, engine: line.engine, coverage: check?.coverage, wer: check?.wer, status });
+  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-coverage', ok: Boolean(check && check.coverage >= PROOF_COVERAGE), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE }, { name: 'proof-line-cer', ok: Boolean(check && check.cer <= VOICE_GATES.cer), value: check ? Number(check.cer.toFixed(2)) : undefined, threshold: VOICE_GATES.cer, detail: 'character error rate after the dialect fold' }, { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' }], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()})${check?.reasons.length ? `; ${check.reasons.join('; ')}` : ''}` });
+  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard, CER ${Math.round(check.cer * 100)} %${check.ok ? '' : ' — review'}` : 'not verified — review'}`, { characterId: c.id, engine: line.engine, coverage: check?.coverage, cer: check?.cer, wer: check?.wer, status });
   return { identity: { ...head, mode, status, referenceAssetId: ref?.asset.id, params }, sampleAssetId: assetId, proofSampleId: sampleId, engine: line.engine, check, awaitingReview: status !== 'ACTIVE' };
 };
 
@@ -319,7 +368,7 @@ export const dialogueAudio: Handler = async (ctx) => {
     await ctx.progress('GENERATING', { phase: 'recording', message: `${c.name}: “${text.slice(0, 40)}”`, step: done + 1, total: lines.length });
     let line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery });
     let check = await verifyLine(ctx, line.file, text, line.language);
-    if (check && !check.ok) { await ctx.event('warn', `line drifted (${Math.round(check.coverage * 100)} % heard, WER ${(check.wer * 100).toFixed(0)} %), regenerating once`, { heard: check.heard }); line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+    if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
     if (check === null) unverified++; else if (!check.ok) flagged++;
     const id = nid('gen');
     const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
@@ -334,7 +383,7 @@ export const dialogueAudio: Handler = async (ctx) => {
   // the dialogue is handed to Video Production: every requested line recorded, flagged lines named
   const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
   const missing = fresh.shots.flatMap((sh) => sh.dialogue.filter((d) => !d.audioAssetId)).length;
-  await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.flatMap((sh) => sh.dialogue.map((d) => d.audioAssetId).filter((x): x is string => Boolean(x))), outputVersions: { lines: done }, validation: { ok: missing === 0 && flagged === 0 && unverified === 0, checks: [{ name: 'every-line-recorded', ok: missing === 0, detail: missing ? `${missing} line(s) without a recording` : undefined }, { name: 'no-line-flagged', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted from the script (coverage < ${LINE_COVERAGE})` : undefined }, { name: 'every-line-heard-back', ok: unverified === 0, detail: unverified ? `${unverified} line(s) could not be transcribed; review them` : undefined }] }, jobId: ctx.job.id });
+  await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.flatMap((sh) => sh.dialogue.map((d) => d.audioAssetId).filter((x): x is string => Boolean(x))), outputVersions: { lines: done }, validation: { ok: missing === 0 && flagged === 0 && unverified === 0, checks: [{ name: 'every-line-recorded', ok: missing === 0, detail: missing ? `${missing} line(s) without a recording` : undefined }, { name: 'no-line-flagged', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted from the script (coverage < ${LINE_COVERAGE} or CER > ${VOICE_GATES.cer})` : undefined }, { name: 'every-line-heard-back', ok: unverified === 0, detail: unverified ? `${unverified} line(s) could not be transcribed; review them` : undefined }] }, jobId: ctx.job.id });
   await ctx.activity('DIALOGUE_RECORDED', `${done} line(s) recorded for “${p.title}”${flagged ? `, ${flagged} flagged for review` : ''}${unverified ? `, ${unverified} not heard back` : ''}`, { lines: done, flagged, unverified });
   return { lines: done, flagged, unverified, awaitingReview: flagged > 0 || unverified > 0 };
 };

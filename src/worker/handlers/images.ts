@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
-import { StudioError, type StudioErrorCode } from '@/domain/errors';
+import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, CharacterRef, Location, LocationRef, PendingReference, Production, Shot } from '@/domain/types';
 import type { CharacterRefRole, TimeOfDay } from '@/domain/vocabulary';
@@ -14,6 +14,7 @@ import { validateReferenceImage, type ReferenceValidation } from '@/server/media
 import * as comfy from '@/server/providers/comfy';
 import { MODELS, SHEET_OUTPUTS, SHEET_TILES, VIEW_SEED_OFFSET, identityLine as buildIdentityLine, identitySeedFor, qwenEdit, qwenIdentitySheet, qwenTextToImage, qwenView, sheetPrompt, viewPrompt, type ViewRole } from '@/server/workflows';
 import { characterPrompt, framePrompt, locationPrompt } from '@/server/story/prompts';
+import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
 import { canChangeAppearance } from '@/domain/rules';
 import { enqueue, recordMetric } from '@/server/jobs/queue';
@@ -33,9 +34,6 @@ const IMAGE_VRAM_MB = 24000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 // bundled sample pictures are placeholders for the UI, never references for generation
 const usable = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
-/** Contract §1.2: an unusable reference is refused, never silently replaced by text. The code is added to
- *  `StudioErrorCode` by the Backend agent (it is also the voice contract's code); until then it is cast. */
-const MISSING_REFERENCE = 'MISSING_REFERENCE' as StudioErrorCode;
 
 /** The pure identity helpers, exported here for the handlers' callers and tests (they live in workflows/identity). */
 export { buildIdentityLine as identityLine, identitySeedFor };
@@ -102,14 +100,56 @@ const identityLineOf = (c: Character) => buildIdentityLine(c);
 const identitySeedOf = (c: Character) => identitySeedFor(c);
 const roleLabel = (r: string) => r.toLowerCase().replace(/_/g, ' ');
 
-/** The producer's reference must be a real, usable, validated picture. A stored validation (contract §1.2, written
- *  by the upload endpoint) is trusted; without one the file is measured here on the CPU. */
-async function requireUsableReference(c: Character, pending: Asset | undefined): Promise<ReferenceValidation | undefined> {
+// ----------------------------------------------------------------------------- the look from a reference picture
+
+const LOOK_NAMES: Record<LookField, string> = { face: 'face', hair: 'hair', skin: 'skin', eyes: 'eyes', build: 'build', wardrobe: 'wardrobe' };
+const clean = (s?: string) => (s ?? '').replace(/\s+/g, ' ').replace(/[.;]+$/, '').trim();
+const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
+
+/** REFERENCE MODE (finding 3) — the picture is the source of the look: nothing the story model could not see is
+ *  stated. The identity line names the look fields that come from the picture ("as in the reference picture") and
+ *  keeps only what the producer actually wrote (a field they filled, a distinguishing mark, an accessory, a
+ *  restriction). Persisted as the character's identity line, so every later sheet, view and frame repeats it. */
+export function referenceIdentityLine(c: Pick<Character, LookField | 'distinguishing'> & { canon?: Character['canon'] }): string {
+  const fromPicture = LOOK_FIELDS.filter((k) => !clean(c[k]) || clean(c[k]) === '—').map((k) => LOOK_NAMES[k]);
+  const written: string[] = [];
+  if (clean(c.hair)) written.push(`${clean(c.hair)} hair`);
+  if (clean(c.eyes)) written.push(`${clean(c.eyes)} eyes`);
+  if (clean(c.skin) && clean(c.skin) !== '—') written.push(`${clean(c.skin)} skin`);
+  if (clean(c.build)) written.push(`${clean(c.build)} build`);
+  if (clean(c.face)) written.push(clean(c.face));
+  if (clean(c.wardrobe)) written.push(`wearing ${clean(c.wardrobe)}`);
+  for (const d of (c.distinguishing ?? []).slice(0, 6)) if (clean(d)) written.push(clean(d));
+  const acc = (c.canon?.accessories ?? []).map(clean).filter(Boolean);
+  if (acc.length) written.push(`accessories: ${acc.join(', ')}`);
+  for (const r of (c.canon?.visualRestrictions ?? []).slice(0, 4)) if (clean(r)) written.push(clean(r).charAt(0).toLowerCase() + clean(r).slice(1));
+  const parts = [fromPicture.length ? `${listWords(fromPicture)} exactly as in the reference picture` : '', ...written].filter(Boolean);
+  return `Identity: ${parts.join('; ')}.`;
+}
+
+/** The portrait prompt when the producer gave a picture: the view, the person of the picture, the direction to
+ *  render them in — and the look fields the producer wrote as deliberate changes. No described face, hair, skin,
+ *  eyes or wardrobe competes with the picture (two conditionings in one prompt were the drift root cause,
+ *  CHARACTER-IMAGE-STACK §4). */
+export function referencePortraitPrompt(c: Character): string {
+  const d = styleDirection(c.style);
+  return [
+    'Head-and-shoulders portrait, centred, looking at camera, neutral expression, plain mid-grey background, no props.',
+    'The person is the one in the reference picture: keep their face, hair, skin, eyes, build and clothing exactly as in the reference picture unless a line below changes one.',
+    referenceIdentityLine(c),
+    `Render them in this production direction: ${d.visual}. ${d.character} ${d.avoid}`,
+  ].map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' ');
+}
+
+/** The producer's reference must be a real, usable, validated picture (contract §1.2: an unusable reference is
+ *  refused with MISSING_REFERENCE, never silently replaced by text). A stored validation (written by the upload
+ *  endpoint) is trusted; without one the file is measured here on the CPU. */
+export async function requireUsableReference(c: Character, pending: Asset | undefined): Promise<ReferenceValidation | undefined> {
   if (!c.pendingReference) return undefined;
-  if (!usable(pending)) throw new StudioError(MISSING_REFERENCE, `${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
+  if (!usable(pending)) throw missingReference(`${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
   const stored = (c.pendingReference as PendingReference & { validation?: ReferenceValidation }).validation;
   const v = stored ?? await validateReferenceImage(assetFile(pending!));
-  if (!v.ok) throw new StudioError(MISSING_REFERENCE, `${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending!.id, validation: v });
+  if (!v.ok) throw missingReference(`${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending!.id, validation: v });
   return v;
 }
 
@@ -122,13 +162,16 @@ export const characterAppearance: Handler = async (ctx) => {
   const pending = c.pendingReference ? state.assets.find((a) => a.id === c.pendingReference!.assetId) : undefined;
   const validation = await requireUsableReference(c, pending);
   await requireComfy();
-  const line = identityLineOf(c);
+  // a picture is the look: the identity line and the prompt say "as in the reference picture" and state only what
+  // the producer wrote; without one the written sheet is the look (a line stored by an earlier drawing from a
+  // picture no longer applies when no picture is given)
+  const line = pending ? referenceIdentityLine(c) : identityLineOf(/as in the reference picture/.test(c.canon?.identityLine ?? '') ? { ...c, canon: { ...c.canon, identityLine: undefined } } : c);
   const seed = identitySeedOf(c);
   await ctx.progress('GENERATING', { phase: 'drawing', message: `Drawing ${c.name}` });
   // the view sentence first (the direction text must not win over it), then the direction and the description,
   // then the identity line verbatim
-  const prompt = ['Head-and-shoulders portrait, centred, looking at camera, neutral expression, plain mid-grey background, no props.', characterPrompt(c, 'PORTRAIT'), line, pending ? 'Keep the face, hair and identity of the person in the reference picture exactly; render them in this production direction.' : ''].filter(Boolean).join(' ').replace(/\s+/g, ' ');
-  const portrait = await draw(ctx, { prompt, negative: NEG, references: pending ? [pending] : [], width: 1024, height: 1280, label: `${c.name} — portrait`, tags: ['character', 'portrait'], seed, provenance: { characterId: c.id, view: 'PORTRAIT', identityLine: line, identitySeed: seed, ...(validation ? { referenceValidation: validation } : {}) } });
+  const prompt = pending ? referencePortraitPrompt(c) : ['Head-and-shoulders portrait, centred, looking at camera, neutral expression, plain mid-grey background, no props.', characterPrompt(c, 'PORTRAIT'), line].filter(Boolean).join(' ').replace(/\s+/g, ' ');
+  const portrait = await draw(ctx, { prompt, negative: NEG, references: pending ? [pending] : [], width: 1024, height: 1280, label: `${c.name} — portrait`, tags: ['character', 'portrait'], seed, provenance: { characterId: c.id, view: 'PORTRAIT', identityLine: line, identitySeed: seed, ...(pending ? { lookFrom: 'REFERENCE', referenceAssetId: pending.id } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
   await ctx.checkpoint();
   // the old portrait and sheet stay in the library; only the character's pointers move
   await command('setCharacterAppearance', [c.id, { portraitAssetId: portrait.id, refs: [], keepExistingRefs: false }], 'worker');
@@ -142,7 +185,7 @@ export const characterAppearance: Handler = async (ctx) => {
     const r = await enqueue({ type: 'CHARACTER_REFS', payload: { characterId: c.id }, parentId: ctx.job.id, idempotencyKey: `appearance:${ctx.job.id}:refs`, priority: ctx.job.priority });
     refsJobId = r.job.id;
   }
-  return { portraitAssetId: portrait.id, ms: portrait.ms, workflowVersion: portrait.workflowVersion, identitySeed: seed, identityLine: line, refsJobId };
+  return { portraitAssetId: portrait.id, ms: portrait.ms, workflowVersion: portrait.workflowVersion, identitySeed: seed, identityLine: line, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', refsJobId };
 };
 
 /** The default pack: the four sheet tiles, then the derived views. FACE is the sheet's face crop. */

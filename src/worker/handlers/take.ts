@@ -12,9 +12,9 @@ import { ffmpeg, joinSpeech, qaTake, tailClip, thumbnail, tmpDir, trimAudio, web
 import { orderedShots, shotWindows } from '@/domain/timeline';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_GUIDE_FRAMES } from '@/server/workflows/minimax-h3';
-import { scriptCoverage, transcribe, wordErrorRate } from '@/server/providers/speech';
+import { VOICE_GATES, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
-import { lineLanguage, lineRecordingCurrent, referenceWav, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
+import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, shouldRegenerate, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
@@ -107,7 +107,7 @@ export const generateTake: Handler = async (ctx) => {
       const ref = voices.get(d.characterId)!;
       let line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery });
       let check = await verifyLine(ctx, line.file, text, line.language);
-      if (check && !check.ok) { await ctx.event('warn', `line drifted (${Math.round(check.coverage * 100)} % heard), regenerating once`, { lineId: d.id, heard: check.heard }); line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+      if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { lineId: d.id, heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
       const id = nid('gen');
       const st = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
       const durationSeconds = st.probe?.durationSeconds ?? line.durationSeconds ?? 2;
@@ -206,7 +206,7 @@ export const generateTake: Handler = async (ctx) => {
   const { report, probe } = await ctx.tool('media.qa_take', () => qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' }));
   const pictureChecks = report.checks.map((c) => ({ ...c }));
   await ctx.checkpoint();
-  let scriptCheck: { ok: boolean; coverage?: number; wer?: number; heard?: string; detail?: string } | undefined;
+  let scriptCheck: { ok: boolean; coverage?: number; wer?: number; cer?: number; heard?: string; detail?: string } | undefined;
   let takeUnverified = false;
   // MiniMax H3 always renders its own speech (an anchored audio guide is context, not a pinned soundtrack — see
   // docs/AUDIOVISUAL-QA.md, E1), so a speaking take is proven by listening back: the clip is transcribed, compared
@@ -220,13 +220,13 @@ export const generateTake: Handler = async (ctx) => {
       // the verification language follows the script of the lines (routing parity), not the production's setting
       const heardIn = lineLanguage(expected, p.language);
       const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(wav, { language: heardIn === 'AR' ? 'ar' : 'en' }), { label: 'take audio' }), { jobId: ctx.job.id });
-      const wer = wordErrorRate(expected, t.text, heardIn);
-      // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
-      // missing line); the take passes when the lines were spoken, and the report carries both numbers
-      const coverage = scriptCoverage(expected, t.text, heardIn);
-      report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${t.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
-      scriptCheck = { ok: coverage >= 0.7, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200) };
-      if (coverage < 0.7) report.ok = false;
+      // the contract's gate for a take (§1.4): coverage ≥ 0.7 of the script, in order (a repeated phrase is not a
+      // missing line), AND CER ≤ 0.15 after the dialect fold; WER is reported. The report carries all three.
+      const judged = judgeHeard(expected, t.text, heardIn, 'take');
+      const { wer, coverage, cer } = judged;
+      report.checks.push({ name: 'script-spoken', ok: judged.ok, value: Number(coverage.toFixed(2)), threshold: TAKE_COVERAGE, detail: `heard: ${t.text.slice(0, 160)} (CER ${cer.toFixed(2)}, WER ${wer.toFixed(2)})${judged.reasons.length ? `; ${judged.reasons.join('; ')}` : ''}` });
+      scriptCheck = { ok: judged.ok, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), cer: Number(cer.toFixed(2)), heard: t.text.slice(0, 200) };
+      if (!judged.ok) report.ok = false;
       const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
       const clipSeconds = probe.durationSeconds ?? seconds;
       const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, heardIn);
@@ -287,7 +287,7 @@ export const generateTake: Handler = async (ctx) => {
   // (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization Inspector)
   const pictureOk = pictureChecks.every((c) => c.ok);
   await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id });
-  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: 0.7, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
+  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: TAKE_COVERAGE, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.cer !== undefined ? [{ name: 'character-error-rate', ok: scriptCheck.cer <= VOICE_GATES.cer, value: scriptCheck.cer, threshold: VOICE_GATES.cer, detail: 'after the dialect fold; gated' }] : []), ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
   // VIDEO handoff to QA once every shot of the production has an accepted, chosen take
   const after = (await readState()).state.productions.find((x) => x.id === p.id);
   if (after) {

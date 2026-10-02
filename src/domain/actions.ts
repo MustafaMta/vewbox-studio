@@ -3,7 +3,7 @@ import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError } from './errors';
-import { VOICE_INTERNAL_KEYS, canChangeAppearance, guardCharacterPatch, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
+import { VOICE_INTERNAL_KEYS, canChangeAppearance, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -434,7 +434,8 @@ export type VoiceIdentityInput = Omit<VoiceIdentity, 'revision' | 'createdAt' | 
  *  batch), bumped when rebuilt, refused for a voice-locked character. The only writer of `voice.identity`. */
 export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput): S {
   const c = mustFind(s.characters, id, 'Character');
-  if (c.voice.identity) guardVoiceChange(c, 'voice identity');
+  // a locked voice keeps its identity; a voice locked by its chosen recording alone may only be pinned to that one
+  guardVoiceBuild(c, identity.referenceSampleId, 'voice identity');
   if (!identity.proof?.sampleId || !identity.proof.assetId) throw new StudioError('INVALID', 'A voice identity needs its proof: the line that was spoken with it and heard back.', { characterId: id });
   const proof = c.voice.samples.find((x) => x.id === identity.proof!.sampleId);
   if (!proof || proof.assetId !== identity.proof.assetId || proof.source !== 'GENERATED') throw new StudioError('INVALID', 'The proof line must be a generated sample of this character, stored before the identity is pinned.', { characterId: id, sampleId: identity.proof.sampleId });
