@@ -153,7 +153,7 @@ export function deriveCompany(org: OrgResponse, activeProductionIds: string[], n
 export type Company = ReturnType<typeof deriveCompany>;
 
 /** A department's team in seat order for the dots: the director in the middle of the arc, the others around it. */
-export function teamOrder(agents: OrgAgent[], directorId: string): OrgAgent[] {
+export function teamOrder<A extends Pick<OrgAgent, 'id'>>(agents: A[], directorId: string): A[] {
   const director = agents.find((a) => a.id === directorId);
   const rest = agents.filter((a) => a.id !== directorId);
   if (!director) return rest;

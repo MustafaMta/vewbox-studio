@@ -2,9 +2,10 @@
 name: singing-performance
 description: Mapping a song to its performers and to time — assigning sections (solo, duet, alternating, ensemble, instrumental), aligning the written lyrics to the real vocal with word timings, and carrying the assignment onto the shots. Use for GENERATE_SONG, PLAN_SHOTS with performanceOnly, and lyric cues.
 license: Proprietary to this studio
-allowed-tools: story.structured_answer speech.transcribe lyrics.align studio.command
+allowed-tools: story.structured_answer speech.transcribe lyrics.align audio.separate_stems
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
+  kind: "PROCEDURE"
   source: src/server/media/lyrics.ts (alignLyrics), src/worker/handlers/music.ts (alignSongLyrics), src/server/story/engine.ts (planPerformance)
   models: qwen3:14b, faster-whisper large-v3, ACE-Step 1.5, MiniMax Music 3
 ---

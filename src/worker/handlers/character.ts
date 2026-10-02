@@ -1,4 +1,5 @@
 import type { Handler, HandlerContext } from './index';
+import { step } from './step';
 import { StudioError, asStudioErrorCode, missingReference } from '@/domain/errors';
 import type { Character } from '@/domain/types';
 import { isTerminalStatus, profileNeedsDesign, type CreateCharacterResult, type CreateCharacterStep, type CreateCharacterStepOutcome, type Job, type JobPayloadParsed, type JobType } from '@/domain/jobs';
@@ -36,7 +37,8 @@ interface Chain { deadline: number; boundMs: number; children: string[] }
  *  deadline the parent fails INFRASTRUCTURE naming the children; they keep running and a retry adopts them. */
 async function runStep(ctx: HandlerContext, chain: Chain, step: CreateCharacterStep, payload: Record<string, unknown>, index: number): Promise<Job> {
   const type = CHILD_TYPE[step];
-  const r = await ctx.tool('jobs.enqueue', () => enqueue({ type, payload, parentId: ctx.job.id, idempotencyKey: `create:${ctx.job.id}:${step}`, priority: 1 }), { label: type });
+  const req = { type, payload, parentId: ctx.job.id, idempotencyKey: `create:${ctx.job.id}:${step}`, priority: 1 };
+  const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: type, input: req });
   let job = r.job;
   chain.children.push(job.id);
   if (!r.created) {
@@ -81,9 +83,12 @@ export const createCharacter: Handler = async (ctx) => {
   // REFERENCE: the picture is validated before anything is created (contract §1.2); an unusable one creates nothing
   const refAsset = payload.mode === 'REFERENCE' ? state.assets.find((a) => a.id === payload.referenceAssetId) : undefined;
   if (payload.mode === 'REFERENCE') {
-    const validation = refAsset?.provenance?.validation as { ok: boolean; reasons: string[] } | undefined;
-    const problem = referenceImageProblem(state, payload.referenceAssetId, validation);
-    if (problem) throw missingReference(`The reference picture cannot be used: ${problem}. Upload another picture (at least 512 px, one face, in focus) or describe the character instead.`, { referenceAssetId: payload.referenceAssetId });
+    // the Character Continuity Agent's reference picture check, before anything is created from it
+    await step(ctx, 'character-continuity', `reference-picture-check: ${payload.referenceAssetId ?? 'no picture'}`, async () => {
+      const validation = refAsset?.provenance?.validation as { ok: boolean; reasons: string[] } | undefined;
+      const problem = referenceImageProblem(state, payload.referenceAssetId, validation);
+      if (problem) throw missingReference(`The reference picture cannot be used: ${problem}. Upload another picture (at least 512 px, one face, in focus) or describe the character instead.`, { referenceAssetId: payload.referenceAssetId });
+    });
   }
 
   // 1) DESIGN — Casting fills the profile when fields are missing (AUTO always; MANUAL/REFERENCE when incomplete);
@@ -143,7 +148,8 @@ export const createCharacter: Handler = async (ctx) => {
   const draw = payload.draw !== false;
   if (!draw) { skip('appearance', 'not requested (draw: false)'); skip('sheet', 'not requested (draw: false)'); }
   else {
-    const pre = preflightCharacter((await readState()).state, c, 'CHARACTER_APPEARANCE');
+    const toDraw = c;
+    const pre = await step(ctx, 'executive-producer', `character-preflight: portrait of ${c.name}`, async () => preflightCharacter((await readState()).state, toDraw, 'CHARACTER_APPEARANCE'));
     if (!pre.ok) {
       const failed = pre.checks.filter((x) => !x.ok);
       steps.push({ step: 'appearance', status: 'failed', reason: failed.map((x) => x.detail ?? x.name).join('; '), failureClass: failed[0].failureClass });
@@ -163,7 +169,8 @@ export const createCharacter: Handler = async (ctx) => {
   else {
     c = await fresh();
     const vp = voice.mode === 'REFERENCE' ? { characterId: c.id, mode: 'REFERENCE', referenceSampleId: voice.referenceSampleId } : { characterId: c.id, mode: 'AUTOMATIC' };
-    const pre = preflightCharacter((await readState()).state, c, 'VOICE_BUILD', vp);
+    const voiced = c;
+    const pre = await step(ctx, 'executive-producer', `character-preflight: voice of ${c.name}`, async () => preflightCharacter((await readState()).state, voiced, 'VOICE_BUILD', vp));
     if (!pre.ok) {
       const failed = pre.checks.filter((x) => !x.ok);
       const missing = failed.every((x) => x.failureClass === 'MISSING_REFERENCE');

@@ -1,4 +1,5 @@
 import type { Handler } from './index';
+import { step } from './step';
 import type { Shot } from '@/domain/types';
 import { StudioError } from '@/domain/errors';
 import { readState } from '@/server/studio/engine';
@@ -20,8 +21,8 @@ export const produce: Handler = async (ctx) => {
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots before producing.');
-  // the first human gate: nothing is generated for a story nobody approved
-  await requireApproval(productionId, 'STORY');
+  // the first human gate (the Quality Director's step): nothing is generated for a story nobody approved
+  await step(ctx, 'quality-director', `story-gate: “${p.title}”`, () => requireApproval(productionId, 'STORY'));
   // respeak: speaking shots whose chosen take never proved its words (made before the script check existed, or
   // failing it) get a new take through the audio-first pipeline; a passing new take becomes the choice
   const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
@@ -42,7 +43,8 @@ export const produce: Handler = async (ctx) => {
     if (!sh.openingFrameAssetId && imagesReady) {
       const existing = adopt('SHOT_FRAMES', sh.id);
       if (existing) { children.push(existing); continue; }
-      const r = await ctx.tool('jobs.enqueue', () => enqueue({ type: 'SHOT_FRAMES', payload: { productionId, shotId: sh.id }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:frame:${sh.id}:${round}`, priority: 2 }), { label: 'SHOT_FRAMES' });
+      const req = { type: 'SHOT_FRAMES' as const, payload: { productionId, shotId: sh.id }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:frame:${sh.id}:${round}`, priority: 2 };
+      const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'SHOT_FRAMES', input: req });
       children.push(r.job.id);
     }
   }
@@ -58,7 +60,8 @@ export const produce: Handler = async (ctx) => {
     const prev = order[order.findIndex((x) => x.id === sh.id) - 1];
     if (sh.continuity?.relationToPrevious === 'CONTINUATION' && prev && prev.sceneId === sh.sceneId && jobOfShot.has(prev.id)) await waitFor(ctx, [jobOfShot.get(prev.id)!], `waiting for the shot this one continues`);
     const existing = adopt('GENERATE_TAKE', sh.id);
-    const id = existing ?? (await ctx.tool('jobs.enqueue', () => enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 }), { label: 'GENERATE_TAKE' })).job.id;
+    const req = { type: 'GENERATE_TAKE' as const, payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 };
+    const id = existing ?? (await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'GENERATE_TAKE', input: req })).job.id;
     takeJobs.push(id); jobOfShot.set(sh.id, id);
   }
   const outcome = await waitFor(ctx, takeJobs, respeak ? 're-recording speaking shots' : 'generating takes');
@@ -66,7 +69,8 @@ export const produce: Handler = async (ctx) => {
   const remaining = fresh.shots.filter((sh) => needsTake(sh)).length;
   if (respeak) { const still = fresh.shots.filter(unverified).length; return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, stillUnverified: still, awaitingReview: still > 0 }; }
   if (remaining === 0 && !fresh.cutAssetId) {
-    const r = await ctx.tool('jobs.enqueue', () => enqueue({ type: 'ASSEMBLE', payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` }), { label: 'ASSEMBLE' });
+    const req = { type: 'ASSEMBLE' as const, payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` };
+    const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'ASSEMBLE', input: req });
     await waitFor(ctx, [r.job.id], 'assembling');
   }
   await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${outcome.completed} of ${targets.length} shot(s) generated${outcome.failed ? `, ${outcome.failed} failed` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed: outcome.completed, failed: outcome.failed, remaining });

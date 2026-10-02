@@ -961,6 +961,12 @@ portrait, name, role, three traits, voice row if any, *Open profile* (primary), 
 
 ### 9.6 Character profile `/characters/[id]`
 
+> **Superseded in part (2026-10-03, producer direction, contract v2):** one character = one canonical front
+> full-body image + one persistent voice identity. The profile is one premium cast profile built around that image
+> (hero; name, description, personality, language/dialect; voice with a player; lock shown once; productions used
+> in); no side views; optional secondary material collapsed at the end; raw outputs never shown.
+> `docs/CONTRACTS-IDENTITY-PACK.md` §4 wins where it differs from below; the visual language below still applies.
+
 ```
 ‹ Characters
 ┌───────────┐  Cartoon · 64 · Woman · Arabic (Iraqi Baghdadi)                        [ Edit ▾ ] [ ⋯ ]

@@ -1,10 +1,11 @@
 ---
 name: h3-prompting
-description: How to write a MiniMax H3 request for one shot — prompt grammar, the <d> dialogue tags, first-frame versus reference-to-video, guides for continuation and recorded sound, the frame grid and step counts. Use when building or reviewing a video.minimax_generate call.
+description: How the studio writes a MiniMax H3 request for one shot — prompt grammar, the dialogue tags that carry the exact script lines, first-frame versus reference-to-video, guides for continuation and recorded sound, the frame grid and step counts, and what the preflight refuses. Implemented by the take handler, its preflight and the H3 workflow.
 license: Proprietary to this studio; grammar after lumosai8/MinimaxStoryBuilder (MIT) and Comfy-Org/docs (MIT)
-allowed-tools: video.minimax_generate media.probe media.qa_take
+allowed-tools: video.minimax_generate
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
+  kind: "PROCEDURE"
   source: this studio, verified on ComfyUI 0.38.1 with MiniMax-H3 fl2va/ref2va int8 (docs/AUDIOVISUAL-QA.md E0–E2c)
   models: MiniMax-H3 (local), MiniMax Hailuo hosted API
 ---
