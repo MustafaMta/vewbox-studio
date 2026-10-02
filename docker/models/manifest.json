@@ -69,6 +69,23 @@
         { "repo": "Comfy-Org/MiniMax-Music-3", "file": "diffusion_models/minimax_music3_dit_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 2502161682, "sha256": "d6b959633e69899f99f3a92d6741c0fe79f26958a30811e50e372ef978b24d5f", "license": "MiniMax-Music3 Community License" },
         { "repo": "Comfy-Org/MiniMax-Music-3", "file": "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9196611886, "sha256": "010b7416d2336a08c711bc22ee65849c9623069ddb7d89bec011a75699e52014", "license": "MiniMax-Music3 Community License" }
       ]
+    },
+    {
+      "name": "voice-design",
+      "purpose": "The tts-design service (:8022): VoxCPM2 (OpenBMB, 2 B, Apache-2.0) designs a synthetic voice from a text description (EN, AR-MSA; 48 kHz), and the ECAPA-TDNN speaker encoder (SpeechBrain, VoxCeleb, Apache-2.0) gives 192-d embeddings for similarity and cast distinctness. Pinned to the repo revisions below. audiovae.pth and the ECAPA .ckpt files are PyTorch pickles: they are loaded only inside the tts-design container (torch.load weights_only). Fetch once: docs/MODELS.md.",
+      "files": [
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "config.json", "folder": "tts/voxcpm2", "bytes": 4336, "sha256": "405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c", "license": "Apache-2.0" },
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "tokenizer.json", "folder": "tts/voxcpm2", "bytes": 3676772, "sha256": "f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20", "license": "Apache-2.0" },
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "tokenizer_config.json", "folder": "tts/voxcpm2", "bytes": 5059, "sha256": "e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b", "license": "Apache-2.0" },
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "special_tokens_map.json", "folder": "tts/voxcpm2", "bytes": 1632, "sha256": "068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76", "license": "Apache-2.0" },
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "audiovae.pth", "folder": "tts/voxcpm2", "bytes": 376951122, "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1", "license": "Apache-2.0" },
+        { "repo": "openbmb/VoxCPM2", "revision": "32279effe8c19989596f05d353d1447f51d9e915", "file": "model.safetensors", "folder": "tts/voxcpm2", "bytes": 4580080592, "sha256": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d", "license": "Apache-2.0" },
+        { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "hyperparams.yaml", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 1919, "sha256": "6f78854fa04ba59e761437b76a2575d3aba5e5016de3e9b69f0c9a5077fb1a41", "license": "Apache-2.0" },
+        { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "embedding_model.ckpt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 83316686, "sha256": "0575cb64845e6b9a10db9bcb74d5ac32b326b8dc90352671d345e2ee3d0126a2", "license": "Apache-2.0" },
+        { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "mean_var_norm_emb.ckpt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 1921, "sha256": "cd70225b05b37be64fc5a95e24395d804231d43f74b2e1e5a513db7b69b34c33", "license": "Apache-2.0" },
+        { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "classifier.ckpt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 5534328, "sha256": "fd9e3634fe68bd0a427c95e354c0c677374f62b3f434e45b78599950d860d535", "license": "Apache-2.0" },
+        { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "label_encoder.txt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 128619, "sha256": "e13c3a167bb4112685670ee896d20e2b565af16b3a4ceeaa8689fa4d22adb8b9", "license": "Apache-2.0" }
+      ]
     }
   ]
 }
