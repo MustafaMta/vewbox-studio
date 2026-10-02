@@ -162,7 +162,8 @@ test.describe('creating', () => {
     await expect(page.getByText(/Uses the world of The Last Sip/)).toBeVisible();
     await page.getByRole('button', { name: 'Create an idea for me' }).click();
     await expect(page.getByRole('listitem').filter({ hasText: 'Returning cast of The Last Sip.' }).first()).toBeVisible({ timeout: ENGINE });
-    for (const name of ['Abu Samir', 'Layla', 'Karim', 'Basbousa']) await expect(page.getByRole('listitem').filter({ hasText: name }).filter({ hasText: 'Returning cast of The Last Sip.' })).toBeVisible();
+    // a reason may mention another regular by name, so match the row that starts with the name
+    for (const name of ['Abu Samir', 'Layla', 'Karim', 'Basbousa']) await expect(page.getByRole('listitem').filter({ hasText: new RegExp(`^${name}`) }).filter({ hasText: 'Returning cast of The Last Sip.' }).first()).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'New' }).first()).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue('AR');
     await page.getByRole('button', { name: 'Create Project' }).click();

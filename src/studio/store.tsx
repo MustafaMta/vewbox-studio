@@ -59,6 +59,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [lastError, setLastError] = useState<Api['lastError']>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const latest = useRef(state); latest.current = state;
+  /** The newest server version this page has seen. A change event from our own client id for a newer version than
+   *  this (with nothing in flight) means a previous page's last writes landed after our snapshot: refresh. */
+  const knownVersion = useRef(0);
+  const bumpVersion = useCallback((v: number) => { knownVersion.current = Math.max(knownVersion.current, v); setVersion(v); }, []);
   const pending = useRef<Command[]>([]);
   const inflight = useRef<Command[]>([]);
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,9 +82,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const snap = await api.snapshot();
       let s = snap.state;
       for (const c of [...inflight.current, ...pending.current]) { try { s = runCommand(s, c).state; } catch { /* the server will say */ } }
-      applyLocal(s); setVersion(snap.version); setSeedVersion(snap.seeded?.version ?? 0); setCapabilities(snap.capabilities); setReady(true);
+      applyLocal(s); bumpVersion(snap.version); setSeedVersion(snap.seeded?.version ?? 0); setCapabilities(snap.capabilities); setReady(true);
     } catch (e) { raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'The studio server cannot be reached.'); }
-  }, [applyLocal, raise]);
+  }, [applyLocal, bumpVersion, raise]);
 
   const scheduleRefresh = useCallback((ms = 150) => { if (refreshTimer.current) clearTimeout(refreshTimer.current); refreshTimer.current = setTimeout(() => { refreshTimer.current = null; void refresh(); }, ms); }, [refresh]);
 
@@ -94,7 +98,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const r = await api.commands(me.current, inflight.current);
       failures.current = 0; setConnected(true);
       if (r.ok) {
-        setVersion(r.version);
+        bumpVersion(r.version);
         inflight.current = [];
         // nothing else queued and the hashes differ: another process changed something in between, or our copy drifted
         if (pending.current.length === 0 && r.hash !== hashState(latest.current)) scheduleRefresh(0);
@@ -114,7 +118,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (pending.current.length > 0) { flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 50); }
-  }, [raise, scheduleRefresh]);
+  }, [bumpVersion, raise, scheduleRefresh]);
 
   const scheduleFlush = useCallback(() => { if (flushTimer.current) return; flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 120); }, [flush]);
 
@@ -134,7 +138,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (closed) return;
       es = new EventSource('/api/events');
       es.addEventListener('hello', () => { setConnected(true); backoff = 1000; scheduleRefresh(0); scheduleJobs(0); });
-      es.addEventListener('studio', (ev) => { try { const e = JSON.parse((ev as MessageEvent).data) as { version: number; origin: string }; if (e.origin !== me.current) scheduleRefresh(); else setVersion(e.version); } catch { /* ignore */ } });
+      es.addEventListener('studio', (ev) => {
+        try {
+          const e = JSON.parse((ev as MessageEvent).data) as { version: number; origin: string };
+          const ours = e.origin === me.current;
+          const landedAfterOurSnapshot = ours && e.version > knownVersion.current && inflight.current.length === 0 && pending.current.length === 0;
+          if (!ours || landedAfterOurSnapshot) scheduleRefresh(); else bumpVersion(e.version);
+        } catch { /* ignore */ }
+      });
       es.addEventListener('job', () => scheduleJobs());
       es.onerror = () => { setConnected(false); es?.close(); es = null; if (!closed) setTimeout(open, backoff); backoff = Math.min(30_000, backoff * 2); };
     };
@@ -142,7 +153,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const flushNow = () => { if (pending.current.length && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ clientId: me.current, commands: pending.current })], { type: 'application/json' }); if (navigator.sendBeacon('/api/commands', body)) pending.current = []; } };
     window.addEventListener('pagehide', flushNow);
     return () => { closed = true; es?.close(); window.removeEventListener('pagehide', flushNow); };
-  }, [refresh, loadJobs, scheduleRefresh, scheduleJobs]);
+  }, [refresh, loadJobs, scheduleRefresh, scheduleJobs, bumpVersion]);
 
   const addFile = useCallback(async (file: File, meta: { label?: string; tags?: string[]; expect?: Asset['kind'] }): Promise<AddFileResult> => {
     try {
