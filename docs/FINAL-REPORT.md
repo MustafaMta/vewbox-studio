@@ -81,7 +81,8 @@ See `TEST-RESULTS.md`.
 | Story: one-line brief → developed story → script → shots | done | "The Last Bus to Karrada" (AR Iraqi, cartoon): new character + place, 2 scenes, 7 shots with continuity |
 | Auto Idea → project | done | "The Forgotten Observatory" (local model, 5 scenes, 11 shots); E2E creates two more per run |
 | Assembly/export on real clips | done (CPU path) | S1E1 with uploaded clips: 10.5 s cut, 1080p export with burned-in AR+EN subtitles, sidecars, −23 LUFS |
-| Stages 1–8 with generated pictures/video/voices | pending weights | see checklist 11.x |
+| Stage 1 — a MiniMax H3 take generated locally | **done** | S1E1 shot 1.3 from the shot editor: 1344×768, 3.75 s, native audio; ComfyUI 87.7 s (8 steps × 7.0 s), 94.6 s end to end; QA 8/8; the spoken Iraqi line transcribed back as «البيت ما بيه تشاي.» (scripted «البيت ما بي چاي») |
+| Stages 2–8 | pending weights / voice images | see checklist 11.x |
 
 ## 9. Reliability
 
