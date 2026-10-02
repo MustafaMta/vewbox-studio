@@ -74,6 +74,28 @@ export function ShowWorkspace({ show }: { show: Show }) {
   );
 }
 
+/** WORLD BIBLE — the durable facts of the fictional world, kept with the show and handed to the story engine on every
+ *  episode: rules of the world, who is what to whom, what has happened so far, and the art direction. Edited by hand
+ *  here; the cast (locked appearances, voices) and the places (plates, layout) live in the library and are linked. */
+function WorldBible({ show }: { show: Show }) {
+  const T = useT();
+  const { act } = useStudio();
+  const toast = useToast();
+  const b = show.bible ?? {};
+  const [draft, setDraft] = useState({ worldRules: (b.worldRules ?? []).join('\n'), relationships: (b.relationships ?? []).join('\n'), timeline: (b.timeline ?? []).join('\n'), styleNotes: b.styleNotes ?? '' });
+  const lines = (s: string) => s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const dirty = JSON.stringify(draft) !== JSON.stringify({ worldRules: (b.worldRules ?? []).join('\n'), relationships: (b.relationships ?? []).join('\n'), timeline: (b.timeline ?? []).join('\n'), styleNotes: b.styleNotes ?? '' });
+  const save = () => { act('updateShow', show.id, { bible: { worldRules: lines(draft.worldRules), relationships: lines(draft.relationships), timeline: lines(draft.timeline), styleNotes: draft.styleNotes.trim() || undefined } }); toast.ok(T('toast.saved')); };
+  const fields: Array<[keyof typeof draft, string, string]> = [['worldRules', T('bible.rules'), T('bible.rules.hint')], ['relationships', T('bible.relationships'), T('bible.relationships.hint')], ['timeline', T('bible.timeline'), T('bible.timeline.hint')], ['styleNotes', T('bible.style'), T('bible.style.hint')]];
+  return (
+    <Section title={T('bible.title')} description={T('bible.hint')} action={<div className="flex items-center gap-2">{dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}<Button size="sm" variant={dirty ? 'primary' : 'secondary'} disabled={!dirty} onClick={save}>{dirty ? T('btn.save') : T('btn.saved')}</Button></div>}>
+      <div className="grid gap-4 md:grid-cols-2">
+        {fields.map(([key, label, hint]) => <Field key={key} label={label} help={hint}><Textarea value={draft[key]} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} rows={4} dir="auto" /></Field>)}
+      </div>
+    </Section>
+  );
+}
+
 /** The overview: the seasons as cards, then the shared cast and world with room to breathe; beside them the
  *  show's progress, its facts, and the episode to pick up next. */
 function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; episodes: Production[] }) {
@@ -128,6 +150,8 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
             </ul>
           )}
         </Section>
+
+        <WorldBible show={show} />
       </div>
 
       <aside className="grid content-start gap-5 sm:grid-cols-2 xl:grid-cols-1">
