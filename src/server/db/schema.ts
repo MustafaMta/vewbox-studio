@@ -138,6 +138,8 @@ export const takes = pgTable('takes', {
   codeVersion: text('code_version'),
   workflowVersion: text('workflow_version'),
   thumbnailAssetId: text('thumbnail_asset_id'),
+  trimStartFrames: integer('trim_start_frames'),
+  soundtrack: jsonb('soundtrack').$type<{ kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> }>(),
 }, (t) => [index('takes_shot_idx').on(t.shotId), index('takes_production_idx').on(t.productionId)]);
 
 export const characters = pgTable('characters', {
