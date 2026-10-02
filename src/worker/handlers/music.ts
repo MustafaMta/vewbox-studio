@@ -7,7 +7,8 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
-import { separateStems } from '@/server/providers/speech';
+import { separateStems, transcribe } from '@/server/providers/speech';
+import { alignLyrics } from '@/server/media/lyrics';
 import * as comfy from '@/server/providers/comfy';
 import * as minimax from '@/server/providers/minimax';
 import { aceStepSong, minimaxMusic3Song } from '@/server/workflows';
@@ -98,7 +99,39 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnTyp
   await command('updateSong', [a.p.id, { source: 'GENERATED', assetId: id, durationSeconds: Math.round(duration), lyrics: a.lyrics, caption: a.caption, provider: a.engine, model: a.model, requestId: a.requestId, jobId: ctx.job.id, sections }], 'worker');
   await recordMetric('song.generation_ms', genMs, 'ms', { engine: a.engine, seconds: Math.round(duration) }, ctx.job.id);
   const stems = await makeStems(ctx, a.p.id, id, `${a.p.song?.title ?? a.p.title}`);
-  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems };
+  const aligned = stems?.vocals ? await alignSongLyrics(ctx, a.p.id, stems.vocals) : undefined;
+  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned };
+}
+
+/** Place the written lines on the real vocal: transcribe the vocal stem with word timings and align each line
+ *  (fuzzy, monotone). Sections whose lines mostly aligned take their sung extent; every section keeps per-line
+ *  times for cues and shot windows. Best effort: a song without an alignment keeps its even spread. */
+export async function alignSongLyrics(ctx: Parameters<Handler>[0], productionId: string, vocalsAssetId: string): Promise<{ lines: number; aligned: number } | undefined> {
+  const { state } = await readState();
+  const p = state.productions.find((x) => x.id === productionId);
+  const vocals = state.assets.find((x) => x.id === vocalsAssetId);
+  if (!p?.song || !vocals) return undefined;
+  await ctx.progress('POSTPROCESSING', { phase: 'aligning', message: 'Placing the lyrics on the vocal track', percent: null });
+  try {
+    const file = fileFor({ storage: 'LIBRARY', path: String(vocals.provenance?.path ?? '') });
+    const t = await ctx.gpu('ASR', 4000, () => transcribe(file, { language: p.language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
+    const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
+    const out = alignLyrics(p.song.sections, words, p.language);
+    const sections = p.song.sections.map((sec) => {
+      const mine = out.filter((l) => l.sectionId === sec.id).sort((x, y) => x.index - y.index);
+      if (!mine.length) return sec;
+      const alignedOnes = mine.filter((l) => l.method === 'ALIGNED');
+      const extent = alignedOnes.length * 2 >= mine.length ? { from: Math.min(sec.from, Math.floor(alignedOnes[0].from)), to: Math.max(sec.to, Math.ceil(alignedOnes[alignedOnes.length - 1].to)) } : {};
+      return { ...sec, ...extent, lineTimes: mine.map((l) => ({ index: l.index, from: l.from, to: l.to, method: l.method, confidence: Number(l.confidence.toFixed(2)) })) };
+    });
+    // sections must stay in order without overlap after taking their sung extents
+    for (let i = 1; i < sections.length; i++) if (sections[i].from < sections[i - 1].to) sections[i] = { ...sections[i], from: sections[i - 1].to, to: Math.max(sections[i].to, sections[i - 1].to + 1) };
+    await command('updateSong', [productionId, { sections }], 'worker');
+    const aligned = out.filter((l) => l.method === 'ALIGNED').length;
+    await ctx.event('info', 'lyrics aligned to the vocal track', { lines: out.length, aligned, heard: t.text.slice(0, 300) });
+    await recordMetric('lyrics.aligned_ratio', out.length ? aligned / out.length : 0, 'ratio', {}, ctx.job.id);
+    return { lines: out.length, aligned };
+  } catch (e) { await ctx.event('warn', `lyrics not aligned: ${(e as Error).message}`); return undefined; }
 }
 
 /** Vocals and accompaniment of a song as two more assets (Demucs in the audio service). Best effort: a song without

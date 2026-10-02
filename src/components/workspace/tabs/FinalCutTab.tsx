@@ -87,6 +87,29 @@ export function FinalCutTab({ p }: { p: Production }) {
           </Card>
         )}
         <Details summary={T('shot.advanced')}>{(() => { const cut = assetById(state, p.cutAssetId); const l = (cut?.provenance as { loudness?: { integrated?: number; truePeak?: number } } | undefined)?.loudness; return <p className="num text-xs text-muted">{l?.integrated !== undefined ? `${T('final.measured')}: ${l.integrated.toFixed(1)} LUFS · ${T('final.truePeak')} ${l.truePeak?.toFixed(1) ?? '—'} dBTP` : `${T('final.target')}: −23 LUFS · ${T('final.truePeak')} −1 dBTP`}{` · ${T('final.mixTargets')}`}</p>; })()}</Details>
+        {(() => {
+          // the mix plan the cut was rendered from: every sound, where it sits, and the policy that set its level
+          const cut = assetById(state, p.cutAssetId);
+          const mix = (cut?.provenance as { mix?: { rate: number; targetLufs: number; tracks: Array<{ kind: string; sourceAssetId: string; startSample: number; durationSamples: number; gain: number; muted?: boolean; policy: string; shotId?: string }> } } | undefined)?.mix;
+          if (!mix) return null;
+          const live = mix.tracks.filter((t) => !t.muted);
+          const mutedCount = mix.tracks.length - live.length;
+          return (
+            <Card>
+              <h2 className="h3 mb-1">{T('final.mix')}</h2>
+              <p className="mb-3 text-xs text-muted">{T('final.mix.hint')}{mutedCount ? ` ${mutedCount} ${T('final.mix.muted')}` : ''}</p>
+              <ul className="space-y-1.5 text-xs">
+                {live.map((t, i) => { const sh = t.shotId ? p.shots.find((s) => s.id === t.shotId) : undefined; return (
+                  <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3 rounded-md bg-input px-2.5 py-1.5">
+                    <span><span className="font-medium">{t.kind.replace(/_/g, ' ').toLowerCase()}</span>{sh ? <span className="text-muted"> · {shotLabel(p, sh)}</span> : null}</span>
+                    <span className="num text-faint">{fmtSeconds(t.startSample / mix.rate)} → {fmtSeconds((t.startSample + t.durationSamples) / mix.rate)} · {Math.round(t.gain * 100)}%</span>
+                    <span className="basis-full text-faint">{t.policy}</span>
+                  </li>
+                ); })}
+              </ul>
+            </Card>
+          );
+        })()}
         {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { act('markStepDone', p.id, 'FINAL_CUT'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
       </aside>
     </div>

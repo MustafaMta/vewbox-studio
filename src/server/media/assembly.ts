@@ -202,7 +202,8 @@ export function lyricCues(p: Production, lang: 'ar' | 'en'): Cue[] {
     const lines = text.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     if (!lines.length) continue;
     const span = Math.max(0, s.to - s.from) / lines.length;
-    lines.forEach((line, i) => cues.push({ start: s.from + span * i, end: s.from + span * (i + 1), text: rtlMark(lang, line) }));
+    const timed = s.lineTimes?.length === lines.length ? s.lineTimes : undefined;
+    lines.forEach((line, i) => cues.push({ start: timed ? timed[i].from : s.from + span * i, end: timed ? timed[i].to : s.from + span * (i + 1), text: rtlMark(lang, line) }));
   }
   return cues;
 }

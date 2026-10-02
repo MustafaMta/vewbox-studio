@@ -181,6 +181,9 @@ export interface LyricSection {
   performanceMode?: PerformanceMode;
   /** Alternating vocals: who sings which line, in order, with timing when known. */
   lines?: Array<{ singerId: string; text: string; from?: number; to?: number }>;
+  /** Where each written line is actually sung on the real vocal track (from alignment against the transcribed
+   *  vocal stem); cues and shot windows use these instead of an even spread. */
+  lineTimes?: Array<{ index: number; from: number; to: number; method: 'ALIGNED' | 'SPREAD'; confidence: number }>;
 }
 
 export interface Song {

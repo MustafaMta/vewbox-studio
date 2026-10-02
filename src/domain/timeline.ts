@@ -47,7 +47,9 @@ export function sungLinesFor(song: Song, w: Window, language: 'EN' | 'AR'): Sung
   const lines = source.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
   if (lines.length === 0 || sec.singerIds.length === 0) return [];
   const n = lines.length;
-  const picked = lines.map((text, i) => ({ text, from: sec.from + (span * i) / n, to: sec.from + (span * (i + 1)) / n })).filter((l) => l.from < w.to && l.to > w.from);
+  // real timing from the aligned vocal track when it exists, else an even spread over the section
+  const timed = sec.lineTimes?.length === n ? sec.lineTimes : undefined;
+  const picked = lines.map((text, i) => ({ text, from: timed ? timed[i].from : sec.from + (span * i) / n, to: timed ? timed[i].to : sec.from + (span * (i + 1)) / n })).filter((l) => l.from < w.to && l.to > w.from);
   const en = sec.text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
   return picked.flatMap((l) => sec.singerIds.map((singerId) => ({ singerId, text: language === 'AR' ? (en[lines.indexOf(l.text)] ?? l.text) : l.text, textAr: language === 'AR' ? l.text : undefined })));
 }
