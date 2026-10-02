@@ -22,9 +22,20 @@ import { fmtSeconds, ratioClass, words, ratioCss } from '@/lib/format';
  *  frame), its takes and frames beneath; what happens in it on the end side. Save is explicit; leaving with edits asks. */
 export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
   const T = useT();
-  const { state, act } = useStudio();
+  const { state, act, addFile } = useStudio();
   const toast = useToast();
   const router = useRouter();
+  const [uploading, setUploading] = useState(false);
+  // a producer's own footage becomes a take like any other (provider UPLOAD), with the same usage consequences
+  const uploadTake = async (file: File) => {
+    setUploading(true);
+    try {
+      const r = await addFile(file, { label: `${shotLabel(p, shot)} — ${file.name}`, tags: ['take', 'upload'], expect: 'VIDEO' });
+      if (!r.ok) { toast.bad(r.error); return; }
+      act('addTake', p.id, shot.id, { assetId: r.asset.id, provider: 'UPLOAD', label: file.name.replace(/\.[^.]+$/, ''), width: r.asset.width, height: r.asset.height, durationSeconds: r.asset.durationSeconds, fps: r.asset.fps });
+      toast.ok(T('take.uploaded'));
+    } finally { setUploading(false); }
+  };
   const base = productionHref(p);
   const idx = p.shots.findIndex((s) => s.id === shot.id);
   const prev = p.shots[idx - 1]; const next = p.shots[idx + 1];
@@ -81,7 +92,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
             : <Thumb src={frameShown?.src} alt={frameSide === 'b' ? T('shot.ending') : T('shot.opening')} ratio={ratio} sample={frameShown?.sample} className="rounded-2xl" empty={T('board.noFrame')} />}
 
           <section aria-labelledby="takes">
-            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="takes" className="h3">{T('label.takes')}<span className="ms-2 text-sm font-normal text-faint num">{shot.takes.length}</span></h2><JobButton type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: shot.id }} target={{ productionId: p.id, shotId: shot.id }} size="xs" icon={<IconTake />}>{shot.takes.length ? T('gen.anotherTake') : T('gen.take')}</JobButton></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="takes" className="h3">{T('label.takes')}<span className="ms-2 text-sm font-normal text-faint num">{shot.takes.length}</span></h2><div className="flex items-center gap-2"><label className="btn btn-ghost btn-xs cursor-pointer" title={T('take.upload.hint')} aria-disabled={uploading}>{uploading ? '…' : T('take.upload')}<input type="file" accept="video/mp4,video/quicktime,video/webm" className="sr-only" aria-label={T('take.upload')} disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadTake(f); e.target.value = ''; }} /></label><JobButton type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: shot.id }} target={{ productionId: p.id, shotId: shot.id }} size="xs" icon={<IconTake />}>{shot.takes.length ? T('gen.anotherTake') : T('gen.take')}</JobButton></div></div>
             {shot.takes.length === 0 ? <p className="text-sm text-muted">{T('produce.noTakes')}</p> : (
               <ul className="flex gap-3 overflow-x-auto pb-1" role="radiogroup" aria-label={T('label.takes')}>
                 {shot.takes.map((t) => {
