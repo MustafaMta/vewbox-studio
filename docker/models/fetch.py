@@ -46,9 +46,14 @@ def load_state(root: Path) -> dict:
 
 
 def save_state(root: Path, state: dict) -> None:
+    """Merge this run's records into the file on disk (another fetcher may have verified files meanwhile), then
+    replace it atomically. A run never forgets what a parallel run proved."""
     p = root / ".manifest-state.json"
+    merged = load_state(root)
+    merged.update(state)
+    state.update(merged)
     tmp = p.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
+    tmp.write_text(json.dumps(merged, indent=2, sort_keys=True))
     tmp.replace(p)
 
 
@@ -69,6 +74,17 @@ def fetch(entry: dict, root: Path, state: dict, api: HfApi, token: str | None) -
     if dest.exists() and rec.get("verified") and (not expected_size or dest.stat().st_size == expected_size):
         log("already verified", file=key)
         return True
+    # a complete file with no record (state lost, or written by another run): hash it before downloading anything
+    if dest.exists() and expected_sha and (not expected_size or dest.stat().st_size == expected_size):
+        t0 = time.time()
+        sha = sha256_of(dest)
+        if sha == expected_sha:
+            state[key] = {"verified": True, "sha256": sha, "bytes": dest.stat().st_size, "repo": entry["repo"], "file": entry["file"], "revision": entry.get("revision") or rec.get("revision"), "license": entry.get("license"), "verified_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "seconds": round(time.time() - t0, 1)}
+            save_state(root, state)
+            log("verified existing file", file=key, bytes=dest.stat().st_size, seconds=round(time.time() - t0, 1))
+            return True
+        log("existing file does not match; downloading again", file=key, got=sha, expected=expected_sha)
+        dest.unlink()
 
     # resolve the exact revision once so a later run checks the same bytes
     revision = entry.get("revision") or rec.get("revision")
