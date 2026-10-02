@@ -4,6 +4,11 @@ x-dns: &dns
   - 1.1.1.1
   - 8.8.8.8
 
+# Structured JSON logs with rotation on every service (one line per event; secrets are redacted at the source).
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "5" }
+
 x-app-env: &app-env
   DATABASE_URL: ${DATABASE_URL:-postgres://vewbox:${POSTGRES_PASSWORD:-change-me-please}@db:5432/vewbox}
   STUDIO_PASSWORD: ${STUDIO_PASSWORD:-}
@@ -33,6 +38,7 @@ x-app-env: &app-env
 
 services:
   db:
+    logging: *logging
     image: postgres:17.6-alpine
     restart: unless-stopped
     environment:
@@ -52,6 +58,9 @@ services:
     stop_grace_period: 30s
 
   web:
+    logging: *logging
+    dns: *dns
+    init: true
     build:
       context: .
       dockerfile: docker/web.Dockerfile
@@ -78,6 +87,9 @@ services:
     stop_grace_period: 20s
 
   worker:
+    logging: *logging
+    dns: *dns
+    init: true
     build:
       context: .
       dockerfile: docker/worker.Dockerfile
@@ -103,6 +115,7 @@ services:
     stop_grace_period: 40s
 
   comfyui:
+    logging: *logging
     build: { context: ., dockerfile: docker/comfyui/Dockerfile }
     dns: *dns
     image: vewbox/comfyui:${CODE_VERSION:-dev}
@@ -136,6 +149,7 @@ services:
 
   # Voices: IndexTTS 2.5 (EN/AR) and Habibi-TTS IRQ (Iraqi Arabic); transcription: faster-whisper large-v3.
   tts:
+    logging: *logging
     build: { context: ., dockerfile: docker/tts/Dockerfile, target: indextts }
     image: vewbox/tts-indextts:${CODE_VERSION:-dev}
     restart: unless-stopped
@@ -148,6 +162,7 @@ services:
     stop_grace_period: 30s
 
   tts-habibi:
+    logging: *logging
     build: { context: ., dockerfile: docker/tts/Dockerfile, target: habibi }
     image: vewbox/tts-habibi:${CODE_VERSION:-dev}
     restart: unless-stopped
@@ -160,6 +175,7 @@ services:
     stop_grace_period: 30s
 
   asr:
+    logging: *logging
     build: { context: ., dockerfile: docker/asr/Dockerfile }
     image: vewbox/asr:${CODE_VERSION:-dev}
     restart: unless-stopped
@@ -172,6 +188,7 @@ services:
 
   # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume.
   llm:
+    logging: *logging
     image: ollama/ollama:0.12.3
     dns: *dns
     restart: unless-stopped
@@ -200,6 +217,7 @@ services:
 
   # One-shot: fetch pinned model weights into the shared volume (resumable, verified). `docker compose --profile models run --rm models`
   models:
+    logging: *logging
     build: { context: ., dockerfile: docker/models/Dockerfile }
     dns: *dns
     image: vewbox/models:${CODE_VERSION:-dev}
