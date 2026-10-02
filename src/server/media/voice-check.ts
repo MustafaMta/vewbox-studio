@@ -1,36 +1,42 @@
 import { execFile } from 'node:child_process';
+import fsp from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { StudioError } from '@/domain/errors';
+import type { VoiceReferenceRefusal, VoiceReferenceValidation } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
 import { ffprobe } from '../media';
 import { ffmpeg } from './ffmpeg';
 
 const execFileP = promisify(execFile);
 
-/** VOICE REFERENCE MEASUREMENT — pure helpers on a local file with ffmpeg/ffprobe, no GPU: what a recording is
- *  (duration, rate, channels), how loud it is (EBU R128 integrated loudness and true peak), whether it clips, where
- *  the speech is (silence boundaries), and the static-gain trim that makes the 24 kHz mono window the engines clone
- *  from. `validateVoiceReference` fills the contract's `VoiceReferenceValidation` except the ASR fields, which the
- *  voice handler adds from the transcription service. */
+/** VOICE REFERENCE MEASUREMENT — THE one measurement stack for a voice recording (the upload route, the voice
+ *  handlers and scripts/iraqi-voice-suite.mjs all use it; review finding 9): pure helpers on a local file with
+ *  ffmpeg/ffprobe, no GPU — what a recording is (duration, rate, channels, and whether the studio's own engine made
+ *  it), how loud it is (EBU R128 integrated loudness and true peak), whether it clips (samples counted at full
+ *  scale), where the speech is (silence boundaries), and the static-gain trim that makes the 24 kHz mono window the
+ *  engines clone from. `validateVoiceReference` measures everything but the ASR fields; the speech judgement (heard
+ *  words, language) is src/server/studio/voice-reference.ts. */
 
+export type { VoiceReferenceRefusal };
 export interface AudioFacts { durationSeconds: number; sampleRate: number; channels: number; codec?: string; container?: string }
 export interface Loudness { integratedLufs: number; truePeakDbtp: number; loudnessRange: number; threshold: number }
 export interface Clipping { clippedSamples: number; totalSamples: number; ratio: number; flatFactor: number; peakDbfs: number }
 export interface SpeechWindow { from: number; to: number; seconds: number; /** a single run of speech longer than the limit had to be cut inside it */ cutMidSpeech?: boolean }
-export type VoiceReferenceRefusal = 'TOO_SHORT' | 'TOO_LONG' | 'NO_SPEECH' | 'TOO_QUIET' | 'CLIPPING' | 'WRONG_LANGUAGE' | 'BAD_FORMAT';
 
-/** The contract's validation record (CONTRACTS-CHARACTER-VOICE §1.4). Everything but `speech` is measured here. */
-export interface VoiceReferenceValidation {
+/** What was measured on a recording: the contract's `VoiceReferenceValidation` (src/domain/types.ts — the one type
+ *  the sample stores) with the measurement detail beside it. `speech` is added by the ASR judgement. */
+export interface VoiceReferenceMeasurement extends Omit<VoiceReferenceValidation, 'speech'> {
   ok: boolean; code?: VoiceReferenceRefusal; message?: string; reasons: string[];
-  durationSeconds: number; sampleRate: number; channels: number; codec?: string;
-  integratedLufs: number; truePeakDbtp: number; loudnessRange?: number;
+  codec?: string; loudnessRange?: number;
   clipping: Clipping;
   /** seconds above the silence floor, and the window that would be sent to the engine */
   speechSeconds: number; window?: SpeechWindow;
   /** the language the character speaks; the ASR pass compares `speech.language` with it (WRONG_LANGUAGE) */
   expectedLanguage?: Language;
-  /** filled by the voice handler from the transcription service: ≥ 3 words, detected language */
-  speech?: { present: boolean; words: number; language: Language | 'UNKNOWN'; transcript: string; confidence: number };
+  /** set when the file carries the studio's synthetic-speech tag: engine output, never a recording */
+  engineOutput?: string;
+  /** filled by the ASR judgement: ≥ 3 words, detected language */
+  speech?: VoiceReferenceValidation['speech'];
 }
 
 export const REFERENCE_RULES = { minSeconds: 3, maxSeconds: 30, minSampleRate: 16000, minLufs: -30, maxLufs: -10, maxClippingRatio: 0.001, minSpeechSeconds: 1, windowSeconds: 12, targetLufs: -20, ceilingDbtp: -1 } as const;
@@ -44,6 +50,27 @@ export async function audioFacts(file: string): Promise<AudioFacts> {
   if (!p.hasAudio || !p.sampleRate) throw new StudioError('INVALID', 'The file has no audio stream.', { code: 'BAD_FORMAT' });
   return { durationSeconds: p.durationSeconds ?? 0, sampleRate: p.sampleRate, channels: p.channels ?? 1, codec: p.audioCodec, container: p.container };
 }
+
+/** The container's metadata tags (lower-cased keys). A WAV's INFO chunk reads as `encoder` (ISFT) and `comment`
+ *  (ICMT). An unreadable file has none. */
+export async function formatTags(file: string): Promise<Record<string, string>> {
+  try {
+    const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-show_entries', 'format_tags', '-of', 'json', file], { maxBuffer: 1024 * 1024 });
+    const tags = (JSON.parse(stdout) as { format?: { tags?: Record<string, unknown> } }).format?.tags ?? {};
+    return Object.fromEntries(Object.entries(tags).map(([k, v]) => [k.toLowerCase(), String(v)]));
+  } catch { return {}; }
+}
+
+/** THE PROVENANCE TAG (finding 7): docker/tts/app.py stamps every line it synthesises (`ISFT = vewbox-tts <engine>`,
+ *  `ICMT = synthetic speech; …; not a voice reference`) so that a generated line can never pass for a recording.
+ *  Returns what the tag says when present, else null. Pure. */
+export function engineOutputOf(tags: Record<string, string>): string | null {
+  const said = [tags.encoder, tags.software, tags.isft, tags.comment, tags.icmt].filter(Boolean).join(' · ');
+  return /vewbox-tts|not a voice reference|synthetic speech/i.test(said) ? said.slice(0, 200) : null;
+}
+
+/** Read a file's provenance tag: the engine that made it, or null for a recording (or a file that cannot be read). */
+export async function engineOutputTag(file: string): Promise<string | null> { return engineOutputOf(await formatTags(file)); }
 
 /** EBU R128 integrated loudness, true peak and range of a file or a window of it (loudnorm pass 1). A silent file
  *  measures -Infinity. */
@@ -117,24 +144,35 @@ export function pickReferenceWindow(regions: Array<{ from: number; to: number }>
  *  capped so the true peak stays at or under -1 dBTP. Measured, never dynamic: the timbre reference keeps its
  *  micro-dynamics (a dynamic loudnorm on the reference was defect D7 in VOICE-STACK.md). */
 export async function trimReference(file: string, out: string, window: { from: number; to: number }, targetLufs: number = REFERENCE_RULES.targetLufs): Promise<{ file: string; from: number; to: number; gainDb: number; integratedLufs: number; truePeakDbtp: number }> {
-  const before = await loudness(file, window);
-  let gainDb = Number.isFinite(before.integratedLufs) ? targetLufs - before.integratedLufs : 0;
-  if (Number.isFinite(before.truePeakDbtp)) gainDb = Math.min(gainDb, REFERENCE_RULES.ceilingDbtp - before.truePeakDbtp);
-  gainDb = Math.max(-40, Math.min(40, gainDb));
-  await ffmpeg(['-v', 'error', ...seek(window), '-i', file, '-vn', '-af', `volume=${gainDb.toFixed(2)}dB`, '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', out], { timeoutMs: 5 * 60_000 });
-  const after = await loudness(out, undefined, { format: 'wav' });
-  return { file: out, from: window.from, to: window.to, gainDb: Number(gainDb.toFixed(2)), integratedLufs: after.integratedLufs, truePeakDbtp: after.truePeakDbtp };
+  // the gain is measured on the mono 24 kHz cut itself, not on the original: a stereo file measures 3 dB louder than
+  // its mono downmix (R128 sums the channels), so a gain taken from the original lands the window 3 dB short
+  const raw = `${out}.raw.wav`;
+  await ffmpeg(['-v', 'error', ...seek(window), '-i', file, '-vn', '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', raw], { timeoutMs: 5 * 60_000 });
+  try {
+    const before = await loudness(raw, undefined, { format: 'wav' });
+    let gainDb = Number.isFinite(before.integratedLufs) ? targetLufs - before.integratedLufs : 0;
+    if (Number.isFinite(before.truePeakDbtp)) gainDb = Math.min(gainDb, REFERENCE_RULES.ceilingDbtp - before.truePeakDbtp);
+    gainDb = Math.max(-40, Math.min(40, gainDb));
+    await ffmpeg(['-v', 'error', '-f', 'wav', '-i', raw, '-af', `volume=${gainDb.toFixed(2)}dB`, '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', out], { timeoutMs: 5 * 60_000 });
+    const after = await loudness(out, undefined, { format: 'wav' });
+    return { file: out, from: window.from, to: window.to, gainDb: Number(gainDb.toFixed(2)), integratedLufs: after.integratedLufs, truePeakDbtp: after.truePeakDbtp };
+  } finally { await fsp.rm(raw, { force: true }).catch(() => {}); }
 }
 
-/** Everything the contract measures on the CPU, in the order a producer needs to hear it: format, length, speech
- *  present, level, clipping. The first failing rule gives the code; every failing rule is in `reasons`. */
-export async function validateVoiceReference(file: string, opts: { language?: Language } = {}): Promise<VoiceReferenceValidation> {
+/** Everything the contract measures on the CPU, in the order a producer needs to hear it: provenance (the studio's
+ *  own engine output is not a recording), format, length, speech present, level, clipping. The first failing rule
+ *  gives the code; every failing rule is in `reasons`. */
+export async function validateVoiceReference(file: string, opts: { language?: Language } = {}): Promise<VoiceReferenceMeasurement> {
   const R = REFERENCE_RULES;
-  const empty: VoiceReferenceValidation = { ok: false, reasons: [], durationSeconds: 0, sampleRate: 0, channels: 0, integratedLufs: -Infinity, truePeakDbtp: -Infinity, clipping: { clippedSamples: 0, totalSamples: 0, ratio: 0, flatFactor: 0, peakDbfs: -Infinity }, speechSeconds: 0, expectedLanguage: opts.language };
+  const empty: VoiceReferenceMeasurement = { ok: false, reasons: [], durationSeconds: 0, sampleRate: 0, channels: 0, integratedLufs: -Infinity, truePeakDbtp: -Infinity, clipping: { clippedSamples: 0, totalSamples: 0, ratio: 0, flatFactor: 0, peakDbfs: -Infinity }, speechSeconds: 0, expectedLanguage: opts.language };
   let facts: AudioFacts;
   try { facts = await audioFacts(file); } catch (e) { return { ...empty, code: 'BAD_FORMAT', message: (e as Error).message, reasons: [(e as Error).message] }; }
-  const v: VoiceReferenceValidation = { ...empty, durationSeconds: facts.durationSeconds, sampleRate: facts.sampleRate, channels: facts.channels, codec: facts.codec };
+  const v: VoiceReferenceMeasurement = { ...empty, durationSeconds: facts.durationSeconds, sampleRate: facts.sampleRate, channels: facts.channels, codec: facts.codec };
   const refuse = (code: VoiceReferenceRefusal, message: string) => { v.reasons.push(message); if (!v.code) { v.code = code; v.message = message; } };
+  // a line the studio synthesised, uploaded back as a "recording", would clone the engine from itself (VOICE-STACK
+  // D6): refused before anything else is measured
+  const engine = await engineOutputTag(file);
+  if (engine) { v.engineOutput = engine; refuse('BAD_FORMAT', `This file is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; a voice is cloned only from a real person's recording.`); return v; }
   if (facts.sampleRate < R.minSampleRate) refuse('BAD_FORMAT', `The recording is sampled at ${facts.sampleRate} Hz; at least ${R.minSampleRate / 1000} kHz is needed (telephone-quality audio cannot carry a voice).`);
   if (facts.durationSeconds < R.minSeconds) refuse('TOO_SHORT', `The recording is ${facts.durationSeconds.toFixed(1)} s long; record ${R.minSeconds}–${R.maxSeconds} s of clear speech (6–12 s is ideal).`);
   else if (facts.durationSeconds > R.maxSeconds) refuse('TOO_LONG', `The recording is ${facts.durationSeconds.toFixed(0)} s long; keep it under ${R.maxSeconds} s — the engines use at most ${R.windowSeconds} s.`);

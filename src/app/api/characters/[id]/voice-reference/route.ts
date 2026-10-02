@@ -17,8 +17,9 @@ export const maxDuration = 300;
 /** UPLOAD A VOICE REFERENCE — `POST /api/characters/:id/voice-reference`, multipart: `file` (audio), optional
  *  `label`, `transcript` (the producer's, kept over the transcription), `language`, `dialect`.
  *
- *  The recording is stored, measured (duration, sample rate, loudness, true peak), its window cut at a silence
- *  boundary and levelled to −20 LUFS, and that window is transcribed — through the studio's own client — to prove
+ *  The recording is stored, measured by the one measurement stack (src/server/media/voice-check.ts: provenance — a
+ *  file the studio's own engine made is refused BAD_FORMAT —, duration, sample rate, loudness, true peak, clipped
+ *  samples), its window cut at the speech and levelled to −20 LUFS, and that window is transcribed — through the studio's own client — to prove
  *  there is speech, in the right language. A recording that fails is refused with one of the contract's codes
  *  (TOO_SHORT | TOO_LONG | NO_SPEECH | TOO_QUIET | CLIPPING | WRONG_LANGUAGE | BAD_FORMAT) and nothing is kept.
  *  One that passes becomes an UPLOADED sample (text = the transcript, provenance.validation = the measurements,
@@ -51,8 +52,8 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   catch (e) { if (e instanceof StudioError && e.code === 'INVALID') return refuse({ code: 'BAD_FORMAT', message: e.message }); throw e; }
   const work = await tmpDir('voice-ref');
   try {
-    const measured = await measureVoiceReference(stored.absPath, { probe: stored.probe, expectLanguage: language, trimmedOut: path.join(work, `${assetId}-24k.wav`) });
-    if (measured.refusal) { await removeFile(stored.relPath); return refuse(measured.refusal, measured.validation as unknown as Record<string, unknown>); }
+    const measured = await measureVoiceReference(stored.absPath, { expectLanguage: language, trimmedOut: path.join(work, `${assetId}-24k.wav`) });
+    if (measured.refusal) { await removeFile(stored.relPath); return refuse(measured.refusal, { ...measured.validation, reasons: measured.measurement.reasons, ...(measured.measurement.engineOutput ? { engineOutput: measured.measurement.engineOutput } : {}) }); }
     const trimmedId = nid('gen');
     const trimmed = await adoptFile(trimmedId, measured.trimmedFile, { expectKind: 'AUDIO' });
     const text = transcript || measured.validation.speech.transcript;
@@ -63,7 +64,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
     const sample: Omit<VoiceSample, 'id'> & { id: string } = { id: sampleId, label, assetId, source: 'UPLOADED', text, language: heard === 'UNKNOWN' ? language : heard, dialect, durationSeconds: stored.probe?.durationSeconds, provenance: { validation: measured.validation, trimmedAssetId: trimmedId, window: measured.window, transcriptBy: transcript ? 'PRODUCER' : 'ASR', gainDb: measured.gainDb } };
     try {
       await commands([
-        { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — ${label}`, tags: ['voice', 'recording', 'reference'], origin: 'UPLOAD', provenance: { originalName: file.name.slice(0, 200), characterId: c.id, validation: measured.validation } })] },
+        { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — ${label}`, tags: ['voice', 'recording', 'reference'], origin: 'UPLOAD', provenance: { originalName: file.name.slice(0, 200), characterId: c.id, validation: measured.validation, measurement: { clipping: measured.measurement.clipping, speechSeconds: measured.measurement.speechSeconds, loudnessRange: measured.measurement.loudnessRange, codec: measured.measurement.codec } } })] },
         { name: 'addAsset', args: [assetFromStored(trimmedId, trimmed, { label: `${c.name} — ${label} (reference window ${measured.window.from}–${measured.window.to} s)`, tags: ['voice', 'reference', 'window'], origin: 'DERIVED', provenance: { from: assetId, characterId: c.id, window: measured.window, gainDb: measured.gainDb, targetLufs: -20, sampleRate: 24000 } })] },
         { name: 'addVoiceSample', args: [c.id, sample, select] },
       ], 'upload');

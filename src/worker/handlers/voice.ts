@@ -10,7 +10,8 @@ import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, removeFile } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
-import { REFERENCE_WINDOW, analyseSilence, chooseWindow, parseSilences, staticGainDb, trimReference } from '@/server/studio/voice-reference';
+import { engineOutputTag, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
+import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, charErrorRate, lineScript, pickEngine, routeLine as routeLineByScript, scriptCoverage, synthesize, transcribe, verdict, wordErrorRate, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -39,7 +40,6 @@ const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRAR
 export const LINE_COVERAGE = VOICE_GATES.coverage.line;
 export const PROOF_COVERAGE = VOICE_GATES.coverage.line;
 export const TAKE_COVERAGE = VOICE_GATES.coverage.take;
-export { REFERENCE_WINDOW, chooseWindow, parseSilences, staticGainDb, analyseSilence, trimReference };
 
 // ----------------------------------------------------------------------------------------------- pure helpers
 
@@ -113,10 +113,14 @@ export interface Reference {
 }
 
 /** The character's reference recording as the engine takes it (mono 24 kHz, ≤ 12 s, −20 LUFS), or null when
- *  there is nothing to clone from. The window stored at upload is used as it is; otherwise it is cut here. */
+ *  there is nothing to clone from. The window stored at upload is used as it is; otherwise it is cut here with the
+ *  one measurement stack (voice-check). A file the studio's own engine made is refused whatever path brought it in
+ *  (finding 7: the synthetic-speech tag docker/tts writes is read here and at upload). */
 export async function referenceWav(c: Character, assets: Asset[], dir: string, opts: { sampleId?: string } = {}): Promise<Reference | null> {
   const pick = pickReference(c, assets, opts);
   if (!pick) return null;
+  const engine = await engineOutputTag(assetFile(pick.asset));
+  if (engine) throw missingReference(`“${pick.sample?.label ?? pick.asset.label}” is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; upload a real recording of ${c.name}'s voice.`, { characterId: c.id, assetId: pick.asset.id, engineOutput: engine });
   const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
   const text = pick.sample?.text?.trim() || c.voice.identity?.referenceText?.trim() || undefined;
   // the trimmed window stored with the upload, or the one the identity was built with
@@ -127,8 +131,10 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string, o
     return { file: assetFile(stored), asset: pick.asset, sample: pick.sample, text, window: w ? { from: w.from, to: w.to, assetId: stored.id } : { from: 0, to: stored.durationSeconds ?? 0, assetId: stored.id }, via: pick.via };
   }
   const src = assetFile(pick.asset);
-  const { silences, durationSeconds } = await analyseSilence(src);
-  const window = chooseWindow(silences, durationSeconds || pick.asset.durationSeconds || REFERENCE_WINDOW.maxSeconds);
+  const speech = await speechRegions(src, { durationSeconds: pick.asset.durationSeconds });
+  const found = pickReferenceWindow(speech.regions, speech.durationSeconds);
+  // no clear run of speech found: the head of the file, as long as the engines take
+  const window = found ? { from: found.from, to: found.to } : { from: 0, to: Math.min(speech.durationSeconds || REFERENCE_WINDOW.maxSeconds, REFERENCE_WINDOW.maxSeconds) };
   const out = path.join(dir, `ref-${c.id}.wav`);
   await trimReference(src, out, window);
   return { file: out, asset: pick.asset, sample: pick.sample, text, window, via: pick.via };

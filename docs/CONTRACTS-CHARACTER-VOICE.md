@@ -135,6 +135,14 @@ this file decides what lands now; the rest is backlog.
   after an Arabic dialect fold (گ↔ق/ك, چ↔ج/ك, ـه/ـة, ى/ي, hamza forms, diacritics, Iraqi spellings table). `verifyLine`
   on an ASR outage marks the line `REVIEW` (never passes it silently). (Voice owns `speech.ts` metrics; Backend applies
   them in handlers.)
+  *Wave-2 fix (review findings 7, 9, 20):* one measurement stack — `src/server/media/voice-check.ts` measures
+  provenance, format, level, clipping (samples counted at full scale, not guessed from the true peak) and the window,
+  and trims with a static gain measured on the mono 24 kHz cut; `src/server/studio/voice-reference.ts` keeps only the
+  speech judgement (`heardSpeech`, `judgeSpeech`) and composes the two; the stored record is the domain's
+  `VoiceReferenceValidation`. A file carrying docker/tts's synthetic-speech tag (ISFT/ICMT → ffprobe
+  `encoder`/`comment`) is refused `BAD_FORMAT` at upload and `MISSING_REFERENCE` if it reaches a build another way.
+  Journey 06 needs an authorised recording (`tests/fixtures/voice/iraqi-reference.wav` + consent note) and skips
+  with that reason until one exists.
   *Wave-2 fix (review findings 4, 5):* one routing rule — `lineScript`/`routeLine` in `speech.ts` (punctuation and
   digits are not script, so «،» does not flip an English line; a mixed line is heard in the language most of its
   letters are in); `voice.ts` routes through a thin adapter that adds the pinned engine, and the suite calls the rule

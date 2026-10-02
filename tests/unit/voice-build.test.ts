@@ -6,7 +6,7 @@ import type { Job } from '@/domain/jobs';
 /** VOICE_BUILD AND THE LINE HANDLERS with the engines mocked and the studio in memory (the real reducers run under
  *  the fake engine, so the batch semantics are the real ones). Nothing here touches the database, ffmpeg or the GPU. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null, asrAppend: '' }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null, asrAppend: '', engineFiles: new Set<string>() }));
 
 vi.mock('@/server/studio/engine', async () => {
   const { runCommand } = await import('@/domain/commands');
@@ -21,6 +21,8 @@ vi.mock('@/server/media', () => ({
   fileFor: (a: { path: string }) => `/lib/${a.path}`, removeFile: async (rel: string) => { fake.removed.push(rel); }, ffprobe: async () => ({ hasAudio: true, hasVideo: false, durationSeconds: 2 }), libraryRoot: () => '/lib', assertSafeId: (x: string) => x, storeBuffer: async () => { throw new Error('unused'); },
 }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async () => '/tmp/fake', ffmpeg: async () => { throw new Error('ffmpeg must not run in this test'); }, measureLoudness: async () => null }));
+// the provenance tag of a file: the files a test marks as engine output carry docker/tts's synthetic-speech tag
+vi.mock('@/server/media/voice-check', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/server/media/voice-check')>()), engineOutputTag: async (file: string) => (fake.engineFiles.has(file) ? 'vewbox-tts indextts · synthetic speech; engine=indextts; seed=1; not a voice reference' : null) }));
 vi.mock('@/server/providers/speech', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/server/providers/speech')>()),
   synthesize: async (i: Record<string, unknown>) => { fake.synth.push(i); return { file: `/tmp/fake/line-${fake.synth.length}.wav`, sampleRate: 24000, durationSeconds: 2.5, engine: i.engine as string, model: `${i.engine}-v1`, ms: 10 }; },
@@ -58,7 +60,7 @@ function prepare(opts: { language?: 'EN' | 'AR'; dialect?: 'IRAQI_BAGHDADI' | 'M
   return ch('nour').voice.samples.at(-1)!;
 }
 
-beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; fake.asrAppend = ''; });
+beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; fake.asrAppend = ''; fake.engineFiles = new Set(); });
 
 describe('routing parity (pure): the worker routes with THE rule the Iraqi suite uses', () => {
   const iraqi = { language: 'AR', dialect: 'IRAQI_BAGHDADI', voice: { pitch: 'MID', pace: 'MEASURED', timbre: '', notes: '', samples: [], identity: { provider: 'LOCAL_TTS', model: 'habibi', mode: 'REFERENCE', language: 'AR', dialect: 'IRAQI_BAGHDADI', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, createdAt: 'x' } } } as unknown as Character;
@@ -193,6 +195,14 @@ describe('VOICE_BUILD', () => {
     await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'REFERENCE', referenceSampleId: 'v-low' } }))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE' });
     expect(ch('nour').voice.identity).toBeUndefined();
     expect(fake.synth).toHaveLength(0);
+  });
+  it('an "upload" that is the studio’s own engine output (tagged by docker/tts) is never cloned from, whatever path brought it in', async () => {
+    prepare({ text: 'hello there this is my voice' });
+    fake.engineFiles.add('/lib/audio/up-ref.wav');
+    const before = JSON.stringify(fake.state);
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: expect.stringMatching(/engine output/) });
+    expect(fake.synth).toHaveLength(0);
+    expect(JSON.stringify(fake.state)).toBe(before);
   });
   it('Habibi path: the reference text comes from the stored sample transcript and the reference is never transcribed', async () => {
     prepare({ language: 'AR', dialect: 'IRAQI_BAGHDADI', text: 'هلا شلونكم اليوم' });

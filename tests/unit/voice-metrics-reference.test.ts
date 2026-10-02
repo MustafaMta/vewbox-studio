@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { audioFacts, clipping, loudness, pickReferenceWindow, speechRegions, trimReference, validateVoiceReference } from '@/server/media/voice-check';
+import { audioFacts, clipping, engineOutputOf, engineOutputTag, formatTags, loudness, pickReferenceWindow, speechRegions, trimReference, validateVoiceReference } from '@/server/media/voice-check';
 
 const execFileP = promisify(execFile);
 const fixture = path.resolve('tests/fixtures/speech-en.wav');
@@ -83,6 +83,28 @@ describe('measurements on synthetic files', () => {
     const t2 = await trimReference(loud, path.join(dir, 'trimmed-loud.wav'), { from: 0, to: 4 });
     expect(t2.truePeakDbtp).toBeLessThanOrEqual(-0.9);
     expect(t2.gainDb).toBeLessThan(0);
+    // a stereo recording lands at -20 LUFS too: the gain is measured on the mono cut (stereo measures 3 dB louder)
+    const stereo = path.join(dir, 'stereo.wav');
+    await execFileP('ffmpeg', ['-hide_banner', '-nostdin', '-y', '-v', 'error', '-f', 'lavfi', '-i', "aevalsrc='0.03*sin(997*2*PI*t)|0.03*sin(997*2*PI*t)':s=48000:d=6", '-c:a', 'pcm_s16le', stereo]);
+    const t3 = await trimReference(stereo, path.join(dir, 'trimmed-stereo.wav'), { from: 1, to: 5 });
+    expect(t3.integratedLufs).toBeGreaterThan(-20.7); expect(t3.integratedLufs).toBeLessThan(-19.3);
+    expect(await audioFacts(path.join(dir, 'trimmed-stereo.wav'))).toMatchObject({ channels: 1, sampleRate: 24000 });
+  }, 60_000);
+});
+
+describe('engine provenance (finding 7)', () => {
+  it('reads the synthetic-speech tag docker/tts writes (ISFT/ICMT → encoder/comment) and refuses the file BAD_FORMAT', async () => {
+    expect(engineOutputOf({ encoder: 'vewbox-tts habibi', comment: 'synthetic speech; engine=habibi; seed=7; not a voice reference' })).toMatch(/vewbox-tts habibi/);
+    expect(engineOutputOf({ comment: 'synthetic speech; engine=indextts; seed=1; not a voice reference' })).toMatch(/not a voice reference/);
+    expect(engineOutputOf({ encoder: 'Lavf61.7.100' })).toBeNull();
+    expect(engineOutputOf({})).toBeNull();
+    const tagged = path.join(dir, 'tagged.wav');
+    await execFileP('ffmpeg', ['-hide_banner', '-nostdin', '-y', '-v', 'error', '-f', 'lavfi', '-i', "aevalsrc='0.2*sin(220*2*PI*t)':s=24000:d=5", '-metadata', 'comment=synthetic speech; engine=indextts; seed=3; not a voice reference', '-c:a', 'pcm_s16le', tagged]);
+    expect((await formatTags(tagged)).comment).toMatch(/not a voice reference/);
+    const v = await validateVoiceReference(tagged, { language: 'EN' });
+    expect(v).toMatchObject({ ok: false, code: 'BAD_FORMAT' }); expect(v.message).toMatch(/engine output/); expect(v.engineOutput).toBeTruthy();
+    // a real recording carries no such tag
+    expect(await engineOutputTag(fixture)).toBeNull();
   }, 60_000);
 });
 
