@@ -40,6 +40,7 @@
       "purpose": "ACE-Step 1.5 XL turbo (MIT) with the 1.7B language model: songs with vocals from lyrics, Arabic listed as a supported language.",
       "files": [
         { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/vae/ace_1.5_vae.safetensors", "folder": "vae", "bytes": 337431732, "sha256": "6de92e3a862acd287e08b024ac90f0783a8635451b728721a33ff03565bcb2bb", "license": "MIT" },
+        { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/text_encoders/qwen_0.6b_ace15.safetensors", "folder": "text_encoders", "bytes": 1191588248, "sha256": "fd4590c82153b8ddb67e15a2e7aaa8afa8b83a858c8a9b82a4831063156aa7a7", "license": "MIT" },
         { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/text_encoders/qwen_1.7b_ace15.safetensors", "folder": "text_encoders", "bytes": 3708523360, "sha256": "ed63e9247d1f55f3ace04fa11e95b085fc82d459c82c5626f0b2e37b91ebd710", "license": "MIT" },
         { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors", "folder": "diffusion_models", "bytes": 9974719892, "sha256": "86a1afb0a1f711f0e3304ff65d874df3ae6783db683dcf982513fb9b6d14ae71", "license": "MIT" }
       ]

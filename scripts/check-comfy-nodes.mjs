@@ -15,7 +15,7 @@ const NEEDED = {
   SamplerCustomAdvanced: ['noise', 'guider', 'sampler', 'sigmas', 'latent_image'], VAEDecode: ['samples', 'vae'], VAEDecodeAudio: ['samples', 'vae'],
   CreateVideo: ['images', 'audio', 'fps'], SaveVideo: ['video', 'filename_prefix', 'format', 'codec'], LoadImage: ['image'], LoadAudio: ['audio'],
   // images: Qwen-Image / Qwen-Image-Edit
-  ModelSamplingAuraFlow: ['model', 'shift'], CLIPTextEncode: ['clip', 'text'], EmptySD3LatentImage: ['width', 'height', 'batch_size'],
+  ModelSamplingAuraFlow: ['model', 'shift'], DualCLIPLoader: ['clip_name1', 'clip_name2', 'type', 'device'], CLIPTextEncode: ['clip', 'text'], EmptySD3LatentImage: ['width', 'height', 'batch_size'],
   KSampler: ['model', 'positive', 'negative', 'latent_image', 'seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'], SaveImage: ['images', 'filename_prefix'],
   ImageScaleToTotalPixels: ['image', 'upscale_method', 'megapixels', 'resolution_steps'], TextEncodeQwenImageEditPlus: ['clip', 'prompt', 'vae', 'image1', 'image2', 'image3'], VAEEncode: ['pixels', 'vae'],
   // music: ACE-Step 1.5 and MiniMax Music 3
@@ -81,7 +81,7 @@ try {
 // model files the templates name, as ComfyUI sees them
 const want = {
   diffusion_models: ['minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'qwen_image_edit_2511_fp8mixed.safetensors', 'qwen_image_2512_fp8_e4m3fn.safetensors', 'acestep_v1.5_xl_turbo_bf16.safetensors', 'minimax_music3_dit_int8_convrot.safetensors'],
-  text_encoders: ['qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors', 'qwen_2.5_vl_7b_fp8_scaled.safetensors', 'qwen_1.7b_ace15.safetensors', 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors'],
+  text_encoders: ['qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors', 'qwen_2.5_vl_7b_fp8_scaled.safetensors', 'qwen_0.6b_ace15.safetensors', 'qwen_1.7b_ace15.safetensors', 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors'],
   vae: ['minimax_h3_video_vae_int8_convrot.safetensors', 'minimax_h3_audio_vae_fp32.safetensors', 'qwen_image_vae.safetensors', 'ace_1.5_vae.safetensors', 'minimax_music3_dav.safetensors'],
   loras: ['minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors', 'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors', 'Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors'],
 };

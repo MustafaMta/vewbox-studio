@@ -24,6 +24,8 @@ export const MODELS = {
   h3TurboRef2v4: 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors',
   // music
   aceDit: 'acestep_v1.5_xl_turbo_bf16.safetensors',
+  /** ACE-Step 1.5 loads two encoders: the 0.6B text encoder and the language model that writes the audio codes */
+  aceTextEncoder: 'qwen_0.6b_ace15.safetensors',
   aceClip: 'qwen_1.7b_ace15.safetensors',
   aceVae: 'ace_1.5_vae.safetensors',
   music3Dit: 'minimax_music3_dit_int8_convrot.safetensors',

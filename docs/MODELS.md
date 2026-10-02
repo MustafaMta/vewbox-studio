@@ -42,7 +42,7 @@ so a character keeps one identity across productions and directions are genuinel
 | Engine | Where | Licence | Notes |
 |---|---|---|---|
 | MiniMax Music API (`music-3.0`) | API | MiniMax terms | only when the account has it (closed to new accounts since 2026-08-20) |
-| ACE-Step 1.5 XL turbo + 1.7B LM | `comfyui` | MIT | default local engine; vocals from lyrics; Arabic listed as supported |
+| ACE-Step 1.5 XL turbo + 0.6B text encoder + 1.7B LM | `comfyui` | MIT | default local engine; vocals from lyrics; Arabic listed as supported; the two encoders load through `DualCLIPLoader` (the first song attempt with the LM alone produced an empty conditioning) |
 | MiniMax Music 3 (open weights, int8) | `comfyui` | MiniMax-Music3 Community License (UI attribution) | second local engine |
 
 ## Story engine
