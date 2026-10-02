@@ -96,8 +96,18 @@ worker's job was reclaimed after the 90 s lease and completed. Reset with a runn
 
 ## 10. Performance
 
-Local story engine on the 5090: ~17 s median per structured answer. Demucs: 27 s first call including model load.
-Video/image/voice numbers follow once their weights are present.
+Measured on the RTX 5090 (from `/api/metrics` and job results):
+
+| Step | Engine | Measured |
+|---|---|---|
+| Structured story answer | qwen3:14b (Ollama) | ~17 s median; PLAN_SHOTS 1.5 attempts on average |
+| Portrait / reference view / plate / opening frame | Qwen-Image-2512, Qwen-Image-Edit-2511 (Lightning) | `image.generation_ms` p50 8.5 s, p95 23 s (n=33); a 5-view sheet ≈ 60 s; 4 plates ≈ 50–75 s |
+| 5 s video take, 1344×768, first-frame conditioned | MiniMax H3 local (int8, 8-step turbo) | engine p50 132 s, p95 215 s (n=10); 10-shot short produced and assembled in 24 min |
+| 5 s video take, prompt only | same | 60–95 s warm (S1E1, Karrada) |
+| Speech line | IndexTTS 2.5 / Habibi-TTS IRQ | ~1–3 s of audio in 3–6 s warm; 35–63 s on the first call (model load); 8 dialogue lines with transcription checks in 131 s |
+| 90 s song with vocals | ACE-Step 1.5 XL turbo | 34 s engine time; 66 s including Demucs stems |
+| Transcription | faster-whisper large-v3 | 5.4 s for a 90 s vocal stem |
+| Assemble / export 1080p | ffmpeg | 24 s cut, 24 s export for a 53 s short |
 
 ## 11. Bugs fixed (selection)
 
