@@ -150,10 +150,34 @@ Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, te
   const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
   const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
   opts.onResult?.(r.result);
-  // Arabic that landed in the English slot moves to textAr (the gloss is then the same text until the producer edits it)
-  const arabic = /[؀-ۿ]/;
-  for (const sc of r.data.scenes) for (const b of sc.beats) for (const l of b.lines) if (arabic.test(l.text) && !l.textAr) l.textAr = l.text;
+  // Arabic that landed in the English slot moves to textAr; the English gloss is then asked for separately
+  for (const sc of r.data.scenes) for (const b of sc.beats) for (const l of b.lines) if (ARABIC.test(l.text) && !l.textAr) l.textAr = l.text;
+  const lines = r.data.scenes.flatMap((sc) => sc.beats.flatMap((b) => b.lines));
+  const glosses = await glossLines(lines.map((l) => ({ text: l.text, textAr: l.textAr })), p.dialect, opts);
+  for (const [i, l] of lines.entries()) if (glosses[i]) l.text = glosses[i];
   return r.data;
+}
+
+const ARABIC = /[؀-ۿ]/;
+const GlossSchema = z.object({ lines: z.array(z.object({ n: z.number().int(), english: z.string() })) });
+
+/** English glosses for Arabic lines whose "text" slot still holds Arabic (the model skipped the gloss). Returns one
+ *  entry per input line: the English, or '' when the line needs none / the model gave none. Never throws: a failed
+ *  gloss leaves the Arabic in place, which the producer can edit. */
+export async function glossLines(lines: Array<{ text: string; textAr?: string }>, dialect: Dialect | undefined, opts: EngineOptions = {}): Promise<string[]> {
+  const out = lines.map(() => '');
+  const todo = lines.map((l, n) => ({ n, textAr: l.textAr || l.text })).filter((x) => ARABIC.test(lines[x.n].text));
+  if (!todo.length) return out;
+  const messages: LlmMessage[] = [
+    { role: 'system', content: `You translate ${dialect ? DIALECT_LABELS[dialect].en : 'Arabic'} film dialogue into natural spoken English for subtitles. Keep each line short and faithful; English words only. Answer with ONE JSON object only.` },
+    { role: 'user', content: `Translate every line. Return JSON: { lines: [{ n, english }] } with the same n values.\n${compact(todo)}` },
+  ];
+  try {
+    const r = await llmJson(GlossSchema, messages, { ...opts, maxTokens: 3000, temperature: 0.2 });
+    opts.onResult?.(r.result);
+    for (const g of r.data.lines) { const english = g.english.trim(); if (g.n >= 0 && g.n < out.length && english && !ARABIC.test(english)) out[g.n] = english; }
+  } catch { /* the Arabic stays in the English slot */ }
+  return out;
 }
 
 // ------------------------------------------------------------------------------------------------------- shots

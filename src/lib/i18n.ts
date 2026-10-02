@@ -288,7 +288,7 @@ const D = {
   'story.present': ['Present', 'الحاضرون'],
   'story.autoIdea': ['Started from Auto Idea (a sample proposal)', 'بدأ من فكرة تلقائية (اقتراح نموذجي)'],
   'story.manual': ['Started from your brief', 'بدأ من موجزك'],
-  'story.writeHint': ['Write the story in your own words. Drafting help arrives with the backend.', 'اكتب القصة بكلماتك. تصل مساعدة الكتابة مع الخلفية.'],
+  'story.writeHint': ['Write the story in your own words, or let "Develop the story" draft it from the brief; every edit is yours.', 'اكتب القصة بكلماتك، أو دع «تطوير القصة» يصوغها من الملخص؛ كل تعديل بيدك.'],
 
   // storyboard
   'board.scene': ['Scene', 'مشهد'],

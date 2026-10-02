@@ -16,7 +16,7 @@ import { IconAuto, IconDelete, IconGenerate, IconManual, IconPlus } from '@/comp
 import { words } from '@/lib/format';
 
 /** STORY — the brief it started from, the synopsis, and the script: scenes, beats and lines. For a music video the
- *  song sits here too. Every edit is yours; drafting help arrives with the backend. */
+ *  song sits here too. Every edit is yours; the story engine drafts on request (Develop the story / Write the script). */
 export function StoryTab({ p }: { p: Production }) {
   const T = useT();
   const { state, act } = useStudio();
