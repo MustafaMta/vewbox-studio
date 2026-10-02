@@ -27,9 +27,11 @@ const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRAR
 
 /** The character's reference recording as a clean mono 24 kHz WAV (3–15 s), or null when there is none usable. */
 async function referenceWav(c: Character, assets: Asset[], dir: string): Promise<{ file: string; asset: Asset } | null> {
-  const chosen = c.voice.samples.find((s) => s.id === c.voice.selectedSampleId) ?? c.voice.samples.find((s) => s.source === 'UPLOADED') ?? c.voice.samples.find((s) => s.assetId);
-  const a = chosen?.assetId ? assets.find((x) => x.id === chosen.assetId) : undefined;
-  if (!a || a.sample || a.kind !== 'AUDIO') return null;
+  // the chosen voice first, then any recording the producer uploaded, then any other real audio; the bundled sample
+  // voices are placeholders for the UI, never a reference to clone from
+  const candidates = [c.voice.samples.find((s) => s.id === c.voice.selectedSampleId), ...c.voice.samples.filter((s) => s.source === 'UPLOADED'), ...c.voice.samples].filter((s): s is NonNullable<typeof s> => Boolean(s?.assetId));
+  const a = candidates.map((s) => assets.find((x) => x.id === s.assetId)).find((x) => x && !x.sample && x.kind === 'AUDIO');
+  if (!a) return null;
   const out = path.join(dir, `ref-${c.id}.wav`);
   // keep the most speech-like 12 seconds after a short lead-in, mono 24 kHz, light normalisation
   await ffmpeg(['-i', assetFile(a), '-ss', '0.2', '-t', '12', '-ac', '1', '-ar', '24000', '-af', 'loudnorm=I=-20:TP=-2:LRA=9', out], { timeoutMs: 120_000 });
