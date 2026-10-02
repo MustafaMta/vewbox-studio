@@ -12,43 +12,68 @@ test('the navigation puts the product first (Shows, Shorts, Music Videos, Charac
   await expect(nav.getByRole('link')).toHaveText(['Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Locations', 'Files', 'Production', 'Settings']);
 });
 
-test('the Studio Company shows the orchestrator with its real state, the nine departments as links, and the orchestrator panel', async ({ page }) => {
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test('the Studio Company: the orchestrator and nine seats on one stage, an inspector for the selection, roving keyboard focus, lines only for recorded handoffs', async ({ page }) => {
   await page.goto('/studio');
   await expect(page.getByRole('heading', { level: 1, name: 'Studio Company' })).toBeVisible();
   const diagram = page.getByRole('group', { name: /The company/ });
-  for (const d of ['Executive Office', 'Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(diagram.getByRole('link', { name: new RegExp(`^${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`) })).toBeVisible();
-  // the sample studio has productions and nothing running: the orchestrator is Ready (or Awaiting review once a story is approved)
-  const orchestrator = diagram.getByRole('button', { name: /Studio Orchestrator/ });
-  await expect(orchestrator).toHaveAccessibleName(/Ready|Idle|Awaiting review|Coordinating|Producing|Blocked/);
-  await orchestrator.click();
-  await expect(page.getByRole('region', { name: 'Studio Orchestrator' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Studio Orchestrator' }).getByText('Productions')).toBeVisible();
-  // keyboard: the first department node takes focus and opens its workspace on Enter
-  await diagram.getByRole('link', { name: /^Story Development:/ }).focus();
+  for (const d of ['Executive Office', 'Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(diagram.getByRole('button', { name: new RegExp(`^${esc(d)}\\.`) })).toBeVisible();
+  const orchestrator = diagram.getByRole('button', { name: /^Studio Orchestrator\./ });
+  await expect(orchestrator).toHaveAccessibleName(/Idle|Coordinating|in progress|Waiting for you|Blocked/);
+  const inspector = page.getByRole('complementary', { name: 'Selection' });
+  await expect(inspector.getByRole('heading', { name: 'Studio Orchestrator' })).toBeVisible();
+  await expect(inspector.getByText('Waiting for you')).toBeVisible();
+  // keyboard: the stage is one tab stop; the arrow keys walk the orbit; Enter selects, Enter again opens
+  await orchestrator.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  const story = diagram.getByRole('button', { name: /^Story Development\./ });
+  await expect(story).toBeFocused();
   await page.keyboard.press('Enter');
+  await expect(story).toHaveAttribute('aria-pressed', 'true');
+  await expect(inspector.getByRole('heading', { name: 'Story Development' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(inspector.getByRole('heading', { name: 'Studio Orchestrator' })).toBeVisible();
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/studio\/departments\/STORY$/);
-  // the organisation the page shows is the persisted one
-  const org = await (await fetch(`${BASE}/api/studio/org`)).json() as { departments: unknown[]; agents: unknown[]; tools: unknown[]; skills: Array<{ status: string; source: string }> };
+  // the organisation the page shows is the persisted one; without a handoff there is no line, and the stage says so
+  const org = await (await fetch(`${BASE}/api/studio/org`)).json() as { departments: unknown[]; agents: unknown[]; handoffs: unknown[]; skills: Array<{ status: string; source: string }> };
   expect(org.departments).toHaveLength(9);
-  expect(org.agents.length).toBeGreaterThanOrEqual(40);
+  expect(org.agents.length).toBeGreaterThanOrEqual(20);
   expect(org.skills.filter((s) => s.source.includes('MiniMax-AI/skills')).every((s) => s.status === 'UNAVAILABLE')).toBe(true);
+  if (org.handoffs.length === 0) {
+    await page.goto('/studio');
+    await expect(page.getByText('No handoffs yet. Each handoff between departments lights its path.')).toBeVisible();
+  }
 });
 
-test('a department workspace lists its director and agents; an agent profile shows real tools, skills and no invented runs', async ({ page }) => {
+test('a department leads with its people and what each executes, lists unstaffed roles apart; an agent profile keeps its internals behind Technical details', async ({ page }) => {
   await page.goto('/studio/departments/VIDEO');
   await expect(page.getByRole('heading', { level: 1, name: 'Video Production' })).toBeVisible();
-  await expect(page.getByText(/Director:\s*Production Director/).first()).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Active assignments/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Deliverables/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Quality results/ })).toBeVisible();
+  await expect(page.getByText(/Director:\s*MiniMax Video Specialist/).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Place in the pipeline/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Team/ })).toBeVisible();
+  await expect(page.getByText(/Executes:\s*Generate video/).first()).toBeVisible();
+  await expect(page.getByRole('radiogroup', { name: 'Work' })).toBeVisible();
+  const dept = await (await fetch(`${BASE}/api/studio/org/departments/VIDEO`)).json() as { department: { plannedRoles?: Array<{ name: string }> } };
+  if (dept.department.plannedRoles?.length) {
+    await expect(page.getByRole('heading', { name: /^Not yet staffed/ })).toBeVisible();
+    // a planned role is a name in a muted list, never a link to a profile
+    await expect(page.getByRole('link', { name: dept.department.plannedRoles[0].name })).toHaveCount(0);
+  }
+  // internals are disclosed, not shown by default
+  await expect(page.getByText('video.minimax_generate')).toBeHidden();
   await page.getByRole('link', { name: /MiniMax Video Specialist/ }).first().click();
   await expect(page).toHaveURL(/\/studio\/agents\/minimax-video-specialist$/);
   await expect(page.getByRole('heading', { level: 1, name: 'MiniMax Video Specialist' })).toBeVisible();
-  await expect(page.getByText('video.minimax_generate').first()).toBeVisible();
+  await expect(page.getByText('Generate video').first()).toBeVisible();
+  await page.getByText('Technical details', { exact: true }).first().click();
   await expect(page.getByText('MiniMax H3 prompting').first()).toBeVisible();
-  // the sample studio has no recorded runs for this agent: the page says so
+  // no recorded runs: the page says so instead of a zero in a tile
   const runs = await (await fetch(`${BASE}/api/studio/org/agents/minimax-video-specialist`)).json() as { runs: unknown[] };
-  if (runs.runs.length === 0) await expect(page.getByText('Has not run yet').first()).toBeVisible();
+  if (runs.runs.length === 0) await expect(page.getByText('No runs yet.').first()).toBeVisible();
 });
 
 test('the Production area shows each production in the pipeline and the Produce tab is gated by the story approval', async ({ page }) => {

@@ -7,11 +7,11 @@ export function fmtDate(d: Date | string | null | undefined, locale: Locale = 'e
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-IQ-u-nu-latn' : 'en-GB', { dateStyle: 'medium' }).format(date);
 }
 
-/** "3 min ago" / "منذ ٣ دقائق", in the interface language. */
+/** "3 min ago" / "منذ 3 دقائق", in the interface language — Western digits in both (one numeral system, §11). */
 export function fmtAgo(d: Date | string | null | undefined, locale: Locale = 'en'): string {
   if (!d) return '—';
   const s = Math.round((Date.now() - new Date(d).getTime()) / 1000);
-  const rtf = new Intl.RelativeTimeFormat(locale === 'ar' ? 'ar' : 'en-GB', { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { numeric: 'auto' });
   if (s < 45) return rtf.format(0, 'second').replace(/^in /, '');
   if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute');
   if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour');
