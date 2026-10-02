@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import type { AutoIdeaRequest, IdeaPreferences, IdeaProposal, Production, Song } from '@/domain/types';
 import { api } from '@/studio/api';
 import { ASPECTS, DIALECTS, DURATIONS, STYLES, type Aspect, type Dialect, type Language, type Style } from '@/domain/vocabulary';
@@ -61,12 +61,18 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
     catch (e) { setProposeError((e as Error).message); }
   };
   const waiting = waitingOn ? jobs.find((j) => j.id === waitingOn) : undefined;
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const openProposal = useCallback((id: string, jobId?: string) => api.proposal(id).then((r) => { setProposal(r.proposal); setProposalJobId(jobId ?? r.jobId ?? undefined); setWaitingOn(null); setPath('review'); const q = new URLSearchParams(sp.toString()); q.set('proposal', id); router.replace(`${pathname}?${q}`, { scroll: false }); window.scrollTo({ top: 0, behavior: 'smooth' }); }), [router, pathname, sp]);
   useEffect(() => {
     if (!waiting) return;
-    if (waiting.status === 'COMPLETED' && waiting.result?.proposalId) {
-      api.proposal(String(waiting.result.proposalId)).then((r) => { setProposal(r.proposal); setProposalJobId(waiting.id); setWaitingOn(null); setPath('review'); window.scrollTo({ top: 0, behavior: 'smooth' }); }).catch((e) => { setProposeError((e as Error).message); setWaitingOn(null); });
-    } else if (waiting.status === 'FAILED' || waiting.status === 'CANCELLED') { setProposeError(waiting.error?.message ?? T('auto.failed')); setWaitingOn(null); }
-  }, [waiting, T]);
+    if (waiting.status === 'COMPLETED' && waiting.result?.proposalId) openProposal(String(waiting.result.proposalId), waiting.id).catch((e) => { setProposeError((e as Error).message); setWaitingOn(null); });
+    else if (waiting.status === 'FAILED' || waiting.status === 'CANCELLED') { setProposeError(waiting.error?.message ?? T('auto.failed')); setWaitingOn(null); }
+  }, [waiting, T, openProposal]);
+  // a proposal already written (the page was reloaded, or a link was shared) reopens its review
+  const urlProposal = sp.get('proposal');
+  useEffect(() => { if (urlProposal && !proposal) openProposal(urlProposal).catch(() => {}); }, [urlProposal, proposal, openProposal]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -250,7 +256,7 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
         <Button variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} onClick={onBack}>{T('auto.backToPreferences')}</Button>
         <div className="flex flex-wrap items-center gap-2">
-          {onAnother && <Button variant="secondary" icon={<IconShuffle />} onClick={onAnother}>{T('auto.another')}</Button>}
+          {onAnother && <Button variant="secondary" icon={<IconShuffle />} onClick={onAnother}>{proposal.sample ? T('auto.another') : T('auto.writeAnother')}</Button>}
           <Button variant="primary" onClick={create}>{T('wizard.createProject')}</Button>
         </div>
       </div>

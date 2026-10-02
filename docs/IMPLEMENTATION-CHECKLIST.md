@@ -16,24 +16,24 @@ REMOVAL-MANIFEST.md); this build must not reintroduce any. No MiniMax API key is
 | # | Component | Requirement | Status | Evidence / tests | Bugs / blockers | Fix / retest |
 |---|---|---|---|---|---|---|
 | 0.1 | Baseline | Inspect repo + machine, commit baseline | VERIFIED | commit `7940236`; typecheck clean; 24 unit tests pass | — | — |
-| 0.2 | Research | MiniMax video/music/speech/text API brief | IN_PROGRESS | docs/research/MINIMAX-API.md | — | — |
-| 0.3 | Research | Image stack for RTX 5090 | IN_PROGRESS | docs/research/IMAGE-STACK.md | — | — |
-| 0.4 | Research | TTS / ASR / lipsync / audio tooling | IN_PROGRESS | docs/research/AUDIO-STACK.md | — | — |
-| 1.1 | Database | Postgres schema + migrations (shows→takes, characters, locations, voices, assets, jobs, continuity, metrics) | NOT_STARTED | | | |
-| 1.2 | API | Typed command API (every studio action), snapshot, SSE change feed | NOT_STARTED | | | |
-| 1.3 | Media | Upload (MIME sniff, size limits, ffprobe), serve with Range, library on volume | NOT_STARTED | | | |
-| 1.4 | Frontend store | Replace localStorage store with API-backed store, keep pages | NOT_STARTED | | | |
-| 1.5 | Continuity rule | Enforce appearance lock in service layer + DB, not only UI | NOT_STARTED | | | |
-| 2.1 | Jobs | Durable Postgres queue: states, leases, heartbeats, retries, backoff, cancel, stale recovery, idempotency | NOT_STARTED | | | |
-| 2.2 | Jobs UI | Jobs / Activity page, per-production progress, cancel/retry/regenerate | NOT_STARTED | | | |
-| 3.1 | MiniMax video | Client: create task, poll, retrieve, download; model/param mapping; error table | NOT_STARTED | | | |
-| 3.2 | MiniMax video | Take generation job: first frame + subject refs → download → ffprobe → proxy/thumb → QA → take | NOT_STARTED | | | |
-| 3.3 | MiniMax video | Real request evidence (model, refs, duration, cost, consistency) | BLOCKED_EXTERNAL | | No `MINIMAX_API_KEY` on this machine | needs key |
-| 3.4 | MiniMax music | Song generation job (lyrics, sections, stems if available) | NOT_STARTED | | | |
-| 4.1 | LLM | Story engine provider abstraction (MiniMax text / Anthropic / OpenAI-compatible local) | NOT_STARTED | | | |
-| 4.2 | Auto Idea | Real proposal generation (format, premise, cast, locations, style, duration, structure) | NOT_STARTED | | | |
-| 4.3 | Manual Brief | Brief → concept, characters, locations, synopsis, scenes, beats, lines | NOT_STARTED | | | |
-| 4.4 | Shot planning | Scenes → shots with framing, action, continuity entry/exit state | NOT_STARTED | | | |
+| 0.2 | Research | MiniMax video/music/speech/text API brief | VERIFIED | docs/research/MINIMAX-API.md (official docs, 2026-10-02) | Music API closed to new accounts since 2026-08-20 | local music engines chosen |
+| 0.3 | Research | Image stack for RTX 5090 | VERIFIED | docs/research/IMAGE-STACK.md | — | — |
+| 0.4 | Research | TTS / ASR / lipsync / audio tooling | VERIFIED | docs/research/AUDIO-STACK.md, LOCAL-ENGINES.md | — | — |
+| 1.1 | Database | Postgres schema + migrations (shows→takes, characters, locations, voices, assets, jobs, continuity, metrics) | VERIFIED | `drizzle/0000_initial.sql`; seeded 210 rows on first boot; `tests/api` | duplicate take ids in fixtures (fixed: per-shot ids) | — |
+| 1.2 | API | Typed command API (every studio action), snapshot, SSE change feed | VERIFIED | `tests/api/studio.test.ts` 13/13; browser round trip (season added, no resync needed) | — | — |
+| 1.3 | Media | Upload (MIME sniff, size limits, ffprobe), serve with Range, library on volume | VERIFIED | API tests: real MP4 upload probed (320×180, 2 s), 206 Range, 416, fake/exe rejected 400, protected delete 423 | — | — |
+| 1.4 | Frontend store | Replace localStorage store with API-backed store, keep pages | VERIFIED | `src/studio/store.tsx`; optimistic commands + hash check; pages unchanged except call sites | — | — |
+| 1.5 | Continuity rule | Enforce appearance lock in service layer + DB, not only UI | VERIFIED | server refuses `updateCharacter` on Layla with 409 APPEARANCE_LOCKED (API test); unit tests | — | — |
+| 2.1 | Jobs | Durable Postgres queue: states, leases, heartbeats, retries, backoff, cancel, stale recovery, idempotency | TESTING | `src/server/jobs/queue.ts`; idempotency and cancel covered by API tests; take job retried with backoff after engine unavailable (negative test) | stale-lease recovery not yet exercised by a test | — |
+| 2.2 | Jobs UI | Jobs / Activity page, per-production progress, cancel/retry/regenerate | VERIFIED | `/jobs` shows the failed take job with reason, attempt 2/3, retry; in-place JobButton states | — | — |
+| 3.1 | MiniMax video | Client: create task, poll, retrieve, download; model/param mapping; error table | IMPLEMENTED | `src/server/providers/minimax.ts` (v2 H3 + v1 envelope) | cannot be exercised without a key | — |
+| 3.2 | MiniMax video | Take generation job: first frame + subject refs → download → ffprobe → proxy/thumb → QA → take | IMPLEMENTED | `src/worker/handlers/take.ts`; two backends (hosted API, local H3 in ComfyUI) | awaiting H3 weights (fetching) | — |
+| 3.3 | MiniMax video | Real request evidence (model, refs, duration, cost, consistency) | BLOCKED_EXTERNAL | — | No `MINIMAX_API_KEY` on this machine; local H3 path pending weights | needs key, or local H3 |
+| 3.4 | Music | Song generation job (MiniMax Music API, ACE-Step 1.5 local, MiniMax Music 3 local) | IMPLEMENTED | `src/worker/handlers/music.ts` | weights pending | — |
+| 4.1 | LLM | Story engine provider abstraction (MiniMax text / Anthropic / OpenAI-compatible local) | VERIFIED | `src/server/providers/llm.ts`; Ollama qwen3:14b on the 5090 | — | — |
+| 4.2 | Auto Idea | Real proposal generation (format, premise, cast, locations, style, duration, structure) | VERIFIED | API job 64 s → proposal "The Forgotten Observatory" (Iraqi, reused library cat + café); UI job → review rendered, generated notice | — | — |
+| 4.3 | Manual Brief | Brief → concept, characters, locations, synopsis, scenes, beats, lines | IMPLEMENTED | `DEVELOP_STORY` + `WRITE_SCRIPT` handlers | to exercise | — |
+| 4.4 | Shot planning | Scenes → shots with framing, action, continuity entry/exit state | IMPLEMENTED | `PLAN_SHOTS` handler with versioned continuity | to exercise | — |
 | 5.1 | Images | ComfyUI container (GPU) with pinned models; workflow templates versioned | NOT_STARTED | | | |
 | 5.2 | Images | Character appearance + reference pack generation | NOT_STARTED | | | |
 | 5.3 | Images | Location master + views generation | NOT_STARTED | | | |

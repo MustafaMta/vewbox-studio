@@ -763,6 +763,7 @@ const D = {
   'auto.writingHint': ['Usually under a minute. You can keep the page open.', 'عادةً أقل من دقيقة. يمكنك إبقاء الصفحة مفتوحة.'],
   'auto.failed': ['The story engine could not write a proposal.', 'تعذّر على محرّك القصة كتابة اقتراح.'],
   'auto.useSample': ['Use a written example instead', 'استخدم مثالاً مكتوباً بدلاً من ذلك'],
+  'auto.writeAnother': ['Write another proposal', 'اكتب اقتراحاً آخر'],
   'auto.premiseLabel': ['Your idea (optional)', 'فكرتك (اختياري)'],
   'auto.premiseHint': ['A line is enough. Leave it empty and the studio invents one.', 'يكفي سطر. اتركه فارغاً وسيخترع الاستوديو فكرة.'],
   'final.exportsTitle': ['Exports', 'التصديرات'],
