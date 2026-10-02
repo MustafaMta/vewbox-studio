@@ -80,7 +80,11 @@ export async function qaTake(file: string, expect: { durationSeconds: number; wi
     const { stderr } = await ffmpeg(['-i', file, '-vf', 'blackdetect=d=0.3:pix_th=0.10,freezedetect=n=-45dB:d=1.0,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', ...(probe.hasAudio ? ['-af', 'astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-,silencedetect=n=-50dB:d=1.0'] : []), '-f', 'null', '-'], { timeoutMs: 10 * 60_000 });
     const blackTotal = [...stderr.matchAll(/black_duration:([\d.]+)/g)].reduce((a, m) => a + Number(m[1]), 0);
     checks.push({ name: 'black_frames', ok: blackTotal <= Math.max(0.5, dur * 0.1), value: Number(blackTotal.toFixed(2)), threshold: `≤ ${Math.max(0.5, dur * 0.1).toFixed(1)}s` });
-    const frozen = [...stderr.matchAll(/freeze_duration: ([\d.]+)/g)].reduce((a, m) => a + Number(m[1]), 0);
+    // freezedetect reports a duration only when a freeze ends; a clip frozen to the last frame reports a start alone
+    const freezeStarts = [...stderr.matchAll(/freeze_start: ([\d.]+)/g)].map((m) => Number(m[1]));
+    const freezeDurations = [...stderr.matchAll(/freeze_duration: ([\d.]+)/g)].map((m) => Number(m[1]));
+    const openFreeze = freezeStarts.length > freezeDurations.length ? Math.max(0, dur - freezeStarts[freezeStarts.length - 1]) : 0;
+    const frozen = freezeDurations.reduce((a, d) => a + d, 0) + openFreeze;
     checks.push({ name: 'frozen_video', ok: frozen <= Math.max(1.0, dur * 0.3), value: Number(frozen.toFixed(2)), threshold: `≤ ${Math.max(1, dur * 0.3).toFixed(1)}s` });
     // flicker: large frame-to-frame swings of average luma
     const yavg = [...stderr.matchAll(/lavfi\.signalstats\.YAVG=([\d.]+)/g)].map((m) => Number(m[1]));
