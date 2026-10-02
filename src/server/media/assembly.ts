@@ -130,9 +130,19 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
   return cues;
 }
 
+/** One cue per lyric line, spread evenly over its section (the transcription service refines timings when it has
+ *  run); a section without line breaks stays one cue. */
 export function lyricCues(p: Production, lang: 'ar' | 'en'): Cue[] {
   if (!p.song) return [];
-  return p.song.sections.filter((s) => (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr)).map((s) => ({ start: s.from, end: s.to, text: rtlMark(lang, (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr) ?? '') }));
+  const cues: Cue[] = [];
+  for (const s of p.song.sections) {
+    const text = (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr) ?? '';
+    const lines = text.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    const span = Math.max(0, s.to - s.from) / lines.length;
+    lines.forEach((line, i) => cues.push({ start: s.from + span * i, end: s.from + span * (i + 1), text: rtlMark(lang, line) }));
+  }
+  return cues;
 }
 
 /** An Arabic cue that starts with a digit or a Latin word has no strong character to set its direction, so the
