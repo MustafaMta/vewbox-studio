@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { JOB_TYPES, isTerminalStatus, type JobType } from '@/domain/jobs';
+import { JOB_TYPES, type JobType } from '@/domain/jobs';
 import { StudioError } from '@/domain/errors';
 import { enqueue, listJobs } from '@/server/jobs/queue';
+import { requeueKeyFor, voiceBuildKey } from '@/server/jobs/keys';
 import { readState } from '@/server/studio/engine';
 import { preflightCharacter } from '@/server/org/preflight';
 import { json, readJson, route } from '@/server/http';
@@ -32,7 +33,7 @@ async function prepareCharacterJob(type: JobType, payload: unknown, key: string 
     const failed = pre.checks.filter((x) => !x.ok);
     throw new StudioError('INVALID', failed.map((x) => x.detail ?? x.name).join('; '), { failureClass: failed[0].failureClass, checks: pre.checks });
   }
-  if (type === 'VOICE_BUILD' && !key) return `VOICE_BUILD:${characterId}:${c.voice.identity?.revision ?? 0}`;
+  if (type === 'VOICE_BUILD' && !key) return voiceBuildKey(characterId, c.voice.identity?.revision ?? 0);
   return key;
 }
 
@@ -42,8 +43,9 @@ export const POST = route(async (req) => {
   if (!parsed.success) throw new StudioError('INVALID', parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
   const key = await prepareCharacterJob(parsed.data.type, parsed.data.payload, parsed.data.idempotencyKey);
   let r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: key, priority: parsed.data.priority });
-  // the derived voice key met an earlier, finished build of the same revision (it failed, or was cancelled): that is
-  // a new request, not a duplicate — queue it under a fresh key rather than hand back the old job
-  if (!r.created && key && !parsed.data.idempotencyKey && isTerminalStatus(r.job.status)) r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: `${key}:${Date.now().toString(36)}`, priority: parsed.data.priority });
+  // a voice-build or creation key met an earlier attempt that has ended (it failed, or was cancelled): that is a new
+  // request, not a duplicate — queue it under a fresh key rather than hand back the old job, whoever supplied the key
+  const fresh = !r.created ? requeueKeyFor(key, r.job) : null;
+  if (fresh) r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: fresh, priority: parsed.data.priority });
   return json({ job: r.job, created: r.created }, { status: r.created ? 201 : 200 });
 });

@@ -91,6 +91,13 @@ describe('lineScript / routeLine (routing parity)', () => {
     // the pinned model is respected for Arabic script
     expect(routeLine('هلا', 'AR', 'IRAQI_BAGHDADI', 'indextts').engine).toBe('indextts');
   });
+  it('punctuation and digits are not script: an Arabic comma does not flip an English line; a mixed line is heard in its main language', () => {
+    expect(lineScript('Hello، world')).toBe('LATIN');
+    expect(routeLine('Hello، world', 'EN')).toEqual({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('Meet me at ٢٥:٣٠، OK?', 'AR', 'IRAQI_BAGHDADI')).toMatchObject({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('I said مرحبا to her twice', 'EN')).toMatchObject({ script: 'MIXED', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('OK سمير، هسه نسوي test للخيط', 'AR', 'IRAQI_BAGHDADI').asrLanguage).toBe('ar');
+  });
 });
 
 describe('verdict', () => {

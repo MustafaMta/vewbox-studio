@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceSample, selectVoiceSample, setVoiceIdentity, acceptProposal, removeVoiceSample } from '@/domain/actions';
-import { voiceLock } from '@/domain/rules';
+import { voiceBuildLockProblem, voiceLock } from '@/domain/rules';
+import { preflightCharacter } from '@/server/org/preflight';
 import { sampleProposal } from '@/domain/proposals';
 import type { Character, StudioState } from '@/domain/types';
 
@@ -36,6 +37,49 @@ describe('voice lock', () => {
     expect(r.state.characters.find((x) => x.id === c.id)!.voice.selectedSampleId).toBe(r.sample.id);
     const withProof = addVoiceSample(r.state, c.id, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED', text: 'hello' }).state;
     expect(() => setVoiceIdentity(withProof, c.id, { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', referenceSampleId: r.sample.id, referenceAssetId: 'up-z', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } })).not.toThrow();
+  });
+});
+
+describe('voice lock by the chosen recording alone (finding 8)', () => {
+  /** A character who spoke in a video with recording A chosen and no identity yet, with a second upload B. */
+  const lockedToA = () => {
+    let s = base();
+    const c = used(s);
+    s = addAsset(s, { id: 'up-a', kind: 'AUDIO', src: '/api/media/up-a', label: 'A', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    s = addAsset(s, { id: 'up-b', kind: 'AUDIO', src: '/api/media/up-b', label: 'B', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    s = addAsset(s, { id: 'gen-proof', kind: 'AUDIO', src: '/api/media/gen-proof', label: 'proof', tags: [], sample: false, origin: 'GENERATED' }).state;
+    s = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, identity: undefined, selectedSampleId: 's-a', samples: [{ id: 's-a', label: 'A', assetId: 'up-a', source: 'UPLOADED' as const }, { id: 's-b', label: 'B', assetId: 'up-b', source: 'UPLOADED' as const }, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED' as const }] } } : x)) };
+    return { s, id: c.id };
+  };
+  const identity = (referenceSampleId: string | undefined, referenceAssetId: string | undefined) => ({ provider: 'LOCAL_TTS' as const, model: 'indextts', mode: 'REFERENCE' as const, referenceSampleId, referenceAssetId, language: 'EN' as const, params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } });
+
+  it('the rule: only the chosen recording may be pinned; any other upload, or a catalogue voice, is VOICE_LOCKED', () => {
+    const { s, id } = lockedToA();
+    const c = s.characters.find((x) => x.id === id)!;
+    expect(voiceLock(c).locked).toBe(true);
+    expect(voiceBuildLockProblem(c, 's-a')).toBeNull();
+    expect(voiceBuildLockProblem(c, 's-b')).toMatch(/only be built from that recording/);
+    expect(voiceBuildLockProblem(c, undefined)).toMatch(/only be built from that recording/);
+  });
+  it('setVoiceIdentity refuses an identity built from another upload, accepts the chosen one', () => {
+    const { s, id } = lockedToA();
+    expect(() => setVoiceIdentity(s, id, identity('s-b', 'up-b'))).toThrow(expect.objectContaining({ code: 'VOICE_LOCKED' }));
+    expect(() => setVoiceIdentity(s, id, { ...identity(undefined, undefined), provider: 'MINIMAX', mode: 'MANUAL', providerVoiceId: 'cat-1' })).toThrow(expect.objectContaining({ code: 'VOICE_LOCKED' }));
+    const ok = setVoiceIdentity(s, id, identity('s-a', 'up-a'));
+    expect(ok.characters.find((x) => x.id === id)!.voice.identity).toMatchObject({ referenceSampleId: 's-a', revision: 1 });
+  });
+  it('the enqueue preflight holds REFERENCE to the chosen recording and AUTOMATIC to it alone', () => {
+    const { s, id } = lockedToA();
+    const c = s.characters.find((x) => x.id === id)!;
+    expect(preflightCharacter(s, c, 'VOICE_BUILD', { mode: 'REFERENCE', referenceSampleId: 's-b' }).checks.find((x) => x.name === 'voice-unlocked')!.ok).toBe(false);
+    expect(preflightCharacter(s, c, 'VOICE_BUILD', { mode: 'REFERENCE', referenceSampleId: 's-a' }).ok).toBe(true);
+    expect(preflightCharacter(s, c, 'VOICE_BUILD', { mode: 'AUTOMATIC' }).ok).toBe(true);
+    expect(preflightCharacter(s, c, 'VOICE_BUILD', { mode: 'MANUAL', providerVoiceId: 'cat-1' }).checks.find((x) => x.name === 'voice-unlocked')!.ok).toBe(false);
+    // chosen recording is a bundled sample: nothing may be built at all
+    const bundled: StudioState = { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, selectedSampleId: 'v-bundled', samples: [...x.voice.samples, { id: 'v-bundled', label: 'bundled', assetId: 'up-a', source: 'SAMPLE' as const }] } } : x)) };
+    const pre = preflightCharacter(bundled, bundled.characters.find((x) => x.id === id)!, 'VOICE_BUILD', { mode: 'AUTOMATIC' });
+    expect(pre.ok).toBe(false);
+    expect(pre.checks.find((x) => x.name === 'uploaded-recording-present')!.detail).toMatch(/chosen recording/);
   });
 });
 

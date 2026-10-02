@@ -151,7 +151,7 @@ await fs.mkdir(path.join(evidenceDir, 'refs'), { recursive: true });
 const references = {};
 let anySynthetic = false;
 for (const [voice, file] of Object.entries(refs)) {
-  const v = await check.validateVoiceReference(file, { language: 'AR' });
+  const v = await check.validateVoiceReference(file, { language: 'AR', allowEngineOutput: allowSynthetic });
   const signs = await syntheticSigns(file);
   if (signs.length) {
     anySynthetic = true;

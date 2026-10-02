@@ -52,9 +52,11 @@ export function pickEngine(language: Language, dialect?: Dialect, preferred?: Tt
   return 'indextts';
 }
 
-/** What a line is written in, for routing and for the ASR language. MIXED is the worker's rule — two or more Latin
- *  letters in a row next to Arabic — so a lone initial or unit does not switch engines. LATIN covers any line without
- *  Arabic letters (other scripts included); NUMERIC has digits but no letters. */
+/** What a line is written in, for routing and for the ASR language — THE one implementation (the worker's handlers,
+ *  take.ts and scripts/iraqi-voice-suite.mjs all route through it). Punctuation, symbols and digits are not script:
+ *  an Arabic comma «،» or Arabic-Indic digits in an English line do not make it Arabic. MIXED is two or more Latin
+ *  letters in a row next to Arabic letters, so a lone initial or unit does not switch engines. LATIN covers any line
+ *  without Arabic letters (other scripts included); NUMERIC has digits but no letters. */
 export type LineScript = 'AR' | 'LATIN' | 'MIXED' | 'NUMERIC' | 'EMPTY';
 export function lineScript(text: string): LineScript {
   const t = text.replace(/[\s\p{P}\p{S}]/gu, '');
@@ -68,13 +70,18 @@ export function lineScript(text: string): LineScript {
   return 'NUMERIC';
 }
 
+/** The language a mixed line is mostly in, by letters: «شغّل الـ wifi» is Arabic with a loanword, "I said مرحبا to
+ *  her" is English with one. */
+const mostlyArabic = (text: string) => (text.match(/(?=\p{L})\p{Script=Arabic}/gu)?.length ?? 0) >= (text.match(/[A-Za-zÀ-ɏ]/g)?.length ?? 0);
+
 /** Routing parity for voice.ts, take.ts and the suite: the engine and the ASR language follow the line's script.
  *  Arabic script → the character's engine; Latin-only or mixed → IndexTTS (Habibi has no English), with `fallback`
- *  naming the switch so the job can log it. The identity's model is never changed by this. */
+ *  naming the switch so the job can log it; a mixed line is heard in the language most of its letters are in. The
+ *  identity's model is never changed by this. */
 export function routeLine(text: string, language: Language, dialect?: Dialect, preferred?: TtsEngine): { script: LineScript; engine: Exclude<TtsEngine, 'auto'>; asrLanguage: 'ar' | 'en'; fallback?: string } {
   const script = lineScript(text);
   const base = pickEngine(language, dialect, preferred);
-  if (script === 'MIXED') return { script, engine: 'indextts', asrLanguage: 'ar', fallback: base !== 'indextts' ? `mixed Arabic/Latin line: ${base} has no English, spoken by indextts` : undefined };
+  if (script === 'MIXED') return { script, engine: 'indextts', asrLanguage: mostlyArabic(text) ? 'ar' : 'en', fallback: base !== 'indextts' ? `mixed Arabic/Latin line: ${base} has no English, spoken by indextts` : undefined };
   if (script === 'LATIN') return { script, engine: 'indextts', asrLanguage: 'en', fallback: base !== 'indextts' ? `Latin-script line: spoken by indextts, not ${base}` : undefined };
   if (script === 'AR') return { script, engine: base, asrLanguage: 'ar' };
   return { script, engine: base, asrLanguage: language === 'AR' ? 'ar' : 'en' };
@@ -274,8 +281,9 @@ export function charErrorRate(reference: string, hypothesis: string, lang: Langu
   return levenshtein(r, h) / r.length;
 }
 
-/** The contract's thresholds: a take is proven at coverage ≥ 0.7, a recorded line at ≥ 0.85, both with CER ≤ 0.15.
- *  Well below the gate the line is regenerated (FAIL); just below, or unmeasured (ASR outage), a person listens (REVIEW). */
+/** The contract's thresholds (§1.4): a take is proven at coverage ≥ 0.7, a recorded line at ≥ 0.85, both with
+ *  CER ≤ 0.15 after the dialect fold. Well below the gate the line is regenerated (FAIL); just below, or unmeasured
+ *  (ASR outage), a person listens (REVIEW). Applied by verifyLine / judgeHeard in src/worker/handlers/voice.ts. */
 export const VOICE_GATES = { coverage: { take: 0.7, line: 0.85 }, cer: 0.15, fail: { coverageBelowGate: 0.2, cer: 0.35 } } as const;
 export type VoiceVerdict = { status: 'PASS' | 'REVIEW' | 'FAIL'; reasons: string[]; thresholds: { coverage: number; cer: number } };
 export function verdict(m: { coverage?: number; cer?: number; context: 'take' | 'line' }): VoiceVerdict {
