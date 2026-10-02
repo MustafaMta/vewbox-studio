@@ -73,8 +73,13 @@ For a new character "appearance" is one dense sentence of how they look (age, bu
   const r = await llmJson(ProposalSchema, messages, { ...opts, maxTokens: 6000, temperature: 0.9 });
   opts.onResult?.(r.result);
   const out = r.data;
+  // a library id from the model is trusted only when the name agrees with it (the model has returned a wrong id with
+  // the right name); otherwise the name decides, and an unknown name is a new character
+  const same = (a: string, b: string) => { const n = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); return n(a) === n(b) || n(a).includes(n(b)) || n(b).includes(n(a)); };
+  const resolveChar = (id: string | undefined, name: string) => { const byId = id ? s.characters.find((x) => x.id === id) : undefined; if (byId && (same(byId.name, name) || (byId.nameAr && same(byId.nameAr, name)))) return byId; return s.characters.find((x) => same(x.name, name) || (x.nameAr ? same(x.nameAr, name) : false)); };
+  const resolveLoc = (id: string | undefined, name: string) => { const byId = id ? s.locations.find((x) => x.id === id) : undefined; if (byId && (same(byId.name, name) || (byId.nameAr && same(byId.nameAr, name)))) return byId; return s.locations.find((x) => same(x.name, name) || (x.nameAr ? same(x.nameAr, name) : false)); };
   const cast = out.cast.map((c, i) => {
-    const existing = c.existingCharacterId ? s.characters.find((x) => x.id === c.existingCharacterId) : undefined;
+    const existing = resolveChar(c.existingCharacterId, c.name);
     const fromPreference = Boolean(existing && mustCast.some((m) => m.id === existing.id));
     return { key: existing ? `c-${existing.id}` : `new-c-${i}`, characterId: existing?.id, name: existing?.name ?? c.name, role: existing?.role ?? c.role, reason: c.reason ?? (existing ? 'Returning from the library.' : 'New to this story.'), isNew: !existing, fromPreference, sex: c.sex ?? existing?.sex, ageYears: c.ageYears ?? existing?.ageYears, appearance: c.appearance, personality: c.personality };
   });
@@ -87,7 +92,7 @@ For a new character "appearance" is one dense sentence of how they look (age, bu
     for (const id of show.castIds.slice(0, 6)) { const m = s.characters.find((x) => x.id === id); if (m && !cast.some((c) => c.characterId === id)) cast.push({ key: `c-${id}`, characterId: id, name: m.name, role: m.role, reason: returning, isNew: false, fromPreference: false, sex: m.sex, ageYears: m.ageYears, appearance: undefined, personality: undefined }); }
   }
   const locations = out.locations.map((l, i) => {
-    const existing = l.existingLocationId ? s.locations.find((x) => x.id === l.existingLocationId) : undefined;
+    const existing = resolveLoc(l.existingLocationId, l.name);
     return { key: existing ? `l-${existing.id}` : `new-l-${i}`, locationId: existing?.id, name: existing?.name ?? l.name, description: existing?.description ?? l.description, isNew: !existing, fromPreference: Boolean(existing && mustLocs.some((m) => m.id === existing.id)), kind: l.kind ?? existing?.kind };
   });
   for (const m of mustLocs) if (!locations.some((l) => l.locationId === m.id)) locations.unshift({ key: `l-${m.id}`, locationId: m.id, name: m.name, description: m.description, isNew: false, fromPreference: true, kind: m.kind });
