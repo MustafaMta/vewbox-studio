@@ -86,7 +86,7 @@ export function FinalCutTab({ p }: { p: Production }) {
             </ul>
           </Card>
         )}
-        <Details summary={T('shot.advanced')}>{(() => { const cut = assetById(state, p.cutAssetId); const l = (cut?.provenance as { loudness?: { integrated?: number; truePeak?: number } } | undefined)?.loudness; return <p className="num text-xs text-muted">{l?.integrated !== undefined ? `${T('final.measured')}: ${l.integrated.toFixed(1)} LUFS · ${T('final.truePeak')} ${l.truePeak?.toFixed(1) ?? '—'} dBTP` : `${T('final.target')}: −23 LUFS · ${T('final.truePeak')} −1 dBTP`} · ${T('final.mixTargets')}</p>; })()}</Details>
+        <Details summary={T('shot.advanced')}>{(() => { const cut = assetById(state, p.cutAssetId); const l = (cut?.provenance as { loudness?: { integrated?: number; truePeak?: number } } | undefined)?.loudness; return <p className="num text-xs text-muted">{l?.integrated !== undefined ? `${T('final.measured')}: ${l.integrated.toFixed(1)} LUFS · ${T('final.truePeak')} ${l.truePeak?.toFixed(1) ?? '—'} dBTP` : `${T('final.target')}: −23 LUFS · ${T('final.truePeak')} −1 dBTP`}{` · ${T('final.mixTargets')}`}</p>; })()}</Details>
         {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { act('markStepDone', p.id, 'FINAL_CUT'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
       </aside>
     </div>
