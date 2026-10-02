@@ -50,6 +50,8 @@ export const shotLabel = (p: Production, sh: Shot): string => {
 
 export const selectedTake = (sh: Shot) => sh.takes.find((t) => t.id === sh.selectedTakeId);
 export const readyTakes = (sh: Shot) => sh.takes.filter((t) => t.status !== 'REJECTED');
+/** A shot still needs a real take when nothing is chosen, or the chosen take is only a bundled sample clip. */
+export const needsTake = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); return !t || t.provider === 'SAMPLE'; };
 
 /** How far along a production is, counted from what it has rather than from a flag. */
 export function progressOf(p: Production) {

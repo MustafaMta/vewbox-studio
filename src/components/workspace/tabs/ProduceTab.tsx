@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Production, Shot, Take } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { assetById, readyTakes, shotHref, shotLabel } from '@/studio/selectors';
+import { assetById, needsTake, readyTakes, shotHref, shotLabel } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Details, KV, Notice, SampleMark, Segmented, Status, Thumb } from '@/components/ui/kit';
@@ -20,9 +20,10 @@ export function ProduceTab({ p }: { p: Production }) {
   const { act } = useStudio();
   const toast = useToast();
   const [filter, setFilter] = useState<'all' | 'open' | 'chosen'>('all');
-  const shots = p.shots.filter((s) => filter === 'all' || (filter === 'chosen' ? Boolean(s.selectedTakeId) : !s.selectedTakeId));
-  const chosen = p.shots.filter((s) => s.selectedTakeId).length;
-  const open = p.shots.filter((s) => !s.selectedTakeId).length;
+  // a shot whose chosen take is only a bundled sample clip still needs a real take
+  const shots = p.shots.filter((s) => filter === 'all' || (filter === 'chosen' ? !needsTake(s) : needsTake(s)));
+  const chosen = p.shots.filter((s) => !needsTake(s)).length;
+  const open = p.shots.filter((s) => needsTake(s)).length;
   if (p.shots.length === 0) return <Notice title={T('empty.shots')}>{T('empty.shots.hint')} <Link href="?tab=storyboard" className="font-medium text-accent-text hover:underline">{T('tab.storyboard')} →</Link></Notice>;
   return (
     <div className="space-y-6">
