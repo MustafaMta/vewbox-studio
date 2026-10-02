@@ -133,7 +133,12 @@ export function CreateCharacter() {
     if (!picture.asset) return;
     const keep = picture.keep === 'FACE' ? T('char.create.keepFace.prompt') : T('char.create.keepAll.prompt');
     const brief = [keep, picture.note.trim()].filter(Boolean).join(' ');
-    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
+    // the look is the picture's (never designed from words); who they are — sex and age when the producer says —
+    // travels in the profile, the rest is designed from the name, the role and the note
+    const ageYears = picture.ageYears && Number.isInteger(picture.ageYears) && picture.ageYears >= 1 && picture.ageYears <= 120 ? picture.ageYears : undefined;
+    // keeping the face only: the hair and clothes the producer wrote are deliberate changes (empty: the picture's)
+    const changes = picture.keep === 'FACE' ? { hair: picture.hair?.trim() || undefined, wardrobe: picture.wardrobe?.trim() || undefined } : {};
+    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
   };
 
   /** One recovery per failed step: the design step re-runs the whole chain (the brief is kept); a later step re-runs

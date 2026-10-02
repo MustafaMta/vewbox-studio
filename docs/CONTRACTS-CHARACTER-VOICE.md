@@ -60,6 +60,29 @@ this file decides what lands now; the rest is backlog.
   available"). Rules: min side 512, exactly one face when detection runs, face box ≥ 18 % of height, not blurry.
   Stored on `character.pendingReference.validation`. `CHARACTER_APPEARANCE` refuses an unusable reference with
   `MISSING_REFERENCE` instead of silently drawing from text.
+  *Wave-2 fix (review finding 2):* the upload route computes this on the CPU and stores it on the asset as
+  `provenance.validation`; no face detector is installed, so `faces` is absent and `reasons` carries "face detection
+  not available (size and sharpness only)" — never an invented count. `MISSING_REFERENCE` is a `StudioErrorCode`
+  (HTTP 400, failure class `MISSING_REFERENCE`).
+
+### 1.2a From a picture without a vision model (review finding 3)
+- The story model (`qwen3:14b`) is text-only and no vision model is installed, so nothing may describe a picture
+  nobody looked at. In REFERENCE mode the look fields (`face`, `hair`, `skin`, `eyes`, `build`, `wardrobe`) and the
+  distinguishing marks are **not designed**: they stay empty unless the producer writes them, and empty means "as in
+  the reference picture". `DESIGN_CHARACTER` runs only for who the character is (role, personality, sex/age from
+  the producer's words or the name, voice description); the orchestrator marks the brief with
+  `REFERENCE_LOOK_BRIEF` (`src/server/story/schemas.ts`), the one channel through the `DESIGN_CHARACTER` job.
+- The portrait prompt names the person in the reference picture as the look and states only the fields the producer
+  wrote (keeping the face only: the hair and clothes written on the Picture start are deliberate changes); the
+  identity line persisted to `canon.identityLine` reads "… exactly as in the reference picture" plus the written
+  tokens, so every later sheet, view and frame repeats the picture, not an invention. The portrait's provenance says
+  `lookFrom: 'REFERENCE'`; the profile shows the empty look fields as "from the reference picture".
+- **What a vision model would add** (backlog, needs a VLM in the story service — e.g. a Qwen2.5-VL / Qwen3-VL class
+  model behind `story.structured_answer` with image input): read the validated picture (and the drawn portrait) and
+  fill the look fields and distinguishing marks *from what it sees*, marked `source: 'VISION'` so the producer can
+  tell seen from written; check sex/age presentation against the producer's words; give a face count and box height
+  for the §1.2 face rules (with a detector); and compare the drawn portrait and sheet tiles with the reference
+  (identity drift) before the sheet is accepted. Until then the picture itself is the only description.
 
 ### 1.3 Appearance and the reference sheet — Image agent
 - Keep Qwen-Image-2512 / Qwen-Image-Edit-2511 (Apache-2.0). Implement from `CHARACTER-IMAGE-STACK.md` §4–5:

@@ -47,6 +47,7 @@ import { addAsset, setCharacterAppearance, addVoiceRecording } from '@/domain/ac
 import { createCharacter as handler } from '@/worker/handlers/character';
 import type { HandlerContext } from '@/worker/handlers';
 import type { CreateCharacterResult } from '@/domain/jobs';
+import { REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
 
 const createCharacter = (ctx: HandlerContext) => handler(ctx) as unknown as Promise<CreateCharacterResult & { awaitingReview?: boolean }>;
 
@@ -132,6 +133,19 @@ describe('CREATE_CHARACTER', () => {
     const r = await createCharacter(ctxFor({ mode: 'REFERENCE', profile: sheet, referenceAssetId: 'up-face' }));
     expect(pendingWhenDrawn).toBe('up-face');
     expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'sheet:done', 'voice:skipped']);
+  });
+  it('REFERENCE: the look is the picture’s — design runs only for who the character is, with the look marker in its brief; a sheet with role, sex, age and personality needs no design', async () => {
+    fake.state = addAsset(fake.state, { id: 'up-face', kind: 'IMAGE', src: '/api/media/up-face', label: 'face', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { validation: { ok: true, width: 1024, height: 1280, reasons: [] } } }).state;
+    fake.outcomes.DESIGN_CHARACTER = { status: 'COMPLETED', result: { characterId: 'nour' } };
+    await createCharacter(ctxFor({ mode: 'REFERENCE', brief: 'Keep the face from the reference picture.', profile: { name: 'Maysoon', role: 'seamstress', style: 'REALISTIC', language: 'AR' }, referenceAssetId: 'up-face' }));
+    expect(fake.enqueued[0]).toMatchObject({ type: 'DESIGN_CHARACTER', payload: { name: 'Maysoon', profile: { name: 'Maysoon', role: 'seamstress' } } });
+    expect(String(fake.enqueued[0].payload.brief)).toBe(`${REFERENCE_LOOK_BRIEF}\nKeep the face from the reference picture.`);
+    fake.jobs.clear(); fake.enqueued = [];
+    const r = await createCharacter(ctxFor({ mode: 'REFERENCE', profile: { name: 'Rana', role: 'tailor', sex: 'FEMALE', ageYears: 33, personality: 'quiet', style: 'REALISTIC', language: 'EN' }, referenceAssetId: 'up-face' }, 'job-cc-ref'));
+    expect(fake.enqueued.map((e) => e.type)).not.toContain('DESIGN_CHARACTER');
+    const rana = fake.state.characters.find((c) => c.name === 'Rana')!;
+    expect(rana).toMatchObject({ hair: '', face: '', wardrobe: '', skin: '', eyes: '', build: '' }); // nothing invented
+    expect(r!.steps[0]).toMatchObject({ step: 'design', status: 'skipped', reason: expect.stringMatching(/look follows the picture/) });
   });
   it('a failed appearance keeps the record and reports the step; the sheet is skipped; the job awaits review (partial success, never fabricated)', async () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'ComfyUI is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };

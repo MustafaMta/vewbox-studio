@@ -7,6 +7,7 @@ import type { CharacterInput } from '@/domain/actions';
 import { commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { enqueue, getJob } from '@/server/jobs/queue';
 import { preflightCharacter, referenceImageProblem } from '@/server/org/preflight';
+import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
 
 /** CREATE A CHARACTER — the one job behind the three starts of the character page (contract §1.1): Describe (AUTO),
  *  Write the sheet (MANUAL), From a picture (REFERENCE). It runs the chain as durable child jobs — design (only when
@@ -18,6 +19,10 @@ import { preflightCharacter, referenceImageProblem } from '@/server/org/prefligh
 const STEPS: CreateCharacterStep[] = ['design', 'appearance', 'sheet', 'voice'];
 const CHILD_TYPE: Record<CreateCharacterStep, JobType> = { design: 'DESIGN_CHARACTER', appearance: 'CHARACTER_APPEARANCE', sheet: 'CHARACTER_REFS', voice: 'VOICE_BUILD' };
 const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the portrait', sheet: 'Drawing the reference sheet', voice: 'Building the voice' };
+/** The DESIGN_CHARACTER payload's brief limit (src/domain/jobs.ts). */
+const BRIEF_MAX = 2000;
+/** In REFERENCE mode the look fields are the picture's: they count as present when deciding whether to design. */
+const PICTURE_LOOK = Object.fromEntries(LOOK_FIELDS.map((k) => [k, 'as in the reference picture'])) as Record<(typeof LOOK_FIELDS)[number], string>;
 
 /** Queue one step as a child (or adopt the child an earlier attempt queued under the same key) and wait for it. */
 async function runStep(ctx: HandlerContext, step: CreateCharacterStep, payload: Record<string, unknown>, index: number): Promise<Job> {
@@ -60,12 +65,17 @@ export const createCharacter: Handler = async (ctx) => {
   }
 
   // 1) DESIGN — Casting fills the profile when fields are missing (AUTO always; MANUAL/REFERENCE when incomplete);
-  //    a complete sheet is written directly, in one batch with its seat, under a key a restart recognises
+  //    a complete sheet is written directly, in one batch with its seat, under a key a restart recognises.
+  //    REFERENCE: the look is the picture's, never designed — the look fields count as given (empty = "as in the
+  //    reference picture") and the design brief opens with REFERENCE_LOOK_BRIEF, so the text-only designer fills
+  //    only who the character is (finding 3)
   let characterId: string;
-  const needsDesign = payload.mode === 'AUTO' || profileNeedsDesign({ ...profile, name });
+  const fromPicture = payload.mode === 'REFERENCE';
+  const needsDesign = payload.mode === 'AUTO' || profileNeedsDesign({ ...(fromPicture ? PICTURE_LOOK : {}), ...profile, name });
   if (needsDesign) {
     await ctx.progress('GENERATING', { phase: 'design', message: LABEL.design, step: 1, total: STEPS.length, percent: null });
-    const child = await runStep(ctx, 'design', { brief: payload.brief, name, profile: Object.keys(profile).length ? { ...profile, name } : undefined, style, language, dialect, productionId: p?.id, showId: show?.id }, 0);
+    const brief = fromPicture ? [REFERENCE_LOOK_BRIEF, payload.brief?.trim().slice(0, BRIEF_MAX - REFERENCE_LOOK_BRIEF.length - 1)].filter(Boolean).join('\n') : payload.brief;
+    const child = await runStep(ctx, 'design', { brief, name, profile: Object.keys(profile).length ? { ...profile, name } : undefined, style, language, dialect, productionId: p?.id, showId: show?.id }, 0);
     const out = outcomeOf('design', child);
     steps.push(out);
     const designed = child.result?.characterId as string | undefined;
