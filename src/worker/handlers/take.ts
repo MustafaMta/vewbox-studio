@@ -13,6 +13,7 @@ import { orderedShots, shotWindows } from '@/domain/timeline';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_GUIDE_FRAMES } from '@/server/workflows/minimax-h3';
 import { transcribe, wordErrorRate } from '@/server/providers/speech';
+import { alignLyrics } from '@/server/media/lyrics';
 import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
@@ -54,10 +55,11 @@ export const generateTake: Handler = async (ctx) => {
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
 
-  // 1) SOUND FIRST. A speaking shot is generated to follow an authoritative soundtrack: every line recorded with its
-  //    character's canonical voice, checked by transcription, joined with natural gaps, then anchored inside the clip
-  //    (MiniMax H3 keeps an anchored soundtrack exactly and animates the mouths to it). Only when a speaker has no
-  //    usable voice does the shot fall back to MiniMax's own native speech from the <d> tags.
+  // 1) SOUND FIRST. A speaking shot starts from its sound: every line recorded with its character's canonical voice
+  //    and checked by transcription, joined with natural gaps. The recording sets the shot's length and is anchored
+  //    inside the clip as time-positioned voice context (MiniMax H3 renders its own speech, natively in sync with
+  //    the mouths; the exact words come from the <d> tags, which always carry the script). Only when a speaker has no
+  //    usable voice does the shot speak with MiniMax's default voice.
   const speakers = Array.from(new Set(sh.dialogue.map((d) => d.characterId)));
   const voices = new Map<string, Reference>();
   for (const cid of speakers) { const c = cast.find((x) => x.id === cid); const ref = c ? await referenceWav(c, state.assets, work) : null; if (ref) voices.set(cid, ref); }
@@ -155,18 +157,25 @@ export const generateTake: Handler = async (ctx) => {
   // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent
   const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' });
   await ctx.checkpoint();
-  // a take generated to a dialogue soundtrack must carry that soundtrack: transcribe the clip and compare it with the
-  // script (the anchored audio is kept exactly, so a bad reading here means the engine ignored the guide)
-  if (soundtrack?.kind === 'DIALOGUE' && backend === 'local') {
+  // MiniMax H3 always renders its own speech (an anchored audio guide is context, not a pinned soundtrack — see
+  // docs/AUDIOVISUAL-QA.md, E1), so a speaking take is proven by listening back: the clip is transcribed, compared
+  // with the script, and each line is placed where it is actually spoken. A take that does not say its lines fails.
+  if (sh.dialogue.length && backend === 'local' && p.kind !== 'MUSIC_VIDEO') {
     try {
       const wav = path.join(work, 'take-audio.wav');
       await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
-      const expected = sh.dialogue.map((d) => (p.language === 'AR' ? d.textAr || d.text : d.text)).join(' ');
+      const lines = sh.dialogue.map((d) => ({ en: d.text, ar: d.textAr || d.text }));
+      const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
       const t = await ctx.gpu('ASR', 4000, () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
       const wer = wordErrorRate(expected, t.text, p.language);
-      report.checks.push({ name: 'soundtrack-kept', ok: wer <= 0.5, value: Number(wer.toFixed(2)), threshold: 0.5, detail: `heard: ${t.text.slice(0, 160)}` });
+      report.checks.push({ name: 'script-spoken', ok: wer <= 0.5, value: Number(wer.toFixed(2)), threshold: 0.5, detail: `heard: ${t.text.slice(0, 160)}` });
       if (wer > 0.5) report.ok = false;
-    } catch (e) { report.checks.push({ name: 'soundtrack-kept', ok: true, detail: `not checked: ${(e as Error).message}` }); }
+      const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
+      const clipSeconds = probe.durationSeconds ?? seconds;
+      const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, p.language);
+      soundtrack = { kind: 'DIALOGUE', assetId: soundtrack?.assetId, lines: sh.dialogue.map((d, i) => { const w = placed[i]; return { lineId: d.id, from: w?.from ?? 0, to: w?.to ?? clipSeconds }; }) };
+      await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
+    } catch (e) { report.checks.push({ name: 'script-spoken', ok: true, detail: `not checked: ${(e as Error).message}` }); }
   }
   if (soundtrackFile) { const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' }); await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker'); soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id }; }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });

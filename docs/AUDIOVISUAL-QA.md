@@ -21,7 +21,11 @@ it, what changed, and what the evidence is. Status vocabulary, in increasing str
 
 ## Experiments (bounded, with measurements)
 
-Filled in as they run; each names the take ids, the prompt/guide configuration, and the measured result.
+| # | Setup | Result | Conclusion |
+|---|---|---|---|
+| E0 (baseline) | Episode 1 shot 4.3, take `take-889280d88b`: first-frame graph, prompt from the planner with its own `<d>` tag, no audio reference | Whisper: «سأصلح لا تقلق» (1.17–3.61 s) — not the scripted «سأصلح هذا… لكل أحد»; MiniMax's own voice | the words came from the planner's paraphrased tag; voice identity absent |
+| E1 | same shot, take `take-a13c4296a0`: line recorded first with Amina's voice (Habibi, WER 0, 1.76 s) and anchored with `MiniMaxH3AddGuide` (audio at frame 0) on the first-frame graph | clip audio: «سأصلحه. لا تقلق.» (0.34–2.48 s); `soundtrack-kept` check WER 1.0 → take rejected automatically | the guide audio did not replace the soundtrack. Reading ComfyUI's model code (`comfy/ldm/minimax/model.py`): keyframe audio latents enter as *conditioning rows* positioned on the time axis (`audio_update` = never updated), not as pinned output — H3 regenerates its audio; the text prompt decides the words. An anchored soundtrack is therefore not a MiniMax H3 capability; "audio-first" means: exact words in the prompt, the recorded line as time-positioned timbre/prosody context, and verification by transcription |
+| E2 | (next) exact script line in the `<d>` tag (planner tags removed), voice sample + recorded line as references/guide | pending | |
 
 ## Iraqi Arabic pronunciation suite
 

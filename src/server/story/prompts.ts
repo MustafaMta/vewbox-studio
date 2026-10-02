@@ -60,8 +60,11 @@ export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Loca
     sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : '',
   ].filter(Boolean).join(' ');
   const dialogue = opts.includeDialogue === false ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast) : dialogueTags(p, sh, cast);
-  const hasTagsAlready = /<d>/.test(middle);
-  return [d.visual + '.', middle, hasTagsAlready ? '' : dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  // the script is the only source of spoken words: dialogue tags the planner wrote into its prompt are paraphrases
+  // (a take said "سأصلحه، لا تقلق" for the scripted "سأصلح هذا… لكل أحد"), so they are removed and the exact lines
+  // appended; a producer-written prompt keeps its own tags
+  const body = sh.prompt?.trim() && opts.includeDialogue !== false ? middle.replace(/\s*\(?[^()<]{0,80}\)?\s*<d>[\s\S]*?<\/d>\.?/g, ' ').replace(/\s{2,}/g, ' ').trim() : middle;
+  return [d.visual + '.', body, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
 /** Prompt for a still frame of the shot (the opening image): same content without dialogue or motion. */
