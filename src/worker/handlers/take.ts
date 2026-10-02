@@ -12,7 +12,7 @@ import { ffmpeg, joinSpeech, qaTake, tailClip, thumbnail, tmpDir, trimAudio, web
 import { orderedShots, shotWindows } from '@/domain/timeline';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_GUIDE_FRAMES } from '@/server/workflows/minimax-h3';
-import { transcribe, wordErrorRate } from '@/server/providers/speech';
+import { scriptCoverage, transcribe, wordErrorRate } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
 import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
@@ -79,10 +79,13 @@ export const generateTake: Handler = async (ctx) => {
     }
     if (spoken.length) {
       const joined = await joinSpeech(spoken, path.join(work, 'dialogue.wav'));
-      // the shot runs as long as its words need (plus room to breathe), within the engine's 15 s
+      // the shot runs as long as its words need plus room to breathe, within the engine's 15 s — and not much longer:
+      // MiniMax fills silence after a short line by repeating it (E2a: a 1.8 s line in a 6 s clip was said twice)
       const need = Math.ceil(joined.durationSeconds + 0.5);
       if (need > 15) await ctx.event('warn', `the dialogue runs ${joined.durationSeconds.toFixed(1)} s, longer than one clip can hold; split the shot`, { lines: spoken.length });
-      seconds = Math.min(15, Math.max(seconds, need));
+      const planned = seconds;
+      seconds = Math.min(15, Math.max(4, Math.min(Math.max(planned, need), need + 2)));
+      if (seconds !== planned) await ctx.event('info', `shot length set to its dialogue: ${planned} s planned → ${seconds} s`, { dialogueSeconds: Number(joined.durationSeconds.toFixed(2)) });
       soundtrackFile = joined.file;
       soundtrack = { kind: 'DIALOGUE', lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
       await ctx.event('info', 'dialogue recorded as the shot\'s soundtrack', { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, durationSeconds: s.durationSeconds, wer: s.check?.wer, heard: s.check?.heard })) });
@@ -168,8 +171,11 @@ export const generateTake: Handler = async (ctx) => {
       const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
       const t = await ctx.gpu('ASR', 4000, () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
       const wer = wordErrorRate(expected, t.text, p.language);
-      report.checks.push({ name: 'script-spoken', ok: wer <= 0.5, value: Number(wer.toFixed(2)), threshold: 0.5, detail: `heard: ${t.text.slice(0, 160)}` });
-      if (wer > 0.5) report.ok = false;
+      // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
+      // missing line); the take passes when the lines were spoken, and the report carries both numbers
+      const coverage = scriptCoverage(expected, t.text, p.language);
+      report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${t.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
+      if (coverage < 0.7) report.ok = false;
       const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
       const clipSeconds = probe.durationSeconds ?? seconds;
       const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, p.language);

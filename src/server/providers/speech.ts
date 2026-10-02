@@ -120,6 +120,17 @@ export function normalizeArabic(s: string): string {
   return s.replace(/[ً-ْٰـ]/g, '').replace(/[إأآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+/** Share of the intended words heard in order (longest common subsequence over normalised words). Insertions —
+ *  a repeated phrase, a filler — do not lower it; missing or wrong words do. */
+export function scriptCoverage(reference: string, hypothesis: string, lang: Language): number {
+  const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : x.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim());
+  const r = norm(reference).split(' ').filter(Boolean); const h = norm(hypothesis).split(' ').filter(Boolean);
+  if (r.length === 0) return 1;
+  const dp: number[][] = Array.from({ length: r.length + 1 }, () => Array<number>(h.length + 1).fill(0));
+  for (let i = 1; i <= r.length; i++) for (let j = 1; j <= h.length; j++) dp[i][j] = r[i - 1] === h[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+  return dp[r.length][h.length] / r.length;
+}
+
 /** Word error rate between the intended line and the transcript (both normalised). */
 export function wordErrorRate(reference: string, hypothesis: string, lang: Language): number {
   const norm = (x: string) => (lang === 'AR' ? normalizeArabic(x) : x.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim());
