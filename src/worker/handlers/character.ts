@@ -5,7 +5,7 @@ import { isTerminalStatus, profileNeedsDesign, type CreateCharacterResult, type 
 import { runCommand, type Command } from '@/domain/commands';
 import type { CharacterInput } from '@/domain/actions';
 import { commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
-import { enqueue, getJob } from '@/server/jobs/queue';
+import { enqueue, getJob, retry } from '@/server/jobs/queue';
 import { preflightCharacter, referenceImageProblem } from '@/server/org/preflight';
 import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
 
@@ -24,17 +24,37 @@ const BRIEF_MAX = 2000;
 /** In REFERENCE mode the look fields are the picture's: they count as present when deciding whether to design. */
 const PICTURE_LOOK = Object.fromEntries(LOOK_FIELDS.map((k) => [k, 'as in the reference picture'])) as Record<(typeof LOOK_FIELDS)[number], string>;
 
-/** Queue one step as a child (or adopt the child an earlier attempt queued under the same key) and wait for it. */
-async function runStep(ctx: HandlerContext, step: CreateCharacterStep, payload: Record<string, unknown>, index: number): Promise<Job> {
+/** How the chain waits (finding 10): it polls its child, and gives up after a wall-clock bound — the Casting
+ *  Director's own `limits.timeoutMs` (src/server/org/model.ts), else this default. Mutable for tests. */
+export const CHAIN_TIMING = { pollMs: 3000, timeoutMs: 60 * 60_000 };
+
+interface Chain { deadline: number; boundMs: number; children: string[] }
+
+/** Queue one step as a child (or adopt the child an earlier attempt queued under the same key) and wait for it.
+ *  An adopted child that FAILED or was CANCELLED is run again (finding 12: a retry of the parent — the generic
+ *  /api/jobs/{id}/retry, or a reclaim — must make progress, not re-report the old failure). Past the chain's
+ *  deadline the parent fails INFRASTRUCTURE naming the children; they keep running and a retry adopts them. */
+async function runStep(ctx: HandlerContext, chain: Chain, step: CreateCharacterStep, payload: Record<string, unknown>, index: number): Promise<Job> {
   const type = CHILD_TYPE[step];
   const r = await ctx.tool('jobs.enqueue', () => enqueue({ type, payload, parentId: ctx.job.id, idempotencyKey: `create:${ctx.job.id}:${step}`, priority: 1 }), { label: type });
-  if (!r.created) await ctx.event('info', `${step}: adopted job ${r.job.id} (${r.job.status})`, { step, jobId: r.job.id, status: r.job.status });
   let job = r.job;
+  chain.children.push(job.id);
+  if (!r.created) {
+    await ctx.event('info', `${step}: adopted job ${job.id} (${job.status})`, { step, jobId: job.id, status: job.status });
+    if (job.status === 'FAILED' || job.status === 'CANCELLED') {
+      const before = job.status;
+      job = await retry(job.id).catch(async () => (await getJob(job.id)) ?? job); // a concurrent retry got there first
+      await ctx.event('info', `${step}: the earlier ${type} ${job.id} had ${before.toLowerCase()}; running it again`, { step, jobId: job.id, was: before });
+    }
+  }
   for (;;) {
     await ctx.checkpoint();
     if (isTerminalStatus(job.status) || job.status === 'AWAITING_REVIEW') return job;
+    if (Date.now() > chain.deadline) {
+      throw new StudioError('UNAVAILABLE', `The ${step} step did not finish within ${Math.round(chain.boundMs / 60_000)} min (${type} ${job.id} is still ${job.status.toLowerCase()}); it keeps running — retry the creation to pick it up.`, { failureClass: 'INFRASTRUCTURE', step, childJobId: job.id, children: [...chain.children], timeoutMs: chain.boundMs });
+    }
     await ctx.progress('GENERATING', { phase: step, message: `${LABEL[step]}${job.progress?.message ? `: ${job.progress.message}` : ''}`, step: index + 1, total: STEPS.length, percent: null });
-    await new Promise((res) => setTimeout(res, 3000));
+    await new Promise((res) => setTimeout(res, CHAIN_TIMING.pollMs));
     job = (await getJob(job.id)) ?? job;
   }
 }
@@ -45,6 +65,8 @@ const outcomeOf = (step: CreateCharacterStep, job: Job): CreateCharacterStepOutc
 
 export const createCharacter: Handler = async (ctx) => {
   const payload = ctx.job.payload as JobPayloadParsed<'CREATE_CHARACTER'>;
+  const boundMs = ctx.agent.limits?.timeoutMs ?? CHAIN_TIMING.timeoutMs;
+  const chain: Chain = { deadline: Date.now() + boundMs, boundMs, children: [] };
   const steps: CreateCharacterStepOutcome[] = [];
   const skip = (step: CreateCharacterStep, reason: string) => { steps.push({ step, status: 'skipped', reason }); };
   const { state } = await readState();
@@ -75,7 +97,7 @@ export const createCharacter: Handler = async (ctx) => {
   if (needsDesign) {
     await ctx.progress('GENERATING', { phase: 'design', message: LABEL.design, step: 1, total: STEPS.length, percent: null });
     const brief = fromPicture ? [REFERENCE_LOOK_BRIEF, payload.brief?.trim().slice(0, BRIEF_MAX - REFERENCE_LOOK_BRIEF.length - 1)].filter(Boolean).join('\n') : payload.brief;
-    const child = await runStep(ctx, 'design', { brief, name, profile: Object.keys(profile).length ? { ...profile, name } : undefined, style, language, dialect, productionId: p?.id, showId: show?.id }, 0);
+    const child = await runStep(ctx, chain, 'design', { brief, name, profile: Object.keys(profile).length ? { ...profile, name } : undefined, style, language, dialect, productionId: p?.id, showId: show?.id }, 0);
     const out = outcomeOf('design', child);
     steps.push(out);
     const designed = child.result?.characterId as string | undefined;
@@ -127,10 +149,10 @@ export const createCharacter: Handler = async (ctx) => {
       steps.push({ step: 'appearance', status: 'failed', reason: failed.map((x) => x.detail ?? x.name).join('; '), failureClass: failed[0].failureClass });
       skip('sheet', 'no portrait to draw the views from');
     } else {
-      const drawn = await runStep(ctx, 'appearance', { characterId: c.id }, 1);
+      const drawn = await runStep(ctx, chain, 'appearance', { characterId: c.id }, 1);
       steps.push(outcomeOf('appearance', drawn));
       c = await fresh();
-      if (drawn.status === 'COMPLETED' && c.portraitAssetId) { const sheet = await runStep(ctx, 'sheet', { characterId: c.id }, 2); steps.push(outcomeOf('sheet', sheet)); }
+      if (drawn.status === 'COMPLETED' && c.portraitAssetId) { const sheet = await runStep(ctx, chain, 'sheet', { characterId: c.id }, 2); steps.push(outcomeOf('sheet', sheet)); }
       else skip('sheet', 'no portrait to draw the views from');
     }
   }
@@ -148,7 +170,7 @@ export const createCharacter: Handler = async (ctx) => {
       if (missing) skip('voice', `no voice yet: ${failed.map((x) => x.detail ?? x.name).join('; ')}`);
       else steps.push({ step: 'voice', status: 'failed', reason: failed.map((x) => x.detail ?? x.name).join('; '), failureClass: failed[0].failureClass });
     } else {
-      const built = await runStep(ctx, 'voice', vp, 3);
+      const built = await runStep(ctx, chain, 'voice', vp, 3);
       steps.push(outcomeOf('voice', built));
     }
   }

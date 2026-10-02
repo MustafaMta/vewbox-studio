@@ -11,7 +11,8 @@ const fake = vi.hoisted(() => ({
   jobs: new Map<string, Job & { key?: string }>(),
   enqueued: [] as Array<{ type: JobType; key?: string; parentId?: string; payload: Record<string, unknown> }>,
   /** how a child of a type ends: COMPLETED with a result (and an effect on the studio), or FAILED */
-  outcomes: {} as Partial<Record<JobType, { status: 'COMPLETED' | 'FAILED'; result?: Record<string, unknown>; error?: { code: string; message: string; details?: Record<string, unknown> }; effect?: (payload: Record<string, unknown>) => void }>>,
+  outcomes: {} as Partial<Record<JobType, { status: 'COMPLETED' | 'FAILED' | 'GENERATING'; result?: Record<string, unknown>; error?: { code: string; message: string; details?: Record<string, unknown> }; effect?: (payload: Record<string, unknown>) => void }>>,
+  retried: [] as string[],
   events: [] as Array<{ level: string; message: string }>,
 }));
 
@@ -37,6 +38,8 @@ vi.mock('@/server/jobs/queue', () => ({
     return { job: fake.jobs.get(id)!, created: true };
   },
   getJob: async (id: string) => fake.jobs.get(id),
+  // the queue's retry: the same row runs again and (in this fake) ends as the type's outcome says now
+  retry: async (id: string) => { const j = fake.jobs.get(id)!; fake.retried.push(id); const o = fake.outcomes[j.type] ?? { status: 'COMPLETED' as const, result: {} }; o.effect?.(j.payload); fake.jobs.set(id, { ...j, status: o.status, result: o.result, error: o.error }); return fake.jobs.get(id)!; },
   listChildren: async (parentId: string) => [...fake.jobs.values()].filter((j) => j.parentId === parentId),
   recordMetric: async () => {},
 }));
@@ -44,7 +47,7 @@ vi.mock('@/server/env', () => ({ env: () => ({ MINIMAX_API_KEY: '' }) }));
 
 import { seed } from '@/domain/sample';
 import { addAsset, setCharacterAppearance, addVoiceRecording } from '@/domain/actions';
-import { createCharacter as handler } from '@/worker/handlers/character';
+import { CHAIN_TIMING, createCharacter as handler } from '@/worker/handlers/character';
 import type { HandlerContext } from '@/worker/handlers';
 import type { CreateCharacterResult } from '@/domain/jobs';
 import { REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
@@ -60,7 +63,7 @@ const ctxFor = (payload: Record<string, unknown>, id = 'job-cc'): HandlerContext
 const sheet = { name: 'Rafid', role: 'Night bus driver', sex: 'MALE', ageYears: 52, build: 'heavy', face: 'broad', hair: 'grey', skin: 'olive', eyes: 'brown', wardrobe: 'blue uniform', personality: 'patient', distinguishing: ['a scar'], style: 'REALISTIC', language: 'AR', dialect: 'IRAQI_BAGHDADI' } as const;
 const drawPortrait = (payload: Record<string, unknown>) => { const c = fake.state.characters.find((x) => x.id === payload.characterId)!; fake.state = addAsset(fake.state, { id: `gen-portrait-${c.id}`, kind: 'IMAGE', src: '/api/media/p', label: 'portrait', tags: [], sample: false, origin: 'GENERATED', width: 1024, height: 1280 }).state; fake.state = setCharacterAppearance(fake.state, c.id, { portraitAssetId: `gen-portrait-${c.id}`, refs: [{ id: 'r', role: 'FACE', assetId: `gen-portrait-${c.id}` }] }); };
 
-beforeEach(() => { fake.state = seed(); fake.jobs.clear(); fake.enqueued = []; fake.events = []; fake.outcomes = { CHARACTER_APPEARANCE: { status: 'COMPLETED', result: {}, effect: drawPortrait }, CHARACTER_REFS: { status: 'COMPLETED', result: { refs: 5 } } }; });
+beforeEach(() => { fake.state = seed(); fake.jobs.clear(); fake.enqueued = []; fake.events = []; fake.retried = []; fake.outcomes = { CHARACTER_APPEARANCE: { status: 'COMPLETED', result: {}, effect: drawPortrait }, CHARACTER_REFS: { status: 'COMPLETED', result: { refs: 5 } } }; });
 
 describe('CREATE_CHARACTER', () => {
   it('MANUAL with a complete sheet: the record and its seat are written in one batch; appearance and sheet run as keyed children; the voice is skipped with the reason', async () => {
@@ -169,5 +172,39 @@ describe('CREATE_CHARACTER', () => {
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, draw: false, voice: { mode: 'AUTOMATIC' } }));
     expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:skipped', 'sheet:skipped', 'voice:done']);
     expect(fake.enqueued.at(-1)).toMatchObject({ type: 'VOICE_BUILD', key: 'create:job-cc:voice', payload: { characterId: c.id, mode: 'AUTOMATIC' } });
+  });
+  it('retrying the parent (same job, /api/jobs/{id}/retry) runs a failed child again and makes progress (finding 12)', async () => {
+    fake.outcomes.CHARACTER_APPEARANCE = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'ComfyUI is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };
+    const first = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet }));
+    expect(first!.steps.find((s) => s.step === 'appearance')!.status).toBe('failed');
+    // the engine is back; the producer presses Retry on the Production page — the same parent job runs again
+    fake.outcomes.CHARACTER_APPEARANCE = { status: 'COMPLETED', result: {}, effect: drawPortrait };
+    const again = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet }));
+    expect(fake.retried).toEqual(['character_appearance-1']);
+    expect(again!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'sheet:done', 'voice:skipped']);
+    expect(again!.awaitingReview).toBe(false);
+    expect(fake.events.some((e) => /had failed; running it again/.test(e.message))).toBe(true);
+  });
+  it('a chain whose child never finishes is bounded: the parent fails INFRASTRUCTURE naming the children (finding 10)', async () => {
+    const saved = { ...CHAIN_TIMING };
+    CHAIN_TIMING.pollMs = 1; CHAIN_TIMING.timeoutMs = 30;
+    try {
+      fake.outcomes.CHARACTER_APPEARANCE = { status: 'GENERATING' };
+      const err = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet })).catch((e: unknown) => e) as { code: string; failureClass: string; details: { children: string[]; childJobId: string; step: string } };
+      expect(err).toMatchObject({ code: 'UNAVAILABLE', failureClass: 'INFRASTRUCTURE', details: { step: 'appearance', childJobId: 'character_appearance-1' } });
+      expect(err.details.children).toEqual(['character_appearance-1']);
+      // the agent's own limit wins over the default
+      const ctx = ctxFor({ mode: 'MANUAL', profile: sheet }, 'job-cc-limit');
+      (ctx.agent as { limits?: { timeoutMs: number } }).limits = { timeoutMs: 10 };
+      await expect(createCharacter(ctx)).rejects.toMatchObject({ details: { timeoutMs: 10 } });
+    } finally { Object.assign(CHAIN_TIMING, saved); }
+  });
+  it('the chain waits in a lane of its own: orchestrators never take a CPU slot (finding 10)', async () => {
+    const { laneOf, ORCHESTRATION_LANE } = await vi.importActual<typeof import('@/server/jobs/queue')>('@/server/jobs/queue');
+    expect(laneOf('CREATE_CHARACTER')).toBe('ORCHESTRATION');
+    expect(laneOf('PRODUCE')).toBe('ORCHESTRATION');
+    expect(laneOf('ASSEMBLE')).toBe('CPU'); expect(laneOf('EXPORT')).toBe('CPU'); expect(laneOf('MEDIA_PROBE')).toBe('CPU');
+    expect(laneOf('VOICE_BUILD')).toBe('GPU'); expect(laneOf('DESIGN_CHARACTER')).toBe('LLM');
+    expect(ORCHESTRATION_LANE.limit).toBeGreaterThan(1);
   });
 });

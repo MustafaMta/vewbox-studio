@@ -31,6 +31,12 @@ this file decides what lands now; the rest is backlog.
   carry `parentId` and idempotency keys `create:${jobId}:${step}`; a restart adopts in-flight children (as PRODUCE).
   Partial success keeps the record: the result lists each step's outcome (`done` / `skipped(reason)` / `failed(class,
   message)`), the page shows them and offers the single recovery action per failed step.
+  *Wave-2 fix (review findings 10, 12, 19):* orchestrators (`CREATE_CHARACTER`, `PRODUCE`) run in an `ORCHESTRATION`
+  lane of their own (`laneOf` in `src/server/jobs/queue.ts`), so a waiting chain never holds a CPU slot; the chain is
+  bounded by the Casting Director's `limits.timeoutMs` and then fails `INFRASTRUCTURE` naming its children (which keep
+  running and are adopted by a retry); a retried parent re-runs an adopted child that had failed or been cancelled; the
+  page sends `CREATE_CHARACTER:<hash of the payload>:<minute>` so a double submit is one parent (a relaunch after a
+  failure gets a fresh key on the server).
 - Payload (zod in `src/domain/jobs.ts`):
   ```ts
   CREATE_CHARACTER: {

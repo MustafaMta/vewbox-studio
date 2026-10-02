@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, lt, or, sql as dsql } from 'drizzle-orm';
 import { z } from 'zod';
-import { JOB_PAYLOADS, type Job, type JobError, type JobEvent, type JobProgress, type JobStatus, type JobType, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
+import { JOB_PAYLOADS, JOB_RESOURCE, type Job, type JobError, type JobEvent, type JobProgress, type JobStatus, type JobType, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema } from '../db/client';
@@ -21,6 +21,13 @@ export function rowToJob(r: typeof schema.jobs.$inferSelect): Job {
 export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
 
 const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1 };
+
+/** WORKER LANES — which concurrency pool runs a job. Most follow the resource they use (JOB_RESOURCE). Orchestrators
+ *  spend their life waiting for their children: they get a lane of their own (review finding 10), so a waiting chain
+ *  never holds one of the CPU slots its own ASSEMBLE/EXPORT/MEDIA_PROBE children — or anyone else's — need. */
+export type Lane = 'HOSTED' | 'LLM' | 'CPU' | 'GPU' | 'ORCHESTRATION';
+export const ORCHESTRATION_LANE: { types: readonly JobType[]; limit: number } = { types: ['CREATE_CHARACTER', 'PRODUCE'], limit: 6 };
+export const laneOf = (type: JobType): Lane => (ORCHESTRATION_LANE.types.includes(type) ? 'ORCHESTRATION' : JOB_RESOURCE[type]);
 
 /** Jobs that work on one character and must never run twice at once for it: a second request while one is active
  *  gets the active job back (created: false), whatever key it carries. */
