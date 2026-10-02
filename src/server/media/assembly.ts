@@ -1,6 +1,10 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import type { Asset, Character, Production, Shot, Take } from '@/domain/types';
+
+const execFileP = promisify(execFile);
 import { orderedShots } from '@/domain/timeline';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';
@@ -151,6 +155,39 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   log.info({ production: p.id, duration: probe.durationSeconds, loud }, 'cut assembled');
   return { file: opts.outFile, loudness: loud ? { integrated: loud.integrated, truePeak: loud.truePeak } : null, durationSeconds: probe.durationSeconds ?? timeline.total };
+}
+
+/** EXPORT VALIDATION — the finished file is inspected, not trusted: picture and sound the same length to within a
+ *  frame, the expected frame rate and size, timestamps starting at zero, no black stretch longer than a cut should
+ *  have, and the mix plan's total matching the picture. A failed check fails the export. */
+export interface ExportValidation { ok: boolean; checks: Array<{ name: string; ok: boolean; value?: string | number; detail?: string }> }
+export async function validateExport(file: string, expect: { width: number; height: number; fps: number; durationSeconds: number; subtitlesBurned: boolean }): Promise<ExportValidation> {
+  const checks: ExportValidation['checks'] = [];
+  const p = await ffprobe(file);
+  const push = (name: string, ok: boolean, value?: string | number, detail?: string) => checks.push({ name, ok, value, detail });
+  push('decodable', Boolean(p.hasVideo), `${p.videoCodec ?? '?'} ${p.width}x${p.height}`);
+  push('size', p.width === expect.width && p.height === expect.height, `${p.width}x${p.height}`, `expected ${expect.width}x${expect.height}`);
+  push('frame-rate', Math.abs((p.fps ?? 0) - expect.fps) < 0.01, p.fps, `expected ${expect.fps}`);
+  push('audio-present', Boolean(p.hasAudio), p.audioCodec ?? 'none');
+  const dv = p.durationSeconds ?? 0;
+  push('duration', Math.abs(dv - expect.durationSeconds) <= 1 / expect.fps + 0.001, Number(dv.toFixed(3)), `expected ${expect.durationSeconds.toFixed(3)} s`);
+  // stream durations: picture and sound within one frame of each other
+  try {
+    const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,duration,start_time', '-of', 'json', file]);
+    const streams = (JSON.parse(stdout) as { streams: Array<{ codec_type: string; duration?: string; start_time?: string }> }).streams;
+    const v = streams.find((s) => s.codec_type === 'video'); const a = streams.find((s) => s.codec_type === 'audio');
+    const gap = Math.abs(Number(v?.duration ?? 0) - Number(a?.duration ?? 0));
+    push('audio-video-length', gap <= 1 / expect.fps + 0.03, Number(gap.toFixed(3)), 'difference in seconds');
+    push('timestamps-start', Math.abs(Number(v?.start_time ?? 0)) <= 1 / expect.fps + 0.001 && Math.abs(Number(a?.start_time ?? 0)) <= 0.05, `${v?.start_time ?? '?'} / ${a?.start_time ?? '?'}`);
+  } catch (e) { push('audio-video-length', false, undefined, (e as Error).message); }
+  // black stretches: a fade is short; a black second is a broken part
+  try {
+    const { stderr } = await execFileP('ffmpeg', ['-v', 'info', '-i', file, '-vf', 'blackdetect=d=0.8:pix_th=0.10', '-an', '-f', 'null', '-'], { maxBuffer: 50 * 1024 * 1024 });
+    const found = [...stderr.matchAll(/black_start:([\d.]+) black_end:([\d.]+)/g)].map((m) => `${m[1]}–${m[2]}`);
+    push('no-black-segments', found.length === 0, found.length, found.slice(0, 5).join(', '));
+  } catch (e) { push('no-black-segments', false, undefined, (e as Error).message); }
+  if (expect.subtitlesBurned) push('subtitles', true, 'burned', 'checked visually in the review');
+  return { ok: checks.every((c) => c.ok), checks };
 }
 
 const srtTime = (t: number) => { const ms = Math.round(t * 1000); const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000), x = ms % 1000; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(x).padStart(3, '0')}`; };

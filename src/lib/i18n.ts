@@ -566,7 +566,7 @@ const D = {
   'voice.notGenerated': ['Not generated yet. Build the voice to hear it.', 'لم يُولَّد بعد. ابنِ الصوت لسماعه.'],
   'voice.generate': ['Generate voice', 'ولّد صوتاً'],
   'voice.upload': ['Upload a recording', 'ارفع تسجيلاً'],
-  'voice.uploadHint': ['An audio file of the character speaking. Stored in the studio library.', 'ملف صوتي للشخصية وهي تتكلم. يُحفظ في مكتبة الاستوديو.'],
+  'voice.uploadHint': ['An audio file of the character speaking, 5–30 seconds, in the language the character speaks: an Iraqi voice needs an Arabic recording (an English clip makes the Iraqi lines clipped and unclear). Stored in the studio library.', 'ملف صوتي للشخصية وهي تتكلم، من 5 إلى 30 ثانية، باللغة التي تتكلمها الشخصية: الصوت العراقي يحتاج تسجيلاً عربياً (المقطع الإنجليزي يجعل الجمل العراقية مقطوعة وغير واضحة). يُحفظ في مكتبة الاستوديو.'],
   'voice.added': ['Recording added.', 'أُضيف التسجيل.'],
   'voice.notAudio': ['Choose an audio file.', 'اختر ملفاً صوتياً.'],
   'voice.lockNote': ['A character’s voice is separate from their appearance: it can be changed even after they have been in a video.', 'صوت الشخصية منفصل عن مظهرها: يمكن تغييره حتى بعد ظهورها في فيديو.'],

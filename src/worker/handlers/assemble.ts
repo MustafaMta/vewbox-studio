@@ -8,7 +8,7 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, storeBuffer } from '@/server/media';
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
-import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt } from '@/server/media/assembly';
+import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport } from '@/server/media/assembly';
 import { recordMetric } from '@/server/jobs/queue';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 
@@ -62,13 +62,18 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const t0 = Date.now();
   const result = await assembleCut(p, timeline, { width: size.width, height: size.height, fps: 24, mix, files, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : 'none' }, codec: opts.format === 'mp4-h265' ? 'h265' : opts.format === 'mov-prores' ? 'prores' : 'h264', outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) });
   await ctx.checkpoint();
+  // the finished file is inspected, not trusted: lengths, rate, size, timestamps, black stretches
+  await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the finished file' });
+  const validation = await validateExport(outFile, { width: size.width, height: size.height, fps: 24, durationSeconds: timeline.total, subtitlesBurned: opts.kind === 'export' && opts.subtitles !== 'none' });
+  await ctx.event(validation.ok ? 'info' : 'error', `${opts.kind} validation ${validation.ok ? 'passed' : 'FAILED'}`, { checks: validation.checks });
+  if (!validation.ok) throw new StudioError('PROVIDER', `The ${opts.kind} failed validation: ${validation.checks.filter((c) => !c.ok).map((c) => `${c.name} (${c.value ?? ''} ${c.detail ?? ''})`.trim()).join('; ')}`);
   const poster = path.join(outDir, 'poster.jpg');
   await thumbnail(outFile, poster, { at: Math.min(2, result.durationSeconds / 3), width: 1280 });
   const videoId = nid('gen'); const posterId = nid('gen');
   const storedPoster = await adoptFile(posterId, poster, { expectKind: 'IMAGE' });
   const stored = await adoptFile(videoId, outFile, { expectKind: 'VIDEO' });
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id })], 'worker');
-  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames })), fps: 24, mix, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
+  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames })), fps: 24, mix, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
   // sidecar subtitle files
   const sidecars: string[] = [];
   for (const [lang, cs] of [['ar', cuesAr], ['en', cuesEn]] as const) {
