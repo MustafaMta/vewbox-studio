@@ -50,6 +50,13 @@
       "when": 1790979854160,
       "tag": "0006_org_v5_runs_versions_arabic",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790980638067,
+      "tag": "0007_canonical_image",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ import { StudioError } from '@/domain/errors';
 import { enqueue, listJobs } from '@/server/jobs/queue';
 import { requeueKeyFor, voiceBuildKey } from '@/server/jobs/keys';
 import { readState } from '@/server/studio/engine';
-import { preflightCharacter } from '@/server/org/preflight';
+import { preflightCharacter, type PreflightWarning } from '@/server/org/preflight';
 import { json, readJson, route } from '@/server/http';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +21,10 @@ const Body = z.object({ type: z.enum(JOB_TYPES), payload: z.unknown(), idempoten
  *  must be usable (MISSING_REFERENCE otherwise, as a 400 the page can act on), and a voice build carries the key
  *  `VOICE_BUILD:${characterId}:${revision}` so a double submission is one job. A second request for a character
  *  with a build or a drawing already running gets that job back (created: false). */
-async function prepareCharacterJob(type: JobType, payload: unknown, key: string | undefined): Promise<string | undefined> {
-  if (!(type === 'VOICE_BUILD' || type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS')) return key;
+async function prepareCharacterJob(type: JobType, payload: unknown, key: string | undefined): Promise<{ key: string | undefined; warnings: PreflightWarning[] }> {
+  if (!(type === 'VOICE_BUILD' || type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS')) return { key, warnings: [] };
   const characterId = (payload as { characterId?: unknown } | null)?.characterId;
-  if (typeof characterId !== 'string') return key;
+  if (typeof characterId !== 'string') return { key, warnings: [] };
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found.');
@@ -33,19 +33,20 @@ async function prepareCharacterJob(type: JobType, payload: unknown, key: string 
     const failed = pre.checks.filter((x) => !x.ok);
     throw new StudioError('INVALID', failed.map((x) => x.detail ?? x.name).join('; '), { failureClass: failed[0].failureClass, checks: pre.checks });
   }
-  if (type === 'VOICE_BUILD' && !key) return voiceBuildKey(characterId, c.voice.identity?.revision ?? 0);
-  return key;
+  if (type === 'VOICE_BUILD' && !key) return { key: voiceBuildKey(characterId, c.voice.identity?.revision ?? 0), warnings: pre.warnings };
+  return { key, warnings: pre.warnings };
 }
 
-/** Start a production job. The response is the queued job; progress arrives on the event stream. */
+/** Start a production job. The response is the queued job (plus the preflight's warnings for a character job, e.g.
+ *  "identity not approved" or "the approved pack returns to draft"); progress arrives on the event stream. */
 export const POST = route(async (req) => {
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) throw new StudioError('INVALID', parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
-  const key = await prepareCharacterJob(parsed.data.type, parsed.data.payload, parsed.data.idempotencyKey);
+  const { key, warnings } = await prepareCharacterJob(parsed.data.type, parsed.data.payload, parsed.data.idempotencyKey);
   let r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: key, priority: parsed.data.priority });
   // a voice-build or creation key met an earlier attempt that has ended (it failed, or was cancelled): that is a new
   // request, not a duplicate — queue it under a fresh key rather than hand back the old job, whoever supplied the key
   const fresh = !r.created ? requeueKeyFor(key, r.job) : null;
   if (fresh) r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: fresh, priority: parsed.data.priority });
-  return json({ job: r.job, created: r.created }, { status: r.created ? 201 : 200 });
+  return json({ job: r.job, created: r.created, ...(warnings.length ? { warnings } : {}) }, { status: r.created ? 201 : 200 });
 });

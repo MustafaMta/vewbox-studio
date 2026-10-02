@@ -1,8 +1,9 @@
 import { and, eq, inArray, sql as dsql } from 'drizzle-orm';
-import type { Asset, Character, Production, Scene, Shot, StudioState, Take } from '@/domain/types';
+import type { Asset, Character, Production, Scene, Shot, StudioState, Take, VideoUsage } from '@/domain/types';
 import { canonical, hashString } from '@/domain/hash';
 import { schema, type Db } from '../db/client';
 import type { RowHashes } from './snapshot';
+import { canonicalToColumns } from './canonical-image';
 
 /** WRITING THE STUDIO — compare the state after a command with the fingerprints taken on load, then insert, update
  *  and delete only the rows that changed. Everything runs inside the caller's transaction. */
@@ -20,19 +21,26 @@ function parsePoster(poster: string | undefined): { posterAssetId: string | null
   return { posterAssetId: null, posterPath: poster.replace(/^\/+/, '') };
 }
 
-function assetRow(a: Asset & { storage?: string; path?: string }) {
+export function assetRow(a: Asset & { storage?: string; path?: string }) {
   // src is derived: /sample/... (PUBLIC) or /api/media/{id} (LIBRARY). A library row needs its path on insert; the
   // asset's provenance carries it under `path` when the server created it.
   const isPublic = a.src.startsWith('/sample/') || a.src.startsWith('/public/');
   const path = a.path ?? (isPublic ? a.src.replace(/^\/+/, '') : (a.provenance?.path as string | undefined) ?? '');
   const poster = parsePoster(a.poster);
-  return { id: a.id, kind: a.kind, storage: a.storage ?? (isPublic ? 'PUBLIC' : 'LIBRARY'), path, posterAssetId: poster.posterAssetId, posterPath: poster.posterPath, label: a.label, width: nul(a.width), height: nul(a.height), durationSeconds: nul(a.durationSeconds), fps: nul(a.fps), tags: a.tags, sample: a.sample, origin: a.origin, mimeType: nul(a.mimeType), bytes: nul(a.bytes), sha256: nul(a.sha256), provenance: nul(a.provenance), jobId: nul(a.jobId), unavailable: Boolean(a.unavailable), createdAt: a.createdAt };
+  return { id: a.id, kind: a.kind, storage: a.storage ?? (isPublic ? 'PUBLIC' : 'LIBRARY'), path, posterAssetId: poster.posterAssetId, posterPath: poster.posterPath, label: a.label, width: nul(a.width), height: nul(a.height), durationSeconds: nul(a.durationSeconds), fps: nul(a.fps), tags: a.tags, sample: a.sample, origin: a.origin, mimeType: nul(a.mimeType), bytes: nul(a.bytes), sha256: nul(a.sha256), provenance: nul(a.provenance), jobId: nul(a.jobId), unavailable: Boolean(a.unavailable), tier: nul(a.tier), createdAt: a.createdAt };
+}
+
+/** A usage record as its row (the fact is written once; later saves only mark it). */
+export function usageRow(characterId: string, v: VideoUsage) {
+  return { characterId, productionId: v.productionId, productionTitle: v.productionTitle, shotId: v.shotId, shotLabel: v.shotLabel, takeId: v.takeId, takeLabel: v.takeLabel, recordedAt: v.recordedAt, status: v.status, canonicalImageVersion: nul(v.canonicalImageVersion) };
 }
 
 export async function persistState(tx: Tx, before: RowHashes, state: StudioState): Promise<PersistReport> {
   const report: PersistReport = { inserted: 0, updated: 0, deleted: 0 };
 
-  // ---- assets (first: other rows point at them, although without FKs) ----
+  // ---- assets (first: other rows point at them — characters' canonical image column with a foreign key) ----
+  // Rows that went away are deleted LAST, after every row that pointed at them has been rewritten or deleted.
+  const goneAssets: string[] = [];
   {
     const seen = new Set<string>();
     for (const a of state.assets) {
@@ -44,8 +52,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       if (prev === undefined) { await tx.insert(schema.assets).values(row).onConflictDoUpdate({ target: schema.assets.id, set: row }); report.inserted++; }
       else { const { id: _id, storage: _s, path: _p, ...set } = row; void _id; void _s; void _p; await tx.update(schema.assets).set(set).where(eq(schema.assets.id, a.id)); report.updated++; }
     }
-    const gone = [...before.assets.keys()].filter((id) => !seen.has(id));
-    if (gone.length) { await tx.delete(schema.assets).where(inArray(schema.assets.id, gone)); report.deleted += gone.length; }
+    goneAssets.push(...[...before.assets.keys()].filter((id) => !seen.has(id)));
   }
 
   // ---- shows ----
@@ -90,7 +97,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
         const key = `${c.id}|${v.shotId}|${v.takeId}`;
         const vh = h(v); const vprev = before.usage.get(key);
         if (vprev === vh) continue;
-        const row = { characterId: c.id, productionId: v.productionId, productionTitle: v.productionTitle, shotId: v.shotId, shotLabel: v.shotLabel, takeId: v.takeId, takeLabel: v.takeLabel, recordedAt: v.recordedAt, status: v.status };
+        const row = usageRow(c.id, v);
         if (vprev === undefined) { await tx.insert(schema.characterUsage).values(row).onConflictDoUpdate({ target: [schema.characterUsage.characterId, schema.characterUsage.shotId, schema.characterUsage.takeId], set: { status: v.status, productionTitle: v.productionTitle } }); report.inserted++; }
         else { await tx.update(schema.characterUsage).set({ status: v.status, productionTitle: v.productionTitle, takeLabel: v.takeLabel, shotLabel: v.shotLabel }).where(and(eq(schema.characterUsage.characterId, c.id), eq(schema.characterUsage.shotId, v.shotId), eq(schema.characterUsage.takeId, v.takeId))); report.updated++; }
       }
@@ -165,6 +172,9 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
     if (goneP.length) { await tx.delete(schema.productions).where(inArray(schema.productions.id, goneP)); report.deleted += goneP.length; }
   }
 
+  // ---- assets that went away: nothing points at them any more ----
+  if (goneAssets.length) { await tx.delete(schema.assets).where(inArray(schema.assets.id, goneAssets)); report.deleted += goneAssets.length; }
+
   // ---- settings ----
   if (h(state.settings) !== before.settings) {
     const now = new Date().toISOString();
@@ -175,8 +185,8 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
   return report;
 }
 
-function characterRow(c: Character) {
-  return { id: c.id, name: c.name, nameAr: nul(c.nameAr), role: c.role, style: c.style, sex: c.sex, species: nul(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language, dialect: nul(c.dialect), voice: c.voice, refs: c.refs, portraitAssetId: nul(c.portraitAssetId), usageKnown: c.usage?.known ?? false, pendingReference: nul(c.pendingReference), canon: nul(c.canon), notes: nul(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
+export function characterRow(c: Character) {
+  return { id: c.id, name: c.name, nameAr: nul(c.nameAr), role: c.role, style: c.style, sex: c.sex, species: nul(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language, dialect: nul(c.dialect), voice: c.voice, refs: c.refs, portraitAssetId: nul(c.portraitAssetId), usageKnown: c.usage?.known ?? false, pendingReference: nul(c.pendingReference), canon: nul(c.canon), notes: nul(c.notes), ...canonicalToColumns(c.canonicalImage), createdAt: c.createdAt, updatedAt: c.updatedAt };
 }
 function productionRow(p: Production) {
   return { id: p.id, kind: p.kind, showId: nul(p.showId), seasonId: nul(p.seasonId), episodeNumber: nul(p.episodeNumber), title: p.title, titleAr: nul(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style, language: p.language, dialect: nul(p.dialect), aspect: p.aspect, targetSeconds: p.targetSeconds, stage: p.stage, brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, song: nul(p.song), coverAssetId: nul(p.coverAssetId), posterAssetId: nul(p.posterAssetId), artist: nul(p.artist), concept: nul(p.concept), genre: nul(p.genre), mood: nul(p.mood), cutAssetId: nul(p.cutAssetId), exports: nul(p.exports), createdAt: p.createdAt, updatedAt: p.updatedAt };

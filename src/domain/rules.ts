@@ -13,8 +13,10 @@ import { StudioError } from './errors';
  *  is the enforcement: a command that would change a used character's appearance fails with APPEARANCE_LOCKED,
  *  whatever the client sent. See docs/CHARACTER-CONTINUITY.md. */
 
-/** The fields that make up how a character looks. Voice and the written profile are not among them. */
-export const APPEARANCE_KEYS = ['portraitAssetId', 'refs', 'pendingReference', 'style', 'species', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'distinguishing', 'wardrobe', 'canon'] as const satisfies ReadonlyArray<keyof Character>;
+/** The fields that make up how a character looks. Voice and the written profile (name, Arabic name, role, personality,
+ *  notes, language) are not among them. The canonical image is (docs/CONTRACTS-IDENTITY-PACK.md v2): no redraw, no
+ *  replacement and no approval change once the character has been in a video. */
+export const APPEARANCE_KEYS = ['canonicalImage', 'portraitAssetId', 'refs', 'pendingReference', 'style', 'species', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'distinguishing', 'wardrobe', 'canon'] as const satisfies ReadonlyArray<keyof Character>;
 
 export type AppearanceLock =
   | { locked: false; reason: null; videos: VideoUsage[] }
@@ -82,9 +84,18 @@ export function guardVoiceBuild(c: Character, referenceSampleId: string | undefi
   if (problem) throw new StudioError('VOICE_LOCKED', `${problem} (${what}).`, { characterId: c.id, reason: voiceLock(c).reason, selectedSampleId: c.voice.selectedSampleId, referenceSampleId });
 }
 
-/** The assets a locked character's appearance rests on: its portrait and reference views. They cannot be deleted. */
+/** The assets a locked character's appearance rests on: its canonical image, portrait and reference views. They
+ *  cannot be deleted. */
 export function protectedAssetOwner(s: StudioState, assetId: string): Character | undefined {
-  return s.characters.find((c) => appearanceLock(c).locked && (c.portraitAssetId === assetId || c.refs.some((r) => r.assetId === assetId)));
+  return s.characters.find((c) => appearanceLock(c).locked && (c.canonicalImage?.assetId === assetId || c.portraitAssetId === assetId || c.refs.some((r) => r.assetId === assetId)));
+}
+
+/** Refuse any change of a locked character's canonical image (a redraw, a replacement, an approval).
+ *  `what` names the change for the message. */
+export function guardCanonicalChange(c: Character, what: string): void {
+  const lock = appearanceLock(c);
+  if (!lock.locked) return;
+  throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the canonical image is preserved for continuity (${what}).`, { characterId: c.id, fields: ['canonicalImage'], reason: lock.reason });
 }
 
 /** The recordings a voice-locked character's voice rests on: the identity's reference upload (and its trimmed
@@ -106,7 +117,8 @@ export const VOICE_INTERNAL_KEYS = ['identity', 'samples', 'selectedSampleId'] a
  *  interface and generated lines are engine output: cloning from either would drift the voice away from the person. */
 export const isCloneSource = (sample: Pick<Character['voice']['samples'][number], 'source' | 'assetId'>) => sample.source === 'UPLOADED' && Boolean(sample.assetId);
 
-/** Record that every character in this shot has been in this take's video. Idempotent. */
+/** Record that every character in this shot has been in this take's video, with the canonical image version they
+ *  had (a shot knows which image it was made with). Idempotent. */
 export function recordTakeUsage(characters: Character[], p: Production, shotId: string, takeId: string, at: string): Character[] {
   const sh = p.shots.find((x) => x.id === shotId);
   const take = sh?.takes.find((t) => t.id === takeId);
@@ -116,7 +128,7 @@ export function recordTakeUsage(characters: Character[], p: Production, shotId: 
     if (!sh.characterIds.includes(c.id)) return c;
     const usage = c.usage ?? { known: false, videos: [] };
     if (usage.videos.some((v) => v.takeId === takeId && v.shotId === shotId)) return c;
-    const record: VideoUsage = { productionId: p.id, productionTitle: p.title, shotId, shotLabel: label, takeId, takeLabel: take.label, recordedAt: at, status: 'IN_TAKE' };
+    const record: VideoUsage = { productionId: p.id, productionTitle: p.title, shotId, shotLabel: label, takeId, takeLabel: take.label, recordedAt: at, status: 'IN_TAKE', canonicalImageVersion: c.canonicalImage?.version };
     return { ...c, usage: { ...usage, videos: [...usage.videos, record] } };
   });
 }

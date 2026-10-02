@@ -1,9 +1,11 @@
-import type { Asset, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError } from './errors';
-import { VOICE_INTERNAL_KEYS, canChangeAppearance, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
+import { canonical } from './hash';
+import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
+import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -349,6 +351,9 @@ function writeCharacter(s: S, id: string, patch: Partial<Omit<Character, 'id' | 
 export function updateCharacter(s: S, id: string, patch: Partial<Omit<Character, 'id' | 'createdAt' | 'usage'>>): S {
   const c = mustFind(s.characters, id, 'Character');
   const next = { ...patch } as Partial<Character>;
+  // the canonical image has its own commands (setCanonicalImage, approveCanonicalImage): a whole-form save can never
+  // replace, approve or un-approve it
+  delete next.canonicalImage;
   if (next.voice) {
     const v = { ...next.voice } as Partial<Voice>;
     for (const k of VOICE_INTERNAL_KEYS) delete v[k];
@@ -455,11 +460,13 @@ export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput)
   return writeCharacter(s, id, { voice: { ...c.voice, identity: next, selectedSampleId } });
 }
 
+/** Deleting a character keeps every picture it had; its canonical image is no longer canonical (RAW). */
 export function deleteCharacter(s: S, id: string): S {
   const drop = (ids: string[]) => ids.filter((x) => x !== id);
+  const img = s.characters.find((c) => c.id === id)?.canonicalImage?.assetId;
+  const without: S = { ...s, characters: s.characters.filter((c) => c.id !== id) };
   return {
-    ...s,
-    characters: s.characters.filter((c) => c.id !== id),
+    ...withTiers(without, [], img ? [img] : []),
     shows: s.shows.map((sh) => ({ ...sh, castIds: drop(sh.castIds) })),
     productions: s.productions.map((p) => ({ ...p, castIds: drop(p.castIds), scenes: p.scenes.map((sc) => ({ ...sc, characterIds: drop(sc.characterIds) })), shots: p.shots.map((sh) => ({ ...sh, characterIds: drop(sh.characterIds) })) })),
   };
@@ -476,6 +483,63 @@ export function selectVoiceSample(s: S, id: string, sampleId: string | undefined
     if (!isCloneSource(sm)) throw new StudioError('INVALID', sm.source === 'GENERATED' ? 'A generated line cannot be the voice; choose an uploaded recording.' : 'A bundled sample voice cannot be the voice; upload a recording.', { sampleId, source: sm.source });
   }
   return { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, selectedSampleId: sampleId }, updatedAt: now() } : x)) };
+}
+
+// ------------------------------------------------------------------------------------------- the canonical image
+
+/** What the worker hands `setCanonicalImage`: how the picture was drawn. Status and version are the reducer's (a new
+ *  image is always a DRAFT one version further); `generatedAt` defaults to the command's clock. */
+export type CanonicalImageInput = Pick<CanonicalImage, 'assetId'> & Partial<Pick<CanonicalImage, 'jobId' | 'seed' | 'referenceAssetId' | 'engine' | 'identityLine' | 'check' | 'generatedAt'>>;
+
+/** Set asset tiers: the given assets to CANONICAL; a retired asset (no longer anyone's canonical image) to RAW.
+ *  Files and records are never removed here. */
+function withTiers(s: S, canonicalIds: string[], retired: string[]): S {
+  const still = new Set(s.characters.map((c) => c.canonicalImage?.assetId).filter(Boolean));
+  const want = new Map<string, AssetTier>();
+  for (const id of retired) if (!still.has(id)) want.set(id, 'RAW');
+  for (const id of canonicalIds) want.set(id, 'CANONICAL');
+  if (![...want].some(([id, tier]) => s.assets.some((a) => a.id === id && a.tier !== tier))) return s;
+  return { ...s, assets: s.assets.map((a) => (want.has(a.id) && a.tier !== want.get(a.id) ? { ...a, tier: want.get(a.id) } : a)) };
+}
+
+/** The studio drew (or redrew) the character's canonical front full-body image (docs/CONTRACTS-IDENTITY-PACK.md v2).
+ *  It is a DRAFT one version further until the producer approves it; the new picture becomes CANONICAL and the one it
+ *  replaces RAW (kept in the library, never deleted). An image drawn from the pending reference picture
+ *  (`referenceAssetId`) consumes it. Refused with APPEARANCE_LOCKED once the character has been in a video. The same
+ *  picture with the same details again changes nothing (a retried job is harmless). */
+export function setCanonicalImage(s: S, characterId: string, input: CanonicalImageInput): S {
+  const c = mustFind(s.characters, characterId, 'Character');
+  guardCanonicalChange(c, 'redraw');
+  const a = mustFind(s.assets, input.assetId, 'Asset');
+  if (a.kind !== 'IMAGE' || a.sample) throw new StudioError('INVALID', 'A canonical image must be a drawn or uploaded picture, never a bundled sample.', { assetId: a.id });
+  const owner = canonicalImageOwner(s, a.id);
+  if (owner && owner.id !== c.id) throw new StudioError('INVALID', `This picture is ${owner.name}’s canonical image.`, { assetId: a.id, characterId: owner.id });
+  const prev = c.canonicalImage;
+  // only what the worker reports about the drawing; status, version and approval are this reducer's
+  const drawn = { assetId: a.id, jobId: input.jobId, seed: input.seed, referenceAssetId: input.referenceAssetId, engine: input.engine, identityLine: input.identityLine, check: input.check };
+  const same = prev && canonical(drawn) === canonical({ assetId: prev.assetId, jobId: prev.jobId, seed: prev.seed, referenceAssetId: prev.referenceAssetId, engine: prev.engine, identityLine: prev.identityLine, check: prev.check });
+  if (same) return withTiers(s, [a.id], []);
+  const next: CanonicalImage = { ...drawn, status: 'DRAFT', version: (prev?.version ?? 0) + 1, generatedAt: input.generatedAt ?? now() };
+  const patch: Partial<Character> = { canonicalImage: next };
+  if (c.pendingReference && input.referenceAssetId === c.pendingReference.assetId) patch.pendingReference = undefined;
+  return withTiers(writeCharacter(s, characterId, patch), [a.id], prev && prev.assetId !== a.id ? [prev.assetId] : []);
+}
+
+/** The producer approves the image they reviewed, by its version: refused when there is none, when it changed since
+ *  (CONFLICT — never approve a stale image), or when its check failed — unless `override` is set with a reason, which
+ *  is recorded on the image. Refused once the character has been in a video. Approving it again changes nothing. */
+export function approveCanonicalImage(s: S, characterId: string, version: number, opts: { override?: boolean; reason?: string } = {}): S {
+  const c = mustFind(s.characters, characterId, 'Character');
+  guardCanonicalChange(c, 'approval');
+  const img = c.canonicalImage;
+  if (img?.status === 'APPROVED' && img.version === version) return s;
+  const problem = approvalProblem(img, version, Boolean(opts.override));
+  if (problem) throw new StudioError(problem.code, problem.message, { characterId, ...problem.details });
+  const failed = canonicalCheckFailed(img);
+  const reason = opts.reason?.trim();
+  if (failed && !reason) throw new StudioError('INVALID', 'Approving over a failed check needs a reason.', { characterId, check: img!.check });
+  const next: CanonicalImage = { ...img!, status: 'APPROVED', approvedAt: now(), approvalOverride: failed ? { reason: reason!, at: now() } : undefined };
+  return writeCharacter(s, characterId, { canonicalImage: next });
 }
 
 // --------------------------------------------------------------------------------------------------- locations
@@ -524,7 +588,29 @@ export function addAsset(s: S, input: Omit<Asset, 'createdAt' | 'id'> & { id?: s
 
 export function updateAsset(s: S, id: string, patch: Partial<Pick<Asset, 'label' | 'tags' | 'poster' | 'width' | 'height' | 'durationSeconds' | 'fps' | 'provenance' | 'unavailable'>>): S {
   mustFind(s.assets, id, 'Asset');
-  return { ...s, assets: s.assets.map((a) => (a.id === id ? { ...a, ...patch } : a)) };
+  // the tier has its own command (setAssetTier) and the identity commands; a general patch never moves it
+  const { tier: _tier, ...rest } = patch as typeof patch & { tier?: unknown }; void _tier;
+  return { ...s, assets: s.assets.map((a) => (a.id === id ? { ...a, ...rest } : a)) };
+}
+
+/** What a picture is to the character system (docs/CONTRACTS-IDENTITY-PACK.md v2 §1): SECONDARY (optional material
+ *  made on request) or RAW (rejected candidates, previous versions, intermediate output — never on a profile), or no
+ *  tier at all (null). CANONICAL belongs to canonical images and is set only by `setCanonicalImage`: a current
+ *  canonical image cannot be moved off it (redraw to replace it — refused outright for a character used in a video)
+ *  and no other picture can be moved onto it. Files and records are never removed here. */
+export function setAssetTier(s: S, assetId: string, tier: AssetTier | null): S {
+  const a = mustFind(s.assets, assetId, 'Asset');
+  if (a.kind !== 'IMAGE') throw new StudioError('INVALID', 'Only pictures have a tier.', { assetId });
+  if (tier !== null && tier !== 'CANONICAL' && tier !== 'SECONDARY' && tier !== 'RAW') throw new StudioError('INVALID', `Unknown tier ${String(tier)}.`, { assetId, tier });
+  const owner = canonicalImageOwner(s, assetId);
+  if (owner && tier !== 'CANONICAL') {
+    const lock = appearanceLock(owner);
+    if (lock.locked) throw new StudioError('APPEARANCE_LOCKED', `${owner.name} has been used in a video; this picture is the preserved canonical image.`, { assetId, characterId: owner.id, reason: lock.reason });
+    throw new StudioError('INVALID', `This picture is ${owner.name}’s canonical image; redraw it to replace it.`, { assetId, characterId: owner.id });
+  }
+  if (!owner && tier === 'CANONICAL') throw new StudioError('INVALID', 'Only a character’s canonical image is canonical; it becomes one when it is set with setCanonicalImage.', { assetId });
+  if ((a.tier ?? null) === tier) return s;
+  return { ...s, assets: s.assets.map((x) => (x.id === assetId ? { ...x, tier: tier ?? undefined } : x)) };
 }
 
 /** Nothing but your settings: the studio as it would be on day one. */
@@ -533,10 +619,13 @@ export function emptyStudio(settings: Settings): S {
 }
 
 /** Removing a file removes every use of it too: a reference view, a portrait, a frame, a take, a song's track. A
- *  picture a used character's appearance rests on is not removed at all (see rules.ts). */
+ *  picture a used character's appearance rests on is not removed at all (see rules.ts), and neither is any
+ *  character's current canonical image: redraw it first (the previous one becomes RAW and can then go). */
 export function deleteAsset(s: S, id: string): S {
   const owner = protectedAssetOwner(s, id);
   if (owner) throw new StudioError('ASSET_PROTECTED', `${owner.name} has been used in a video; this picture is part of the preserved appearance.`, { assetId: id, characterId: owner.id, characterName: owner.name });
+  const canonicalOwner = canonicalImageOwner(s, id);
+  if (canonicalOwner) throw new StudioError('ASSET_PROTECTED', `This picture is ${canonicalOwner.name}’s canonical image; redraw it first, then the previous image can be removed.`, { assetId: id, characterId: canonicalOwner.id, characterName: canonicalOwner.name, reason: 'CANONICAL' });
   const voiceOwner = protectedVoiceAssetOwner(s, id);
   if (voiceOwner) throw new StudioError('ASSET_PROTECTED', `${voiceOwner.name} has spoken in a video; this recording is part of the preserved voice.`, { assetId: id, characterId: voiceOwner.id, characterName: voiceOwner.name, reason: 'VOICE' });
   const not = (x: string | undefined) => (x === id ? undefined : x);

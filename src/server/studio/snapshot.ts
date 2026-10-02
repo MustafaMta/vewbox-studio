@@ -1,9 +1,10 @@
 import { asc } from 'drizzle-orm';
-import type { Asset, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
+import type { Asset, AssetTier, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
 import { STATE_VERSION } from '@/domain/version';
 import { DEFAULT_SETTINGS } from '@/domain/sample';
 import { canonical, hashString } from '@/domain/hash';
 import { db, schema, type Db } from '../db/client';
+import { canonicalFromColumns } from './canonical-image';
 
 /** READING THE STUDIO — the whole state assembled from the tables, plus a fingerprint of every row so the saver can
  *  write back only what a command changed. */
@@ -41,6 +42,28 @@ export function assetSrc(a: { id: string; storage: string; path: string }): stri
   return a.storage === 'PUBLIC' ? `/${a.path.replace(/^\/+/, '')}` : `/api/media/${a.id}`;
 }
 
+type AssetRowRead = typeof schema.assets.$inferSelect;
+type CharacterRowRead = typeof schema.characters.$inferSelect;
+type UsageRowRead = typeof schema.characterUsage.$inferSelect;
+
+const TIERS: readonly AssetTier[] = ['CANONICAL', 'SECONDARY', 'RAW'];
+
+/** An asset as the domain holds it, from its row (`posterOf` resolves a poster stored as another asset). */
+export function assetFromRow(a: AssetRowRead, posterOf: (posterAssetId: string) => string | undefined = () => undefined): Asset {
+  const poster = (a.posterAssetId ? posterOf(a.posterAssetId) : undefined) ?? (a.posterPath ? `/${a.posterPath.replace(/^\/+/, '')}` : undefined);
+  return { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, tier: TIERS.includes(a.tier as AssetTier) ? (a.tier as AssetTier) : undefined, createdAt: a.createdAt };
+}
+
+export function usageFromRow(u: UsageRowRead): VideoUsage {
+  return { productionId: u.productionId, productionTitle: u.productionTitle, shotId: u.shotId, shotLabel: u.shotLabel, takeId: u.takeId, takeLabel: u.takeLabel, recordedAt: u.recordedAt, status: u.status as VideoUsage['status'], canonicalImageVersion: undef(u.canonicalImageVersion) };
+}
+
+/** A character as the domain holds it, from its row, its usage records and (for a canonical image written outside
+ *  the studio without metadata) the creation time of an asset. */
+export function characterFromRow(c: CharacterRowRead, videos: VideoUsage[], assetCreatedAt: (assetId: string) => string | undefined = () => undefined): Character {
+  return { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), canonicalImage: canonicalFromColumns(c, (id) => assetCreatedAt(id) ?? c.updatedAt), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
+}
+
 export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const [showRows, seasonRows, productionRows, sceneRows, shotRows, takeRows, characterRows, usageRows, locationRows, assetRows, settingsRows, metaRows] = await Promise.all([
     tx.select().from(schema.shows).orderBy(asc(schema.shows.createdAt)),
@@ -61,9 +84,9 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const h = (v: unknown) => hashString(canonical(v));
 
   const assetById = new Map(assetRows.map((a) => [a.id, a]));
+  const posterOf = (id: string) => { const p = assetById.get(id); return p ? assetSrc(p) : undefined; };
   const assets: Asset[] = assetRows.map((a) => {
-    const poster = a.posterAssetId && assetById.get(a.posterAssetId) ? assetSrc(assetById.get(a.posterAssetId)!) : a.posterPath ? `/${a.posterPath.replace(/^\/+/, '')}` : undefined;
-    const asset: Asset = { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, createdAt: a.createdAt };
+    const asset = assetFromRow(a, posterOf);
     hashes.assets.set(a.id, h(asset));
     return asset;
   });
@@ -102,12 +125,12 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
 
   const usageByCharacter = new Map<string, VideoUsage[]>();
   for (const u of usageRows) {
-    const v: VideoUsage = { productionId: u.productionId, productionTitle: u.productionTitle, shotId: u.shotId, shotLabel: u.shotLabel, takeId: u.takeId, takeLabel: u.takeLabel, recordedAt: u.recordedAt, status: u.status as VideoUsage['status'] };
+    const v = usageFromRow(u);
     hashes.usage.set(`${u.characterId}|${u.shotId}|${u.takeId}`, h(v));
     usageByCharacter.set(u.characterId, [...(usageByCharacter.get(u.characterId) ?? []), v]);
   }
   const characters: Character[] = characterRows.map((c) => {
-    const character: Character = { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos: usageByCharacter.get(c.id) ?? [] }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
+    const character = characterFromRow(c, usageByCharacter.get(c.id) ?? [], (id) => assetById.get(id)?.createdAt);
     hashes.characters.set(c.id, h({ ...character, usage: { known: character.usage!.known } }));
     return character;
   });
