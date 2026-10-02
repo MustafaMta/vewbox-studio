@@ -82,14 +82,14 @@ export const JOB_PAYLOADS = {
   CHARACTER_REFS: z.object({ characterId: id, roles: z.array(z.string()).optional() }),
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
-  GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional() }),
+  GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional(), /** make the new take the shot's choice when it passes its checks, replacing the current one (a re-record the producer asked for) */ select: z.boolean().optional() }),
   VOICE_BUILD: z.object({ characterId: id, referenceAssetId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional() }),
   VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: z.enum(['EN', 'AR']).optional(), emotion: z.string().optional() }),
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), force: z.boolean().optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
   ASSEMBLE: z.object({ productionId: id }),
   EXPORT: z.object({ productionId: id, format: z.enum(['mp4-h264', 'mp4-h265', 'mov-prores']), resolution: z.enum(['720', '1080', '2160']), subtitles: z.enum(['none', 'ar', 'en', 'both']) }),
-  PRODUCE: z.object({ productionId: id, shotIds: z.array(id).optional(), framesOnly: z.boolean().optional() }),
+  PRODUCE: z.object({ productionId: id, shotIds: z.array(id).optional(), framesOnly: z.boolean().optional(), /** re-record the speaking shots whose chosen take was never verified against the script (older pipeline) or failed; the new take replaces the choice when it passes */ respeak: z.boolean().optional() }),
   MEDIA_PROBE: z.object({ assetId: id }),
 } satisfies Record<JobType, z.ZodTypeAny>;
 

@@ -731,6 +731,8 @@ const D = {
   'gen.dialogue.hint': ['Speaks every line with its character’s studio voice and checks each one by transcription. The cut uses these recordings for takes without their own sound (uploaded clips); MiniMax takes speak natively.', 'ينطق كل جملة بصوت شخصيتها المبني في الاستوديو ويتحقق منها بالتفريغ. يستخدم المونتاج هذه التسجيلات للقطات بلا صوت خاص (المقاطع المرفوعة)؛ لقطات MiniMax تنطق بنفسها.'],
   'produce.linesVoiced': ['lines recorded', 'جمل مسجّلة'],
   'gen.song': ['Generate the song', 'ولّد الأغنية'],
+  'gen.respeak': ['Re-record speaking shots', 'أعد تسجيل اللقطات الناطقة'],
+  'gen.respeak.hint': ['New takes for the speaking shots whose chosen take was never checked against the script: each line is recorded first with the character’s voice, the shot is cut to its words, and the clip is transcribed back; a passing take becomes the choice.', 'لقطات جديدة للقطات الناطقة التي لم تُفحص لقطتها المختارة مقابل النص: تُسجَّل كل جملة أولاً بصوت الشخصية، وتُقصّ اللقطة على كلماتها، ويُفرَّغ المقطع للتحقق؛ اللقطة الناجحة تصبح المختارة.'],
   'gen.performance': ['Assign the singing', 'وزّع الغناء'],
   'gen.performance.hint': ['Decides who sings each section (solo, duet, alternating, instrumental) from the lyrics and the story, and copies it onto the planned shots. Only the assigned performer sings in a shot.', 'يقرر من يغني كل مقطع (منفرد، ثنائي، بالتناوب، آلي) من الكلمات والقصة، وينسخه على اللقطات المخططة. لا يغني في اللقطة إلا المؤدي المعيّن.'],
   'gen.rejectTake': ['Reject', 'ارفض'],

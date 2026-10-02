@@ -26,6 +26,8 @@ export function ProduceTab({ p }: { p: Production }) {
   const open = p.shots.filter((s) => needsTake(s)).length;
   const lines = p.shots.reduce((a, sh) => a + sh.dialogue.length, 0);
   const voiced = p.shots.reduce((a, sh) => a + sh.dialogue.filter((d) => d.audioAssetId).length, 0);
+  // speaking shots whose chosen take never proved its words against the script (older takes, or a failing check)
+  const unverifiedSpeaking = p.shots.filter((sh) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); }).length;
   if (p.shots.length === 0) return <Notice title={T('empty.shots')}>{T('empty.shots.hint')} <Link href="?tab=storyboard" className="font-medium text-accent-text hover:underline">{T('tab.storyboard')} →</Link></Notice>;
   return (
     <div className="space-y-6">
@@ -33,6 +35,7 @@ export function ProduceTab({ p }: { p: Production }) {
         <p className="text-sm text-muted">{T('produce.lead')} <span className="num font-medium text-fg">{chosen}/{p.shots.length}</span> {T('produce.shotsReady')}.</p>
         <div className="flex flex-wrap items-center gap-2">
           {open > 0 && <JobButton type="PRODUCE" payload={{ productionId: p.id }} target={{ productionId: p.id }} variant="primary" size="sm" icon={<IconProduce />} title={T('gen.produceAll.hint')}>{T('gen.produceAll')}</JobButton>}
+          {lines > 0 && p.kind !== 'MUSIC_VIDEO' && unverifiedSpeaking > 0 && <JobButton type="PRODUCE" payload={{ productionId: p.id, respeak: true }} target={{ productionId: p.id }} size="sm" title={T('gen.respeak.hint')}>{T('gen.respeak')} · {unverifiedSpeaking}</JobButton>}
           {lines > 0 && p.kind !== 'MUSIC_VIDEO' && <span className="inline-flex items-center gap-2"><JobButton type="DIALOGUE_AUDIO" payload={{ productionId: p.id, force: voiced === lines }} target={{ productionId: p.id }} size="sm" title={T('gen.dialogue.hint')}>{T('gen.dialogue')}</JobButton><span className="text-xs text-muted"><span className="num">{voiced}/{lines}</span> {T('produce.linesVoiced')}</span></span>}
           <Segmented label={T('label.status')} value={filter} onChange={setFilter} options={[{ value: 'all', label: T('label.all') }, { value: 'open', label: T('produce.chooseTake') }, { value: 'chosen', label: T('board.chosen') }]} />
         </div>

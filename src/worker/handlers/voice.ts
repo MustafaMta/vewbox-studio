@@ -61,7 +61,10 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
     await fsp.writeFile(file, r.bytes);
     return { file, engine: 'minimax', model: env().MINIMAX_SPEECH_MODEL, ms: 0 };
   }
-  const engine = pickEngine(c.language, c.dialect, (c.voice.identity?.model as 'indextts' | 'habibi' | undefined) ?? 'auto');
+  // a line that switches into English (technical words, names in Latin script) goes to the bilingual engine: the Iraqi
+  // model has no English and turns such words into Arabic-shaped noise (docs/evidence/iraqi-suite.md)
+  const mixed = /[A-Za-z]{2,}/.test(text) && /[؀-ۿ]/.test(text);
+  const engine = mixed ? 'indextts' : pickEngine(c.language, c.dialect, (c.voice.identity?.model as 'indextts' | 'habibi' | undefined) ?? 'auto');
   const refText = engine === 'habibi' ? await referenceText(ctx, ref) : undefined;
   return ctx.gpu('TTS', TTS_VRAM, () => synthesize({ text, language: c.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, speed: 1.0, engine }, dir), { jobId: ctx.job.id });
 }

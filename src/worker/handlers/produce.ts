@@ -1,4 +1,5 @@
 import type { Handler } from './index';
+import type { Shot } from '@/domain/types';
 import { StudioError } from '@/domain/errors';
 import { readState } from '@/server/studio/engine';
 import { enqueue, getJob, listJobs } from '@/server/jobs/queue';
@@ -12,13 +13,16 @@ import * as comfy from '@/server/providers/comfy';
  *  and reports. One failed shot does not stop the others; the summary says what is left. */
 
 export const produce: Handler = async (ctx) => {
-  const { productionId, shotIds, framesOnly } = ctx.job.payload as { productionId: string; shotIds?: string[]; framesOnly?: boolean };
+  const { productionId, shotIds, framesOnly, respeak } = ctx.job.payload as { productionId: string; shotIds?: string[]; framesOnly?: boolean; respeak?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots before producing.');
-  const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && needsTake(sh));
-  if (targets.length === 0) return { message: 'every shot already has a chosen take', shots: 0 };
+  // respeak: speaking shots whose chosen take never proved its words (made before the script check existed, or
+  // failing it) get a new take through the audio-first pipeline; a passing new take becomes the choice
+  const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
+  const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh)));
+  if (targets.length === 0) return { message: respeak ? 'every speaking shot already has a verified take' : 'every shot already has a chosen take', shots: 0 };
   const round = ctx.job.attempts;
   const children: string[] = [];
   // a reclaimed or retried run adopts the children it already queued and that are still working, so a shot never
@@ -43,12 +47,13 @@ export const produce: Handler = async (ctx) => {
   for (const sh of targets) {
     const existing = adopt('GENERATE_TAKE', sh.id);
     if (existing) { takeJobs.push(existing); continue; }
-    const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 });
+    const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 });
     takeJobs.push(r.job.id);
   }
-  const outcome = await waitFor(ctx, takeJobs, 'generating takes');
+  const outcome = await waitFor(ctx, takeJobs, respeak ? 're-recording speaking shots' : 'generating takes');
   const fresh = (await readState()).state.productions.find((x) => x.id === productionId)!;
   const remaining = fresh.shots.filter((sh) => needsTake(sh)).length;
+  if (respeak) { const still = fresh.shots.filter(unverified).length; return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, stillUnverified: still, awaitingReview: still > 0 }; }
   if (remaining === 0 && !fresh.cutAssetId) {
     const r = await enqueue({ type: 'ASSEMBLE', payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` });
     await waitFor(ctx, [r.job.id], 'assembling');

@@ -27,7 +27,7 @@ import { env } from '@/server/env';
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
 export const generateTake: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number };
+  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === payload.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
@@ -208,7 +208,7 @@ export const generateTake: Handler = async (ctx) => {
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
-  if (report.ok && (!current || current.provider === 'SAMPLE')) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
+  if (report.ok && (!current || current.provider === 'SAMPLE' || payload.select)) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
   await recordMetric('take.qa_ok', report.ok ? 1 : 0, 'bool', { backend }, ctx.job.id);
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, awaitingReview: false, libraryRoot: libraryRoot() };
 };
