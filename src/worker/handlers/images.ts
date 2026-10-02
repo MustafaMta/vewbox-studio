@@ -104,13 +104,13 @@ export const characterRefs: Handler = async (ctx) => {
 // ---------------------------------------------------------------------------------------------------- locations
 
 export const locationPlates: Handler = async (ctx) => {
-  const { locationId, timesOfDay } = ctx.job.payload as { locationId: string; timesOfDay?: TimeOfDay[] };
+  const { locationId, timesOfDay, force } = ctx.job.payload as { locationId: string; timesOfDay?: TimeOfDay[]; force?: boolean };
   const { state } = await readState();
   const l = state.locations.find((x) => x.id === locationId);
   if (!l) throw new StudioError('NOT_FOUND', 'Location not found');
   await requireComfy();
   const refs: LocationRef[] = [];
-  const existingMaster = state.assets.find((a) => a.id === l.masterAssetId);
+  const existingMaster = force ? undefined : state.assets.find((a) => a.id === l.masterAssetId);
   let master: Asset | undefined = usable(existingMaster) ? existingMaster : undefined;
   const primaryTod = (timesOfDay?.[0] ?? l.lighting[0] ?? 'MORNING') as TimeOfDay;
   if (!master) {

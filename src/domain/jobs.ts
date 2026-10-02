@@ -80,7 +80,7 @@ export const JOB_PAYLOADS = {
   PLAN_SHOTS: z.object({ productionId: id, sceneIds: z.array(id).optional(), force: z.boolean().optional() }),
   CHARACTER_APPEARANCE: z.object({ characterId: id }),
   CHARACTER_REFS: z.object({ characterId: id, roles: z.array(z.string()).optional() }),
-  LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional() }),
+  LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
   GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional() }),
   VOICE_BUILD: z.object({ characterId: id, referenceAssetId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional() }),

@@ -86,8 +86,13 @@ export function characterPrompt(c: Character, view: 'PORTRAIT' | 'FRONT' | 'THRE
   return `${d.visual}. ${d.character} A ${describeCharacter(c)}. ${views[view]}. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
+/** Plates describe an unoccupied place in positive terms. Negations ("no people") are unreliable for a diffusion
+ *  model, and with the Lightning LoRAs (cfg 1) the negative prompt has no effect at all; the first rooftop plates
+ *  came back with a child standing in them because the visual direction itself mentions "characters". */
 export function locationPrompt(l: Location, view: 'MASTER' | 'VIEW' | 'STATE', timeOfDay?: string, note?: string): string {
   const d = styleDirection(l.style);
-  const v = view === 'MASTER' ? 'wide establishing master plate of the whole space, eye level, no people' : view === 'VIEW' ? `a second camera angle of the same place${note ? ` (${note})` : ''}, same architecture and props, no people` : `the same place at ${timeOfDay?.toLowerCase().replace('_', ' ') ?? 'another time of day'}${note ? `, ${note}` : ''}, same architecture and props, no people`;
-  return `${d.visual}. ${d.environment} ${describeLocation(l, timeOfDay)}. ${v}. ${d.avoid}`.replace(/\s+/g, ' ');
+  const visual = d.visual.replace(/stylized CG characters[^,.]*[,.]\s*/i, 'stylized CG environment art, ').replace(/characters?/gi, 'scenery');
+  const empty = 'An unoccupied, deserted place: pure environment and props, the scene before anyone arrives';
+  const v = view === 'MASTER' ? `wide establishing master plate of the whole space, eye level. ${empty}` : view === 'VIEW' ? `a second camera angle of the same place${note ? ` (${note})` : ''}, same architecture and props. ${empty}` : `the same place at ${timeOfDay?.toLowerCase().replace('_', ' ') ?? 'another time of day'}${note ? `, ${note}` : ''}, same architecture and props. ${empty}`;
+  return `${visual}. ${d.environment} ${describeLocation(l, timeOfDay)}. ${v}. ${d.avoid}`.replace(/\s+/g, ' ');
 }
