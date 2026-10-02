@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seed } from '@/domain/sample';
-import { addVoiceSample, selectVoiceSample, setVoiceIdentity, acceptProposal, removeVoiceSample } from '@/domain/actions';
+import { addAsset, addVoiceSample, selectVoiceSample, setVoiceIdentity, acceptProposal, removeVoiceSample } from '@/domain/actions';
 import { voiceLock } from '@/domain/rules';
 import { sampleProposal } from '@/domain/proposals';
 import type { Character, StudioState } from '@/domain/types';
@@ -23,17 +23,19 @@ describe('voice lock', () => {
     if (other) expect(() => selectVoiceSample(s, c.id, other.id)).toThrow(/voice is preserved/);
     expect(() => addVoiceSample(s, c.id, { label: 'new', assetId: 'up-x', source: 'UPLOADED' }, true)).toThrow(/VOICE|preserved/);
     expect(() => removeVoiceSample(s, c.id, c.voice.selectedSampleId!)).toThrow(/preserved/);
-    const withIdentity: StudioState = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, identity: { provider: 'LOCAL_TTS', model: 'indextts', revision: 1, language: 'EN', createdAt: '2026-01-01T00:00:00Z' } } } : x)) };
-    expect(() => setVoiceIdentity(withIdentity, c.id, { provider: 'LOCAL_TTS', model: 'habibi', language: 'EN' })).toThrow(/preserved/);
+    const withIdentity: StudioState = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, identity: { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, language: 'EN', createdAt: '2026-01-01T00:00:00Z' } } } : x)) };
+    expect(() => setVoiceIdentity(withIdentity, c.id, { provider: 'LOCAL_TTS', model: 'habibi', mode: 'REFERENCE', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'x', assetId: 'y', text: 'z' } })).toThrow(/preserved/);
     // listening lines can still be added, just not chosen
     expect(addVoiceSample(s, c.id, { label: 'preview', assetId: 'up-y', source: 'GENERATED' }).sample.id).toBeTruthy();
   });
   it('a used character without any voice can still be given one (no continuity to break)', () => {
-    const s = base(); const c = used(s);
+    const s0 = base(); const c = used(s0);
+    const s = addAsset(s0, { id: 'up-z', kind: 'AUDIO', src: '/api/media/up-z', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' }).state;
     const voiceless: StudioState = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, samples: [], selectedSampleId: undefined, identity: undefined } } : x)) };
     const r = addVoiceSample(voiceless, c.id, { label: 'first', assetId: 'up-z', source: 'UPLOADED' }, true);
     expect(r.state.characters.find((x) => x.id === c.id)!.voice.selectedSampleId).toBe(r.sample.id);
-    expect(() => setVoiceIdentity(r.state, c.id, { provider: 'LOCAL_TTS', model: 'indextts', language: 'EN' })).not.toThrow();
+    const withProof = addVoiceSample(r.state, c.id, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED', text: 'hello' }).state;
+    expect(() => setVoiceIdentity(withProof, c.id, { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', referenceSampleId: r.sample.id, referenceAssetId: 'up-z', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } })).not.toThrow();
   });
 });
 

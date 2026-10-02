@@ -224,6 +224,8 @@ export const assets = pgTable('assets', {
   sha256: text('sha256'),
   provenance: jsonb('provenance').$type<Record<string, unknown>>(),
   jobId: text('job_id'),
+  /** Set by MEDIA_PROBE / the file sweep when the file behind the record cannot be read; the pages say so. */
+  unavailable: boolean('unavailable').notNull().default(false),
   createdAt: ts('created_at').notNull(),
 });
 

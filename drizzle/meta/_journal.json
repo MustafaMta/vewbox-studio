@@ -22,6 +22,13 @@
       "when": 1790953739876,
       "tag": "0002_regular_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790971031418,
+      "tag": "0003_assets_unavailable",
+      "breakpoints": true
     }
   ]
 }

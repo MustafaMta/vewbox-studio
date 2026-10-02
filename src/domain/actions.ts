@@ -1,9 +1,9 @@
-import type { Asset, Character, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, VoiceIdentity, VoiceSample } from './types';
+import type { Asset, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError } from './errors';
-import { canChangeAppearance, guardCharacterPatch, guardVoiceChange, markTakeRemoved, protectedAssetOwner, recordTakeUsage } from './rules';
+import { VOICE_INTERNAL_KEYS, canChangeAppearance, guardCharacterPatch, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -288,8 +288,8 @@ export function setShotFrames(s: S, productionId: string, shotId: string, frames
   return updateShot(s, productionId, shotId, frames);
 }
 
-/** A line of a shot's dialogue got its recording. */
-export function setDialogueAudio(s: S, productionId: string, shotId: string, lineId: string, audio: { audioAssetId: string; durationSeconds: number }): S {
+/** A line of a shot's dialogue got its recording (and remembers which voice revision spoke it). */
+export function setDialogueAudio(s: S, productionId: string, shotId: string, lineId: string, audio: { audioAssetId: string; durationSeconds: number; voiceRevision?: number }): S {
   return withProduction(s, productionId, (p) => ({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, dialogue: sh.dialogue.map((d) => (d.id === lineId ? { ...d, ...audio } : d)) } : sh)) }));
 }
 
@@ -303,19 +303,37 @@ export function updateSong(s: S, productionId: string, patch: Partial<Song>): S 
 
 // -------------------------------------------------------------------------------------------------- characters
 
-export type CharacterInput = Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'refs' | 'voice' | 'usage'> & { voice?: Partial<Character['voice']>; refs?: CharacterRef[] };
+/** What `addCharacter` accepts: the written profile, an optional voice profile (pitch, pace, timbre, notes — never
+ *  samples or an identity: a new character has none), and optionally pictures the caller already holds. */
+export type CharacterInput = CharacterProfileInput & { voice?: VoiceProfileInput & Partial<Pick<Voice, 'timbre' | 'notes'>>; refs?: CharacterRef[]; portraitAssetId?: string; pendingReference?: PendingReference };
+
+const PROFILE_KEYS = ['nameAr', 'role', 'style', 'sex', 'species', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality', 'distinguishing', 'language', 'dialect', 'canon', 'notes'] as const satisfies ReadonlyArray<keyof CharacterProfileInput>;
+
+/** The dialect a character speaks: the given one for Arabic (or the studio's default), none for English. */
+function dialectFor(s: S, language: Language, dialect: Dialect | undefined): Dialect | undefined {
+  return language === 'AR' ? dialect ?? s.settings.defaults.dialect : undefined;
+}
 
 export function addCharacter(s: S, input: CharacterInput): { state: S; character: Character } {
   const t = now();
   if (!input.name?.trim()) throw new StudioError('INVALID', 'A character needs a name.');
-  const character: Character = { ...input, name: input.name.trim(), id: nid('char'), refs: input.refs ?? [], voice: { pitch: 'MID', pace: 'MEASURED', timbre: '', notes: '', samples: [], ...input.voice }, usage: { known: true, videos: [] }, createdAt: t, updatedAt: t };
+  if (!Number.isInteger(input.ageYears) || input.ageYears < 1 || input.ageYears > 120) throw new StudioError('INVALID', 'A character’s age must be a whole number between 1 and 120.');
+  const profile = Object.fromEntries(PROFILE_KEYS.filter((k) => input[k] !== undefined).map((k) => [k, input[k]])) as Partial<CharacterProfileInput>;
+  const character: Character = {
+    ...(profile as Pick<Character, (typeof PROFILE_KEYS)[number]>),
+    id: nid('char'), name: input.name.trim(), role: input.role ?? '', style: input.style, sex: input.sex, ageYears: input.ageYears,
+    build: input.build ?? '', face: input.face ?? '', hair: input.hair ?? '', skin: input.skin ?? '', eyes: input.eyes ?? '', wardrobe: input.wardrobe ?? '', personality: input.personality ?? '', distinguishing: input.distinguishing ?? [],
+    language: input.language, dialect: dialectFor(s, input.language, input.dialect),
+    refs: input.refs ?? [], portraitAssetId: input.portraitAssetId, pendingReference: input.pendingReference,
+    voice: { pitch: input.voice?.pitch ?? 'MID', pace: input.voice?.pace ?? 'MEASURED', timbre: input.voice?.timbre ?? '', notes: input.voice?.notes ?? '', samples: [] },
+    usage: { known: true, videos: [] }, createdAt: t, updatedAt: t,
+  };
   return { state: { ...s, characters: [...s.characters, character] }, character };
 }
 
-/** Any change to a character. A character who has been in a video keeps their appearance: a patch that changes an
- *  appearance field of a locked character is refused (APPEARANCE_LOCKED), whatever page or worker sends it. Usage is
- *  never patched here. */
-export function updateCharacter(s: S, id: string, patch: Partial<Omit<Character, 'id' | 'createdAt' | 'usage'>>): S {
+/** The write every character change goes through: the appearance guard, never usage. Internal: the voice commands
+ *  below call it with the voice fields they own; `updateCharacter` is the public patch and strips them. */
+function writeCharacter(s: S, id: string, patch: Partial<Omit<Character, 'id' | 'createdAt' | 'usage'>>): S {
   const c = mustFind(s.characters, id, 'Character');
   const allowed = guardCharacterPatch(c, patch as Partial<Character>);
   delete (allowed as Partial<Character>).usage;
@@ -323,12 +341,40 @@ export function updateCharacter(s: S, id: string, patch: Partial<Omit<Character,
   return { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, ...allowed, updatedAt: now() } : x)) };
 }
 
+/** Any change to a character's record. A character who has been in a video keeps their appearance: a patch that
+ *  changes an appearance field of a locked character is refused (APPEARANCE_LOCKED), whatever page or worker sends
+ *  it. Usage is never patched here, and neither is the voice's identity, its samples or the chosen one: those have
+ *  their own commands, so a whole-form save can never replace a built voice. A change of language or dialect makes
+ *  an existing identity STALE (it was built for the old one) — or is refused when the voice is locked. */
+export function updateCharacter(s: S, id: string, patch: Partial<Omit<Character, 'id' | 'createdAt' | 'usage'>>): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const next = { ...patch } as Partial<Character>;
+  if (next.voice) {
+    const v = { ...next.voice } as Partial<Voice>;
+    for (const k of VOICE_INTERNAL_KEYS) delete v[k];
+    next.voice = { ...c.voice, ...v };
+  }
+  const language = next.language ?? c.language;
+  const speechTouched = 'language' in next || 'dialect' in next;
+  if (speechTouched) next.dialect = dialectFor(s, language, 'dialect' in next ? next.dialect : c.dialect);
+  const speechChanged = language !== c.language || (speechTouched && (next.dialect ?? undefined) !== (c.dialect ?? undefined));
+  if (speechChanged && c.voice.identity) {
+    guardVoiceChange(c, 'language or dialect');
+    next.voice = { ...(next.voice ?? c.voice), identity: { ...c.voice.identity, status: 'STALE' } };
+  }
+  return writeCharacter(s, id, next);
+}
+
 /** Keep (or clear) the reference picture an unused character's appearance will be generated from. Refused for a
  *  character who has been in a video. */
-export function setPendingReference(s: S, id: string, assetId: string | undefined): S {
+export function setPendingReference(s: S, id: string, assetId: string | undefined, validation?: PendingReference['validation']): S {
   const c = mustFind(s.characters, id, 'Character');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; a new reference cannot replace the appearance.`, { characterId: id });
-  return updateCharacter(s, id, { pendingReference: assetId ? { assetId, addedAt: now() } : undefined });
+  if (assetId) {
+    const a = mustFind(s.assets, assetId, 'Asset');
+    if (a.kind !== 'IMAGE' || a.sample) throw new StudioError('INVALID', 'A reference must be an uploaded picture, not a bundled sample.', { assetId });
+  }
+  return writeCharacter(s, id, { pendingReference: assetId ? { assetId, addedAt: now(), validation } : undefined });
 }
 
 /** The studio drew the character: a new portrait and, optionally, a fresh set of reference views. Refused when
@@ -337,7 +383,7 @@ export function setCharacterAppearance(s: S, id: string, input: { portraitAssetI
   const c = mustFind(s.characters, id, 'Character');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`, { characterId: id });
   const refs = input.keepExistingRefs ? [...c.refs, ...(input.refs ?? [])] : (input.refs ?? c.refs.filter((r) => r.assetId !== c.portraitAssetId));
-  return updateCharacter(s, id, { portraitAssetId: input.portraitAssetId, refs, pendingReference: undefined });
+  return writeCharacter(s, id, { portraitAssetId: input.portraitAssetId, refs, pendingReference: undefined });
 }
 
 /** Add reference views the studio drew for a character (front, side, …). Refused when locked. */
@@ -345,34 +391,67 @@ export function addCharacterRefs(s: S, id: string, refs: CharacterRef[]): S {
   const c = mustFind(s.characters, id, 'Character');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`, { characterId: id });
   const roles = new Set(refs.map((r) => r.role));
-  return updateCharacter(s, id, { refs: [...c.refs.filter((r) => !roles.has(r.role)), ...refs], portraitAssetId: c.portraitAssetId ?? refs[0]?.assetId });
+  return writeCharacter(s, id, { refs: [...c.refs.filter((r) => !roles.has(r.role)), ...refs], portraitAssetId: c.portraitAssetId ?? refs[0]?.assetId });
 }
 
 /** Add a voice line the producer recorded or the studio generated. Voice is not appearance: this works for every
- *  character. */
+ *  character. Only an upload can be chosen as the voice: a generated line is engine output, a bundled sample a
+ *  placeholder. */
 export function addVoiceSample(s: S, id: string, sample: Omit<VoiceSample, 'id'> & { id?: string }, select = false): { state: S; sample: VoiceSample } {
   const c = mustFind(s.characters, id, 'Character');
+  if (sample.id && c.voice.samples.some((x) => x.id === sample.id)) throw new StudioError('CONFLICT', `Voice sample ${sample.id} already exists.`);
   // adding a line to listen to is always allowed; making it THE voice of a used character is not
   if (select && c.voice.selectedSampleId) guardVoiceChange(c, 'chosen recording');
+  if (select && !isCloneSource(sample)) throw new StudioError('INVALID', 'Only an uploaded recording can be chosen as the voice; a generated line or a bundled sample cannot.', { source: sample.source });
   const v: VoiceSample = { ...sample, id: sample.id ?? nid('voice') };
-  return { state: updateCharacter(s, id, { voice: { ...c.voice, samples: [...c.voice.samples, v], selectedSampleId: select ? v.id : c.voice.selectedSampleId } }), sample: v };
+  return { state: writeCharacter(s, id, { voice: { ...c.voice, samples: [...c.voice.samples, v], selectedSampleId: select ? v.id : c.voice.selectedSampleId } }), sample: v };
 }
 
-export function addVoiceRecording(s: S, id: string, assetId: string, label: string): S {
-  return addVoiceSample(s, id, { label, assetId, source: 'UPLOADED' }).state;
+/** The producer uploaded a recording: it must exist in the library as real audio (never a bundled sample). */
+export function addVoiceRecording(s: S, id: string, assetId: string, label: string, extra: Partial<Pick<VoiceSample, 'text' | 'language' | 'dialect' | 'durationSeconds' | 'provenance'>> = {}): S {
+  const a = mustFind(s.assets, assetId, 'Asset');
+  if (a.kind !== 'AUDIO' || a.sample) throw new StudioError('INVALID', 'A voice recording must be an uploaded audio file.', { assetId });
+  return addVoiceSample(s, id, { label, assetId, source: 'UPLOADED', ...extra }).state;
+}
+
+/** Correct what a sample says or how it is labelled (the transcript stored once, a producer's label). */
+export function updateVoiceSample(s: S, id: string, sampleId: string, patch: Partial<Pick<VoiceSample, 'label' | 'text' | 'language' | 'dialect' | 'durationSeconds' | 'provenance'>>): S {
+  const c = mustFind(s.characters, id, 'Character');
+  mustFind(c.voice.samples, sampleId, 'Voice sample');
+  return writeCharacter(s, id, { voice: { ...c.voice, samples: c.voice.samples.map((x) => (x.id === sampleId ? { ...x, ...patch } : x)) } });
 }
 
 export function removeVoiceSample(s: S, id: string, sampleId: string): S {
   const c = mustFind(s.characters, id, 'Character');
-  if (c.voice.selectedSampleId === sampleId) guardVoiceChange(c, 'chosen recording');
-  return updateCharacter(s, id, { voice: { ...c.voice, samples: c.voice.samples.filter((x) => x.id !== sampleId), selectedSampleId: c.voice.selectedSampleId === sampleId ? undefined : c.voice.selectedSampleId } });
+  if (c.voice.selectedSampleId === sampleId || c.voice.identity?.referenceSampleId === sampleId) guardVoiceChange(c, 'chosen recording');
+  const identity = c.voice.identity?.referenceSampleId === sampleId ? { ...c.voice.identity, status: 'STALE' as const } : c.voice.identity;
+  return writeCharacter(s, id, { voice: { ...c.voice, identity, samples: c.voice.samples.filter((x) => x.id !== sampleId), selectedSampleId: c.voice.selectedSampleId === sampleId ? undefined : c.voice.selectedSampleId } });
 }
 
-/** The character's one voice identity: set when the voice is built, bumped when rebuilt. */
-export function setVoiceIdentity(s: S, id: string, identity: Omit<VoiceIdentity, 'revision' | 'createdAt'>): S {
+export type VoiceIdentityInput = Omit<VoiceIdentity, 'revision' | 'createdAt' | 'status'> & { status?: VoiceIdentity['status'] };
+
+/** The character's one voice identity: set when the voice is built (after the proof line exists, in the same
+ *  batch), bumped when rebuilt, refused for a voice-locked character. The only writer of `voice.identity`. */
+export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput): S {
   const c = mustFind(s.characters, id, 'Character');
   if (c.voice.identity) guardVoiceChange(c, 'voice identity');
-  return updateCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now() } } });
+  if (!identity.proof?.sampleId || !identity.proof.assetId) throw new StudioError('INVALID', 'A voice identity needs its proof: the line that was spoken with it and heard back.', { characterId: id });
+  const proof = c.voice.samples.find((x) => x.id === identity.proof!.sampleId);
+  if (!proof || proof.assetId !== identity.proof.assetId || proof.source !== 'GENERATED') throw new StudioError('INVALID', 'The proof line must be a generated sample of this character, stored before the identity is pinned.', { characterId: id, sampleId: identity.proof.sampleId });
+  if (identity.referenceSampleId) {
+    const ref = c.voice.samples.find((x) => x.id === identity.referenceSampleId);
+    if (!ref || !isCloneSource(ref)) throw new StudioError('INVALID', 'The reference of a voice identity must be an uploaded recording, never a generated line or a bundled sample.', { characterId: id, sampleId: identity.referenceSampleId });
+    if (identity.referenceAssetId && identity.referenceAssetId !== ref.assetId) throw new StudioError('INVALID', 'The reference asset does not belong to the reference sample.', { characterId: id });
+  }
+  if (identity.referenceAssetId) {
+    const a = mustFind(s.assets, identity.referenceAssetId, 'Asset');
+    if (a.kind !== 'AUDIO' || a.sample || a.origin === 'GENERATED') throw new StudioError('INVALID', 'The reference of a voice identity must be an uploaded recording.', { assetId: identity.referenceAssetId });
+  }
+  if (identity.mode === 'MANUAL' && !identity.providerVoiceId) throw new StudioError('INVALID', 'A catalogue voice needs the provider’s voice id.');
+  const next: VoiceIdentity = { ...identity, status: identity.status ?? 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now() };
+  // the proof line is listened to, never spoken from: it is not the chosen recording
+  const selectedSampleId = c.voice.selectedSampleId === next.proof!.sampleId ? undefined : c.voice.selectedSampleId;
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: next, selectedSampleId } });
 }
 
 export function deleteCharacter(s: S, id: string): S {
@@ -385,10 +464,16 @@ export function deleteCharacter(s: S, id: string): S {
   };
 }
 
+/** Choose the recording the character speaks with. Only an upload qualifies: a generated line (the proof, a
+ *  preview) is engine output and a bundled sample is a placeholder; cloning from either drifts the voice. */
 export function selectVoiceSample(s: S, id: string, sampleId: string | undefined): S {
   const c = mustFind(s.characters, id, 'Character');
-  if (sampleId) { const sm = mustFind(c.voice.samples, sampleId, 'Voice sample'); if (!sm.assetId) throw new StudioError('INVALID', 'This voice has no recording yet.'); }
   if (sampleId !== c.voice.selectedSampleId) guardVoiceChange(c, 'chosen recording');
+  if (sampleId) {
+    const sm = mustFind(c.voice.samples, sampleId, 'Voice sample');
+    if (!sm.assetId) throw new StudioError('INVALID', 'This voice has no recording yet.');
+    if (!isCloneSource(sm)) throw new StudioError('INVALID', sm.source === 'GENERATED' ? 'A generated line cannot be the voice; choose an uploaded recording.' : 'A bundled sample voice cannot be the voice; upload a recording.', { sampleId, source: sm.source });
+  }
   return { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, selectedSampleId: sampleId }, updatedAt: now() } : x)) };
 }
 
@@ -451,11 +536,23 @@ export function emptyStudio(settings: Settings): S {
 export function deleteAsset(s: S, id: string): S {
   const owner = protectedAssetOwner(s, id);
   if (owner) throw new StudioError('ASSET_PROTECTED', `${owner.name} has been used in a video; this picture is part of the preserved appearance.`, { assetId: id, characterId: owner.id, characterName: owner.name });
+  const voiceOwner = protectedVoiceAssetOwner(s, id);
+  if (voiceOwner) throw new StudioError('ASSET_PROTECTED', `${voiceOwner.name} has spoken in a video; this recording is part of the preserved voice.`, { assetId: id, characterId: voiceOwner.id, characterName: voiceOwner.name, reason: 'VOICE' });
   const not = (x: string | undefined) => (x === id ? undefined : x);
+  // an identity whose reference recording goes away cannot be rebuilt from it: it is stale until a new build; one
+  // whose proof line goes away keeps speaking but is no longer proven
+  const voiceWithout = (c: Character): Character['voice'] => {
+    const samples = c.voice.samples.filter((v) => v.assetId !== id).map((v) => (v.provenance?.trimmedAssetId === id ? { ...v, provenance: { ...v.provenance, trimmedAssetId: undefined, window: undefined } } : v));
+    const selectedSampleId = c.voice.samples.find((v) => v.id === c.voice.selectedSampleId)?.assetId === id ? undefined : c.voice.selectedSampleId;
+    let identity = c.voice.identity;
+    if (identity && (identity.referenceAssetId === id || identity.referenceWindow?.assetId === id)) identity = { ...identity, status: 'STALE', referenceAssetId: not(identity.referenceAssetId), referenceWindow: identity.referenceWindow?.assetId === id ? undefined : identity.referenceWindow };
+    if (identity?.proof?.assetId === id && identity.status === 'ACTIVE') identity = { ...identity, status: 'REVIEW' };
+    return { ...c.voice, samples, selectedSampleId, identity };
+  };
   return {
     ...s,
     assets: s.assets.filter((a) => a.id !== id),
-    characters: s.characters.map((c) => ({ ...c, refs: c.refs.filter((r) => r.assetId !== id), portraitAssetId: not(c.portraitAssetId), pendingReference: c.pendingReference?.assetId === id ? undefined : c.pendingReference, voice: { ...c.voice, samples: c.voice.samples.filter((v) => v.assetId !== id), selectedSampleId: c.voice.samples.find((v) => v.id === c.voice.selectedSampleId)?.assetId === id ? undefined : c.voice.selectedSampleId } })),
+    characters: s.characters.map((c) => ({ ...c, refs: c.refs.filter((r) => r.assetId !== id), portraitAssetId: not(c.portraitAssetId), pendingReference: c.pendingReference?.assetId === id ? undefined : c.pendingReference, voice: voiceWithout(c) })),
     locations: s.locations.map((l) => ({ ...l, refs: l.refs.filter((r) => r.assetId !== id), masterAssetId: not(l.masterAssetId) })),
     shows: s.shows.map((sh) => ({ ...sh, coverAssetId: not(sh.coverAssetId), posterAssetId: not(sh.posterAssetId) })),
     productions: s.productions.map((p) => ({

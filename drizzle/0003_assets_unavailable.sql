@@ -1,0 +1,1 @@
+ALTER TABLE "assets" ADD COLUMN "unavailable" boolean DEFAULT false NOT NULL;

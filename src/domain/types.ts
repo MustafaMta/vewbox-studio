@@ -143,7 +143,9 @@ export interface ContinuityState {
 
 export type PerformanceMode = 'SOLO' | 'DUET' | 'ALTERNATING' | 'ENSEMBLE' | 'LISTENER' | 'INSTRUMENTAL';
 
-export interface ShotDialogue { id: string; characterId: string; text: string; textAr?: string; audioAssetId?: string; durationSeconds?: number }
+/** A line of a shot. `audioAssetId` is its recording in the character's pinned voice; `voiceRevision` says which
+ *  identity revision spoke it, so a rebuilt voice makes the recording stale and a take records it again. */
+export interface ShotDialogue { id: string; characterId: string; text: string; textAr?: string; delivery?: string; audioAssetId?: string; durationSeconds?: number; voiceRevision?: number }
 
 export interface Shot {
   id: string;
@@ -316,17 +318,42 @@ export interface CharacterRef {
   view?: string; references?: string[]; seed?: number;
 }
 
-/** The one voice a character speaks with: which engine, which reference recording, which revision. */
+export type VoiceIdentityMode = 'REFERENCE' | 'AUTOMATIC' | 'MANUAL';
+export type VoiceIdentityStatus = 'ACTIVE' | 'REVIEW' | 'STALE';
+
+/** The one voice a character speaks with: which engine, which reference recording (always the producer's upload,
+ *  never a generated line), the parameters every line is spoken with, and the proof line that was spoken and heard
+ *  back before the identity was pinned. Written only by `setVoiceIdentity`, in the same batch as the proof sample. */
 export interface VoiceIdentity {
   provider: 'LOCAL_TTS' | 'MINIMAX';
+  /** The primary engine (`indextts`, `habibi`, or the hosted model name). Never changed by a per-line fallback. */
   model: string;
+  /** The engine Latin-script tokens of an Arabic voice fall back to; the switch is logged per line. */
+  fallbackModel?: 'indextts';
+  mode: VoiceIdentityMode;
+  /** The UPLOADED sample the voice was cloned from, and its ORIGINAL asset. */
+  referenceSampleId?: string;
   referenceAssetId?: string;
+  /** The trimmed 24 kHz mono clip actually sent to the engine: its window inside the original and its own asset. */
+  referenceWindow?: { from: number; to: number; assetId: string };
+  /** What the reference says (stored once; the F5-based engine conditions on it). */
+  referenceText?: string;
   providerVoiceId?: string;
-  revision: number;
   language: Language;
   dialect?: Dialect;
-  params?: Record<string, unknown>;
+  /** Speech parameters every line uses: speed from the profile's pace, emotion strength, the seed, engine extras. */
+  params: { speed: number; emotionAlpha: number; seed?: number; nfe?: number; cfg?: number };
+  /** The proof line: a GENERATED sample spoken with this identity and transcribed back. Absent only on identities
+   *  written before the proof rule existed; `setVoiceIdentity` refuses an identity without one. */
+  proof?: { sampleId: string; assetId: string; text: string; wer?: number; cer?: number; coverage?: number; heard?: string };
+  /** ACTIVE: proven. REVIEW: the proof could not be verified (transcription unavailable or drifted). STALE: the
+   *  language, dialect or reference changed since the build; rebuild before recording. */
+  status: VoiceIdentityStatus;
+  engineVersion?: string;
+  revision: number;
   createdAt: string;
+  /** The VOICE_BUILD job that pinned it. */
+  jobId?: string;
 }
 
 export interface Voice {
@@ -341,7 +368,35 @@ export interface Voice {
   identity?: VoiceIdentity;
 }
 
-export interface VoiceSample { id: string; label: string; assetId?: string; source: 'SAMPLE' | 'UPLOADED' | 'GENERATED'; text?: string; language?: Language; jobId?: string }
+/** What the upload endpoint measured on a voice reference before accepting it (docs/research/CHARACTER-VOICE-DIAGNOSIS.md §3.2). */
+export interface VoiceReferenceValidation {
+  durationSeconds: number;
+  sampleRate: number;
+  channels: number;
+  integratedLufs: number;
+  truePeakDbtp: number;
+  speech: { present: boolean; words: number; language: Language | 'UNKNOWN'; transcript: string; confidence: number };
+  snrDb?: number;
+  music?: boolean;
+}
+
+export type VoiceReferenceRefusal = 'TOO_SHORT' | 'TOO_LONG' | 'NO_SPEECH' | 'TOO_QUIET' | 'CLIPPING' | 'WRONG_LANGUAGE' | 'BAD_FORMAT';
+
+export interface VoiceSample {
+  id: string;
+  label: string;
+  /** The ORIGINAL file for an upload; the generated line for a GENERATED sample. */
+  assetId?: string;
+  source: 'SAMPLE' | 'UPLOADED' | 'GENERATED';
+  /** What the recording says: the transcript stored once at upload (or the producer's), or the text a generated line was spoken from. */
+  text?: string;
+  language?: Language;
+  dialect?: Dialect;
+  durationSeconds?: number;
+  jobId?: string;
+  /** For an upload: the validation it passed and the trimmed 24 kHz window stored beside it. */
+  provenance?: { validation?: VoiceReferenceValidation; trimmedAssetId?: string; window?: { from: number; to: number }; [k: string]: unknown };
+}
 
 /** One fact: a character appeared in a take of a video. Recorded when the take exists and never erased — removing or
  *  rejecting the take marks it, but the character has still been seen. Titles are copied so the record stays
@@ -361,9 +416,38 @@ export interface VideoUsage {
  *  character, an old record): the interface must then treat the character as used. */
 export interface CharacterUsage { known: boolean; videos: VideoUsage[] }
 
+/** What the upload endpoint measured on a reference picture (contract §1.2; computed by the Image agent's check). */
+export interface ImageReferenceValidation { ok: boolean; width: number; height: number; sharpness?: number; faces?: number; faceBoxHeight?: number; reasons: string[] }
+
 /** A reference picture uploaded to generate (or regenerate) an unused character's appearance from. It is not the
  *  appearance: it stays pending until a generation replaces the portrait. */
-export interface PendingReference { assetId: string; addedAt: string }
+export interface PendingReference { assetId: string; addedAt: string; validation?: ImageReferenceValidation }
+
+/** The written profile of a character as the server accepts it (diagnosis §3.1): validated by zod in commands.ts. */
+export interface CharacterProfileInput {
+  name: string;
+  nameAr?: string;
+  role: string;
+  style: Style;
+  sex: Sex;
+  species?: string;
+  ageYears: number;
+  build: string;
+  face: string;
+  hair: string;
+  skin: string;
+  eyes: string;
+  wardrobe: string;
+  personality: string;
+  distinguishing: string[];
+  language: Language;
+  /** Required when the language is Arabic (defaults to the studio's dialect); never set for English. */
+  dialect?: Dialect;
+  canon?: Character['canon'];
+  notes?: string;
+}
+
+export interface VoiceProfileInput { pitch: 'LOW' | 'MID' | 'HIGH'; pace: 'SLOW' | 'MEASURED' | 'QUICK'; timbre?: string; notes?: string }
 
 export interface Character {
   id: string;

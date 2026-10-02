@@ -70,6 +70,25 @@ export function protectedAssetOwner(s: StudioState, assetId: string): Character 
   return s.characters.find((c) => appearanceLock(c).locked && (c.portraitAssetId === assetId || c.refs.some((r) => r.assetId === assetId)));
 }
 
+/** The recordings a voice-locked character's voice rests on: the identity's reference upload (and its trimmed
+ *  window) and the chosen recording. They cannot be deleted either. */
+export function protectedVoiceAssetOwner(s: StudioState, assetId: string): Character | undefined {
+  return s.characters.find((c) => {
+    if (!voiceLock(c).locked) return false;
+    const id = c.voice.identity;
+    if (id && (id.referenceAssetId === assetId || id.referenceWindow?.assetId === assetId || id.proof?.assetId === assetId)) return true;
+    const chosen = c.voice.samples.find((v) => v.id === c.voice.selectedSampleId);
+    return Boolean(chosen && (chosen.assetId === assetId || chosen.provenance?.trimmedAssetId === assetId));
+  });
+}
+
+/** The keys of `voice` only the dedicated voice commands may write; `updateCharacter` drops them from any patch. */
+export const VOICE_INTERNAL_KEYS = ['identity', 'samples', 'selectedSampleId'] as const;
+
+/** A voice sample the identity may be cloned from: the producer's upload. Bundled samples are placeholders for the
+ *  interface and generated lines are engine output: cloning from either would drift the voice away from the person. */
+export const isCloneSource = (sample: Pick<Character['voice']['samples'][number], 'source' | 'assetId'>) => sample.source === 'UPLOADED' && Boolean(sample.assetId);
+
 /** Record that every character in this shot has been in this take's video. Idempotent. */
 export function recordTakeUsage(characters: Character[], p: Production, shotId: string, takeId: string, at: string): Character[] {
   const sh = p.shots.find((x) => x.id === shotId);

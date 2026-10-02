@@ -20,7 +20,11 @@ export function rowToJob(r: typeof schema.jobs.$inferSelect): Job {
 
 export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
 
-const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3 };
+const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1 };
+
+/** Jobs that work on one character and must never run twice at once for it: a second request while one is active
+ *  gets the active job back (created: false), whatever key it carries. */
+export const ONE_PER_CHARACTER: readonly JobType[] = ['VOICE_BUILD', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS'];
 
 /** Validate and insert. A matching idempotency key returns the existing job instead of a new one. */
 export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promise<{ job: Job; created: boolean }> {
@@ -29,6 +33,10 @@ export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promis
   const parsed = schemaFor.safeParse(input.payload);
   if (!parsed.success) throw new StudioError('INVALID', `Invalid payload for ${input.type}: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
   const p = parsed.data as Record<string, unknown>;
+  if (ONE_PER_CHARACTER.includes(input.type) && typeof p.characterId === 'string') {
+    const active = await findActive(input.type, { characterId: p.characterId });
+    if (active) return { job: active, created: false };
+  }
   const now = new Date().toISOString();
   const row: typeof schema.jobs.$inferInsert = {
     id: nid('job'), type: input.type, status: 'QUEUED', priority: input.priority ?? 0, payload: p, attempts: 0, maxAttempts: input.maxAttempts ?? DEFAULT_ATTEMPTS[input.type] ?? 3,
@@ -60,6 +68,13 @@ export async function findActive(type: JobType, where: Partial<Pick<Job, 'produc
   if (where.locationId) conds.push(eq(schema.jobs.locationId, where.locationId));
   const rows = await db().select().from(schema.jobs).where(and(...conds)).limit(1);
   return rows[0] ? rowToJob(rows[0]) : undefined;
+}
+
+/** Every child an orchestrator queued, newest first (active and finished alike), so a restarted run can adopt the
+ *  ones still working and read the results of the ones that finished. */
+export async function listChildren(parentId: string): Promise<Job[]> {
+  const rows = await db().select().from(schema.jobs).where(eq(schema.jobs.parentId, parentId)).orderBy(desc(schema.jobs.createdAt)).limit(200);
+  return rows.map(rowToJob);
 }
 
 export async function getJob(id: string): Promise<Job | undefined> {
