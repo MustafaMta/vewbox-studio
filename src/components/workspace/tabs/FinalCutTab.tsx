@@ -12,6 +12,7 @@ import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { VideoPlaceholder, VideoPlayer } from '@/components/players/VideoPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
 import { aspectLabel, fmtBytes, fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
+import { StageGate, useStageApproved } from '@/components/studio/Approve';
 
 /** FINAL CUT — the chosen takes in order with the sound under them, then export. The assembled cut shown for the
  *  sample episode is a sample clip; when there is none, the sequence below is the cut, described. */
@@ -27,6 +28,7 @@ export function FinalCutTab({ p }: { p: Production }) {
   const anySample = seq.some((x) => x.take && assetById(state, x.take.assetId)?.sample);
   const { start, busy } = useStartJob();
   const [format, setFormat] = useState('mp4-h264'); const [res, setRes] = useState('1080'); const [subs, setSubs] = useState(p.language === 'AR' ? 'both' : 'none');
+  const cutApproved = useStageApproved(p.id, 'EDIT');
   if (p.shots.length === 0) return <Notice title={T('empty.shots')}>{T('empty.shots.hint')} <Link href="?tab=storyboard" className="font-medium text-accent-text hover:underline">{T('tab.storyboard')} →</Link></Notice>;
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -62,6 +64,7 @@ export function FinalCutTab({ p }: { p: Production }) {
       </div>
 
       <aside className="space-y-4">
+        {cut && !cut.sample && <StageGate productionId={p.id} stage="EDIT" title={T('gate.cut')} hint={T('gate.cut.hint')} />}
         <Card>
           <h2 className="h3 mb-3">{T('final.export')}</h2>
           <div className="space-y-3">
@@ -69,7 +72,7 @@ export function FinalCutTab({ p }: { p: Production }) {
             <Field label="Resolution"><Select value={res} onChange={(e) => setRes(e.target.value)} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} /></Field>
             <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value)} options={[{ value: 'none', label: '—' }, { value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }, { value: 'both', label: 'AR + EN' }]} /></Field>
             <p className="text-xs text-muted">{aspectLabel(p.aspect)} · {fmtSeconds(total)}</p>
-            <Button variant="primary" icon={<IconDownload />} className="w-full" loading={busy} disabled={missing > 0 || anySample} title={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : undefined} onClick={() => void start('EXPORT', { productionId: p.id, format: format as 'mp4-h264' | 'mp4-h265' | 'mov-prores', resolution: res as '720' | '1080' | '2160', subtitles: subs as 'none' | 'ar' | 'en' | 'both' })}>{T('gen.export')}</Button>
+            <Button variant="primary" icon={<IconDownload />} className="w-full" loading={busy} disabled={missing > 0 || anySample || !cut || cut.sample || cutApproved === false} title={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : !cut || cut.sample ? T('final.noCut') : cutApproved === false ? T('gate.cut') : undefined} onClick={() => void start('EXPORT', { productionId: p.id, format: format as 'mp4-h264' | 'mp4-h265' | 'mov-prores', resolution: res as '720' | '1080' | '2160', subtitles: subs as 'none' | 'ar' | 'en' | 'both' })}>{T('gen.export')}</Button>
             {busy && <p className="text-xs text-faint">{T('final.exportStarted')}</p>}
           </div>
         </Card>

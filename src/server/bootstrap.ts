@@ -2,6 +2,7 @@ import { runMigrations } from './db/migrate';
 import { seedIfEmpty } from './studio/seed';
 import { sql } from './db/client';
 import { log } from './log';
+import { syncOrg } from './org/registry';
 
 /** START-UP — migrations, then the sample seed on an empty database. Idempotent; the web server and the worker
  *  both call it, serialised by an advisory lock so two processes starting together do not race. */
@@ -28,6 +29,8 @@ export function bootstrap(): Promise<void> {
       const seeded = await seedIfEmpty();
       if (seeded) log.info('seeded the sample studio');
     });
+    // the organisation (departments, agents, tools, skills) as code, persisted with its version
+    await syncOrg();
   })();
   g.__vewboxBooted.catch((e) => { log.error({ err: e }, 'bootstrap failed'); g.__vewboxBooted = undefined; });
   return g.__vewboxBooted;

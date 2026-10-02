@@ -40,6 +40,9 @@ interface Api {
   startEmpty: () => Promise<void>;
   refresh: () => Promise<void>;
   jobs: Job[];
+  /** Counts up whenever the studio records an activity event (an agent started, finished, handed off, inspected);
+   *  pages that show the organisation refetch on it. */
+  activityTick: number;
   startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<Job>;
   cancelJob: (id: string) => Promise<Job>;
   retryJob: (id: string) => Promise<Job>;
@@ -58,6 +61,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [lastError, setLastError] = useState<Api['lastError']>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [activityTick, setActivityTick] = useState(0);
   const latest = useRef(state); latest.current = state;
   /** The newest server version this page has seen. A change event from our own client id for a newer version than
    *  this (with nothing in flight) means a previous page's last writes landed after our snapshot: refresh. */
@@ -147,6 +151,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         } catch { /* ignore */ }
       });
       es.addEventListener('job', () => scheduleJobs());
+      es.addEventListener('activity', () => setActivityTick((t) => t + 1));
       es.onerror = () => { setConnected(false); es?.close(); es = null; if (!closed) setTimeout(open, backoff); backoff = Math.min(30_000, backoff * 2); };
     };
     open();
@@ -192,7 +197,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => setLastError(null), []);
   const modified = ready && version !== seedVersion;
 
-  const value = useMemo<Api>(() => ({ state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, startJob, cancelJob, retryJob }), [state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, startJob, cancelJob, retryJob]);
+  const value = useMemo<Api>(() => ({ state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

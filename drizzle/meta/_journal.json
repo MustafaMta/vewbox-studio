@@ -15,6 +15,13 @@
       "when": 1790949029301,
       "tag": "0001_equal_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790953739876,
+      "tag": "0002_regular_wonder_man",
+      "breakpoints": true
     }
   ]
 }

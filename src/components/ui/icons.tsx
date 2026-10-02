@@ -12,4 +12,5 @@ export {
   LayoutGrid as IconStoryboard, Aperture as IconProduce, Scissors as IconFinalCut, Layers as IconVersions, Palette as IconStyle, Languages as IconLanguage,
   RectangleHorizontal as IconAspect, GripVertical as IconDrag, Timer as IconTimer, FileText as IconScript, Flag as IconStatus, Bell as IconAttention, Sun as IconLight,
   LayoutGrid as IconGrid, List as IconList, Menu as IconMenu, RotateCcw as IconReplay, Captions as IconCaptions, ImagePlus as IconImageAdd, SlidersHorizontal as IconPreferences, Shuffle as IconShuffle, ShieldCheck as IconShield, Film as IconFilm, ArrowRightLeft as IconSwap, Disc3 as IconDisc, Tv as IconTv, ArrowRight as IconArrowRight, Wand as IconWand,
+  Building2 as IconStudio, Bot as IconAgent, Workflow as IconPipeline, Activity as IconActivity, BookOpen as IconSkill, Wrench as IconTool, Gauge as IconReliability, CircleDot as IconDot,
 } from 'lucide-react';

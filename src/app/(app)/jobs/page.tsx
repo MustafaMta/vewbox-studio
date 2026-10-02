@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { Job, JobEvent } from '@/domain/jobs';
 import { JOB_LABELS, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
@@ -21,6 +21,7 @@ export default function JobsPage() {
   const T = useT();
   const { jobs, state, cancelJob, retryJob } = useStudio();
   const sp = useSearchParams();
+  const pathname = usePathname();
   const selectedId = sp.get('job');
   const [filter, setFilter] = useState<'all' | 'active' | 'failed'>('all');
   const list = useMemo(() => jobs.filter((j) => filter === 'all' || (filter === 'active' ? !isTerminalStatus(j.status) : j.status === 'FAILED')), [jobs, filter]);
@@ -37,7 +38,7 @@ export default function JobsPage() {
   };
   return (
     <div className="space-y-8">
-      <PageHeader title={T('jobs.title')} subtitle={T('jobs.lead')} action={<Segmented label={T('label.status')} value={filter} onChange={setFilter} options={[{ value: 'all', label: T('jobs.filter.all') }, { value: 'active', label: `${T('jobs.filter.active')}${counts.active + counts.queued ? ` ${counts.active + counts.queued}` : ''}` }, { value: 'failed', label: `${T('jobs.filter.failed')}${counts.failed ? ` ${counts.failed}` : ''}` }]} />} />
+      <PageHeader title={T('jobs.title')} subtitle={T('jobs.lead')} className={pathname === '/jobs' ? undefined : 'mb-4'} action={<Segmented label={T('label.status')} value={filter} onChange={setFilter} options={[{ value: 'all', label: T('jobs.filter.all') }, { value: 'active', label: `${T('jobs.filter.active')}${counts.active + counts.queued ? ` ${counts.active + counts.queued}` : ''}` }, { value: 'failed', label: `${T('jobs.filter.failed')}${counts.failed ? ` ${counts.failed}` : ''}` }]} />} />
       <p className="text-sm text-muted">{T('jobs.queue')}: <span className="num font-medium text-fg">{counts.active}</span> {T('jobs.running')} · <span className="num font-medium text-fg">{counts.queued}</span> {T('jobs.waiting')}</p>
       {list.length === 0 ? <Empty title={T('jobs.empty')} hint={T('jobs.empty.hint')} /> : (
         <ol className="space-y-2">
@@ -50,7 +51,7 @@ export default function JobsPage() {
                 <span className="ms-auto text-xs text-faint">{fmtAgo(j.createdAt, T.locale)}{j.attempts > 1 ? ` · ${T('jobs.attempt')} ${j.attempts}/${j.maxAttempts}` : ''}</span>
                 {!isTerminalStatus(j.status) && <Button size="xs" variant="ghost" icon={<IconClose />} disabled={j.cancelRequested} onClick={() => void cancelJob(j.id)}>{j.cancelRequested ? T('jobs.cancelRequested') : T('jobs.cancel')}</Button>}
                 {(j.status === 'FAILED' || j.status === 'CANCELLED') && <Button size="xs" variant="secondary" icon={<IconRetry />} onClick={() => void retryJob(j.id)}>{T('jobs.retry')}</Button>}
-                <Link href={open ? '/jobs' : `/jobs?job=${j.id}`} className="text-xs font-medium text-accent-text hover:underline">{T('jobs.details')}</Link>
+                <Link href={open ? pathname : `${pathname}?job=${j.id}`} scroll={false} className="text-xs font-medium text-accent-text hover:underline">{T('jobs.details')}</Link>
               </div>
               {(j.progress?.message || j.error) && <p className={cls('mt-2 text-sm', j.error && j.status === 'FAILED' ? 'text-bad' : 'text-muted')} dir="auto">{j.status === 'FAILED' && j.error ? j.error.message : j.progress?.message}{j.progress?.step && j.progress.total ? ` (${j.progress.step}/${j.progress.total})` : ''}</p>}
               {j.progress?.percent != null && j.progress.percent > 0 && j.progress.percent < 100 && !isTerminalStatus(j.status) && <div className="progress mt-2" role="progressbar" aria-valuenow={j.progress.percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${j.progress.percent}%` }} /></div>}

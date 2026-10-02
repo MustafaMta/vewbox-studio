@@ -24,7 +24,7 @@ export function useStartJob() {
     setBusy(true);
     try {
       const job = await startJob(type, payload, { idempotencyKey: opts.idempotencyKey });
-      if (!opts.quiet) toast.ok(T('gen.started'), { label: T('nav.jobs'), href: `/jobs?job=${job.id}` });
+      if (!opts.quiet) toast.ok(T('gen.started'), { label: T('nav.production'), href: `/production?job=${job.id}` });
       return job;
     } catch (e) {
       toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`);
@@ -64,7 +64,7 @@ export function JobLine({ job, link = true }: { job: Job; link?: boolean }) {
   const tone = job.status === 'COMPLETED' ? 'ok' : job.status === 'FAILED' ? 'bad' : job.status === 'CANCELLED' ? 'neutral' : job.status === 'AWAITING_REVIEW' ? 'warn' : 'info';
   const label = JOB_LABELS[job.type]?.[T.locale] ?? job.type;
   const body = <Status tone={tone} live={isActiveStatus(job.status)} title={job.progress?.message ?? job.error?.message}>{label}{job.progress?.message && isActiveStatus(job.status) ? ` · ${job.progress.message}` : ''}</Status>;
-  return link ? <Link href={`/jobs?job=${job.id}`} className="hover:underline">{body}</Link> : body;
+  return link ? <Link href={`/production?job=${job.id}`} className="hover:underline">{body}</Link> : body;
 }
 
 /** Surfaces the store's sync and command errors as toasts. Mounted once in the layout. */

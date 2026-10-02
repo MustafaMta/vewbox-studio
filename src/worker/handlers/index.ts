@@ -1,13 +1,25 @@
 import type { Job, JobStatus, JobProgress, JobType } from '@/domain/jobs';
 import type { Logger } from '@/server/log';
 import type { GpuLease } from '../gpu';
+import type { AgentDef } from '@/server/org/model';
+import type { ToolRunner } from '@/server/org/tools';
+import type { NewStudioEvent } from '@/server/org/runs';
 
 /** What every job handler gets. Handlers are plain async functions: they read the studio, call providers, write
- *  results back through studio commands, and return a small result object for the job record. */
+ *  results back through studio commands, and return a small result object for the job record. Every job runs *as*
+ *  a registered agent: provider calls go through `tool()` (allow-list, timeout, record) and what the agent did is
+ *  announced with `activity()` so the Studio pages show real work. */
 export interface HandlerContext {
   job: Job;
   log: Logger;
   workerId: string;
+  /** the agent this job runs as, and the id of its recorded run */
+  agent: AgentDef;
+  runId: string;
+  /** call a registered tool on the agent's allow-list; the call is timed and recorded on the run */
+  tool: ToolRunner;
+  /** a studio event attributed to this agent (department and job filled in) */
+  activity: (kind: string, message: string, data?: Record<string, unknown>, opts?: Partial<Pick<NewStudioEvent, 'agentId' | 'departmentId' | 'productionId'>>) => Promise<void>;
   /** Throws when the job was cancelled; call between steps. */
   checkpoint: () => Promise<void>;
   /** Report a phase (and keep the lease alive). */

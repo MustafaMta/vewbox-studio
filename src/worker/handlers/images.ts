@@ -15,6 +15,7 @@ import { qwenEdit, qwenTextToImage } from '@/server/workflows';
 import { characterPrompt, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { canChangeAppearance } from '@/domain/rules';
 import { recordMetric } from '@/server/jobs/queue';
+import { recordHandoff } from '@/server/org/runs';
 
 /** PICTURES — character portraits and reference packs, location plates and views, storyboard frames. All drawn by
  *  Qwen-Image (text to image) and Qwen-Image-Edit (multi-reference editing) in ComfyUI on the local GPU, under the
@@ -43,7 +44,7 @@ async function draw(ctx: HandlerContext, opts: { prompt: string; negative?: stri
     ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed: opts.seed })
     : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed: opts.seed });
   const t0 = Date.now();
-  const run = await ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { jobId: ctx.job.id });
+  const run = await ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => ctx.tool(refs.length ? 'image.edit_with_references' : 'image.generate', () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
   const bytes = await comfy.view(out);
@@ -76,6 +77,7 @@ export const characterAppearance: Handler = async (ctx) => {
   const portrait = await draw(ctx, { prompt, negative: NEG, references: pending ? [pending] : [], width: 1024, height: 1280, label: `${c.name} — portrait`, tags: ['character', 'portrait'], provenance: { characterId: c.id, view: 'PORTRAIT' } });
   await ctx.checkpoint();
   await command('setCharacterAppearance', [c.id, { portraitAssetId: portrait.id, refs: [{ id: `ref-${portrait.id}`, role: 'FACE', assetId: portrait.id }], keepExistingRefs: false }], 'worker');
+  await ctx.activity('CHARACTER_DRAWN', `${c.name}: portrait drawn (${pending ? 'from the producer’s reference' : 'from the description'})`, { characterId: c.id, assetId: portrait.id, ms: portrait.ms });
   return { portraitAssetId: portrait.id, ms: portrait.ms, workflowVersion: portrait.workflowVersion };
 };
 
@@ -99,6 +101,14 @@ export const characterRefs: Handler = async (ctx) => {
     await ctx.checkpoint();
   }
   await command('addCharacterRefs', [c.id, refs], 'worker');
+  // the character sheet is the Casting department's deliverable to every production the character is in
+  const fresh = (await readState()).state.characters.find((x) => x.id === c.id)!;
+  const got = new Set(fresh.refs.map((r) => r.role));
+  const wanted = views.filter((v) => !got.has(v));
+  for (const p of (await readState()).state.productions.filter((x) => x.castIds.includes(c.id))) {
+    await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'CASTING', receiverDepartment: 'PREPRODUCTION', artifactIds: [fresh.portraitAssetId!, ...refs.map((r) => r.assetId)], outputVersions: { character: c.id, refs: fresh.refs.length }, validation: { ok: wanted.length === 0, checks: [{ name: 'portrait-present', ok: Boolean(fresh.portraitAssetId) }, { name: 'reference-views-complete', ok: wanted.length === 0, detail: wanted.length ? `missing ${wanted.join(', ')}` : `${views.length} views` }] }, jobId: ctx.job.id });
+  }
+  await ctx.activity('CHARACTER_SHEET', `${c.name}: ${refs.length} reference view(s) drawn from the portrait`, { characterId: c.id, refs: refs.length });
   return { refs: refs.length };
 };
 
@@ -137,6 +147,11 @@ export const locationPlates: Handler = async (ctx) => {
     await ctx.checkpoint();
   }
   await command('addLocationRefs', [l.id, refs], 'worker');
+  const fresh = (await readState()).state.locations.find((x) => x.id === l.id)!;
+  for (const p of (await readState()).state.productions.filter((x) => x.locationIds.includes(l.id))) {
+    await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'WORLD', receiverDepartment: 'PREPRODUCTION', artifactIds: refs.map((r) => r.assetId), outputVersions: { location: l.id, refs: fresh.refs.length }, validation: { ok: Boolean(fresh.masterAssetId) && fresh.refs.some((r) => r.role === 'VIEW'), checks: [{ name: 'master-plate-present', ok: Boolean(fresh.masterAssetId) }, { name: 'views-present', ok: fresh.refs.some((r) => r.role === 'VIEW'), detail: `${fresh.refs.filter((r) => r.role === 'VIEW').length} view(s), ${fresh.refs.filter((r) => r.role === 'STATE').length} time-of-day state(s)` }] }, jobId: ctx.job.id });
+  }
+  await ctx.activity('PLATES_DRAWN', `${l.name}: ${refs.length} plate(s) drawn${master ? '' : ' (no master)'}`, { locationId: l.id, refs: refs.length });
   return { refs: refs.length };
 };
 
@@ -174,6 +189,12 @@ export const shotFrames: Handler = async (ctx) => {
   const opening = await drawShotFrame(ctx, state, p, sh);
   let endingId: string | undefined;
   if (ending) { await ctx.checkpoint(); await ctx.progress('GENERATING', { phase: 'drawing', message: `Ending frame for shot ${sh.number}` }); endingId = await drawShotFrame(ctx, (await readState()).state, p, sh, { ending: true }); }
+  // the storyboard handoff: once every shot of the production has its opening frame
+  const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
+  const without = fresh.shots.filter((x) => !x.openingFrameAssetId).length;
+  const scene = fresh.scenes.find((sc) => sc.id === sh.sceneId);
+  await ctx.activity('FRAME_DRAWN', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: opening frame drawn${endingId ? ' with its ending frame' : ''}`, { shotId: sh.id, assetId: opening });
+  if (without === 0) await recordHandoff({ productionId: p.id, stage: 'STORYBOARD', producerDepartment: 'PREPRODUCTION', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.map((x) => x.openingFrameAssetId!).filter(Boolean), outputVersions: { shots: fresh.shots.length }, validation: { ok: true, checks: [{ name: 'every-shot-has-opening-frame', ok: true, detail: `${fresh.shots.length} shots` }] }, jobId: ctx.job.id });
   return { openingFrameAssetId: opening, endingFrameAssetId: endingId };
 };
 

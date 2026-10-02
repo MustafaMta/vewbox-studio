@@ -18,6 +18,8 @@ import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
+import { recordQaReport } from '@/server/org/runs';
+import { preflightTake } from '@/server/org/preflight';
 
 /** GENERATE A TAKE — the heart of production. Gather the shot's references (opening frame, character portraits,
  *  location plate, voice samples), write the prompt, ask MiniMax (hosted or local) for the clip, download it, prove
@@ -40,6 +42,14 @@ export const generateTake: Handler = async (ctx) => {
   const backend = chooseBackend();
 
   await ctx.progress('PREPARING', { phase: 'preparing', message: 'Gathering references and writing the prompt' });
+  // PREFLIGHT — the request is refused before the engine is touched when it could not succeed: a failed check is a
+  // classified failure the producer corrects, not an attempt the engine burns
+  const preflight = preflightTake(state, p, sh, { backend, customPrompt: Boolean(payload.prompt) });
+  await ctx.event(preflight.ok ? 'info' : 'error', `preflight ${preflight.ok ? 'passed' : 'FAILED'}`, { checks: preflight.checks });
+  if (!preflight.ok) {
+    const failed = preflight.checks.filter((c) => !c.ok);
+    throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
+  }
   const prompt = payload.prompt?.trim() || takePrompt(p, sh, cast, loc, scene);
   let seconds = Math.min(15, Math.max(4, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it
@@ -74,7 +84,7 @@ export const generateTake: Handler = async (ctx) => {
       let line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work);
       let check = await verifyLine(ctx, line.file, text, c.language);
       if (check && check.wer > 0.35) { line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work); check = await verifyLine(ctx, line.file, text, c.language); }
-      const pr = await ffprobe(line.file);
+      const pr = await ctx.tool('media.probe', () => ffprobe(line.file));
       spoken.push({ file: line.file, durationSeconds: pr.durationSeconds ?? ('durationSeconds' in line ? line.durationSeconds : 2), lineId: d.id, check });
     }
     if (spoken.length) {
@@ -144,22 +154,24 @@ export const generateTake: Handler = async (ctx) => {
   // the local engine runs under the GPU lease (one model family on the card at a time; other services unload
   // first); the hosted API needs no card and runs in the hosted lane's concurrency
   const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', 28000, fn, { jobId: ctx.job.id }) : fn());
-  const result = await run(() => generateVideo({
+  const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
     prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,
     seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
     onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
-  }));
+  }), { label: backend }));
   const genMs = Date.now() - t0;
   await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
   if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
   // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent
-  const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' });
+  const { report, probe } = await ctx.tool('media.qa_take', () => qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' }));
+  const pictureChecks = report.checks.map((c) => ({ ...c }));
   await ctx.checkpoint();
+  let scriptCheck: { ok: boolean; coverage?: number; wer?: number; heard?: string; detail?: string } | undefined;
   // MiniMax H3 always renders its own speech (an anchored audio guide is context, not a pinned soundtrack — see
   // docs/AUDIOVISUAL-QA.md, E1), so a speaking take is proven by listening back: the clip is transcribed, compared
   // with the script, and each line is placed where it is actually spoken. A take that does not say its lines fails.
@@ -169,19 +181,20 @@ export const generateTake: Handler = async (ctx) => {
       await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
       const lines = sh.dialogue.map((d) => ({ en: d.text, ar: d.textAr || d.text }));
       const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
-      const t = await ctx.gpu('ASR', 4000, () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
+      const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { label: 'take audio' }), { jobId: ctx.job.id });
       const wer = wordErrorRate(expected, t.text, p.language);
       // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
       // missing line); the take passes when the lines were spoken, and the report carries both numbers
       const coverage = scriptCoverage(expected, t.text, p.language);
       report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${t.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
+      scriptCheck = { ok: coverage >= 0.7, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200) };
       if (coverage < 0.7) report.ok = false;
       const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
       const clipSeconds = probe.durationSeconds ?? seconds;
       const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, p.language);
       soundtrack = { kind: 'DIALOGUE', assetId: soundtrack?.assetId, lines: sh.dialogue.map((d, i) => { const w = placed[i]; return { lineId: d.id, from: w?.from ?? 0, to: w?.to ?? clipSeconds }; }) };
       await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
-    } catch (e) { report.checks.push({ name: 'script-spoken', ok: true, detail: `not checked: ${(e as Error).message}` }); }
+    } catch (e) { report.checks.push({ name: 'script-spoken', ok: true, detail: `not checked: ${(e as Error).message}` }); scriptCheck = { ok: true, detail: `not checked: ${(e as Error).message}` }; }
   }
   if (soundtrackFile) { const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' }); await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker'); soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id }; }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
@@ -210,5 +223,11 @@ export const generateTake: Handler = async (ctx) => {
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
   if (report.ok && (!current || current.provider === 'SAMPLE' || payload.select)) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
   await recordMetric('take.qa_ok', report.ok ? 1 : 0, 'bool', { backend }, ctx.job.id);
+  // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself: the picture checks
+  // (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization Inspector)
+  const pictureOk = pictureChecks.every((c) => c.ok);
+  await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id });
+  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: 0.7, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok ? undefined : 'LIP_SYNC_FAILURE', decision: scriptCheck.ok ? (scriptCheck.coverage === undefined ? 'REVIEW' : 'ACCEPT') : 'REJECT', evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
+  await ctx.activity(report.ok ? 'TAKE_ACCEPTED' : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? 'accepted' : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok });
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, awaitingReview: false, libraryRoot: libraryRoot() };
 };

@@ -14,6 +14,7 @@ import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
 import { registerUnloader } from '../gpu';
 import { unloadAsr, unloadTts } from '@/server/providers/speech';
+import { recordHandoff, recordQaReport } from '@/server/org/runs';
 
 /** VOICES — one persistent identity per character (which engine, which reference recording, which revision), a
  *  preview line, and the recording of every dialogue line of a production. Each generated line is transcribed back
@@ -45,7 +46,7 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string): 
 export async function referenceText(ctx: HandlerContext, ref: Reference): Promise<string | undefined> {
   if (ref.text !== undefined) return ref.text || undefined;
   try {
-    const t = await ctx.gpu('ASR', 4000, () => transcribe(ref.file, { language: 'auto' }), { jobId: ctx.job.id });
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
     ref.text = t.text.trim();
   } catch (e) { await ctx.event('warn', `reference transcription skipped: ${(e as Error).message}`); ref.text = ''; }
   return ref.text || undefined;
@@ -56,7 +57,7 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   if (provider === 'MINIMAX') {
     const voiceId = c.voice.identity?.providerVoiceId;
     if (!voiceId) throw new StudioError('INVALID', 'Build the voice first (MiniMax clone).');
-    const r = await minimax.speak({ text, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English', emotion: opts.emotion, format: 'wav' });
+    const r = await ctx.tool('speech.synthesize', () => minimax.speak({ text, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English', emotion: opts.emotion, format: 'wav' }), { label: 'minimax' });
     const file = path.join(dir, `mm-${Date.now().toString(36)}.wav`);
     await fsp.writeFile(file, r.bytes);
     return { file, engine: 'minimax', model: env().MINIMAX_SPEECH_MODEL, ms: 0 };
@@ -66,13 +67,13 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   const mixed = /[A-Za-z]{2,}/.test(text) && /[؀-ۿ]/.test(text);
   const engine = mixed ? 'indextts' : pickEngine(c.language, c.dialect, (c.voice.identity?.model as 'indextts' | 'habibi' | undefined) ?? 'auto');
   const refText = engine === 'habibi' ? await referenceText(ctx, ref) : undefined;
-  return ctx.gpu('TTS', TTS_VRAM, () => synthesize({ text, language: c.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, speed: 1.0, engine }, dir), { jobId: ctx.job.id });
+  return ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize({ text, language: c.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, speed: 1.0, engine }, dir), { label: engine }), { jobId: ctx.job.id });
 }
 
 /** Say the line back: transcribe and compare. Returns the WER and the transcript; never throws on a bad line. */
 export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Character['language']): Promise<{ wer: number; heard: string } | null> {
   try {
-    const t = await ctx.gpu('ASR', 4000, () => transcribe(file, { language: language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(file, { language: language === 'AR' ? 'ar' : 'en' }), { label: 'verify line' }), { jobId: ctx.job.id });
     return { wer: wordErrorRate(text, t.text, language), heard: t.text };
   } catch (e) { await ctx.event('warn', `transcription skipped: ${(e as Error).message}`); return null; }
 }
@@ -91,7 +92,7 @@ export const voiceBuild: Handler = async (ctx) => {
   if (useMinimax) {
     await ctx.progress('GENERATING', { phase: 'cloning', message: 'Cloning the voice with MiniMax' });
     const voiceId = `vb_${c.id.replace(/[^a-z0-9]/gi, '').slice(0, 20)}_${Date.now().toString(36)}`;
-    const r = await minimax.cloneVoice({ file: ref.file, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' });
+    const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: ref.file, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
     identity = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: r.voiceId };
   } else {
     identity = { provider: 'LOCAL_TTS', model: pickEngine(c.language, c.dialect) };
@@ -109,7 +110,11 @@ export const voiceBuild: Handler = async (ctx) => {
   await command('addVoiceSample', [c.id, { label: `Studio voice (${line.engine})`, assetId: id, source: 'GENERATED', text, language: c.language, jobId: ctx.job.id }, true], 'worker');
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await recordMetric('voice.build_ms', line.ms, 'ms', { engine: line.engine }, ctx.job.id);
-  return { identity, sampleAssetId: id, engine: line.engine, check };
+  // the voice is handed to the production only with its proof: a line spoken and heard back
+  const proofOk = check ? check.wer <= 0.35 : false;
+  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-wer', ok: proofOk, value: check ? Number(check.wer.toFixed(2)) : undefined, threshold: 0.35 }], decision: proofOk ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine})` });
+  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}); proof line ${check ? `WER ${(check.wer * 100).toFixed(0)} %` : 'not verified'}`, { characterId: c.id, engine: line.engine, wer: check?.wer });
+  return { identity, sampleAssetId: id, engine: line.engine, check, awaitingReview: !proofOk };
 };
 
 export const voicePreview: Handler = async (ctx) => {
@@ -162,5 +167,10 @@ export const dialogueAudio: Handler = async (ctx) => {
     await ctx.checkpoint();
   }
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
+  // the dialogue is handed to Video Production: every requested line recorded, flagged lines named
+  const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
+  const missing = fresh.shots.flatMap((sh) => sh.dialogue.filter((d) => !d.audioAssetId)).length;
+  await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.flatMap((sh) => sh.dialogue.map((d) => d.audioAssetId).filter((x): x is string => Boolean(x))), outputVersions: { lines: done }, validation: { ok: missing === 0 && flagged === 0, checks: [{ name: 'every-line-recorded', ok: missing === 0, detail: missing ? `${missing} line(s) without a recording` : undefined }, { name: 'no-line-flagged', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted from the script (WER > 0.35)` : undefined }] }, jobId: ctx.job.id });
+  await ctx.activity('DIALOGUE_RECORDED', `${done} line(s) recorded for “${p.title}”${flagged ? `, ${flagged} flagged for review` : ''}`, { lines: done, flagged });
   return { lines: done, flagged, awaitingReview: flagged > 0 };
 };

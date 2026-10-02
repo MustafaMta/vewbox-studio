@@ -6,7 +6,7 @@ import { log } from './log';
  *  Two channels: `vewbox_studio` (the state changed; carries the version and who changed it) and `vewbox_jobs` (a job
  *  changed status). */
 
-export interface StudioEvent { type: 'studio' | 'job' | 'hello' | 'ping'; version?: number; origin?: string; jobId?: string; status?: string; at: string }
+export interface StudioEvent { type: 'studio' | 'job' | 'activity' | 'hello' | 'ping'; version?: number; origin?: string; jobId?: string; status?: string; departmentId?: string; agentId?: string; productionId?: string; kind?: string; at: string }
 type Listener = (e: StudioEvent) => void;
 
 const g = globalThis as unknown as { __vewboxListeners?: Set<Listener>; __vewboxListenConn?: ReturnType<typeof postgres>; __vewboxListening?: Promise<void> };

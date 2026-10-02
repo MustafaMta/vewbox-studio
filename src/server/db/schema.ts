@@ -302,6 +302,169 @@ export const continuityVersions = pgTable('continuity_versions', {
   createdAt: ts('created_at').notNull(),
 }, (t) => [index('continuity_shot_idx').on(t.shotId, t.version)]);
 
+// ------------------------------------------------------------------------------------------- the studio organisation
+// Departments, agents, tools and skills are defined in code (src/server/org/model.ts) and persisted here with their
+// versions so pages, API and history read one organisation. Runs, handoffs, QA reports, approvals and studio events
+// are the live record of its work.
+
+export const departments = pgTable('departments', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  nameAr: text('name_ar'),
+  directorId: text('director_id').notNull(),
+  responsibility: text('responsibility').notNull(),
+  stages: text('stages').array().notNull().default([]),
+  order: integer('order').notNull().default(0),
+  orgVersion: integer('org_version').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+});
+
+export const agents = pgTable('agents', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  departmentId: text('department_id').notNull(),
+  role: text('role').notNull(),
+  description: text('description').notNull(),
+  systemInstructions: text('system_instructions').notNull(),
+  model: text('model').notNull(),
+  skills: text('skills').array().notNull().default([]),
+  tools: text('tools').array().notNull().default([]),
+  inputSchema: text('input_schema').notNull(),
+  outputSchema: text('output_schema').notNull(),
+  limits: jsonb('limits').$type<{ timeoutMs: number; maxAttempts: number; resource: string }>().notNull(),
+  version: text('version').notNull(),
+  qualityRequirements: text('quality_requirements').array().notNull().default([]),
+  jobTypes: text('job_types').array().notNull().default([]),
+  orgVersion: integer('org_version').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+}, (t) => [index('agents_department_idx').on(t.departmentId)]);
+
+export const tools = pgTable('tools', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  version: text('version').notNull(),
+  inputSchema: text('input_schema').notNull(),
+  outputSchema: text('output_schema').notNull(),
+  permissions: text('permissions').array().notNull().default([]),
+  timeoutMs: integer('timeout_ms').notNull(),
+  resource: text('resource').notNull(),
+  vramMb: integer('vram_mb'),
+  errors: text('errors').array().notNull().default([]),
+  orgVersion: integer('org_version').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+});
+
+export const skills = pgTable('skills', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  path: text('path').notNull(),
+  source: text('source').notNull(),
+  sourceVersion: text('source_version').notNull(),
+  supportedModels: text('supported_models').array().notNull().default([]),
+  requiredTools: text('required_tools').array().notNull().default([]),
+  status: text('status').notNull(),
+  note: text('note'),
+  /** the SKILL.md body as read from disk at sync time (so the page shows what the agent reads) */
+  instructions: text('instructions'),
+  orgVersion: integer('org_version').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+});
+
+/** One execution of a job by an agent: what it called, how it ended, how it was classified. */
+export const agentRuns = pgTable('agent_runs', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id').notNull(),
+  departmentId: text('department_id').notNull(),
+  jobId: text('job_id').notNull(),
+  jobType: text('job_type').notNull(),
+  attempt: integer('attempt').notNull(),
+  productionId: text('production_id'),
+  shotId: text('shot_id'),
+  startedAt: ts('started_at').notNull(),
+  finishedAt: ts('finished_at'),
+  outcome: text('outcome'),
+  failureClass: text('failure_class'),
+  errorMessage: text('error_message'),
+  toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; ms: number; ok: boolean; error?: string; at: string }>>().notNull().default([]),
+  ms: integer('ms'),
+  costUsd: doublePrecision('cost_usd'),
+}, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId)]);
+
+/** A department's explicit delivery to the next one. */
+export const handoffs = pgTable('handoffs', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id').notNull(),
+  stage: text('stage').notNull(),
+  producerDepartment: text('producer_department').notNull(),
+  receiverDepartment: text('receiver_department'),
+  artifactIds: text('artifact_ids').array().notNull().default([]),
+  inputVersions: jsonb('input_versions').$type<Record<string, string | number>>().notNull().default({}),
+  outputVersions: jsonb('output_versions').$type<Record<string, string | number>>().notNull().default({}),
+  validation: jsonb('validation').$type<{ ok: boolean; checks: Array<{ name: string; ok: boolean; detail?: string }> }>().notNull(),
+  qualityStatus: text('quality_status').notNull(),
+  remainingDependencies: text('remaining_dependencies').array().notNull().default([]),
+  jobId: text('job_id'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('handoffs_production_idx').on(t.productionId, t.createdAt)]);
+
+/** An inspector's structured verdict on a subject (take, cut, export, character, location). */
+export const qaReports = pgTable('qa_reports', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id'),
+  subjectKind: text('subject_kind').notNull(),
+  subjectId: text('subject_id').notNull(),
+  inspectorId: text('inspector_id').notNull(),
+  checks: jsonb('checks').$type<Array<{ name: string; ok: boolean; value?: string | number; threshold?: string | number; detail?: string }>>().notNull(),
+  failureClass: text('failure_class'),
+  decision: text('decision').notNull(),
+  evidenceAssetIds: text('evidence_asset_ids').array().notNull().default([]),
+  notes: text('notes'),
+  jobId: text('job_id'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('qa_reports_production_idx').on(t.productionId, t.createdAt), index('qa_reports_subject_idx').on(t.subjectKind, t.subjectId)]);
+
+/** A human decision on a subjective or gated matter. */
+export const approvals = pgTable('approvals', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id').notNull(),
+  stage: text('stage').notNull(),
+  subjectKind: text('subject_kind').notNull(),
+  subjectId: text('subject_id').notNull(),
+  decision: text('decision').notNull(),
+  by: text('by').notNull(),
+  note: text('note'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('approvals_production_idx').on(t.productionId, t.createdAt)]);
+
+/** The studio's activity feed: real work, attributed to the department and agent that did it. */
+export const studioEvents = pgTable('studio_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  at: ts('at').notNull(),
+  departmentId: text('department_id').notNull(),
+  agentId: text('agent_id'),
+  productionId: text('production_id'),
+  kind: text('kind').notNull(),
+  message: text('message').notNull(),
+  data: jsonb('data').$type<Record<string, unknown>>(),
+  jobId: text('job_id'),
+}, (t) => [index('studio_events_at_idx').on(t.at), index('studio_events_production_idx').on(t.productionId, t.at)]);
+
+/** A repeated attempt, investigated: what failed, why, what changed. */
+export const reliabilityEvents = pgTable('reliability_events', {
+  id: text('id').primaryKey(),
+  jobId: text('job_id').notNull(),
+  jobType: text('job_type').notNull(),
+  productionId: text('production_id'),
+  shotId: text('shot_id'),
+  attempt: integer('attempt').notNull(),
+  failureClass: text('failure_class').notNull(),
+  failureMessage: text('failure_message'),
+  changeMade: text('change_made'),
+  resolved: boolean('resolved').notNull().default(false),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('reliability_events_job_idx').on(t.jobId), index('reliability_events_at_idx').on(t.createdAt)]);
+
 export const models = pgTable('models', {
   name: text('name').primaryKey(),
   version: text('version').notNull(),

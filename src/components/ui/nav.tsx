@@ -6,45 +6,37 @@ import { useEffect, useState } from 'react';
 import { useT } from './locale';
 import type { Key } from '@/lib/i18n';
 import { VewboxMark } from './brand';
-import { IconAssets, IconCharacters, IconChevronRight, IconClose, IconHome, IconLocations, IconMenu, IconMusicVideos, IconPlus, IconQueue, IconSettings, IconShorts, IconShows } from './icons';
+import { IconAssets, IconChevronRight, IconClose, IconFilm, IconMenu, IconPlus, IconProduce, IconSettings, IconStudio, IconTv } from './icons';
 
-/** THE STUDIO'S NAVIGATION — grouped by what each place is for: the productions first, then the library that
- *  serves them, then the studio itself. One primary action above it all: New production. */
-export type NavItem = { href: string; key: Key; icon: React.ComponentType<{ className?: string }>; group?: Key };
+/** THE STUDIO'S NAVIGATION — six areas and nothing else: the Studio (the company and its departments), Projects
+ *  (what is being made), the Library (who and where), Production (where each production stands and what runs),
+ *  the Screening Room (what is finished) and Settings. One primary action above it all: New production. */
+export type NavItem = { href: string; key: Key; icon: React.ComponentType<{ className?: string }>; /** other routes that belong to this area */ also?: string[] };
 export const NAV: NavItem[] = [
-  { href: '/', key: 'nav.home', icon: IconHome },
-  { href: '/shows', key: 'nav.shows', icon: IconShows, group: 'nav.productions' },
-  { href: '/shorts', key: 'nav.shorts', icon: IconShorts, group: 'nav.productions' },
-  { href: '/music-videos', key: 'nav.musicVideos', icon: IconMusicVideos, group: 'nav.productions' },
-  { href: '/characters', key: 'nav.characters', icon: IconCharacters, group: 'nav.library' },
-  { href: '/locations', key: 'nav.locations', icon: IconLocations, group: 'nav.library' },
-  { href: '/assets', key: 'nav.assets', icon: IconAssets, group: 'nav.library' },
-  { href: '/jobs', key: 'nav.jobs', icon: IconQueue, group: 'nav.studio' },
-  { href: '/settings', key: 'nav.settings', icon: IconSettings, group: 'nav.studio' },
+  { href: '/studio', key: 'nav.studioArea', icon: IconStudio },
+  { href: '/projects', key: 'nav.projects', icon: IconFilm, also: ['/shows', '/shorts', '/music-videos', '/new'] },
+  { href: '/library', key: 'nav.libraryArea', icon: IconAssets, also: ['/characters', '/locations', '/assets'] },
+  { href: '/production', key: 'nav.production', icon: IconProduce, also: ['/jobs'] },
+  { href: '/screening', key: 'nav.screening', icon: IconTv },
+  { href: '/settings', key: 'nav.settings', icon: IconSettings },
 ];
 
-export function isActive(pathname: string, href: string): boolean { return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`); }
+export function isActive(pathname: string, href: string, also: string[] = []): boolean {
+  const hit = (h: string) => (h === '/' ? pathname === '/' : pathname === h || pathname.startsWith(`${h}/`));
+  return hit(href) || also.some(hit);
+}
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const T = useT();
-  const groups: Array<[Key | undefined, NavItem[]]> = [];
-  for (const item of NAV) { const g = groups.find((x) => x[0] === item.group); if (g) g[1].push(item); else groups.push([item.group, [item]]); }
   return (
-    <>
-      {groups.map(([group, items]) => (
-        <div key={group ?? 'top'}>
-          {group && <div className="nav-group">{T(group)}</div>}
-          <div className="space-y-0.5">
-            {items.map((n) => { const Icon = n.icon; return (
-              <Link key={n.href} href={n.href} className="nav-link" aria-current={isActive(pathname, n.href) ? 'page' : undefined} onClick={onNavigate}>
-                <Icon aria-hidden /><span className="flex-1 truncate">{T(n.key)}</span>
-              </Link>
-            ); })}
-          </div>
-        </div>
-      ))}
-    </>
+    <div className="space-y-0.5">
+      {NAV.map((n) => { const Icon = n.icon; return (
+        <Link key={n.href} href={n.href} className="nav-link" aria-current={isActive(pathname, n.href, n.also) ? 'page' : undefined} onClick={onNavigate}>
+          <Icon aria-hidden /><span className="flex-1 truncate">{T(n.key)}</span>
+        </Link>
+      ); })}
+    </div>
   );
 }
 
@@ -71,7 +63,7 @@ export function MobileBar() {
   return (
     <div className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 backdrop-blur-xl lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2.5 rounded-lg" onClick={() => setOpen(false)}>
+        <Link href="/studio" className="flex items-center gap-2.5 rounded-lg" onClick={() => setOpen(false)}>
           <VewboxMark size={28} /><span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">{T('app.name')}</span>
         </Link>
         <div className="flex items-center gap-2">
