@@ -10,9 +10,9 @@ The design is the studio's restored September interface, refined; the system is 
 ## The shell
 
 A fixed sidebar in the panel colour: the Vewbox mark, **New production** in violet, then Home · Productions (Shows,
-Shorts, Music Videos) · Library (Characters, Locations, Asset Library) · Studio (Settings). At the foot, *Generation
-not connected* and whether the sample data has been changed in this browser. On a phone the sidebar becomes a top
-bar with a + for New production and a menu button that opens the same links as a sheet.
+Shorts, Music Videos) · Library (Characters, Locations, Asset Library) · Studio (Activity, Settings). At the foot, the
+connection to the studio server and how many jobs are running. On a phone the sidebar becomes a top bar with a + for
+New production and a menu button that opens the same links as a sheet.
 
 ## Home
 
@@ -98,8 +98,8 @@ locations) and the sort.
 ![Character — Appearance](screenshots/character-appearance-1440.png)
 
 A character has **Appearance · Voice · Profile · Used In**: reference views from every side (upload your own, or
-the *Create* button that says generation is not connected), one chosen voice among sample lines, the profile as
-facts, and every production they appear in.
+have them drawn — a job whose progress shows on the button and in Activity), a voice built from a chosen recording
+and previewed with a transcription check, the profile as facts, and every production they appear in.
 
 <img src="screenshots/character-voice-1440.png" width="420" alt="Character voice"> <img src="screenshots/character-used-1440.png" width="420" alt="Character used in">
 
@@ -116,9 +116,10 @@ camera views, the times of day it is seen in and its states, the props that stan
 
 <img src="screenshots/assets-1440.png" width="420" alt="Asset library"> <img src="screenshots/settings-1440.png" width="420" alt="Settings">
 
-Every picture, clip and sound by kind, searchable, opening in a dialog; files you add are kept in this browser.
-Settings: the interface language and motion, defaults for new projects, the note that generation is not connected,
-and the sample data (reset, or start empty).
+Every picture, clip and sound by kind, searchable, opening in a dialog; files you add are checked and stored in the
+studio library on the server, labelled by origin (sample, uploaded, generated). Settings: the interface language and
+motion, defaults for new projects, the engines (what runs where, live), the models (presence and licences), the
+reliability numbers, and the sample data (reset, or start empty).
 
 ## Creating
 

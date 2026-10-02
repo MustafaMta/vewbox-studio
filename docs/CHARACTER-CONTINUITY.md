@@ -39,13 +39,18 @@ recordings and chosen line). The appearance rule never changes the voice.
 Unit tests in `tests/unit/actions.test.ts` (describe "character continuity") and browser tests in
 `tests/e2e/media-and-cast.spec.ts` cover each row.
 
-## Requirements for a future backend
+## How the server enforces it
 
-1. Record usage **server-side at take creation**, for every character in the shot, with production, shot, take and
-   time. Never delete these records; mark them when a take is removed or rejected.
-2. **Refuse** any request that would change a used character's appearance — regenerate, replace the portrait, add,
-   remove or reorder reference views, or change the appearance fields — with a clear error. The client's checks are a
-   convenience, not the enforcement.
-3. Treat a character with no usage information as used until the history is established.
-4. Keep voice changes independent of this rule.
-5. Expose the usage records so the interface can show where a character was used.
+The same pure reducers that run in the browser run on the server for every command, so the rule is applied where it
+cannot be bypassed:
+
+1. Usage is recorded **at take creation** (`addTake` → `recordTakeUsage`), for every character in the shot, with
+   production, shot, take and time, in the append-only `character_usage` table. Removing or rejecting a take marks
+   the record; nothing deletes it except a full studio reset.
+2. Any command that would change a used character's appearance — `updateCharacter` touching an appearance field,
+   `setCharacterAppearance`, replacing the portrait, adding or removing reference views — is **refused** with
+   `APPEARANCE_LOCKED` (HTTP 409) and the whole batch is rolled back. Deleting a picture a used character's
+   appearance rests on is refused with `ASSET_PROTECTED` (423). The API tests send exactly these requests.
+3. A character with no usage information is treated as used until the history is established.
+4. Voice changes and uploads stay independent of this rule (a used character can get a new recording).
+5. `/api/studio` carries the usage records, so the interface shows where a character was used, take by take.
