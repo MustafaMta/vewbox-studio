@@ -103,6 +103,9 @@ describe('engine provenance (finding 7)', () => {
     expect((await formatTags(tagged)).comment).toMatch(/not a voice reference/);
     const v = await validateVoiceReference(tagged, { language: 'EN' });
     expect(v).toMatchObject({ ok: false, code: 'BAD_FORMAT' }); expect(v.message).toMatch(/engine output/); expect(v.engineOutput).toBeTruthy();
+    // the Iraqi suite's explicit --allow-synthetic measures it anyway, still flagged
+    const allowed = await validateVoiceReference(tagged, { language: 'EN', allowEngineOutput: true });
+    expect(allowed.code).not.toBe('BAD_FORMAT'); expect(allowed.engineOutput).toMatch(/not a voice reference/);
     // a real recording carries no such tag
     expect(await engineOutputTag(fixture)).toBeNull();
   }, 60_000);

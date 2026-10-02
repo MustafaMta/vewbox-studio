@@ -162,7 +162,7 @@ export async function trimReference(file: string, out: string, window: { from: n
 /** Everything the contract measures on the CPU, in the order a producer needs to hear it: provenance (the studio's
  *  own engine output is not a recording), format, length, speech present, level, clipping. The first failing rule
  *  gives the code; every failing rule is in `reasons`. */
-export async function validateVoiceReference(file: string, opts: { language?: Language } = {}): Promise<VoiceReferenceMeasurement> {
+export async function validateVoiceReference(file: string, opts: { language?: Language; /** the Iraqi suite's explicit --allow-synthetic: measure engine output anyway (it is still flagged in `engineOutput`) */ allowEngineOutput?: boolean } = {}): Promise<VoiceReferenceMeasurement> {
   const R = REFERENCE_RULES;
   const empty: VoiceReferenceMeasurement = { ok: false, reasons: [], durationSeconds: 0, sampleRate: 0, channels: 0, integratedLufs: -Infinity, truePeakDbtp: -Infinity, clipping: { clippedSamples: 0, totalSamples: 0, ratio: 0, flatFactor: 0, peakDbfs: -Infinity }, speechSeconds: 0, expectedLanguage: opts.language };
   let facts: AudioFacts;
@@ -172,7 +172,10 @@ export async function validateVoiceReference(file: string, opts: { language?: La
   // a line the studio synthesised, uploaded back as a "recording", would clone the engine from itself (VOICE-STACK
   // D6): refused before anything else is measured
   const engine = await engineOutputTag(file);
-  if (engine) { v.engineOutput = engine; refuse('BAD_FORMAT', `This file is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; a voice is cloned only from a real person's recording.`); return v; }
+  if (engine) {
+    v.engineOutput = engine;
+    if (!opts.allowEngineOutput) { refuse('BAD_FORMAT', `This file is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; a voice is cloned only from a real person's recording.`); return v; }
+  }
   if (facts.sampleRate < R.minSampleRate) refuse('BAD_FORMAT', `The recording is sampled at ${facts.sampleRate} Hz; at least ${R.minSampleRate / 1000} kHz is needed (telephone-quality audio cannot carry a voice).`);
   if (facts.durationSeconds < R.minSeconds) refuse('TOO_SHORT', `The recording is ${facts.durationSeconds.toFixed(1)} s long; record ${R.minSeconds}–${R.maxSeconds} s of clear speech (6–12 s is ideal).`);
   else if (facts.durationSeconds > R.maxSeconds) refuse('TOO_LONG', `The recording is ${facts.durationSeconds.toFixed(0)} s long; keep it under ${R.maxSeconds} s — the engines use at most ${R.windowSeconds} s.`);
