@@ -618,5 +618,6 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
 // ---------------------------------------------------------------------------------------------------- settings
 
 export function updateSettings(s: S, patch: Partial<Settings>): S {
-  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) } } };
+  const research = patch.research || s.settings.research ? { enabled: patch.research?.enabled ?? s.settings.research?.enabled ?? true, platforms: { ...(s.settings.research?.platforms ?? {}), ...(patch.research?.platforms ?? {}) }, cacheHours: patch.research?.cacheHours ?? s.settings.research?.cacheHours } : undefined;
+  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) }, ...(research ? { research } : {}) } };
 }
