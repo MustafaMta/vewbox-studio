@@ -9,18 +9,22 @@ import { IconBad, IconCheck, IconClose, IconInfo, IconMore, IconOk, IconWarn } f
 /** THE KIT — every control the studio uses, once. Pages compose these and add nothing of their own.
  *  Buttons carry one icon at most; fields label themselves; status is a dot and a phrase; dialogs are native. */
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger' | 'ok';
-type Size = 'sm' | 'xs';
+/** `ghost` and `subtle` are the old names of `quiet` (v3 merged them); `destructive` is the one filled red button,
+ *  used only to confirm inside a dialog. */
+type Variant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger' | 'destructive' | 'ok';
+type Size = 'sm' | 'xs' | 'lg';
 export const cls = (...xs: Array<string | false | null | undefined>) => xs.filter(Boolean).join(' ');
+const variantClass = (v: Variant) => (v === 'ghost' || v === 'quiet' ? 'btn-quiet' : v === 'destructive' ? 'btn-danger-solid' : `btn-${v}`);
 
-/** The one button. Primary for the page's action, secondary for the rest, quiet for text-like actions, danger for
- *  what deletes. `loading` keeps its size, shows a spinner in place of the icon and blocks a second press. */
+/** The one button. Primary for the region's one action (ivory), secondary for the rest, quiet for text-like
+ *  actions, danger for what deletes. `loading` keeps its width, shows a spinner in place of the icon and blocks a
+ *  second press. */
 export function Button({ variant = 'secondary', size, icon, className = '', type = 'button', children, loading, disabled, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size; icon?: ReactNode; loading?: boolean }) {
-  return <button type={type} className={cls('btn', `btn-${variant}`, size && `btn-${size}`, !children && 'btn-icon', className)} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>{loading ? <Spinner /> : icon}{children}</button>;
+  return <button type={type} className={cls('btn', variantClass(variant), size && `btn-${size}`, !children && 'btn-icon', className)} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>{loading ? <Spinner /> : icon}{children}</button>;
 }
 
 export function LinkButton({ href, variant = 'secondary', size, icon, className = '', children, ...rest }: { href: string; variant?: Variant; size?: Size; icon?: ReactNode; className?: string; children?: ReactNode } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
-  return <Link href={href} className={cls('btn', `btn-${variant}`, size && `btn-${size}`, !children && 'btn-icon', className)} {...rest}>{icon}{children}</Link>;
+  return <Link href={href} className={cls('btn', variantClass(variant), size && `btn-${size}`, !children && 'btn-icon', className)} {...rest}>{icon}{children}</Link>;
 }
 
 export function Spinner({ className = '' }: { className?: string }) {
@@ -38,7 +42,7 @@ export function Dropzone({ label, hint, accept, onFile, disabled, icon, busy, cl
       <label htmlFor={id} className={cls('dropzone', row && 'dropzone-row')} data-over={over || undefined} data-error={error ? 'true' : undefined} aria-disabled={disabled || undefined} aria-busy={busy || undefined}
         onDragOver={(e) => { if (disabled) return; e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f && !disabled) onFile(f); }}>
-        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-raised-2 text-accent [&>svg]:size-4">{busy ? <Spinner /> : icon}</span>
+        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-raised-2 text-muted [&>svg]:size-4">{busy ? <Spinner /> : icon}</span>
         <span className={row ? 'flex min-w-0 flex-col' : 'contents'}>
           <span className="text-[13.5px] font-semibold text-fg">{label}</span>
           {hint && <span className="text-[12px] text-faint">{hint}</span>}
@@ -65,8 +69,8 @@ export function ConfirmButton({ onConfirm, label, title, message, confirmLabel, 
           <h2 id={`${id}-h`} className="h2" dir="auto">{title}</h2>
           {message && <p className="mt-2 text-sm text-muted">{message}</p>}
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
-            <Button variant="danger" className="bg-bad-soft" onClick={() => { ref.current?.close(); onConfirm(); }}>{confirmLabel ?? T('btn.delete')}</Button>
+            <Button variant="quiet" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
+            <Button variant="destructive" onClick={() => { ref.current?.close(); onConfirm(); }}>{confirmLabel ?? T('btn.delete')}</Button>
           </div>
         </div>
       </dialog>
@@ -150,18 +154,33 @@ export function Toggle({ label, help, checked, onChange, disabled, name }: { lab
       <span className="text-sm"><span className="font-medium">{label}</span>{help && <span className="block text-xs text-muted">{help}</span>}</span>
       <span className="relative inline-flex flex-none items-center">
         <input type="checkbox" role="switch" name={name} aria-checked={checked} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
-        <span aria-hidden className="block h-6 w-10 rounded-full border border-line bg-surface-3 transition peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]" />
-        <span aria-hidden className="absolute start-0.5 top-0.5 block size-5 rounded-full bg-elev shadow-sm transition peer-checked:translate-x-4 rtl:peer-checked:-translate-x-4" />
+        <span aria-hidden className="block h-6 w-10 rounded-full border border-line-field bg-input transition-colors peer-checked:border-accent-strong peer-checked:bg-accent-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--ring)]" />
+        <span aria-hidden className="absolute start-[3px] top-[3px] block size-[18px] rounded-full bg-ink-300 transition peer-checked:translate-x-4 peer-checked:bg-fg rtl:peer-checked:-translate-x-4" />
       </span>
     </label>
   );
 }
 
-/** A row of mutually exclusive choices (a segmented control). */
-export function Segmented<T extends string>({ value, onChange, options, label, size }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode; icon?: ReactNode }>; label: string; size?: 'sm' }) {
+/** A row of mutually exclusive choices (a segmented control): a radiogroup with one tab stop; the arrow keys move
+ *  the selection along the reading direction (mirrored in Arabic), Home and End jump to the ends. */
+export function Segmented<T extends string>({ value, onChange, options, label, size, className = '' }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode; icon?: ReactNode; disabled?: boolean }>; label: string; size?: 'sm'; className?: string }) {
+  const enabled = options.filter((o) => !o.disabled);
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = enabled.findIndex((o) => o.value === value);
+    const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+    const fwd = e.key === 'ArrowDown' || e.key === (rtl ? 'ArrowLeft' : 'ArrowRight');
+    const back = e.key === 'ArrowUp' || e.key === (rtl ? 'ArrowRight' : 'ArrowLeft');
+    const next = fwd ? (i + 1) % enabled.length : back ? (i - 1 + enabled.length) % enabled.length : e.key === 'Home' ? 0 : e.key === 'End' ? enabled.length - 1 : -1;
+    if (next < 0 || !enabled[next]) return;
+    e.preventDefault();
+    onChange(enabled[next].value);
+    const btn = e.currentTarget.querySelector<HTMLButtonElement>(`[data-value="${CSS.escape(enabled[next].value)}"]`);
+    btn?.focus();
+  };
+  const current = options.some((o) => o.value === value) ? value : enabled[0]?.value;
   return (
-    <div role="radiogroup" aria-label={label} className={cls('seg', size === 'sm' && 'text-xs')}>
-      {options.map((o) => <button key={o.value} type="button" role="radio" aria-checked={value === o.value} aria-selected={value === o.value} onClick={() => onChange(o.value)}>{o.icon}{o.label}</button>)}
+    <div role="radiogroup" aria-label={label} className={cls('seg', size === 'sm' && 'text-xs', className)} onKeyDown={onKey}>
+      {options.map((o) => <button key={o.value} type="button" role="radio" data-value={o.value} aria-checked={value === o.value} tabIndex={o.value === current ? 0 : -1} disabled={o.disabled} onClick={() => onChange(o.value)}>{o.icon}{o.label}</button>)}
     </div>
   );
 }
@@ -232,8 +251,8 @@ export function ConfirmDelete({ title, onDelete, label, children, size = 'sm', v
             <Input id={`${id}-i`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" placeholder={title} />
           </Field>
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
-            <Button type="submit" variant="danger" className="bg-bad-soft" disabled={typed.trim() !== title.trim()}>{T('btn.delete')}</Button>
+            <Button variant="quiet" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
+            <Button type="submit" variant="destructive" disabled={typed.trim() !== title.trim()}>{T('btn.delete')}</Button>
           </div>
         </form>
       </dialog>
@@ -267,20 +286,27 @@ export function Modal({ trigger, title, description, children, size }: { trigger
   );
 }
 
-/** Two or three options laid out as big radio cards. The columns are sized by the container, not the viewport. */
-export function ChoiceCards<T extends string>({ name, value, onChange, options, columns = 2, size = 'md' }: { name: string; value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode; hint?: ReactNode; icon?: ReactNode; preview?: ReactNode; disabled?: boolean }>; columns?: 2 | 3 | 4; size?: 'md' | 'lg' }) {
+/** Two to four options as selectable tiles (a radiogroup of native radios, so the arrow keys move the choice).
+ *  At 768 px and wider they sit side by side (min 14rem, or the `columns` minimum); below that they stack as 64 px
+ *  rows — icon, title, one-line hint, the radio mark on the end side — so nothing wraps a word per line (E2).
+ *  Selected is a 1.5 px accent edge and a filled radio mark: no ring, no tint. */
+export function ChoiceCards<T extends string>({ name, value, onChange, options, columns = 2, size = 'md', label }: { name: string; value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode; hint?: ReactNode; icon?: ReactNode; preview?: ReactNode; disabled?: boolean }>; columns?: 2 | 3 | 4; size?: 'md' | 'lg'; label?: string }) {
+  const min = columns === 4 ? '10rem' : '14rem';
   return (
-    <div role="radiogroup" className="grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${columns === 4 ? '9rem' : columns === 3 ? '11rem' : '14rem'}), 1fr))` }}>
+    <div role="radiogroup" aria-label={label} className="choice-tiles flex flex-col gap-2 md:grid md:gap-3" style={{ '--tile-min': min } as React.CSSProperties}>
       {options.map((o) => {
         const on = value === o.value;
         return (
-          <label key={o.value} className={cls('panel relative flex cursor-pointer flex-col gap-3 transition', size === 'lg' ? 'p-5' : 'p-4', on ? 'border-[color:var(--accent)] ring-2 ring-[var(--ring)]' : 'hover:border-line-strong', o.disabled && 'cursor-not-allowed opacity-50')}>
+          <label key={o.value} data-selected={on || undefined} aria-disabled={o.disabled || undefined} className={cls('tile-choice relative min-h-16 px-4 py-3 md:gap-3', size === 'lg' ? 'md:p-5' : 'md:p-4')}>
             <input type="radio" name={name} value={o.value} checked={on} disabled={o.disabled} onChange={() => onChange(o.value)} className="sr-only" />
-            {o.preview && <div className="overflow-hidden rounded-lg">{o.preview}</div>}
-            <span className="flex items-start gap-3">
-              {o.icon && <span aria-hidden className={cls('grid size-9 flex-none place-items-center rounded-lg [&>svg]:size-5', on ? 'bg-accent-soft text-accent-text' : 'bg-surface-2 text-muted')}>{o.icon}</span>}
-              <span className="min-w-0"><span className={cls('block', size === 'lg' ? 'text-base font-semibold' : 'font-medium')}>{o.label}</span>{o.hint && <span className="mt-0.5 block text-sm text-muted">{o.hint}</span>}</span>
-              <span aria-hidden className={cls('ms-auto mt-0.5 grid size-5 flex-none place-items-center rounded-full border', on ? 'border-accent bg-accent text-accent-fg' : 'border-line-strong')}>{on && <IconCheck className="size-3.5" />}</span>
+            {o.preview && <div className="mb-3 hidden overflow-hidden rounded-[var(--r-media)] md:block">{o.preview}</div>}
+            <span className="flex items-center gap-3 md:items-start">
+              {o.icon && <span aria-hidden className={cls('grid size-5 flex-none place-items-center [&>svg]:size-5 [&>svg]:stroke-[1.5]', on ? 'text-fg' : 'text-muted')}>{o.icon}</span>}
+              <span className="min-w-0 flex-1">
+                <span className={cls('block font-semibold text-fg', size === 'lg' ? 'text-[15px] leading-5 md:text-[16px] md:leading-[22px]' : 'text-[15px] leading-5')}>{o.label}</span>
+                {o.hint && <span className="mt-0.5 block text-sm text-muted">{o.hint}</span>}
+              </span>
+              <span aria-hidden className="radio-mark" />
             </span>
           </label>
         );
@@ -317,12 +343,14 @@ export function Notice({ tone = 'info', children, title, action, className = '',
 /** A picture (or a video's poster) in a fixed ratio on the media floor; an empty one says so quietly. */
 export function Thumb({ src, alt, kind, className = '', ratio = 'aspect-video', contain, poster, sample: _sample, empty, unavailable }: { src?: string | null; alt: string; kind?: 'IMAGE' | 'VIDEO' | 'AUDIO'; className?: string; ratio?: string; contain?: boolean; poster?: string; sample?: boolean; empty?: ReactNode; unavailable?: boolean }) {
   if (unavailable) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><UnavailableNote /></div>;
-  if (!src) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="text-xs">{empty ?? 'no picture yet'}</span></div>;
+  if (!src) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="text-xs">{empty ?? <NoPictureYet />}</span></div>;
   if (kind === 'VIDEO') return <div className={cls('media', contain && 'media-contain', ratio, className)}><video src={src} poster={poster} muted playsInline preload="metadata" aria-label={alt} /></div>;
   if (kind === 'AUDIO') return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="text-2xl">♪</span></div>;
   // eslint-disable-next-line @next/next/no-img-element
   return <div className={cls('media', contain && 'media-contain', ratio, className)}><img src={src} alt={alt} loading="lazy" decoding="async" /></div>;
 }
+
+function NoPictureYet() { const T = useT(); return <>{T('v3.noPictureYet')}</>; }
 
 function UnavailableNote() {
   const T = useT();
@@ -379,10 +407,10 @@ export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', em
         const on = selected.includes(it.id);
         return (
           <li key={it.id}>
-            <button type="button" aria-pressed={on} onClick={() => onToggle(it.id)} className={cls('group relative w-full overflow-hidden rounded-xl border text-start transition', on ? 'border-accent ring-2 ring-[var(--ring)]' : 'border-line hover:border-line-strong')}>
+            <button type="button" aria-pressed={on} onClick={() => onToggle(it.id)} className={cls('group relative w-full overflow-hidden rounded-[var(--r-3)] border text-start transition-colors', on ? 'border-accent shadow-[inset_0_0_0_0.5px_var(--accent)]' : 'border-line hover:border-line-strong')}>
               <Thumb src={it.src} alt="" ratio={ratio} className="rounded-none" />
               <span className="block px-2 py-1.5"><span className="block truncate text-sm font-medium" dir="auto">{it.label}</span>{it.sub && <span className="block truncate text-xs text-muted">{it.sub}</span>}</span>
-              <span aria-hidden className={cls('absolute end-2 top-2 grid size-5 place-items-center rounded-full border', on ? 'border-accent bg-accent text-accent-fg' : 'border-white/70 bg-black/30')}>{on && <IconCheck className="size-3.5" />}</span>
+              <span aria-hidden className={cls('absolute end-2 top-2 grid size-5 place-items-center rounded-full border', on ? 'border-accent-strong bg-accent-strong text-accent-fg' : 'border-white/70 bg-black/30')}>{on && <IconCheck className="size-3.5" />}</span>
             </button>
           </li>
         );
@@ -394,7 +422,7 @@ export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', em
 
 /** A dashed tile that starts something new inline (a character, a location). */
 export function AddTile({ onClick, children, ratio = 'aspect-[4/5]' }: { onClick: () => void; children: ReactNode; ratio?: string }) {
-  return <button type="button" onClick={onClick} className={cls('flex w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-strong text-sm text-muted transition hover:border-accent hover:text-fg', ratio)}>{children}</button>;
+  return <button type="button" onClick={onClick} className={cls('flex w-full flex-col items-center justify-center gap-1 rounded-[var(--r-3)] border border-dashed border-line-field bg-input text-sm text-muted transition-colors hover:border-faint hover:text-fg', ratio)}>{children}</button>;
 }
 
 export function useMounted() { const [m, setM] = useState(false); useEffect(() => setM(true), []); return m; }

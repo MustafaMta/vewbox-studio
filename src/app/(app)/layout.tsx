@@ -9,31 +9,32 @@ import { SyncErrors } from '@/components/ui/jobs';
 import { useStudio } from '@/studio/store';
 import { isActiveStatus } from '@/domain/jobs';
 
-/** THE SHELL — a fixed 244px sidebar in the panel colour: the brand, one primary action, the grouped navigation,
- *  and at the foot the live state of the studio: connected or reconnecting, and how many jobs are running. The work
- *  happens on the canvas to the side, in a column capped at a comfortable reading width. */
+/** THE SHELL — a 240 px sidebar on the ground (an end hairline, not a raised panel): the brand, "New…" as a
+ *  secondary action (so the page's own primary is the only ivory one on screen), the grouped navigation, and at the
+ *  foot the live state of the studio in a dot and words. The work happens in a start-aligned column, 1280 px at
+ *  most, with the page gutter (16 / 24 / 40). */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const T = useT();
   const { ready, connected, jobs } = useStudio();
   const running = jobs.filter((j) => isActiveStatus(j.status)).length;
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <SyncErrors />
-      <a href="#main" className="sr-only-focusable fixed start-3 top-3 z-50 rounded-lg bg-primary px-3 py-2 text-[13px] font-semibold text-on-primary">{T('nav.skip')}</a>
-      <aside className="sticky top-0 hidden h-dvh flex-col border-e border-line/70 bg-surface lg:flex">
-        <Link href="/studio" className="flex items-center px-5 pb-4 pt-5" aria-label={T('app.name')}><VewboxLogo /></Link>
-        <div className="px-3 pb-3"><Link href="/new" className="btn btn-primary btn-block"><IconPlus aria-hidden />{T('nav.new')}</Link></div>
+      <a href="#main" className="sr-only-focusable fixed start-3 top-3 z-50 rounded-[var(--r-2)] bg-primary px-3 py-2 text-[13px] font-semibold text-on-primary">{T('nav.skip')}</a>
+      <aside className="sticky top-0 hidden h-dvh flex-col border-e border-line bg-bg lg:flex">
+        <Link href="/studio" className="flex items-center rounded-[var(--r-2)] px-5 pb-4 pt-5" aria-label={T('app.name')}><VewboxLogo /></Link>
+        <div className="px-3 pb-4"><Link href="/new" className="btn btn-secondary btn-block"><IconPlus aria-hidden />{T('nav.new')}</Link></div>
         <SideNav />
-        <div className="space-y-1 border-t border-line/70 p-3">
-          <Link href="/production" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] text-muted transition-colors hover:bg-raised-2 hover:text-fg">
-            <span className={`dot ${connected ? (running ? 'bg-info' : 'bg-ok') : 'bg-warn'}`} aria-hidden />{connected ? (running ? `${running} ${T('jobs.running')}` : T('status.connected')) : T('status.disconnected')}
+        <div className="space-y-0.5 border-t border-line p-3">
+          <Link href="/production" className="flex items-center gap-2 rounded-[var(--r-2)] px-3 py-2 text-xs text-faint transition-colors hover:bg-input hover:text-fg">
+            <span className={`dot ${connected ? (running ? 'bg-accent dot-live' : 'bg-ok') : 'bg-warn'}`} aria-hidden />{connected ? (running ? `${running} ${T('jobs.running')}` : T('status.connected')) : T('status.disconnected')}
           </Link>
-          <p className="px-3 pb-1 text-[11px] leading-relaxed text-faint">{ready ? T('app.saved') : '…'}</p>
+          <p className="px-3 pb-1 text-xs text-faint">{ready ? T('app.saved') : '…'}</p>
         </div>
       </aside>
       <div className="min-w-0">
         <MobileBar />
-        <main id="main" className="mx-auto w-full max-w-[1320px] px-5 pb-16 pt-6 sm:px-8 sm:pt-8 lg:pt-10">
+        <main id="main" className="w-full max-w-[calc(1280px+2*var(--gutter))] px-[var(--gutter)] pb-16 pt-6 sm:pt-8 lg:pt-10">
           {ready ? children : <div aria-busy className="space-y-4 pt-2"><div className="skeleton h-9 w-72" /><div className="skeleton h-4 w-96" /><div className="grid-shows mt-8">{[0, 1, 2].map((i) => <div key={i} className="skeleton aspect-[16/10]" />)}</div></div>}
         </main>
       </div>

@@ -32,7 +32,7 @@ export function LibraryBar({ q, onQ, style, onStyle, view, onView, extra, sort, 
         <Input type="search" value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? T('lib.search')} aria-label={T('label.search')} className="ps-9" />
       </label>
       {/* on a phone the filters are one row that scrolls sideways under the full-width search */}
-      <div className="-mx-5 flex basis-full gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:contents">
+      <div className="-mx-[var(--gutter)] flex basis-full gap-2 overflow-x-auto px-[var(--gutter)] pb-1 [scrollbar-width:none] sm:contents">
         {onStyle && <Select aria-label={T('lib.filterStyle')} value={style ?? ''} onChange={(e) => onStyle(e.target.value as Style | '')} placeholder={`${T('lib.filterStyle')}: ${T('label.all')}`} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} className="w-auto flex-none" />}
         {extra}
       </div>

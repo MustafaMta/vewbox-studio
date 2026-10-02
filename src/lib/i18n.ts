@@ -931,6 +931,10 @@ const D = {
   'studio.rejected': ['rejected', 'مرفوض'],
   'studio.accepted': ['accepted', 'مقبول'],
   'studio.checksPassed': ['checks passed', 'فحوصات ناجحة'],
+  // ---- design v3: kit, Studio Company, department and agent pages (docs/DESIGN-SYSTEM-V3.md §6, §9.1–9.3) ----
+  'v3.noPictureYet': ['No picture yet', 'لا صورة بعد'],
+  'v3.breadcrumb': ['Breadcrumb', 'مسار التنقل'],
+  // ---- end of design v3 block ----
   'tab.episodes': ['Episodes', 'الحلقات'],
   'tab.showCast': ['Cast', 'الطاقم'],
   'show.allEpisodes': ['Every episode of the show, newest season first.', 'كل حلقات المسلسل، الموسم الأحدث أولاً.'],

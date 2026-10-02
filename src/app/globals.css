@@ -457,6 +457,7 @@ html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-mo
   .choice:has(input:focus-visible), .tile-choice:has(input:focus-visible) { outline: 2px solid var(--ring); outline-offset: 2px; }
   .tile-choice[aria-disabled='true'] { cursor: not-allowed; color: var(--fg-disabled); }
   .tile-choice[aria-disabled='true']:hover { background: var(--surface); border-color: var(--line); }
+  .choice-tiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tile-min, 14rem)), 1fr)); }
   /* the radio mark of a tile: an outlined circle, filled with the accent when chosen */
   .radio-mark { display: inline-grid; place-items: center; inline-size: 18px; block-size: 18px; border-radius: 999px; border: 1.5px solid var(--line-field); flex: none; }
   [data-selected='true'] > * > .radio-mark, [data-selected='true'] .radio-mark { border-color: var(--accent-strong); }
