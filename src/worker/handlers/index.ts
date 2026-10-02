@@ -39,8 +39,10 @@ import { voiceBuild, voicePreview, dialogueAudio } from './voice';
 import { generateSong } from './music';
 import { assemble, exportCut } from './assemble';
 import { produce } from './produce';
+import { createCharacter } from './character';
 
 export const HANDLERS: Partial<Record<JobType, Handler>> = {
+  CREATE_CHARACTER: createCharacter,
   MEDIA_PROBE: mediaProbe,
   AUTO_IDEA: autoIdea, DEVELOP_STORY: developStory, WRITE_SCRIPT: writeScript, PLAN_SHOTS: planShots,
   GENERATE_TAKE: generateTake,

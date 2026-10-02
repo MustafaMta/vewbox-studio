@@ -9,7 +9,8 @@ import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, removeFile } from '@/server/media';
-import { ffmpeg, measureLoudness, tmpDir } from '@/server/media/ffmpeg';
+import { tmpDir } from '@/server/media/ffmpeg';
+import { REFERENCE_WINDOW, analyseSilence, chooseWindow, parseSilences, staticGainDb, trimReference } from '@/server/studio/voice-reference';
 import { pickEngine, scriptCoverage, synthesize, transcribe, wordErrorRate, type TtsEngine } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -36,8 +37,7 @@ const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRAR
  *  CER after the dialect fold joins the gate when the Voice agent's metric lands in speech.ts. */
 export const LINE_COVERAGE = 0.85;
 export const PROOF_COVERAGE = 0.85;
-/** The trimmed reference: at most this long, not shorter than this, at this loudness, mono 24 kHz. */
-export const REFERENCE_WINDOW = { maxSeconds: 12, minSeconds: 3, targetLufs: -20, truePeakDbtp: -1, sampleRate: 24000 } as const;
+export { REFERENCE_WINDOW, chooseWindow, parseSilences, staticGainDb, analyseSilence, trimReference };
 
 const missingReference = (message: string, details: Record<string, unknown> = {}) => Object.assign(new StudioError('INVALID', message, { ...details, failureClass: 'MISSING_REFERENCE' }), { failureClass: 'MISSING_REFERENCE' });
 
@@ -105,49 +105,6 @@ export function pickReference(c: Character, assets: Asset[], opts: { sampleId?: 
   return null;
 }
 
-/** Silence stretches as ffmpeg's silencedetect prints them. */
-export function parseSilences(stderr: string): Array<{ start: number; end: number }> {
-  const out: Array<{ start: number; end: number }> = [];
-  let open: number | undefined;
-  for (const m of stderr.matchAll(/silence_(start|end): ([\d.]+)/g)) {
-    if (m[1] === 'start') open = Number(m[2]);
-    else if (open !== undefined) { out.push({ start: open, end: Number(m[2]) }); open = undefined; }
-  }
-  if (open !== undefined) out.push({ start: open, end: Number.POSITIVE_INFINITY });
-  return out;
-}
-
-/** THE WINDOW RULE — the stretch of a recording sent to the engine: it starts at the first speech (never the head
- *  of the file), runs through whole speech regions while they fit in `maxSeconds`, and ends at a silence boundary,
- *  so no word is cut in half. A single region longer than the limit is cut at the limit. */
-export function chooseWindow(silences: Array<{ start: number; end: number }>, durationSeconds: number, opts: { maxSeconds?: number; minSeconds?: number; leadSeconds?: number } = {}): { from: number; to: number } {
-  const max = opts.maxSeconds ?? REFERENCE_WINDOW.maxSeconds, min = opts.minSeconds ?? REFERENCE_WINDOW.minSeconds, lead = opts.leadSeconds ?? 0.15;
-  const r2 = (x: number) => Math.round(x * 100) / 100;
-  const regions: Array<{ from: number; to: number }> = [];
-  let t = 0;
-  for (const s of [...silences].sort((a, b) => a.start - b.start)) {
-    if (s.start > t + 0.05) regions.push({ from: t, to: Math.min(s.start, durationSeconds) });
-    t = Math.max(t, Math.min(s.end, durationSeconds));
-  }
-  if (durationSeconds > t + 0.05) regions.push({ from: t, to: durationSeconds });
-  if (regions.length === 0) return { from: 0, to: r2(Math.min(durationSeconds, max)) };
-  const from = Math.max(0, regions[0].from - lead);
-  let to = regions[0].to;
-  for (const r of regions.slice(1)) { if (r.to - from <= max) to = r.to; else break; }
-  if (to - from > max) to = from + max;
-  if (to - from < min) to = Math.min(durationSeconds, from + min);
-  return { from: r2(from), to: r2(Math.min(durationSeconds, to + 0.1)) };
-}
-
-/** The static gain (dB) that brings a stretch to the target loudness without letting the true peak over the
- *  ceiling: never a dynamic normaliser, so the timbre the engine hears is the recording's own. */
-export function staticGainDb(measured: { integrated: number; truePeak: number }, target = REFERENCE_WINDOW.targetLufs, ceiling = REFERENCE_WINDOW.truePeakDbtp): number {
-  if (!Number.isFinite(measured.integrated) || measured.integrated < -70) return 0;
-  const wanted = target - measured.integrated;
-  const headroom = ceiling - measured.truePeak;
-  return Math.round(Math.min(wanted, headroom) * 100) / 100;
-}
-
 // ----------------------------------------------------------------------------------------- reference on disk
 
 export interface Reference {
@@ -157,26 +114,6 @@ export interface Reference {
   /** the stretch of the original the engine hears, and its stored asset when the window was stored at upload */
   window?: { from: number; to: number; assetId?: string };
   via: ReferencePick['via'];
-}
-
-/** Find the silences of a recording (for the window) and its duration. */
-export async function analyseSilence(file: string): Promise<{ silences: Array<{ start: number; end: number }>; durationSeconds: number }> {
-  const { stderr } = await ffmpeg(['-i', file, '-af', 'silencedetect=n=-35dB:d=0.3', '-f', 'null', '-'], { timeoutMs: 120_000 });
-  const dur = /Duration: (\d+):(\d+):([\d.]+)/.exec(stderr);
-  const durationSeconds = dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : 0;
-  return { silences: parseSilences(stderr), durationSeconds };
-}
-
-/** Cut the window out of a recording as mono 24 kHz PCM at −20 LUFS by a static gain (true peak ≤ −1 dBTP). */
-export async function trimReference(input: string, out: string, window: { from: number; to: number }): Promise<{ file: string; gainDb: number; measured: { integrated: number; truePeak: number } | null }> {
-  const raw = `${out}.raw.wav`;
-  const len = Math.max(0.5, window.to - window.from);
-  await ffmpeg(['-ss', String(window.from), '-t', String(len), '-i', input, '-vn', '-ac', '1', '-ar', String(REFERENCE_WINDOW.sampleRate), '-c:a', 'pcm_s16le', raw], { timeoutMs: 120_000 });
-  const measured = await measureLoudness(raw);
-  const gainDb = measured ? staticGainDb(measured) : 0;
-  await ffmpeg(['-i', raw, '-af', `volume=${gainDb}dB`, '-ac', '1', '-ar', String(REFERENCE_WINDOW.sampleRate), '-c:a', 'pcm_s16le', out], { timeoutMs: 120_000 });
-  await fsp.rm(raw, { force: true }).catch(() => {});
-  return { file: out, gainDb, measured: measured ? { integrated: measured.integrated, truePeak: measured.truePeak } : null };
 }
 
 /** The character's reference recording as the engine takes it (mono 24 kHz, ≤ 12 s, −20 LUFS), or null when
