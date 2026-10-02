@@ -77,12 +77,21 @@ export async function uploadInput(file: string, opts: { ext?: string; subfolder?
 export const workflowVersion = (graph: Record<string, unknown>) => structuralWorkflowVersion(graph as Graph);
 
 /** Submit a graph and wait for it. Progress reports the current node and sampler step when ComfyUI exposes them. */
-export async function run(graph: Record<string, unknown>, opts: { timeoutMs?: number; onProgress?: (p: { node?: string; value?: number; max?: number; queue?: number }) => Promise<void> | void; shouldStop?: () => Promise<boolean> | boolean; clientId?: string } = {}): Promise<ComfyRunResult> {
+export async function run(graph: Record<string, unknown>, opts: { timeoutMs?: number; onProgress?: (p: { node?: string; value?: number; max?: number; queue?: number }) => Promise<void> | void; shouldStop?: () => Promise<boolean> | boolean; clientId?: string; /** a prompt id a previous attempt already submitted: wait for it instead of submitting again, when ComfyUI still knows it */ resumePromptId?: string; /** told the prompt id as soon as it exists, so a restarted worker can resume it */ onSubmitted?: (promptId: string) => Promise<void> | void } = {}): Promise<ComfyRunResult> {
   const clientId = opts.clientId ?? crypto.randomUUID();
   const t0 = Date.now();
-  const sub = await http<{ prompt_id: string; node_errors?: Record<string, unknown>; error?: unknown }>('/prompt', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: graph, client_id: clientId }), timeoutMs: 120_000 });
-  if (!sub.prompt_id) throw new StudioError('PROVIDER', `ComfyUI refused the workflow: ${JSON.stringify(sub.error ?? sub.node_errors).slice(0, 600)}`);
-  const promptId = sub.prompt_id;
+  let promptId: string | undefined;
+  if (opts.resumePromptId) {
+    // still queued, running, or already finished with outputs → adopt it; otherwise it was lost (ComfyUI restarted) and we resubmit
+    const known = await isKnownPrompt(opts.resumePromptId).catch(() => false);
+    if (known) { promptId = opts.resumePromptId; log.info({ promptId }, 'resuming a ComfyUI prompt from a previous attempt'); }
+  }
+  if (!promptId) {
+    const sub = await http<{ prompt_id: string; node_errors?: Record<string, unknown>; error?: unknown }>('/prompt', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: graph, client_id: clientId }), timeoutMs: 120_000 });
+    if (!sub.prompt_id) throw new StudioError('PROVIDER', `ComfyUI refused the workflow: ${JSON.stringify(sub.error ?? sub.node_errors).slice(0, 600)}`);
+    promptId = sub.prompt_id;
+    await opts.onSubmitted?.(promptId);
+  }
   const timeout = opts.timeoutMs ?? 60 * 60_000;
   let lastQueueLog = 0;
   for (;;) {
@@ -112,6 +121,14 @@ export async function run(graph: Record<string, unknown>, opts: { timeoutMs?: nu
     if (Date.now() - t0 > timeout) { await interrupt().catch(() => {}); throw new StudioError('PROVIDER', `ComfyUI workflow ${promptId} did not finish within ${Math.round(timeout / 60000)} min`); }
     await new Promise((r) => setTimeout(r, 2000));
   }
+}
+
+/** Does ComfyUI still know this prompt (queued, running, or in history)? */
+async function isKnownPrompt(promptId: string): Promise<boolean> {
+  const hist = await http<Record<string, unknown>>(`/history/${promptId}`);
+  if (hist[promptId]) return true;
+  const q = await http<{ queue_running: unknown[][]; queue_pending: unknown[][] }>('/queue');
+  return [...q.queue_running, ...q.queue_pending].some((x) => x[1] === promptId);
 }
 
 /** Fetch an output file's bytes. */

@@ -100,7 +100,9 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined }))) : undefined;
   const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(4, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
   await req.onStatus?.({ status: 'queued' });
-  const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
+  // the prompt id is recorded on the job as soon as it exists: a worker that restarts mid-generation waits for the
+  // same prompt instead of asking the engine for a second one
+  const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, resumePromptId: req.resumeTaskId, onSubmitted: req.onTaskCreated, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
   const out = comfy.firstOutput(run.outputs, 'video') ?? comfy.firstOutput(run.outputs, 'gifs') ?? comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no video output for the MiniMax H3 workflow.');
   const bytes = await comfy.view(out);
