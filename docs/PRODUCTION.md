@@ -16,6 +16,23 @@ reliability panels.
 Two decisions are yours and block the pipeline until given: **approve the story** (on the Produce tab or in
 Production) before any take is generated, and **approve the cut** (on the Final Cut tab) before it is exported.
 
+**Shows carry their continuity.** A new season or episode (Auto) is proposed from the show's concept, its
+language and dialect (never changed), every season's arc, the previous episodes and where each one left the story,
+the bible (rules, relationships, timeline, open storylines) and the locked cast by id. A Manual season needs only a
+title or a line; its episodes are developed from the same context. After an episode is cut, the Continuity Writer
+records what happened and what stays open in the show's bible (show page → World Bible), so the next episode
+continues rather than restarts.
+
+**Characters keep their identity.** Once a character has been in a video, the appearance is locked
+(`APPEARANCE_LOCKED`) and the voice they spoke with is locked too (`VOICE_LOCKED`): lines to listen to can be added,
+the chosen recording and the built voice cannot be replaced. A character can also be designed from a line
+(Characters → Add → "Design it for me"): Casting fills the look, wardrobe, personality and voice notes.
+
+**The Studio Company** page shows who made what: the orchestrator's state (Idle, Ready, Coordinating, Producing,
+Awaiting review, Blocked) and each department's light come from the jobs, handoffs and approvals on record; a
+department opens to its director, agents, deliverables and quality results; an agent opens to its runs and tool
+calls. A failed job carries a failure class, and a retry asks what changed, which is recorded with the failure.
+
 ## Two ways to start
 
 **Auto Idea.** New production → *Create an idea for me*. Optional: a line of your own, a style, a language, a mood,
