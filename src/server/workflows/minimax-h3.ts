@@ -42,8 +42,10 @@ export function minimaxH3Video(i: H3Input): Graph {
   model = ['6', 0];
   if (useRef) {
     const inputs: Record<string, unknown> = { clip: ['2', 0], vae: ['3', 0], audio_vae: ['4', 0], prompt: i.prompt, width: w, height: h, length, ref_image_size: 'match' };
-    (i.referenceImages ?? []).slice(0, 9).forEach((ref, k) => { g[`ri${k}`] = { class_type: 'LoadImage', inputs: { image: ref } }; inputs[`ref_image_${k}`] = [`ri${k}`, 0]; });
-    (i.referenceAudio ?? []).slice(0, 3).forEach((ref, k) => { g[`ra${k}`] = { class_type: 'LoadAudio', inputs: { audio: ref } }; inputs[`ref_audio_${k}`] = [`ra${k}`, 0]; });
+    // the reference slots are ComfyUI v3 "autogrow" groups: the API key is the group and the slot joined by a dot
+    // (`ref_images.ref_image_0`), which the executor folds back into the nested dict the node reads
+    (i.referenceImages ?? []).slice(0, 9).forEach((ref, k) => { g[`ri${k}`] = { class_type: 'LoadImage', inputs: { image: ref } }; inputs[`ref_images.ref_image_${k}`] = [`ri${k}`, 0]; });
+    (i.referenceAudio ?? []).slice(0, 3).forEach((ref, k) => { g[`ra${k}`] = { class_type: 'LoadAudio', inputs: { audio: ref } }; inputs[`ref_audios.ref_audio_${k}`] = [`ra${k}`, 0]; });
     g['7'] = { class_type: 'MiniMaxH3ReferenceToVideo', inputs };
   } else {
     const inputs: Record<string, unknown> = { clip: ['2', 0], vae: ['3', 0], prompt: i.prompt, width: w, height: h, length };

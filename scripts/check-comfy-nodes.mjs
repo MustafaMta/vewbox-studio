@@ -10,7 +10,7 @@ const NEEDED = {
   // video: local MiniMax H3
   UNETLoader: ['unet_name', 'weight_dtype'], CLIPLoader: ['clip_name', 'type'], VAELoader: ['vae_name'], LoraLoaderModelOnly: ['model', 'lora_name', 'strength_model'],
   MiniMaxH3SigmaShift: ['model', 'shift_video', 'shift_audio'], MiniMaxH3ImageToVideo: ['clip', 'vae', 'prompt', 'width', 'height', 'length', 'first_frame', 'last_frame'],
-  MiniMaxH3ReferenceToVideo: ['clip', 'vae', 'audio_vae', 'prompt', 'width', 'height', 'length'],
+  MiniMaxH3ReferenceToVideo: ['clip', 'vae', 'audio_vae', 'prompt', 'width', 'height', 'length', 'ref_image_size', 'ref_images', 'ref_audios'],
   RandomNoise: ['noise_seed'], KSamplerSelect: ['sampler_name'], BasicScheduler: ['model', 'scheduler', 'steps', 'denoise'], BasicGuider: ['model', 'conditioning'],
   SamplerCustomAdvanced: ['noise', 'guider', 'sampler', 'sigmas', 'latent_image'], VAEDecode: ['samples', 'vae'], VAEDecodeAudio: ['samples', 'vae'],
   CreateVideo: ['images', 'audio', 'fps'], SaveVideo: ['video', 'filename_prefix', 'format', 'codec'], LoadImage: ['image'], LoadAudio: ['audio'],
