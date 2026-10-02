@@ -331,6 +331,8 @@ export interface CanonicalImage {
   check?: { ok: boolean; notes?: string[] };
   generatedAt: string;
   approvedAt?: string;
+  /** Set when the producer approved over a failed check, with the reason they gave. Gone with the next redraw. */
+  approvalOverride?: { reason: string; at: string };
 }
 
 /** What an asset is to the character system. CANONICAL: the character's canonical image. SECONDARY: optional material
@@ -438,6 +440,9 @@ export interface VideoUsage {
   takeLabel: string;
   recordedAt: string;
   status: 'IN_TAKE' | 'TAKE_REMOVED';
+  /** The canonical image version the character had when the take was recorded (absent: no canonical image yet, or
+   *  a record from before canonical images existed). */
+  canonicalImageVersion?: number;
 }
 
 /** Whether this character has ever been in a video. `known: false` means the history is not available (an imported

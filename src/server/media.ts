@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileTypeFromBuffer } from 'file-type';
 import { StudioError } from '@/domain/errors';
-import type { Asset, AssetKind } from '@/domain/types';
+import type { Asset, AssetKind, AssetTier } from '@/domain/types';
 import { env } from './env';
 import { log } from './log';
 
@@ -162,11 +162,13 @@ export async function freeSpace(dir = libraryRoot()): Promise<{ freeBytes: numbe
   return { freeBytes: Number(st.bavail) * Number(st.bsize), totalBytes: Number(st.blocks) * Number(st.bsize) };
 }
 
-/** The asset record fields the server fills for a stored file. */
-export function assetFromStored(id: string, stored: StoredFile, meta: { label: string; tags: string[]; origin: Asset['origin']; jobId?: string; provenance?: Record<string, unknown>; poster?: string }): Omit<Asset, 'createdAt'> {
+/** The asset record fields the server fills for a stored file. `tier` (character/location imagery only): SECONDARY
+ *  for optional material, RAW for intermediate output; CANONICAL is set by `setIdentityView`, not here. */
+export function assetFromStored(id: string, stored: StoredFile, meta: { label: string; tags: string[]; origin: Asset['origin']; jobId?: string; provenance?: Record<string, unknown>; poster?: string; tier?: Exclude<AssetTier, 'CANONICAL'> }): Omit<Asset, 'createdAt'> {
   return {
     id, kind: stored.kind, src: `/api/media/${id}`, poster: meta.poster, label: meta.label, tags: meta.tags, sample: false, origin: meta.origin, mimeType: stored.mime, bytes: stored.bytes, sha256: stored.sha256,
     width: stored.probe?.width, height: stored.probe?.height, durationSeconds: stored.probe?.durationSeconds, fps: stored.probe?.fps,
     provenance: { ...(meta.provenance ?? {}), path: stored.relPath, probe: stored.probe }, jobId: meta.jobId,
+    ...(meta.tier ? { tier: meta.tier } : {}),
   };
 }

@@ -1,5 +1,6 @@
 import type { Asset, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
 import type { Stage } from '@/domain/vocabulary';
+import { primaryImageOf } from '@/domain/identity';
 
 /** READING THE STUDIO — small pure helpers over the state, so pages ask questions in one line. */
 
@@ -11,6 +12,11 @@ export function assetById(s: StudioState, id: string | undefined | null): AssetV
   return { ...a, unavailable: Boolean(a.unavailable) };
 }
 export const assetSrc = (s: StudioState, id: string | undefined | null): string | undefined => assetById(s, id)?.src || undefined;
+
+/** A character's primary image (the FRONT full-body view; else the legacy portrait; else none) and the pack's state:
+ *  see src/domain/identity.ts. `primaryImageSrc` is the one-liner for a card or a hero. */
+export { identityStatusOf, isIdentityApproved, missingViews, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+export const primaryImageSrc = (s: StudioState, c: Pick<Character, 'identityPack' | 'portraitAssetId'>): string | undefined => assetSrc(s, primaryImageOf(c));
 export const characterById = (s: StudioState, id: string | undefined | null): Character | undefined => (id ? s.characters.find((c) => c.id === id) : undefined);
 export const locationById = (s: StudioState, id: string | undefined | null): Location | undefined => (id ? s.locations.find((l) => l.id === id) : undefined);
 export const showById = (s: StudioState, id: string | undefined | null): Show | undefined => (id ? s.shows.find((x) => x.id === id) : undefined);

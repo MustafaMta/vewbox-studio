@@ -1,5 +1,5 @@
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { Beat, Brief, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
+import type { Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
 import type { JobError, JobProgress } from '@/domain/jobs';
 
 /** THE DATABASE — the studio's source of truth. Shows, seasons, productions, scenes, shots, takes, characters,
@@ -7,6 +7,9 @@ import type { JobError, JobProgress } from '@/domain/jobs';
  *  a song) are JSON columns on their row. Jobs, their events and measurements live beside them. */
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string' });
+
+/** `characters.canonical_image`: the canonical image without its asset id (that is `canonical_asset_id`). */
+export type StoredCanonicalImage = Omit<CanonicalImage, 'assetId'>;
 
 export const shows = pgTable('shows', {
   id: text('id').primaryKey(),
@@ -168,6 +171,12 @@ export const characters = pgTable('characters', {
   pendingReference: jsonb('pending_reference').$type<PendingReference>(),
   canon: jsonb('canon').$type<NonNullable<import('@/domain/types').Character['canon']>>(),
   notes: text('notes'),
+  /** THE CANONICAL IMAGE (docs/CONTRACTS-IDENTITY-PACK.md v2): the one front full-body image as a column — queryable,
+   *  and the picture cannot be deleted from under the character (RESTRICT; the saver deletes asset rows last) — plus
+   *  status, version, how it was drawn, the check and the approval as JSON. The domain's `Character.canonicalImage`
+   *  is assembled from both (src/server/studio/canonical-image.ts). */
+  canonicalAssetId: text('canonical_asset_id').references(() => assets.id, { onDelete: 'restrict' }),
+  canonicalImage: jsonb('canonical_image').$type<StoredCanonicalImage>(),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -184,6 +193,8 @@ export const characterUsage = pgTable('character_usage', {
   takeLabel: text('take_label').notNull(),
   recordedAt: ts('recorded_at').notNull(),
   status: text('status').notNull().default('IN_TAKE'),
+  /** The canonical image version the character had when the take was recorded (null: none yet, or an older record). */
+  canonicalImageVersion: integer('canonical_image_version'),
 }, (t) => [uniqueIndex('character_usage_unique').on(t.characterId, t.shotId, t.takeId), index('character_usage_character_idx').on(t.characterId)]);
 
 export const locations = pgTable('locations', {
@@ -226,6 +237,8 @@ export const assets = pgTable('assets', {
   jobId: text('job_id'),
   /** Set by MEDIA_PROBE / the file sweep when the file behind the record cannot be read; the pages say so. */
   unavailable: boolean('unavailable').notNull().default(false),
+  /** Character/location imagery: CANONICAL (an identity view), SECONDARY, RAW; null for everything else. */
+  tier: text('tier'),
   createdAt: ts('created_at').notNull(),
 });
 
