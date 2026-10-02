@@ -53,7 +53,7 @@ export const api = {
   job: (id: string) => fetch(`/api/jobs/${encodeURIComponent(id)}`, { cache: 'no-store' }).then((r) => parse<{ job: Job; events: JobEvent[] }>(r)),
   startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}) => fetch('/api/jobs', jsonInit('POST', { type, payload, ...opts })).then((r) => parse<{ job: Job; created: boolean }>(r)),
   cancelJob: (id: string) => fetch(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }).then((r) => parse<{ job: Job }>(r)).then((r) => r.job),
-  retryJob: (id: string) => fetch(`/api/jobs/${encodeURIComponent(id)}/retry`, { method: 'POST' }).then((r) => parse<{ job: Job }>(r)).then((r) => r.job),
+  retryJob: (id: string, changeMade?: string) => fetch(`/api/jobs/${encodeURIComponent(id)}/retry`, changeMade ? jsonInit('POST', { changeMade }) : { method: 'POST' }).then((r) => parse<{ job: Job }>(r)).then((r) => r.job),
   proposal: (id: string) => fetch(`/api/proposals/${encodeURIComponent(id)}`, { cache: 'no-store' }).then((r) => parse<{ id: string; jobId: string | null; proposal: import('@/domain/types').IdeaProposal; request: unknown }>(r)),
   health: () => fetch('/api/health', { cache: 'no-store' }).then((r) => r.json()),
 };

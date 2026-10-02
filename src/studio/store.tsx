@@ -45,7 +45,7 @@ interface Api {
   activityTick: number;
   startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<Job>;
   cancelJob: (id: string) => Promise<Job>;
-  retryJob: (id: string) => Promise<Job>;
+  retryJob: (id: string, changeMade?: string) => Promise<Job>;
 }
 
 const Ctx = createContext<Api | null>(null);
@@ -192,7 +192,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     return r.job;
   }, []);
   const cancelJob = useCallback(async (id: string) => { const j = await api.cancelJob(id); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; }, []);
-  const retryJob = useCallback(async (id: string) => { const j = await api.retryJob(id); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; }, []);
+  const retryJob = useCallback(async (id: string, changeMade?: string) => { const j = await api.retryJob(id, changeMade); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; }, []);
 
   const clearError = useCallback(() => setLastError(null), []);
   const modified = ready && version !== seedVersion;

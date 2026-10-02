@@ -50,7 +50,7 @@ export default function JobsPage() {
                 {n.label && (n.href ? <Link href={n.href} className="truncate text-sm text-muted hover:text-fg" dir="auto">{n.label}</Link> : <span className="truncate text-sm text-muted" dir="auto">{n.label}</span>)}
                 <span className="ms-auto text-xs text-faint">{fmtAgo(j.createdAt, T.locale)}{j.attempts > 1 ? ` · ${T('jobs.attempt')} ${j.attempts}/${j.maxAttempts}` : ''}</span>
                 {!isTerminalStatus(j.status) && <Button size="xs" variant="ghost" icon={<IconClose />} disabled={j.cancelRequested} onClick={() => void cancelJob(j.id)}>{j.cancelRequested ? T('jobs.cancelRequested') : T('jobs.cancel')}</Button>}
-                {(j.status === 'FAILED' || j.status === 'CANCELLED') && <Button size="xs" variant="secondary" icon={<IconRetry />} onClick={() => void retryJob(j.id)}>{T('jobs.retry')}</Button>}
+                {(j.status === 'FAILED' || j.status === 'CANCELLED') && <Button size="xs" variant="secondary" icon={<IconRetry />} onClick={() => { const note = window.prompt(T('jobs.retryNote'), '') ?? undefined; void retryJob(j.id, note?.trim() || undefined); }}>{T('jobs.retry')}</Button>}
                 <Link href={open ? pathname : `${pathname}?job=${j.id}`} scroll={false} className="text-xs font-medium text-accent-text hover:underline">{T('jobs.details')}</Link>
               </div>
               {(j.progress?.message || j.error) && <p className={cls('mt-2 text-sm', j.error && j.status === 'FAILED' ? 'text-bad' : 'text-muted')} dir="auto">{j.status === 'FAILED' && j.error ? j.error.message : j.progress?.message}{j.progress?.step && j.progress.total ? ` (${j.progress.step}/${j.progress.total})` : ''}</p>}

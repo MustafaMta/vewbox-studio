@@ -689,6 +689,7 @@ const D = {
   'jobs.attempt': ['attempt', 'محاولة'],
   'jobs.cancel': ['Cancel', 'إلغاء'],
   'jobs.retry': ['Retry', 'إعادة المحاولة'],
+  'jobs.retryNote': ['What changed before this retry? (recorded with the failure; leave empty for a plain retry)', 'ما الذي تغيّر قبل إعادة المحاولة؟ (يُسجَّل مع الإخفاق؛ اتركه فارغاً لإعادة محاولة عادية)'],
   'jobs.details': ['Details', 'التفاصيل'],
   'jobs.events': ['Log', 'السجل'],
   'jobs.result': ['Result', 'النتيجة'],

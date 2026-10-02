@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  Studio pages, the API and the history all read the same organisation. Nothing here is decorative: an agent that
  *  owns no job type and no tool does not appear in the live activity, and the pages say so. */
 
-export const ORG_VERSION = 2;
+export const ORG_VERSION = 3;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -95,7 +95,8 @@ export const PIPELINE: StageDef[] = [
 // ---------------------------------------------------------------------------------------------------------- tools
 
 export const TOOLS: ToolDef[] = [
-  { id: 'story.structured_answer', name: 'Structured story answer', description: 'Ask the story model for one JSON object against a schema, with lenient repair rounds; returns validated data and the model’s usage.', version: '1.2.0', inputSchema: 'StructuredAnswerInput', outputSchema: 'StructuredAnswerOutput', permissions: ['llm'], timeoutMs: 180_000, resource: 'LLM', errors: ['PROVIDER', 'INVALID', 'UNAVAILABLE'] },
+  // 10 minutes: the local 14B model shares the card with image and video generation and slows down under them
+  { id: 'story.structured_answer', name: 'Structured story answer', description: 'Ask the story model for one JSON object against a schema, with lenient repair rounds; returns validated data and the model’s usage.', version: '1.2.1', inputSchema: 'StructuredAnswerInput', outputSchema: 'StructuredAnswerOutput', permissions: ['llm'], timeoutMs: 600_000, resource: 'LLM', errors: ['PROVIDER', 'INVALID', 'UNAVAILABLE'] },
   { id: 'image.generate', name: 'Generate a picture', description: 'Qwen-Image-2512 text-to-image in ComfyUI (Lightning, 8 steps).', version: '1.1.0', inputSchema: 'ImageGenerateInput', outputSchema: 'ImageOutput', permissions: ['gpu'], timeoutMs: 1_200_000, resource: 'GPU_IMAGE', vramMb: 20000, errors: ['PROVIDER', 'UNAVAILABLE'] },
   { id: 'image.edit_with_references', name: 'Draw from references', description: 'Qwen-Image-Edit-2511 with up to three reference pictures (identity, plate), in ComfyUI.', version: '1.1.0', inputSchema: 'ImageEditInput', outputSchema: 'ImageOutput', permissions: ['gpu'], timeoutMs: 1_200_000, resource: 'GPU_IMAGE', vramMb: 20000, errors: ['PROVIDER', 'UNAVAILABLE'] },
   { id: 'video.minimax_generate', name: 'Generate a MiniMax H3 clip', description: 'MiniMax H3 (the only video engine): first/last-frame or reference-to-video with pictures, audio and guides; local ComfyUI graphs or the hosted API when a key exists. Native stereo audio.', version: '2.0.0', inputSchema: 'VideoGenerateInput', outputSchema: 'VideoOutput', permissions: ['gpu', 'minimax'], timeoutMs: 5_400_000, resource: 'GPU_VIDEO', vramMb: 28000, errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED', 'INVALID'] },
