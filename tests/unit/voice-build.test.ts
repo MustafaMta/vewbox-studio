@@ -6,7 +6,7 @@ import type { Job } from '@/domain/jobs';
 /** VOICE_BUILD AND THE LINE HANDLERS with the engines mocked and the studio in memory (the real reducers run under
  *  the fake engine, so the batch semantics are the real ones). Nothing here touches the database, ffmpeg or the GPU. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null, asrAppend: '' }));
 
 vi.mock('@/server/studio/engine', async () => {
   const { runCommand } = await import('@/domain/commands');
@@ -25,7 +25,7 @@ vi.mock('@/server/providers/speech', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/server/providers/speech')>()),
   synthesize: async (i: Record<string, unknown>) => { fake.synth.push(i); return { file: `/tmp/fake/line-${fake.synth.length}.wav`, sampleRate: 24000, durationSeconds: 2.5, engine: i.engine as string, model: `${i.engine}-v1`, ms: 10 }; },
   // the fake listener hears exactly what was last synthesised, unless a test says otherwise (drift) or takes it away (outage)
-  transcribe: async (file: string, opts: { language?: string } = {}) => { fake.asr.push({ file, language: opts.language }); if (fake.asrFails) throw new Error('asr is not reachable'); const text = fake.asrHears ?? String(fake.synth.at(-1)?.text ?? ''); return { language: opts.language === 'ar' ? 'ar' : 'en', languageProbability: 0.99, duration: 2.5, text, segments: [{ start: 0, end: 2.5, text, words: text.split(' ').map((w, k) => ({ start: k * 0.3, end: k * 0.3 + 0.25, word: w, probability: 0.9 })) }], ms: 5, model: 'fake' }; },
+  transcribe: async (file: string, opts: { language?: string } = {}) => { fake.asr.push({ file, language: opts.language }); if (fake.asrFails) throw new Error('asr is not reachable'); const text = (fake.asrHears ?? String(fake.synth.at(-1)?.text ?? '')) + fake.asrAppend; return { language: opts.language === 'ar' ? 'ar' : 'en', languageProbability: 0.99, duration: 2.5, text, segments: [{ start: 0, end: 2.5, text, words: text.split(' ').map((w, k) => ({ start: k * 0.3, end: k * 0.3 + 0.25, word: w, probability: 0.9 })) }], ms: 5, model: 'fake' }; },
   unloadTts: async () => {}, unloadAsr: async () => {},
 }));
 vi.mock('@/server/providers/minimax', () => ({ speak: async () => { throw new Error('unused'); }, cloneVoice: async () => { throw new Error('unused'); } }));
@@ -36,7 +36,8 @@ vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f
 
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording, addVoiceSample, selectVoiceSample, updateCharacter } from '@/domain/actions';
-import { lineLanguage, lineRecordingCurrent, lineScript, pickReference, routeLine, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
+import { judgeHeard, lineLanguage, lineRecordingCurrent, lineScript, pickReference, routeLine, shouldRegenerate, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
+import { lineScript as suiteLineScript, routeLine as suiteRoute } from '@/server/providers/speech';
 import type { HandlerContext } from '@/worker/handlers';
 
 const ch = (id: string): Character => fake.state.characters.find((c) => c.id === id)!;
@@ -57,27 +58,63 @@ function prepare(opts: { language?: 'EN' | 'AR'; dialect?: 'IRAQI_BAGHDADI' | 'M
   return ch('nour').voice.samples.at(-1)!;
 }
 
-beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; });
+beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; fake.asrAppend = ''; });
 
-describe('routing parity (pure)', () => {
-  it('detects the script of a line and the language it is spoken and heard in', () => {
-    expect(lineScript('شلونك اليوم؟')).toBe('AR'); expect(lineScript('Hello there')).toBe('LATIN'); expect(lineScript('اني اروح لل Google')).toBe('MIXED'); expect(lineScript('42 — ...')).toBe('NONE'); expect(lineScript('')).toBe('NONE');
-    expect(lineLanguage('شلونك', 'EN')).toBe('AR'); expect(lineLanguage('Hello', 'AR')).toBe('EN'); expect(lineLanguage('42', 'AR')).toBe('AR'); expect(lineLanguage('مرحبا Google', 'AR')).toBe('AR');
+describe('routing parity (pure): the worker routes with THE rule the Iraqi suite uses', () => {
+  const iraqi = { language: 'AR', dialect: 'IRAQI_BAGHDADI', voice: { pitch: 'MID', pace: 'MEASURED', timbre: '', notes: '', samples: [], identity: { provider: 'LOCAL_TTS', model: 'habibi', mode: 'REFERENCE', language: 'AR', dialect: 'IRAQI_BAGHDADI', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, createdAt: 'x' } } } as unknown as Character;
+  const en = { ...iraqi, language: 'EN', dialect: undefined, voice: { ...iraqi.voice, identity: { ...iraqi.voice.identity!, model: 'indextts', language: 'EN', dialect: undefined } } } as unknown as Character;
+  const none = { ...iraqi, voice: { ...iraqi.voice, identity: undefined } } as unknown as Character;
+  const LINES = ['هلا بيك', 'Hello friend', 'هلا بيك Google', 'شغّل الـ wifi وافتح الـ app', 'I said مرحبا to her twice', 'Hello، world', 'Hello, my friend، see you at ٢٥ past', '…', '12:30', 'A سمير', ''];
+
+  it('worker routeLine (adapter) == speech.routeLine (the suite’s) for every line and every character: same engine, same heard language', () => {
+    for (const c of [iraqi, en, none]) for (const text of LINES) {
+      const pinned = c.voice.identity?.model as 'habibi' | 'indextts' | undefined;
+      const rule = suiteRoute(text, c.language, c.dialect, pinned);
+      const worker = routeLine(c, text);
+      expect({ text, engine: worker.engine, language: worker.language, script: worker.script }).toEqual({ text, engine: rule.engine, language: rule.asrLanguage === 'ar' ? 'AR' : 'EN', script: rule.script });
+      expect(Boolean(worker.fallback)).toBe(Boolean(rule.fallback));
+      expect(lineLanguage(text, c.language)).toBe(suiteRoute(text, c.language).asrLanguage === 'ar' ? 'AR' : 'EN');
+    }
+    expect(lineScript).toBe(suiteLineScript); // one implementation, re-exported
   });
-  it('an Arabic line goes to the character’s Arabic engine, Latin-only to IndexTTS, mixed to IndexTTS with the fallback named; the pinned model is untouched', () => {
-    const iraqi = { language: 'AR', dialect: 'IRAQI_BAGHDADI', voice: { pitch: 'MID', pace: 'MEASURED', timbre: '', notes: '', samples: [], identity: { provider: 'LOCAL_TTS', model: 'habibi', mode: 'REFERENCE', language: 'AR', dialect: 'IRAQI_BAGHDADI', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, createdAt: 'x' } } } as unknown as Character;
+  it('an Arabic comma or Arabic digits do not flip an English line; a mixed line is heard in the language most of it is in', () => {
+    expect(routeLine(iraqi, 'Hello، world')).toMatchObject({ script: 'LATIN', engine: 'indextts', language: 'EN' });
+    expect(routeLine(en, 'Hello, my friend، see you at ٢٥ past')).toMatchObject({ script: 'LATIN', language: 'EN' });
+    expect(lineLanguage('Hello، world', 'AR')).toBe('EN');
+    expect(routeLine(iraqi, 'شغّل الـ wifi وافتح الـ app')).toMatchObject({ engine: 'indextts', language: 'AR' });
+    expect(routeLine(en, 'I said مرحبا to her twice')).toMatchObject({ script: 'MIXED', engine: 'indextts', language: 'EN' });
+  });
+  it('an Arabic line goes to the pinned Arabic engine, Latin-only and mixed to IndexTTS with the fallback named; the pinned model is untouched', () => {
     expect(routeLine(iraqi, 'هلا بيك')).toMatchObject({ engine: 'habibi', language: 'AR' }); expect(routeLine(iraqi, 'هلا بيك').fallback).toBeUndefined();
-    expect(routeLine(iraqi, 'Hello friend')).toMatchObject({ engine: 'indextts', language: 'EN' }); expect(routeLine(iraqi, 'Hello friend').fallback).toMatch(/IndexTTS/);
-    expect(routeLine(iraqi, 'هلا بيك Google')).toMatchObject({ engine: 'indextts', language: 'AR' }); expect(routeLine(iraqi, 'هلا بيك Google').fallback).toMatch(/mixed/);
+    expect(routeLine(iraqi, 'Hello friend')).toMatchObject({ engine: 'indextts', language: 'EN' }); expect(routeLine(iraqi, 'Hello friend').fallback).toMatch(/indextts/);
+    expect(routeLine(iraqi, 'هلا بيك Google').fallback).toMatch(/mixed/);
     expect(routeLine(iraqi, '…')).toMatchObject({ engine: 'habibi', language: 'AR' });
     expect(iraqi.voice.identity!.model).toBe('habibi');
-    // an English character (indextts pinned) given an Arabic line: the engine its dialect calls for (none → indextts), heard in Arabic
-    const en = { ...iraqi, language: 'EN', dialect: undefined, voice: { ...iraqi.voice, identity: { ...iraqi.voice.identity!, model: 'indextts', language: 'EN', dialect: undefined } } } as unknown as Character;
+    // an English character (indextts pinned) given an Arabic line: its own engine, heard in Arabic
     expect(routeLine(en, 'شلونك')).toMatchObject({ engine: 'indextts', language: 'AR' });
-    // no identity yet: the dialect decides
-    const none = { ...iraqi, voice: { ...iraqi.voice, identity: undefined } } as unknown as Character;
-    expect(routeLine(none, 'هلا')).toMatchObject({ engine: 'habibi' }); expect(routeLine(none, 'hi there')).toMatchObject({ engine: 'indextts' }); expect(routeLine(none, 'hi there').fallback).toBeUndefined();
+    // no identity yet: the dialect decides (and a Latin line names its switch away from the Iraqi engine)
+    expect(routeLine(none, 'هلا')).toMatchObject({ engine: 'habibi' }); expect(routeLine(none, 'hi there')).toMatchObject({ engine: 'indextts' });
+    // a STALE identity of another language does not decide
+    const switched = { ...en, language: 'AR', dialect: 'IRAQI_BAGHDADI' } as unknown as Character;
+    expect(routeLine(switched, 'هلا')).toMatchObject({ engine: 'habibi' });
     expect(speedForPace('SLOW')).toBe(0.9); expect(speedForPace('MEASURED')).toBe(1); expect(speedForPace('QUICK')).toBe(1.12);
+  });
+});
+
+describe('the CER gate (contract §1.4)', () => {
+  it('a line heard with every word but far off in characters is not passed; a dialect spelling is', () => {
+    const padded = judgeHeard('Hello. My name is Nour, and this is my voice.', 'Hello. My name is Nour, and this is my voice. thank you so much for watching', 'EN');
+    expect(padded.coverage).toBe(1); expect(padded.cer).toBeGreaterThan(0.15);
+    expect(padded).toMatchObject({ ok: false }); expect(padded.status).not.toBe('PASS'); expect(padded.reasons.join(' ')).toMatch(/CER/);
+    const iraqiSpelling = judgeHeard('ليش ما گلتلي من البداية؟', 'ليش ماقلتلي من البداية؟', 'AR');
+    expect(iraqiSpelling).toMatchObject({ ok: true, status: 'PASS', cer: 0, coverage: 1 });
+    expect(judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR')).toMatchObject({ ok: false, status: 'FAIL' });
+    expect(shouldRegenerate(judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR'))).toBe(true);
+    expect(shouldRegenerate(padded)).toBe(padded.status === 'FAIL');
+    expect(shouldRegenerate(null)).toBe(false);
+    // a take's clip passes at a lower coverage than a recorded line
+    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'take').status).toBe('PASS');
+    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'line').status).toBe('REVIEW');
   });
 });
 
@@ -183,6 +220,22 @@ describe('VOICE_BUILD', () => {
     expect(ch('nour').voice.identity).toMatchObject({ status: 'REVIEW' });
     expect(ch('nour').voice.identity!.proof!.coverage).toBeUndefined();
   });
+  it('the proof is gated on CER too: every word heard but far off in characters is REVIEW, and proof.cer is recorded', async () => {
+    prepare({ text: 'x y z' });
+    fake.asrAppend = ' thank you so much for watching and see you next time';
+    const r = await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }));
+    const proof = ch('nour').voice.identity!.proof!;
+    expect(proof.coverage).toBe(1);
+    expect(proof.cer).toBeGreaterThan(0.15);
+    expect(ch('nour').voice.identity!.status).toBe('REVIEW');
+    expect(r?.awaitingReview).toBe(true);
+    // a clean proof records its CER as well
+    prepare({ text: 'x y z' });
+    fake.asrAppend = '';
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' }, id: 'job-vb-clean' }));
+    expect(ch('nour').voice.identity!.proof).toMatchObject({ cer: 0, coverage: 1 });
+    expect(ch('nour').voice.identity!.status).toBe('ACTIVE');
+  });
   it('a drifted proof line (low coverage) is REVIEW too', async () => {
     prepare({ text: 'x y z' });
     fake.asrHears = 'something else entirely';
@@ -221,6 +274,26 @@ describe('speakLine on a built voice', () => {
     expect(ch('nour').voice.identity!.model).toBe('habibi');
     // every line carries the pinned parameters
     expect(fake.synth.every((s) => s.speed === 1 && s.seed === ch('nour').voice.identity!.params.seed)).toBe(true);
+  });
+});
+
+describe('DIALOGUE_AUDIO and the gate', () => {
+  it('a line that FAILS is spoken once more; one just below the gate (REVIEW) is kept and flagged for a person', async () => {
+    prepare({ text: 'x y z' });
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }));
+    const p = fake.state.productions.find((x) => x.id === 'river-lights')!;
+    fake.state = { ...fake.state, productions: fake.state.productions.map((x) => (x.id === p.id ? { ...x, kind: 'SHORT', castIds: ['nour'], shots: x.shots.slice(0, 1).map((sh) => ({ ...sh, characterIds: ['nour'], dialogue: [{ id: 'l1', characterId: 'nour', text: 'one two three four five six seven' }] })) } : x)) };
+    fake.synth = [];
+    fake.asrHears = 'one two three four five six'; // coverage 0.86, CER 0.18: REVIEW
+    const review = await dialogueAudio(ctxFor({ payload: { productionId: p.id }, type: 'DIALOGUE_AUDIO' }));
+    expect(fake.synth).toHaveLength(1);
+    expect(review).toMatchObject({ lines: 1, flagged: 1, awaitingReview: true });
+    fake.synth = [];
+    fake.asrHears = 'nothing like it at all'; // FAIL
+    const failed = await dialogueAudio(ctxFor({ payload: { productionId: p.id, force: true }, type: 'DIALOGUE_AUDIO' }));
+    expect(fake.synth).toHaveLength(2);
+    expect(failed).toMatchObject({ lines: 1, flagged: 1 });
+    expect(fake.events.some((e) => /failed the gate/.test(e.message))).toBe(true);
   });
 });
 

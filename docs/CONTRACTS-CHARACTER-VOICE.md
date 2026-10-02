@@ -135,6 +135,12 @@ this file decides what lands now; the rest is backlog.
   after an Arabic dialect fold (گ↔ق/ك, چ↔ج/ك, ـه/ـة, ى/ي, hamza forms, diacritics, Iraqi spellings table). `verifyLine`
   on an ASR outage marks the line `REVIEW` (never passes it silently). (Voice owns `speech.ts` metrics; Backend applies
   them in handlers.)
+  *Wave-2 fix (review findings 4, 5):* one routing rule — `lineScript`/`routeLine` in `speech.ts` (punctuation and
+  digits are not script, so «،» does not flip an English line; a mixed line is heard in the language most of its
+  letters are in); `voice.ts` routes through a thin adapter that adds the pinned engine, and the suite calls the rule
+  directly. The gate is `judgeHeard`/`verifyLine` in `voice.ts` over `verdict()`: PASS needs coverage AND CER; FAIL is
+  regenerated once (`shouldRegenerate`), REVIEW is flagged for a person; `proof.cer` is recorded and the take's QA
+  report carries a `character-error-rate` row.
 - Dialogue reuse: a take records a line only when `d.audioAssetId` is missing or stale (identity revision changed);
   recorded lines are written back with `setDialogueAudio`; the take's soundtrack is joined from the stored lines.
   (Backend)

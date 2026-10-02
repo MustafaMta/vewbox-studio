@@ -11,7 +11,7 @@ import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, removeFile } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { REFERENCE_WINDOW, analyseSilence, chooseWindow, parseSilences, staticGainDb, trimReference } from '@/server/studio/voice-reference';
-import { pickEngine, scriptCoverage, synthesize, transcribe, wordErrorRate, type TtsEngine } from '@/server/providers/speech';
+import { VOICE_GATES, charErrorRate, lineScript, pickEngine, routeLine as routeLineByScript, scriptCoverage, synthesize, transcribe, verdict, wordErrorRate, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -33,42 +33,40 @@ registerUnloader('ASR', unloadAsr);
 const TTS_VRAM = 8000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
-/** Gates (contract §1.4): a recorded line must cover this much of its script, in order; WER is reported, not gated.
- *  CER after the dialect fold joins the gate when the Voice agent's metric lands in speech.ts. */
-export const LINE_COVERAGE = 0.85;
-export const PROOF_COVERAGE = 0.85;
+/** Gates (contract §1.4, `VOICE_GATES` in speech.ts): a recorded line (and the proof line) must cover this much of
+ *  its script, in order, AND be within CER ≤ 0.15 after the dialect fold; a take's clip ≥ 0.7 with the same CER.
+ *  WER is reported, not gated. */
+export const LINE_COVERAGE = VOICE_GATES.coverage.line;
+export const PROOF_COVERAGE = VOICE_GATES.coverage.line;
+export const TAKE_COVERAGE = VOICE_GATES.coverage.take;
 export { REFERENCE_WINDOW, chooseWindow, parseSilences, staticGainDb, analyseSilence, trimReference };
 
 // ----------------------------------------------------------------------------------------------- pure helpers
 
-/** Which script a line is written in: Arabic letters only, Latin letters only, both, or neither (numerals, marks). */
-export function lineScript(text: string): 'AR' | 'LATIN' | 'MIXED' | 'NONE' {
-  const ar = /[؀-ۿݐ-ݿ]/.test(text);
-  const latin = /[A-Za-z]{2,}/.test(text);
-  return ar && latin ? 'MIXED' : ar ? 'AR' : latin ? 'LATIN' : 'NONE';
-}
+export { lineScript };
 
-/** The language a line is spoken and verified in: its script decides; a line with no letters follows the character. */
-export function lineLanguage(text: string, fallback: Language): Language {
-  const s = lineScript(text);
-  return s === 'AR' ? 'AR' : s === 'LATIN' ? 'EN' : fallback;
-}
+export interface LineRoute { engine: Exclude<TtsEngine, 'auto'>; language: Language; script: LineScript; /** set when the line left the character's engine: the reason, for the job event */ fallback?: string }
 
-export interface LineRoute { engine: Exclude<TtsEngine, 'auto'>; language: Language; script: ReturnType<typeof lineScript>; /** set when the line left the identity's engine: the reason, for the job event */ fallback?: string }
-
-/** ROUTING PARITY — the engine and the verification language follow the line's script, identically in every
- *  handler: Arabic script → the character's Arabic engine (the pinned one when the identity is Arabic, else the
- *  one its dialect calls for); Latin only → IndexTTS; mixed → IndexTTS with the fallback named. The identity's
- *  `model` is never rewritten by a fallback. */
-export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string): LineRoute {
-  const script = lineScript(text);
+/** The engine a character's identity pins, when it is a local engine built for the language the character speaks
+ *  now (a STALE identity of another language does not decide). */
+const pinnedEngine = (c: Pick<Character, 'language' | 'voice'>): 'habibi' | 'indextts' | undefined => {
   const id = c.voice.identity;
-  const pinned = id?.provider === 'LOCAL_TTS' && (id.model === 'habibi' || id.model === 'indextts') ? (id.model as 'habibi' | 'indextts') : undefined;
-  const arabicEngine = id?.language === 'AR' && pinned ? pinned : pickEngine('AR', c.dialect);
-  if (script === 'AR') return { engine: arabicEngine, language: 'AR', script };
-  if (script === 'LATIN') return { engine: 'indextts', language: 'EN', script, fallback: pinned === 'habibi' ? 'Latin-only line: the Iraqi engine has no English, spoken by IndexTTS with the same reference' : undefined };
-  if (script === 'MIXED') return { engine: 'indextts', language: c.language, script, fallback: pinned === 'habibi' ? 'mixed-script line: spoken by IndexTTS (bilingual) instead of the Iraqi engine, same reference' : undefined };
-  return { engine: pinned ?? pickEngine(c.language, c.dialect), language: c.language, script };
+  return id?.provider === 'LOCAL_TTS' && id.language === c.language && (id.model === 'habibi' || id.model === 'indextts') ? id.model : undefined;
+};
+
+/** ROUTING PARITY — a thin adapter over THE routing rule (`routeLine` in src/server/providers/speech.ts, which the
+ *  Iraqi suite uses too): the engine and the verification language follow the line's script — Arabic script → the
+ *  character's engine (the pinned one); Latin only → IndexTTS; mixed → IndexTTS, heard in the language most of its
+ *  letters are in; the fallback is named for the job event. The identity's `model` is never rewritten. */
+export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string): LineRoute {
+  const r = routeLineByScript(text, c.language, c.dialect, pinnedEngine(c));
+  return { engine: r.engine, language: r.asrLanguage === 'ar' ? 'AR' : 'EN', script: r.script, fallback: r.fallback ? `${r.fallback} (same reference)` : undefined };
+}
+
+/** The language a line is spoken and verified in: its script decides; a line with no letters follows the character
+ *  (or the production) — `routeLine`'s verification language. */
+export function lineLanguage(text: string, fallback: Language): Language {
+  return routeLineByScript(text, fallback).asrLanguage === 'ar' ? 'AR' : 'EN';
 }
 
 /** The profile's pace as the engine's speed factor. */
@@ -172,15 +170,29 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };
 }
 
-export interface LineCheck { ok: boolean; wer: number; coverage: number; heard: string }
+/** What hearing a line back proved. `ok` only on PASS (coverage AND CER within the gate); `status` is the contract's
+ *  verdict — FAIL is regenerated once, REVIEW (just below the gate) goes to a person. */
+export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string }
 
-/** Say the line back: transcribe in the line's language and compare. `null` means the line could not be heard
- *  back (the transcription service was away): callers treat that as unverified — flagged for review, never passed. */
-export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, gate = LINE_COVERAGE): Promise<LineCheck | null> {
+/** THE GATE (contract §1.4) on a line and what was heard: coverage over folded words, CER after the dialect fold,
+ *  WER for the report — and the verdict for a recorded line ('line') or a take's clip ('take'). Pure. */
+export function judgeHeard(text: string, heard: string, language: Language, context: 'line' | 'take' = 'line'): LineCheck {
+  const coverage = scriptCoverage(text, heard, language);
+  const cer = charErrorRate(text, heard, language);
+  const v = verdict({ coverage, cer, context });
+  return { ok: v.status === 'PASS', status: v.status, reasons: v.reasons, wer: wordErrorRate(text, heard, language), cer, coverage, heard };
+}
+
+/** A heard line that failed the gate outright is spoken once more; one just below the gate is kept and flagged for a
+ *  person to listen to; an unheard one (null) is flagged too. */
+export const shouldRegenerate = (check: LineCheck | null): boolean => check?.status === 'FAIL';
+
+/** Say the line back: transcribe in the line's language and judge it (`judgeHeard`). `null` means the line could not
+ *  be heard back (the transcription service was away): callers treat that as unverified — flagged, never passed. */
+export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, context: 'line' | 'take' = 'line'): Promise<LineCheck | null> {
   try {
     const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(file, { language: language === 'AR' ? 'ar' : 'en' }), { label: 'verify line' }), { jobId: ctx.job.id });
-    const coverage = scriptCoverage(text, t.text, language);
-    return { ok: coverage >= gate, wer: wordErrorRate(text, t.text, language), coverage, heard: t.text };
+    return judgeHeard(text, t.text, language, context);
   } catch (e) { await ctx.event('warn', `transcription unavailable; the line is flagged for review: ${(e as Error).message}`); return null; }
 }
 
@@ -236,7 +248,8 @@ export const voiceBuild: Handler = async (ctx) => {
   const text = proofLineFor(c);
   await ctx.progress('GENERATING', { phase: 'speaking', message: 'Speaking a proof line' });
   const line = await speakLine(ctx, trial, text, ref, dir);
-  const check = await verifyLine(ctx, line.file, text, line.language, PROOF_COVERAGE);
+  // the proof is a recorded line: coverage ≥ 0.85 and CER ≤ 0.15 (anything else, or unheard, is REVIEW)
+  const check = await verifyLine(ctx, line.file, text, line.language, 'line');
   const status: VoiceIdentity['status'] = check?.ok ? 'ACTIVE' : 'REVIEW';
 
   // 4) into the studio in one batch: the audio first, then its sample, then the identity that cites both
@@ -244,7 +257,7 @@ export const voiceBuild: Handler = async (ctx) => {
   const stored = await adoptFile(assetId, line.file, { expectKind: 'AUDIO' });
   const identity: VoiceIdentityInput = {
     ...head, mode, referenceSampleId: ref?.sample?.id, referenceAssetId: ref?.asset.id, referenceWindow: ref?.window?.assetId ? { from: ref.window.from, to: ref.window.to, assetId: ref.window.assetId } : undefined, referenceText: ref?.text,
-    language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
+    language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, cer: check?.cer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
   };
   try {
     await commands([
@@ -256,8 +269,8 @@ export const voiceBuild: Handler = async (ctx) => {
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await recordMetric('voice.build_ms', line.ms, 'ms', { engine: line.engine }, ctx.job.id);
   // the voice is handed to the production only with its proof: a line spoken and heard back
-  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-coverage', ok: Boolean(check?.ok), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE }, { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' }], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()})` });
-  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard` : 'not verified — review'}`, { characterId: c.id, engine: line.engine, coverage: check?.coverage, wer: check?.wer, status });
+  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-coverage', ok: Boolean(check && check.coverage >= PROOF_COVERAGE), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE }, { name: 'proof-line-cer', ok: Boolean(check && check.cer <= VOICE_GATES.cer), value: check ? Number(check.cer.toFixed(2)) : undefined, threshold: VOICE_GATES.cer, detail: 'character error rate after the dialect fold' }, { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' }], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()})${check?.reasons.length ? `; ${check.reasons.join('; ')}` : ''}` });
+  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard, CER ${Math.round(check.cer * 100)} %${check.ok ? '' : ' — review'}` : 'not verified — review'}`, { characterId: c.id, engine: line.engine, coverage: check?.coverage, cer: check?.cer, wer: check?.wer, status });
   return { identity: { ...head, mode, status, referenceAssetId: ref?.asset.id, params }, sampleAssetId: assetId, proofSampleId: sampleId, engine: line.engine, check, awaitingReview: status !== 'ACTIVE' };
 };
 
@@ -317,7 +330,7 @@ export const dialogueAudio: Handler = async (ctx) => {
     await ctx.progress('GENERATING', { phase: 'recording', message: `${c.name}: “${text.slice(0, 40)}”`, step: done + 1, total: lines.length });
     let line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery });
     let check = await verifyLine(ctx, line.file, text, line.language);
-    if (check && !check.ok) { await ctx.event('warn', `line drifted (${Math.round(check.coverage * 100)} % heard, WER ${(check.wer * 100).toFixed(0)} %), regenerating once`, { heard: check.heard }); line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+    if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
     if (check === null) unverified++; else if (!check.ok) flagged++;
     const id = nid('gen');
     const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
@@ -332,7 +345,7 @@ export const dialogueAudio: Handler = async (ctx) => {
   // the dialogue is handed to Video Production: every requested line recorded, flagged lines named
   const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
   const missing = fresh.shots.flatMap((sh) => sh.dialogue.filter((d) => !d.audioAssetId)).length;
-  await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.flatMap((sh) => sh.dialogue.map((d) => d.audioAssetId).filter((x): x is string => Boolean(x))), outputVersions: { lines: done }, validation: { ok: missing === 0 && flagged === 0 && unverified === 0, checks: [{ name: 'every-line-recorded', ok: missing === 0, detail: missing ? `${missing} line(s) without a recording` : undefined }, { name: 'no-line-flagged', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted from the script (coverage < ${LINE_COVERAGE})` : undefined }, { name: 'every-line-heard-back', ok: unverified === 0, detail: unverified ? `${unverified} line(s) could not be transcribed; review them` : undefined }] }, jobId: ctx.job.id });
+  await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.flatMap((sh) => sh.dialogue.map((d) => d.audioAssetId).filter((x): x is string => Boolean(x))), outputVersions: { lines: done }, validation: { ok: missing === 0 && flagged === 0 && unverified === 0, checks: [{ name: 'every-line-recorded', ok: missing === 0, detail: missing ? `${missing} line(s) without a recording` : undefined }, { name: 'no-line-flagged', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted from the script (coverage < ${LINE_COVERAGE} or CER > ${VOICE_GATES.cer})` : undefined }, { name: 'every-line-heard-back', ok: unverified === 0, detail: unverified ? `${unverified} line(s) could not be transcribed; review them` : undefined }] }, jobId: ctx.job.id });
   await ctx.activity('DIALOGUE_RECORDED', `${done} line(s) recorded for “${p.title}”${flagged ? `, ${flagged} flagged for review` : ''}${unverified ? `, ${unverified} not heard back` : ''}`, { lines: done, flagged, unverified });
   return { lines: done, flagged, unverified, awaitingReview: flagged > 0 || unverified > 0 };
 };
