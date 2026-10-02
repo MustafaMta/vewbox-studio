@@ -8,8 +8,8 @@ import type { Language } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, fileFor, removeFile } from '@/server/media';
-import { tmpDir } from '@/server/media/ffmpeg';
+import { adoptFile, assetFromStored, ffprobe, fileFor, removeFile } from '@/server/media';
+import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
 import { engineOutputTag, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, charErrorRate, lineScript, pickEngine, routeLine as routeLineByScript, scriptCoverage, synthesize, transcribe, verdict, wordErrorRate, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
@@ -67,6 +67,20 @@ export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, 
  *  (or the production) — `routeLine`'s verification language. */
 export function lineLanguage(text: string, fallback: Language): Language {
   return routeLineByScript(text, fallback).asrLanguage === 'ar' ? 'AR' : 'EN';
+}
+
+/** What the hosted clone (MiniMax) takes: the ORIGINAL recording, 10 s – 5 min, at most 20 MB, mp3/m4a/wav
+ *  (VOICE-STACK §3). The trimmed ≤ 12 s window the local engines use is not it (finding 11). */
+export const MINIMAX_CLONE = { minSeconds: 10, maxSeconds: 300, maxBytes: 20 * 1024 * 1024, types: ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac'] as readonly string[] };
+
+/** Why an original recording cannot be sent to the hosted clone, or null. Pure. */
+export function minimaxCloneProblem(a: Pick<Asset, 'durationSeconds' | 'bytes'>): string | null {
+  const d = a.durationSeconds;
+  if (d === undefined || !Number.isFinite(d)) return 'its length could not be read';
+  if (d < MINIMAX_CLONE.minSeconds) return `it is ${d.toFixed(1)} s long; the hosted clone needs at least ${MINIMAX_CLONE.minSeconds} s`;
+  if (d > MINIMAX_CLONE.maxSeconds) return `it is ${Math.round(d)} s long; the hosted clone takes at most ${MINIMAX_CLONE.maxSeconds / 60} min`;
+  if (a.bytes !== undefined && a.bytes > MINIMAX_CLONE.maxBytes) return `it is ${(a.bytes / 1024 / 1024).toFixed(1)} MB; the hosted clone takes at most 20 MB`;
+  return null;
 }
 
 /** The profile's pace as the engine's speed factor. */
@@ -241,9 +255,16 @@ export const voiceBuild: Handler = async (ctx) => {
   if (useMinimax) {
     if (mode === 'MANUAL') head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: payload.providerVoiceId };
     else {
+      // the hosted clone hears the ORIGINAL upload (10 s – 5 min), never the trimmed ≤ 12 s window; one that cannot
+      // qualify is refused before anything is sent
+      const original = ref!.asset;
+      const problem = minimaxCloneProblem({ durationSeconds: original.durationSeconds ?? (await ffprobe(assetFile(original)).catch(() => undefined))?.durationSeconds, bytes: original.bytes });
+      if (problem) throw new StudioError('INVALID', `The hosted voice clone (MiniMax) needs the original recording to be 10 s – 5 min and at most 20 MB: “${ref!.sample?.label ?? original.label}” — ${problem}. Upload a longer recording, or build the voice with the local engines.`, { failureClass: 'INVALID_INPUT', characterId: c.id, assetId: original.id, durationSeconds: original.durationSeconds });
+      let cloneFrom = assetFile(original);
+      if (!MINIMAX_CLONE.types.includes(original.mimeType ?? '')) { const wav = path.join(dir, `clone-${original.id}.wav`); await ffmpeg(['-v', 'error', '-i', cloneFrom, '-vn', '-c:a', 'pcm_s16le', wav], { timeoutMs: 120_000 }); cloneFrom = wav; }
       await ctx.progress('GENERATING', { phase: 'cloning', message: 'Cloning the voice with MiniMax' });
       const voiceId = `vb_${c.id.replace(/[^a-z0-9]/gi, '').slice(0, 20)}_${Date.now().toString(36)}`;
-      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: ref!.file, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
+      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: cloneFrom, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
       head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: r.voiceId };
     }
   } else {

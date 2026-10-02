@@ -6,7 +6,7 @@ import type { Job } from '@/domain/jobs';
 /** VOICE_BUILD AND THE LINE HANDLERS with the engines mocked and the studio in memory (the real reducers run under
  *  the fake engine, so the batch semantics are the real ones). Nothing here touches the database, ffmpeg or the GPU. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null, asrAppend: '', engineFiles: new Set<string>() }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, events: [] as Array<{ level: string; message: string; data?: Record<string, unknown> }>, removed: [] as string[], synth: [] as Array<Record<string, unknown>>, asr: [] as Array<{ file: string; language?: string }>, asrFails: false, asrHears: null as string | null, asrAppend: '', engineFiles: new Set<string>(), minimaxKey: '', cloned: [] as string[] }));
 
 vi.mock('@/server/studio/engine', async () => {
   const { runCommand } = await import('@/domain/commands');
@@ -30,15 +30,15 @@ vi.mock('@/server/providers/speech', async (importOriginal) => ({
   transcribe: async (file: string, opts: { language?: string } = {}) => { fake.asr.push({ file, language: opts.language }); if (fake.asrFails) throw new Error('asr is not reachable'); const text = (fake.asrHears ?? String(fake.synth.at(-1)?.text ?? '')) + fake.asrAppend; return { language: opts.language === 'ar' ? 'ar' : 'en', languageProbability: 0.99, duration: 2.5, text, segments: [{ start: 0, end: 2.5, text, words: text.split(' ').map((w, k) => ({ start: k * 0.3, end: k * 0.3 + 0.25, word: w, probability: 0.9 })) }], ms: 5, model: 'fake' }; },
   unloadTts: async () => {}, unloadAsr: async () => {},
 }));
-vi.mock('@/server/providers/minimax', () => ({ speak: async () => { throw new Error('unused'); }, cloneVoice: async () => { throw new Error('unused'); } }));
-vi.mock('@/server/env', () => ({ env: () => ({ MINIMAX_API_KEY: '', MINIMAX_SPEECH_MODEL: 'speech-2.8-hd', TTS_URL: 'http://tts', TTS_HABIBI_URL: 'http://habibi', ASR_URL: 'http://asr', CODE_VERSION: 'test' }) }));
+vi.mock('@/server/providers/minimax', () => ({ speak: async () => { throw new Error('unused'); }, cloneVoice: async (i: { file: string }) => { fake.cloned.push(i.file); throw new Error('stop after the clone request'); } }));
+vi.mock('@/server/env', () => ({ env: () => ({ MINIMAX_API_KEY: fake.minimaxKey, MINIMAX_SPEECH_MODEL: 'speech-2.8-hd', TTS_URL: 'http://tts', TTS_HABIBI_URL: 'http://habibi', ASR_URL: 'http://asr', CODE_VERSION: 'test' }) }));
 vi.mock('@/server/jobs/queue', () => ({ recordMetric: async () => {}, enqueue: async () => { throw new Error('unused'); }, getJob: async () => undefined, listJobs: async () => [] }));
 vi.mock('@/server/org/runs', () => ({ recordQaReport: async () => 'qa', recordHandoff: async () => 'h', studioEvent: async () => {} }));
 vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f: string, _mb: number, fn: () => Promise<unknown>) => fn() }));
 
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording, addVoiceSample, selectVoiceSample, updateCharacter } from '@/domain/actions';
-import { judgeHeard, lineLanguage, lineRecordingCurrent, lineScript, pickReference, routeLine, shouldRegenerate, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
+import { judgeHeard, lineLanguage, lineRecordingCurrent, lineScript, minimaxCloneProblem, pickReference, routeLine, shouldRegenerate, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
 import { lineScript as suiteLineScript, routeLine as suiteRoute } from '@/server/providers/speech';
 import type { HandlerContext } from '@/worker/handlers';
 
@@ -60,7 +60,7 @@ function prepare(opts: { language?: 'EN' | 'AR'; dialect?: 'IRAQI_BAGHDADI' | 'M
   return ch('nour').voice.samples.at(-1)!;
 }
 
-beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; fake.asrAppend = ''; fake.engineFiles = new Set(); });
+beforeEach(() => { fake.events = []; fake.removed = []; fake.synth = []; fake.asr = []; fake.asrFails = false; fake.asrHears = null; fake.asrAppend = ''; fake.engineFiles = new Set(); fake.minimaxKey = ''; fake.cloned = []; });
 
 describe('routing parity (pure): the worker routes with THE rule the Iraqi suite uses', () => {
   const iraqi = { language: 'AR', dialect: 'IRAQI_BAGHDADI', voice: { pitch: 'MID', pace: 'MEASURED', timbre: '', notes: '', samples: [], identity: { provider: 'LOCAL_TTS', model: 'habibi', mode: 'REFERENCE', language: 'AR', dialect: 'IRAQI_BAGHDADI', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, createdAt: 'x' } } } as unknown as Character;
@@ -267,6 +267,19 @@ describe('VOICE_BUILD', () => {
     expect(r?.awaitingReview).toBe(true);
     expect(ch('nour').voice.identity!.status).toBe('REVIEW');
     expect(ch('nour').voice.identity!.proof!.coverage).toBeLessThan(0.85);
+  });
+  it('the hosted clone hears the ORIGINAL upload (10 s – 5 min), never the trimmed window; a shorter original is refused before anything is sent (finding 11)', async () => {
+    fake.minimaxKey = 'test-key';
+    prepare({ text: 'hello there this is my voice' }); // the upload is 6.8 s
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC', provider: 'MINIMAX' } }))).rejects.toMatchObject({ code: 'INVALID', failureClass: 'INVALID_INPUT', message: expect.stringMatching(/10 s – 5 min/) });
+    expect(fake.cloned).toHaveLength(0);
+    // a 14 s original: the clone request carries the original file, not the stored 24 kHz window
+    fake.state = { ...fake.state, assets: fake.state.assets.map((a) => (a.id === 'up-ref' ? { ...a, durationSeconds: 14, mimeType: 'audio/wav', bytes: 1_400_000 } : a)) };
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC', provider: 'MINIMAX' } }))).rejects.toThrow(/stop after the clone request/);
+    expect(fake.cloned).toEqual(['/lib/audio/up-ref.wav']);
+    expect(minimaxCloneProblem({ durationSeconds: 400 })).toMatch(/at most 5 min/);
+    expect(minimaxCloneProblem({ durationSeconds: 20, bytes: 30 * 1024 * 1024 })).toMatch(/20 MB/);
+    expect(minimaxCloneProblem({ durationSeconds: 20, bytes: 1000 })).toBeNull();
   });
   it('MANUAL without a hosted key is NOT_CONFIGURED; a second build of an unused character bumps the revision', async () => {
     prepare({ text: 'x y z' });
