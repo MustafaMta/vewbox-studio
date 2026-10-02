@@ -17,6 +17,7 @@ vi.mock('@/server/media/image-check', () => ({
   validateReferenceImage: async (file: string) => { fake.validated.push(file); if (fake.validateFails) throw Object.assign(new Error('decode failed'), { name: 'StudioError', code: 'INVALID' }); return { ok: true, width: 768, height: 960, sharpness: 88.4, reasons: ['face detection not available (size and sharpness only)'] }; },
 }));
 vi.mock('@/server/studio/engine', () => ({ command: async (_name: string, args: unknown[]) => { const a = args[0] as Record<string, unknown>; fake.assets.push(a); return { asset: { ...a, createdAt: 'x' } }; } }));
+vi.mock('@/server/env', () => ({ env: () => ({ MAX_UPLOAD_MB: 2048 }) }));
 
 import { POST } from '@/app/api/assets/route';
 import { refusalReasons } from '@/components/character/create/preflight';
@@ -58,6 +59,19 @@ describe('POST /api/assets — character reference', () => {
     expect(res.status).toBe(400);
     expect(fake.removed).toEqual([`images/${fake.stored[0]}.png`]);
     expect(fake.assets).toHaveLength(0);
+  });
+  it('an oversized reference picture is refused from its declared size, before the body is read or anything stored (finding 18)', async () => {
+    const big = new File([new Uint8Array([137, 80, 78, 71])], 'huge.png', { type: 'image/png' });
+    Object.defineProperty(big, 'size', { value: 26 * 1024 * 1024 });
+    let read = false;
+    Object.defineProperty(big, 'arrayBuffer', { value: async () => { read = true; return new ArrayBuffer(4); } });
+    // the multipart body as the route sees it, holding this very File (a real Request would re-read its bytes)
+    const fd = new FormData(); fd.set('file', big); fd.set('expect', 'IMAGE'); fd.set('purpose', 'character-reference');
+    const res = await POST({ url: 'http://studio.test/api/assets', method: 'POST', formData: async () => fd } as unknown as Request, undefined);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { message: string } }).error.message).toMatch(/at most 25 MB/);
+    expect(fake.stored).toHaveLength(0);
+    expect(read).toBe(false);
   });
   it('the page lists the refusal reasons without the face-detection note (not a reason to refuse)', () => {
     expect(refusalReasons(['too small: 100×100; the short side must be at least 512 px', 'face detection not available (size and sharpness only)'])).toEqual(['too small: 100×100; the short side must be at least 512 px']);

@@ -14,6 +14,9 @@ import { json, route } from '@/server/http';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+/** A voice reference is a 3–30 s recording: even uncompressed 48 kHz stereo 24-bit that is under 9 MB. */
+const VOICE_REFERENCE_MAX_BYTES = 50 * 1024 * 1024;
+
 /** UPLOAD A VOICE REFERENCE — `POST /api/characters/:id/voice-reference`, multipart: `file` (audio), optional
  *  `label`, `transcript` (the producer's, kept over the transcription), `language`, `dialect`.
  *
@@ -45,35 +48,43 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
 
   const refuse = (r: Refusal, validation?: Record<string, unknown>) => json({ ok: false, code: r.code, message: r.message, validation, error: { code: 'INVALID', message: r.message, details: { reason: r.code, validation } } }, { status: 400 });
 
+  // a 3–30 s recording is a few MB: the size is refused before the body is read into memory (finding 18)
+  if (file.size > VOICE_REFERENCE_MAX_BYTES) return refuse({ code: 'TOO_LONG', message: `The file is ${(file.size / 1024 / 1024).toFixed(0)} MB — far more than a 3–30 second recording; a voice reference is at most ${VOICE_REFERENCE_MAX_BYTES / 1024 / 1024} MB.` });
   const assetId = nid('up');
   const buf = Buffer.from(await file.arrayBuffer());
   let stored: Awaited<ReturnType<typeof storeBuffer>>;
   try { stored = await storeBuffer(assetId, buf, { declaredType: file.type, expectKind: 'AUDIO' }); }
   catch (e) { if (e instanceof StudioError && e.code === 'INVALID') return refuse({ code: 'BAD_FORMAT', message: e.message }); throw e; }
   const work = await tmpDir('voice-ref');
+  let trimmed: Awaited<ReturnType<typeof adoptFile>> | undefined;
+  let committed = false;
   try {
     const measured = await measureVoiceReference(stored.absPath, { expectLanguage: language, trimmedOut: path.join(work, `${assetId}-24k.wav`) });
     if (measured.refusal) { await removeFile(stored.relPath); return refuse(measured.refusal, { ...measured.validation, reasons: measured.measurement.reasons, ...(measured.measurement.engineOutput ? { engineOutput: measured.measurement.engineOutput } : {}) }); }
     const trimmedId = nid('gen');
-    const trimmed = await adoptFile(trimmedId, measured.trimmedFile, { expectKind: 'AUDIO' });
+    trimmed = await adoptFile(trimmedId, measured.trimmedFile, { expectKind: 'AUDIO' });
     const text = transcript || measured.validation.speech.transcript;
     const heard = measured.validation.speech.language;
     const sampleId = nid('voice');
     // the first real recording of a character with no voice becomes the voice; a locked voice is never touched
     const select = !c.voice.selectedSampleId && !c.voice.identity && !voiceLock(c).locked;
     const sample: Omit<VoiceSample, 'id'> & { id: string } = { id: sampleId, label, assetId, source: 'UPLOADED', text, language: heard === 'UNKNOWN' ? language : heard, dialect, durationSeconds: stored.probe?.durationSeconds, provenance: { validation: measured.validation, trimmedAssetId: trimmedId, window: measured.window, transcriptBy: transcript ? 'PRODUCER' : 'ASR', gainDb: measured.gainDb } };
-    try {
-      await commands([
-        { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — ${label}`, tags: ['voice', 'recording', 'reference'], origin: 'UPLOAD', provenance: { originalName: file.name.slice(0, 200), characterId: c.id, validation: measured.validation, measurement: { clipping: measured.measurement.clipping, speechSeconds: measured.measurement.speechSeconds, loudnessRange: measured.measurement.loudnessRange, codec: measured.measurement.codec } } })] },
-        { name: 'addAsset', args: [assetFromStored(trimmedId, trimmed, { label: `${c.name} — ${label} (reference window ${measured.window.from}–${measured.window.to} s)`, tags: ['voice', 'reference', 'window'], origin: 'DERIVED', provenance: { from: assetId, characterId: c.id, window: measured.window, gainDb: measured.gainDb, targetLufs: -20, sampleRate: 24000 } })] },
-        { name: 'addVoiceSample', args: [c.id, sample, select] },
-      ], 'upload');
-    } catch (e) { await removeFile(stored.relPath); await removeFile(trimmed.relPath); throw e; }
+    await commands([
+      { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — ${label}`, tags: ['voice', 'recording', 'reference'], origin: 'UPLOAD', provenance: { originalName: file.name.slice(0, 200), characterId: c.id, validation: measured.validation, measurement: { clipping: measured.measurement.clipping, speechSeconds: measured.measurement.speechSeconds, loudnessRange: measured.measurement.loudnessRange, codec: measured.measurement.codec } } })] },
+      { name: 'addAsset', args: [assetFromStored(trimmedId, trimmed, { label: `${c.name} — ${label} (reference window ${measured.window.from}–${measured.window.to} s)`, tags: ['voice', 'reference', 'window'], origin: 'DERIVED', provenance: { from: assetId, characterId: c.id, window: measured.window, gainDb: measured.gainDb, targetLufs: -20, sampleRate: 24000 } })] },
+      { name: 'addVoiceSample', args: [c.id, sample, select] },
+    ], 'upload');
+    committed = true;
     const fresh = (await readState()).state.characters.find((x) => x.id === c.id);
     return json({ ok: true, sample: fresh?.voice.samples.find((s) => s.id === sampleId) ?? sample, trimmedAssetId: trimmedId, selected: select, validation: measured.validation, window: measured.window }, { status: 201 });
   } catch (e) {
-    // a measurement or service failure keeps nothing: the producer tries again when the service is back
-    if (!(e instanceof StudioError) || e.code === 'UNAVAILABLE' || e.code === 'PROVIDER' || e.code === 'NOT_CONFIGURED') await removeFile(stored.relPath).catch(() => {});
+    // nothing of a failed upload stays in the library (finding 16): whatever failed before the records were written —
+    // the measurement, the service, adopting the window (INVALID), the batch (NOT_FOUND, CONFLICT, VOICE_LOCKED …) —
+    // the original and its window are removed; once written, the files are the records' and stay
+    if (!committed) {
+      await removeFile(stored.relPath).catch(() => {});
+      if (trimmed) await removeFile(trimmed.relPath).catch(() => {});
+    }
     throw e;
   } finally { await fsp.rm(work, { recursive: true, force: true }).catch(() => {}); }
 });

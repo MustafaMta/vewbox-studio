@@ -5,9 +5,13 @@ import { command } from '@/server/studio/engine';
 import { assetFromStored, removeFile, storeBuffer } from '@/server/media';
 import { validateReferenceImage } from '@/server/media/image-check';
 import { json, route } from '@/server/http';
+import { env } from '@/server/env';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+
+/** A character reference picture (the page itself refuses over 20 MB; a little headroom for the multipart). */
+const REFERENCE_PICTURE_MAX_BYTES = 25 * 1024 * 1024;
 
 /** Upload: multipart with `file`, optional `label`, `tags` (comma separated), `expect` (IMAGE | VIDEO | AUDIO) and
  *  `purpose`. The bytes are sniffed, probed and stored before the record exists, so a record never points at a bad
@@ -29,6 +33,10 @@ export const POST = route(async (req) => {
   const purpose = form.get('purpose') ? String(form.get('purpose')) : undefined;
   const reference = purpose === 'character-reference';
   if (reference && expect && expect !== 'IMAGE') throw new StudioError('INVALID', 'A character reference must be a picture (expect IMAGE).');
+  // the size is refused before the body is read into memory (finding 18): a reference picture is at most 25 MB, any
+  // upload at most the studio's MAX_UPLOAD_MB
+  const cap = reference ? REFERENCE_PICTURE_MAX_BYTES : env().MAX_UPLOAD_MB * 1024 * 1024;
+  if (file.size > cap) throw new StudioError('INVALID', `The file is ${(file.size / 1024 / 1024).toFixed(0)} MB; ${reference ? 'a reference picture' : 'an upload'} is at most ${Math.round(cap / 1024 / 1024)} MB.`, { bytes: file.size, maxBytes: cap });
   const id = nid('up');
   const buf = Buffer.from(await file.arrayBuffer());
   const stored = await storeBuffer(id, buf, { declaredType: file.type, expectKind: reference ? 'IMAGE' : expect });
