@@ -7,7 +7,7 @@ import { expect, type Page, test as base } from '@playwright/test';
 export const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
 
 export async function resetStudio(kind: 'sample' | 'empty' = 'sample') {
-  const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind }) });
+  const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind, keepSettings: false }) });
   if (!r.ok) throw new Error(`reset failed: ${r.status}`);
 }
 
@@ -22,6 +22,8 @@ export const test = base.extend<{ page: Page }>({
     const errors: string[] = [];
     const foreign: string[] = [];
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    // a failed resource load is reported with its URL, so a console error names the request behind it
+    page.on('requestfailed', (r) => { const f = r.failure()?.errorText ?? ''; if (f && f !== 'net::ERR_ABORTED') errors.push(`request failed: ${r.url()} (${f})`); });
     page.on('request', (r) => { const u = new URL(r.url()); if (u.protocol === 'blob:' || u.protocol === 'data:') return; if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1' && !u.hostname.endsWith('gstatic.com') && !u.hostname.endsWith('googleapis.com')) foreign.push(r.url()); });
     await resetStudio('sample');
     await page.addInitScript(() => { try { localStorage.removeItem('vewbox.ui'); } catch { /* ignore */ } });

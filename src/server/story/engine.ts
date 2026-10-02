@@ -65,7 +65,7 @@ ${prefs.mood ? `Requested mood: ${prefs.mood}.` : ''}
 ${req.brief ? `The producer's own idea (build on it exactly): """${req.brief}"""` : 'The producer gave no premise: invent one that is fresh, specific and emotionally clear, set in a concrete place with a cultural texture that fits the language.'}
 ${mustCast.length ? `These existing characters MUST be in it (reference them by existingCharacterId): ${compact(mustCast.map(castSummary))}` : ''}
 ${mustLocs.length ? `These existing locations MUST be used (reference them by existingLocationId): ${compact(mustLocs.map(locationSummary))}` : ''}
-${showContext ? `Show context (reuse its returning cast and places by id; propose at most two newcomers and only if the story needs them): ${compact(showContext)}` : `Studio library you may reuse by id when a character or place genuinely fits (otherwise invent new ones): ${compact(library)}`}
+${showContext ? `Show context (reuse its returning cast and places by existingCharacterId / existingLocationId; also propose one or two newcomers this episode needs — a guest character or a new place — and no more): ${compact(showContext)}` : `Studio library you may reuse by id when a character or place genuinely fits (otherwise invent new ones): ${compact(library)}`}
 Return JSON with exactly these keys: title, titleAr (optional), logline, premise (2–4 paragraphs), genre, mood, structure (array of {title, summary}), cast (array of {existingCharacterId?, name, role, reason, sex, ageYears, appearance, personality}), locations (array of {existingLocationId?, name, description, kind})${req.kind === 'MUSIC_VIDEO' ? ', song {title, caption, lyrics}' : ''}.
 For a new character "appearance" is one dense sentence of how they look (age, build, face, hair, skin, eyes, wardrobe, one distinguishing detail).`;
 
@@ -80,11 +80,18 @@ For a new character "appearance" is one dense sentence of how they look (age, bu
   });
   // anything the producer required that the model dropped is added back
   for (const m of mustCast) if (!cast.some((c) => c.characterId === m.id)) cast.unshift({ key: `c-${m.id}`, characterId: m.id, name: m.name, role: m.role, reason: 'You asked for this character.', isNew: false, fromPreference: true, sex: m.sex, ageYears: m.ageYears, appearance: undefined, personality: undefined });
+  // an episode belongs to its show: the regulars are offered (the producer unticks whoever sits this one out)
+  if (show) {
+    const returning = `Returning cast of ${show.title}.`;
+    for (const c of cast) if (c.characterId && show.castIds.includes(c.characterId) && !c.fromPreference) c.reason = c.reason && c.reason !== returning ? `${returning} ${c.reason}` : returning;
+    for (const id of show.castIds.slice(0, 6)) { const m = s.characters.find((x) => x.id === id); if (m && !cast.some((c) => c.characterId === id)) cast.push({ key: `c-${id}`, characterId: id, name: m.name, role: m.role, reason: returning, isNew: false, fromPreference: false, sex: m.sex, ageYears: m.ageYears, appearance: undefined, personality: undefined }); }
+  }
   const locations = out.locations.map((l, i) => {
     const existing = l.existingLocationId ? s.locations.find((x) => x.id === l.existingLocationId) : undefined;
     return { key: existing ? `l-${existing.id}` : `new-l-${i}`, locationId: existing?.id, name: existing?.name ?? l.name, description: existing?.description ?? l.description, isNew: !existing, fromPreference: Boolean(existing && mustLocs.some((m) => m.id === existing.id)), kind: l.kind ?? existing?.kind };
   });
   for (const m of mustLocs) if (!locations.some((l) => l.locationId === m.id)) locations.unshift({ key: `l-${m.id}`, locationId: m.id, name: m.name, description: m.description, isNew: false, fromPreference: true, kind: m.kind });
+  if (show) for (const id of show.locationIds.slice(0, 3)) { const m = s.locations.find((x) => x.id === id); if (m && !locations.some((l) => l.locationId === id)) locations.push({ key: `l-${id}`, locationId: id, name: m.name, description: m.description, isNew: false, fromPreference: false, kind: m.kind }); }
   return { sample: false, title: out.title, titleAr: out.titleAr, logline: out.logline, premise: out.premise, genre: out.genre, mood: prefs.mood?.trim() || out.mood, style, language, dialect, durationSeconds, structure: out.structure, cast, locations, concept: req.kind === 'MUSIC_VIDEO' ? prefs.concept ?? 'PERFORMANCE' : undefined, song: req.kind === 'MUSIC_VIDEO' && out.song ? { title: out.song.title, caption: out.song.caption ?? '', lyrics: out.song.lyrics } : undefined };
 }
 

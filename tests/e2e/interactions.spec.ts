@@ -221,14 +221,15 @@ test.describe('dialogs, keyboard, files', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Reset sample data' }).click();
     await page.goto('/assets');
     await expect(page.getByRole('listitem').filter({ hasText: 'added.png' })).toHaveCount(0);
-    const saved = await snapshot<{ assets: Array<{ sample: boolean }> }>();
-    expect(saved.assets.every((a) => a.sample)).toBe(true);
+    const saved = await snapshot<{ assets: Array<{ sample: boolean; label: string; origin: string }> }>();
+    expect(saved.assets.filter((a) => !a.sample).map((a) => `${a.label} (${a.origin})`)).toEqual([]);
   });
 
   test('generation starts a real job everywhere it is offered; export refuses sample takes', async ({ page }) => {
+    // some buttons confirm first (replacing an existing script or storyboard); accept whatever asks
+    page.on('dialog', (d) => { d.accept().catch(() => undefined); });
     for (const [path, button] of [[`${EP1}?tab=story`, 'Write the script'], [`${EP1}?tab=storyboard`, /Replan the shots|Plan the shots/], ['/characters/layla?tab=voice', 'Build the voice'], ['/characters/nour', /Regenerate appearance/], ['/locations/cafe?tab=views', 'Draw plates'], ['/music-videos/river-lights?tab=song', 'Generate the song']] as Array<[string, string | RegExp]>) {
       await page.goto(path);
-      page.once('dialog', (d) => d.accept());
       await page.getByRole('button', { name: button }).first().click();
       await expect(page.getByRole('status').filter({ hasText: 'Started. Progress shows in Activity.' }).first()).toBeVisible();
     }

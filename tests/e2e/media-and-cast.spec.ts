@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { BASE, EP1, expect, snapshot, tab, test } from './helpers';
 
 /** PLAYERS AND THE CAST — one sound at a time across songs, voices and video; the song player and its compact
@@ -177,7 +178,8 @@ test.describe('the cast directory and the continuity rule', () => {
 
   test('a voice recording can be uploaded for any character, including a used one', async ({ page }) => {
     await page.goto('/characters/layla?tab=voice');
-    await page.getByLabel('Upload a recording').setInputFiles({ name: 'counter-line.m4a', mimeType: 'audio/mp4', buffer: Buffer.from('not really audio') });
+    // a real (tiny) AAC file: the server probes uploads and refuses anything that is not decodable audio
+    await page.getByLabel('Upload a recording').setInputFiles({ name: 'counter-line.m4a', mimeType: 'audio/mp4', buffer: readFileSync('tests/fixtures/tone.m4a') });
     await expect(page.getByText('Recording added.')).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'counter-line' })).toContainText('Your recording');
     await page.reload();

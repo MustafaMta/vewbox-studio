@@ -134,14 +134,18 @@ test.describe('creating', () => {
     expect(created.scenes.length).toBeGreaterThan(0);
   });
 
+  // "Create an idea for me" runs the real story engine (a local language model here: about a minute per proposal)
+  const ENGINE = 300_000;
+
   test('Auto Idea honours optional constraints: the chosen character and place are in the proposal and the project', async ({ page }) => {
+    test.setTimeout(ENGINE + 60_000);
     await page.goto('/new/short');
     await page.getByText('Optional preferences').click();
     await page.getByRole('radiogroup', { name: 'Visual style' }).getByRole('radio', { name: 'Realistic' }).click();
     await page.getByRole('button', { name: /^Karim Regular/ }).click();
     await page.getByRole('button', { name: /^Karim’s Rooftop/ }).click();
     await page.getByRole('button', { name: 'Create an idea for me' }).click();
-    await expect(page.getByRole('combobox', { name: 'Visual style' })).toHaveValue('REALISTIC');
+    await expect(page.getByRole('combobox', { name: 'Visual style' })).toHaveValue('REALISTIC', { timeout: ENGINE });
     const karim = page.getByRole('listitem').filter({ hasText: 'Regular customer, aspiring poet' }).filter({ hasText: 'Your choice' });
     await expect(karim).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'Karim’s Rooftop' }).filter({ hasText: 'Your choice' })).toBeVisible();
@@ -153,9 +157,11 @@ test.describe('creating', () => {
   });
 
   test('an Auto Idea episode inherits the show’s context: returning cast and places, plus a proposed newcomer', async ({ page }) => {
+    test.setTimeout(ENGINE + 60_000);
     await page.goto('/new/episode?show=last-sip&season=last-sip-s2');
     await expect(page.getByText(/Uses the world of The Last Sip/)).toBeVisible();
     await page.getByRole('button', { name: 'Create an idea for me' }).click();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Returning cast of The Last Sip.' }).first()).toBeVisible({ timeout: ENGINE });
     for (const name of ['Abu Samir', 'Layla', 'Karim', 'Basbousa']) await expect(page.getByRole('listitem').filter({ hasText: name }).filter({ hasText: 'Returning cast of The Last Sip.' })).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'New' }).first()).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue('AR');
@@ -316,7 +322,7 @@ test.describe('media, generation, persistence', () => {
     await page.getByRole('dialog').getByLabel('Role').fill('Night nurse, changed');
     await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
     await page.goto('/settings');
-    await expect(page.getByText('You have changed the sample data in this browser.')).toBeVisible();
+    await expect(page.getByText('The sample data has been changed since the last reset.')).toBeVisible();
     await page.getByRole('button', { name: 'Reset sample data' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Reset sample data' }).click();
     await expect(page.getByText('The sample data is untouched.')).toBeVisible();

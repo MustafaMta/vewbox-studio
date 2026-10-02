@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from 'next';
+import { IBM_Plex_Sans_Arabic, Inter } from 'next/font/google';
 import './globals.css';
+
+/** Fonts are bundled at build time and served from this origin: the studio makes no request to a font service
+ *  from the browser (it must work on a closed network, and nothing outside the studio is contacted). */
+const inter = Inter({ subsets: ['latin', 'latin-ext'], display: 'swap', variable: '--font-inter', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] });
+const plexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weight: ['400', '500', '600', '700'], display: 'swap', variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'] });
 import { StudioProvider } from '@/studio/store';
 import { LocaleProvider } from '@/components/ui/locale';
 import { ToastProvider } from '@/components/ui/toast';
@@ -14,12 +20,9 @@ const BOOT = `try{var u=JSON.parse(localStorage.getItem('vewbox.ui')||'{}');var 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" suppressHydrationWarning>
+    <html lang="en" dir="ltr" suppressHydrationWarning className={`${inter.variable} ${plexArabic.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
         <StudioProvider>

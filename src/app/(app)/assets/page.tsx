@@ -15,7 +15,7 @@ import { IconDelete, IconSearch, IconUpload } from '@/components/ui/icons';
 import { fmtBytes, fmtSeconds } from '@/lib/format';
 
 /** THE ASSET LIBRARY — every picture, clip and sound the studio holds, by kind. Bundled items are sample content;
- *  files you add here stay in this browser session. */
+ *  files you add here are checked and stored in the studio library on the server. */
 export default function AssetsPage() {
   const T = useT();
   const { state, addFile, removeAsset } = useStudio();
@@ -55,7 +55,7 @@ function AssetTile({ a, onDelete }: { a: AssetView; onDelete?: () => void }) {
       <Modal size="lg" title={a.label} description={a.sample ? T('label.sampleContent') : undefined} trigger={(open) => (
         <button type="button" className="flex flex-1 flex-col text-start outline-none" onClick={open}>
           <div className="relative w-full">{a.kind === 'AUDIO' && !a.unavailable ? <div className={`media media-empty ${ratio}`}><span className="text-2xl">♪</span></div> : <Thumb src={a.kind === 'VIDEO' ? a.poster ?? a.src : a.src} alt="" ratio={ratio} className="rounded-none" unavailable={a.unavailable} />}</div>
-          <div className="tile-body"><p className="tile-title text-sm" dir="auto">{a.label}</p><p className="tile-meta"><span>{a.kind === 'IMAGE' ? T('lib.images') : a.kind === 'VIDEO' ? T('lib.videos') : T('lib.audio')}</span>{a.durationSeconds ? <span>{fmtSeconds(a.durationSeconds)}</span> : a.width ? <span className="num">{a.width}×{a.height}</span> : a.bytes ? <span>{fmtBytes(a.bytes)}</span> : null}{a.origin === 'UPLOAD' && <span>{T('media.stored')}</span>}</p></div>
+          <div className="tile-body"><p className="tile-title text-sm" dir="auto">{a.label}</p><p className="tile-meta"><span>{a.kind === 'IMAGE' ? T('lib.images') : a.kind === 'VIDEO' ? T('lib.videos') : T('lib.audio')}</span>{a.durationSeconds ? <span>{fmtSeconds(a.durationSeconds)}</span> : a.width ? <span className="num">{a.width}×{a.height}</span> : a.bytes ? <span>{fmtBytes(a.bytes)}</span> : null}{a.origin === 'UPLOAD' ? <span>{T('media.stored')}</span> : a.origin === 'GENERATED' ? <span>{T('media.generated')}</span> : null}</p></div>
         </button>
       )}>
         {(close) => (
