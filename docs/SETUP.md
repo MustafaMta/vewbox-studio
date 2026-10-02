@@ -89,7 +89,7 @@ pnpm worker         # the worker, same env
 
 `.env.local` points the host processes at the published ports (`DATABASE_URL=postgres://…@127.0.0.1:5432/vewbox`,
 `COMFYUI_URL=http://127.0.0.1:8188`, `TTS_URL=http://127.0.0.1:8020`, `TTS_HABIBI_URL=http://127.0.0.1:8021`,
-`ASR_URL=http://127.0.0.1:8030`, `OLLAMA_URL=http://127.0.0.1:11434`); the Docker services talk to each other by
+`ASR_URL=http://127.0.0.1:8030`, `OPENAI_COMPATIBLE_BASE_URL=http://127.0.0.1:11434/v1`); the Docker services talk to each other by
 service name. A missing entry falls back to the service name, which the host cannot resolve: the job then fails with
 "… is not reachable" naming the service.
 
