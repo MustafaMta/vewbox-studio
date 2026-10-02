@@ -103,9 +103,12 @@ export const developStory: Handler = async (ctx) => {
   if (dropped.size) await ctx.event('warn', `characters outside this story's cast were dropped from the scene breakdown: ${Array.from(dropped).join(', ')}`);
   for (const l of state.locations) if (!nameToLoc.has(l.name.toLowerCase())) nameToLoc.set(`lib:${l.name.toLowerCase()}`, l.id);
   const castIds = [...p.castIds]; const locationIds = [...p.locationIds];
+  // a character the model lists but puts in no scene (or leaves undesigned) is noise, not a member of the story
+  const inScenes = new Set(out.scenes.flatMap((sc) => sc.characterNames.map((n) => n.toLowerCase())));
   for (const nc of out.newCharacters) {
     const key = nc.name.toLowerCase();
     if (nameToChar.has(key)) continue;
+    if (!inScenes.has(key) || !nc.design?.face) { await ctx.event('warn', `invented character "${nc.name}" was not used in any scene${nc.design?.face ? '' : ' and had no design'}; dropped`); continue; }
     const r = await command('addCharacter', [{ name: nc.name, nameAr: nc.design.nameAr, role: nc.role, style: p.style, sex: nc.design.sex ?? nc.sex, species: undefined, ageYears: nc.design.ageYears ?? 30, build: nc.design.build, face: nc.design.face, hair: nc.design.hair, skin: nc.design.skin, eyes: nc.design.eyes, distinguishing: nc.design.distinguishing, wardrobe: nc.design.wardrobe, personality: nc.design.personality, language: p.language, dialect: p.dialect, canon: nc.design.canon, notes: `Created by the story engine for “${p.title}”.` }], 'worker');
     nameToChar.set(key, r.character.id); castIds.push(r.character.id);
   }

@@ -1,10 +1,10 @@
-import { and, desc, eq, gt, isNull, sql as dsql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, sql as dsql } from 'drizzle-orm';
 import type { Job } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema, sql } from '../db/client';
 import { log } from '../log';
-import { AGENTS, FAILURE_CLASSES, agentById, agentIdForJob, type DepartmentId, type FailureClass, type PipelineStage } from './model';
+import { AGENTS, FAILURE_CLASSES, PIPELINE, agentById, agentIdForJob, type DepartmentId, type FailureClass, type PipelineStage } from './model';
 
 /** THE RECORD OF WORK — every job runs as an agent and leaves an agent run (tool calls, outcome, failure class), the
  *  departments leave handoffs and QA reports, people leave approvals, and everything that happened is a studio event
@@ -144,6 +144,37 @@ export const listQaReports = (opts: { productionId?: string; subjectId?: string;
   return db().select().from(schema.qaReports).where(conds.length ? and(...conds) : undefined).orderBy(desc(schema.qaReports.createdAt)).limit(opts.limit ?? 200);
 };
 export const listApprovals = (productionId: string) => db().select().from(schema.approvals).where(eq(schema.approvals.productionId, productionId)).orderBy(desc(schema.approvals.createdAt));
+
+// ------------------------------------------------------------------------------------------- pipeline positions
+
+export type StageStatus = 'DONE' | 'AWAITING_APPROVAL' | 'REJECTED' | 'INVALID' | 'READY' | 'BLOCKED';
+export interface ProductionPipeline { productionId: string; stages: Array<{ id: PipelineStage; department: DepartmentId; status: StageStatus; at: string | null; failed: string[] }> }
+
+/** Where every production stands, from its handoffs and approvals: a human approval settles a gated stage even
+ *  when the work was done by hand; a refused handoff shows as INVALID until a validated one replaces it. */
+export async function pipelinePositions(productionIds: string[]): Promise<ProductionPipeline[]> {
+  if (!productionIds.length) return [];
+  const [handoffs, approvals] = await Promise.all([
+    db().select().from(schema.handoffs).where(inArray(schema.handoffs.productionId, productionIds)).orderBy(desc(schema.handoffs.createdAt)),
+    db().select().from(schema.approvals).where(inArray(schema.approvals.productionId, productionIds)).orderBy(desc(schema.approvals.createdAt)),
+  ]);
+  return productionIds.map((id) => {
+    const hs = handoffs.filter((h) => h.productionId === id);
+    const as = approvals.filter((a) => a.productionId === id);
+    const stages = PIPELINE.map((s) => {
+      const h = hs.find((x) => x.stage === s.id);
+      const a = as.find((x) => x.stage === s.id);
+      const depsDone = s.dependsOn.every((d) => hs.some((x) => x.stage === d && x.qualityStatus === 'VALIDATED'));
+      const status: StageStatus = a?.decision === 'APPROVED' ? 'DONE' : a && a.decision !== 'APPROVED' ? 'REJECTED' : h ? (h.qualityStatus === 'VALIDATED' ? (s.approval ? 'AWAITING_APPROVAL' : 'DONE') : 'INVALID') : depsDone ? 'READY' : 'BLOCKED';
+      return { id: s.id, department: s.department, status, at: h?.createdAt ?? null, failed: h && !h.validation.ok ? h.validation.checks.filter((c) => !c.ok).map((c) => c.name) : [] };
+    });
+    return { productionId: id, stages };
+  });
+}
+
+/** The latest handoffs across the studio (the connections of the company diagram light up from these). */
+export const recentHandoffs = (limit = 40) => db().select().from(schema.handoffs).orderBy(desc(schema.handoffs.createdAt)).limit(limit);
+export const recentApprovals = (limit = 20) => db().select().from(schema.approvals).orderBy(desc(schema.approvals.createdAt)).limit(limit);
 
 // ------------------------------------------------------------------------------------------------------ queries
 

@@ -5,22 +5,28 @@ import { expect, test, BASE } from './helpers';
  *  pipeline, and the human gate on the Produce tab. The sample studio has no agent runs, so the pages must say so
  *  instead of inventing activity. */
 
-test('the navigation has exactly the six areas and the front door is the Studio', async ({ page }) => {
+test('the navigation puts the product first (Shows, Shorts, Music Videos, Characters, Studio Company) with operations behind it', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/\/studio$/);
+  await expect(page).toHaveURL(/\/shows$/);
   const nav = page.getByRole('navigation', { name: 'Studio areas' }).first();
-  await expect(nav.getByRole('link')).toHaveText(['Studio', 'Projects', 'Library', 'Production', 'Screening Room', 'Settings']);
+  await expect(nav.getByRole('link')).toHaveText(['Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Production', 'Locations', 'Asset Library', 'Settings']);
 });
 
-test('the Studio overview shows the Executive Office, eight departments, the pipeline and honest empty activity', async ({ page }) => {
+test('the Studio Company shows the orchestrator with its real state, the nine departments as links, and the orchestrator panel', async ({ page }) => {
   await page.goto('/studio');
-  await expect(page.getByRole('heading', { level: 1, name: 'The studio' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Executive Office' })).toBeVisible();
-  for (const d of ['Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(page.getByRole('link', { name: new RegExp(d) })).toBeVisible();
-  // the pipeline graph names the ten stages in order
-  const graph = page.getByRole('list', { name: 'How a production moves' });
-  await expect(graph.getByText('Story', { exact: true })).toBeVisible();
-  await expect(graph.getByText('Export', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Studio Company' })).toBeVisible();
+  const diagram = page.getByRole('group', { name: /The company/ });
+  for (const d of ['Executive Office', 'Story Development', 'Casting & Character Design', 'World Building & Art Direction', 'Pre-Production', 'Video Production', 'Sound & Music', 'Post-Production', 'Quality Assurance']) await expect(diagram.getByRole('link', { name: new RegExp(`^${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`) })).toBeVisible();
+  // the sample studio has productions and nothing running: the orchestrator is Ready (or Awaiting review once a story is approved)
+  const orchestrator = diagram.getByRole('button', { name: /Studio Orchestrator/ });
+  await expect(orchestrator).toHaveAccessibleName(/Ready|Idle|Awaiting review|Coordinating|Producing|Blocked/);
+  await orchestrator.click();
+  await expect(page.getByRole('region', { name: 'Studio Orchestrator' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Studio Orchestrator' }).getByText('Productions')).toBeVisible();
+  // keyboard: the first department node takes focus and opens its workspace on Enter
+  await diagram.getByRole('link', { name: /^Story Development:/ }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/studio\/departments\/STORY$/);
   // the organisation the page shows is the persisted one
   const org = await (await fetch(`${BASE}/api/studio/org`)).json() as { departments: unknown[]; agents: unknown[]; tools: unknown[]; skills: Array<{ status: string; source: string }> };
   expect(org.departments).toHaveLength(9);
@@ -31,8 +37,11 @@ test('the Studio overview shows the Executive Office, eight departments, the pip
 test('a department workspace lists its director and agents; an agent profile shows real tools, skills and no invented runs', async ({ page }) => {
   await page.goto('/studio/departments/VIDEO');
   await expect(page.getByRole('heading', { level: 1, name: 'Video Production' })).toBeVisible();
-  await expect(page.getByText(/Director:\s*Production Director/)).toBeVisible();
-  await page.getByRole('link', { name: /MiniMax Video Specialist/ }).click();
+  await expect(page.getByText(/Director:\s*Production Director/).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Active assignments/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Deliverables/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Quality results/ })).toBeVisible();
+  await page.getByRole('link', { name: /MiniMax Video Specialist/ }).first().click();
   await expect(page).toHaveURL(/\/studio\/agents\/minimax-video-specialist$/);
   await expect(page.getByRole('heading', { level: 1, name: 'MiniMax Video Specialist' })).toBeVisible();
   await expect(page.getByText('video.minimax_generate').first()).toBeVisible();

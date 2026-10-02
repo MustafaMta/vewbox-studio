@@ -8,7 +8,8 @@ import { productionHref } from '@/studio/selectors';
 import { JOB_LABELS, type JobType } from '@/domain/jobs';
 import { useT } from '@/components/ui/locale';
 import { PageHeader, Section, Stat } from '@/components/ui/page';
-import { ActivityFeed, AgentRow, PipelineGraph, SkillChip, ToolChip, deptHue, fmtMs, pct } from '@/components/studio/org';
+import { ActivityFeed, PipelineGraph, SkillChip, ToolChip, deptHue, fmtMs, pct } from '@/components/studio/org';
+import { AgentCard } from '@/components/studio/AgentCard';
 import { Badge, Status, cls } from '@/components/ui/kit';
 import { fmtAgo } from '@/lib/format';
 
@@ -46,8 +47,14 @@ export default function DepartmentPage() {
 
       {stages.length > 0 && <Section title={T('studio.stages')} className="mb-10"><PipelineGraph stages={stages} departments={org.departments} /></Section>}
 
-      <Section title={T('studio.agents')} count={data.agents.length} className="mb-10">
-        <ul className="card divide-y divide-line/70 px-4 py-1">{data.agents.map((a) => <AgentRow key={a.id} a={a} stat={org.stats.find((s) => s.agentId === a.id)} director={a.id === d.directorId} />)}</ul>
+      <Section title={T('studio.agents')} count={data.agents.length} className="mb-10" description={T('studio.team.hint')}>
+        {(() => { const dir = data.agents.find((a) => a.id === d.directorId) ?? (director && director.department !== d.id ? director : undefined); const rest = data.agents.filter((a) => a.id !== dir?.id); return (
+          <div className="space-y-4">
+            {dir && <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><AgentCard a={dir} stat={org.stats.find((s) => s.agentId === dir.id)} director /></ul>}
+            {dir && rest.length > 0 && <div className="org-team-rule" aria-hidden />}
+            <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rest.map((a) => <AgentCard key={a.id} a={a} stat={org.stats.find((s) => s.agentId === a.id)} />)}</ul>
+          </div>
+        ); })()}
       </Section>
 
       <div className="mb-10 grid gap-6 md:grid-cols-2">

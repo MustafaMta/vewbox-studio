@@ -80,7 +80,7 @@ export interface StageDef { id: PipelineStage; name: string; department: Departm
 
 export const PIPELINE: StageDef[] = [
   { id: 'STORY', name: 'Story', department: 'STORY', dependsOn: [], jobTypes: ['AUTO_IDEA', 'DEVELOP_STORY'], handsTo: 'CASTING', approval: 'HUMAN' },
-  { id: 'CAST_WORLD', name: 'Cast & world', department: 'CASTING', dependsOn: ['STORY'], jobTypes: ['DESIGN_CHARACTER', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS', 'VOICE_BUILD', 'LOCATION_PLATES'], handsTo: 'STORY' },
+  { id: 'CAST_WORLD', name: 'Cast & world', department: 'CASTING', dependsOn: ['STORY'], jobTypes: ['DESIGN_CHARACTER', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS', 'VOICE_BUILD', 'LOCATION_PLATES'], handsTo: 'PREPRODUCTION' },
   { id: 'SCRIPT', name: 'Script', department: 'STORY', dependsOn: ['STORY'], jobTypes: ['WRITE_SCRIPT'], handsTo: 'PREPRODUCTION' },
   { id: 'STORYBOARD', name: 'Storyboard', department: 'PREPRODUCTION', dependsOn: ['SCRIPT', 'CAST_WORLD'], jobTypes: ['SHOT_FRAMES'], handsTo: 'PREPRODUCTION' },
   { id: 'SHOT_PLAN', name: 'Shot plan', department: 'PREPRODUCTION', dependsOn: ['SCRIPT'], jobTypes: ['PLAN_SHOTS'], handsTo: 'SOUND' },

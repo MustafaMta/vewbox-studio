@@ -22,8 +22,9 @@ export default function AgentPage() {
   const { state } = useStudio();
   if (error) return <PageHeader title={id} subtitle={error} back={{ href: '/studio', label: T('studio.title') }} />;
   if (!data) return <div aria-busy className="space-y-4 pt-2"><div className="skeleton h-9 w-72" /><div className="skeleton h-4 w-96" /></div>;
-  const { agent: a, department: d, tools, skills, runs, stats, events } = data;
+  const { agent: a, department: d, tools, skills, runs, stats, events, failures, current } = data;
   const executes = a.jobTypes.length > 0;
+  const currentProd = current?.productionId ? state.productions.find((x) => x.id === current.productionId) : undefined;
   return (
     <>
       <PageHeader title={a.name} eyebrow={d ? <Link href={`/studio/departments/${d.id}`} className="hover:underline">{d.name}</Link> : a.department} subtitle={a.description} back={{ href: d ? `/studio/departments/${d.id}` : '/studio', label: d?.name ?? T('studio.title') }}
@@ -38,6 +39,11 @@ export default function AgentPage() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-8">
+          <Section title={T('studio.currentAssignment')}>
+            {current ? (
+              <div className="card flex flex-wrap items-center gap-x-3 gap-y-1 p-4 text-[13px]"><Status tone="info" live>{T('studio.executionState')}: {T('jobs.running')}</Status><span className="font-medium text-fg">{JOB_LABELS[current.jobType as JobType]?.[T.locale] ?? current.jobType}</span>{currentProd && <Link href={productionHref(currentProd)} className="truncate text-muted hover:text-fg" dir="auto">{currentProd.title}</Link>}<span className="ms-auto num text-[12px] text-faint">{fmtAgo(current.startedAt, T.locale)}{current.attempt > 1 ? ` · ${T('studio.attempt')} ${current.attempt}` : ''}</span>{current.toolCalls.length > 0 && <ul className="basis-full flex flex-wrap gap-1.5">{current.toolCalls.map((c, i) => <li key={i}><Badge tone={c.ok ? 'neutral' : 'bad'}><span className="font-latin">{c.tool}</span></Badge></li>)}</ul>}</div>
+            ) : <p className="rounded-2xl border border-dashed border-line px-6 py-5 text-[13px] text-faint">{T('studio.idle')} · {T('studio.executionState')}: {T('orch.node.idle')}</p>}
+          </Section>
           <Section title={T('studio.instructions')}>
             <div className="card p-5 text-[13.5px] leading-relaxed text-body" dir="auto">{a.systemInstructions}</div>
           </Section>
@@ -63,6 +69,13 @@ export default function AgentPage() {
                   );
                 })}
               </ol>
+            )}
+          </Section>
+          <Section title={T('studio.failureHistory')} count={failures.length}>
+            {failures.length === 0 ? <p className="rounded-2xl border border-dashed border-line px-6 py-5 text-[13px] text-faint">{T('studio.noFailureHistory')}</p> : (
+              <ol className="card divide-y divide-line/70 px-4 text-[12.5px]">{failures.map((f) => { const p = f.productionId ? state.productions.find((x) => x.id === f.productionId) : undefined; return (
+                <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5"><Badge tone={f.resolved ? 'ok' : 'bad'}><span className="font-latin">{f.failureClass}</span></Badge><span className="font-medium text-fg">{JOB_LABELS[f.jobType as JobType]?.[T.locale] ?? f.jobType}</span>{p && <Link href={productionHref(p)} className="truncate text-muted hover:text-fg" dir="auto">{p.title}</Link>}<span className="num text-faint">{T('studio.attempt')} {f.attempt}</span><span className="basis-full truncate text-muted" title={f.failureMessage ?? undefined} dir="auto">{f.failureMessage}</span>{f.changeMade && <span className="basis-full text-faint">→ {f.changeMade}{f.resolved ? ` · ${T('orch.accepted').toLowerCase()}` : ''}</span>}<span className="ms-auto num text-faint">{fmtAgo(f.createdAt, T.locale)}</span></li>
+              ); })}</ol>
             )}
           </Section>
           <Section title={T('studio.activity')}>
