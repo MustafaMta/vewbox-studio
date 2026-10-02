@@ -17,7 +17,6 @@ const D = {
   'nav.seasons': ['Seasons', 'المواسم'],
   'nav.areas': ['Studio areas', 'أقسام الاستوديو'],
   'app.name': ['Vewbox Studio', 'استوديو فيوبوكس'],
-  'app.prototype': ['Interface prototype', 'نموذج أولي للواجهة'],
   'app.sampleData': ['Sample data', 'بيانات نموذجية'],
   'app.yourChanges': ['Your changes are saved on the server', 'تغييراتك محفوظة على الخادم'],
 
