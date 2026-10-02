@@ -104,7 +104,7 @@ export function VoiceSection({ c }: { c: Character }) {
 
       <div className="mt-8">
         <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="h3">{T('cast.voice.traits')}</h3><VoiceTraitsDialog c={c} locked={vlock.locked} /></div>
-        <div className="mt-3 max-w-xl"><FactList items={[{ label: T('label.pitch'), value: T.dyn(`voice.pitch.${c.voice.pitch}`) }, { label: T('label.pace'), value: T.dyn(`voice.pace.${c.voice.pace}`) }, { label: T('label.timbre'), value: c.voice.timbre || '—' }, ...(c.voice.notes ? [{ label: T('label.voiceNotes'), value: c.voice.notes }] : [])]} /></div>
+        <div className="mt-3"><FactList items={[{ label: T('label.pitch'), value: T.dyn(`voice.pitch.${c.voice.pitch}`) }, { label: T('label.pace'), value: T.dyn(`voice.pace.${c.voice.pace}`) }, { label: T('label.timbre'), value: c.voice.timbre || '—' }, ...(c.voice.notes ? [{ label: T('label.voiceNotes'), value: c.voice.notes }] : [])]} /></div>
         <p className="mt-3 text-xs text-faint">{T('voice.dialectEngine')}</p>
       </div>
     </section>

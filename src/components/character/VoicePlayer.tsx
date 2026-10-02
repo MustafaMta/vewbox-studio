@@ -39,7 +39,7 @@ export function VoicePlayer({ track, name, detail, source, compact, selected, ac
     <div className={cls('flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--r-2)] py-1', selected && 'bg-accent-soft ps-3 shadow-[inset_2px_0_0_var(--accent)] rtl:shadow-[inset_-2px_0_0_var(--accent)]', className)} role="group" aria-label={`${T('cast.voice.title')}: ${name}`}>
       {disc}
       <div className="min-w-0 flex-1 basis-40">
-        <p className="truncate text-[14px] font-semibold leading-5 text-fg" dir="auto">{name}</p>
+        <p className="line-clamp-2 text-[14px] font-semibold leading-5 text-fg" dir="auto">{name}</p>
         {(detail || !track) && <p className="truncate text-[13px] leading-5 text-muted" dir="auto">{track ? detail : unavailableText}</p>}
       </div>
       {track && <div className="flex min-w-0 flex-[2] basis-56 items-center gap-3"><Wave track={track} bars={96} height={28} className="min-w-0 flex-1" label={name} />{time}</div>}

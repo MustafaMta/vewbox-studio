@@ -48,10 +48,11 @@ export function identityStatus(c: Pick<Character, 'canonicalImage' | 'portraitAs
 }
 
 /** The status in words: the short chip of a card, the full sentence of the profile, and its tone. */
-export function statusWords(s: Pick<IdentityStatus, 'kind' | 'lock' | 'videos'>): { short: Key; long: Key; tone: 'warn' | 'ok' | 'neutral' } {
+export function statusWords(s: Pick<IdentityStatus, 'kind' | 'lock' | 'videos'> & Partial<Pick<IdentityStatus, 'legacyPortrait'>>): { short: Key; long: Key; tone: 'warn' | 'ok' | 'neutral' } {
   if (s.kind === 'LOCKED') return { short: 'cast.status.locked', long: s.lock.reason === 'UNKNOWN' ? 'cast.status.lockedUnknown' : s.videos === 1 ? 'cast.status.lockedUsedOne' : 'cast.status.lockedUsed', tone: 'neutral' };
   if (s.kind === 'APPROVED') return { short: 'cast.status.approved', long: 'cast.status.approvedLong', tone: 'ok' };
   if (s.kind === 'DRAFT') return { short: 'cast.status.draft', long: 'cast.status.draftLong', tone: 'warn' };
+  if (s.legacyPortrait) return { short: 'cast.status.legacy', long: 'cast.status.legacyLong', tone: 'neutral' };
   return { short: 'cast.status.none', long: 'cast.status.noneLong', tone: 'neutral' };
 }
 

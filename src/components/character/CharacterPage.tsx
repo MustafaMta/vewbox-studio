@@ -56,7 +56,7 @@ export function CharacterPage({ c }: { c: Character }) {
               <div className="min-w-0 flex-1 basis-72">
                 <p className="eyebrow mb-2">{T.dyn(`style.${c.style}`)} · {lang}</p>
                 <h1 id="char-name" className="display-xl" dir="auto">{c.name}</h1>
-                {c.nameAr && <p className="mt-1 text-sm text-muted" dir="rtl" lang="ar">{c.nameAr}</p>}
+                {c.nameAr && <p className="mt-1 text-sm text-muted"><bdi dir="rtl" lang="ar">{c.nameAr}</bdi></p>}
               </div>
               <div className="flex flex-none items-center gap-1.5"><DetailsDialog c={c} /></div>
             </div>
@@ -89,7 +89,7 @@ function Look({ c, locked }: { c: Character; locked: boolean }) {
   return (
     <section aria-labelledby="look-h">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2"><h2 id="look-h" className="section-title">{T('cast.profile.look')}</h2><LookDialog c={c} locked={locked} describedBy="identity-lock" /></div>
-      <div className="max-w-2xl"><FactList items={[{ label: T('cast.profile.who'), value: who }, { label: T('label.build'), value: look(c.build) }, { label: T('label.face'), value: look(c.face) }, { label: T('label.hair'), value: look(c.hair) }, { label: T('label.skin'), value: look(c.skin) }, { label: T('label.eyes'), value: look(c.eyes) }, { label: T('label.wardrobe'), value: look(c.wardrobe) }]} /></div>
+      <div><FactList items={[{ label: T('cast.profile.who'), value: who }, { label: T('label.build'), value: look(c.build) }, { label: T('label.face'), value: look(c.face) }, { label: T('label.hair'), value: look(c.hair) }, { label: T('label.skin'), value: look(c.skin) }, { label: T('label.eyes'), value: look(c.eyes) }, { label: T('label.wardrobe'), value: look(c.wardrobe) }]} /></div>
     </section>
   );
 }

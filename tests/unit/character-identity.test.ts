@@ -54,6 +54,7 @@ describe('the identity status, said once', () => {
     expect(statusWords(identityStatus(character({ usage: usedIn(3) }))).long).toBe('cast.status.lockedUsed');
     expect(statusWords(identityStatus(character({ usage: undefined }))).long).toBe('cast.status.lockedUnknown');
     expect(statusWords(identityStatus(character())).short).toBe('cast.status.none');
+    expect(statusWords(identityStatus(character({ portraitAssetId: 'old' }))).short).toBe('cast.status.legacy');
   });
   it('every status phrase exists in English and in Arabic', () => {
     const keys: Key[] = ['cast.status.draft', 'cast.status.approved', 'cast.status.locked', 'cast.status.none', 'cast.status.draftLong', 'cast.status.approvedLong', 'cast.status.lockedUsed', 'cast.status.lockedUsedOne', 'cast.status.lockedUnknown', 'cast.status.noneLong', 'cast.step.design', 'cast.step.image', 'cast.step.voice', 'cast.step.approval'];

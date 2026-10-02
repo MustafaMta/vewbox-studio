@@ -105,7 +105,7 @@ export function SheetStart({ value, onChange, step, onStep, onCreate, busy, draw
         <div className="sticky top-8">
           <CharacterImage kind="NONE" name={value.name.trim() || '?'} placeholder={T('cast.new.imageLands')} />
           <p className={cls('mt-3 text-[15px] font-semibold leading-5', value.name.trim() ? 'text-fg' : 'text-faint')} dir="auto">{value.name.trim() || T('char.form.unnamed')}</p>
-          {value.nameAr.trim() && <p className="text-sm text-muted" dir="rtl">{value.nameAr.trim()}</p>}
+          {value.nameAr.trim() && <p className="text-sm text-muted"><bdi dir="rtl" lang="ar">{value.nameAr.trim()}</bdi></p>}
           {value.role.trim() && <p className="mt-1 text-[13px] leading-5 text-muted" dir="auto">{value.role.trim()}</p>}
           <p className="mt-2 text-xs text-faint">{[styleWord, languageWord, value.sex ? (value.sex === 'FEMALE' ? T('cast.new.woman') : T('cast.new.man')) : null, age ? String(age) : null].filter(Boolean).join(' · ')}</p>
         </div>

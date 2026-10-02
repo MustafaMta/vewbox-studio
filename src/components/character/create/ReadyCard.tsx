@@ -32,7 +32,7 @@ export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLoo
         <div className="min-w-0">
           <Status tone={words.tone === 'warn' ? 'warn' : words.tone === 'ok' ? 'ok' : 'neutral'}>{T(words.long)}</Status>
           <h2 id="ready-h" className="h2 mt-2" dir="auto">{c.name}</h2>
-          {c.nameAr && <p className="text-sm text-muted" dir="rtl">{c.nameAr}</p>}
+          {c.nameAr && <p className="text-sm text-muted"><bdi dir="rtl" lang="ar">{c.nameAr}</bdi></p>}
           <p className="mt-1 text-[14px] text-body" dir="auto">{c.role || '—'}</p>
           <div className="mt-4">
             {track ? <VoicePlayer track={track} name={voice.text ? `“${voice.text}”` : T('voice.proofLine')} detail={lang} source={voice.source} /> : <p className="text-[13px] text-faint">{T('char.create.noVoiceYet')}</p>}
