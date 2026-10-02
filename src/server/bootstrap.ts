@@ -27,7 +27,7 @@ export function bootstrap(): Promise<void> {
       await tx`select pg_advisory_xact_lock(hashtext('vewbox-bootstrap'))`;
       await runMigrations();
       const seeded = await seedIfEmpty();
-      if (seeded) log.info('seeded the sample studio');
+      if (seeded) log.info({ kind: process.env.SEED_KIND === 'sample' ? 'sample' : 'empty' }, 'first start: studio created');
     });
     // the organisation (departments, agents, tools, skills) as code, persisted with its version
     await syncOrg();

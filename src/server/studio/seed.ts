@@ -34,10 +34,11 @@ export async function replaceStudio(kind: SeedKind, keepSettings = true): Promis
   return out;
 }
 
-/** On boot: an untouched database gets the sample studio once. */
+/** On boot: an untouched database starts as an EMPTY studio (no demonstration content). The sample studio is loaded
+ *  only on request (Settings, or the test suites' reset); `SEED_KIND=sample` restores the old first-start behaviour. */
 export async function seedIfEmpty(): Promise<boolean> {
   const meta = await db().select().from(schema.studioMeta);
   if (meta.length > 0) return false;
-  await replaceStudio('sample', false);
+  await replaceStudio(process.env.SEED_KIND === 'sample' ? 'sample' : 'empty', false);
   return true;
 }

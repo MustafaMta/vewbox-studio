@@ -6,6 +6,7 @@ import { nid } from '@/domain/ids';
 import { db, schema } from '../db/client';
 import { notifyJobs } from '../studio/engine';
 import { log } from '../log';
+import { assertIntakeOpen, intakeState } from './intake';
 
 /** THE JOB QUEUE — Postgres is the broker. Enqueue inserts a row; a worker claims the oldest runnable row with
  *  `FOR UPDATE SKIP LOCKED` and holds a lease it renews by heartbeat; a lease that goes stale is reclaimed by the next
@@ -33,6 +34,7 @@ export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promis
   const parsed = schemaFor.safeParse(input.payload);
   if (!parsed.success) throw new StudioError('INVALID', `Invalid payload for ${input.type}: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
   const p = parsed.data as Record<string, unknown>;
+  await assertIntakeOpen();
   if (ONE_PER_CHARACTER.includes(input.type) && typeof p.characterId === 'string') {
     const active = await findActive(input.type, { characterId: p.characterId });
     if (active) return { job: active, created: false };
@@ -145,6 +147,7 @@ export const LEASE_SECONDS = 90;
 /** Claim the next runnable job of the given types. Stale leases (no heartbeat within the lease) are taken over. */
 export async function claim(workerId: string, types: JobType[]): Promise<Job | undefined> {
   if (types.length === 0) return undefined;
+  if ((await intakeState()).paused) return undefined;
   const now = new Date();
   const nowIso = now.toISOString();
   const staleBefore = new Date(now.getTime() - LEASE_SECONDS * 1000).toISOString();

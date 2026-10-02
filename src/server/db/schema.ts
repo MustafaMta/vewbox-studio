@@ -244,6 +244,9 @@ export const studioMeta = pgTable('studio_meta', {
   /** The version right after the last seed/reset: `version === seedVersion` means untouched. */
   seedVersion: integer('seed_version').notNull().default(0),
   updatedAt: ts('updated_at').notNull(),
+  /** Job intake paused (maintenance, cleanup): no job is accepted and no worker claims one until resumed. */
+  intakePausedAt: ts('intake_paused_at'),
+  intakePausedReason: text('intake_paused_reason'),
 });
 
 export const jobs = pgTable('jobs', {
