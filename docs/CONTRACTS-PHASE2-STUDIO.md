@@ -1,70 +1,107 @@
-# Contract — Phase 2: a real Studio Company (draft, 2026-10-02)
+# Contract — Phase 2: a real Studio Company (v1, 2026-10-03)
 
-Directive: "Phased rebuild", Phase 2. "Each department must have a dedicated page with its director, specialized
-agents, responsibilities, assigned tools, verified skills, model configuration and real activity. Each agent must have
-a working backend identity, typed tool contracts and explicit execution responsibilities. Do not create decorative
-agent profiles or simulated activity."
+Directive (phased rebuild, Phase 2, and the producer's follow-up of 2026-10-03): "Every agent displayed in the Studio
+Company must have a real execution path, genuine tools and verified skills. Remove or clearly identify agents that
+are not yet implemented. Do not display fabricated capabilities or activity." Each department page shows its
+director, specialized agents, responsibilities, assigned tools, verified skills, model configuration and real
+activity; each agent has a working backend identity, typed tool contracts and explicit execution responsibilities.
 
-## 1. What the audit found (main at `352a621`, `src/server/org/model.ts` ORG_VERSION 4)
+## 1. Audit (main at `16555b1`, ORG_VERSION 4)
 
-- 51 agents. 19 own job types (an agent run per job). 4 more are named in code as reporters (audio-sync,
-  visual-quality and technical-media inspectors write QA reports; the reliability engineer writes retry events).
-- **28 agents have no code path that ever executes them** — e.g. props-designer, set-designer, world-continuity,
-  colorist, continuity-editor, motion-director, performance-director, cinematographer, sound-director,
-  voice-engineer, world-continuity-inspector, lipsync-inspector, story-editor, creative-research, the four
-  "rule set" directors. Their profile pages say "its rules run inside the department's jobs and its decisions are
-  recorded as events" — **untrue**: nothing records them. These are decorative and must go or become real.
-- Tools carry schema *names* (`inputSchema: 'ImageGenerateInput'`) that exist nowhere in code; `ctx.tool(id, fn)`
-  enforces the allow-list and the timeout but validates nothing. `studio.read` and `studio.command` are assigned to
-  many agents and have **zero call sites**.
+- 51 agents. 23 have an execution path (they own job types, or `agentIdForJob` routes a payload to them —
+  singing-performance), plus 4 named as reporters in code (three QA inspectors write QA reports; the reliability
+  engineer's retry events are written by the retry route). **28 agents are executed by nothing**, and their pages
+  claim "its rules run inside the department's jobs and its decisions are recorded as events" — untrue.
+- Tools carry schema *names* that exist nowhere; `ctx.tool(id, fn)` checks the allow-list and timeout and validates
+  nothing. `studio.read` and `studio.command` are on many allow-lists and have **zero call sites**.
+- Skills: `syncOrg` copies each SKILL.md into the database for display; **no agent ever reads one at run time**, and
+  `status: 'VALIDATED'` is a hand-written flag with no evidence behind it.
+- Directors: Executive (studio-director), Video (production-director), Sound (sound-director), Post (post-director)
+  and World (art-director) are "rule set" agents that never run.
 
 ## 2. Rules
 
-1. **Execution-path rule.** An agent appears in the company only if code executes it, in one of two ways:
-   - it **owns job types** (the worker opens its agent run per job — existing), or
-   - it performs a **delegated step** inside another agent's job: `ctx.delegate(agentId, purpose, fn)` opens a child
-     agent run (`parent_run_id`), gives `fn` a tool runner with *that* agent's allow-list, records its tool calls,
-     outcome and duration, and closes it. Only for steps that genuinely exist as separate code (a check, a
-     validation, a selection, a normalisation) — never a wrapper around nothing.
-   Anything else is removed from the roster (a "planned roles" list may live in docs, not on the company pages).
-2. **Directors are real.** Each department's director is either the owner of the department's orchestration job, or
-   performs the department's **handoff review**: the existing `recordHandoff` validation checks run as the director's
-   delegated step (pass/fail recorded under the director).
-3. **Typed tool contracts.** Every tool has a zod input and output schema in `src/server/org/contracts.ts`;
-   `ctx.tool(id, fn, { input })` validates the input (when given) before the call and the output after it — a
-   mismatch fails with `WRONG_PARAMETERS` (input) or `OUTPUT_CORRUPTION` (output) and is recorded on the run. The org
-   API exposes each contract as JSON Schema (`z.toJSONSchema`) and the agent page shows it. A tool with no call site
-   is removed or wired (e.g. `studio.command` wraps the handlers' `command()` writes).
-4. **Agent identity** = id, department, role, responsibility sentence, model actually used, owned job types and
-   delegated steps (by name), allow-listed tools (contracts), skills (verified / unavailable), limits, version —
-   all from code, synced to the DB on boot; the profile shows only recorded activity.
-5. **Honesty in copy.** No profile text may claim activity the code does not record.
+**R1 — Execution path.** An agent is on the company pages only if code executes it:
+- (a) it owns job types (`JOB_AGENT` / `agentIdForJob`; the worker opens its run per job), or
+- (b) it performs a **delegated step**: `step(ctx, agentId, purpose, fn)` (`src/worker/handlers/index.ts`, built on
+  `makeDelegator` in `src/server/org/tools.ts`) opens a child agent run (`agent_runs.parent_run_id`, `purpose`), hands
+  `fn` a tool runner with that agent's allow-list, records tool calls, outcome, failure class and an activity event.
+  A delegated step wraps code that genuinely exists as its own piece of work (a validation, a selection, a plan, a
+  classification) — never an empty wrapper.
+Each agent declares its responsibilities in code: `jobTypes` and `steps: Array<{ id, name, where }>` (where = the
+handler that calls it). A test asserts every `steps[].id` is actually invoked by `step(…)` in `src/worker/**` (static
+scan), and every agent has ≥1 job type or step.
 
-## 3. Proposed roster (to confirm against the research reports)
+**R2 — Not yet implemented roles are clearly identified, not staffed.** `PLANNED_ROLES` in model.ts: department,
+name, what it would do, why it is not implemented (e.g. "needs a vision model"), the phase it belongs to. Shown on the
+department page in a separate, visibly muted "Not yet staffed" list: no profile page, no tools, no skills, no model,
+no activity, no status dot.
 
-| Department | Director (how real) | Agents with an execution path |
+**R3 — Directors are real.** Every department's director satisfies R1. Where no orchestration job exists, the
+director performs the department's **handoff review**: the validation checks passed to `recordHandoff` are computed
+inside the director's delegated step.
+
+**R4 — Typed tool contracts.** `src/server/org/contracts.ts`: a zod input schema and output schema for every
+registered tool. `ctx.tool(id, fn, { input })` validates the input (when given) before the call → `WRONG_PARAMETERS`
+on mismatch; validates the output after the call → `OUTPUT_CORRUPTION` on mismatch; both recorded on the run's tool
+call. Schemas describe what the call sites really pass and return (read every call site; prefer precise fields and
+`.passthrough()` over `z.any()`). The org API exposes each contract as JSON Schema (`z.toJSONSchema`). Tools with no
+call site are removed from the registry and every allow-list. An agent's allow-list contains only tools its code
+paths call (test: static scan of `ctx.tool('…')` / `tool('…')` within its handlers and steps).
+
+**R5 — Verified skills.** A skill is either
+- **PROMPT** — its SKILL.md body is injected into the system prompt of the LLM calls of the agents that list it
+  (`skillPrompt(agentId)` loader used by the story engine); verified when a test asserts the injection, or
+- **PROCEDURE** — the procedure it describes is implemented by named code (`implementedBy: string[]` file paths) and
+  checked by named tests (`verifiedBy: string[]`).
+Status is computed at sync, never hand-written: `VERIFIED` (SKILL.md present + implementation/injection present +
+tests present), `UNAVAILABLE` (needs something this machine lacks — e.g. a MiniMax key; the reason shown),
+`DRAFT` (anything missing — the reason shown). The pages show how a skill is used and its evidence. External skills
+(MiniMax-AI/skills) stay read-only knowledge: never executed, no shell, no credentials.
+
+**R6 — Identity from code, activity from records.** Agent identity (id, department, role, responsibility sentence,
+model actually used, jobTypes, steps, tools with contracts, skills with status, limits, version) is code synced on
+boot; `syncOrg` deletes agents, tools and skills that are no longer in code (their past runs keep their ids). Pages
+show only recorded activity; profile copy never claims unrecorded work.
+
+## 3. Roster (ORG_VERSION 5)
+
+| Department | Director (execution path) | Agents (execution path) |
 |---|---|---|
-| Executive Office | Production Coordinator — `PRODUCE` | Executive Producer — delegated *feasibility preflight* (`preflightTake/Plan/Character`); Quality Director — delegated *gate check* (`requireApproval`) |
-| Story Development | Head of Story — `DEVELOP_STORY`, `AUTO_IDEA` | Screenwriter — `WRITE_SCRIPT`; Continuity Writer — `EPISODE_CONTINUITY` |
-| Casting & Character Design | Casting Director — `CREATE_CHARACTER`, `DESIGN_CHARACTER` | Character Designer — `CHARACTER_APPEARANCE`, `CHARACTER_REFS`; Voice Casting — `VOICE_BUILD`; Character Continuity — delegated *identity check* of each drawn view and *reference hand-off* to shots |
-| World Building & Art Direction | Art Director — delegated *handoff review* of plates | Environment Artist — `LOCATION_PLATES` |
-| Pre-Production | Film Director — `PLAN_SHOTS` | Storyboard Artist — `SHOT_FRAMES`; Shot Planner — delegated *duration fitting* (`shotWindows`/fit) |
-| Video Production | MiniMax Video Specialist — `GENERATE_TAKE` | Reference Conditioning — delegated *reference selection* for a take |
-| Sound & Music | Dialogue Director — `DIALOGUE_AUDIO`, `VOICE_PREVIEW` | Music Director — `GENERATE_SONG`; Singing Performance — `PLAN_SHOTS performanceOnly`; Iraqi Dialect Specialist — delegated *line preparation* (`normalizeIraqi`, `routeLine`); Audio Engineer — delegated *mix plan* |
-| Post-Production | Video Editor — `ASSEMBLE` | Export Engineer — `EXPORT`; Subtitle Specialist — delegated *subtitle build* |
-| Quality Assurance | Quality Director (or a QA lead) | Technical Media Inspector — `MEDIA_PROBE` + reports; Audio-Sync Inspector — reports; Visual Quality Inspector — reports; Reliability Engineer — retry records |
+| Executive Office | **Executive Producer** — steps *feasibility preflight* (`preflightTake` in take.ts, `preflightPlan` in story.ts planShots, `preflightCharacter` in character.ts) | **Production Coordinator** — `PRODUCE` |
+| Story Development | **Head of Story** — `DEVELOP_STORY`, `AUTO_IDEA` | **Screenwriter** — `WRITE_SCRIPT`; **Continuity Writer** — `EPISODE_CONTINUITY` |
+| Casting & Character Design | **Casting Director** — `CREATE_CHARACTER`, `DESIGN_CHARACTER` | **Character Designer** — `CHARACTER_APPEARANCE`, `CHARACTER_REFS`; **Voice Casting** — `VOICE_BUILD`, `VOICE_PREVIEW` (moved from the Dialogue Director: previewing a character's voice is casting); **Character Continuity** — steps *reference-picture check* (validation of an uploaded reference before drawing) and *identity hand-off* (reference set for a shot in take.ts) |
+| World Building & Art Direction | **Art Director** — step *plate handoff review* (the CAST_WORLD handoff checks of `LOCATION_PLATES`) | **Environment Artist** — `LOCATION_PLATES` |
+| Pre-Production | **Film Director** — `PLAN_SHOTS` | **Storyboard Artist** — `SHOT_FRAMES`; **Shot Planner** — step *timing fit* (`shotWindows` / duration fitting in planShots) |
+| Video Production | **MiniMax Video Specialist** — `GENERATE_TAKE` | **Reference Conditioning** — step *reference selection* for a take (take.ts) |
+| Sound & Music | **Dialogue Director** — `DIALOGUE_AUDIO` | **Music Director** — `GENERATE_SONG`; **Singing Performance** — `PLAN_SHOTS performanceOnly`; **Iraqi Dialect Specialist** — step *line preparation* (`normalizeIraqi` + `routeLine` before synthesis); **Audio Engineer** — step *mix plan* (assemble.ts) |
+| Post-Production | **Video Editor** — `ASSEMBLE` | **Export Engineer** — `EXPORT`; **Subtitle Specialist** — step *subtitle cues* (assemble.ts) |
+| Quality Assurance | **Quality Director** (moves from Executive to QA) — steps *approval gate* (`requireApproval` in produce.ts and assemble.ts export) | **Technical Media Inspector** — `MEDIA_PROBE` + step *file validation* (`validateExport`); **Audio-Sync Inspector** — step *speech/lag check* (take.ts, voice.ts, music.ts QA reports); **Visual Quality Inspector** — step *picture check* (take.ts QA); **Reliability Engineer** — step *failure classification* (worker `classifyFailure` + `reliabilityEvent`) |
 
-Removed from the company pages (no code): props-designer, set-designer, world-continuity, world-designer (part of
-Head of Story's develop call), colorist, continuity-editor, audio-mixing-engineer (merged into Audio Engineer),
-motion-director, performance-director, production-director, rendering-engineer, cinematographer, production-planner,
-sound-director, voice-engineer, post-director, studio-director, creative-research, story-editor (returns with the
-deferred Auto Idea), lipsync-inspector, character-consistency-inspector (returns when an automatic identity check
-exists — see `docs/research/CHARACTER-IMAGE-V2.md`), world-continuity-inspector.
+**Planned roles (R2, not staffed):** Studio Director (creative direction is the producer's, through the approval
+gates), Creative Research and Story Editor (return with the research-driven Auto Idea, branch
+`deferred/auto-idea-research`), World Designer (part of Head of Story's develop call today), Set Designer, Props
+Designer, World Continuity, Cinematographer (inside the Film Director's shot plan today), Production Planner (part of
+the Executive Producer's preflight), Production Director, Motion Director, Performance Director, Rendering Engineer,
+Sound Director, Voice Engineer, Post-Production Director, Continuity Editor, Audio Mixing Engineer (merged into the
+Audio Engineer), Colorist, Character Consistency Inspector and World Continuity Inspector (need an automatic identity
+/ environment check — see `docs/research/CHARACTER-IMAGE-V2.md`), Lip-Sync Inspector (needs a measured lip-sync
+check).
 
-## 4. Interface
+Removed tools: `studio.read`, `studio.command` (no call sites). New skills for this phase's scope:
+`character-design` (PROMPT for the Casting Director's design call + PROCEDURE for the identity sheet) and
+`voice-identity` (PROCEDURE: reference rule, proof line, routing, lock) — written from what the code actually does.
 
-Studio Company page, department page and agent profile follow `docs/DESIGN-SYSTEM-V3.md` (being written): the
-orchestrator constellation with connections from recorded handoffs only; department page = director, agents,
-responsibilities (owned jobs + delegated steps), tools with their contracts, skills with status, models, real
-activity; agent profile = identity, contracts, responsibilities, runs (including delegated runs), failures. Tested in
-the real browser (desktop, phone, Arabic) before Phase 3.
+## 4. API and pages (inputs to the UI work)
+
+`GET /api/studio/org` returns per agent: identity, `jobTypes`, `steps`, tools with `contract: { input, output }` (JSON
+Schema), skills with `{ status, kind, evidence }`; per department: director, agents, `plannedRoles`. Agent runs carry
+`parentRunId` and `purpose`; the agent page lists delegated runs as its own work. The Studio Company UI is built on
+this after `docs/DESIGN-SYSTEM-V3.md`.
+
+## 5. Ownership while the wave-2 fixer is still working
+
+The fixer owns `src/worker/handlers/{character,voice,images}.ts`. The Phase 2 backend engineer implements everything
+else (model, registry, contracts, runner validation, skills loader, API, steps in take.ts, story.ts, produce.ts,
+assemble.ts, music.ts, worker/index.ts) and lists the steps still to wire in character.ts / voice.ts / images.ts;
+those are wired after the fixer's branch merges.
