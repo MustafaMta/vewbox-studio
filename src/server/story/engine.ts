@@ -121,7 +121,8 @@ Title: ${p.title}${p.titleAr ? ` / ${p.titleAr}` : ''}
 Brief: """${p.brief.text || p.logline || p.synopsis || '(none — invent a strong premise that fits the title)'}"""
 ${p.logline ? `Existing logline: ${p.logline}` : ''}${p.synopsis ? `\nExisting synopsis (keep its facts): ${p.synopsis}` : ''}
 Target running time: ${p.targetSeconds} seconds → plan about ${sceneBudget} scene(s), each with targetSeconds that add up to roughly the total.
-${show ? `Part of the show "${show.title}" (${show.logline}). Show synopsis: ${show.synopsis ?? ''}. Bible: ${compact(show.bible ?? {})}.` : ''}
+${show ? `Part of the show "${show.title}" (${show.logline}). Show synopsis: ${show.synopsis ?? ''}. Bible: ${compact(show.bible ?? {})}.
+This is an EPISODE of that show: its regulars (${s.characters.filter((c) => show.castIds.includes(c.id)).map((c) => c.name).join(', ') || 'see the cast below'}) carry every episode; the leads named in the brief or synopsis must appear. Characters from outside the show are guests: at most two, only when this episode's story needs them, never replacing a regular.` : ''}
 Cast already attached (use them; refer to them by exact name): ${compact(cast.map(castSummary))}
 Places already attached (use them; refer to them by exact name): ${compact(world.map(locationSummary))}
 ${libraryChars.length ? `Other studio characters you MAY bring in by exact name if they fit: ${compact(libraryChars)}` : ''}
