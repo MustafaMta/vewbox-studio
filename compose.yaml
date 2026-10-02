@@ -154,7 +154,8 @@ services:
     image: vewbox/tts-indextts:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
+    # HF_HOME on the models volume: auxiliary downloads (vocoders, tokenizers) survive a container recreate
+    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}", HF_HOME: /models/hf-home }
     # the entrypoint and the small service app are mounted from the repo so a fix to either takes effect on restart
     # without rebuilding the 12 GB images (the images still carry copies for a run without the repo)
     volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/index-tts/vewbox_app.py:ro" ]
@@ -169,7 +170,7 @@ services:
     image: vewbox/tts-habibi:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
+    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}", HF_HOME: /models/hf-home }
     volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/habibi/vewbox_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_HABIBI_PORT:-8021}:8021" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }

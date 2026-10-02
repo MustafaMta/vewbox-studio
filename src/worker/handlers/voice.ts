@@ -25,8 +25,10 @@ registerUnloader('ASR', unloadAsr);
 const TTS_VRAM = 8000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
+interface Reference { file: string; asset: Asset; /** what the recording says, transcribed once; the F5-based engine needs it */ text?: string }
+
 /** The character's reference recording as a clean mono 24 kHz WAV (3–15 s), or null when there is none usable. */
-async function referenceWav(c: Character, assets: Asset[], dir: string): Promise<{ file: string; asset: Asset } | null> {
+async function referenceWav(c: Character, assets: Asset[], dir: string): Promise<Reference | null> {
   // the chosen voice first, then any recording the producer uploaded, then any other real audio; the bundled sample
   // voices are placeholders for the UI, never a reference to clone from
   const candidates = [c.voice.samples.find((s) => s.id === c.voice.selectedSampleId), ...c.voice.samples.filter((s) => s.source === 'UPLOADED'), ...c.voice.samples].filter((s): s is NonNullable<typeof s> => Boolean(s?.assetId));
@@ -38,7 +40,18 @@ async function referenceWav(c: Character, assets: Asset[], dir: string): Promise
   return { file: out, asset: a };
 }
 
-async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: { file: string; asset: Asset }, dir: string, opts: { emotion?: string; delivery?: string } = {}) {
+/** What the reference recording says. Habibi (F5-TTS) conditions on the reference transcript; without it the
+ *  service would transcribe the clip itself with a Whisper it downloads on first use, blocking the whole service. */
+async function referenceText(ctx: HandlerContext, ref: Reference): Promise<string | undefined> {
+  if (ref.text !== undefined) return ref.text || undefined;
+  try {
+    const t = await ctx.gpu('ASR', 4000, () => transcribe(ref.file, { language: 'auto' }), { jobId: ctx.job.id });
+    ref.text = t.text.trim();
+  } catch (e) { await ctx.event('warn', `reference transcription skipped: ${(e as Error).message}`); ref.text = ''; }
+  return ref.text || undefined;
+}
+
+async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference, dir: string, opts: { emotion?: string; delivery?: string } = {}) {
   const provider = (c.voice.identity?.provider ?? (env().MINIMAX_API_KEY && (await readState()).state.settings.generation?.voiceProvider === 'MINIMAX' ? 'MINIMAX' : 'LOCAL_TTS')) as 'LOCAL_TTS' | 'MINIMAX';
   if (provider === 'MINIMAX') {
     const voiceId = c.voice.identity?.providerVoiceId;
@@ -49,7 +62,8 @@ async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: {
     return { file, engine: 'minimax', model: env().MINIMAX_SPEECH_MODEL, ms: 0 };
   }
   const engine = pickEngine(c.language, c.dialect, (c.voice.identity?.model as 'indextts' | 'habibi' | undefined) ?? 'auto');
-  return ctx.gpu('TTS', TTS_VRAM, () => synthesize({ text, language: c.language, dialect: c.dialect, referenceWav: ref.file, emotion: opts.emotion ?? opts.delivery, speed: 1.0, engine }, dir), { jobId: ctx.job.id });
+  const refText = engine === 'habibi' ? await referenceText(ctx, ref) : undefined;
+  return ctx.gpu('TTS', TTS_VRAM, () => synthesize({ text, language: c.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, speed: 1.0, engine }, dir), { jobId: ctx.job.id });
 }
 
 /** Say the line back: transcribe and compare. Returns the WER and the transcript; never throws on a bad line. */

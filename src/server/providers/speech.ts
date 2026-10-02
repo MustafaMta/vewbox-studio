@@ -25,7 +25,10 @@ async function post(url: string, fd: FormData, timeoutMs: number): Promise<Respo
     return res;
   } catch (e) {
     if (e instanceof StudioError) throw e;
-    throw new StudioError('UNAVAILABLE', `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${(e as Error).message}). Start the service.`);
+    const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
+    const why = cause?.code ?? cause?.message ?? (e as Error).message;
+    const timedOut = (e as Error).name === 'AbortError' || /TIMEOUT/i.test(why);
+    throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`);
   } finally { clearTimeout(t); }
 }
 
