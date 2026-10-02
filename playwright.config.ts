@@ -11,8 +11,8 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
-  webServer: process.env.BASE_URL ? undefined : { command: 'pnpm dev', url: 'http://localhost:4200/api/health', reuseExistingServer: true, timeout: 180_000 },
-  use: { baseURL: process.env.BASE_URL ?? 'http://localhost:4200', trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
+  webServer: process.env.STUDIO_URL ? undefined : { command: 'pnpm dev', url: 'http://localhost:4200/api/health', reuseExistingServer: true, timeout: 180_000 },
+  use: { baseURL: process.env.STUDIO_URL || 'http://localhost:4200', trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, grepInvert: /@mobile/ },
     { name: 'mobile', use: { ...devices['Pixel 7'] }, grep: /@mobile/ },

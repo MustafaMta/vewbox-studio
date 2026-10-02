@@ -4,7 +4,7 @@ import { expect, type Page, test as base } from '@playwright/test';
  *  errors, and fails on any network request that is not the studio itself (fonts excepted). The database is shared,
  *  so the suite runs with one worker (see playwright.config.ts). */
 
-export const BASE = process.env.BASE_URL ?? 'http://localhost:4200';
+export const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
 
 export async function resetStudio(kind: 'sample' | 'empty' = 'sample') {
   const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind }) });

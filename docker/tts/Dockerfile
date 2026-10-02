@@ -6,8 +6,9 @@
 # Weights are fetched on first start into the shared models volume (resumable), never baked into the image.
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_XET=1 UV_LINK_MODE=copy
-RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "90";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/80-retries \
- && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
+RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::https::Timeout "300";\nAcquire::ForceIPv4 "true";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/80-retries \
+ && for i in 1 2 3 4 5 6; do apt-get update && apt-cache policy curl | grep -q Candidate && break; echo "apt index incomplete, retry $i"; sleep 20; done \
+ && apt-get install -y --no-install-recommends curl ca-certificates git ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
 ENV PATH=/root/.local/bin:$PATH
 RUN uv python install 3.11

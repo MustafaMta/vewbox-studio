@@ -57,6 +57,7 @@ export function ShotFields({ p, draft, onChange, showScene }: { p: Production; d
           <Field label={T('label.transition')}><Select value={draft.transition} onChange={(e) => onChange({ transition: e.target.value as Transition })} options={TRANSITIONS.map((t) => ({ value: t, label: words(t) }))} /></Field>
           {p.kind === 'MUSIC_VIDEO' && <Field label={`${T('label.songWindow')} (${T('label.seconds')})`}><div className="flex items-center gap-2"><Input type="number" min={0} value={draft.songWindow?.from ?? 0} aria-label="from" onChange={(e) => onChange({ songWindow: { from: Number(e.target.value), to: draft.songWindow?.to ?? Number(e.target.value) + draft.durationSeconds } })} /><span className="text-faint">–</span><Input type="number" min={0} value={draft.songWindow?.to ?? draft.durationSeconds} aria-label="to" onChange={(e) => onChange({ songWindow: { from: draft.songWindow?.from ?? 0, to: Number(e.target.value) } })} /></div></Field>}
           <Field label={T('label.notes')} className="sm:col-span-2"><Textarea value={draft.notes ?? ''} onChange={(e) => onChange({ notes: e.target.value })} rows={2} /></Field>
+          <Field label={T('gen.editPrompt')} help={T('gen.editPrompt.hint')} className="sm:col-span-2"><Textarea value={draft.prompt ?? ''} onChange={(e) => onChange({ prompt: e.target.value || undefined })} rows={5} dir="ltr" placeholder="Written automatically from the setting, the people and the action when empty." /></Field>
         </div>
       </Details>
     </div>

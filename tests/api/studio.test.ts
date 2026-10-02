@@ -10,7 +10,8 @@ import { runCommand, type Command } from '@/domain/commands';
 /** THE API, END TO END — against the running server. Every test cleans up what it made; the final test restores the
  *  sample studio so the suite is repeatable. Needs ffmpeg on the machine running the tests (to make a real MP4). */
 
-const BASE = process.env.BASE_URL ?? 'http://localhost:4200';
+// Vitest sets process.env.BASE_URL to Vite's base ('/'), so the studio's address has its own name.
+const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
 const clientId = `api-test-${Date.now().toString(36)}`;
 const now = () => new Date().toISOString();
 const seed = () => Math.random().toString(36).slice(2, 12);

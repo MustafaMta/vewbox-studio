@@ -7,9 +7,10 @@ ARG COMFYUI_REF=v0.38.1
 ARG TORCH_VERSION=2.13.0
 ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 PIP_BREAK_SYSTEM_PACKAGES=1 \
     HF_HUB_DISABLE_TELEMETRY=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-# apt over a slow/shared link: retry and wait rather than fail
-RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "90";\nAcquire::https::Timeout "90";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/80-retries \
- && apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv git ffmpeg libgl1 libglib2.0-0 curl ca-certificates && rm -rf /var/lib/apt/lists/*
+# apt over a slow/shared link: long timeouts, IPv4 only, and update is retried until the package index is really there
+RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::https::Timeout "300";\nAcquire::ForceIPv4 "true";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/80-retries \
+ && for i in 1 2 3 4 5 6; do apt-get update && apt-cache policy curl | grep -q Candidate && break; echo "apt index incomplete, retry $i"; sleep 20; done \
+ && apt-get install -y --no-install-recommends python3 python3-pip python3-venv git ffmpeg libgl1 libglib2.0-0 curl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 RUN pip install --upgrade pip wheel setuptools \
