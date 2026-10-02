@@ -14,7 +14,7 @@ import { gpuLease } from './gpu';
 import { syncRegistry } from '@/server/registry';
 import { syncOrg } from '@/server/org/registry';
 import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
-import { makeToolRunner } from '@/server/org/tools';
+import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
 
 /** THE WORKER — claims jobs from Postgres and runs them. Lanes: hosted (MiniMax, many at once), LLM (a few), CPU
@@ -57,6 +57,8 @@ async function run(job: Job, lane: Lane) {
   const ctx: HandlerContext = {
     job, log: jl, workerId, agent, runId,
     tool: runId ? makeToolRunner(agent, runId, jl) : (_id, fn) => fn(),
+    // without a parent run (recording failed) the step still runs, unrecorded, rather than failing the job
+    delegate: runId ? makeDelegator(job, runId, jl) : (_agentId, _purpose, fn) => fn((_id, f) => f()),
     activity: (kind, message, data, opts) => studioEvent({ departmentId: opts?.departmentId ?? agent.department, agentId: opts?.agentId ?? agent.id, productionId: opts?.productionId ?? job.productionId, kind, message, data, jobId: job.id }),
     checkpoint: async () => { if (cancelRequested) throw new Cancelled(); },
     progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); await setProgress(job.id, status, progress, extra); },

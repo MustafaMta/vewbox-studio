@@ -394,7 +394,10 @@ export const agentRuns = pgTable('agent_runs', {
   toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; ms: number; ok: boolean; error?: string; at: string }>>().notNull().default([]),
   ms: integer('ms'),
   costUsd: doublePrecision('cost_usd'),
-}, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId)]);
+  /** A delegated step: the run of the agent whose job this step belongs to, and what the step does. */
+  parentRunId: text('parent_run_id'),
+  purpose: text('purpose'),
+}, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId), index('agent_runs_parent_idx').on(t.parentRunId)]);
 
 /** A department's explicit delivery to the next one. */
 export const handoffs = pgTable('handoffs', {

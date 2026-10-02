@@ -2,7 +2,7 @@ import type { Job, JobStatus, JobProgress, JobType } from '@/domain/jobs';
 import type { Logger } from '@/server/log';
 import type { GpuLease } from '../gpu';
 import type { AgentDef } from '@/server/org/model';
-import type { ToolRunner } from '@/server/org/tools';
+import type { Delegator, ToolRunner } from '@/server/org/tools';
 import type { NewStudioEvent } from '@/server/org/runs';
 
 /** What every job handler gets. Handlers are plain async functions: they read the studio, call providers, write
@@ -18,6 +18,9 @@ export interface HandlerContext {
   runId: string;
   /** call a registered tool on the agent's allow-list; the call is timed and recorded on the run */
   tool: ToolRunner;
+  /** run a specialist's real step inside this job as THAT agent (child run, its own allow-list, recorded); use
+   *  `step()` below, which also works in tests that build a context without it */
+  delegate?: Delegator;
   /** a studio event attributed to this agent (department and job filled in) */
   activity: (kind: string, message: string, data?: Record<string, unknown>, opts?: Partial<Pick<NewStudioEvent, 'agentId' | 'departmentId' | 'productionId'>>) => Promise<void>;
   /** Throws when the job was cancelled; call between steps. */
@@ -30,6 +33,12 @@ export interface HandlerContext {
 }
 
 export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> & { awaitingReview?: boolean }) | void>;
+
+/** A specialist's step inside this job, recorded as that agent's delegated run (docs/CONTRACTS-PHASE2-STUDIO.md §2).
+ *  Without a delegator (a test context) the step runs with the job's own tool runner. */
+export function step<T>(ctx: Pick<HandlerContext, 'delegate' | 'tool'>, agentId: string, purpose: string, fn: (tool: ToolRunner) => Promise<T>): Promise<T> {
+  return ctx.delegate ? ctx.delegate(agentId, purpose, fn) : fn(ctx.tool);
+}
 
 import { mediaProbe } from './media-probe';
 import { autoIdea, designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';

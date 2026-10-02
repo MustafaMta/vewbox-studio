@@ -63,6 +63,17 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   return id;
 }
 
+/** A DELEGATED STEP — a specialist's real piece of work inside another agent's job (a check, a selection, a
+ *  normalisation that exists as its own code). It gets its own run under the parent run, with its own tool calls,
+ *  outcome and duration, so the specialist's profile shows work it actually did. */
+export async function startDelegatedRun(input: { job: Pick<Job, 'id' | 'type' | 'attempts' | 'productionId' | 'shotId'>; parentRunId: string; agentId: string; purpose: string }): Promise<string> {
+  const agent = agentById(input.agentId);
+  if (!agent) throw new Error(`Unknown agent ${input.agentId}`);
+  const id = nid('run');
+  await db().insert(schema.agentRuns).values({ id, agentId: agent.id, departmentId: agent.department, jobId: input.job.id, jobType: input.job.type, attempt: input.job.attempts, productionId: input.job.productionId ?? null, shotId: input.job.shotId ?? null, startedAt: new Date().toISOString(), toolCalls: [], parentRunId: input.parentRunId, purpose: input.purpose.slice(0, 300) });
+  return id;
+}
+
 export async function recordToolCall(runId: string, call: ToolCall) {
   await db().update(schema.agentRuns).set({ toolCalls: dsql`${schema.agentRuns.toolCalls} || ${JSON.stringify([call])}::jsonb` }).where(eq(schema.agentRuns.id, runId));
 }
