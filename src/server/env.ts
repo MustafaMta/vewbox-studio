@@ -35,6 +35,9 @@ const Schema = z.object({
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),
   TTS_HABIBI_URL: z.string().default('http://tts-habibi:8021'),
+  /** Voice design + speaker embeddings (VoxCPM2, ECAPA). The default is the host port, so a host worker without the
+   *  variable still reaches it; compose passes http://tts-design:8022 to the containers. Empty = not configured. */
+  TTS_DESIGN_URL: z.string().default('http://127.0.0.1:8022'),
   ASR_URL: z.string().default('http://asr:8030'),
   MUSIC_ENGINE: z.enum(['auto', 'minimax-api', 'ace-step', 'minimax-music3']).default('auto'),
   VIDEO_BACKEND: z.enum(['auto', 'api', 'local']).default('auto'),

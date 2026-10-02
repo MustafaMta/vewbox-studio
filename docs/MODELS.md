@@ -108,6 +108,39 @@ per-view refs exist, so the "before" set is already in the library: keep it, not
 | Iraqi Arabic voices | Habibi-TTS IRQ (F5-TTS based) | `tts-habibi` service | Apache-2.0 | dialect-specialised; chosen automatically for `IRAQI_BAGHDADI` |
 | Transcript check and subtitle timing | faster-whisper large-v3 (CTranslate2 fp16) | `asr` service | MIT | every generated line is transcribed back and compared with the script (word error rate recorded on the asset) |
 | Hosted speech (optional) | MiniMax `speech-2.8-hd` | API | MiniMax terms | only when the character's voice identity selects it and a key exists |
+| Voice design: a synthetic voice from a text description (EN, AR-MSA; no audio input) | VoxCPM2 (OpenBMB, 2 B), `voxcpm==2.0.3` | `tts-design` service (:8022) | **Apache-2.0** (weights and code; the card asks that AI audio be labelled and forbids impersonation) | `openbmb/VoxCPM2@32279ef`: `model.safetensors` 4 580 080 592 B `f7f964cf…891d`, `audiovae.pth` 376 951 122 B `94b5d51e…4bf1` (a PyTorch pickle: loaded only inside the container, `weights_only=True`), tokenizer + config. 48 kHz output; the 24 kHz mono copy is the line engines' reference. No dialect control: Iraqi is never designed (VOICE-IDENTITY-V2 §3.2) |
+| Speaker similarity (seed↔seed, line↔reference, cast distinctness) | ECAPA-TDNN, SpeechBrain `spkrec-ecapa-voxceleb`, `speechbrain==1.1.1` | `tts-design` service, CPU | Apache-2.0 | `@0f99f2d`: `embedding_model.ckpt` 83 316 686 B `0575cb64…26a2` + hyperparams, norm, classifier, label encoder (89 MB). 192-d, L2-normalised. VoxCeleb-trained: a relative measure, never an identity or dialect proof |
+
+#### Fetching the voice-design weights (group `voice-design`)
+
+The group is in the compose `MODEL_GROUPS` default, so a fresh `docker compose --profile models run --rm models` fetches
+it. On a machine whose fetcher image predates the group, run the fetcher image with the repository's manifest mounted
+(no rebuild; resumable; every file is sha256-verified and recorded in `/models/.manifest-state.json`):
+
+```powershell
+docker run -d --name vewbox-models-fetch-voice --dns 1.1.1.1 -e HF_HUB_DISABLE_XET=1 -v vewbox_models:/models `
+  --mount "type=bind,source=$PWD\docker\models\manifest.json,target=/app/manifest.json,readonly" `
+  --mount "type=bind,source=$PWD\docker\models\fetch.py,target=/app/fetch.py,readonly" `
+  vewbox/models:dev --manifest manifest.json --root /models --groups voice-design
+docker logs -f vewbox-models-fetch-voice
+```
+
+#### First evaluation (2026-10-03, `scripts/voice-design-eval.ts` → `docs/evidence/voice-design/report.json`)
+
+Measured on every generated file (20 WAVs + 2 line-engine renderings; ASR = faster-whisper large-v3, language forced):
+
+- 3 descriptions × 3 candidates, loudness-matched to −20 LUFS by a static gain (VoxCPM2's own level varied from
+  −30.2 to −12.4 LUFS); every file ≤ −1.0 dBTP on ffmpeg's meter, 0 clipped samples. ASR CER 0–0.041 (EN), 0 (MSA).
+- ECAPA between the 3 candidates of one description 0.35–0.71: they are **different voices** (what a choice of 3 needs;
+  the §5.1 "seed ↔ seed ≥ 0.80" gate is for lines of one identity, not for design candidates). Male vs female English
+  voices 0.02–0.23. Same description + seed on a second run: the same voice (ECAPA 1.000), not the same bytes.
+- Design → IndexTTS (one English seed, one line): ECAPA(seed, rendering) **0.66 and 0.76** in two runs (the two
+  IndexTTS renderings with the same seed differ: 0.91 between them); CER 0. One sample per run is not a decision.
+- Experiment, designed MSA seed → Habibi IRQ, one Iraqi line with چ/گ: ECAPA 0.81 (timbre carried); ASR
+  «باسر الصبح نروح للسوبسوة. قلت لك لا تتأخر.» for «باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.» — CER 0.10
+  (Iraqi fold), coverage 0.43 → contract verdict FAIL. Dialect authenticity unverified (no native listener).
+- Not judged by any of this: naturalness, accent (English, MSA), Iraqi dialect, whether a voice matches its
+  description. The report lists the files a listener should hear.
 
 ## Music
 
@@ -136,7 +169,9 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 | Qwen-Image-Edit fp8 + encoder fp8 (Lightning) | engine time from `/history`: T2I 8 steps 1024×1280 11.5 s warm (75 s with the first load); Edit 4 steps, 1 reference, 1024×1280 18–22 s; 3 references 1344×768 12–13.5 s; VRAM peak not yet recorded | 1 |
 | Qwen-Image-Edit fp8, quality mode (identity sheet: 24 steps, cfg 4, 1664×1216, 2 references) | to be measured in the GPU test plan above (estimate 1.5–3 min) | 1 |
 | Qwen-Image-Edit fp8 + Multiple-Angles LoRA (derived view, 3 references) | to be measured in the GPU test plan above | 1 |
-| IndexTTS 2.5 / Habibi | to be measured | 1 (unloads on request) |
+| IndexTTS 2.5 / Habibi | one line each on 2026-10-03 (docs/evidence/voice-design/report.json): IndexTTS card total 3.5 → 9.5 GB while loaded (≈ 6 GB), 15.8 s for load + a 5.7 s line; Habibi IRQ 3.5 → 4.3 GB after one 3.3 s line, 18.8 s with a 17 s load. Not yet a full measurement | 1 (unloads on request) |
+| VoxCPM2 (voice design, bf16, eager) | 5.2 GB allocated / 6.4 GB reserved peak (≈ 7 GB of the card with its CUDA context); 18 s load (33 s cold); 3.3–7.2 s per candidate of 6.6–15 s audio; ≈ 0.63 GB context stays after `/unload` until restart | 1 (unloads on request) |
+| ECAPA (speaker embeddings) | CPU only: ~8 s first load, ~0.2 s per pair of 10 s clips | — |
 | faster-whisper large-v3 fp16 | ~3.7 GB; 6 s of speech in 1.2 s warm, 8.9 s with the first load | 1 |
 | Demucs htdemucs | ~2.3 GB; 1.5 s clip in ~1 s warm, 27 s with the first download + load | 1 |
 | ACE-Step 1.5 XL turbo | 34 s of engine time for a 90 s song (8 steps); plus ~30 s of Demucs for the stems | 1 |

@@ -10,6 +10,7 @@
 | `comfyui` | vewbox/comfyui | 8188 | GPU: Qwen-Image, local MiniMax H3, ACE-Step, MiniMax Music 3 (hidden behind the worker) |
 | `tts` | vewbox/tts-indextts | 8020 | GPU: IndexTTS 2.5 voices (English, Arabic) |
 | `tts-habibi` | vewbox/tts-habibi | 8021 | GPU: Habibi-TTS IRQ voices (Iraqi Arabic) |
+| `tts-design` | vewbox/tts-design | 8022 | GPU: VoxCPM2 voice design from a description (EN, MSA); CPU: ECAPA speaker embeddings |
 | `asr` | vewbox/asr | 8030 | GPU: faster-whisper large-v3 transcription |
 | `llm` | ollama/ollama | 11434 | GPU: local story engine (qwen3:14b) when no hosted key is set |
 | `models` (profile) | vewbox/models | — | one-shot weight fetcher |
@@ -29,6 +30,35 @@ from the other services by name.
   Iraqi engine; Habibi would otherwise transcribe it with a Whisper it downloads on first use, blocking the service.
 - A host-run worker needs `TTS_URL`, `TTS_HABIBI_URL` and `ASR_URL` in `.env.local` pointing at the published ports
   (`http://127.0.0.1:8020`, `:8021`, `:8030`); the compose defaults use the service names.
+
+### Voice design service (`tts-design`, :8022)
+
+VoxCPM2 (OpenBMB, Apache-2.0) designs a *synthetic* voice from a text description, with no audio input; ECAPA-TDNN
+(SpeechBrain, Apache-2.0) embeds a recording as a 192-d speaker vector. Contract and rules:
+`docs/research/VOICE-IDENTITY-V2.md` §2.2, §2.3 (Rule V-DESIGN), §3.3, §5.1. Client: `src/server/providers/voice-design.ts`.
+
+| | |
+|---|---|
+| Endpoints | `POST /design` (description, text, language en\|ar, seed, n ≤ 3, cfg_value, inference_timesteps, design_id, loudness_target) → JSON: per candidate a 48 kHz original and a 24 kHz mono reference (base64 WAV, sha256, duration, LUFS, true peak, clipped samples) + ECAPA embedding + pairwise cosine; headers `x-engine-version`, `x-seed`, `x-seeds`, `x-design-id`, `x-params`. `POST /embed` (audio) → 192-d L2-normalised vector. `POST /similarity` (a, b) → cosine. `POST /unload`. `GET /health` |
+| Output | peak-limited to ≤ −1 dBTP with the line engines' limiter (imported from `docker/tts/app.py`); every WAV tagged `ISFT=vewbox-tts voxcpm2`, `ICMT=synthetic speech; engine=voxcpm2; designId=…; candidate=…; seed=…; …; not a voice reference`. Candidate k uses seed + k |
+| Refusals (400) | language other than en/ar (Iraqi has no designed path); text script ≠ language; text starting with `(`; descriptions with "sounds like", "the voice of", imitate/impersonate/mimic/clone, "in the style of" and the Arabic equivalents (Rule V-DESIGN §4; the job's LLM check stays the main gate) |
+| Weights | `/models/tts/voxcpm2` (4.96 GB) and `/models/eval/spkrec-ecapa-voxceleb` (89 MB) in the `vewbox_models` volume, fetcher group `voice-design` (docs/MODELS.md). The service never downloads (`HF_HUB_OFFLINE=1`); without weights `/design` answers 503 → the client's `NOT_CONFIGURED` |
+| Image | `vewbox/tts-design` = the `tts-habibi` image + one 251 MB layer (voxcpm 2.0.3 `--no-deps`, transformers 4.57.6, speechbrain 1.1.1). Build `tts-habibi` first on a fresh machine. `docker/tts-design/app.py` and `docker/tts/app.py` are bind-mounted: a fix needs a restart, not a rebuild |
+| VRAM (measured 2026-10-03) | never loaded: 0. Loaded: 5.2 GB allocated, 6.4 GB reserved at peak (Arabic, 15 s candidate); the card's total rose by ≈ 7.0 GB. After `/unload` the process keeps its CUDA context, ≈ 0.63 GB, until the container restarts (the other voice services behave the same). ECAPA runs on the CPU (`TTS_DESIGN_ECAPA_DEVICE`): ~8 s first load, ~0.2 s per comparison. VoxCPM2 runs eagerly (`VOXCPM_OPTIMIZE=0`: torch.compile needs a C compiler the runtime image lacks) |
+| Timing (measured) | first call loads the model (18 s from the page cache, 33 s cold); then 3.3–7.2 s per candidate for 6.6–15 s of audio (eager, RTF ≈ 0.4–0.6) |
+| Seed length | a designed seed is a clone reference only if the line engine hears all of it: Habibi (F5) clips references over 12 s and then its reference text no longer matches (seen: the last reference word spoken at the start of the line), IndexTTS caps at 15 s. Keep the design text short enough (≈ 8–10 s) and reject candidates over 11.5 s for cloning |
+| Sharing the card | ComfyUI's dynamic VRAM keeps ≈ 26–28 GB of Qwen-Image staged after image jobs. With its queue empty, `POST http://127.0.0.1:8188/free {"unload_models": true, "free_memory": true}` releases it (what the worker's GPU lease does); the next prompt restages in seconds |
+
+```powershell
+docker compose build tts-design                      # detached on this machine: see SETUP / the memory note on long builds
+docker compose up -d --no-deps tts-design            # start (never touches tts / tts-habibi)
+curl.exe -s http://127.0.0.1:8022/health             # engine_version, loaded, weights_present, gpu, torch (this process)
+curl.exe -s -X POST http://127.0.0.1:8022/unload     # free the GPU after a design batch
+pnpm exec tsx scripts/voice-design-eval.ts           # the evidence run (docs/evidence/voice-design/report.json)
+```
+
+A host-run worker needs `TTS_DESIGN_URL=http://127.0.0.1:8022` in `.env.local` (the env default is that host port
+already; compose passes `http://tts-design:8022` to the containers). Empty `TTS_DESIGN_URL` = not configured.
 
 ## Health
 
@@ -84,7 +114,7 @@ Backoff after a retryable failure: 15 s, 1 min, 4 min, then 15 min, with jitter.
 
 ## Start, stop, migrate, recover
 
-- **Start**: `docker compose up -d` (db, llm, comfyui, asr, tts, tts-habibi, web, worker). Migrations run on boot under
+- **Start**: `docker compose up -d` (db, llm, comfyui, asr, tts, tts-habibi, tts-design, web, worker). Migrations run on boot under
   an advisory lock (`runMigrations()`), then the organisation sync. During host development the worker runs on the
   host (`pnpm worker`, or detached as in `SETUP.md`) with the container worker stopped.
 - **Stop**: `docker compose stop worker web` first (a running job finishes or is reclaimed later), then the rest.
