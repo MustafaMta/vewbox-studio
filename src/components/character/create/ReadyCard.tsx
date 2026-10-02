@@ -41,7 +41,7 @@ export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLoo
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Link href={profileHref} className="btn btn-primary">{s.kind === 'DRAFT' ? T('cast.ready.review') : T('char.create.openProfile')}<IconArrowRight aria-hidden className="rtl:rotate-180" /></Link>
             <Button variant="secondary" icon={<IconGenerate />} onClick={onAnotherLook} disabled={Boolean(anotherLookDisabled)} title={anotherLookDisabled}>{T('char.create.drawAgain')}</Button>
-            <ConfirmButton variant="ghost" size="sm" icon={<IconDelete />} label={T('btn.discard')} title={`${T('btn.delete')}: ${c.name}`} message={T('char.deleteConfirm')} onConfirm={onDiscard} />
+            <ConfirmButton variant="ghost" size="sm" icon={<IconDelete />} label={T('cast.ready.discard')} title={`${T('btn.delete')}: ${c.name}`} message={T('char.deleteConfirm')} onConfirm={onDiscard} />
           </div>
         </div>
       </div>

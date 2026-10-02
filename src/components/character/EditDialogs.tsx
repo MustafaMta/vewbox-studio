@@ -56,8 +56,8 @@ function DetailsForm({ c, close }: { c: Character; close: () => void }) {
         <Field label={T('label.name')} error={nameError}><Input value={d.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} autoFocus /></Field>
         <Field label={T('label.nameAr')} hint={T('wizard.optional')}><Input value={d.nameAr} dir="rtl" onChange={(e) => set({ nameAr: e.target.value })} maxLength={80} /></Field>
       </div>
-      <Field label={T('cast.edit.description')} hint={<span className="num">{d.role.length}/200</span>} help={T('char.form.roleHelp')}><Input value={d.role} onChange={(e) => set({ role: e.target.value })} maxLength={200} /></Field>
-      <Field label={T('label.personality')} hint={<span className="num">{d.personality.length}/400</span>}><Textarea value={d.personality} onChange={(e) => set({ personality: e.target.value })} rows={3} maxLength={400} /></Field>
+      <Field label={T('cast.edit.description')} hint={<span className="num" dir="ltr">{d.role.length} / 200</span>} help={T('char.form.roleHelp')}><Input value={d.role} onChange={(e) => set({ role: e.target.value })} maxLength={200} /></Field>
+      <Field label={T('label.personality')} hint={<span className="num" dir="ltr">{d.personality.length} / 400</span>}><Textarea value={d.personality} onChange={(e) => set({ personality: e.target.value })} rows={3} maxLength={400} /></Field>
       <div>
         <div className="flex flex-wrap items-end gap-4">
           <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={d.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: T('label.english'), disabled: vlock.locked }, { value: 'AR' as Language, label: T('label.arabic'), disabled: vlock.locked }]} /></div>

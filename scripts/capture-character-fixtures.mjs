@@ -133,6 +133,8 @@ for (const name of wanted) {
   await page.waitForTimeout(300);
   const file = path.join(out, `cast-${name}${suffix}.png`);
   await page.screenshot({ path: file, fullPage: true });
+  // FX_EVAL="expression" prints a value from the page after each scenario (debugging a layout)
+  if (process.env.FX_EVAL) console.log('  eval:', JSON.stringify(await page.evaluate(process.env.FX_EVAL)));
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   console.log(`${s.path} → ${file}${overflow > 0 ? `  (horizontal overflow ${overflow}px)` : ''}`);
 }

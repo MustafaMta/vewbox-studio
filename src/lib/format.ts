@@ -4,7 +4,7 @@ import type { Locale } from '@/lib/i18n';
 export function fmtDate(d: Date | string | null | undefined, locale: Locale = 'en'): string {
   if (!d) return '—';
   const date = typeof d === 'string' ? new Date(d) : d;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-IQ' : 'en-GB', { dateStyle: 'medium' }).format(date);
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-IQ-u-nu-latn' : 'en-GB', { dateStyle: 'medium' }).format(date);
 }
 
 /** "3 min ago" / "منذ ٣ دقائق", in the interface language. */

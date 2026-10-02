@@ -73,7 +73,7 @@ export function ImagePanel({ c, s }: { c: Character; s: IdentityStatus }) {
           <div className="flex flex-wrap items-center gap-2">
             {s.kind === 'DRAFT' && <Button variant="primary" icon={<IconCheck />} disabled={!ok.can} aria-describedby={!ok.can ? 'approve-why' : undefined} onClick={() => (ok.needsOverride ? setReason('') : approve())}>{T('cast.image.approve')}</Button>}
             {s.kind === 'NONE'
-              ? <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={Boolean(running)} onClick={draw}>{T('cast.image.draw')}</Button>
+              ? !running && <Button variant="primary" icon={<IconGenerate />} loading={busy} onClick={draw}>{T('cast.image.draw')}</Button>
               : !running && <RedrawDialog c={c} />}
             {s.kind === 'DRAFT' && ok.block === 'DRAWING' && <p id="approve-why" className="basis-full text-xs text-faint">{T('cast.image.waitDrawing')}</p>}
           </div>

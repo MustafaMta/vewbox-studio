@@ -26,7 +26,7 @@ export function VoicePlayer({ track, name, detail, source, compact, selected, ac
       {busy ? <span aria-hidden className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : st.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden className="translate-x-px" />}
     </button>
   ) : <span aria-hidden className={cls('grid flex-none place-items-center rounded-full border border-line text-disabled', compact ? 'size-8 [&>svg]:size-3.5' : 'size-10 [&>svg]:size-4')}><IconPlay /></span>;
-  const time = <span className="num flex-none text-[12px] text-faint">{fmtClock(st.time)} / {st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>;
+  const time = <span className="num flex-none text-[12px] text-faint" dir="ltr">{fmtClock(st.time)} / {st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>;
 
   if (compact) return (
     <div className={cls('flex min-w-0 items-center gap-3', className)} role="group" aria-label={`${T('cast.voice.title')}: ${name}`}>

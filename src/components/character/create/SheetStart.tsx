@@ -53,7 +53,7 @@ export function SheetStart({ value, onChange, step, onStep, onCreate, busy, draw
               <Field label={T('label.name')} error={touched && problem ? `${T('label.name')} — ${T('char.form.needName')}` : null}><Input value={value.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} autoComplete="off" /></Field>
               {(language === 'AR' || T.locale === 'ar') && <Field label={T('label.nameAr')} hint={language === 'AR' ? T('char.form.nameArHint') : T('wizard.optional')}><Input value={value.nameAr} dir="rtl" onChange={(e) => set({ nameAr: e.target.value })} maxLength={80} /></Field>}
             </div>
-            <Field label={T('cast.edit.description')} hint={<span className="num">{value.role.length} / 200</span>} help={T('char.form.roleHelp')}><Input value={value.role} onChange={(e) => set({ role: e.target.value })} placeholder={T('char.form.rolePh')} maxLength={200} /></Field>
+            <Field label={T('cast.edit.description')} hint={<span className="num" dir="ltr">{value.role.length} / 200</span>} help={T('char.form.roleHelp')}><Input value={value.role} onChange={(e) => set({ role: e.target.value })} placeholder={T('char.form.rolePh')} maxLength={200} /></Field>
             <div className="flex flex-wrap gap-x-6 gap-y-4">
               <div><p className="label">{T('label.sex')}</p><Segmented label={T('label.sex')} value={value.sex ?? 'ANY'} onChange={(v) => set({ sex: v === 'ANY' ? undefined : (v as Sex) })} options={[{ value: 'ANY', label: T('auto.decide') }, ...SEXES.map((x) => ({ value: x as string, label: x === 'FEMALE' ? T('cast.new.woman') : T('cast.new.man') }))]} /></div>
               <div><p className="label">{T('label.age')}</p><Segmented label={T('label.age')} value={value.band ?? 'ANY'} onChange={(v) => set({ band: v === 'ANY' ? undefined : (v as AgeBand), exactAge: undefined })} options={[{ value: 'ANY', label: T('auto.decide') }, ...AGE_BANDS.map((b) => ({ value: b as string, label: T.dyn(`char.form.age.${b}`) }))]} /></div>
@@ -94,7 +94,7 @@ export function SheetStart({ value, onChange, step, onStep, onCreate, busy, draw
         )}
 
         <Footer reason={i === SHEET_STEPS.length - 1 ? drawDisabledReason : null} onCancel={i === 0 ? onCancel : () => go(SHEET_STEPS[i - 1])} cancelLabel={i === 0 ? undefined : T('btn.back')}
-          estimate={i === SHEET_STEPS.length - 1 ? T('cast.sheet.createHint') : `${T('cast.sheet.step')} ${i + 1} / ${SHEET_STEPS.length}`}
+          estimate={i === SHEET_STEPS.length - 1 ? T('cast.sheet.createHint') : <>{T('cast.sheet.step')} <span className="num" dir="ltr">{i + 1} / {SHEET_STEPS.length}</span></>}
           secondary={i === SHEET_STEPS.length - 1 ? <Button variant="secondary" loading={busy} onClick={() => create(false)}>{T('char.create.recordOnly')}</Button> : undefined}
           primary={i < SHEET_STEPS.length - 1
             ? <Button type="submit" variant="primary">{T('btn.next')}</Button>

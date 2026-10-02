@@ -38,7 +38,7 @@ export function DescribeStart({ value, onChange, recording, onRecording, onSubmi
   };
   return (
     <form className="panel space-y-6 p-4 sm:p-5" onSubmit={submit} aria-busy={busy || undefined} noValidate>
-      <Field label={T('char.create.who')} help={T('char.create.whoHint')} error={briefError} hint={<span className="num">{value.brief.length} / {BRIEF_MAX}</span>}>
+      <Field label={T('char.create.who')} help={T('char.create.whoHint')} error={briefError} hint={<span className="num" dir="ltr">{value.brief.length} / {BRIEF_MAX}</span>}>
         <Textarea className="input-lg" value={value.brief} onChange={(e) => set({ brief: e.target.value })} rows={4} maxLength={BRIEF_MAX + 50} placeholder={T('char.create.briefPh')} />
       </Field>
       <Field label={T('label.name')} hint={T('wizard.optional')} className="max-w-sm"><Input value={value.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} /></Field>

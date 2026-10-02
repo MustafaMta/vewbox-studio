@@ -297,7 +297,7 @@ function Design({ c }: { c: Character }) {
   const lang = useLang(c);
   return (
     <div className="space-y-4">
-      <Field label={T('cast.voice.design.description')} hint={<span className="num">{description.length} / 600</span>} help={T('cast.voice.design.help')}>
+      <Field label={T('cast.voice.design.description')} hint={<span className="num" dir="ltr">{description.length} / 600</span>} help={T('cast.voice.design.help')}>
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={600} dir="auto" />
       </Field>
       {c.dialect === 'IRAQI_BAGHDADI' && <p className="text-[13px] text-warn">{T('cast.voice.design.iraqiNote')}</p>}
