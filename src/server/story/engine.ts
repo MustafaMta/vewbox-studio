@@ -4,10 +4,12 @@ import type { Dialect, Language, Style } from '@/domain/vocabulary';
 import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
 import { nid } from '@/domain/ids';
 import { StudioError } from '@/domain/errors';
+import { primaryImageOf } from '@/domain/identity';
 import { json as llmJson, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
+import { agentPrompt } from '../org/skills';
 
 /** THE STORY ENGINE — turns a brief into a production: concept, cast and world, synopsis, scenes, script, shots with
  *  continuity, and the performance plan of a music video. It writes original material in the chosen style and
@@ -32,13 +34,19 @@ const STYLE_RULES = (style: Style) => { const d = styleDirection(style); return 
 const compact = (v: unknown) => JSON.stringify(v);
 
 function castSummary(c: Character) {
-  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(c.portraitAssetId) };
+  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(primaryImageOf(c)) };
 }
 function locationSummary(l: Location) {
   return { id: l.id, name: l.name, nameAr: l.nameAr, kind: l.kind, description: l.description, landmarks: l.landmarks, props: l.props, lighting: l.lighting, layout: l.layout };
 }
 
-export interface EngineOptions extends LlmOptions { onResult?: (r: LlmResult) => void }
+/** `agentId`: the studio agent making the call (the handler knows it). Its role, instructions and PROMPT skills are
+ *  appended to the system message (src/server/org/skills.ts agentPrompt); without it, or for an agent that does not
+ *  call the model, the system message is exactly the engine's own. */
+export interface EngineOptions extends LlmOptions { onResult?: (r: LlmResult) => void; agentId?: string }
+
+/** The engine's system message for a call, followed by what the calling agent brings (its instructions, its skills). */
+const system = (content: string, opts: EngineOptions): LlmMessage => ({ role: 'system', content: `${content}${agentPrompt(opts.agentId)}` });
 
 // --------------------------------------------------------------------------------------------------- Auto Idea
 
@@ -100,7 +108,7 @@ ${showContext ? `${continuityRules}\nShow context (reuse its returning cast and 
 Return JSON with exactly these keys: title, titleAr (optional), logline, premise (2–4 paragraphs), genre, mood, structure (array of {title, summary}), cast (array of {existingCharacterId?, name, role, reason, sex, ageYears, appearance, personality}), locations (array of {existingLocationId?, name, description, kind})${req.kind === 'MUSIC_VIDEO' ? ', song {title, caption, lyrics}' : ''}.
 For a new character "appearance" is one dense sentence of how they look (age, build, face, hair, skin, eyes, wardrobe, one distinguishing detail).`;
 
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(style)}\n\n${LANGUAGE_RULES(language, dialect)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(style)}\n\n${LANGUAGE_RULES(language, dialect)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(ProposalSchema, messages, { ...opts, maxTokens: 6000, temperature: 0.9 });
   opts.onResult?.(r.result);
   const out = r.data;
@@ -155,7 +163,7 @@ Synopsis: ${p.synopsis}
 Scenes: ${compact(scenes)}
 The bible so far: ${compact(show.bible ?? {})}
 Return JSON: { events: [3–8 one-sentence facts that later episodes must respect, each starting with "S${season?.number ?? '?'}E${p.episodeNumber ?? '?'}:"], relationships: [changed relationships, one sentence each, only when something changed], unresolved: [the storylines this episode leaves open, including still-open ones from the bible], resolved: [bible.unresolved items this episode closed] }. English only; names exactly as in the cast.`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\nYou are the Continuity Writer: you keep the story bible. Record facts, not opinions.` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\nYou are the Continuity Writer: you keep the story bible. Record facts, not opinions.`, opts), { role: 'user', content: user }];
   const r = await llmJson(ContinuitySchema, messages, { ...opts, maxTokens: 2500, temperature: 0.3 });
   opts.onResult?.(r.result);
   return r.data;
@@ -188,7 +196,7 @@ export async function designCharacter(s: StudioState, req: { brief: string; name
 Brief: """${req.brief}"""${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
 Existing characters (do not duplicate a look or a name): ${compact(existing)}
 Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot.`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
   opts.onResult?.(r.result);
   return r.data;
@@ -202,7 +210,7 @@ Their LOOK is a reference picture the producer uploaded. You cannot see that pic
 Design only who they are: their role, their personality (temperament, habits, how they speak), sex and age (take them from the producer's words or the name; when nothing says, choose what fits the role), and the voice description.
 ${brief ? `The producer's words: """${brief}"""` : 'The producer gave no words beyond the picture.'}${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
 Return JSON: { name, nameAr?, role, sex, ageYears, species?, personality, voice: { pitch, pace, timbre, notes? } }. No look fields.`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignFromReferenceSchema, messages, { ...opts, maxTokens: 1500, temperature: 0.8 });
   opts.onResult?.(r.result);
   // the look is the picture's: nothing is invented for it (empty = "as in the reference picture")
@@ -254,7 +262,7 @@ If the story needs people or places that do not exist yet, create them in newCha
 ${p.kind === 'MUSIC_VIDEO' && p.song ? `The song (${p.song.title}, ${p.song.durationSeconds}s): caption "${p.song.caption}". Sections: ${compact(p.song.sections.map((x) => ({ kind: x.kind, from: x.from, to: x.to, text: x.textAr || x.text })))}. Scenes should map onto song sections.` : ''}
 Return JSON: { logline, synopsis (3–6 paragraphs, present tense), genre, mood, titleAr?, newCharacters: [{name, role, sex, design:{build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, ageYears, nameAr?, canon:{heightCm?, accessories[]?, visualRestrictions[]?, agePresentation?, speech?}}}], newLocations: [{name, design:{description, kind, landmarks[], props[], lighting[], nameAr?, layout:{geography?, architecture?, materials[]?, cameraZones[]?, entrances[]?, spatial?}}}], scenes: [{title, locationName, timeOfDay, characterNames[], purpose, emotionalObjective, entryState, exitState, targetSeconds}] }.
 timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NIGHT. locationName must match an attached, library or new location exactly; characterNames likewise.`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(DevelopSchema, messages, { ...opts, maxTokens: 8000, temperature: 0.8 });
   opts.onResult?.(r.result);
   return r.data;
@@ -276,13 +284,14 @@ Scenes to write (keep sceneId): ${compact(sceneCards)}
 Each scene plays for about ${perScene} seconds, so 2–6 beats per scene; a beat is one piece of action (what we see, present tense, specific and filmable in a few seconds) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
 If a scene already has beats, improve and complete them rather than discarding what is there.
 Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }] }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
   opts.onResult?.(r.result);
   // Arabic that landed in the English slot moves to textAr; the English gloss is then asked for separately
   for (const sc of r.data.scenes) for (const b of sc.beats) for (const l of b.lines) if (ARABIC.test(l.text) && !l.textAr) l.textAr = l.text;
   const lines = r.data.scenes.flatMap((sc) => sc.beats.flatMap((b) => b.lines));
-  const glosses = await glossLines(lines.map((l) => ({ text: l.text, textAr: l.textAr })), p.dialect, opts);
+  // the gloss is a translation utility with its own fixed prompt: the screenwriter's instructions and skills stay out
+  const glosses = await glossLines(lines.map((l) => ({ text: l.text, textAr: l.textAr })), p.dialect, { ...opts, agentId: undefined });
   for (const [i, l] of lines.entries()) if (glosses[i]) l.text = glosses[i];
   return r.data;
 }
@@ -327,7 +336,16 @@ export function establishedAt(p: Production, scene: Scene): string {
 
 export interface PlannedShot { purpose: string; action: string; framing: ShotPlanOut['shots'][number]['framing']; cameraMove: ShotPlanOut['shots'][number]['cameraMove']; durationSeconds: number; characterIds: string[]; dialogue: Array<{ id: string; characterId: string; text: string; textAr?: string }>; transition: ShotPlanOut['shots'][number]['transition']; continuity: Omit<ContinuityState, 'version'>; prompt: string }
 
-export async function planShots(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}): Promise<PlannedShot[]> {
+/** A scene's planned shots before the timing fit, with the running-time budget and per-shot cap they are fitted to. */
+export interface ShotPlanDraft { shots: PlannedShot[]; budget: number; maxShot: number }
+
+/** The scene's shots, fitted to its budget (the Shot Planner's step in the worker does the fit separately). */
+export async function planShots(s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string }, opts: EngineOptions = {}): Promise<PlannedShot[]> {
+  const draft = await planShotsDraft(s, p, scene, cast, world, previous, opts);
+  return fitDurations(draft.shots, draft.budget, draft.maxShot);
+}
+
+export async function planShotsDraft(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}): Promise<ShotPlanDraft> {
   const loc = world.find((l) => l.id === scene.locationId);
   const present = scene.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
   const lines = scene.beats.flatMap((b) => b.lines.map((l) => ({ characterName: cast.find((c) => c.id === l.characterId)?.name ?? '?', characterId: l.characterId, text: l.text, textAr: l.textAr, id: l.id })));
@@ -349,7 +367,7 @@ Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, 
 Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"]}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot."},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
 Every continuity.characters entry must use the key "characterName" with the exact character name. relationToPrevious ∈ CONTINUATION (same moment continues), CUT (new angle in the same scene), STORY_TRANSITION (time or place changes). Use null for nothing; never omit required keys.
 framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
-  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}` }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}`, opts), { role: 'user', content: user }];
   // a scene's running time needs enough shots at ≤ maxShot seconds each; a one-shot scene is sent back for more
   const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
   const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
@@ -389,7 +407,7 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
       if (!sh.characterIds.includes(l.characterId)) sh.characterIds.push(l.characterId);
     }
   }
-  return fitDurations(shots, budget, maxShot);
+  return { shots, budget, maxShot };
 }
 
 /** The model plans shots near the short end of the range, so a scene comes out well under its running time.
@@ -418,7 +436,7 @@ Story: ${p.logline} ${p.synopsis}
 Sections: ${compact(p.song.sections.map((x) => ({ sectionId: x.id, kind: x.kind, from: x.from, to: x.to, lyrics: x.textAr || x.text, ...(everyoneEverywhere ? {} : { currentSingers: x.singerIds.map((id) => cast.find((c) => c.id === id)?.name) }) })))}
 Rules: instrumental sections are INSTRUMENTAL with no singers. A section sung by one performer is SOLO. Two performers singing together is DUET; taking turns line by line is ALTERNATING (then give "lines": [{singerName, text}] splitting the lyrics in order); three or more together is ENSEMBLE. ${everyoneEverywhere ? 'Decide who sings each section from the lyrics and the story (a lead usually carries the verses; others join where the story brings them in); do not give every section to everyone unless the song is truly sung together throughout.' : 'Keep current singer assignments unless they are clearly wrong.'} Only a performer assigned to a section sings in it; nobody else mouths the words.
 Return JSON: { sections: [{ sectionId, mode, singerNames[], lines?[] }] }.`;
-  const messages: LlmMessage[] = [{ role: 'system', content: STUDIO_RULES }, { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(STUDIO_RULES, opts), { role: 'user', content: user }];
   const r = await llmJson(PerformancePlanSchema, messages, { ...opts, maxTokens: 4000, temperature: 0.3 });
   opts.onResult?.(r.result);
   const byName = (n: string) => singers.find((c) => c.name.toLowerCase() === n.trim().toLowerCase())?.id;

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { backoffMs, claim, complete, enqueue, fail, getJob, heartbeat, requestCancel, retry, setProgress } from '@/server/jobs/queue';
+import { backoffMs, cancelled, claim, complete, enqueue, fail, getJob, heartbeat, requestCancel, retry, setProgress } from '@/server/jobs/queue';
 import { db, schema } from '@/server/db/client';
 
 /** THE QUEUE'S PROMISES, against the real database. A worker that goes quiet loses its lease; a second worker takes
@@ -40,6 +40,25 @@ describe('queue leases', () => {
     expect((await heartbeat(job.id, 'test-worker-b')).cancelRequested).toBe(false);
     await complete(job.id, { ok: true });
     expect((await getJob(job.id))?.status).toBe('COMPLETED');
+  });
+
+  it('fencing: once a job is reclaimed, the old attempt can no longer write progress, a result, a failure or a cancellation', async () => {
+    const { job } = await enqueue({ type: 'MEDIA_PROBE', payload: { assetId: 'asset-test-fence' }, maxAttempts: 3, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+    made.push(job.id);
+    // attempt 1 on worker A went quiet; attempt 2 on worker B owns the job now (the row state claim() leaves)
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'test-worker-b', lockedAt: new Date().toISOString(), heartbeatAt: new Date().toISOString(), attempts: 2 }).where(eq(schema.jobs.id, job.id));
+    const old = { workerId: 'test-worker-a', attempt: 1 };
+    expect(await setProgress(job.id, 'GENERATING', { phase: 'late' }, {}, old)).toBe(false);
+    expect(await complete(job.id, { stale: true }, 'COMPLETED', old)).toBe(false);
+    expect(await fail(job.id, { code: 'PROVIDER', message: 'late', retryable: false }, 1, 3, old)).toBe(false);
+    expect(await cancelled(job.id, old)).toBe(false);
+    let j = (await getJob(job.id))!;
+    expect(j.status).toBe('GENERATING'); expect(j.result).toBeUndefined();
+    // the same worker on a stale attempt number is refused too; the owner writes
+    expect(await setProgress(job.id, 'VALIDATING', { phase: 'checking' }, {}, { workerId: 'test-worker-b', attempt: 1 })).toBe(false);
+    expect(await complete(job.id, { ok: true }, 'COMPLETED', { workerId: 'test-worker-b', attempt: 2 })).toBe(true);
+    j = (await getJob(job.id))!;
+    expect(j.status).toBe('COMPLETED'); expect(j.result).toEqual({ ok: true });
   });
 
   it('a failure schedules a retry with backoff until attempts run out; retry() revives a dead job', async () => {

@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
+import { step } from './step';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, CharacterRef, Location, LocationRef, PendingReference, Production, Shot } from '@/domain/types';
@@ -57,7 +58,7 @@ interface Drawn { id: string; file: string; prompt: string; references: string[]
 
 /** Run one graph under the GPU lease as a recorded tool call. */
 async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: 'image.generate' | 'image.edit_with_references' }): Promise<comfy.ComfyRunResult> {
-  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => ctx.tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label }), { jobId: ctx.job.id });
+  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => ctx.tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
 }
 
 /** Bring one ComfyUI output file into the library as an asset with its provenance. */
@@ -160,7 +161,9 @@ export const characterAppearance: Handler = async (ctx) => {
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`);
   const pending = c.pendingReference ? state.assets.find((a) => a.id === c.pendingReference!.assetId) : undefined;
-  const validation = await requireUsableReference(c, pending);
+  // REFERENCE PICTURE CHECK (the Character Continuity Agent's step): an uploaded reference is checked before anything
+  // is drawn from it
+  const validation = c.pendingReference ? await step(ctx, 'character-continuity', `reference-picture-check: ${c.name}`, () => requireUsableReference(c, pending)) : undefined;
   await requireComfy();
   // a picture is the look: the identity line and the prompt say "as in the reference picture" and state only what
   // the producer wrote; without one the written sheet is the look (a line stored by an earlier drawing from a
@@ -320,10 +323,13 @@ export const locationPlates: Handler = async (ctx) => {
     await ctx.checkpoint();
   }
   await command('addLocationRefs', [l.id, refs], 'worker');
-  const fresh = (await readState()).state.locations.find((x) => x.id === l.id)!;
-  for (const p of (await readState()).state.productions.filter((x) => x.locationIds.includes(l.id))) {
-    await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'WORLD', receiverDepartment: 'PREPRODUCTION', artifactIds: refs.map((r) => r.assetId), outputVersions: { location: l.id, refs: fresh.refs.length }, validation: { ok: Boolean(fresh.masterAssetId) && fresh.refs.some((r) => r.role === 'VIEW'), checks: [{ name: 'master-plate-present', ok: Boolean(fresh.masterAssetId) }, { name: 'views-present', ok: fresh.refs.some((r) => r.role === 'VIEW'), detail: `${fresh.refs.filter((r) => r.role === 'VIEW').length} view(s), ${fresh.refs.filter((r) => r.role === 'STATE').length} time-of-day state(s)` }] }, jobId: ctx.job.id });
-  }
+  // PLATE HAND-OFF REVIEW (the Art Director's step): the place is handed on with its checks to every production it is in
+  await step(ctx, 'art-director', `plate-handoff-review: ${l.name}`, async () => {
+    const fresh = (await readState()).state.locations.find((x) => x.id === l.id)!;
+    for (const p of (await readState()).state.productions.filter((x) => x.locationIds.includes(l.id))) {
+      await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'WORLD', receiverDepartment: 'PREPRODUCTION', artifactIds: refs.map((r) => r.assetId), outputVersions: { location: l.id, refs: fresh.refs.length }, validation: { ok: Boolean(fresh.masterAssetId) && fresh.refs.some((r) => r.role === 'VIEW'), checks: [{ name: 'master-plate-present', ok: Boolean(fresh.masterAssetId) }, { name: 'views-present', ok: fresh.refs.some((r) => r.role === 'VIEW'), detail: `${fresh.refs.filter((r) => r.role === 'VIEW').length} view(s), ${fresh.refs.filter((r) => r.role === 'STATE').length} time-of-day state(s)` }] }, jobId: ctx.job.id });
+    }
+  });
   await ctx.activity('PLATES_DRAWN', `${l.name}: ${refs.length} plate(s) drawn${master ? '' : ' (no master)'}`, { locationId: l.id, refs: refs.length });
   return { refs: refs.length };
 };

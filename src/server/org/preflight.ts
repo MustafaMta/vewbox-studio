@@ -2,6 +2,7 @@ import type { Asset, Character, Production, Shot, StudioState } from '@/domain/t
 import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem, voiceLock } from '@/domain/rules';
+import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
 
@@ -10,7 +11,18 @@ import type { FailureClass } from './model';
  *  blindly. The checks are pure (state in, verdict out) so the same preflight runs in the worker and in tests. */
 
 export interface PreflightCheck { name: string; ok: boolean; detail?: string; failureClass: FailureClass }
-export interface Preflight { ok: boolean; checks: PreflightCheck[] }
+/** Something the producer should know that does not stop the job (e.g. "identity not approved"). Kept apart from
+ *  `checks` so every reader of a failed check keeps meaning a refusal. */
+export interface PreflightWarning { name: string; detail: string; characterIds?: string[] }
+export interface Preflight { ok: boolean; checks: PreflightCheck[]; warnings: PreflightWarning[] }
+
+/** The identity warning (docs/CONTRACTS-IDENTITY-PACK.md v2 §3): a character whose canonical image is not APPROVED
+ *  can be cast and filmed, but the producer is told. */
+function identityWarning(characters: Character[]): PreflightWarning | null {
+  const pending = characters.filter((c) => !isCanonicalApproved(c));
+  if (!pending.length) return null;
+  return { name: 'identity-approved', detail: `identity not approved: ${pending.map((c) => `${c.name} (${c.canonicalImage ? `draft v${c.canonicalImage.version}` : primaryImageSourceOf(c) === 'PORTRAIT' ? 'legacy portrait, no canonical image' : 'no canonical image'})`).join(', ')}`, characterIds: pending.map((c) => c.id) };
+}
 
 /** MiniMax H3 limits as the local graphs apply them. */
 export const H3_LIMITS = { maxReferenceImages: 9, maxReferenceAudio: 3, minSeconds: 1, maxSeconds: 15, maxGuides: 4 } as const;
@@ -20,6 +32,7 @@ const usableAudio = (a?: Asset) => Boolean(a && a.kind === 'AUDIO' && !a.sample)
 
 export function preflightTake(state: StudioState, p: Production, sh: Shot, opts: { backend: 'local' | 'api'; customPrompt?: boolean }): Preflight {
   const checks: PreflightCheck[] = [];
+  const warnings: PreflightWarning[] = [];
   const add = (name: string, ok: boolean, failureClass: FailureClass, detail?: string) => checks.push({ name, ok, failureClass, detail });
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   const cast = castOf(state, p); const world = worldOf(state, p);
@@ -39,18 +52,23 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   add('lines-have-text', emptyLines.length === 0, 'PROMPT_AMBIGUITY', emptyLines.length ? `${emptyLines.length} empty line(s)` : undefined);
   // the parameters
   add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s (engine: ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s)`);
-  // references and their limits
+  // references and their limits: each character's primary image is the canonical front full-body image (a character
+  // drawn before canonical images falls back to the legacy portrait)
   const opening = byId(sh.openingFrameAssetId);
-  const portraits = sh.characterIds.map((id) => byId(cast.find((c) => c.id === id)?.portraitAssetId)).filter(usableImage);
+  const inShot = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter((c): c is Character => Boolean(c));
+  const primaries = inShot.map((c) => byId(primaryImageOf(c))).filter(usableImage);
   const plate = byId(loc?.masterAssetId);
-  const pictures = (usableImage(opening) ? 1 : 0) + portraits.length + (usableImage(plate) ? 1 : 0);
+  const pictures = (usableImage(opening) ? 1 : 0) + primaries.length + (usableImage(plate) ? 1 : 0);
   add('reference-pictures-within-limit', pictures <= H3_LIMITS.maxReferenceImages, 'UNSUPPORTED_CAPABILITY', `${pictures} picture(s), limit ${H3_LIMITS.maxReferenceImages}`);
   const identityNeeded = sh.characterIds.length > 0;
-  const identityOk = !identityNeeded || usableImage(opening) || portraits.length > 0;
-  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (usableImage(opening) ? 'opening frame' : `${portraits.length} portrait(s)`) : 'the shot has characters but neither an opening frame nor a portrait to hold their identity; draw them first');
+  const identityOk = !identityNeeded || usableImage(opening) || primaries.length > 0;
+  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (usableImage(opening) ? 'opening frame' : `${primaries.length} character image(s)`) : 'the shot has characters but neither an opening frame nor a character image to hold their identity; draw them first');
   if (identityNeeded) {
-    const missing = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter((c) => c && !usableImage(byId(c.portraitAssetId))).map((c) => c!.name);
-    add('every-character-has-portrait', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no portrait for ${missing.join(', ')}` : undefined);
+    const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
+    const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));
+    add('every-character-has-image', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no canonical image for ${missing.map((c) => c.name).join(', ')}; draw the character first` : legacy.length ? `legacy portrait for ${legacy.map((c) => c.name).join(', ')}` : undefined);
+    const w = identityWarning(inShot);
+    if (w) warnings.push(w);
   }
   // audio before video: a speaking shot (film, local engine) needs a canonical voice for every speaker
   const speakers = Array.from(new Set(sh.dialogue.map((d) => d.characterId)));
@@ -73,7 +91,7 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const ok = !sameScene || Boolean(prevTake && prevTake.provider !== 'SAMPLE' && byId(prevTake.assetId)?.kind === 'VIDEO');
     add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? 'previous take available' : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
   }
-  return { ok: checks.every((c) => c.ok), checks };
+  return { ok: checks.every((c) => c.ok), checks, warnings };
 }
 
 /** Why a picture cannot be drawn from, or null when it can: it must be a real uploaded picture (never a bundled
@@ -107,17 +125,27 @@ export function referenceAudioProblem(state: StudioState, sample: Character['voi
  *  (MISSING_REFERENCE names what to upload) and the character is not locked for that kind of change. */
 export function preflightCharacter(state: StudioState, c: Character, type: JobType, payload: Record<string, unknown> = {}): Preflight {
   const checks: PreflightCheck[] = [];
+  const warnings: PreflightWarning[] = [];
   const add = (name: string, ok: boolean, failureClass: FailureClass, detail?: string) => checks.push({ name, ok, failureClass, detail });
   if (type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS') {
     add('appearance-unlocked', canChangeAppearance(c), 'INCONSISTENT_PLAN', canChangeAppearance(c) ? undefined : `${c.name} has been used in a video; the appearance is preserved`);
+  }
+  if (type === 'CHARACTER_APPEARANCE') {
+    // a redraw of an approved image is a new DRAFT version until the producer approves it again
+    if (canChangeAppearance(c) && isCanonicalApproved(c)) warnings.push({ name: 'approved-identity-redrawn', detail: `${c.name}’s approved canonical image (v${c.canonicalImage!.version}) is replaced by a draft until the new one is approved`, characterIds: [c.id] });
+  } else {
+    const w = identityWarning([c]);
+    if (w) warnings.push(w);
   }
   if (type === 'CHARACTER_APPEARANCE' && c.pendingReference) {
     const problem = referenceImageProblem(state, c.pendingReference.assetId, c.pendingReference.validation);
     add('reference-picture-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; upload another picture or clear the reference to draw from the description` : 'reference picture ready');
   }
   if (type === 'CHARACTER_REFS') {
-    const problem = referenceImageProblem(state, c.portraitAssetId);
-    add('portrait-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; draw the portrait first` : 'portrait ready');
+    // optional secondary material is drawn from the primary image: the canonical image, or the legacy portrait of a
+    // character drawn before canonical images
+    const problem = referenceImageProblem(state, primaryImageOf(c));
+    add('primary-image-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; draw the character first` : primaryImageSourceOf(c) === 'CANONICAL' ? 'canonical image ready' : 'legacy portrait ready');
   }
   if (type === 'VOICE_BUILD') {
     const mode = (payload.mode as string | undefined) ?? 'AUTOMATIC';
@@ -136,7 +164,7 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
       add('catalogue-voice-named', Boolean(payload.providerVoiceId), 'INVALID_INPUT', payload.providerVoiceId ? String(payload.providerVoiceId) : 'a catalogue voice needs providerVoiceId');
     }
   }
-  return { ok: checks.every((x) => x.ok), checks };
+  return { ok: checks.every((x) => x.ok), checks, warnings };
 }
 
 /** What must exist before a scene can be planned into shots. */
@@ -148,5 +176,5 @@ export function preflightPlan(p: Production, sceneIds?: string[]): Preflight {
   checks.push({ name: 'scenes-written', ok: unwritten.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: unwritten.length ? `${unwritten.length} scene(s) without beats` : undefined });
   const noLocation = targets.filter((sc) => !sc.locationId);
   checks.push({ name: 'scenes-located', ok: noLocation.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: noLocation.length ? `${noLocation.length} scene(s) without a location` : undefined });
-  return { ok: checks.every((c) => c.ok), checks };
+  return { ok: checks.every((c) => c.ok), checks, warnings: [] };
 }

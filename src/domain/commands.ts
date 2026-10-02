@@ -19,8 +19,9 @@ export const COMMANDS = {
   setSong: A.setSong, updateSong: A.updateSong,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference, setCharacterAppearance: A.setCharacterAppearance, addCharacterRefs: A.addCharacterRefs,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
+  setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, deleteLocation: A.deleteLocation,
-  addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset,
+  addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
   acceptProposal: A.acceptProposal,
   updateSettings: A.updateSettings,
 } as const;
@@ -94,8 +95,20 @@ const VoiceIdentitySchema = z.object({
   status: z.enum(['ACTIVE', 'REVIEW', 'STALE']).optional(), engineVersion: short(120).optional(), jobId: id.optional(),
 });
 
+/** The canonical image (docs/CONTRACTS-IDENTITY-PACK.md v2) as the worker reports a drawing. Status, version and
+ *  approval are never taken from the caller (the reducer sets them). */
+const CanonicalImageSchema = z.object({
+  assetId: id, jobId: id.optional(), seed: z.number().int().optional(), referenceAssetId: id.optional(), engine: short(200).optional(), identityLine: short(4000).optional(),
+  check: z.object({ ok: z.boolean(), notes: z.array(short(400)).max(20).optional() }).optional(),
+  generatedAt: z.string().min(1).max(40).optional(),
+});
+const ApproveOptions = z.object({ override: z.boolean().optional(), reason: short(1000).optional() });
+
 /** Tuples of positional args, by command. */
 export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[]>>> = {
+  setCanonicalImage: z.tuple([id, CanonicalImageSchema]),
+  approveCanonicalImage: z.tuple([id, z.number().int().min(1)]).rest(ApproveOptions.optional()),
+  setAssetTier: z.tuple([id, z.enum(['CANONICAL', 'SECONDARY', 'RAW']).nullable()]),
   addCharacter: z.tuple([CharacterInputSchema]),
   updateCharacter: z.tuple([id, CharacterPatchSchema]),
   setPendingReference: z.tuple([id, id.optional().nullable(), imageValidation.optional()]).rest(z.unknown()),

@@ -13,8 +13,8 @@ export const mediaProbe: Handler = async (ctx) => {
   if (!rel) throw new StudioError('INVALID', 'Asset has no file path');
   await ctx.progress('VALIDATING', { phase: 'probing' });
   const file = fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: rel });
-  const probe = await ctx.tool('media.probe', () => ffprobe(file));
-  const decode = a.kind === 'IMAGE' ? { ok: true } : await ctx.tool('media.probe', () => decodeCheck(file), { label: 'decode' });
+  const probe = await ctx.tool('media.probe', () => ffprobe(file), { input: { file } });
+  const decode = a.kind === 'IMAGE' ? { ok: true } : await ctx.tool('media.probe', () => decodeCheck(file), { label: 'decode', input: { file } });
   await command('updateAsset', [assetId, { width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, unavailable: !decode.ok, provenance: { ...(a.provenance ?? {}), probe } }], 'worker');
   return { probe, decode };
 };

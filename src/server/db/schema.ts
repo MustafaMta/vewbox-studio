@@ -1,5 +1,5 @@
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { Beat, Brief, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
+import type { Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
 import type { JobError, JobProgress } from '@/domain/jobs';
 
 /** THE DATABASE — the studio's source of truth. Shows, seasons, productions, scenes, shots, takes, characters,
@@ -7,6 +7,9 @@ import type { JobError, JobProgress } from '@/domain/jobs';
  *  a song) are JSON columns on their row. Jobs, their events and measurements live beside them. */
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string' });
+
+/** `characters.canonical_image`: the canonical image without its asset id (that is `canonical_asset_id`). */
+export type StoredCanonicalImage = Omit<CanonicalImage, 'assetId'>;
 
 export const shows = pgTable('shows', {
   id: text('id').primaryKey(),
@@ -168,6 +171,12 @@ export const characters = pgTable('characters', {
   pendingReference: jsonb('pending_reference').$type<PendingReference>(),
   canon: jsonb('canon').$type<NonNullable<import('@/domain/types').Character['canon']>>(),
   notes: text('notes'),
+  /** THE CANONICAL IMAGE (docs/CONTRACTS-IDENTITY-PACK.md v2): the one front full-body image as a column — queryable,
+   *  and the picture cannot be deleted from under the character (RESTRICT; the saver deletes asset rows last) — plus
+   *  status, version, how it was drawn, the check and the approval as JSON. The domain's `Character.canonicalImage`
+   *  is assembled from both (src/server/studio/canonical-image.ts). */
+  canonicalAssetId: text('canonical_asset_id').references(() => assets.id, { onDelete: 'restrict' }),
+  canonicalImage: jsonb('canonical_image').$type<StoredCanonicalImage>(),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -184,6 +193,8 @@ export const characterUsage = pgTable('character_usage', {
   takeLabel: text('take_label').notNull(),
   recordedAt: ts('recorded_at').notNull(),
   status: text('status').notNull().default('IN_TAKE'),
+  /** The canonical image version the character had when the take was recorded (null: none yet, or an older record). */
+  canonicalImageVersion: integer('canonical_image_version'),
 }, (t) => [uniqueIndex('character_usage_unique').on(t.characterId, t.shotId, t.takeId), index('character_usage_character_idx').on(t.characterId)]);
 
 export const locations = pgTable('locations', {
@@ -226,6 +237,8 @@ export const assets = pgTable('assets', {
   jobId: text('job_id'),
   /** Set by MEDIA_PROBE / the file sweep when the file behind the record cannot be read; the pages say so. */
   unavailable: boolean('unavailable').notNull().default(false),
+  /** Character/location imagery: CANONICAL (an identity view), SECONDARY, RAW; null for everything else. */
+  tier: text('tier'),
   createdAt: ts('created_at').notNull(),
 });
 
@@ -318,8 +331,11 @@ export const departments = pgTable('departments', {
   nameAr: text('name_ar'),
   directorId: text('director_id').notNull(),
   responsibility: text('responsibility').notNull(),
+  responsibilityAr: text('responsibility_ar'),
   stages: text('stages').array().notNull().default([]),
   order: integer('order').notNull().default(0),
+  /** roles the department would need but nobody executes yet (model.ts PLANNED_ROLES) */
+  plannedRoles: jsonb('planned_roles').$type<Array<{ id: string; name: string; nameAr: string; would: string; reason: string; reasonAr: string; phase: string }>>().notNull().default([]),
   orgVersion: integer('org_version').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -327,9 +343,15 @@ export const departments = pgTable('departments', {
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  nameAr: text('name_ar'),
   departmentId: text('department_id').notNull(),
   role: text('role').notNull(),
+  roleAr: text('role_ar'),
   description: text('description').notNull(),
+  descriptionAr: text('description_ar'),
+  /** delegated steps it performs inside other agents' jobs, and payload routes of a job type it executes */
+  steps: jsonb('steps').$type<Array<{ id: string; name: string; nameAr: string; where: string }>>().notNull().default([]),
+  payloadRoutes: jsonb('payload_routes').$type<Array<{ jobType: string; when: string }>>().notNull().default([]),
   systemInstructions: text('system_instructions').notNull(),
   model: text('model').notNull(),
   skills: text('skills').array().notNull().default([]),
@@ -368,8 +390,12 @@ export const skills = pgTable('skills', {
   sourceVersion: text('source_version').notNull(),
   supportedModels: text('supported_models').array().notNull().default([]),
   requiredTools: text('required_tools').array().notNull().default([]),
+  /** computed at sync from evidence (VERIFIED / UNAVAILABLE / DRAFT); `note` holds the reason */
   status: text('status').notNull(),
   note: text('note'),
+  /** PROMPT / PROCEDURE / REFERENCE, and the evidence the status was computed from */
+  kind: text('kind'),
+  evidence: jsonb('evidence').$type<{ implementedBy: Array<{ path: string; present: boolean }>; verifiedBy: Array<{ path: string; present: boolean }>; usedBy: string[]; injectedInto: string[] }>(),
   /** the SKILL.md body as read from disk at sync time (so the page shows what the agent reads) */
   instructions: text('instructions'),
   orgVersion: integer('org_version').notNull(),
@@ -391,12 +417,16 @@ export const agentRuns = pgTable('agent_runs', {
   outcome: text('outcome'),
   failureClass: text('failure_class'),
   errorMessage: text('error_message'),
-  toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; ms: number; ok: boolean; error?: string; at: string }>>().notNull().default([]),
+  toolCalls: jsonb('tool_calls').$type<Array<{ tool: string; version?: string; ms: number; ok: boolean; error?: string; failureClass?: string; at: string }>>().notNull().default([]),
   ms: integer('ms'),
   costUsd: doublePrecision('cost_usd'),
   /** A delegated step: the run of the agent whose job this step belongs to, and what the step does. */
   parentRunId: text('parent_run_id'),
   purpose: text('purpose'),
+  /** What the run ran with: the agent's version, the organisation version, the model, skill and tool versions. */
+  agentVersion: text('agent_version'),
+  orgVersion: integer('org_version'),
+  versions: jsonb('versions').$type<{ model: string; skills: Record<string, string>; tools: Record<string, string> }>(),
 }, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId), index('agent_runs_parent_idx').on(t.parentRunId)]);
 
 /** A department's explicit delivery to the next one. */

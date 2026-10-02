@@ -1,5 +1,6 @@
 import type { Asset, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
 import type { Stage } from '@/domain/vocabulary';
+import { primaryImageOf } from '@/domain/identity';
 
 /** READING THE STUDIO — small pure helpers over the state, so pages ask questions in one line. */
 
@@ -11,6 +12,11 @@ export function assetById(s: StudioState, id: string | undefined | null): AssetV
   return { ...a, unavailable: Boolean(a.unavailable) };
 }
 export const assetSrc = (s: StudioState, id: string | undefined | null): string | undefined => assetById(s, id)?.src || undefined;
+
+/** A character's primary image (the canonical front full-body image; else the legacy portrait; else none) and its
+ *  approval state: see src/domain/identity.ts. `primaryImageSrc` is the one-liner for a card, a picker or a hero. */
+export { canonicalStatusOf, isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+export const primaryImageSrc = (s: StudioState, c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): string | undefined => assetSrc(s, primaryImageOf(c));
 export const characterById = (s: StudioState, id: string | undefined | null): Character | undefined => (id ? s.characters.find((c) => c.id === id) : undefined);
 
 /** A character's primary image everywhere — cards, lists, the profile, cast displays, pickers, production assignment
