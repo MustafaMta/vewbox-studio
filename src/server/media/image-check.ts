@@ -15,8 +15,9 @@ export interface ReferenceValidation {
   ok: boolean;
   width: number;
   height: number;
-  /** variance of the Laplacian on the downscaled greyscale image; higher is sharper (in focus ≳ 60, blurred ≲ 20) */
-  sharpness: number;
+  /** variance of the Laplacian on the downscaled greyscale image; higher is sharper (in focus ≳ 60, blurred ≲ 20);
+   *  absent when the picture could not be decoded for the measure (never NaN: the record is stored as JSON) */
+  sharpness?: number;
   /** undefined when no detector ran */
   faces?: number;
   /** height of the largest face box as a fraction of the image height */
@@ -99,7 +100,7 @@ export function judgeReference(m: { width: number; height: number; sharpness: nu
   else if (m.faces > 1) reasons.push(`${m.faces} faces found — one person only`);
   else if (m.faceBoxHeight !== undefined && m.faceBoxHeight < rules.minFaceHeight) reasons.push(`the face is too small: ${Math.round(m.faceBoxHeight * 100)} % of the height, at least ${Math.round(rules.minFaceHeight * 100)} % is needed`);
   const ok = reasons.every((r) => r === FACE_DETECTION_NOTE);
-  return { ok, width: m.width, height: m.height, sharpness: Number.isFinite(m.sharpness) ? Math.round(m.sharpness * 10) / 10 : NaN, faces: m.faces, faceBoxHeight: m.faceBoxHeight, reasons };
+  return { ok, width: m.width, height: m.height, ...(Number.isFinite(m.sharpness) ? { sharpness: Math.round(m.sharpness * 10) / 10 } : {}), faces: m.faces, faceBoxHeight: m.faceBoxHeight, reasons };
 }
 
 /** Validate an uploaded reference picture on the CPU. Throws `INVALID` (from ffprobe) when the file is not an image. */

@@ -34,6 +34,9 @@ export function checkImageFile(f: { type: string; size: number; name?: string })
 export function checkImageDims(width: number, height: number): ImageRefusal | null {
   return Math.min(width, height) < IMAGE_RULES.minSide ? 'MIN_SIDE' : null;
 }
+/** The server's reasons a picture was refused (contract §1.2), without its note that no face detector ran: that note
+ *  is not a reason to refuse — the accepted state says "face not checked" instead. */
+export const refusalReasons = (reasons: string[]): string[] => reasons.filter((r) => !/face detection not available/i.test(r));
 /** Decode the picture in an <img> to read its real pixel size. */
 export function measureImage(file: Blob): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {

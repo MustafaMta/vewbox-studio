@@ -1067,6 +1067,7 @@ const D = {
   'char.create.img.checked': ['Checked by the studio', 'فحصها الاستوديو'],
   'char.create.img.oneFace': ['one face', 'وجه واحد'],
   'char.create.img.faces': ['faces', 'وجوه'],
+  'char.create.img.noFaceCheck': ['size and sharpness checked; the face is not checked (no face detector is installed)', 'فُحص الحجم والوضوح؛ لم يُفحص الوجه (لا يوجد كاشف وجوه مثبّت)'],
   'char.create.img.refused': ['The studio cannot use this picture', 'لا يستطيع الاستوديو استخدام هذه الصورة'],
   'char.create.keep': ['Keep from the picture', 'احتفظ من الصورة بـ'],
   'char.create.keepFace': ['The face only', 'الوجه فقط'],

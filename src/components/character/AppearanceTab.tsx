@@ -17,7 +17,7 @@ import { ImagePair, ImagePreview, ResultSlot } from '@/components/ui/preview';
 import { FailureNotice, RecoveryAction, useErrorCopy } from '@/components/ui/progress';
 import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { IconArrowRight, IconCheck, IconDelete, IconGenerate, IconImageAdd, IconRetry, IconShield, IconUpload } from '@/components/ui/icons';
-import { checkImageDims, checkImageFile, measureImage } from './create/preflight';
+import { checkImageDims, checkImageFile, measureImage, refusalReasons } from './create/preflight';
 import { fmtBytes } from '@/lib/format';
 
 /** The identity sheet, in a fixed order; FACE is the crop the portrait rests on, OUTFIT is a wardrobe variant. */
@@ -59,8 +59,9 @@ export function AppearanceTab({ c, lock }: { c: Character; lock: AppearanceLock 
     try {
       const r = await api.uploadReference(file, { label: `${c.name} — ${T('char.ref.label')}`, tags: ['character', 'reference upload'] });
       await refresh();
-      if (r.validation && !r.validation.ok) { setRefError(`${T('char.create.img.refused')}: ${r.validation.reasons.map((x) => T.dyn(`char.create.img.reason.${x}`, x)).join(' · ')}`); await removeAsset(r.asset.id); return; }
-      act('setPendingReference', c.id, r.asset.id);
+      if (r.validation && !r.validation.ok) { setRefError(`${T('char.create.img.refused')}: ${refusalReasons(r.validation.reasons).map((x) => T.dyn(`char.create.img.reason.${x}`, x)).join(' · ')}`); await removeAsset(r.asset.id); return; }
+      // the server's measurement travels with the reference (contract §1.2: stored on character.pendingReference)
+      act('setPendingReference', c.id, r.asset.id, r.validation);
       if (previous) await removeAsset(previous);
       toast.ok(previous ? T('char.ref.replaced') : T('char.ref.added'));
     } catch (e) { setRefError((e as Error).message); }

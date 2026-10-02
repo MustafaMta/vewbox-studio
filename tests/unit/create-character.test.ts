@@ -121,6 +121,9 @@ describe('CREATE_CHARACTER', () => {
     fake.state = addAsset(fake.state, { id: 'up-small', kind: 'IMAGE', src: '/api/media/up-small', label: 'tiny', tags: [], sample: false, origin: 'UPLOAD', width: 200, height: 300 }).state;
     await expect(createCharacter(ctxFor({ mode: 'REFERENCE', profile: sheet, referenceAssetId: 'up-small' }))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE' });
     await expect(createCharacter(ctxFor({ mode: 'REFERENCE', profile: sheet, referenceAssetId: 'up-missing' }))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE' });
+    // the validation the upload endpoint stored on the asset (finding 2) is read: a blurry picture creates nothing
+    fake.state = addAsset(fake.state, { id: 'up-blur', kind: 'IMAGE', src: '/api/media/up-blur', label: 'blurry', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { purpose: 'character-reference', validation: { ok: false, width: 1024, height: 1280, sharpness: 3.1, reasons: ['blurry: sharpness 3.1 is below 30'] } } }).state;
+    await expect(createCharacter(ctxFor({ mode: 'REFERENCE', profile: sheet, referenceAssetId: 'up-blur' }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: expect.stringMatching(/blurry/) });
     expect(fake.state.characters).toHaveLength(before);
     expect(fake.enqueued).toHaveLength(0);
     fake.state = addAsset(fake.state, { id: 'up-face', kind: 'IMAGE', src: '/api/media/up-face', label: 'face', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { validation: { ok: true, width: 1024, height: 1280, faces: 1, reasons: [] } } }).state;

@@ -9,7 +9,7 @@ import { useT } from '@/components/ui/locale';
 import { Button, Dropzone, Field, Input, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { ImagePreview } from '@/components/ui/preview';
 import { IconImageAdd, IconWand } from '@/components/ui/icons';
-import { IMAGE_RULES, checkImageDims, checkImageFile, measureImage, type ImageRefusal } from './preflight';
+import { IMAGE_RULES, checkImageDims, checkImageFile, measureImage, refusalReasons, type ImageRefusal } from './preflight';
 import { fmtBytes } from '@/lib/format';
 
 export interface PictureValues { asset?: Asset; validation?: ImageReferenceValidation; measured?: { width: number; height: number; bytes: number; name: string }; name: string; role: string; keep: 'FACE' | 'FACE_HAIR_WARDROBE'; note: string }
@@ -61,8 +61,8 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
           {value.validation && (
             <div className="mt-3 text-[12px]">
               {value.validation.ok
-                ? <p className="status status-ok">{T('char.create.img.checked')}{typeof value.validation.faces === 'number' ? ` · ${value.validation.faces === 1 ? T('char.create.img.oneFace') : `${value.validation.faces} ${T('char.create.img.faces')}`}` : ''}</p>
-                : <Notice tone="bad" title={T('char.create.img.refused')}><ul className="list-disc ps-4">{value.validation.reasons.map((r) => <li key={r} dir="auto">{T.dyn(`char.create.img.reason.${r}`, r)}</li>)}</ul></Notice>}
+                ? <p className="status status-ok">{T('char.create.img.checked')}{typeof value.validation.faces === 'number' ? ` · ${value.validation.faces === 1 ? T('char.create.img.oneFace') : `${value.validation.faces} ${T('char.create.img.faces')}`}` : ` · ${T('char.create.img.noFaceCheck')}`}</p>
+                : <Notice tone="bad" title={T('char.create.img.refused')}><ul className="list-disc ps-4">{refusalReasons(value.validation.reasons).map((r) => <li key={r} dir="auto">{T.dyn(`char.create.img.reason.${r}`, r)}</li>)}</ul></Notice>}
             </div>
           )}
         </div>
