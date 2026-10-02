@@ -182,7 +182,9 @@ function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; loc
   const build = async () => {
     if (!from) return;
     setBusy(true);
-    try { await startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id }, { idempotencyKey: `VOICE_BUILD:${c.id}:${(c.voice.identity?.revision ?? 0) + 1}` }); }
+    // no client key: the server derives `VOICE_BUILD:${characterId}:${revision}` (contract §1.4) and queues a new
+    // build when the last one under that key has ended — a failed build never makes this button a no-op
+    try { await startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id }); }
     catch (e) { toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
     finally { setBusy(false); }
   };
