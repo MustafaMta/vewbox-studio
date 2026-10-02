@@ -75,7 +75,7 @@ const D = {
   'wizard.lyrics': ['Lyrics', 'الكلمات'],
   'wizard.lyrics.help': ['Leave a blank line between sections. Start a section with [verse], [chorus], [bridge], [intro] or [outro] to name it.', 'اترك سطراً فارغاً بين المقاطع. ابدأ المقطع بـ [verse] أو [chorus] أو [bridge] أو [intro] أو [outro] لتسميته.'],
   'wizard.singer': ['Who sings', 'من يغنّي'],
-  'wizard.createdSong': ['The song is saved with the project. Generating the recording happens when the backend is connected.', 'حُفظت الأغنية مع المشروع. يُنشأ التسجيل عند توصيل الخلفية.'],
+  'wizard.createdSong': ['The song is saved with the project. Generate the recording from the Story tab once the project exists.', 'حُفظت الأغنية مع المشروع. ولّد التسجيل من تبويب القصة بعد إنشاء المشروع.'],
 
   // workspace tabs
   'tab.overview': ['Overview', 'نظرة عامة'],
@@ -320,7 +320,7 @@ const D = {
   'final.assembled': ['Assembled cut', 'المونتاج المجمّع'],
   'final.sampleCut': ['Sample cut', 'مونتاج نموذجي'],
   'final.noCut': ['No assembled cut yet.', 'لا مونتاج مجمّع بعد.'],
-  'final.noCut.hint': ['Assembling happens when the backend is connected. The chosen takes are listed below in order.', 'يحدث التجميع عند توصيل الخلفية. اللقطات المختارة مدرجة أدناه بالترتيب.'],
+  'final.noCut.hint': ['Assemble the cut from the chosen takes; they are listed below in order.', 'جمّع المونتاج من اللقطات المختارة؛ وهي مدرجة أدناه بالترتيب.'],
   'final.sequence': ['Sequence', 'التتابع'],
   'final.export': ['Export', 'تصدير'],
   'final.exportHint': ['Export settings are saved with the project.', 'تُحفظ إعدادات التصدير مع المشروع.'],
