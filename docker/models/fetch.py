@@ -134,10 +134,9 @@ def main() -> int:
                 continue
             if not fetch(entry, root, state, api, token):
                 ok_all = False
-    # the hub's local_dir scaffolding holds partial downloads; only remove it once everything is verified
-    if ok_all and not args.list:
-        for p in list(root.rglob(".hf")):
-            shutil.rmtree(p, ignore_errors=True)
+    # The hub's local_dir scaffolding (.hf) holds partial downloads. It is never removed here: another fetcher run
+    # (a different group, started in parallel) may be writing its own partial next to ours, and wiping the tree
+    # once cost a 21 GB download. Completed files are moved out; what remains in .hf is metadata, kilobytes.
     log("done", ok=ok_all, total_bytes=total)
     return 0 if ok_all else 1
 
