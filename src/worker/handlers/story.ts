@@ -116,7 +116,7 @@ export const planShots: Handler = async (ctx) => {
   }
   let previous: { shot?: PlannedShot; sceneExit?: string } = {};
   // continuity carries over from the last planned shot before the first target
-  const firstIdx = p.scenes.findIndex((sc) => sc.id === targets[0].id);
+  const firstIdx = targets.length ? p.scenes.findIndex((sc) => sc.id === targets[0].id) : -1;
   const prior = p.shots.filter((sh) => p.scenes.findIndex((sc) => sc.id === sh.sceneId) < firstIdx).at(-1);
   if (prior?.continuity) previous = { shot: { purpose: prior.purpose, action: prior.action, framing: prior.framing, cameraMove: prior.cameraMove, durationSeconds: prior.durationSeconds, characterIds: prior.characterIds, dialogue: prior.dialogue, transition: prior.transition, continuity: prior.continuity, prompt: prior.prompt ?? '' } };
   let total = 0;
