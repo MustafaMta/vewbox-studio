@@ -64,6 +64,25 @@ export async function command<K extends CommandName>(name: K, args: Command<K>['
   return r.results[0] as CommandResult<K>;
 }
 
+/** Several commands as one unit (a record and what belongs to it — an asset, its sample, the identity it proves):
+ *  all applied under one lock and one transaction, or none. Throws the refusing command's StudioError. */
+export type CommandSpec = { [K in CommandName]: { name: K; args: Command<K>['args'] } }[CommandName];
+
+/** The command list as `commands()` will run it: seeds `${seed}-${index}` and one clock, so a caller can dry-run
+ *  one of them with `runCommand` on a snapshot and learn the ids the real batch will mint. */
+export function stampCommands(list: CommandSpec[], opts: { seed?: string; at?: string } = {}): Command[] {
+  const seed = opts.seed ?? `batch-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const at = opts.at ?? new Date().toISOString();
+  return list.map((c, i) => ({ name: c.name, args: c.args, seed: `${seed}-${i}`, at }) as Command);
+}
+
+export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } = {}): Promise<unknown[]> {
+  const cmds = stampCommands(list, opts);
+  const r = await applyCommands(cmds, origin);
+  if (!r.ok) throw new StudioError(r.error.code as StudioError['code'], r.error.message, { ...r.error.details, failedAt: r.failedAt, command: cmds[r.failedAt]?.name });
+  return r.results;
+}
+
 /** The current state, for readers that do not change anything. */
 export async function readState(): Promise<{ state: StudioState; version: number; hash: string }> {
   const snap = await loadSnapshot();

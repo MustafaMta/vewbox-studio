@@ -1,10 +1,13 @@
 import type { Handler } from './index';
 import type { IdeaPreferences, Scene } from '@/domain/types';
 import type { Dialect } from '@/domain/vocabulary';
+import type { CharacterProfilePartial, JobPayloadParsed } from '@/domain/jobs';
+import type { CharacterInput } from '@/domain/actions';
+import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { performanceFor, shotWindows } from '@/domain/timeline';
-import { command, readState } from '@/server/studio/engine';
+import { command, commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
@@ -57,24 +60,50 @@ export const episodeContinuity: Handler = async (ctx) => {
   return { events: out.events.length, unresolved: unresolved.length, resolved: out.resolved?.length ?? 0 };
 };
 
-/** CASTING — a character designed from a one-line brief; every appearance field is filled, so the portrait and the
- *  voice can follow. The record is added to the library (and to the production or show it was asked for). */
+/** The look fields a designed character must have; a profile missing any of them is completed by Casting. */
+export const DESIGN_FIELDS = ['role', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality'] as const;
+export const profileNeedsDesign = (p: CharacterProfilePartial | undefined): boolean => !p || DESIGN_FIELDS.some((k) => p[k] === undefined || p[k] === '');
+
+/** CASTING — a character designed from a one-line brief, a name alone, or a partial profile the producer wrote:
+ *  every appearance field is filled, so the portrait and the voice can follow; the producer's own fields are kept
+ *  exactly. The record and its seat in the production or show are written in one batch; a design that does not
+ *  pass the character schema creates nothing. */
 export const designCharacter: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { brief: string; name?: string; style?: 'CARTOON' | 'ANIME' | 'REALISTIC'; language?: 'EN' | 'AR'; dialect?: string; productionId?: string; showId?: string };
+  const payload = ctx.job.payload as JobPayloadParsed<'DESIGN_CHARACTER'>;
   const { state } = await readState();
   const p = payload.productionId ? state.productions.find((x) => x.id === payload.productionId) : undefined;
   const show = payload.showId ? state.shows.find((x) => x.id === payload.showId) : p?.showId ? state.shows.find((x) => x.id === p.showId) : undefined;
-  const style = payload.style ?? show?.style ?? p?.style ?? state.settings.defaults.style;
-  const language = payload.language ?? show?.language ?? p?.language ?? state.settings.defaults.language;
-  const dialect = (language === 'AR' ? (payload.dialect as Dialect | undefined) ?? show?.dialect ?? p?.dialect ?? state.settings.defaults.dialect : undefined);
-  await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${payload.name ?? 'a character'}` });
-  const d = await ctx.tool('story.structured_answer', () => design(state, { brief: payload.brief, name: payload.name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design' });
+  const given = payload.profile ?? {};
+  const name = (given.name ?? payload.name)?.trim() || undefined;
+  const style = given.style ?? payload.style ?? show?.style ?? p?.style ?? state.settings.defaults.style;
+  const language = given.language ?? payload.language ?? show?.language ?? p?.language ?? state.settings.defaults.language;
+  const dialect: Dialect | undefined = language === 'AR' ? given.dialect ?? payload.dialect ?? show?.dialect ?? p?.dialect ?? state.settings.defaults.dialect : undefined;
+  // what the model designs from: the producer's line, what is already known of the character, or the name alone
+  const known = (Object.keys(given) as Array<keyof typeof given>).filter((k) => !['name', 'style', 'language', 'dialect', 'voice', 'canon', 'notes'].includes(k)).map((k) => [k, given[k]] as const).filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
+  const line = payload.brief?.trim();
+  const brief = [line, known.length ? `Known so far — keep these exactly and fill only what is missing: ${known.join('; ')}.` : '', !line && !known.length ? `A character named ${name} for a ${style.toLowerCase()} production; invent a fitting role, look and personality.` : ''].filter(Boolean).join('\n');
+  await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${name ?? 'a character'}` });
+  const d = await ctx.tool('story.structured_answer', () => design(state, { brief, name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design' });
   await ctx.checkpoint();
-  const r = await command('addCharacter', [{ name: d.name, nameAr: d.nameAr, role: d.role, style, sex: d.sex, species: d.species, ageYears: d.ageYears, build: d.build, face: d.face, hair: d.hair, skin: d.skin, eyes: d.eyes, distinguishing: d.distinguishing, wardrobe: d.wardrobe, personality: d.personality, language, dialect, notes: `Designed by Casting from the brief: “${payload.brief.slice(0, 200)}”`, ...(d.voice ? { voice: { pitch: d.voice.pitch, pace: d.voice.pace, timbre: d.voice.timbre, notes: d.voice.notes ?? '', samples: [] } } : {}) }], 'worker');
-  if (p) await command('updateProduction', [p.id, { castIds: Array.from(new Set([...p.castIds, r.character.id])) }], 'worker');
-  if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, r.character.id])) }], 'worker');
-  await ctx.activity('CHARACTER_DESIGNED', `${d.name} designed (${d.role}) from the brief`, { characterId: r.character.id });
-  return { characterId: r.character.id, name: d.name };
+  // the producer's fields win over the model's; the voice profile too
+  const input: CharacterInput = {
+    name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, style, sex: given.sex ?? d.sex, species: given.species ?? d.species, ageYears: given.ageYears ?? d.ageYears,
+    build: given.build || d.build, face: given.face || d.face, hair: given.hair || d.hair, skin: given.skin || d.skin, eyes: given.eyes || d.eyes, wardrobe: given.wardrobe || d.wardrobe, personality: given.personality || d.personality,
+    distinguishing: given.distinguishing?.length ? given.distinguishing : d.distinguishing, language, dialect, canon: given.canon,
+    notes: given.notes ?? (line ? `Designed by Casting from the brief: “${line.slice(0, 200)}”` : 'Designed by Casting from the written profile.'),
+    voice: { pitch: given.voice?.pitch ?? d.voice?.pitch ?? 'MID', pace: given.voice?.pace ?? d.voice?.pace ?? 'MEASURED', timbre: given.voice?.timbre ?? d.voice?.timbre ?? '', notes: given.voice?.notes ?? d.voice?.notes ?? '' },
+  };
+  // one batch: the record and its seat; a dry run on the snapshot refuses a design that fails the schema (INVALID)
+  // before anything is written, and tells the id the batch will mint
+  const stamp = { seed: `design-${ctx.job.id}-${ctx.job.attempts}`, at: new Date().toISOString() };
+  const probe = runCommand(state, stampCommands([{ name: 'addCharacter', args: [input] }], stamp)[0] as Command<'addCharacter'>);
+  const characterId = probe.result.character.id;
+  const batch: CommandSpec[] = [{ name: 'addCharacter', args: [input] }];
+  if (p) batch.push({ name: 'updateProduction', args: [p.id, { castIds: Array.from(new Set([...p.castIds, characterId])) }] });
+  if (show) batch.push({ name: 'updateShow', args: [show.id, { castIds: Array.from(new Set([...show.castIds, characterId])) }] });
+  await commands(batch, 'worker', stamp);
+  await ctx.activity('CHARACTER_DESIGNED', `${input.name} designed (${input.role})${line ? ' from the brief' : known.length ? ' from the written profile' : ' from the name'}`, { characterId });
+  return { characterId, name: input.name };
 };
 
 export const developStory: Handler = async (ctx) => {

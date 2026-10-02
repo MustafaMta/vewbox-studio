@@ -202,15 +202,18 @@ describe('character continuity', () => {
   });
 
   it('an unused character can take a pending reference and a new appearance; a used one cannot', () => {
-    let s = seed();
-    s = setPendingReference(s, 'nour', 'ref-nour-side');
-    expect(ch(s, 'nour').pendingReference?.assetId).toBe('ref-nour-side');
+    const upload = { id: 'up-face', kind: 'IMAGE' as const, src: '/api/media/up-face', label: 'face.jpg', tags: [], sample: false, origin: 'UPLOAD' as const, width: 1024, height: 1280 };
+    let s = addAsset(seed(), upload).state;
+    s = setPendingReference(s, 'nour', 'up-face');
+    expect(ch(s, 'nour').pendingReference?.assetId).toBe('up-face');
     s = updateCharacter(s, 'nour', { portraitAssetId: 'ref-nour-side' });
     expect(ch(s, 'nour').portraitAssetId).toBe('ref-nour-side');
     s = setPendingReference(s, 'nour', undefined);
     expect(ch(s, 'nour').pendingReference).toBeUndefined();
-    expect(codeOf(() => setPendingReference(seed(), 'layla', 'ref-nour-side'))).toBe('APPEARANCE_LOCKED');
-    expect(codeOf(() => setPendingReference(seed(), 'um-hassan', 'ref-nour-side'))).toBe('APPEARANCE_LOCKED');
+    // a bundled sample picture is a placeholder, not a reference to draw from
+    expect(codeOf(() => setPendingReference(seed(), 'nour', 'ref-nour-side'))).toBe('INVALID');
+    expect(codeOf(() => setPendingReference(addAsset(seed(), upload).state, 'layla', 'up-face'))).toBe('APPEARANCE_LOCKED');
+    expect(codeOf(() => setPendingReference(addAsset(seed(), upload).state, 'um-hassan', 'up-face'))).toBe('APPEARANCE_LOCKED');
   });
 
   it('a new take records usage for the shot’s characters, and removing the take keeps the record, marked', () => {
@@ -242,9 +245,12 @@ describe('character continuity', () => {
   it('a new character starts with a known, empty history and a voice recording never touches the appearance', () => {
     const r = addCharacter(seed(), { name: 'Zeina', role: 'x', style: 'CARTOON', sex: 'FEMALE', ageYears: 20, build: '', face: '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: '', language: 'EN' });
     expect(r.character.usage).toEqual({ known: true, videos: [] });
-    const s = addVoiceRecording(seed(), 'layla', 'voice-mid', 'Take at the counter');
-    expect(ch(s, 'layla').voice.samples.at(-1)).toMatchObject({ source: 'UPLOADED', assetId: 'voice-mid' });
+    const withUpload = addAsset(seed(), { id: 'up-rec', kind: 'AUDIO', src: '/api/media/up-rec', label: 'counter.wav', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    const s = addVoiceRecording(withUpload, 'layla', 'up-rec', 'Take at the counter');
+    expect(ch(s, 'layla').voice.samples.at(-1)).toMatchObject({ source: 'UPLOADED', assetId: 'up-rec' });
     expect(ch(s, 'layla').portraitAssetId).toBe(ch(seed(), 'layla').portraitAssetId);
+    // a bundled sample voice is not a recording of the character
+    expect(() => addVoiceRecording(seed(), 'layla', 'voice-mid', 'nope')).toThrow(StudioError);
   });
 });
 

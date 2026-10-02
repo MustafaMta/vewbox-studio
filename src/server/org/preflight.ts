@@ -1,5 +1,7 @@
-import type { Asset, Production, Shot, StudioState } from '@/domain/types';
+import type { Asset, Character, Production, Shot, StudioState } from '@/domain/types';
+import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
+import { canChangeAppearance, isCloneSource, voiceLock } from '@/domain/rules';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
 
@@ -72,6 +74,67 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? 'previous take available' : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
   }
   return { ok: checks.every((c) => c.ok), checks };
+}
+
+/** Why a picture cannot be drawn from, or null when it can: it must be a real uploaded picture (never a bundled
+ *  sample), present on disk, at least 512 px on its short side, and not refused by the upload validation. */
+export function referenceImageProblem(state: StudioState, assetId: string | undefined, validation?: { ok: boolean; reasons: string[] }): string | null {
+  if (!assetId) return 'no reference picture';
+  const a = state.assets.find((x) => x.id === assetId);
+  if (!a) return `reference picture ${assetId} no longer exists`;
+  if (a.kind !== 'IMAGE') return 'the reference is not a picture';
+  if (a.sample) return 'the reference is a bundled sample picture, not an upload';
+  if (a.mimeType === 'image/svg+xml') return 'the reference is an SVG';
+  if (a.unavailable) return 'the reference picture’s file is missing from the library';
+  if (a.width && a.height && Math.min(a.width, a.height) < 512) return `the reference is ${a.width}×${a.height}; at least 512 px on the short side is needed`;
+  if (validation && !validation.ok) return `the reference failed validation: ${validation.reasons.join(', ') || 'unusable'}`;
+  return null;
+}
+
+/** Why a recording cannot be cloned from, or null: the sample must be the producer's upload with a real audio file. */
+export function referenceAudioProblem(state: StudioState, sample: Character['voice']['samples'][number] | undefined): string | null {
+  if (!sample) return 'no recording';
+  if (!isCloneSource(sample)) return sample.source === 'GENERATED' ? 'a generated line cannot be cloned from; upload a recording' : 'a bundled sample voice cannot be cloned from; upload a recording';
+  const a = state.assets.find((x) => x.id === sample.assetId);
+  if (!a) return `the recording ${sample.assetId} no longer exists`;
+  if (a.kind !== 'AUDIO' || a.sample) return 'the recording is not an uploaded audio file';
+  if (a.unavailable) return 'the recording’s file is missing from the library';
+  if (sample.provenance?.validation && !sample.provenance.validation.speech.present) return 'the recording has no speech in it';
+  return null;
+}
+
+/** What must be true before a character job is queued: the references it would draw or clone from are usable
+ *  (MISSING_REFERENCE names what to upload) and the character is not locked for that kind of change. */
+export function preflightCharacter(state: StudioState, c: Character, type: JobType, payload: Record<string, unknown> = {}): Preflight {
+  const checks: PreflightCheck[] = [];
+  const add = (name: string, ok: boolean, failureClass: FailureClass, detail?: string) => checks.push({ name, ok, failureClass, detail });
+  if (type === 'CHARACTER_APPEARANCE' || type === 'CHARACTER_REFS') {
+    add('appearance-unlocked', canChangeAppearance(c), 'INCONSISTENT_PLAN', canChangeAppearance(c) ? undefined : `${c.name} has been used in a video; the appearance is preserved`);
+  }
+  if (type === 'CHARACTER_APPEARANCE' && c.pendingReference) {
+    const problem = referenceImageProblem(state, c.pendingReference.assetId, c.pendingReference.validation);
+    add('reference-picture-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; upload another picture or clear the reference to draw from the description` : 'reference picture ready');
+  }
+  if (type === 'CHARACTER_REFS') {
+    const problem = referenceImageProblem(state, c.portraitAssetId);
+    add('portrait-usable', !problem, 'MISSING_REFERENCE', problem ? `${problem}; draw the portrait first` : 'portrait ready');
+  }
+  if (type === 'VOICE_BUILD') {
+    const mode = (payload.mode as string | undefined) ?? 'AUTOMATIC';
+    const lock = voiceLock(c);
+    add('voice-unlocked', !(lock.locked && c.voice.identity), 'INCONSISTENT_PLAN', lock.locked && c.voice.identity ? `${c.name} has spoken in a video; the voice is preserved` : undefined);
+    if (mode === 'REFERENCE') {
+      const sample = c.voice.samples.find((s) => s.id === payload.referenceSampleId);
+      const problem = referenceAudioProblem(state, sample);
+      add('reference-recording-usable', !problem, 'MISSING_REFERENCE', problem ?? `cloning from “${sample?.label}”`);
+    } else if (mode === 'AUTOMATIC') {
+      const usable = c.voice.samples.filter((s) => !referenceAudioProblem(state, s));
+      add('uploaded-recording-present', usable.length > 0, 'MISSING_REFERENCE', usable.length ? `${usable.length} uploaded recording(s)` : `${c.name} has no uploaded recording to clone from; upload a 3–30 second recording of the voice on the Voice tab`);
+    } else if (mode === 'MANUAL') {
+      add('catalogue-voice-named', Boolean(payload.providerVoiceId), 'INVALID_INPUT', payload.providerVoiceId ? String(payload.providerVoiceId) : 'a catalogue voice needs providerVoiceId');
+    }
+  }
+  return { ok: checks.every((x) => x.ok), checks };
 }
 
 /** What must exist before a scene can be planned into shots. */

@@ -1,5 +1,5 @@
 import { asc } from 'drizzle-orm';
-import type { Asset, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage } from '@/domain/types';
+import type { Asset, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
 import { STATE_VERSION } from '@/domain/version';
 import { DEFAULT_SETTINGS } from '@/domain/sample';
 import { canonical, hashString } from '@/domain/hash';
@@ -20,6 +20,22 @@ export interface Snapshot { state: StudioState; hashes: RowHashes; version: numb
 type Tx = Db | Parameters<Parameters<Db['transaction']>[0]>[0];
 
 const undef = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
+
+/** A voice column as older rows wrote it: no `samples`, or an identity from before the wave-2 contract (no mode,
+ *  params, proof, status). The shape every reducer expects is restored here, once, on load; nothing is invented —
+ *  an identity without a proof line is reported as REVIEW, and the proof is taken from the generated line the same
+ *  build stored when there is one. */
+export function normalizeVoice(v: Voice | null | undefined): Voice {
+  const base: Voice = { pitch: v?.pitch ?? 'MID', pace: v?.pace ?? 'MEASURED', timbre: v?.timbre ?? '', notes: v?.notes ?? '', samples: Array.isArray(v?.samples) ? v.samples : [], selectedSampleId: v?.selectedSampleId, identity: v?.identity };
+  const id = base.identity;
+  if (!id) return base;
+  if (id.mode && id.params && id.status) return base;
+  const proofSample = id.proof ? undefined : base.samples.find((s) => s.source === 'GENERATED' && s.assetId && s.text && (!id.referenceAssetId || s.assetId !== id.referenceAssetId));
+  const proof = id.proof ?? (proofSample ? { sampleId: proofSample.id, assetId: proofSample.assetId!, text: proofSample.text! } : undefined);
+  const legacyParams = (id.params ?? {}) as Record<string, unknown>;
+  const params: VoiceIdentity['params'] = typeof legacyParams.speed === 'number' && typeof legacyParams.emotionAlpha === 'number' ? (legacyParams as VoiceIdentity['params']) : { ...legacyParams, speed: typeof legacyParams.speed === 'number' ? legacyParams.speed : 1, emotionAlpha: typeof legacyParams.emotionAlpha === 'number' ? legacyParams.emotionAlpha : 1 };
+  return { ...base, identity: { ...id, mode: id.mode ?? (id.providerVoiceId && !id.referenceAssetId ? 'MANUAL' : 'REFERENCE'), params, proof, status: id.status ?? (proof ? 'ACTIVE' : 'REVIEW') } };
+}
 
 export function assetSrc(a: { id: string; storage: string; path: string }): string {
   return a.storage === 'PUBLIC' ? `/${a.path.replace(/^\/+/, '')}` : `/api/media/${a.id}`;
@@ -47,7 +63,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const assetById = new Map(assetRows.map((a) => [a.id, a]));
   const assets: Asset[] = assetRows.map((a) => {
     const poster = a.posterAssetId && assetById.get(a.posterAssetId) ? assetSrc(assetById.get(a.posterAssetId)!) : a.posterPath ? `/${a.posterPath.replace(/^\/+/, '')}` : undefined;
-    const asset: Asset = { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), createdAt: a.createdAt };
+    const asset: Asset = { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, createdAt: a.createdAt };
     hashes.assets.set(a.id, h(asset));
     return asset;
   });
@@ -91,7 +107,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
     usageByCharacter.set(u.characterId, [...(usageByCharacter.get(u.characterId) ?? []), v]);
   }
   const characters: Character[] = characterRows.map((c) => {
-    const character: Character = { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: c.voice, refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos: usageByCharacter.get(c.id) ?? [] }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
+    const character: Character = { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos: usageByCharacter.get(c.id) ?? [] }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
     hashes.characters.set(c.id, h({ ...character, usage: { known: character.usage!.known } }));
     return character;
   });

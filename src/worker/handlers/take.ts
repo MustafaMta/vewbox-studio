@@ -3,9 +3,9 @@ import path from 'node:path';
 import type { Handler } from './index';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, Take, TakeReference } from '@/domain/types';
+import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
-import { command, readState } from '@/server/studio/engine';
+import { command, commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, ffprobe, fileFor, libraryRoot } from '@/server/media';
 import { ffmpeg, joinSpeech, qaTake, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
@@ -14,7 +14,7 @@ import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_GUIDE_FRAMES } from '@/server/workflows/minimax-h3';
 import { scriptCoverage, transcribe, wordErrorRate } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
-import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
+import { lineLanguage, lineRecordingCurrent, referenceWav, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
@@ -64,29 +64,58 @@ export const generateTake: Handler = async (ctx) => {
   let trimStartFrames = 0;
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
-  const spokenChecks: Array<{ wer: number; heard: string } | null> = [];
+  let dialogueLineAssets: string[] | undefined;
+  /** the checks of the lines recorded by THIS take (reused lines were checked when they were recorded) */
+  const spokenChecks: Array<LineCheck | null> = [];
 
   // 1) SOUND FIRST. A speaking shot starts from its sound: every line recorded with its character's canonical voice
   //    and checked by transcription, joined with natural gaps. The recording sets the shot's length and is anchored
   //    inside the clip as time-positioned voice context (MiniMax H3 renders its own speech, natively in sync with
   //    the mouths; the exact words come from the <d> tags, which always carry the script). Only when a speaker has no
   //    usable voice does the shot speak with MiniMax's default voice.
+  //    DIALOGUE REUSE (contract §1.4): a line is recorded only when it has no stored recording or the recording is
+  //    stale (the voice was rebuilt since); a new recording is written back to the line, so every take of the shot
+  //    — and every other shot the line is in — speaks the same file. The take's soundtrack is joined from them.
   const speakers = Array.from(new Set(sh.dialogue.map((d) => d.characterId)));
   const voices = new Map<string, Reference>();
-  for (const cid of speakers) { const c = cast.find((x) => x.id === cid); const ref = c ? await referenceWav(c, state.assets, work) : null; if (ref) voices.set(cid, ref); }
+  const reused = new Set<string>();
+  const lineText = (d: ShotDialogue) => (p.language === 'AR' ? d.textAr || d.text : d.text).trim();
+  const storedLine = (d: ShotDialogue): Asset | undefined => { const c = cast.find((x) => x.id === d.characterId); return c && lineRecordingCurrent(d, c, state.assets) ? byId(d.audioAssetId) : undefined; };
+  for (const cid of speakers) {
+    const c = cast.find((x) => x.id === cid);
+    if (!c) continue;
+    const mine = sh.dialogue.filter((d) => d.characterId === cid && lineText(d));
+    if (mine.length && mine.every((d) => storedLine(d))) { reused.add(cid); continue; }
+    const ref = await referenceWav(c, state.assets, work);
+    if (ref) voices.set(cid, ref);
+  }
   const songAsset = p.kind === 'MUSIC_VIDEO' && p.song?.assetId ? byId(p.song.assetId) : undefined;
-  if (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length && speakers.every((cid) => voices.has(cid)) && backend === 'local' && !payload.prompt) {
-    await ctx.progress('PREPARING', { phase: 'recording', message: `Recording ${sh.dialogue.length} line${sh.dialogue.length > 1 ? 's' : ''} with the characters' voices` });
-    const spoken: Array<{ file: string; durationSeconds: number; lineId: string; check: { wer: number; heard: string } | null }> = [];
+  if (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length && speakers.every((cid) => voices.has(cid) || reused.has(cid)) && backend === 'local' && !payload.prompt) {
+    const toRecord = sh.dialogue.filter((d) => lineText(d) && !storedLine(d)).length;
+    await ctx.progress('PREPARING', { phase: 'recording', message: toRecord ? `Recording ${toRecord} line${toRecord > 1 ? 's' : ''} with the characters' voices${toRecord < sh.dialogue.length ? ` (${sh.dialogue.length - toRecord} already recorded)` : ''}` : `Using the ${sh.dialogue.length} recorded line${sh.dialogue.length > 1 ? 's' : ''}` });
+    const spoken: Array<{ file: string; durationSeconds: number; lineId: string; assetId: string; check: LineCheck | null; reused: boolean }> = [];
     for (const d of sh.dialogue) {
       const c = cast.find((x) => x.id === d.characterId)!;
-      const text = (p.language === 'AR' ? d.textAr || d.text : d.text).trim();
+      const text = lineText(d);
       if (!text) continue;
-      let line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work);
-      let check = await verifyLine(ctx, line.file, text, c.language);
-      if (check && check.wer > 0.35) { line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work); check = await verifyLine(ctx, line.file, text, c.language); }
-      const pr = await ctx.tool('media.probe', () => ffprobe(line.file));
-      spoken.push({ file: line.file, durationSeconds: pr.durationSeconds ?? ('durationSeconds' in line ? line.durationSeconds : 2), lineId: d.id, check });
+      const have = storedLine(d);
+      if (have) {
+        const dur = have.durationSeconds ?? d.durationSeconds ?? (await ctx.tool('media.probe', () => ffprobe(assetFile(have)))).durationSeconds ?? 2;
+        spoken.push({ file: assetFile(have), durationSeconds: dur, lineId: d.id, assetId: have.id, check: (have.provenance?.check as LineCheck | null | undefined) ?? null, reused: true });
+        continue;
+      }
+      const ref = voices.get(d.characterId)!;
+      let line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery });
+      let check = await verifyLine(ctx, line.file, text, line.language);
+      if (check && !check.ok) { await ctx.event('warn', `line drifted (${Math.round(check.coverage * 100)} % heard), regenerating once`, { lineId: d.id, heard: check.heard }); line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+      const id = nid('gen');
+      const st = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
+      const durationSeconds = st.probe?.durationSeconds ?? line.durationSeconds ?? 2;
+      await commands([
+        { name: 'addAsset', args: [assetFromStored(id, st, { label: `${p.title} ${sh.number} — ${c.name}: “${text.slice(0, 32)}”`, tags: ['dialogue', 'voice'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, characterId: c.id, shotId: sh.id, lineId: d.id, voiceRevision: c.voice.identity?.revision, check } })] },
+        { name: 'setDialogueAudio', args: [p.id, sh.id, d.id, { audioAssetId: id, durationSeconds, voiceRevision: c.voice.identity?.revision }] },
+      ], 'worker');
+      spoken.push({ file: st.absPath, durationSeconds, lineId: d.id, assetId: id, check, reused: false });
       spokenChecks.push(check);
     }
     if (spoken.length) {
@@ -99,8 +128,12 @@ export const generateTake: Handler = async (ctx) => {
       seconds = Math.min(15, Math.max(4, Math.min(Math.max(planned, need), need + 2)));
       if (seconds !== planned) await ctx.event('info', `shot length set to its dialogue: ${planned} s planned → ${seconds} s`, { dialogueSeconds: Number(joined.durationSeconds.toFixed(2)) });
       soundtrackFile = joined.file;
-      soundtrack = { kind: 'DIALOGUE', lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
-      await ctx.event('info', 'dialogue recorded as the shot\'s soundtrack', { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, durationSeconds: s.durationSeconds, wer: s.check?.wer, heard: s.check?.heard })) });
+      // an earlier take of this shot joined the same recordings in the same order: its soundtrack is this one
+      const lineAssets = spoken.map((s) => s.assetId);
+      const prior = sh.takes.map((t) => t.soundtrack).find((st) => { if (!st || st.kind !== 'DIALOGUE' || !st.assetId) return false; const a = byId(st.assetId); const was = a?.provenance?.lineAssets as string[] | undefined; return Boolean(a && !a.unavailable && was && was.length === lineAssets.length && was.every((x, i) => x === lineAssets[i])); });
+      soundtrack = { kind: 'DIALOGUE', assetId: prior?.assetId, lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
+      dialogueLineAssets = lineAssets;
+      await ctx.event('info', `dialogue ${spoken.every((s) => s.reused) ? 'reused' : spoken.some((s) => s.reused) ? 'partly reused' : 'recorded'} as the shot's soundtrack${prior ? ' (joined track reused too)' : ''}`, { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, assetId: s.assetId, reused: s.reused, durationSeconds: s.durationSeconds, coverage: s.check?.coverage, wer: s.check?.wer, heard: s.check?.heard })) });
     }
   }
   // 2) A music video shot anchors its stretch of the song: the take's soundtrack IS the song, so the performer's
@@ -183,29 +216,42 @@ export const generateTake: Handler = async (ctx) => {
       await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
       const lines = sh.dialogue.map((d) => ({ en: d.text, ar: d.textAr || d.text }));
       const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
-      const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { label: 'take audio' }), { jobId: ctx.job.id });
-      const wer = wordErrorRate(expected, t.text, p.language);
+      // the verification language follows the script of the lines (routing parity), not the production's setting
+      const heardIn = lineLanguage(expected, p.language);
+      const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(wav, { language: heardIn === 'AR' ? 'ar' : 'en' }), { label: 'take audio' }), { jobId: ctx.job.id });
+      const wer = wordErrorRate(expected, t.text, heardIn);
       // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
       // missing line); the take passes when the lines were spoken, and the report carries both numbers
-      const coverage = scriptCoverage(expected, t.text, p.language);
+      const coverage = scriptCoverage(expected, t.text, heardIn);
       report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${t.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
       scriptCheck = { ok: coverage >= 0.7, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200) };
       if (coverage < 0.7) report.ok = false;
       const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
       const clipSeconds = probe.durationSeconds ?? seconds;
-      const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, p.language);
+      const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, heardIn);
       soundtrack = { kind: 'DIALOGUE', assetId: soundtrack?.assetId, lines: sh.dialogue.map((d, i) => { const w = placed[i]; return { lineId: d.id, from: w?.from ?? 0, to: w?.to ?? clipSeconds }; }) };
       await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
-    } catch (e) { report.checks.push({ name: 'script-spoken', ok: true, detail: `not checked: ${(e as Error).message}` }); scriptCheck = { ok: true, detail: `not checked: ${(e as Error).message}` }; }
+    } catch (e) {
+      // the take could not be heard back: it is not passed on trust — the inspector sends it to review
+      report.checks.push({ name: 'script-spoken', ok: false, detail: `not checked (transcription unavailable): ${(e as Error).message}` });
+      scriptCheck = { ok: false, detail: `not checked: ${(e as Error).message}` };
+      report.ok = false;
+    }
   }
+  const unverifiedLines = spokenChecks.filter((c) => c === null).length;
+  const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
   if (soundtrackFile) {
-    const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' });
-    await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker');
+    // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as
+    // an earlier one points at that track; a song stretch is derived from the song for this take
+    let id = soundtrack?.kind === 'DIALOGUE' ? soundtrack.assetId : undefined;
+    if (!id) {
+      id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' });
+      await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines, lineAssets: dialogueLineAssets } })], 'worker');
+    }
     soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id };
     // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
     if (soundtrack.kind === 'DIALOGUE') {
-      const flagged = spokenChecks.filter((c) => c && c.wer > 0.35).length;
-      await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length }, validation: { ok: flagged === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices` }, { name: 'lines-verified-by-transcription', ok: flagged === 0, detail: flagged ? `${flagged} line(s) drifted (WER > 0.35)` : undefined }] }, jobId: ctx.job.id });
+      await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(dialogueLineAssets ?? [])], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length, recordedNow: spokenChecks.length }, validation: { ok: flaggedLines === 0 && unverifiedLines === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices (${spokenChecks.length} recorded now)` }, { name: 'lines-verified-by-transcription', ok: flaggedLines === 0 && unverifiedLines === 0, detail: flaggedLines || unverifiedLines ? `${flaggedLines} line(s) drifted, ${unverifiedLines} not heard back` : undefined }] }, jobId: ctx.job.id });
     }
   }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
@@ -250,5 +296,6 @@ export const generateTake: Handler = async (ctx) => {
     }
   }
   await ctx.activity(report.ok ? 'TAKE_ACCEPTED' : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? 'accepted' : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok });
-  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, awaitingReview: false, libraryRoot: libraryRoot() };
+  // a line that could not be heard back (transcription away) leaves the take for a human: never passed silently
+  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, awaitingReview: unverifiedLines > 0, libraryRoot: libraryRoot() };
 };

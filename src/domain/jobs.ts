@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DIALECTS, LANGUAGES, STYLES } from './vocabulary';
 
 /** PRODUCTION JOBS — the durable work the studio does: writing, drawing, generating video, voices, songs, assembling
  *  and exporting. A job is a row in the database; the worker claims it, reports progress, and writes its results
@@ -24,6 +25,7 @@ export const JOB_TYPES = [
   'MEDIA_PROBE',        // validate an uploaded file
   'EPISODE_CONTINUITY', // a finished episode → the show's timeline, relationships and open storylines (Continuity Writer)
   'DESIGN_CHARACTER',   // a one-line brief → a fully designed character record (Casting)
+  'CREATE_CHARACTER',   // orchestrate: design (when fields are missing) → appearance → reference sheet → voice (Casting Director)
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -69,11 +71,24 @@ export interface JobEvent { id: number; jobId: string; at: string; level: 'info'
 // ---------------------------------------------------------------------------------------------------- payloads
 
 const id = z.string().min(1).max(80);
+const style = z.enum(STYLES); const language = z.enum(LANGUAGES); const dialect = z.enum(DIALECTS);
 const ideaPreferences = z.object({
-  style: z.enum(['CARTOON', 'ANIME', 'REALISTIC']).optional(), language: z.enum(['EN', 'AR']).optional(), dialect: z.string().optional(),
+  style: style.optional(), language: language.optional(), dialect: dialect.optional(),
   durationSeconds: z.number().int().positive().max(3600).optional(), mood: z.string().max(200).optional(), castIds: z.array(id).max(12).optional(), locationIds: z.array(id).max(12).optional(),
   concept: z.enum(['PERFORMANCE', 'NARRATIVE', 'MIXED']).optional(),
 }).strict();
+
+/** A partial CharacterProfileInput (diagnosis §3.1) as a job may carry it; the command schema validates the whole. */
+const characterProfilePartial = z.object({
+  name: z.string().trim().min(1).max(80).optional(), nameAr: z.string().max(80).optional(), role: z.string().max(200).optional(),
+  style: style.optional(), sex: z.enum(['FEMALE', 'MALE']).optional(), species: z.string().max(60).optional(), ageYears: z.number().int().min(1).max(120).optional(),
+  build: z.string().max(400).optional(), face: z.string().max(400).optional(), hair: z.string().max(400).optional(), skin: z.string().max(400).optional(), eyes: z.string().max(400).optional(), wardrobe: z.string().max(400).optional(), personality: z.string().max(400).optional(),
+  distinguishing: z.array(z.string().max(120)).max(6).optional(), language: language.optional(), dialect: dialect.optional(),
+  canon: z.object({ heightCm: z.number().positive().max(400).optional(), accessories: z.array(z.string().max(120)).max(12).optional(), visualRestrictions: z.array(z.string().max(200)).max(12).optional(), agePresentation: z.string().max(200).optional(), speech: z.string().max(400).optional() }).optional(),
+  notes: z.string().max(4000).optional(),
+  voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']).optional(), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']).optional(), timbre: z.string().max(200).optional(), notes: z.string().max(400).optional() }).optional(),
+});
+export type CharacterProfilePartial = z.infer<typeof characterProfilePartial>;
 
 export const JOB_PAYLOADS = {
   AUTO_IDEA: z.object({ kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), preferences: ideaPreferences, brief: z.string().max(4000).optional() }),
@@ -85,8 +100,13 @@ export const JOB_PAYLOADS = {
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
   GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional(), /** make the new take the shot's choice when it passes its checks, replacing the current one (a re-record the producer asked for) */ select: z.boolean().optional() }),
-  VOICE_BUILD: z.object({ characterId: id, referenceAssetId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional() }),
-  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: z.enum(['EN', 'AR']).optional(), emotion: z.string().optional() }),
+  /** REFERENCE clones from that validated upload; AUTOMATIC picks the best validated upload (none → MISSING_REFERENCE);
+   *  MANUAL is a hosted catalogue voice (NOT_CONFIGURED without a key). The enqueue path derives the idempotency key
+   *  `VOICE_BUILD:${characterId}:${revision}`. */
+  VOICE_BUILD: z.object({ characterId: id, mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL']).default('AUTOMATIC'), referenceSampleId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional(), providerVoiceId: z.string().max(200).optional() })
+    .refine((p) => p.mode !== 'REFERENCE' || Boolean(p.referenceSampleId), { message: 'REFERENCE mode needs referenceSampleId', path: ['referenceSampleId'] })
+    .refine((p) => p.mode !== 'MANUAL' || Boolean(p.providerVoiceId), { message: 'MANUAL mode needs providerVoiceId', path: ['providerVoiceId'] }),
+  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), force: z.boolean().optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
   ASSEMBLE: z.object({ productionId: id }),
@@ -94,10 +114,28 @@ export const JOB_PAYLOADS = {
   PRODUCE: z.object({ productionId: id, shotIds: z.array(id).optional(), framesOnly: z.boolean().optional(), /** re-record the speaking shots whose chosen take was never verified against the script (older pipeline) or failed; the new take replaces the choice when it passes */ respeak: z.boolean().optional() }),
   MEDIA_PROBE: z.object({ assetId: id }),
   EPISODE_CONTINUITY: z.object({ productionId: id }),
-  DESIGN_CHARACTER: z.object({ brief: z.string().min(2).max(2000), name: z.string().max(80).optional(), style: z.enum(['CARTOON', 'ANIME', 'REALISTIC']).optional(), language: z.enum(['EN', 'AR']).optional(), dialect: z.string().optional(), /** the production or show the character is for (its world is the context) */ productionId: id.optional(), showId: id.optional() }),
+  /** A brief, a name alone, or a partial written profile to complete: Casting fills every missing field. */
+  DESIGN_CHARACTER: z.object({ brief: z.string().max(2000).optional(), name: z.string().max(80).optional(), profile: characterProfilePartial.optional(), style: style.optional(), language: language.optional(), dialect: dialect.optional(), /** the production or show the character is for (its world is the context) */ productionId: id.optional(), showId: id.optional() })
+    .refine((p) => Boolean(p.brief?.trim() || p.name?.trim() || p.profile?.name?.trim()), { message: 'a brief, a name or a profile with a name is required', path: ['brief'] }),
+  /** Contract §1.1: one orchestrating job for the three starts of the character page. */
+  CREATE_CHARACTER: z.object({
+    mode: z.enum(['AUTO', 'MANUAL', 'REFERENCE']),
+    name: z.string().max(80).optional(), brief: z.string().max(2000).optional(),
+    profile: characterProfilePartial.optional(),
+    referenceAssetId: id.optional(),
+    style: style.optional(), language: language.optional(), dialect: dialect.optional(), productionId: id.optional(), showId: id.optional(),
+    voice: z.object({ mode: z.enum(['NONE', 'REFERENCE', 'AUTOMATIC']), referenceSampleId: id.optional() }).optional(),
+    draw: z.boolean().optional(),
+  })
+    .refine((p) => p.mode !== 'AUTO' || Boolean(p.brief?.trim() || p.name?.trim()), { message: 'AUTO needs a brief or a name', path: ['brief'] })
+    .refine((p) => p.mode === 'AUTO' || Boolean(p.profile?.name?.trim() || p.name?.trim()), { message: 'a name is required', path: ['profile', 'name'] })
+    .refine((p) => p.mode !== 'REFERENCE' || Boolean(p.referenceAssetId), { message: 'REFERENCE needs referenceAssetId', path: ['referenceAssetId'] }),
 } satisfies Record<JobType, z.ZodTypeAny>;
 
-export type JobPayload<T extends JobType> = z.infer<(typeof JOB_PAYLOADS)[T]>;
+/** What a client sends (defaults may be left out). */
+export type JobPayload<T extends JobType> = z.input<(typeof JOB_PAYLOADS)[T]>;
+/** What the queue stored after validation (defaults filled): the shape a handler reads. */
+export type JobPayloadParsed<T extends JobType> = z.output<(typeof JOB_PAYLOADS)[T]>;
 
 /** Which jobs want the local GPU (the worker serialises them against a VRAM budget) and which call a hosted service. */
 export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
@@ -105,7 +143,7 @@ export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   CHARACTER_APPEARANCE: 'GPU', CHARACTER_REFS: 'GPU', LOCATION_PLATES: 'GPU', SHOT_FRAMES: 'GPU', VOICE_BUILD: 'GPU', VOICE_PREVIEW: 'GPU', DIALOGUE_AUDIO: 'GPU',
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
-  EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM',
+  EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM', CREATE_CHARACTER: 'CPU',
 };
 
 /** Readable names for the activity page. */
@@ -129,4 +167,10 @@ export const JOB_LABELS: Record<JobType, { en: string; ar: string }> = {
   MEDIA_PROBE: { en: 'Check a file', ar: 'فحص ملف' },
   EPISODE_CONTINUITY: { en: 'Record the episode in the story bible', ar: 'تسجيل الحلقة في سجل القصة' },
   DESIGN_CHARACTER: { en: 'Design a character', ar: 'تصميم شخصية' },
+  CREATE_CHARACTER: { en: 'Create a character', ar: 'إنشاء شخصية' },
 };
+
+/** The steps of CREATE_CHARACTER and what each one reported (contract §1.1). */
+export type CreateCharacterStep = 'design' | 'appearance' | 'sheet' | 'voice';
+export interface CreateCharacterStepOutcome { step: CreateCharacterStep; status: 'done' | 'skipped' | 'failed'; jobId?: string; reason?: string; failureClass?: string }
+export interface CreateCharacterResult { characterId: string; steps: CreateCharacterStepOutcome[] }

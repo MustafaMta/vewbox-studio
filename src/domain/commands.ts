@@ -1,6 +1,9 @@
+import { z } from 'zod';
 import type { StudioState } from './types';
 import * as A from './actions';
 import { withCommandContext } from './ids';
+import { StudioError } from './errors';
+import { DIALECTS, LANGUAGES, PACES, PITCHES, SEXES, STYLES } from './vocabulary';
 
 /** THE COMMAND SET — every studio action by name, so the browser and the server run the same function. A command
  *  is `{ name, args, seed, at }`: the seed fixes the ids it creates and `at` fixes its clock, so both sides agree. */
@@ -15,7 +18,7 @@ export const COMMANDS = {
   selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio,
   setSong: A.setSong, updateSong: A.updateSong,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference, setCharacterAppearance: A.setCharacterAppearance, addCharacterRefs: A.addCharacterRefs,
-  addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
+  addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset,
   acceptProposal: A.acceptProposal,
@@ -33,8 +36,88 @@ export interface Command<K extends CommandName = CommandName> { name: K; args: C
 
 export const isCommandName = (x: unknown): x is CommandName => typeof x === 'string' && Object.prototype.hasOwnProperty.call(COMMANDS, x);
 
-/** Apply one command. Throws StudioError for a refused command. */
+// ------------------------------------------------------------------------------------------------- arg schemas
+
+/** ARGUMENT SCHEMAS for the character and voice commands: anything a page or a worker can send that would make a
+ *  reducer throw a TypeError (a missing `voice`, an age that is not a number, a dialect that does not exist) is
+ *  refused as INVALID before the reducer runs — in the browser and on the server alike, so the API answers 400,
+ *  never 500. Other commands keep their reducers' own checks. */
+
+const id = z.string().min(1).max(80);
+const short = (max: number) => z.string().max(max);
+const text400 = short(400);
+const canon = z.object({ heightCm: z.number().positive().max(400).optional(), accessories: z.array(short(120)).max(12).optional(), visualRestrictions: z.array(short(200)).max(12).optional(), agePresentation: short(200).optional(), speech: short(400).optional() }).partial();
+
+const noDialectOnEnglish = { check: (p: { language?: string; dialect?: string }) => !(p.language === 'EN' && p.dialect), message: 'An English-speaking character has no dialect.', path: ['dialect'] };
+
+/** CharacterProfileInput (diagnosis §3.1): dialect only with Arabic; it defaults to the studio's when missing. */
+const ProfileBase = z.object({
+  name: z.string().trim().min(1).max(80),
+  nameAr: short(80).optional(),
+  role: short(200).default(''),
+  style: z.enum(STYLES), sex: z.enum(SEXES), species: short(60).optional(),
+  ageYears: z.number().int().min(1).max(120),
+  build: text400.default(''), face: text400.default(''), hair: text400.default(''), skin: text400.default(''), eyes: text400.default(''), wardrobe: text400.default(''), personality: text400.default(''),
+  distinguishing: z.array(short(120)).max(6).default([]),
+  language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(),
+  canon: canon.optional(), notes: short(4000).optional(),
+});
+export const CharacterProfileSchema = ProfileBase.refine(noDialectOnEnglish.check, { message: noDialectOnEnglish.message, path: noDialectOnEnglish.path });
+
+export const VoiceProfileSchema = z.object({ pitch: z.enum(PITCHES), pace: z.enum(PACES), timbre: short(200).optional(), notes: short(400).optional() });
+const voicePatch = VoiceProfileSchema.partial().passthrough();
+const characterRef = z.object({ id: id, role: z.string().min(1).max(40), assetId: id, approved: z.boolean().optional() });
+const imageValidation = z.object({ ok: z.boolean(), width: z.number(), height: z.number(), sharpness: z.number().optional(), faces: z.number().optional(), faceBoxHeight: z.number().optional(), reasons: z.array(z.string()) });
+const pendingReference = z.object({ assetId: id, addedAt: z.string(), validation: imageValidation.optional() });
+
+const CharacterInputSchema = ProfileBase.extend({ voice: VoiceProfileSchema.partial().passthrough().optional(), refs: z.array(characterRef).max(24).optional(), portraitAssetId: id.optional(), pendingReference: pendingReference.optional() }).refine(noDialectOnEnglish.check, { message: noDialectOnEnglish.message, path: noDialectOnEnglish.path });
+const CharacterPatchSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(), nameAr: short(80).nullable().optional(), role: short(200).optional(),
+  style: z.enum(STYLES).optional(), sex: z.enum(SEXES).optional(), species: short(60).nullable().optional(), ageYears: z.number().int().min(1).max(120).optional(),
+  build: text400.optional(), face: text400.optional(), hair: text400.optional(), skin: text400.optional(), eyes: text400.optional(), wardrobe: text400.optional(), personality: text400.optional(),
+  distinguishing: z.array(short(120)).max(6).optional(), language: z.enum(LANGUAGES).optional(), dialect: z.enum(DIALECTS).optional(),
+  canon: canon.optional(), notes: short(4000).optional(), voice: voicePatch.optional(), refs: z.array(characterRef).max(24).optional(), portraitAssetId: id.optional(), pendingReference: pendingReference.optional(),
+}).passthrough().refine(noDialectOnEnglish.check, { message: noDialectOnEnglish.message, path: noDialectOnEnglish.path });
+
+const voiceSource = z.enum(['SAMPLE', 'UPLOADED', 'GENERATED']);
+const validation = z.object({ durationSeconds: z.number(), sampleRate: z.number(), channels: z.number(), integratedLufs: z.number(), truePeakDbtp: z.number(), speech: z.object({ present: z.boolean(), words: z.number(), language: z.enum(['EN', 'AR', 'UNKNOWN']), transcript: z.string(), confidence: z.number() }), snrDb: z.number().optional(), music: z.boolean().optional() });
+const sampleProvenance = z.object({ validation: validation.optional(), trimmedAssetId: id.optional(), window: z.object({ from: z.number(), to: z.number() }).optional() }).passthrough();
+const sampleExtra = { text: short(4000).optional(), language: z.enum(LANGUAGES).optional(), dialect: z.enum(DIALECTS).optional(), durationSeconds: z.number().nonnegative().optional(), provenance: sampleProvenance.optional() };
+const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), ...sampleExtra });
+const VoiceIdentitySchema = z.object({
+  provider: z.enum(['LOCAL_TTS', 'MINIMAX']), model: z.string().min(1).max(120), fallbackModel: z.literal('indextts').optional(),
+  mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL']), referenceSampleId: id.optional(), referenceAssetId: id.optional(),
+  referenceWindow: z.object({ from: z.number().nonnegative(), to: z.number().positive(), assetId: id }).optional(), referenceText: short(4000).optional(), providerVoiceId: short(200).optional(),
+  language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(),
+  params: z.object({ speed: z.number().positive().max(3), emotionAlpha: z.number().min(0).max(2), seed: z.number().int().optional(), nfe: z.number().int().positive().optional(), cfg: z.number().optional() }),
+  proof: z.object({ sampleId: id, assetId: id, text: short(4000), wer: z.number().optional(), cer: z.number().optional(), coverage: z.number().optional(), heard: short(4000).optional() }),
+  status: z.enum(['ACTIVE', 'REVIEW', 'STALE']).optional(), engineVersion: short(120).optional(), jobId: id.optional(),
+});
+
+/** Tuples of positional args, by command. */
+export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[]>>> = {
+  addCharacter: z.tuple([CharacterInputSchema]),
+  updateCharacter: z.tuple([id, CharacterPatchSchema]),
+  setPendingReference: z.tuple([id, id.optional().nullable(), imageValidation.optional()]).rest(z.unknown()),
+  addVoiceSample: z.tuple([id, VoiceSampleInputSchema]).rest(z.boolean().optional()),
+  addVoiceRecording: z.tuple([id, id, short(200)]).rest(z.object(sampleExtra).optional()),
+  updateVoiceSample: z.tuple([id, id, z.object({ label: short(200).optional(), ...sampleExtra })]),
+  selectVoiceSample: z.tuple([id, id.optional().nullable()]).rest(z.unknown()),
+  setVoiceIdentity: z.tuple([id, VoiceIdentitySchema]),
+};
+
+/** Refuse malformed arguments with INVALID and the field named; commands without a schema pass through. */
+export function validateCommandArgs(name: CommandName, args: unknown): void {
+  const schema = COMMAND_ARG_SCHEMAS[name];
+  if (!schema) return;
+  const r = schema.safeParse(args);
+  if (!r.success) throw new StudioError('INVALID', `${name}: ${r.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'args'} ${i.message}`).join('; ')}`, { command: name, issues: r.error.issues.slice(0, 10).map((i) => ({ path: i.path.map(String), message: i.message })) });
+}
+
+/** Apply one command. Throws StudioError for a refused command (including malformed arguments). */
 export function runCommand<K extends CommandName>(state: StudioState, cmd: Command<K>): { state: StudioState; result: CommandResult<K> } {
+  if (!Array.isArray(cmd.args)) throw new StudioError('INVALID', `${String(cmd.name)}: args must be an array.`);
+  validateCommandArgs(cmd.name, cmd.args);
   const fn = COMMANDS[cmd.name] as unknown as (s: StudioState, ...args: unknown[]) => StudioState | { state: StudioState };
   return withCommandContext(cmd.seed, cmd.at, () => {
     const out = fn(state, ...(cmd.args as unknown[]));
