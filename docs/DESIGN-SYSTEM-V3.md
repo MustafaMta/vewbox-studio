@@ -961,6 +961,12 @@ portrait, name, role, three traits, voice row if any, *Open profile* (primary), 
 
 ### 9.6 Character profile `/characters/[id]`
 
+> **Superseded in part (2026-10-03, producer direction):** the profile is built around the canonical identity pack —
+> the FRONT full-body view is the hero and the primary image everywhere; tabs **Overview · Sides · Voice · Usage**;
+> Sides shows Front / Right / Left / Back as approved canonical views; portrait, expressions and outfits move to an
+> optional "Secondary material" section. `docs/CONTRACTS-IDENTITY-PACK.md` §4 wins where it differs from below; the
+> visual language below (tokens, type, spacing, lock shown once, voice player in the header) still applies.
+
 ```
 ‹ Characters
 ┌───────────┐  Cartoon · 64 · Woman · Arabic (Iraqi Baghdadi)                        [ Edit ▾ ] [ ⋯ ]
