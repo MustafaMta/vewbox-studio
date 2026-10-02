@@ -26,12 +26,6 @@ export const JOB_TYPES = [
   'EPISODE_CONTINUITY', // a finished episode → the show's timeline, relationships and open storylines (Continuity Writer)
   'DESIGN_CHARACTER',   // a one-line brief → a fully designed character record (Casting)
   'CREATE_CHARACTER',   // orchestrate: design (when fields are missing) → appearance → reference sheet → voice (Casting Director)
-  // the research-driven Auto Idea (docs/CONTRACTS-AUTO-IDEA.md): AUTO_IDEA orchestrates these child jobs
-  'IDEA_RESEARCH',      // Trend Research Agent: plan topics, query permitted sources (cached), record evidence + coverage
-  'IDEA_AUDIENCE',      // Audience Research Agent: evidence → storytelling patterns (measured vs interpreted)
-  'IDEA_CONCEPTS',      // Creative Concept Agent: patterns + continuity → original concepts, originality check, choice
-  'IDEA_WRITE',         // Screenwriter: chosen concept → the full proposal, by the format's strategy (or a revision)
-  'IDEA_REVIEW',        // Story Editor / Audience Experience Agent: rubric review of the draft
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -82,13 +76,7 @@ const ideaPreferences = z.object({
   style: style.optional(), language: language.optional(), dialect: dialect.optional(),
   durationSeconds: z.number().int().positive().max(3600).optional(), mood: z.string().max(200).optional(), castIds: z.array(id).max(12).optional(), locationIds: z.array(id).max(12).optional(),
   concept: z.enum(['PERFORMANCE', 'NARRATIVE', 'MIXED']).optional(),
-  genre: z.string().max(80).optional(), audience: z.string().max(200).optional(), direction: z.string().max(2000).optional(),
-  /** AUTO: research when Settings allow it; OFF: an explicitly original concept, no research. */
-  research: z.enum(['AUTO', 'OFF']).optional(),
 }).strict();
-
-const ideaRef = { ideaJobId: id };
-const ideaKind = z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']);
 
 /** A partial CharacterProfileInput (diagnosis §3.1) as a job may carry it; the command schema validates the whole. */
 const characterProfilePartial = z.object({
@@ -146,13 +134,6 @@ export const JOB_PAYLOADS = {
     .refine((p) => p.mode !== 'AUTO' || Boolean(p.brief?.trim() || p.name?.trim()), { message: 'AUTO needs a brief or a name', path: ['brief'] })
     .refine((p) => p.mode === 'AUTO' || Boolean(p.profile?.name?.trim() || p.name?.trim()), { message: 'a name is required', path: ['profile', 'name'] })
     .refine((p) => p.mode !== 'REFERENCE' || Boolean(p.referenceAssetId), { message: 'REFERENCE needs referenceAssetId', path: ['referenceAssetId'] }),
-  /** Child jobs of an AUTO_IDEA (parentId = ideaJobId). Each reads the earlier stages' artifacts by id and writes its
-   *  own; the request itself is read from the parent job's payload. */
-  IDEA_RESEARCH: z.object({ ...ideaRef, kind: ideaKind, /** bypass the cache (the producer asked for fresh research) */ refresh: z.boolean().optional() }),
-  IDEA_AUDIENCE: z.object({ ...ideaRef, researchArtifactId: id }),
-  IDEA_CONCEPTS: z.object({ ...ideaRef, audienceArtifactId: id }),
-  IDEA_WRITE: z.object({ ...ideaRef, conceptsArtifactId: id, /** a revision: the draft to revise and the reviews it answers */ draftArtifactId: id.optional(), reviewArtifactIds: z.array(id).max(4).optional() }),
-  IDEA_REVIEW: z.object({ ...ideaRef, draftArtifactId: id, reviewer: z.enum(['STORY_EDITOR', 'AUDIENCE_EXPERIENCE']) }),
 } satisfies Record<JobType, z.ZodTypeAny>;
 
 /** What a client sends (defaults may be left out). */
@@ -167,7 +148,6 @@ export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
   EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM', CREATE_CHARACTER: 'CPU',
-  IDEA_RESEARCH: 'CPU', IDEA_AUDIENCE: 'LLM', IDEA_CONCEPTS: 'LLM', IDEA_WRITE: 'LLM', IDEA_REVIEW: 'LLM',
 };
 
 /** Readable names for the activity page. */
@@ -192,11 +172,6 @@ export const JOB_LABELS: Record<JobType, { en: string; ar: string }> = {
   EPISODE_CONTINUITY: { en: 'Record the episode in the story bible', ar: 'تسجيل الحلقة في سجل القصة' },
   DESIGN_CHARACTER: { en: 'Design a character', ar: 'تصميم شخصية' },
   CREATE_CHARACTER: { en: 'Create a character', ar: 'إنشاء شخصية' },
-  IDEA_RESEARCH: { en: 'Research entertainment trends', ar: 'بحث اتجاهات الترفيه' },
-  IDEA_AUDIENCE: { en: 'Analyse the audience', ar: 'تحليل الجمهور' },
-  IDEA_CONCEPTS: { en: 'Develop concepts', ar: 'تطوير المفاهيم' },
-  IDEA_WRITE: { en: 'Write the story', ar: 'كتابة القصة' },
-  IDEA_REVIEW: { en: 'Review the story', ar: 'مراجعة القصة' },
 };
 
 /** The steps of CREATE_CHARACTER and what each one reported (contract §1.1). */
