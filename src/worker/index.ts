@@ -1,4 +1,6 @@
 import os from 'node:os';
+import path from 'node:path';
+import fsp from 'node:fs/promises';
 import type { Job, JobType } from '@/domain/jobs';
 import { JOB_RESOURCE, JOB_TYPES } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
@@ -16,8 +18,11 @@ import { syncRegistry } from '@/server/registry';
  *  a job whose worker dies is reclaimed by the next worker after the lease expires. Cancellation is cooperative:
  *  handlers call `ctx.checkpoint()` between steps and stop when asked. */
 
-const log = baseLog.child({ service: 'worker' });
+const log = baseLog.child({ workerRole: 'worker' });
 const workerId = env().WORKER_ID || `${os.hostname()}-${process.pid}`;
+/** Touched on every tick: the container healthcheck reads its age (see docker/worker.Dockerfile). */
+const ALIVE_FILE = process.env.WORKER_ALIVE_FILE || path.join(os.tmpdir(), 'worker.alive');
+const touchAlive = () => fsp.writeFile(ALIVE_FILE, new Date().toISOString()).catch(() => undefined);
 
 type Lane = 'HOSTED' | 'LLM' | 'CPU' | 'GPU';
 const LANES: Record<Lane, { limit: number; types: JobType[] }> = {
@@ -69,6 +74,7 @@ async function run(job: Job, lane: Lane) {
 }
 
 async function tick() {
+  await touchAlive();
   for (const lane of Object.keys(LANES) as Lane[]) {
     const cfg = LANES[lane];
     while (!stopping && running[lane].size < cfg.limit) {
