@@ -4,13 +4,13 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { Character } from '@/domain/types';
 import { useJobsFor, useStudio } from '@/studio/store';
-import { assetById, primaryImageKind, primaryImageOf } from '@/studio/selectors';
+import { assetById, primaryImageOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { Status } from '@/components/ui/kit';
 import { IconPause, IconPlay, IconShield } from '@/components/ui/icons';
 import { usePlayer, useTrackState, type Track } from '@/components/players/PlayerProvider';
 import { CharacterImage, FramePhase } from './CharacterImage';
-import { identityStatus, imageJobs, statusWords, voiceState, voiceTrackSource } from './identity';
+import { identityStatus, imageJobs, imageKindOf, statusWords, voiceState, voiceTrackSource } from './identity';
 
 /** A CAST CARD (DESIGN-SYSTEM-V3 §6, §9.4) — boxless: the canonical full-body image in a 2:3 frame with nothing
  *  written on it; beneath it the name (and the Arabic name), the role on one line, and one quiet line of state: the
@@ -34,7 +34,7 @@ export function CastCard({ c, menu }: { c: Character; menu?: ReactNode }) {
     <li className="poster-card group relative min-w-0">
       <div className="relative">
         <Link href={href} className="poster-link block outline-none" aria-label={[c.name, c.role, T(words.short)].filter(Boolean).join(' — ')}>
-          <CharacterImage src={image?.src} kind={image ? primaryImageKind(c) : 'NONE'} name={c.name} unavailable={image?.unavailable}>
+          <CharacterImage src={image?.src} kind={image ? imageKindOf(c) : 'NONE'} name={c.name} unavailable={image?.unavailable}>
             {running && <FramePhase>{running.progress?.message || T('cast.image.drawing')}</FramePhase>}
           </CharacterImage>
         </Link>
@@ -50,7 +50,7 @@ export function CastCard({ c, menu }: { c: Character; menu?: ReactNode }) {
         <p className="mt-0.5 truncate text-[13px] leading-5 text-muted" dir="auto">{c.role || '—'}</p>
         <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-faint">
           {s.kind === 'LOCKED'
-            ? <span className="inline-flex items-center gap-1 text-muted"><IconShield aria-hidden className="size-3.5" />{s.lock.reason === 'UNKNOWN' ? T('cast.status.locked') : `${T('cast.card.inVideos')} ${s.videos}`}</span>
+            ? <span className="inline-flex items-center gap-1 text-muted"><IconShield aria-hidden className="size-3.5" />{s.lock.reason === 'UNKNOWN' ? T('cast.status.locked') : (s.videos === 1 ? T('cast.card.inVideo') : T('cast.card.inVideos').replace('{n}', String(s.videos)))}</span>
             : <Status tone={words.tone === 'warn' ? 'warn' : words.tone === 'ok' ? 'ok' : 'neutral'}>{T(words.short)}</Status>}
           <span aria-hidden className="text-ink-500">·</span>
           <span>{hasVoice ? T('cast.card.voice') : T('cast.card.noVoice')}</span>

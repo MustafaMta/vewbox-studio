@@ -72,7 +72,7 @@ export default function CharactersPage() {
                 const homeName = a.shows[0]?.title ?? a.productions.find((p) => !p.showId)?.title ?? '—';
                 return <ArtRow key={c.id} href={`/characters/${c.id}`} src={assetById(state, primaryImageOf(c))?.src} ratio="portrait" title={c.name} titleAr={c.nameAr}
                   cells={[c.role, homeName, `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`, c.voice.identity || c.voice.selectedSampleId ? T('cast.card.voice') : T('cast.card.noVoice')]}
-                  status={<Status tone={w.tone === 'warn' ? 'warn' : w.tone === 'ok' ? 'ok' : 'neutral'}>{s.kind === 'LOCKED' && s.lock.reason === 'USED' ? `${T('cast.card.inVideos')} ${s.videos}` : T(w.short)}</Status>} menu={menuFor(c)} />;
+                  status={<Status tone={w.tone === 'warn' ? 'warn' : w.tone === 'ok' ? 'ok' : 'neutral'}>{s.kind === 'LOCKED' && s.lock.reason === 'USED' ? (s.videos === 1 ? T('cast.card.inVideo') : T('cast.card.inVideos').replace('{n}', String(s.videos))) : T(w.short)}</Status>} menu={menuFor(c)} />;
               })}
             </ul>
           )}

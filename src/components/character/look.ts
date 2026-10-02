@@ -10,8 +10,10 @@ export type LookKey = (typeof LOOK_KEYS)[number];
 
 /** The look comes from a picture: one is pending (the drawing has not replaced it yet), or the portrait was drawn
  *  from one (the CHARACTER_APPEARANCE provenance says `lookFrom: 'REFERENCE'`). */
-export function lookFromReference(c: Pick<Character, 'pendingReference' | 'portraitAssetId'>, assets: Pick<Asset, 'id' | 'provenance'>[]): boolean {
+export function lookFromReference(c: Pick<Character, 'pendingReference' | 'portraitAssetId'> & Partial<Pick<Character, 'canonicalImage'>>, assets: Pick<Asset, 'id' | 'provenance'>[]): boolean {
   if (c.pendingReference) return true;
+  // the canonical image records the reference picture it was drawn from (contract v2 §2)
+  if (c.canonicalImage) return Boolean(c.canonicalImage.referenceAssetId);
   const portrait = c.portraitAssetId ? assets.find((a) => a.id === c.portraitAssetId) : undefined;
   return portrait?.provenance?.lookFrom === 'REFERENCE';
 }

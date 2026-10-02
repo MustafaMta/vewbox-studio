@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { assetById, assetSrc, castOf, nextStep, productionHref, progressOf, shotHref, worldOf } from '@/studio/selectors';
+import { assetById, assetSrc, castOf, nextStep, primaryImageSrc, productionHref, progressOf, shotHref, worldOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, ConfirmDelete, Field, Input, KV, Modal, Select, Textarea } from '@/components/ui/kit';
@@ -53,7 +53,7 @@ export function OverviewTab({ p }: { p: Production }) {
       </div>
       <aside className="space-y-8">
         <Block title={isMusic ? T('tab.performers') : T('tab.characters')} count={cast.length} actions={<Link href={`${base}?tab=${tabOf('cast')}`} className="text-sm text-muted hover:text-fg">{T('btn.edit')}</Link>}>
-          {cast.length === 0 ? <p className="text-sm text-muted">{T('empty.cast')}</p> : <ul className="grid grid-cols-3 gap-3">{cast.slice(0, 6).map((c) => <li key={c.id}><Link href={`/characters/${c.id}`} className="poster-link block"><Art src={assetSrc(state, c.portraitAssetId)} ratio="portrait" title={c.name} className="!rounded-lg" /><span className="mt-1.5 block truncate text-xs" dir="auto">{c.name}</span></Link></li>)}</ul>}
+          {cast.length === 0 ? <p className="text-sm text-muted">{T('empty.cast')}</p> : <ul className="grid grid-cols-3 gap-3">{cast.slice(0, 6).map((c) => <li key={c.id}><Link href={`/characters/${c.id}`} className="poster-link block"><Art src={primaryImageSrc(state, c)} ratio="portrait" top title={c.name} className="!rounded-lg" /><span className="mt-1.5 block truncate text-xs" dir="auto">{c.name}</span></Link></li>)}</ul>}
         </Block>
         <Block title={T('tab.locations')} count={world.length} actions={<Link href={`${base}?tab=${isMusic ? 'visual' : 'locations'}`} className="text-sm text-muted hover:text-fg">{T('btn.edit')}</Link>}>
           {world.length === 0 ? <p className="text-sm text-muted">{T('empty.locationsIn')}</p> : <ul className="grid grid-cols-2 gap-3">{world.slice(0, 4).map((l) => <li key={l.id}><Link href={`/locations/${l.id}`} className="poster-link block"><Art src={assetSrc(state, l.masterAssetId)} ratio="wide" title={l.name} className="!rounded-lg" /><span className="mt-1.5 block truncate text-xs" dir="auto">{l.name}</span></Link></li>)}</ul>}

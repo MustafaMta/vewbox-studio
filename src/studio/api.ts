@@ -14,6 +14,11 @@ export interface EngineStatus { video: EngineHealth; story: EngineHealth; images
 /** contract §1.2 — the validation `POST /api/assets` returns for `purpose: 'character-reference'`. */
 export interface ImageReferenceValidation { ok: boolean; width: number; height: number; sharpness?: number; faces?: number; faceBoxHeight?: number; reasons: string[] }
 export interface SnapshotResponse { state: StudioState; version: number; hash: string; seeded: { kind: string | null; at: string | null; version: number } | null; capabilities: Capabilities }
+/** What `POST /api/jobs` may add to a queued character job: the preflight's warnings (e.g. "identity not approved",
+ *  "an approved image is replaced by a draft"). The job runs; the producer is told. */
+export interface JobWarning { name: string; detail: string; characterIds?: string[] }
+/** A job as `startJob` hands it back: the queued record plus any warnings that came with it. */
+export type StartedJob = Job & { warnings?: JobWarning[] };
 export type BatchResponse = { ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } };
 
 async function parse<T>(res: Response): Promise<T> {
@@ -89,7 +94,7 @@ export const api = {
     return fetch(`/api/jobs?${sp}`, { cache: 'no-store' }).then((r) => parse<{ jobs: Job[] }>(r)).then((r) => r.jobs);
   },
   job: (id: string) => fetch(`/api/jobs/${encodeURIComponent(id)}`, { cache: 'no-store' }).then((r) => parse<{ job: Job; events: JobEvent[] }>(r)),
-  startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}) => fetch('/api/jobs', jsonInit('POST', { type, payload, ...opts })).then((r) => parse<{ job: Job; created: boolean }>(r)),
+  startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}) => fetch('/api/jobs', jsonInit('POST', { type, payload, ...opts })).then((r) => parse<{ job: Job; created: boolean; warnings?: JobWarning[] }>(r)),
   cancelJob: (id: string) => fetch(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }).then((r) => parse<{ job: Job }>(r)).then((r) => r.job),
   retryJob: (id: string, changeMade?: string) => fetch(`/api/jobs/${encodeURIComponent(id)}/retry`, changeMade ? jsonInit('POST', { changeMade }) : { method: 'POST' }).then((r) => parse<{ job: Job }>(r)).then((r) => r.job),
   proposal: (id: string) => fetch(`/api/proposals/${encodeURIComponent(id)}`, { cache: 'no-store' }).then((r) => parse<{ id: string; jobId: string | null; proposal: import('@/domain/types').IdeaProposal; request: unknown }>(r)),

@@ -25,6 +25,8 @@ export function useStartJob() {
     try {
       const job = await startJob(type, payload, { idempotencyKey: opts.idempotencyKey });
       if (!opts.quiet) toast.ok(T('gen.started'), { label: T('nav.production'), href: `/production?job=${job.id}` });
+      // the server's preflight warnings (e.g. an identity not approved yet) are said, never dropped
+      for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail });
       return job;
     } catch (e) {
       toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`);

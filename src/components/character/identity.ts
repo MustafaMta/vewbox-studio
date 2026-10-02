@@ -2,7 +2,7 @@ import type { Asset, CanonicalImage, Character, Production, VideoUsage } from '@
 import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
 import { appearanceLock, type AppearanceLock } from '@/domain/rules';
-import { primaryImageKind, primaryImageOf } from '@/studio/selectors';
+import { canonicalCheckFailed, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import type { Key } from '@/lib/i18n';
 import { jobSecondary, usageImageVersion, type SecondaryKind } from './contract';
 
@@ -41,9 +41,9 @@ export function identityStatus(c: Pick<Character, 'canonicalImage' | 'portraitAs
   const kind: IdentityKind = lock.locked ? 'LOCKED' : !image ? 'NONE' : image.status === 'APPROVED' ? 'APPROVED' : 'DRAFT';
   return {
     kind, image, version: image?.version, approvedAt: image?.approvedAt, imageStatus: image?.status,
-    checkFailed: image?.check?.ok === false, checkNotes: image?.check?.notes ?? [],
+    checkFailed: canonicalCheckFailed(image), checkNotes: image?.check?.notes ?? [],
     lock, videos: new Set(lock.videos.map((v) => v.productionId)).size,
-    legacyPortrait: !image && primaryImageKind(c) === 'PORTRAIT',
+    legacyPortrait: !image && primaryImageSourceOf(c) === 'PORTRAIT',
   };
 }
 
@@ -61,8 +61,11 @@ export function statusWords(s: Pick<IdentityStatus, 'kind' | 'lock' | 'videos'>)
 export function primaryImage<A extends Pick<Asset, 'id'>>(c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>, assets: A[]): { asset?: A; kind: 'CANONICAL' | 'PORTRAIT' | 'NONE' } {
   const id = primaryImageOf(c);
   const asset = id ? assets.find((a) => a.id === id) : undefined;
-  return asset ? { asset, kind: primaryImageKind(c) } : { kind: 'NONE' };
+  return asset ? { asset, kind: primaryImageSourceOf(c) ?? 'NONE' } : { kind: 'NONE' };
 }
+
+/** How a frame should treat the primary image: full-body canonical, an older close-up, or the honest placeholder. */
+export const imageKindOf = (c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): 'CANONICAL' | 'PORTRAIT' | 'NONE' => primaryImageSourceOf(c) ?? 'NONE';
 
 /** Initials for the honest placeholder: two letters at most, from the first two words. */
 export const initialsOf = (name: string): string => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => [...w][0]?.toUpperCase() ?? '').join('') || '·';

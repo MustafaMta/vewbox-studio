@@ -18,13 +18,6 @@ export const assetSrc = (s: StudioState, id: string | undefined | null): string 
 export { canonicalStatusOf, isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 export const primaryImageSrc = (s: StudioState, c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): string | undefined => assetSrc(s, primaryImageOf(c));
 export const characterById = (s: StudioState, id: string | undefined | null): Character | undefined => (id ? s.characters.find((c) => c.id === id) : undefined);
-
-/** A character's primary image everywhere — cards, lists, the profile, cast displays, pickers, production assignment
- *  (docs/CONTRACTS-IDENTITY-PACK.md v2): the canonical front full-body image, else the legacy close-up portrait,
- *  else none. Every place that shows a character's picture asks this, never `portraitAssetId` directly. */
-export const primaryImageOf = (c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): string | undefined => c.canonicalImage?.assetId || c.portraitAssetId || undefined;
-/** What the primary image is: the full-body canonical image, an older head-and-shoulders portrait, or nothing. */
-export const primaryImageKind = (c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): 'CANONICAL' | 'PORTRAIT' | 'NONE' => (c.canonicalImage?.assetId ? 'CANONICAL' : c.portraitAssetId ? 'PORTRAIT' : 'NONE');
 export const locationById = (s: StudioState, id: string | undefined | null): Location | undefined => (id ? s.locations.find((l) => l.id === id) : undefined);
 export const showById = (s: StudioState, id: string | undefined | null): Show | undefined => (id ? s.shows.find((x) => x.id === id) : undefined);
 export const seasonById = (s: StudioState, id: string | undefined | null): Season | undefined => (id ? s.seasons.find((x) => x.id === id) : undefined);

@@ -13,11 +13,12 @@ import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Details, Dropzone, Field, KV, Status, Textarea, cls } from '@/components/ui/kit';
 import { FactList } from '@/components/ui/page';
-import { FailureNotice, RecoveryAction, useErrorCopy } from '@/components/ui/progress';
+import { FailureNotice, useErrorCopy } from '@/components/ui/progress';
 import { IconGenerate, IconShield, IconVoice } from '@/components/ui/icons';
 import type { Track } from '@/components/players/PlayerProvider';
 import { dialectLabel, fmtSeconds } from '@/lib/format';
 import { startVoiceBuild, type VoiceReferenceRefusal } from './contract';
+import { RetryWithChange } from './RetryWithChange';
 import { voiceState } from './identity';
 import { VoicePlayer } from './VoicePlayer';
 import { VoiceTraitsDialog } from './EditDialogs';
@@ -263,7 +264,7 @@ function Recorder({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
  *  uploaded; never from a generated line. Disabled with the reason when there is nothing to build from. */
 function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; locked: boolean }) {
   const T = useT();
-  const { startJob, retryJob } = useStudio();
+  const { startJob } = useStudio();
   const toast = useToast();
   const copyOf = useErrorCopy();
   const [busy, setBusy] = useState(false);
@@ -273,16 +274,16 @@ function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; loc
   const build = async () => {
     if (!from) return;
     setBusy(true);
-    try { await startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id }); }
+    try { const job = await startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id }); for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail }); }
     catch (e) { toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
     finally { setBusy(false); }
   };
   if (active) return <Status tone="info" live className="max-w-full truncate" title={active.progress?.message}>{active.progress?.phase ? `${T.dyn(`jp.${active.progress.phase}`)} · ` : ''}{active.progress?.message || T('jobs.inProgress')}</Status>;
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-line-soft pt-5">
-      <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={!from || locked} aria-describedby={locked ? 'voice-lock' : undefined} onClick={() => void build()}>{from ? `${T('cast.voice.buildFrom')} “${from.label}”` : T('gen.voiceBuild')}</Button>
+      <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={!from || locked} aria-describedby={locked ? 'voice-lock' : undefined} onClick={() => void build()} className="max-w-full"><span className="truncate">{from ? `${T('cast.voice.buildFrom')} “${from.label}”` : T('gen.voiceBuild')}</span></Button>
       {!from && <span className="text-[13px] text-faint" role="status">{T('voice.build.needRecording')}</span>}
-      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RecoveryAction copy={copyOf(last.error)} size="sm" onRetry={() => void retryJob(last.id)} jobId={last.id} custom={{ reference: <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> }} />} /></div>}
+      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={copyOf(last.error).fix.kind === 'reference' ? <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> : <RetryWithChange job={last} />} /></div>}
     </div>
   );
 }
