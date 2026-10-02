@@ -94,6 +94,7 @@ export const generateTake: Handler = async (ctx) => {
   }));
   const genMs = Date.now() - t0;
   await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
+  if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
   // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent

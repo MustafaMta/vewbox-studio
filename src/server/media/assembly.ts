@@ -119,7 +119,7 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
     const avail = it.duration - 0.3;
     lines.forEach((d, i) => {
       const dur = d.durationSeconds ?? (avail * weights[i]) / total;
-      const text = lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || '';
+      const text = rtlMark(lang, lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || '');
       const who = cast.find((c) => c.id === d.characterId);
       cues.push({ start: cursor, end: Math.min(it.start + it.duration, cursor + dur), text, speaker: who?.name });
       cursor += dur;
@@ -130,8 +130,13 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
 
 export function lyricCues(p: Production, lang: 'ar' | 'en'): Cue[] {
   if (!p.song) return [];
-  return p.song.sections.filter((s) => (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr)).map((s) => ({ start: s.from, end: s.to, text: (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr) ?? '' }));
+  return p.song.sections.filter((s) => (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr)).map((s) => ({ start: s.from, end: s.to, text: rtlMark(lang, (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr) ?? '') }));
 }
+
+/** An Arabic cue that starts with a digit or a Latin word has no strong character to set its direction, so the
+ *  burn-in renderer may lay it out left-to-right ("35" ended up at the wrong end of a line). A leading right-to-left
+ *  mark fixes the base direction; players and sidecar files ignore it visually. */
+export const rtlMark = (lang: 'ar' | 'en', text: string) => (lang === 'ar' && text && !/^[؀-ۿ‏]/.test(text.trimStart()) ? `‏${text}` : text);
 
 export const toSrt = (cues: Cue[]) => cues.map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text.trim()}\n`).join('\n');
 export const toVtt = (cues: Cue[]) => `WEBVTT\n\n${cues.map((c) => `${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text.trim()}\n`).join('\n')}`;

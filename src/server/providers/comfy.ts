@@ -10,7 +10,7 @@ import { log } from '../log';
  *  users never see ComfyUI. Each graph is hashed so a take can say which workflow revision made it. */
 
 export interface ComfyOutputFile { filename: string; subfolder: string; type: 'output' | 'temp' | 'input' }
-export interface ComfyRunResult { promptId: string; outputs: Record<string, { images?: ComfyOutputFile[]; audio?: ComfyOutputFile[]; video?: ComfyOutputFile[]; gifs?: ComfyOutputFile[]; text?: string[] }>; ms: number; workflowVersion: string }
+export interface ComfyRunResult { promptId: string; outputs: Record<string, { images?: ComfyOutputFile[]; audio?: ComfyOutputFile[]; video?: ComfyOutputFile[]; gifs?: ComfyOutputFile[]; text?: string[] }>; ms: number; /** ComfyUI's own execution time (queue wait excluded), when it reported it */ engineMs?: number; workflowVersion: string }
 
 const baseUrl = () => env().COMFYUI_URL.replace(/\/$/, '');
 
@@ -94,7 +94,13 @@ export async function run(graph: Record<string, unknown>, opts: { timeoutMs?: nu
         const msg = JSON.stringify(h.status.messages ?? []).slice(0, 1200);
         throw new StudioError('PROVIDER', `ComfyUI workflow failed: ${msg}`, { promptId });
       }
-      if (h.status?.completed || Object.keys(h.outputs ?? {}).length > 0) return { promptId, outputs: h.outputs ?? {}, ms: Date.now() - t0, workflowVersion: workflowVersion(graph) };
+      if (h.status?.completed || Object.keys(h.outputs ?? {}).length > 0) {
+        // ComfyUI stamps execution_start / execution_success: the engine time proper, without our queue wait
+        const stamps = ((h.status?.messages ?? []) as Array<[string, { timestamp?: number }]>).filter((m) => Array.isArray(m));
+        const started = stamps.find((m) => m[0] === 'execution_start')?.[1]?.timestamp;
+        const finished = stamps.find((m) => m[0] === 'execution_success')?.[1]?.timestamp;
+        return { promptId, outputs: h.outputs ?? {}, ms: Date.now() - t0, engineMs: started && finished ? finished - started : undefined, workflowVersion: workflowVersion(graph) };
+      }
     }
     // queue position, for honest progress
     const q = await http<{ queue_running: unknown[][]; queue_pending: unknown[][] }>('/queue').catch(() => null);
