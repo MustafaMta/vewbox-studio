@@ -123,9 +123,12 @@ export const developStory: Handler = async (ctx) => {
   for (const sc of out.scenes) { for (const n of sc.characterNames) { const id = resolveChar(n); if (id && !castIds.includes(id)) castIds.push(id); } const lid = resolveLoc(sc.locationName); if (lid && !locationIds.includes(lid)) locationIds.push(lid); }
   const scenes: Array<Omit<Scene, 'number'>> = out.scenes.map((sc) => ({ id: nid('scene'), title: sc.title, locationId: resolveLoc(sc.locationName), timeOfDay: sc.timeOfDay, characterIds: sc.characterNames.map(resolveChar).filter((x): x is string => Boolean(x)), beats: [], purpose: sc.purpose, emotionalObjective: sc.emotionalObjective, entryState: sc.entryState, exitState: sc.exitState }));
   await command('updateProduction', [p.id, { logline: out.logline, synopsis: out.synopsis, genre: out.genre ?? p.genre, mood: out.mood ?? p.mood, titleAr: p.titleAr ?? out.titleAr, castIds, locationIds }], 'worker');
-  // keep existing scenes that already have beats; otherwise replace the skeleton
-  const keepBeats = p.scenes.some((sc) => sc.beats.length > 0);
+  // keep existing scenes that already carry written lines; a skeleton (an accepted proposal's structure: a summary
+  // beat, no lines, no place) is replaced by the developed, located and cast scenes
+  const keepBeats = p.scenes.some((sc) => sc.beats.some((b) => b.lines.length > 0));
   if (!keepBeats) await command('replaceScript', [p.id, scenes], 'worker');
+  // an episode's new people and places join the show's canon, so later seasons and episodes inherit them
+  if (p.showId) { const show = state.shows.find((x) => x.id === p.showId); if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, ...castIds])), locationIds: Array.from(new Set([...show.locationIds, ...locationIds])) }], 'worker'); }
   await command('markStepDone', [p.id, 'STORY'], 'worker');
   // STORY handoff to Casting & World: every scene located and cast by id; the human approval of the story itself
   // is recorded when the producer accepts it on the Story page
