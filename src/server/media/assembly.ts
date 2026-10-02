@@ -27,7 +27,7 @@ export interface Timeline { items: TimelineItem[]; total: number; totalFrames: n
 
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
-export function buildTimeline(p: Production, assets: Asset[]): Timeline {
+export function buildTimeline(p: Production, assets: Asset[], opts: { /** extra head frames to drop per shot (sound-to-picture alignment under a song master) */ extraTrim?: Record<string, number> } = {}): Timeline {
   const items: TimelineItem[] = [];
   let frame = 0;
   for (const sh of orderedShots(p)) {
@@ -35,7 +35,7 @@ export function buildTimeline(p: Production, assets: Asset[]): Timeline {
     if (!take) throw new StudioError('INVALID', `Shot ${p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? '?'}.${sh.number} has no chosen take.`);
     const a = assets.find((x) => x.id === take.assetId);
     if (!a) throw new StudioError('NOT_FOUND', `The file of ${take.label} is missing.`);
-    const trimStartFrames = Math.max(0, take.trimStartFrames ?? 0);
+    const trimStartFrames = Math.max(0, take.trimStartFrames ?? 0) + Math.max(0, opts.extraTrim?.[sh.id] ?? 0);
     const sourceFrames = Math.round((take.durationSeconds ?? a.durationSeconds ?? sh.durationSeconds) * CUT_FPS);
     const frames = Math.max(1, sourceFrames - trimStartFrames);
     items.push({ shot: sh, take: a, takeRecord: take, start: frame / CUT_FPS, duration: frames / CUT_FPS, startFrame: frame, frames, trimStartFrames, sceneNumber: p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? 0 });

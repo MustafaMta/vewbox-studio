@@ -9,6 +9,7 @@ import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, storeBuffer } from '@/server/media';
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
 import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport } from '@/server/media/assembly';
+import { takeLagAgainstMaster } from '@/server/media/sync';
 import { recordMetric } from '@/server/jobs/queue';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 
@@ -22,13 +23,33 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const p = state.productions.find((x) => x.id === opts.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   const cast = castOf(state, p);
-  const timeline = buildTimeline(p, state.assets);
+  let timeline = buildTimeline(p, state.assets);
   // sample takes are stand-ins made by the prototype; refuse to pass them off as a production cut
   const sampleTakes = timeline.items.filter((it) => it.take.sample);
   if (sampleTakes.length) throw new StudioError('INVALID', `${sampleTakes.length} chosen take(s) are bundled sample clips, not generated footage. Generate real takes before assembling.`);
   await ctx.progress('PREPARING', { phase: 'preparing', message: `Assembling ${timeline.items.length} shots (${Math.round(timeline.total)} s)` });
   const size = exportSize(p.aspect, opts.resolution);
   const song = p.song?.assetId ? state.assets.find((a) => a.id === p.song!.assetId && !a.sample) : undefined;
+  // music video: bring each take's mouths onto the master's beat. The take's own (muted) sound says where its mouths
+  // are; its lag against the master's stretch is measured on loudness envelopes and that many head frames are dropped
+  // (a late take) — nothing is stretched and the song is never touched. Early takes and tiny lags are left alone.
+  const sync: Array<{ shotId: string; lagMs: number; corrZero: number; corrBest: number; droppedFrames: number }> = [];
+  if (p.kind === 'MUSIC_VIDEO' && song) {
+    await ctx.progress('PREPARING', { phase: 'aligning', message: 'Aligning the performers to the song' });
+    const extraTrim: Record<string, number> = {};
+    for (const it of timeline.items) {
+      const hasAudio = Boolean((it.take.provenance as { probe?: { hasAudio?: boolean } } | undefined)?.probe?.hasAudio);
+      if (!hasAudio || (it.shot.performance?.mode ?? 'SOLO') === 'INSTRUMENTAL') continue;
+      try {
+        const r = await takeLagAgainstMaster(assetFile(it.take), assetFile(song), it.start, it.duration);
+        const frames = r.lagMs >= 60 && r.corrBest > Math.max(0.2, r.corrZero + 0.1) ? Math.min(14, Math.round((r.lagMs / 1000) * 24)) : 0;
+        if (frames) extraTrim[it.shot.id] = frames;
+        sync.push({ shotId: it.shot.id, lagMs: r.lagMs, corrZero: Number(r.corrZero.toFixed(2)), corrBest: Number(r.corrBest.toFixed(2)), droppedFrames: frames });
+      } catch (e) { await ctx.event('warn', `alignment skipped for shot ${it.shot.id}: ${(e as Error).message}`); }
+    }
+    if (Object.keys(extraTrim).length) timeline = buildTimeline(p, state.assets, { extraTrim });
+    await ctx.event('info', 'performers aligned to the song', { shots: sync, totalSeconds: Number(timeline.total.toFixed(3)) });
+  }
   // recorded dialogue lines for shots whose take is silent (MiniMax H3 speaks natively; uploaded or legacy takes may not)
   const dialogueAudio: Array<{ assetId: string; start: number; durationSeconds?: number; shotId: string }> = [];
   const files: Record<string, string> = {};
@@ -73,7 +94,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const storedPoster = await adoptFile(posterId, poster, { expectKind: 'IMAGE' });
   const stored = await adoptFile(videoId, outFile, { expectKind: 'VIDEO' });
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id })], 'worker');
-  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames })), fps: 24, mix, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
+  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames })), fps: 24, mix, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
   // sidecar subtitle files
   const sidecars: string[] = [];
   for (const [lang, cs] of [['ar', cuesAr], ['en', cuesEn]] as const) {
