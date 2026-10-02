@@ -36,12 +36,15 @@ export function singingTags(p: Production, sh: Shot, cast: Character[]): string 
   const perf = sh.performance ?? performanceFor(p.song, w);
   const lang = LANG_TAG[p.language] ?? 'English';
   if (!perf || perf.mode === 'INSTRUMENTAL') return 'Instrumental passage: nobody sings or mouths words.';
-  const lines = sungLinesFor(p.song, w, p.language).filter((l) => perf.singerIds.includes(l.singerId));
   const who = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `(${describeCharacter(c).split(',').slice(0, 2).join(',')})` : ''; };
+  // only performers who are actually in the shot sing on camera; an assigned singer who is off screen is heard, not seen
+  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id));
+  const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId));
   const sung = lines.map((l) => `${who(l.singerId)} sings <d>[${lang}] ${clean(p.language === 'AR' ? l.textAr || l.text : l.text)}</d>`).join(' ');
   const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
   const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
-  return [sung || `${perf.singerIds.map(who).join(' and ')} performing the song, singing in sync with the music.`, listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing.` : ''].filter(Boolean).join(' ');
+  const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : 'The song continues off camera: nobody on screen sings or mouths words.';
+  return [performing, listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing.` : ''].filter(Boolean).join(' ');
 }
 
 /** The full prompt for a video take: look + setting + people + action + camera + dialogue. The shot's own `prompt`

@@ -77,7 +77,7 @@ export const JOB_PAYLOADS = {
   AUTO_IDEA: z.object({ kind: z.enum(['SHOW', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), preferences: ideaPreferences, brief: z.string().max(4000).optional() }),
   DEVELOP_STORY: z.object({ productionId: id }),
   WRITE_SCRIPT: z.object({ productionId: id, sceneIds: z.array(id).optional() }),
-  PLAN_SHOTS: z.object({ productionId: id, sceneIds: z.array(id).optional(), force: z.boolean().optional() }),
+  PLAN_SHOTS: z.object({ productionId: id, sceneIds: z.array(id).optional(), force: z.boolean().optional(), /** music video: redo only the singing assignment and copy it onto the existing shots */ performanceOnly: z.boolean().optional() }),
   CHARACTER_APPEARANCE: z.object({ characterId: id }),
   CHARACTER_REFS: z.object({ characterId: id, roles: z.array(z.string()).optional() }),
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),

@@ -8,6 +8,8 @@ import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Status } from '@/components/ui/kit';
 import { Art, Block, Empty } from '@/components/ui/cinema';
+import { JobButton } from '@/components/ui/jobs';
+import { IconAuto } from '@/components/ui/icons';
 import { Picker } from '@/components/library/CanonPicker';
 import { TrackButton } from '@/components/players/PlayerProvider';
 import { words } from '@/lib/format';
@@ -22,7 +24,9 @@ export function PerformersTab({ p }: { p: Production }) {
   const song = p.song;
   const setCast = (ids: string[]) => { act('updateProduction', p.id, { castIds: ids }); if (song) act('updateSong', p.id, { singerIds: ids }); toast.ok(T('toast.saved')); };
   return (
-    <Block title={T('tab.performers')} count={cast.length} description={T('mv.performers.hint')} actions={<Picker kind="cast" style={p.style} selected={p.castIds} onChange={setCast} label={T('mv.addPerformer')} />}>
+    <Block title={T('tab.performers')} count={cast.length} description={T('mv.performers.hint')} actions={<div className="flex flex-wrap items-center gap-2">
+      {song && p.shots.length > 0 && <JobButton type="PLAN_SHOTS" payload={{ productionId: p.id, performanceOnly: true }} target={{ productionId: p.id }} size="sm" icon={<IconAuto />} title={T('gen.performance.hint')}>{T('gen.performance')}</JobButton>}
+      <Picker kind="cast" style={p.style} selected={p.castIds} onChange={setCast} label={T('mv.addPerformer')} /></div>}>
       {cast.length === 0 ? <Empty title={T('empty.cast')} hint={T('mv.performers.hint')} action={<Picker kind="cast" style={p.style} selected={p.castIds} onChange={setCast} label={T('mv.addPerformer')} />} /> : (
         <ul className="grid gap-4 md:grid-cols-2">
           {cast.map((c, i) => {

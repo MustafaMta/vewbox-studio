@@ -728,6 +728,8 @@ const D = {
   'gen.dialogue.hint': ['Speaks every line with its character’s studio voice and checks each one by transcription. The cut uses these recordings for takes without their own sound (uploaded clips); MiniMax takes speak natively.', 'ينطق كل جملة بصوت شخصيتها المبني في الاستوديو ويتحقق منها بالتفريغ. يستخدم المونتاج هذه التسجيلات للقطات بلا صوت خاص (المقاطع المرفوعة)؛ لقطات MiniMax تنطق بنفسها.'],
   'produce.linesVoiced': ['lines recorded', 'جمل مسجّلة'],
   'gen.song': ['Generate the song', 'ولّد الأغنية'],
+  'gen.performance': ['Assign the singing', 'وزّع الغناء'],
+  'gen.performance.hint': ['Decides who sings each section (solo, duet, alternating, instrumental) from the lyrics and the story, and copies it onto the planned shots. Only the assigned performer sings in a shot.', 'يقرر من يغني كل مقطع (منفرد، ثنائي، بالتناوب، آلي) من الكلمات والقصة، وينسخه على اللقطات المخططة. لا يغني في اللقطة إلا المؤدي المعيّن.'],
   'gen.rejectTake': ['Reject', 'ارفض'],
   'gen.rejectReason': ['Why is this take rejected?', 'لماذا تُرفض هذه اللقطة؟'],
   'gen.rejected': ['Rejected', 'مرفوضة'],

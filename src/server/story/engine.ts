@@ -253,9 +253,12 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
 export async function planPerformance(p: Production, cast: Character[], opts: EngineOptions = {}): Promise<Array<{ sectionId: string; mode: 'SOLO' | 'DUET' | 'ALTERNATING' | 'ENSEMBLE' | 'LISTENER' | 'INSTRUMENTAL'; singerIds: string[]; lines?: Array<{ singerId: string; text: string }> }>> {
   if (!p.song) throw new StudioError('INVALID', 'This music video has no song.');
   const singers = cast.filter((c) => p.song!.singerIds.includes(c.id));
+  // a project fresh from the wizard lists every performer on every section: that is a placeholder, not a decision
+  const everyoneEverywhere = singers.length > 1 && p.song.sections.every((x) => singers.every((c) => x.singerIds.includes(c.id)));
   const user = `Assign the singing in "${p.song.title}" (treatment ${p.concept ?? 'PERFORMANCE'}). Performers (exact names): ${compact(singers.map((c) => ({ name: c.name, voice: `${c.voice.pitch} ${c.voice.timbre}`, role: c.role })))}.
-Sections: ${compact(p.song.sections.map((x) => ({ sectionId: x.id, kind: x.kind, from: x.from, to: x.to, lyrics: x.textAr || x.text, currentSingers: x.singerIds.map((id) => cast.find((c) => c.id === id)?.name) })))}
-Rules: instrumental sections are INSTRUMENTAL with no singers. A section sung by one performer is SOLO. Two performers singing together is DUET; taking turns line by line is ALTERNATING (then give "lines": [{singerName, text}] splitting the lyrics in order); three or more together is ENSEMBLE. Keep current singer assignments unless they are clearly wrong. Only a performer assigned to a section sings in it; nobody else mouths the words.
+Story: ${p.logline} ${p.synopsis}
+Sections: ${compact(p.song.sections.map((x) => ({ sectionId: x.id, kind: x.kind, from: x.from, to: x.to, lyrics: x.textAr || x.text, ...(everyoneEverywhere ? {} : { currentSingers: x.singerIds.map((id) => cast.find((c) => c.id === id)?.name) }) })))}
+Rules: instrumental sections are INSTRUMENTAL with no singers. A section sung by one performer is SOLO. Two performers singing together is DUET; taking turns line by line is ALTERNATING (then give "lines": [{singerName, text}] splitting the lyrics in order); three or more together is ENSEMBLE. ${everyoneEverywhere ? 'Decide who sings each section from the lyrics and the story (a lead usually carries the verses; others join where the story brings them in); do not give every section to everyone unless the song is truly sung together throughout.' : 'Keep current singer assignments unless they are clearly wrong.'} Only a performer assigned to a section sings in it; nobody else mouths the words.
 Return JSON: { sections: [{ sectionId, mode, singerNames[], lines?[] }] }.`;
   const messages: LlmMessage[] = [{ role: 'system', content: STUDIO_RULES }, { role: 'user', content: user }];
   const r = await llmJson(PerformancePlanSchema, messages, { ...opts, maxTokens: 4000, temperature: 0.3 });

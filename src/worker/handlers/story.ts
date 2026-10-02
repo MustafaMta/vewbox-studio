@@ -99,14 +99,21 @@ export const writeScript: Handler = async (ctx) => {
 };
 
 export const planShots: Handler = async (ctx) => {
-  const { productionId, sceneIds, force } = ctx.job.payload as { productionId: string; sceneIds?: string[]; force?: boolean };
+  const { productionId, sceneIds, force, performanceOnly } = ctx.job.payload as { productionId: string; sceneIds?: string[]; force?: boolean; performanceOnly?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   const cast = castOf(state, p); const world = worldOf(state, p);
-  const targets = sceneIds?.length ? p.scenes.filter((sc) => sceneIds.includes(sc.id)) : p.scenes;
-  if (targets.length === 0) throw new StudioError('INVALID', 'There are no scenes to plan.');
-  if (targets.some((sc) => sc.beats.length === 0)) throw new StudioError('INVALID', 'Write the script before planning shots: some scenes have no beats.');
+  // music video: only redo who sings what, on the shots that already exist
+  const targets = performanceOnly ? [] : sceneIds?.length ? p.scenes.filter((sc) => sceneIds.includes(sc.id)) : p.scenes;
+  if (performanceOnly) {
+    if (p.kind !== 'MUSIC_VIDEO' || !p.song) throw new StudioError('INVALID', 'Only a music video has a singing assignment.');
+    if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots first; the singing assignment is copied onto them.');
+    await ctx.progress('GENERATING', { phase: 'performance', message: 'Assigning the singing' });
+  } else {
+    if (targets.length === 0) throw new StudioError('INVALID', 'There are no scenes to plan.');
+    if (targets.some((sc) => sc.beats.length === 0)) throw new StudioError('INVALID', 'Write the script before planning shots: some scenes have no beats.');
+  }
   let previous: { shot?: PlannedShot; sceneExit?: string } = {};
   // continuity carries over from the last planned shot before the first target
   const firstIdx = p.scenes.findIndex((sc) => sc.id === targets[0].id);
