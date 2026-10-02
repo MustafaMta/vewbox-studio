@@ -30,6 +30,7 @@ x-app-env: &app-env
   COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
   TTS_URL: ${TTS_URL:-http://tts:8020}
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
+  TTS_DESIGN_URL: ${TTS_DESIGN_URL:-http://tts-design:8022}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -177,6 +178,22 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8021/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
     stop_grace_period: 30s
 
+  # Voice design (VoxCPM2: a synthetic voice from a text description, EN/MSA) and ECAPA speaker embeddings. Built on
+  # the tts-habibi image (same CUDA/torch venv), so build tts-habibi first on a fresh machine. Weights: fetcher group
+  # `voice-design` (docs/MODELS.md); the service never downloads. Never loaded it holds no VRAM; loaded ≈ 7 GB of the
+  # card (measured); after /unload its CUDA context (≈ 0.6 GB) stays until a restart.
+  tts-design:
+    logging: *logging
+    build: { context: ., dockerfile: docker/tts-design/Dockerfile, args: { BASE_IMAGE: "vewbox/tts-habibi:${CODE_VERSION:-dev}" } }
+    image: vewbox/tts-design:${CODE_VERSION:-dev}
+    restart: unless-stopped
+    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_HOME: /models/hf-home, ECAPA_DEVICE: "${TTS_DESIGN_ECAPA_DEVICE:-cpu}" }
+    volumes: [ "models:/models", "./docker/tts/app.py:/opt/voxcpm/vewbox_tts_shared.py:ro", "./docker/tts-design/app.py:/opt/voxcpm/vewbox_design_app.py:ro" ]
+    ports: [ "127.0.0.1:${TTS_DESIGN_PORT:-8022}:8022" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8022/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
+    stop_grace_period: 30s
+
   asr:
     logging: *logging
     build: { context: ., dockerfile: docker/asr/Dockerfile }
@@ -231,7 +248,7 @@ services:
       HF_HUB_DISABLE_XET: ${HF_HUB_DISABLE_XET:-1}
     volumes:
       - models:/models
-    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3}"]
+    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design}"]
 
 volumes:
   pgdata:
