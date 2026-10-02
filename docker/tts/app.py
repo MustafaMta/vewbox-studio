@@ -390,7 +390,12 @@ async def synthesize(
             raise HTTPException(status_code=500, detail="the engine returned no audio")
         wav, limiter = limit_peaks(wav, sr)
         buf = io.BytesIO()
-        sf.write(buf, wav, sr, format="WAV", subtype="PCM_16")
+        # the file carries its own provenance (WAV INFO chunk: ISFT/ICMT, read by ffprobe as encoder/comment) so that
+        # a generated line can never pass for a recording when someone tries to clone a voice from it
+        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="PCM_16", format="WAV") as out:
+            out.software = f"vewbox-tts {e.name}"
+            out.comment = f"synthetic speech; engine={e.name}; seed={params['seed']}; not a voice reference"
+            out.write(wav)
         dur = wav.shape[0] / sr
         ms = int((time.time() - t0) * 1000)
         print(f"[tts] {ENGINE} {language} {len(text)} chars seed {params['seed']} -> {dur:.2f}s in {ms} ms; peak in {limiter['input_true_peak_db']:.1f} dBTP, out {limiter['output_true_peak_db']:.1f} dBTP, reduction {limiter['gain_reduction_db']:.1f} dB on {limiter['limited_samples']} samples; ref {ref_info['seconds']:.1f}s", flush=True)
