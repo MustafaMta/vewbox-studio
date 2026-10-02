@@ -29,6 +29,9 @@ export interface Asset {
   jobId?: string;
   /** Set by the server when the file behind the record cannot be found. */
   unavailable?: boolean;
+  /** Character/location imagery only: canonical identity view, optional secondary material, or raw intermediate
+   *  output (docs/CONTRACTS-IDENTITY-PACK.md). Absent on everything else. */
+  tier?: AssetTier;
   createdAt: string;
 }
 
@@ -310,6 +313,39 @@ export interface Production {
   updatedAt: string;
 }
 
+/** THE CANONICAL IDENTITY PACK (docs/CONTRACTS-IDENTITY-PACK.md) — four full-body directional views that ARE the
+ *  character's look. Sides are anatomical: RIGHT shows the character's own right side to the camera (they face
+ *  screen-left), LEFT their left side (they face screen-right). Both are drawn, never mirrored — asymmetric details
+ *  (a bag on one shoulder, a parting, a scar) must stay on the same side of the body. */
+export const IDENTITY_VIEWS = ['FRONT', 'RIGHT', 'LEFT', 'BACK'] as const;
+export type IdentityView = (typeof IDENTITY_VIEWS)[number];
+
+export interface IdentityPackView {
+  assetId: string;
+  /** The job that drew it and how: seed, the reference assets given to the model (in order), the engine. */
+  jobId?: string; seed?: number; references?: string[]; engine?: string;
+  /** The automatic identity check against the FRONT view (absent when no check applies, e.g. FRONT itself). */
+  check?: { ok: boolean; measurable: boolean; scores?: Record<string, number>; notes?: string[] };
+  generatedAt: string;
+}
+
+export interface IdentityPack {
+  /** DRAFT: drawn, waiting for the producer's approval. APPROVED: the canonical identity. Any redraw of a view
+   *  returns the pack to DRAFT until approved again; a character used in a video is locked (no redraw at all). */
+  status: 'DRAFT' | 'APPROVED';
+  /** +1 on every change of any view; recorded on the usage of a take so a shot knows which pack it was made with. */
+  version: number;
+  views: Partial<Record<IdentityView, IdentityPackView>>;
+  /** The fixed English identity line and seed every view was drawn from (style-first). */
+  identityLine?: string; identitySeed?: number;
+  approvedAt?: string;
+}
+
+/** What an asset is to the character system. CANONICAL: a view of an identity pack. SECONDARY: optional material
+ *  (portrait, expressions, wardrobe variants) shown in its own section. RAW: intermediate generation output (a sheet
+ *  before cutting, rejected candidates) — never shown on a profile, kept for provenance, purgeable. */
+export type AssetTier = 'CANONICAL' | 'SECONDARY' | 'RAW';
+
 export interface CharacterRef {
   id: string; role: CharacterRefRole; assetId: string; approved?: boolean;
   /** How the picture was made (image agent, wave 2): the view drawn ('SHEET_TILE' for a tile cut from the identity
@@ -469,7 +505,12 @@ export interface Character {
   language: Language;
   dialect?: Dialect;
   voice: Voice;
+  /** The canonical identity: front / right / left / back full-body views (the FRONT view is the character's
+   *  primary image everywhere). Absent until the first pack is drawn. */
+  identityPack?: IdentityPack;
+  /** SECONDARY material only (portrait close-up, expressions, outfits) — never the identity itself. */
   refs: CharacterRef[];
+  /** Optional close-up portrait (SECONDARY). The primary image is `identityPack.views.FRONT`. */
   portraitAssetId?: string;
   /** Absent means unknown, and unknown means locked. */
   usage?: CharacterUsage;
