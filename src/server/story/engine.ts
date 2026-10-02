@@ -7,6 +7,7 @@ import { StudioError } from '@/domain/errors';
 import { json as llmJson, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
+import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
 
 /** THE STORY ENGINE — turns a brief into a production: concept, cast and world, synopsis, scenes, script, shots with
@@ -178,8 +179,17 @@ const CharacterDesignSchema = z.object({
 });
 export type CharacterDesign = z.infer<typeof CharacterDesignSchema>;
 
-/** A character from a one-line brief: every appearance field filled so the portrait and the voice can be made. */
-export async function designCharacter(s: StudioState, req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string }, opts: EngineOptions = {}): Promise<CharacterDesign> {
+/** A character from a one-line brief: every appearance field filled so the portrait and the voice can be made.
+ *
+ *  REFERENCE mode (`lookFrom: 'REFERENCE'`, or the brief carries REFERENCE_LOOK_BRIEF — the CREATE_CHARACTER
+ *  orchestrator's marker, the only channel through the DESIGN_CHARACTER job): the look is the producer's picture and
+ *  the story model is text-only, so it designs who the character is (role, personality, sex/age from the producer's
+ *  words or the name, the voice description) and none of the look. The look fields come back empty — empty means
+ *  "as in the reference picture" — so a merge keeps whatever the producer wrote and invents nothing else; the
+ *  portrait is drawn from the picture (images.ts), and the profile shows those fields as "from the reference picture"
+ *  until the producer writes them. A vision model would fill them from the picture (contract §1.2a). */
+export async function designCharacter(s: StudioState, req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string; lookFrom?: 'REFERENCE' }, opts: EngineOptions = {}): Promise<CharacterDesign> {
+  if (req.lookFrom === 'REFERENCE' || isReferenceLookBrief(req.brief)) return designCharacterFromReference(req, opts);
   const existing = s.characters.filter((c) => c.style === req.style).slice(0, 20).map((c) => ({ name: c.name, role: c.role, look: castSummary(c).look }));
   const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
 Brief: """${req.brief}"""${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
@@ -189,6 +199,22 @@ Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, 
   const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
   opts.onResult?.(r.result);
   return r.data;
+}
+
+/** The REFERENCE-mode design: the non-visual half of the sheet, from words only. */
+async function designCharacterFromReference(req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string }, opts: EngineOptions): Promise<CharacterDesign> {
+  const brief = req.brief.split(REFERENCE_LOOK_BRIEF).join('').trim();
+  const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
+Their LOOK is a reference picture the producer uploaded. You cannot see that picture. Do not describe or guess the face, hair, skin, eyes, build, wardrobe, accessories or any visible mark: the picture is the look and the portrait is drawn from it.
+Design only who they are: their role, their personality (temperament, habits, how they speak), sex and age (take them from the producer's words or the name; when nothing says, choose what fits the role), and the voice description.
+${brief ? `The producer's words: """${brief}"""` : 'The producer gave no words beyond the picture.'}${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
+Return JSON: { name, nameAr?, role, sex, ageYears, species?, personality, voice: { pitch, pace, timbre, notes? } }. No look fields.`;
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
+  const r = await llmJson(CharacterDesignFromReferenceSchema, messages, { ...opts, maxTokens: 1500, temperature: 0.8 });
+  opts.onResult?.(r.result);
+  // the look is the picture's: nothing is invented for it (empty = "as in the reference picture")
+  const look = Object.fromEntries(LOOK_FIELDS.map((k) => [k, ''])) as Record<LookField, string>;
+  return { ...r.data, ...look, distinguishing: [] };
 }
 
 // ----------------------------------------------------------------------------------------------- Manual Brief

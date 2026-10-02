@@ -170,12 +170,12 @@ export const SKILLS: SkillDef[] = [
   { id: 'character-design', name: 'Character design and the identity sheet', path: 'skills/character-design', source: 'this studio; docs/research/CHARACTER-IMAGE-STACK.md §4', supportedModels: ['qwen3:14b', 'Qwen-Image-2512', 'Qwen-Image-Edit-2511'], requiredTools: ['story.structured_answer', 'image.generate', 'image.edit_with_references'], kind: 'PROMPT',
     implementedBy: ['src/server/org/skills.ts', 'src/server/story/engine.ts', 'src/worker/handlers/story.ts', 'src/server/workflows/identity.ts', 'src/worker/handlers/images.ts'], verifiedBy: ['tests/unit/skill-prompt.test.ts', 'tests/unit/identity-workflow.test.ts'] },
   { id: 'voice-identity', name: 'Voice identity: reference, proof, routing, lock', path: 'skills/voice-identity', source: 'this studio; docs/CONTRACTS-CHARACTER-VOICE.md §1.4', supportedModels: ['IndexTTS 2.5', 'Habibi-TTS IRQ', 'faster-whisper large-v3', 'MiniMax speech (hosted, with a key)'], requiredTools: ['speech.synthesize', 'speech.transcribe', 'speech.clone_voice'], kind: 'PROCEDURE',
-    implementedBy: ['src/worker/handlers/voice.ts', 'src/domain/rules.ts', 'src/server/studio/voice-reference.ts', 'src/server/org/preflight.ts'], verifiedBy: ['tests/unit/voice-build.test.ts', 'tests/unit/voice-lock.test.ts', 'tests/unit/voice-reference.test.ts', 'tests/unit/character-voice.test.ts'] },
+    implementedBy: ['src/worker/handlers/voice.ts', 'src/domain/rules.ts', 'src/server/media/voice-check.ts', 'src/server/studio/voice-reference.ts', 'src/server/org/preflight.ts'], verifiedBy: ['tests/unit/voice-build.test.ts', 'tests/unit/voice-lock.test.ts', 'tests/unit/voice-reference.test.ts', 'tests/unit/character-voice.test.ts'] },
   { id: 'world-continuity', name: 'World and location continuity', path: 'skills/world-continuity', source: 'this studio; references-on-every-shot rule after MinimaxStoryBuilder', supportedModels: ['Qwen-Image-2512', 'Qwen-Image-Edit-2511', 'MiniMax-H3 (local, ComfyUI)'], requiredTools: ['image.generate', 'image.edit_with_references'], kind: 'PROCEDURE',
     implementedBy: ['src/worker/handlers/images.ts', 'src/server/workflows/identity.ts', 'src/domain/rules.ts', 'src/server/story/engine.ts', 'src/worker/handlers/story.ts'], verifiedBy: ['tests/unit/identity-workflow.test.ts', 'tests/unit/qwen-image-workflow.test.ts'] },
   { id: 'singing-performance', name: 'Singing performance and lyric timing', path: 'skills/singing-performance', source: 'this studio', supportedModels: ['qwen3:14b', 'faster-whisper large-v3', 'Demucs htdemucs'], requiredTools: ['story.structured_answer', 'speech.transcribe', 'lyrics.align', 'audio.separate_stems'], kind: 'PROCEDURE',
     implementedBy: ['src/worker/handlers/music.ts', 'src/server/media/lyrics.ts', 'src/server/story/engine.ts', 'src/domain/timeline.ts', 'src/server/media/assembly.ts'], verifiedBy: ['tests/unit/lyrics-align.test.ts', 'tests/unit/singing.test.ts'] },
-  { id: 'audio-mix-policy', name: 'Authoritative audio tracks and mix policy', path: 'skills/audio-mix-policy', source: 'this studio', supportedModels: ['ffmpeg'], requiredTools: ['media.assemble', 'media.align_lag', 'media.validate_export'], kind: 'PROCEDURE',
+  { id: 'audio-mix-policy', name: 'Authoritative audio tracks and mix policy', path: 'skills/audio-mix-policy', source: 'this studio', supportedModels: ['ffmpeg'], requiredTools: ['media.assemble', 'media.align_lag'], kind: 'PROCEDURE',
     implementedBy: ['src/server/media/assembly.ts', 'src/server/media/sync.ts', 'src/worker/handlers/assemble.ts'], verifiedBy: ['tests/unit/mix-plan.test.ts', 'tests/unit/sync.test.ts'] },
   { id: 'take-inspection', name: 'Take inspection and failure classes', path: 'skills/take-inspection', source: 'this studio', supportedModels: ['ffmpeg', 'faster-whisper large-v3'], requiredTools: ['media.qa_take', 'speech.transcribe', 'media.validate_export'], kind: 'PROCEDURE',
     implementedBy: ['src/server/media/ffmpeg.ts', 'src/server/media/assembly.ts', 'src/server/org/runs.ts', 'src/worker/handlers/take.ts', 'src/worker/index.ts'], verifiedBy: ['tests/unit/org-model.test.ts', 'tests/unit/script-coverage.test.ts'] },
@@ -228,7 +228,7 @@ const AGENTS_BASE: AgentBase[] = [
   // Casting & Character Design
   { id: 'casting-director', name: 'Casting Director', department: 'CASTING', role: 'Director: who is in the cast and how they are made',
     description: 'Executes DESIGN_CHARACTER (a complete appearance and voice profile from a brief, a name or a partial sheet; the producer’s own fields win) and CREATE_CHARACTER (the chain design → portrait → reference sheet → voice as durable child jobs with idempotency keys; every step reported as done, skipped with its reason, or failed with its class).',
-    systemInstructions: S(`Design one original character from the brief: every appearance field concrete enough to draw from (build, face, hair, skin, eyes, wardrobe), one distinguishing detail that survives every shot, a personality and a speaking voice. Keep every field the producer already wrote exactly; never copy the look or name of an existing character.`),
+    systemInstructions: S(`Design one original character from the brief: every appearance field concrete enough to draw from (build, face, hair, skin, eyes, wardrobe), one distinguishing detail that survives every shot, a personality and a speaking voice. When the look is a reference picture you cannot see, design only who the character is and leave the look to the picture. Keep every field the producer already wrote exactly; never copy the look or name of an existing character.`),
     model: 'qwen3:14b (Ollama) for the design call; deterministic orchestrator for the creation chain', skills: ['character-design'], tools: ['story.structured_answer', 'jobs.enqueue'], inputSchema: 'JOB_PAYLOADS.DESIGN_CHARACTER / CREATE_CHARACTER', outputSchema: 'CharacterDesign / CreateCharacterResult', limits: { timeoutMs: 3_600_000, maxAttempts: 3, resource: 'LLM' }, version: '1.3.0',
     qualityRequirements: ['a designed character has every appearance field', 'every creation step reported as done, skipped (why) or failed (class)'], jobTypes: ['DESIGN_CHARACTER', 'CREATE_CHARACTER'], steps: [] },
   { id: 'character-designer', name: 'Character Designer', department: 'CASTING', role: 'Portrait and identity sheet',
@@ -310,7 +310,7 @@ const AGENTS_BASE: AgentBase[] = [
   { id: 'iraqi-specialist', name: 'Iraqi Arabic Language Specialist', department: 'SOUND', role: 'Line preparation for Iraqi voices',
     description: 'Prepares an Iraqi character’s line before it is spoken: the engine and the verification language follow the line’s script (Arabic → the Iraqi engine; Latin or mixed → IndexTTS, with the fallback named).',
     systemInstructions: S(`Arabic script stays on the Iraqi engine; a Latin or mixed line goes to the bilingual engine and the fallback is named; the identity's engine is never rewritten by a fallback.`),
-    model: 'rule set (routeLine, normalizeIraqi)', skills: ['iraqi-dialogue'], tools: [], inputSchema: 'Character, line', outputSchema: 'LineRoute', version: '2.0.0',
+    model: 'rule set (routeLine)', skills: ['iraqi-dialogue'], tools: [], inputSchema: 'Character, line', outputSchema: 'LineRoute', version: '2.0.0',
     qualityRequirements: ['every fallback named in the job events'], ...STEP_ONLY,
     steps: [{ id: 'line-preparation', name: 'Line preparation before synthesis', where: W('handlers/voice.ts') }] },
   { id: 'audio-engineer', name: 'Audio Engineer', department: 'SOUND', role: 'The mix plan of a cut',
@@ -425,16 +425,10 @@ export const AGENTS: AgentDef[] = AGENTS_BASE.map((a) => {
   return { ...a, nameAr: ar?.name ?? '', roleAr: ar?.role ?? '', descriptionAr: ar?.description ?? '', steps: a.steps.map((s) => ({ ...s, nameAr: STEPS_AR[s.id] ?? '' })) };
 });
 
-/** Steps declared above that are not yet wired because their files belong to another engineer until the wave-2
- *  fixer's branch merges (docs/CONTRACTS-PHASE2-STUDIO.md §5). A test asserts exactly these are absent, so none is
- *  forgotten; wiring one means removing it from this list. */
-export const PENDING_STEPS: ReadonlyArray<{ agentId: string; stepId: string }> = [
-  { agentId: 'executive-producer', stepId: 'character-preflight' },
-  { agentId: 'character-continuity', stepId: 'reference-picture-check' },
-  { agentId: 'art-director', stepId: 'plate-handoff-review' },
-  { agentId: 'iraqi-specialist', stepId: 'line-preparation' },
-  { agentId: 'audio-sync-inspector', stepId: 'voice-proof-check' },
-];
+/** Steps declared above that are not wired yet (a test asserts exactly these are absent from the code, so none is
+ *  forgotten; wiring one means removing it from this list). Empty since the wave-2 fixer's branch merged and the
+ *  character, voice and image handlers were wired. */
+export const PENDING_STEPS: ReadonlyArray<{ agentId: string; stepId: string }> = [];
 
 // ------------------------------------------------------------------------------------------------- planned roles
 

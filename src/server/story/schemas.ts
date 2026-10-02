@@ -106,3 +106,24 @@ export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;
 export const PerformancePlanSchema = z.object({
   sections: looseArray(z.preprocess(aliases({ sectionId: ['id', 'section'], singerNames: ['singers', 'performers'] }), z.object({ sectionId: looseString, mode: looseEnum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL'], MODE_SYNONYMS), singerNames: strs(60, 6), lines: looseArray(z.preprocess(aliases({ singerName: ['singer', 'name', 'who'] }), z.object({ singerName: str(60), text: str(300) })), { max: 24 }).optional() })), { min: 1 }),
 });
+
+// ------------------------------------------------------------- character design when the look is a reference picture
+
+/** The written look of a character: what a sheet describes in words and a reference picture shows. */
+export const LOOK_FIELDS = ['build', 'face', 'hair', 'skin', 'eyes', 'wardrobe'] as const;
+export type LookField = (typeof LOOK_FIELDS)[number];
+
+/** The line the CREATE_CHARACTER orchestrator puts at the head of the design brief in REFERENCE mode (it reaches
+ *  `designCharacter` through the DESIGN_CHARACTER job's brief). The story model is text-only and no vision model is
+ *  installed: it never sees the picture, so it designs who the character is and none of how they look. */
+export const REFERENCE_LOOK_BRIEF = 'LOOK FROM THE REFERENCE PICTURE: the face, hair, skin, eyes, build and wardrobe are those of the person in the producer’s picture, which the designer cannot see.';
+export const isReferenceLookBrief = (brief: string | undefined): boolean => Boolean(brief?.includes(REFERENCE_LOOK_BRIEF));
+
+/** What a text-only designer may fill for a character whose look is a picture it cannot see: identity, role,
+ *  personality and the voice description — no look field and no visible mark. */
+export const CharacterDesignFromReferenceSchema = z.object({
+  name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(120),
+  sex: z.enum(['FEMALE', 'MALE']), ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
+  personality: z.string().min(2).max(400),
+  voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']), timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
+});

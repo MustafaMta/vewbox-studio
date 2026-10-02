@@ -34,6 +34,9 @@ export function checkImageFile(f: { type: string; size: number; name?: string })
 export function checkImageDims(width: number, height: number): ImageRefusal | null {
   return Math.min(width, height) < IMAGE_RULES.minSide ? 'MIN_SIDE' : null;
 }
+/** The server's reasons a picture was refused (contract §1.2), without its note that no face detector ran: that note
+ *  is not a reason to refuse — the accepted state says "face not checked" instead. */
+export const refusalReasons = (reasons: string[]): string[] => reasons.filter((r) => !/face detection not available/i.test(r));
 /** Decode the picture in an <img> to read its real pixel size. */
 export function measureImage(file: Blob): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
@@ -70,6 +73,18 @@ export function measureAudio(file: Blob): Promise<number | null> {
     a.src = url;
   });
 }
+
+/* ---- the voice of a Describe start -------------------------------------------------------------------------- */
+
+/** The studio has no voice bank: a voice is always cloned from a real person's recording. So the Describe start
+ *  offers exactly two honest choices — no voice yet, or a recording added now (finding 15). */
+export const DESCRIBE_VOICE_MODES = ['NONE', 'RECORDING'] as const;
+export type DescribeVoiceMode = (typeof DESCRIBE_VOICE_MODES)[number];
+/** A remembered draft from an older page may say 'AUTOMATIC' (the "Studio voice" that could never produce a voice). */
+export const describeVoiceMode = (v: unknown): DescribeVoiceMode => (v === 'RECORDING' ? 'RECORDING' : 'NONE');
+/** What CREATE_CHARACTER is asked for: AUTOMATIC only when a recording travels with the request (the page uploads
+ *  it as soon as the character exists, and AUTOMATIC builds from the uploaded recording); otherwise no voice. */
+export const describeVoicePayload = (mode: DescribeVoiceMode, hasRecording: boolean): { mode: 'AUTOMATIC' | 'NONE' } => ({ mode: mode === 'RECORDING' && hasRecording ? 'AUTOMATIC' : 'NONE' });
 
 /* ---- the engines ------------------------------------------------------------------------------------------- */
 

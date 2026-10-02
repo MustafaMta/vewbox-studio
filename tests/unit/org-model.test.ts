@@ -139,12 +139,14 @@ describe('the studio organisation (ORG_VERSION 5)', () => {
         expect(invoked.map((c) => c.file), `${a.id}/${s.id} is never invoked`).toContain(s.where);
       }
     }
-    // the pending list, named so it cannot be forgotten
-    expect([...pending].sort()).toEqual(['art-director/plate-handoff-review', 'audio-sync-inspector/voice-proof-check', 'character-continuity/reference-picture-check', 'executive-producer/character-preflight', 'iraqi-specialist/line-preparation']);
+    // nothing is pending since the character, voice and image handlers were wired
+    expect([...pending]).toEqual([]);
     for (const p of PENDING_STEPS) expect(AGENTS.find((a) => a.id === p.agentId)?.steps.some((s) => s.id === p.stepId)).toBe(true);
-    // until those are wired, these two agents have no live execution path: say so rather than pretend
+    // every agent has a LIVE execution path: a job type, a payload route or a step that is really invoked
     const live = (id: string) => { const a = AGENTS.find((x) => x.id === id)!; return a.jobTypes.length > 0 || Boolean(a.payloadRoutes?.length) || a.steps.some((s) => !pending.has(`${a.id}/${s.id}`)); };
-    expect(AGENTS.filter((a) => !live(a.id)).map((a) => a.id).sort()).toEqual(['art-director', 'iraqi-specialist']);
+    expect(AGENTS.filter((a) => !live(a.id)).map((a) => a.id)).toEqual([]);
+    // the reference picture check runs before a portrait is drawn and before a character is created from a picture
+    expect(calls.filter((c) => c.stepId === 'reference-picture-check').map((c) => c.file).sort()).toEqual(['src/worker/handlers/character.ts', 'src/worker/handlers/images.ts']);
   });
 
   it('every allow-list is exactly the tools the agent’s handlers and steps call (static scan)', () => {

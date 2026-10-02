@@ -14,6 +14,7 @@
 // and videos of failures under test-results/.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { playwrightCommand } from './qa-journeys-command.mjs';
 
 const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(`--${name}`); if (i === -1) return false; args.splice(i, 1); return true; };
@@ -52,7 +53,9 @@ fs.mkdirSync('var', { recursive: true });
 for (const f of ['var/qa-restart-requested.flag', 'var/qa-restarted.flag']) fs.rmSync(f, { force: true });
 
 const env = { ...process.env, STUDIO_URL: base, QA_JOURNEYS: '1', QA_GPU: gpu ? '1' : '0', QA_RESTART: restart ? '1' : '0', PLAYWRIGHT_HTML_REPORT: 'playwright-report/journeys' };
-const pw = ['exec', 'playwright', 'test', '--project=journeys', '--reporter=list,html', ...(grep ? ['--grep', grep] : []), ...(headed ? ['--headed'] : []), ...rest];
-console.log(`\npnpm ${pw.join(' ')}\n  QA_GPU=${env.QA_GPU} QA_RESTART=${env.QA_RESTART}${restart ? '\n  Test 9 will pause: restart web + worker when asked, then create var/qa-restarted.flag' : ''}\n`);
-const r = spawnSync(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', pw, { stdio: 'inherit', env, shell: process.platform === 'win32' });
+// the Playwright CLI under this Node, never through a shell: --grep and trailing arguments stay one argv element each
+const pw = playwrightCommand({ grep, headed, rest });
+console.log(`\nplaywright ${pw.args.slice(1).map((a) => JSON.stringify(a)).join(' ')}\n  QA_GPU=${env.QA_GPU} QA_RESTART=${env.QA_RESTART}${restart ? '\n  Test 9 will pause: restart web + worker when asked, then create var/qa-restarted.flag' : ''}\n`);
+const r = spawnSync(pw.command, pw.args, { stdio: 'inherit', env, ...pw.options });
+if (r.error) console.error(`could not start Playwright: ${r.error.message}`);
 process.exit(r.status ?? 1);

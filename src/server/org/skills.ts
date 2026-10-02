@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AGENTS, SKILLS, agentById, callsModel, skillById, type AgentDef, type SkillDef, type SkillStatus } from './model';
+import { AGENTS, agentById, callsModel, skillById, type AgentDef, type SkillDef, type SkillStatus } from './model';
 
 /** SKILLS AT RUN TIME — the SKILL.md files (Agent Skills format, agentskills.io) read from disk, validated against
  *  the spec, their status computed from evidence, and the loader that puts an LLM agent's instructions and PROMPT
@@ -183,5 +183,3 @@ export function skillPrompt(agentId: string | undefined): string[] {
 export function skillVersions(a: Pick<AgentDef, 'skills'>): Record<string, string> {
   return Object.fromEntries(a.skills.map((id) => [id, skillVersionOf(skillFile(id))]));
 }
-
-export const ALL_SKILL_IDS = () => SKILLS.map((s) => s.id);

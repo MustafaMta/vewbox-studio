@@ -21,6 +21,8 @@ metadata:
 - Keep every field the producer already wrote exactly; fill only what is missing.
 - Do not repeat the look or the name of a character the studio already has.
 - Give the character a personality and a speaking voice (pitch, pace, timbre): voice casting starts from it.
+- When the look comes from the producer's reference picture, which you cannot see, design only who the character is
+  (role, personality, sex and age, voice) and leave every look field to the picture: invent nothing visible.
 
 ## How the character is then drawn
 

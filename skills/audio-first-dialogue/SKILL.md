@@ -23,24 +23,25 @@ metadata:
    (Habibi for Iraqi), Latin or mixed → IndexTTS with a job event naming the fallback. Habibi receives the stored
    `referenceText`. Every call sends the identity's pinned `speed`, `seed` and `emotionAlpha`; the service reports the
    engine version, the seed it used and the true peak in its answer headers, and limits its output to −1 dBTP.
-3. **Verify.** `verifyLine` transcribes the recording in the line's language and computes coverage after the dialect
-   fold (gate ≥ 0.85) and WER (reported, not gated). A line below the gate is regenerated once, then flagged; a line
-   that could not be transcribed is flagged as unverified. A line is never accepted silently. (CER and `verdict()` are
-   the pronunciation suite's gate in `scripts/iraqi-voice-suite.mjs`; the worker does not apply them yet.)
+3. **Verify.** `verifyLine` transcribes the recording in the line's language; `judgeHeard` computes coverage and CER
+   after the dialect fold and WER (reported, not gated); `verdict({ context: 'line' })` → PASS at CER ≤ 0.15 and
+   coverage ≥ 0.85. FAIL regenerates once; REVIEW (just below the gate) is kept and flagged for a person; a line that
+   could not be transcribed is flagged as unverified. A line is never accepted silently.
 4. **Reuse.** A take records a line only when `d.audioAssetId` is missing or stale (identity revision changed);
    recorded lines are written back with `setDialogueAudio` and the take's soundtrack is joined from them.
 5. **Join.** `joinSpeech` with 0.4 s lead-in, 0.35 s gaps, 0.3 s tail; the windows are the line timings.
 6. **Length.** `seconds = min(15, max(4, min(max(planned, need), need + 2)))` where `need = ceil(duration + 0.5)`.
 7. **Anchor.** The joined track is an audio guide at the first speaking frame (after any continuation guide).
 8. **Prove.** After the take the Audio Synchronization Inspector transcribes the clip; `script-spoken` passes at
-   coverage ≥ 0.7 (dialect-folded); WER is reported, not gated. Lines are placed on the take by `alignLyrics` and
-   stored as `take.soundtrack.lines` for cues and the mix. A take that could not be heard back goes to review.
+   coverage ≥ 0.7 and CER ≤ 0.15 (dialect-folded, `judgeHeard(…, 'take')`); WER is reported, not gated. Lines are
+   placed on the take by `alignLyrics` and stored as `take.soundtrack.lines` for cues and the mix. A take that could
+   not be heard back goes to review.
 
 ## Why
 
 MiniMax H3 renders its own speech natively in sync with the mouths; conditioning audio is context, not a
 soundtrack (E1). The words come from the `<d>` tags, so the recording's job is timing, timbre and the proof. A take
-that does not say its lines is rejected (`LIP_SYNC_FAILURE`), not patched. The gate moved from WER 0.35 to
-dialect-folded coverage because a dialect has no standard spelling: Whisper writes «گلتلي» as «قلتلي» and «اثنعش» as «اثنى عشر», and a
+that does not say its lines is rejected (`LIP_SYNC_FAILURE`), not patched. The gate moved from WER 0.35 to CER +
+coverage because a dialect has no standard spelling: Whisper writes «گلتلي» as «قلتلي» and «اثنعش» as «اثنى عشر», and a
 word-level rate charged those as errors (VOICE-STACK.md D3, D5). Pinned seeds and parameters make two takes of one
 line the same take (D8); the limiter removes the clipping that 25 of 32 suite files had (D1).

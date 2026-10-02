@@ -4,7 +4,8 @@ import { assetOf, characterByName, childrenOf, control, expect, expectRealAsset,
  *  in for a real photograph (so the face check, when it runs, may legitimately report no face — the assertions below
  *  are on the size rule and on the record, not on a face being found); a 100×100 picture must be refused with the
  *  shortest-side reason. The pending reference and its validation are shown on the page and stored on the record
- *  (contract §1.2). The drawing itself is the `@gpu` half. */
+ *  (contract §1.2). No face detector is installed, so the validation carries no face count and says "face detection
+ *  not available" — the spec accepts exactly that, never an invented number. The drawing itself is the `@gpu` half. */
 
 const NAME = 'Maysoon Hadi';
 
@@ -25,7 +26,12 @@ test('a reference picture is validated before anything is generated: the small o
   expect(r2.validation!.height).toBe(960);
   expect(Array.isArray(r2.validation!.reasons)).toBe(true);
   expect(typeof r2.validation!.sharpness).toBe('number');
-  expect(typeof r2.validation!.faces).toBe('number');
+  // faces: a number only when a face detector ran. None is installed (contract §1.2 allows "size + sharpness only"),
+  // so `faces` is absent and the reasons say so — a count is never invented
+  const faceNote = /face detection not available/i;
+  if (r2.validation!.faces === undefined) expect((r2.validation!.reasons as string[]).some((x) => faceNote.test(x)), 'no detector: the reasons say face detection is not available').toBe(true);
+  else expect(typeof r2.validation!.faces).toBe('number');
+  expect(r2.asset?.provenance?.validation, 'the measurement is stored on the asset').toMatchObject({ width: 768, height: 960 });
 
   // the same rule in the browser, on the Appearance tab of an unused sample character (the reference stays pending
   // until a drawing replaces the portrait — it never becomes the appearance)

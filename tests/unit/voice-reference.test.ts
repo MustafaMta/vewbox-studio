@@ -1,28 +1,24 @@
-import { describe, expect, it } from 'vitest';
-import { REFERENCE_RULES, chooseWindow, judgeFormat, judgeReference, judgeSpeech, parseSilences, staticGainDb } from '@/server/studio/voice-reference';
+import { execFile } from 'node:child_process';
+import fsp from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { REFERENCE_RULES, heardSpeech, judgeSpeech, measureVoiceReference } from '@/server/studio/voice-reference';
+import type { transcribe } from '@/server/providers/speech';
 
-/** The rules a voice reference must pass and how its window is chosen — pure, so they run without ffmpeg or the
- *  transcription service (the measuring path is exercised in tests/worker/voice-reference.test.ts). */
+/** The speech judgement of a voice reference, and the upload's measurement composed from THE one measurement stack
+ *  (src/server/media/voice-check.ts — finding 9): format, level, clipping, provenance and window come from there, the
+ *  heard words and language from here. Real ffmpeg on synthetic files; the transcription service is faked. */
 
-const good = { durationSeconds: 8, sampleRate: 48000, channels: 2, integratedLufs: -18, truePeakDbtp: -3 };
+const execFileP = promisify(execFile);
+let dir: string;
+const make = async (name: string, expr: string, seconds: number, extra: string[] = []) => { const out = path.join(dir, name); await execFileP('ffmpeg', ['-hide_banner', '-nostdin', '-y', '-v', 'error', '-f', 'lavfi', '-i', `aevalsrc='${expr}':s=24000:d=${seconds}`, ...extra, '-c:a', 'pcm_s16le', out]); return out; };
+beforeAll(async () => { dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'voice-ref-')); });
+afterAll(async () => { await fsp.rm(dir, { recursive: true, force: true }); });
+
 const speech = (words: number, language: 'AR' | 'EN' | 'UNKNOWN' = 'EN', confidence = 0.95) => ({ present: words >= REFERENCE_RULES.minWords, words, language, transcript: 'x '.repeat(words).trim(), confidence });
-
-describe('judgeFormat', () => {
-  it('accepts 3–30 s at ≥ 16 kHz between −30 and −10 LUFS without clipping', () => {
-    expect(judgeFormat(good)).toBeNull();
-    expect(judgeFormat({ ...good, durationSeconds: 3, integratedLufs: -30, sampleRate: 16000 })).toBeNull();
-  });
-  it('names the refusal: TOO_SHORT, TOO_LONG, BAD_FORMAT (rate, unreadable), TOO_QUIET, CLIPPING', () => {
-    expect(judgeFormat({ ...good, durationSeconds: 1 })?.code).toBe('TOO_SHORT');
-    expect(judgeFormat({ ...good, durationSeconds: 60 })?.code).toBe('TOO_LONG');
-    expect(judgeFormat({ ...good, sampleRate: 8000 })?.code).toBe('BAD_FORMAT');
-    expect(judgeFormat({ ...good, durationSeconds: 0, sampleRate: 0 })?.code).toBe('BAD_FORMAT');
-    expect(judgeFormat({ ...good, integratedLufs: -45 })?.code).toBe('TOO_QUIET');
-    expect(judgeFormat({ ...good, integratedLufs: Number.NEGATIVE_INFINITY })?.code).toBe('TOO_QUIET');
-    expect(judgeFormat({ ...good, truePeakDbtp: 0.4 })?.code).toBe('CLIPPING');
-    expect(judgeFormat({ ...good, integratedLufs: -6, truePeakDbtp: -0.5 })?.code).toBe('CLIPPING');
-  });
-});
+const asr = (text: string, language = 'en', probability = 0.97): { fn: typeof transcribe; calls: number } => { const o = { calls: 0, fn: (async () => { o.calls++; const words = text.split(/\s+/).filter(Boolean); return { language, languageProbability: probability, duration: 3, text, segments: [{ start: 0, end: 3, text, words: words.map((w, i) => ({ start: i * 0.3, end: i * 0.3 + 0.25, word: w, probability: 0.9 })) }], ms: 1, model: 'fake' }; }) as typeof transcribe }; return o; };
 
 describe('judgeSpeech', () => {
   it('needs at least three heard words (NO_SPEECH) in the expected language (WRONG_LANGUAGE), unless unsure', () => {
@@ -34,46 +30,45 @@ describe('judgeSpeech', () => {
     expect(judgeSpeech(speech(12, 'EN', 0.4), 'AR')).toBeNull(); // not confident enough to refuse
     expect(judgeSpeech(speech(12, 'UNKNOWN'), 'AR')).toBeNull();
     expect(judgeSpeech(speech(12, 'AR'), undefined)).toBeNull();
-    expect(judgeReference({ ...good, speech: speech(5, 'AR') }, 'AR')).toBeNull();
-    expect(judgeReference({ ...good, durationSeconds: 2, speech: speech(0) }, 'AR')?.code).toBe('TOO_SHORT'); // format first
   });
 });
 
-describe('parseSilences', () => {
-  it('pairs silence_start and silence_end lines and leaves an open silence running to the end', () => {
-    const stderr = '[silencedetect] silence_start: 0\n[silencedetect] silence_end: 1.2 | silence_duration: 1.2\nsilence_start: 5.5\nsilence_end: 6.1\nsilence_start: 9.9\n';
-    expect(parseSilences(stderr)).toEqual([{ start: 0, end: 1.2 }, { start: 5.5, end: 6.1 }, { start: 9.9, end: Number.POSITIVE_INFINITY }]);
-    expect(parseSilences('')).toEqual([]);
+describe('heardSpeech (finding 20: one place applies the language threshold)', () => {
+  it('reports the detected language and its confidence as heard; the judgement alone decides on the threshold', async () => {
+    const low = heardSpeech(await asr('هلا شلونك اليوم شنو الاخبار', 'ar', 0.41).fn('x'));
+    expect(low).toMatchObject({ present: true, words: 5, language: 'AR', confidence: 0.41 });
+    expect(judgeSpeech(low, 'EN')).toBeNull(); // heard as Arabic, but not confidently: not refused
+    const sure = heardSpeech(await asr('هلا شلونك اليوم شنو الاخبار', 'ar', 0.93).fn('x'));
+    expect(judgeSpeech(sure, 'EN')?.code).toBe('WRONG_LANGUAGE');
+    expect(heardSpeech(await asr('bonjour tout le monde', 'fr').fn('x')).language).toBe('UNKNOWN');
   });
 });
 
-describe('chooseWindow', () => {
-  it('starts at the first speech, not the head of the file, and ends at a silence boundary within 12 s', () => {
-    // 1.2 s of lead silence, speech 1.2–5.5, gap, speech 6.1–9.9, gap, speech 10.4–16, tail to 20
-    const w = chooseWindow([{ start: 0, end: 1.2 }, { start: 5.5, end: 6.1 }, { start: 9.9, end: 10.4 }, { start: 16, end: 20 }], 20);
-    expect(w.from).toBeCloseTo(1.05, 2); // a short lead-in before the first word
-    expect(w.to).toBeCloseTo(10.0, 1); // the second region ends at 9.9; the third would run to 16 (> 12 s)
-    expect(w.to - w.from).toBeLessThanOrEqual(12);
-  });
-  it('cuts a single long speech region at the limit and takes a short file whole', () => {
-    const long = chooseWindow([{ start: 0, end: 0.5 }], 30);
-    expect(long.from).toBeCloseTo(0.35, 2); expect(long.to - long.from).toBeLessThanOrEqual(12.1); expect(long.to - long.from).toBeGreaterThan(11.9);
-    const short = chooseWindow([], 4);
-    expect(short).toEqual({ from: 0, to: 4 });
-    const shortWithLead = chooseWindow([{ start: 0, end: 0.4 }], 5);
-    expect(shortWithLead.from).toBeCloseTo(0.25, 2); expect(shortWithLead.to).toBe(5);
-  });
-  it('never returns a window shorter than the minimum when the file allows it', () => {
-    const w = chooseWindow([{ start: 0, end: 1 }, { start: 2, end: 20 }], 20);
-    expect(w.to - w.from).toBeGreaterThanOrEqual(3);
-  });
-});
-
-describe('staticGainDb', () => {
-  it('brings the loudness to −20 LUFS unless the true peak would pass −1 dBTP, and leaves silence alone', () => {
-    expect(staticGainDb({ integrated: -26, truePeak: -8 })).toBe(6);
-    expect(staticGainDb({ integrated: -26, truePeak: -3 })).toBe(2); // peak-limited: only 2 dB of headroom
-    expect(staticGainDb({ integrated: -14, truePeak: -1 })).toBe(-6);
-    expect(staticGainDb({ integrated: -90, truePeak: -80 })).toBe(0);
-  });
+describe('measureVoiceReference (one stack: voice-check measures, this module hears)', () => {
+  it('a clean recording that peaks just under full scale is accepted — clipping is counted on samples, not guessed from the true peak', async () => {
+    // a steady -20 dBFS voice with short transients reaching 0.99 of full scale: true peak above −0.1 dBTP, no clipped samples
+    const f = await make('hot-but-clean.wav', '0.1*sin(220*2*PI*t)+0.89*sin(997*2*PI*t)*lt(mod(t,1),0.01)', 6);
+    const words = asr('the last bus to karrada leaves at midnight');
+    const r = await measureVoiceReference(f, { expectLanguage: 'EN', trimmedOut: path.join(dir, 'hot-24k.wav'), transcribe: words.fn });
+    expect(r.measurement.clipping.clippedSamples).toBe(0);
+    expect(r.refusal).toBeNull();
+    expect(r.validation).toMatchObject({ sampleRate: 24000, channels: 1, speech: { present: true, words: 8, language: 'EN' } });
+    expect(r.window.to - r.window.from).toBeLessThanOrEqual(12.2);
+    expect(words.calls).toBe(1);
+  }, 60_000);
+  it('the studio’s own engine output is refused BAD_FORMAT before the window is cut or the service asked (finding 7)', async () => {
+    const f = await make('engine-line.wav', '0.2*sin(220*2*PI*t)*(0.6+0.4*sin(3*2*PI*t))', 5, ['-metadata', 'comment=synthetic speech; engine=habibi; seed=7; not a voice reference']);
+    const words = asr('هلا شلونك اليوم', 'ar');
+    const r = await measureVoiceReference(f, { expectLanguage: 'AR', trimmedOut: path.join(dir, 'engine-24k.wav'), transcribe: words.fn });
+    expect(r.refusal).toMatchObject({ code: 'BAD_FORMAT', message: expect.stringMatching(/engine output/) });
+    expect(r.measurement.engineOutput).toMatch(/not a voice reference/);
+    expect(words.calls).toBe(0);
+    await expect(fsp.stat(path.join(dir, 'engine-24k.wav'))).rejects.toThrow();
+  }, 60_000);
+  it('format refusals (TOO_SHORT, TOO_QUIET) come back before the service is asked', async () => {
+    const words = asr('x y z');
+    expect((await measureVoiceReference(await make('short.wav', '0.3*sin(440*2*PI*t)', 1.5), { trimmedOut: path.join(dir, 's.wav'), transcribe: words.fn })).refusal?.code).toBe('TOO_SHORT');
+    expect((await measureVoiceReference(await make('quiet.wav', '0.003*sin(440*2*PI*t)', 5), { trimmedOut: path.join(dir, 'q.wav'), transcribe: words.fn })).refusal?.code).toBe('TOO_QUIET');
+    expect(words.calls).toBe(0);
+  }, 60_000);
 });

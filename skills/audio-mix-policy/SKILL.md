@@ -2,7 +2,7 @@
 name: audio-mix-policy
 description: The authoritative audio timeline and mix policy of a cut — typed tracks at sample offsets, one sound per stretch, song master versus take audio versus recorded dialogue, loudness targets, lag alignment, export validation. Use for ASSEMBLE, EXPORT and any mix question.
 license: Proprietary to this studio
-allowed-tools: media.assemble media.align_lag media.validate_export
+allowed-tools: media.assemble media.align_lag
 metadata:
   version: "2.0.1"
   kind: "PROCEDURE"

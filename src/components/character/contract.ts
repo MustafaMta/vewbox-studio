@@ -41,7 +41,17 @@ export type VoiceReferenceResult =
 
 type StartJob = <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<Job>;
 
-export const startCreateCharacter = (startJob: StartJob, payload: CreateCharacterPayload): Promise<Job> => startJob('CREATE_CHARACTER', payload);
+/** A stable rendering of a payload: keys sorted at every level, so the same request always reads the same. */
+const stable = (v: unknown): string => (Array.isArray(v) ? `[${v.map(stable).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v as Record<string, unknown>).filter((k) => (v as Record<string, unknown>)[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v));
+/** FNV-1a, hex: short and deterministic (no crypto needed for a dedupe key). */
+const fnv = (s: string): string => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
+
+/** The dedupe key of a creation (finding 19): the same request within the same minute — a double submit, two tabs,
+ *  a request retried after a timeout — is one parent job. A deliberate relaunch after a failure is not blocked: the
+ *  server queues it under a fresh key when the earlier one has failed or was cancelled. */
+export const createCharacterKey = (payload: CreateCharacterPayload, now: number = Date.now()): string => `CREATE_CHARACTER:${fnv(stable(payload))}:${Math.floor(now / 60_000)}`;
+
+export const startCreateCharacter = (startJob: StartJob, payload: CreateCharacterPayload, now: number = Date.now()): Promise<Job> => startJob('CREATE_CHARACTER', payload, { idempotencyKey: createCharacterKey(payload, now) });
 export const startVoiceBuild = (startJob: StartJob, payload: VoiceBuildPayload, opts?: { idempotencyKey?: string }): Promise<Job> => startJob('VOICE_BUILD', payload, opts);
 
 export const isCreateCharacterJob = (j: Job): boolean => j.type === 'CREATE_CHARACTER';
