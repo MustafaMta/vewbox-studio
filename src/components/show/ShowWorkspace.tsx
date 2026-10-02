@@ -182,7 +182,7 @@ function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; s
   const eps = episodesOf(state, selected.id);
   return (
     <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)] xl:gap-8">
-      <nav aria-label={T('show.selectSeason')} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0 xl:flex-col xl:overflow-visible">
+      <nav aria-label={T('show.selectSeason')} className="-mx-[var(--gutter)] flex gap-2 overflow-x-auto px-[var(--gutter)] pb-1 sm:mx-0 sm:px-0 xl:flex-col xl:overflow-visible">
         {seasons.map((s) => { const on = s.id === selected.id; return (
           <Link key={s.id} href={`/shows/${show.id}?tab=seasons&season=${s.id}`} aria-current={on ? 'page' : undefined} aria-label={`${T('kind.SEASON')} ${s.number}`} scroll={false}
             className={`flex min-w-[10.5rem] flex-none items-center gap-3 rounded-xl border px-3.5 py-3 text-start transition-colors ${on ? 'border-primary bg-primary/[0.08]' : 'border-line hover:border-line-strong hover:bg-raised'}`}>

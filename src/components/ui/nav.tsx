@@ -74,21 +74,21 @@ export function MobileBar() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
   return (
-    <div className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 backdrop-blur-xl lg:hidden">
-      <div className="flex h-14 items-center justify-between px-4">
-        <Link href="/shows" className="flex items-center gap-2.5 rounded-lg" onClick={() => setOpen(false)}>
+    <div className="sticky top-0 z-40 border-b border-line bg-bg lg:hidden">
+      <div className="flex h-14 items-center justify-between px-[var(--gutter)]">
+        <Link href="/shows" className="flex items-center gap-2.5 rounded-[var(--r-2)]" onClick={() => setOpen(false)}>
           <VewboxMark size={28} /><span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">{T('app.name')}</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link href="/new" className="btn btn-primary btn-sm btn-icon" aria-label={T('nav.new')}><IconPlus aria-hidden /></Link>
-          <button type="button" onClick={() => setOpen((o) => !o)} aria-label={open ? T('nav.closeMenu') : T('nav.openMenu')} aria-expanded={open} aria-controls="mobile-nav" className="btn btn-ghost btn-sm btn-icon">
+          <Link href="/new" className="btn btn-secondary btn-sm btn-icon" aria-label={T('nav.new')}><IconPlus aria-hidden /></Link>
+          <button type="button" onClick={() => setOpen((o) => !o)} aria-label={open ? T('nav.closeMenu') : T('nav.openMenu')} aria-expanded={open} aria-controls="mobile-nav" className="btn btn-quiet btn-sm btn-icon">
             {open ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
           </button>
         </div>
       </div>
       {open && (
-        <nav id="mobile-nav" aria-label={T('nav.areas')} className="animate-fade max-h-[80dvh] space-y-5 overflow-y-auto border-t border-line/60 px-3 pb-4 pt-3">
-          <Link href="/new" className="btn btn-primary btn-block" onClick={() => setOpen(false)}><IconPlus aria-hidden />{T('nav.new')}</Link>
+        <nav id="mobile-nav" aria-label={T('nav.areas')} className="animate-fade max-h-[80dvh] space-y-5 overflow-y-auto border-t border-line px-3 pb-4 pt-3">
+          <Link href="/new" className="btn btn-secondary btn-block" onClick={() => setOpen(false)}><IconPlus aria-hidden />{T('nav.new')}</Link>
           <NavLinks onNavigate={() => setOpen(false)} />
         </nav>
       )}
@@ -97,8 +97,9 @@ export function MobileBar() {
 }
 
 export function Crumbs({ items }: { items: Array<{ href?: string; label: string }> }) {
+  const T = useT();
   return (
-    <nav aria-label="Breadcrumb" className="mb-2 text-sm text-muted">
+    <nav aria-label={T('v3.breadcrumb')} className="mb-2 text-sm text-muted">
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((c, i) => (
           <li key={i} className="flex min-w-0 items-center gap-1">
