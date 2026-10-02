@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
-import { StudioError, type StudioErrorCode } from '@/domain/errors';
+import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, CharacterRef, Location, LocationRef, PendingReference, Production, Shot } from '@/domain/types';
 import type { CharacterRefRole, TimeOfDay } from '@/domain/vocabulary';
@@ -33,9 +33,6 @@ const IMAGE_VRAM_MB = 24000;
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 // bundled sample pictures are placeholders for the UI, never references for generation
 const usable = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
-/** Contract §1.2: an unusable reference is refused, never silently replaced by text. The code is added to
- *  `StudioErrorCode` by the Backend agent (it is also the voice contract's code); until then it is cast. */
-const MISSING_REFERENCE = 'MISSING_REFERENCE' as StudioErrorCode;
 
 /** The pure identity helpers, exported here for the handlers' callers and tests (they live in workflows/identity). */
 export { buildIdentityLine as identityLine, identitySeedFor };
@@ -102,14 +99,15 @@ const identityLineOf = (c: Character) => buildIdentityLine(c);
 const identitySeedOf = (c: Character) => identitySeedFor(c);
 const roleLabel = (r: string) => r.toLowerCase().replace(/_/g, ' ');
 
-/** The producer's reference must be a real, usable, validated picture. A stored validation (contract §1.2, written
- *  by the upload endpoint) is trusted; without one the file is measured here on the CPU. */
-async function requireUsableReference(c: Character, pending: Asset | undefined): Promise<ReferenceValidation | undefined> {
+/** The producer's reference must be a real, usable, validated picture (contract §1.2: an unusable reference is
+ *  refused with MISSING_REFERENCE, never silently replaced by text). A stored validation (written by the upload
+ *  endpoint) is trusted; without one the file is measured here on the CPU. */
+export async function requireUsableReference(c: Character, pending: Asset | undefined): Promise<ReferenceValidation | undefined> {
   if (!c.pendingReference) return undefined;
-  if (!usable(pending)) throw new StudioError(MISSING_REFERENCE, `${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
+  if (!usable(pending)) throw missingReference(`${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
   const stored = (c.pendingReference as PendingReference & { validation?: ReferenceValidation }).validation;
   const v = stored ?? await validateReferenceImage(assetFile(pending!));
-  if (!v.ok) throw new StudioError(MISSING_REFERENCE, `${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending!.id, validation: v });
+  if (!v.ok) throw missingReference(`${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending!.id, validation: v });
   return v;
 }
 

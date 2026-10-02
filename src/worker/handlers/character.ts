@@ -1,5 +1,5 @@
 import type { Handler, HandlerContext } from './index';
-import { StudioError } from '@/domain/errors';
+import { StudioError, asStudioErrorCode, missingReference } from '@/domain/errors';
 import type { Character } from '@/domain/types';
 import { isTerminalStatus, profileNeedsDesign, type CreateCharacterResult, type CreateCharacterStep, type CreateCharacterStepOutcome, type Job, type JobPayloadParsed, type JobType } from '@/domain/jobs';
 import { runCommand, type Command } from '@/domain/commands';
@@ -18,8 +18,6 @@ import { preflightCharacter, referenceImageProblem } from '@/server/org/prefligh
 const STEPS: CreateCharacterStep[] = ['design', 'appearance', 'sheet', 'voice'];
 const CHILD_TYPE: Record<CreateCharacterStep, JobType> = { design: 'DESIGN_CHARACTER', appearance: 'CHARACTER_APPEARANCE', sheet: 'CHARACTER_REFS', voice: 'VOICE_BUILD' };
 const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the portrait', sheet: 'Drawing the reference sheet', voice: 'Building the voice' };
-
-const missingReference = (message: string, details: Record<string, unknown> = {}) => Object.assign(new StudioError('INVALID', message, { ...details, failureClass: 'MISSING_REFERENCE' }), { failureClass: 'MISSING_REFERENCE' });
 
 /** Queue one step as a child (or adopt the child an earlier attempt queued under the same key) and wait for it. */
 async function runStep(ctx: HandlerContext, step: CreateCharacterStep, payload: Record<string, unknown>, index: number): Promise<Job> {
@@ -72,8 +70,9 @@ export const createCharacter: Handler = async (ctx) => {
     steps.push(out);
     const designed = child.result?.characterId as string | undefined;
     if (out.status !== 'done' || !designed) {
-      // nothing exists yet: the job fails with the design's own error so the page offers the retry
-      throw Object.assign(new StudioError((child.error?.code as StudioError['code']) ?? 'PROVIDER', `The character could not be designed: ${child.error?.message ?? child.status}`, { steps, childJobId: child.id }), { failureClass: out.failureClass });
+      // nothing exists yet: the job fails with the design's own error so the page offers the retry (a code outside
+      // the studio's union — a provider's own string, a crash — is a provider failure, not passed on as ours)
+      throw new StudioError(asStudioErrorCode(child.error?.code), `The character could not be designed: ${child.error?.message ?? child.status}`, { steps, childJobId: child.id, failureClass: out.failureClass });
     }
     characterId = designed;
   } else {

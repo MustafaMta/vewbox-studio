@@ -102,6 +102,13 @@ describe('CREATE_CHARACTER', () => {
     await expect(createCharacter(ctxFor({ mode: 'AUTO', brief: 'a tired night-bus driver' }, 'job-cc-2'))).rejects.toMatchObject({ failureClass: 'INVALID_INPUT' });
     expect(fake.state.characters).toHaveLength(before);
     expect(fake.enqueued.map((e) => e.type)).toEqual(['DESIGN_CHARACTER']);
+    // a child code outside the studio's union (a provider's own string) is a PROVIDER failure, never passed on as a code
+    fake.jobs.clear(); fake.enqueued = [];
+    fake.outcomes.DESIGN_CHARACTER = { status: 'FAILED', error: { code: 'ECONNRESET', message: 'socket hang up' } };
+    await expect(createCharacter(ctxFor({ mode: 'AUTO', brief: 'a tired night-bus driver' }, 'job-cc-3'))).rejects.toMatchObject({ code: 'PROVIDER', message: expect.stringMatching(/socket hang up/) });
+    fake.jobs.clear(); fake.enqueued = [];
+    fake.outcomes.DESIGN_CHARACTER = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'the story model is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };
+    await expect(createCharacter(ctxFor({ mode: 'AUTO', brief: 'a tired night-bus driver' }, 'job-cc-4'))).rejects.toMatchObject({ code: 'UNAVAILABLE', failureClass: 'INFRASTRUCTURE' });
   });
   it('MANUAL with a partial sheet is completed by the design child (the producer’s fields travel with it)', async () => {
     fake.outcomes.DESIGN_CHARACTER = { status: 'COMPLETED', result: { characterId: 'nour' } };

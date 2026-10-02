@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
-import { StudioError } from '@/domain/errors';
+import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, Production, VoiceIdentity, VoiceSample } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
@@ -38,8 +38,6 @@ const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRAR
 export const LINE_COVERAGE = 0.85;
 export const PROOF_COVERAGE = 0.85;
 export { REFERENCE_WINDOW, chooseWindow, parseSilences, staticGainDb, analyseSilence, trimReference };
-
-const missingReference = (message: string, details: Record<string, unknown> = {}) => Object.assign(new StudioError('INVALID', message, { ...details, failureClass: 'MISSING_REFERENCE' }), { failureClass: 'MISSING_REFERENCE' });
 
 // ----------------------------------------------------------------------------------------------- pure helpers
 
