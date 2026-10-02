@@ -7,7 +7,7 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
-import { developStory as develop, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { developStory as develop, libraryGuests, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
 import type { LlmResult } from '@/server/providers/llm';
 
 /** THE STORY HANDLERS — Auto Idea, Manual Brief development, script writing, shot planning. Each runs the engine,
@@ -40,8 +40,13 @@ export const developStory: Handler = async (ctx) => {
   const nameToLoc = new Map<string, string>();
   for (const c of castOf(state, p)) nameToChar.set(c.name.toLowerCase(), c.id);
   for (const l of worldOf(state, p)) nameToLoc.set(l.name.toLowerCase(), l.id);
-  // library members the engine pulled in by name
-  for (const c of state.characters) if (!nameToChar.has(c.name.toLowerCase())) nameToChar.set(`lib:${c.name.toLowerCase()}`, c.id);
+  // library members the engine may pull in by name: the same list the engine was offered (an episode gets its
+  // regulars plus at most the guests its brief names; any other library name the model used is dropped)
+  const guests = libraryGuests(state, p, castOf(state, p));
+  for (const c of guests) if (!nameToChar.has(c.name.toLowerCase())) nameToChar.set(`lib:${c.name.toLowerCase()}`, c.id);
+  const dropped = new Set<string>();
+  for (const sc of out.scenes) for (const n of sc.characterNames) if (!nameToChar.has(n.toLowerCase()) && !nameToChar.has(`lib:${n.toLowerCase()}`)) dropped.add(n);
+  if (dropped.size) await ctx.event('warn', `characters outside this story's cast were dropped from the scene breakdown: ${Array.from(dropped).join(', ')}`);
   for (const l of state.locations) if (!nameToLoc.has(l.name.toLowerCase())) nameToLoc.set(`lib:${l.name.toLowerCase()}`, l.id);
   const castIds = [...p.castIds]; const locationIds = [...p.locationIds];
   for (const nc of out.newCharacters) {

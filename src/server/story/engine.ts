@@ -109,16 +109,23 @@ export interface DevelopResult {
   scenes: z.infer<typeof DevelopSchema>['scenes'];
 }
 
+/** Library characters a story may borrow. A short or music video may draw on the whole library (same style); a
+ *  show's episode is cast from its regulars, and library people from outside the show are offered only when this
+ *  episode's own brief names them (at most two) — otherwise the model fills every episode with the whole studio.
+ *  The handler resolves scene names against the same list, so a name the model adds anyway is dropped. */
+export function libraryGuests(s: StudioState, p: Production, cast: Character[]): Character[] {
+  const show = p.showId ? s.shows.find((x) => x.id === p.showId) : undefined;
+  const mentioned = `${p.brief.text ?? ''} ${p.logline} ${p.synopsis}`.toLowerCase();
+  return s.characters
+    .filter((c) => c.style === p.style && !cast.some((x) => x.id === c.id))
+    .filter((c) => !show || mentioned.includes(c.name.toLowerCase()) || (c.nameAr ? mentioned.includes(c.nameAr) : false))
+    .slice(0, show ? 2 : 12);
+}
+
 /** From a brief (and whatever cast/places are already attached) to a developed story with a scene breakdown. */
 export async function developStory(s: StudioState, p: Production, cast: Character[], world: Location[], opts: EngineOptions = {}): Promise<DevelopResult> {
   const show = p.showId ? s.shows.find((x) => x.id === p.showId) : undefined;
-  // a show's episode is cast from its regulars; library people from outside the show are offered only when this
-  // episode's own brief names them (at most two) — the model otherwise fills every episode with the whole studio
-  const mentioned = `${p.brief.text ?? ''} ${p.logline} ${p.synopsis}`.toLowerCase();
-  const libraryChars = s.characters
-    .filter((c) => c.style === p.style && !cast.some((x) => x.id === c.id))
-    .filter((c) => !show || mentioned.includes(c.name.toLowerCase()) || (c.nameAr ? mentioned.includes(c.nameAr) : false))
-    .slice(0, show ? 2 : 12).map(castSummary);
+  const libraryChars = libraryGuests(s, p, cast).map(castSummary);
   const libraryLocs = s.locations.filter((l) => l.style === p.style && !world.some((x) => x.id === l.id)).slice(0, 10).map(locationSummary);
   const kind = p.kind === 'MUSIC_VIDEO' ? 'music video' : p.kind === 'SHORT' ? 'short film' : 'episode';
   const sceneBudget = Math.max(1, Math.min(24, Math.round(p.targetSeconds / (p.kind === 'MUSIC_VIDEO' ? 20 : 45))));
