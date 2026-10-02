@@ -28,7 +28,8 @@ import { FinalCutTab } from './tabs/FinalCutTab';
 
 export const MUSIC_TABS = ['overview', 'song', 'performers', 'visual', 'storyboard', 'produce', 'final'] as const;
 type Tab = (typeof MUSIC_TABS)[number];
-const ALIAS: Record<string, Tab> = { story: 'song', cast: 'performers', characters: 'performers', locations: 'visual' };
+// "story" links (next-step buttons) land on the Visual Story tab, where a music video's scenes and script live
+const ALIAS: Record<string, Tab> = { story: 'visual', cast: 'performers', characters: 'performers', locations: 'visual' };
 
 export function trackOf(p: Production, src: string | undefined, artworkSrc?: string): Track | null {
   if (!p.song || !src) return null;
