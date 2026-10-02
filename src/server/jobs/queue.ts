@@ -20,7 +20,7 @@ export function rowToJob(r: typeof schema.jobs.$inferSelect): Job {
 
 export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
 
-const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1 };
+const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3 };
 
 /** Validate and insert. A matching idempotency key returns the existing job instead of a new one. */
 export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promise<{ job: Job; created: boolean }> {

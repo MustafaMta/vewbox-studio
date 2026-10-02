@@ -50,7 +50,7 @@ export interface Show {
   castIds: string[];
   locationIds: string[];
   /** World rules, relationships and timeline facts every episode must respect. */
-  bible?: { worldRules?: string[]; relationships?: string[]; timeline?: string[]; styleNotes?: string };
+  bible?: { worldRules?: string[]; relationships?: string[]; timeline?: string[]; /** storylines left open by the finished episodes; the next season or episode picks them up */ unresolved?: string[]; styleNotes?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -238,7 +238,7 @@ export interface IdeaPreferences {
 /** The request the story engine receives: what to make, where it belongs, and the optional preferences. For an
  *  episode or season the show's world, cast, style and continuity are the context. */
 export interface AutoIdeaRequest {
-  kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO';
+  kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO';
   showId?: string;
   seasonId?: string;
   preferences: IdeaPreferences;

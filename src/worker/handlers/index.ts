@@ -32,7 +32,7 @@ export interface HandlerContext {
 export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> & { awaitingReview?: boolean }) | void>;
 
 import { mediaProbe } from './media-probe';
-import { autoIdea, developStory, writeScript, planShots } from './story';
+import { autoIdea, designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';
 import { generateTake } from './take';
 import { characterAppearance, characterRefs, locationPlates, shotFrames } from './images';
 import { voiceBuild, voicePreview, dialogueAudio } from './voice';
@@ -49,4 +49,5 @@ export const HANDLERS: Partial<Record<JobType, Handler>> = {
   GENERATE_SONG: generateSong,
   ASSEMBLE: assemble, EXPORT: exportCut,
   PRODUCE: produce,
+  EPISODE_CONTINUITY: episodeContinuity, DESIGN_CHARACTER: designCharacter,
 };

@@ -7,7 +7,7 @@ import type { Character, VideoUsage } from '@/domain/types';
 import { CHARACTER_REF_ROLES, type CharacterRefRole } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, assignmentsOf, productionHref } from '@/studio/selectors';
-import { appearanceLock, type AppearanceLock } from '@/domain/rules';
+import { appearanceLock, voiceLock, type AppearanceLock } from '@/domain/rules';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -209,6 +209,7 @@ function VoiceTab({ c }: { c: Character }) {
   const trackFor = (sm: Character['voice']['samples'][number]) => { const a = assetById(state, sm.assetId); return a && !a.unavailable && a.src ? { id: `voice-${c.id}-${sm.id}`, src: a.src, title: `${c.name} — ${sm.label}`, subtitle: lang, artworkSrc: portrait, duration: a.durationSeconds } : null; };
   const unavailable = (sm: Character['voice']['samples'][number]) => (sm.source === 'GENERATED' && !sm.assetId ? T('voice.notGenerated') : T('media.unavailable'));
   const selected = c.voice.samples.find((s) => s.id === c.voice.selectedSampleId);
+  const vlock = voiceLock(c);
   const upload = async (file: File) => {
     if (!file.type.startsWith('audio/')) { toast.bad(T('voice.notAudio')); return; }
     setBusy(true);
@@ -226,7 +227,8 @@ function VoiceTab({ c }: { c: Character }) {
           {selected ? <VoicePreview track={trackFor(selected)} name={selected.label} detail={detail} source={selected.source} portraitSrc={portrait ?? ''} selected unavailableText={unavailable(selected)} />
             : <Empty compact title={T('lib.noVoice')} hint={T('char.voiceLead')} />}
         </section>
-        <Block title={T('voice.all')} count={c.voice.samples.length} description={T('char.voiceLead')} actions={<div className="flex flex-wrap items-center gap-2"><JobButton type="VOICE_BUILD" payload={{ characterId: c.id }} target={{ characterId: c.id }} size="sm" icon={<IconGenerate />}>{T('gen.voiceBuild')}</JobButton><VoicePreviewButton c={c} /></div>}>
+        {vlock.locked && <div role="note" id="voice-lock" className="card flex gap-4 border-violet-500/40 bg-primary/[0.05] p-4"><span aria-hidden className="grid size-10 flex-none place-items-center rounded-xl bg-accent-soft text-violet-300 [&>svg]:size-5"><IconShield /></span><p className="text-[13px] text-body">{T('char.voiceLock')}</p></div>}
+        <Block title={T('voice.all')} count={c.voice.samples.length} description={T('char.voiceLead')} actions={<div className="flex flex-wrap items-center gap-2">{vlock.locked && c.voice.identity ? <Button size="sm" icon={<IconGenerate />} disabled aria-describedby="voice-lock">{T('gen.voiceBuild')}</Button> : <JobButton type="VOICE_BUILD" payload={{ characterId: c.id }} target={{ characterId: c.id }} size="sm" icon={<IconGenerate />}>{T('gen.voiceBuild')}</JobButton>}<VoicePreviewButton c={c} /></div>}>
           {c.voice.samples.length === 0 ? <Empty compact title={T('char.noSamples')} /> : (
             <ul className="space-y-2" role="radiogroup" aria-label={T('tab.voice')}>
               {c.voice.samples.map((sm) => {
@@ -235,7 +237,7 @@ function VoiceTab({ c }: { c: Character }) {
                 return (
                   <li key={sm.id}>
                     <VoicePreview track={track} name={sm.label} detail={lang} source={sm.source} selected={on} unavailableText={unavailable(sm)}
-                      action={<button type="button" role="radio" aria-checked={on} disabled={!track && !on} onClick={() => { act('selectVoiceSample', c.id, on ? undefined : sm.id); if (!on) toast.ok(T('char.selectedVoice')); }} aria-label={`${T('btn.select')} ${sm.label}`} className={`btn btn-sm ${on ? 'btn-primary' : 'btn-secondary'}`}>{on ? <><IconCheck />{T('btn.selected')}</> : T('btn.select')}</button>} />
+                      action={<button type="button" role="radio" aria-checked={on} disabled={(!track && !on) || (vlock.locked && !on)} aria-describedby={vlock.locked ? 'voice-lock' : undefined} onClick={() => { try { act('selectVoiceSample', c.id, on ? undefined : sm.id); if (!on) toast.ok(T('char.selectedVoice')); } catch (e) { toast.bad((e as Error).message); } }} aria-label={`${T('btn.select')} ${sm.label}`} className={`btn btn-sm ${on ? 'btn-primary' : 'btn-secondary'}`}>{on ? <><IconCheck />{T('btn.selected')}</> : T('btn.select')}</button>} />
                   </li>
                 );
               })}

@@ -16,15 +16,16 @@ import { FactList, ProgressBar, Section } from '@/components/ui/page';
 import { CanonPicker } from '@/components/library/CanonPicker';
 import { StageStatus } from '@/components/library/ProductionTile';
 import { stageFraction } from '@/components/library/Cards';
-import { IconArrowRight, IconAspect, IconChevronLeft, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlus, IconStyle } from '@/components/ui/icons';
-import { aspectLabel, aspectShort, dialectLabel, fmtAgo, fmtSeconds } from '@/lib/format';
+import { IconArrowRight, IconAspect, IconChevronLeft, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
+import { VideoPlayer } from '@/components/players/VideoPlayer';
+import { aspectLabel, aspectShort, dialectLabel, fmtAgo, fmtSeconds, ratioCss } from '@/lib/format';
 
 /** ONE SHOW — a wide banner (the key art fading into the canvas, the title and premise on its lower edge) with one
  *  action, Add Episode, that always names the season it adds to; then five tabs: Overview · Seasons · Characters ·
  *  Locations · Settings. Seasons and episodes stay inside this page; the banner never leaves. */
 
-const TABS = ['overview', 'seasons', 'characters', 'locations', 'settings'] as const;
-const ALIAS: Record<string, (typeof TABS)[number]> = { gallery: 'overview' };
+const TABS = ['overview', 'seasons', 'episodes', 'characters', 'locations', 'settings'] as const;
+const ALIAS: Record<string, (typeof TABS)[number]> = { gallery: 'overview', cast: 'characters', world: 'locations' };
 
 export function ShowWorkspace({ show }: { show: Show }) {
   const T = useT();
@@ -32,11 +33,14 @@ export function ShowWorkspace({ show }: { show: Show }) {
   const toast = useToast();
   const router = useRouter();
   const sp = useSearchParams();
-  const [rawTab] = useTab([...TABS, 'gallery'] as const, 'overview');
+  const [rawTab] = useTab([...TABS, 'gallery', 'cast', 'world'] as const, 'overview');
   const tab = ALIAS[rawTab] ?? (rawTab as (typeof TABS)[number]);
   const seasons = seasonsOf(state, show.id);
   const episodes = state.productions.filter((p) => p.showId === show.id);
   const cover = assetById(state, show.coverAssetId) ?? assetById(state, show.posterAssetId);
+  // the preview: the latest finished cut of any episode (a real one, never a bundled sample clip)
+  const preview = [...episodes].filter((p) => p.cutAssetId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((p) => ({ p, cut: assetById(state, p.cutAssetId) })).find((x) => x.cut && !x.cut.sample && !x.cut.unavailable);
+  const [showPreview, setShowPreview] = useState(false);
   const selectedSeason = seasons.find((s) => s.id === sp.get('season')) ?? seasons[seasons.length - 1];
   const hrefFor = (id: string) => `/shows/${show.id}?tab=${id}${id === 'seasons' && selectedSeason ? `&season=${selectedSeason.id}` : ''}`;
   const primary = seasons.length === 0
@@ -54,18 +58,25 @@ export function ShowWorkspace({ show }: { show: Show }) {
             <h1 className="page-title bi text-[1.75rem] sm:text-[2.1rem] lg:text-[2.25rem]" dir="auto"><span>{show.title}</span>{show.titleAr && <span className="bi-ar" dir="rtl">{show.titleAr}</span>}</h1>
             <p className="mt-2 line-clamp-3 max-w-3xl text-[14px] leading-relaxed text-body" dir="auto">{show.synopsis || show.logline}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">{primary}</div>
+          <div className="flex shrink-0 items-center gap-2">{preview && <Button variant="secondary" icon={<IconPlay />} onClick={() => setShowPreview((v) => !v)} aria-expanded={showPreview}>{T('show.preview')}</Button>}{primary}</div>
         </div>
+        {preview && showPreview && (
+          <div className="mt-6 max-w-3xl fade-in">
+            <VideoPlayer src={preview.cut!.src} poster={preview.cut!.poster} title={`${show.title} — ${preview.p.title}`} aspect={ratioCss(show.aspect)} />
+            <p className="mt-2 text-[12px] text-muted" dir="auto">{T('show.preview.hint')} · <Link href={productionHref(preview.p)} className="hover:text-fg">{preview.p.title}</Link></p>
+          </div>
+        )}
       </header>
 
       <TabBar ariaLabel={show.title} current={tab} hrefFor={hrefFor} className="mb-8" tabs={[
-        { id: 'overview', label: T('tab.overview') }, { id: 'seasons', label: T('tab.seasons'), count: seasons.length }, { id: 'characters', label: T('tab.characters'), count: show.castIds.length },
-        { id: 'locations', label: T('tab.locations'), count: show.locationIds.length }, { id: 'settings', label: T('tab.settings') },
+        { id: 'overview', label: T('tab.overview') }, { id: 'seasons', label: T('tab.seasons'), count: seasons.length }, { id: 'episodes', label: T('tab.episodes'), count: episodes.length }, { id: 'characters', label: T('tab.showCast'), count: show.castIds.length },
+        { id: 'locations', label: T('show.world'), count: show.locationIds.length }, { id: 'settings', label: T('tab.settings') },
       ]} />
 
       <div role="tabpanel" className="fade-in" key={tab}>
         {tab === 'overview' && <Overview show={show} seasons={seasons} episodes={episodes} />}
         {tab === 'seasons' && <Seasons show={show} seasons={seasons} selected={selectedSeason} />}
+        {tab === 'episodes' && <AllEpisodes show={show} seasons={seasons} episodes={episodes} />}
         {tab === 'characters' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.canonHint')}</p><CanonPicker only="cast" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { act('updateShow', show.id, patch); toast.ok(T('toast.saved')); }} /></div>}
         {tab === 'locations' && <div className="space-y-4"><p className="max-w-2xl text-[13.5px] text-muted">{T('show.worldHint')}</p><CanonPicker only="locations" castIds={show.castIds} locationIds={show.locationIds} style={show.style} onChange={(patch) => { act('updateShow', show.id, patch); toast.ok(T('toast.saved')); }} /></div>}
         {tab === 'settings' && <ShowSettings show={show} onDeleted={() => { act('deleteShow', show.id); toast.ok(T('toast.deleted')); router.push('/shows'); }} />}
@@ -82,11 +93,12 @@ function WorldBible({ show }: { show: Show }) {
   const { act } = useStudio();
   const toast = useToast();
   const b = show.bible ?? {};
-  const [draft, setDraft] = useState({ worldRules: (b.worldRules ?? []).join('\n'), relationships: (b.relationships ?? []).join('\n'), timeline: (b.timeline ?? []).join('\n'), styleNotes: b.styleNotes ?? '' });
+  const current = { worldRules: (b.worldRules ?? []).join('\n'), relationships: (b.relationships ?? []).join('\n'), timeline: (b.timeline ?? []).join('\n'), unresolved: (b.unresolved ?? []).join('\n'), styleNotes: b.styleNotes ?? '' };
+  const [draft, setDraft] = useState(current);
   const lines = (s: string) => s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
-  const dirty = JSON.stringify(draft) !== JSON.stringify({ worldRules: (b.worldRules ?? []).join('\n'), relationships: (b.relationships ?? []).join('\n'), timeline: (b.timeline ?? []).join('\n'), styleNotes: b.styleNotes ?? '' });
-  const save = () => { act('updateShow', show.id, { bible: { worldRules: lines(draft.worldRules), relationships: lines(draft.relationships), timeline: lines(draft.timeline), styleNotes: draft.styleNotes.trim() || undefined } }); toast.ok(T('toast.saved')); };
-  const fields: Array<[keyof typeof draft, string, string]> = [['worldRules', T('bible.rules'), T('bible.rules.hint')], ['relationships', T('bible.relationships'), T('bible.relationships.hint')], ['timeline', T('bible.timeline'), T('bible.timeline.hint')], ['styleNotes', T('bible.style'), T('bible.style.hint')]];
+  const dirty = JSON.stringify(draft) !== JSON.stringify(current);
+  const save = () => { act('updateShow', show.id, { bible: { worldRules: lines(draft.worldRules), relationships: lines(draft.relationships), timeline: lines(draft.timeline), unresolved: lines(draft.unresolved), styleNotes: draft.styleNotes.trim() || undefined } }); toast.ok(T('toast.saved')); };
+  const fields: Array<[keyof typeof draft, string, string]> = [['worldRules', T('bible.rules'), T('bible.rules.hint')], ['relationships', T('bible.relationships'), T('bible.relationships.hint')], ['timeline', T('bible.timeline'), T('bible.timeline.hint')], ['unresolved', T('bible.unresolved'), T('bible.unresolved.hint')], ['styleNotes', T('bible.style'), T('bible.style.hint')]];
   return (
     <Section title={T('bible.title')} description={T('bible.hint')} action={<div className="flex items-center gap-2">{dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}<Button size="sm" variant={dirty ? 'primary' : 'secondary'} disabled={!dirty} onClick={save}>{dirty ? T('btn.save') : T('btn.saved')}</Button></div>}>
       <div className="grid gap-4 md:grid-cols-2">
@@ -218,6 +230,23 @@ function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; s
   );
 }
 
+/** Every episode of the show, grouped by season, newest season first. */
+function AllEpisodes({ show, seasons, episodes }: { show: Show; seasons: Season[]; episodes: Production[] }) {
+  const T = useT();
+  if (episodes.length === 0) return <Empty title={T('show.noEpisodes')} action={seasons.length ? <LinkButton href={`/new/episode?show=${show.id}&season=${seasons[seasons.length - 1].id}`} variant="primary" icon={<IconPlus />}>{T('btn.addEpisode')}</LinkButton> : <AddSeason showId={show.id} variant="primary" />} />;
+  const ordered = [...seasons].sort((a, b) => b.number - a.number);
+  return (
+    <div className="space-y-8">
+      <p className="text-[13px] text-muted">{T('show.allEpisodes')}</p>
+      {ordered.map((season) => { const eps = episodes.filter((p) => p.seasonId === season.id).sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)); if (!eps.length) return null; return (
+        <Section key={season.id} title={<span className="bi"><span>{season.title || `${T('kind.SEASON')} ${season.number}`}</span><span className="text-[13px] font-medium text-faint">{T('kind.SEASON')} {season.number}</span></span>} count={eps.length} action={<LinkButton href={`/new/episode?show=${show.id}&season=${season.id}`} size="sm" icon={<IconPlus />}>{T('btn.addEpisode')}</LinkButton>}>
+          <ol className="card divide-y divide-line/70">{eps.map((p) => <EpisodeRow key={p.id} p={p} seasons={seasons} />)}</ol>
+        </Section>
+      ); })}
+    </div>
+  );
+}
+
 export function EpisodeRow({ p, seasons, showSeason }: { p: Production; seasons: Season[]; showSeason?: boolean }) {
   const T = useT();
   const { state } = useStudio();
@@ -276,20 +305,10 @@ function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }
   );
 }
 
+/** A new season starts in the wizard (Auto: the agents continue the show; Manual: a title or a line). */
 export function AddSeason({ showId, variant = 'secondary' }: { showId: string; variant?: 'primary' | 'secondary' | 'ghost' }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast(); const router = useRouter();
-  const [title, setTitle] = useState(''); const [arc, setArc] = useState('');
-  return (
-    <Modal title={T('btn.addSeason')} trigger={(open) => <Button size={variant === 'primary' ? undefined : 'sm'} variant={variant} icon={<IconPlus />} onClick={open} className={variant === 'ghost' ? 'flex-none xl:justify-start' : ''}>{T('btn.addSeason')}</Button>}>
-      {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const id = act('addSeason', showId, title, arc).season.id; toast.ok(T('toast.created')); setTitle(''); setArc(''); close(); router.replace(`/shows/${showId}?tab=seasons&season=${id}`); }}>
-          <Field label={T('label.title')} hint={T('wizard.optional')}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-          <Field label={T('label.arc')} hint={T('wizard.optional')}><Textarea value={arc} onChange={(e) => setArc(e.target.value)} rows={3} /></Field>
-          <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
-        </form>
-      )}
-    </Modal>
-  );
+  const T = useT();
+  return <LinkButton href={`/new/season?show=${showId}`} size={variant === 'primary' ? undefined : 'sm'} variant={variant} icon={<IconPlus />} className={variant === 'ghost' ? 'flex-none xl:justify-start' : ''}>{T('btn.addSeason')}</LinkButton>;
 }
 
 function EditSeasonItem({ season }: { season: Season }) {

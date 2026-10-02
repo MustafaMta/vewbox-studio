@@ -41,31 +41,61 @@ export interface EngineOptions extends LlmOptions { onResult?: (r: LlmResult) =>
 
 // --------------------------------------------------------------------------------------------------- Auto Idea
 
-export async function proposeIdea(s: StudioState, req: { kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string }, opts: EngineOptions = {}): Promise<IdeaProposal> {
+/** Everything a new season or episode inherits from its show: the concept, the language and dialect (never changed
+ *  by a proposal), every season so far with its arc, the finished and unfinished episodes with where each one left
+ *  the story (the last scene's exit state), the bible (rules, relationships, timeline, open storylines) and the
+ *  locked cast and places by id. */
+export function showContinuity(s: StudioState, show: NonNullable<StudioState['shows'][number]>, season?: StudioState['seasons'][number]) {
+  const seasons = s.seasons.filter((x) => x.showId === show.id).sort((a, b) => a.number - b.number);
+  const episodes = s.productions.filter((p) => p.showId === show.id).sort((a, b) => (a.seasonId === b.seasonId ? (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0) : (seasons.findIndex((x) => x.id === a.seasonId) - seasons.findIndex((x) => x.id === b.seasonId))));
+  const epSummary = (p: Production) => ({ season: seasons.find((x) => x.id === p.seasonId)?.number, number: p.episodeNumber, title: p.title, logline: p.logline, synopsis: p.synopsis.slice(0, 600), finished: p.stage === 'COMPLETE' || Boolean(p.cutAssetId), endsWith: [...p.scenes].reverse().find((sc) => sc.exitState)?.exitState });
+  const previousSeason = season ? seasons.filter((x) => x.number < season.number).at(-1) : seasons.at(-1);
+  const lastEpisode = episodes.at(-1);
+  return {
+    title: show.title, logline: show.logline, genre: show.genre, synopsis: show.synopsis,
+    language: show.language, dialect: show.dialect, style: show.style,
+    bible: show.bible,
+    seasons: seasons.map((x) => ({ number: x.number, title: x.title, arc: x.arc, episodes: episodes.filter((p) => p.seasonId === x.id).length })),
+    thisSeason: season ? { number: season.number, title: season.title, arc: season.arc } : undefined,
+    previousSeason: previousSeason ? { number: previousSeason.number, title: previousSeason.title, arc: previousSeason.arc, endedWith: episodes.filter((p) => p.seasonId === previousSeason.id).at(-1)?.scenes.slice(-1)[0]?.exitState } : undefined,
+    previousEpisodes: episodes.slice(-8).map(epSummary),
+    lastEpisode: lastEpisode ? epSummary(lastEpisode) : undefined,
+    returningCast: show.castIds.map((id) => s.characters.find((c) => c.id === id)).filter(Boolean).map((c) => ({ ...castSummary(c!), usedInVideo: Boolean(c!.usage?.videos.length) })),
+    returningLocations: show.locationIds.map((id) => s.locations.find((l) => l.id === id)).filter(Boolean).map((l) => locationSummary(l!)),
+  };
+}
+
+export async function proposeIdea(s: StudioState, req: { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string }, opts: EngineOptions = {}): Promise<IdeaProposal> {
   const prefs = req.preferences;
   const show = req.showId ? s.shows.find((x) => x.id === req.showId) : undefined;
   const season = req.seasonId ? s.seasons.find((x) => x.id === req.seasonId) : undefined;
   const d = s.settings.defaults;
-  const language = prefs.language ?? show?.language ?? d.language;
-  const dialect = language === 'AR' ? prefs.dialect ?? show?.dialect ?? d.dialect : undefined;
-  const style = prefs.style ?? show?.style ?? d.style;
+  // a show's language, dialect and direction are its identity: a season or episode never changes them
+  const language = show?.language ?? prefs.language ?? d.language;
+  const dialect = language === 'AR' ? show?.dialect ?? prefs.dialect ?? d.dialect : undefined;
+  const style = show?.style ?? prefs.style ?? d.style;
   const episodes = show ? s.productions.filter((p) => p.showId === show.id) : [];
   const avgDuration = episodes.length ? Math.round(episodes.reduce((a, p) => a + p.targetSeconds, 0) / episodes.length) : undefined;
-  const durations = DURATIONS[req.kind === 'SHOW' ? 'EPISODE' : req.kind];
+  const durations = DURATIONS[req.kind === 'SHOW' || req.kind === 'SEASON' ? 'EPISODE' : req.kind];
   const durationSeconds = prefs.durationSeconds ?? avgDuration ?? durations[1];
   const mustCast = (prefs.castIds ?? []).map((id) => s.characters.find((c) => c.id === id)).filter(Boolean) as Character[];
   const mustLocs = (prefs.locationIds ?? []).map((id) => s.locations.find((l) => l.id === id)).filter(Boolean) as Location[];
   const library = { characters: s.characters.filter((c) => c.style === style).slice(0, 24).map(castSummary), locations: s.locations.filter((l) => l.style === style).slice(0, 16).map(locationSummary) };
-  const showContext = show ? { title: show.title, logline: show.logline, genre: show.genre, synopsis: show.synopsis, bible: show.bible, season: season ? { number: season.number, title: season.title, arc: season.arc } : undefined, returningCast: show.castIds.map((id) => s.characters.find((c) => c.id === id)).filter(Boolean).map((c) => castSummary(c!)), returningLocations: show.locationIds.map((id) => s.locations.find((l) => l.id === id)).filter(Boolean).map((l) => locationSummary(l!)), previousEpisodes: episodes.slice(-6).map((p) => ({ number: p.episodeNumber, title: p.title, logline: p.logline, synopsis: p.synopsis.slice(0, 500) })) } : undefined;
+  const showContext = show ? showContinuity(s, show, season) : undefined;
 
-  const what = req.kind === 'SHOW' ? 'a new SHOW (series): the concept and the first season\'s first 3–6 episodes as the structure' : req.kind === 'EPISODE' ? 'the NEXT EPISODE of the show described below: the structure is its 3–6 scenes' : req.kind === 'SHORT' ? 'a SHORT FILM: the structure is its 3–6 scenes' : 'a MUSIC VIDEO: the structure is its 3–6 visual sections, and it needs a song (title, a one-sentence musical caption describing genre/tempo/instrumentation/voice, and complete lyrics with [verse]/[chorus]/[bridge] tags, one blank line between sections)';
+  const what = req.kind === 'SHOW' ? 'a new SHOW (series): the concept and the first season\'s first 3–6 episodes as the structure'
+    : req.kind === 'SEASON' ? `the NEXT SEASON (season ${(showContext?.seasons.length ?? 0) + 1}) of the show described below: the structure is its 3–8 episodes in order, each continuing the last; the premise is the season's arc`
+    : req.kind === 'EPISODE' ? 'the NEXT EPISODE of the show described below: the structure is its 3–6 scenes'
+    : req.kind === 'SHORT' ? 'a SHORT FILM: the structure is its 3–6 scenes'
+    : 'a MUSIC VIDEO: the structure is its 3–6 visual sections, and it needs a song (title, a one-sentence musical caption describing genre/tempo/instrumentation/voice, and complete lyrics with [verse]/[chorus]/[bridge] tags, one blank line between sections)';
+  const continuityRules = showContext ? `CONTINUITY RULES for this show: keep its language (${language}${dialect ? `, ${DIALECT_LABELS[dialect].en}` : ''}) and direction; the story continues from "lastEpisode.endsWith" and "previousSeason.endedWith" — never restart from nothing or contradict the bible's timeline; pick up at least one of the bible's unresolved storylines (bible.unresolved) when there are any; reuse returning cast and places by their ids (their identities are locked and must not be redescribed); introduce a new character or place only when this story genuinely needs it, and say why.` : '';
   const user = `Propose ${what}.
 Target running time: about ${durationSeconds} seconds. ${req.kind === 'MUSIC_VIDEO' ? `Treatment: ${prefs.concept ?? 'PERFORMANCE'} (PERFORMANCE = the singer performs on screen; NARRATIVE = a story illustrates the song; MIXED = both).` : ''}
 ${prefs.mood ? `Requested mood: ${prefs.mood}.` : ''}
 ${req.brief ? `The producer's own idea (build on it exactly): """${req.brief}"""` : 'The producer gave no premise: invent one that is fresh, specific and emotionally clear, set in a concrete place with a cultural texture that fits the language.'}
 ${mustCast.length ? `These existing characters MUST be in it (reference them by existingCharacterId): ${compact(mustCast.map(castSummary))}` : ''}
 ${mustLocs.length ? `These existing locations MUST be used (reference them by existingLocationId): ${compact(mustLocs.map(locationSummary))}` : ''}
-${showContext ? `Show context (reuse its returning cast and places by existingCharacterId / existingLocationId; also propose one or two newcomers this episode needs — a guest character or a new place — and no more): ${compact(showContext)}` : `Studio library you may reuse by id when a character or place genuinely fits (otherwise invent new ones): ${compact(library)}`}
+${showContext ? `${continuityRules}\nShow context (reuse its returning cast and places by existingCharacterId / existingLocationId; propose at most one or two newcomers this ${req.kind === 'SEASON' ? 'season' : 'episode'} needs — a guest character or a new place): ${compact(showContext)}` : `Studio library you may reuse by id when a character or place genuinely fits (otherwise invent new ones): ${compact(library)}`}
 Return JSON with exactly these keys: title, titleAr (optional), logline, premise (2–4 paragraphs), genre, mood, structure (array of {title, summary}), cast (array of {existingCharacterId?, name, role, reason, sex, ageYears, appearance, personality}), locations (array of {existingLocationId?, name, description, kind})${req.kind === 'MUSIC_VIDEO' ? ', song {title, caption, lyrics}' : ''}.
 For a new character "appearance" is one dense sentence of how they look (age, build, face, hair, skin, eyes, wardrobe, one distinguishing detail).`;
 
@@ -98,6 +128,57 @@ For a new character "appearance" is one dense sentence of how they look (age, bu
   for (const m of mustLocs) if (!locations.some((l) => l.locationId === m.id)) locations.unshift({ key: `l-${m.id}`, locationId: m.id, name: m.name, description: m.description, isNew: false, fromPreference: true, kind: m.kind });
   if (show) for (const id of show.locationIds.slice(0, 3)) { const m = s.locations.find((x) => x.id === id); if (m && !locations.some((l) => l.locationId === id)) locations.push({ key: `l-${id}`, locationId: id, name: m.name, description: m.description, isNew: false, fromPreference: false, kind: m.kind }); }
   return { sample: false, title: out.title, titleAr: out.titleAr, logline: out.logline, premise: out.premise, genre: out.genre, mood: prefs.mood?.trim() || out.mood, style, language, dialect, durationSeconds, structure: out.structure, cast, locations, concept: req.kind === 'MUSIC_VIDEO' ? prefs.concept ?? 'PERFORMANCE' : undefined, song: req.kind === 'MUSIC_VIDEO' && out.song ? { title: out.song.title, caption: out.song.caption ?? '', lyrics: out.song.lyrics } : undefined };
+}
+
+// ------------------------------------------------------------------------------------------- Continuity Writer
+
+const ContinuitySchema = z.object({
+  events: z.array(z.string().min(3).max(300)).max(12),
+  relationships: z.array(z.string().min(3).max(200)).max(10).optional(),
+  unresolved: z.array(z.string().min(3).max(200)).max(10),
+  resolved: z.array(z.string().min(3).max(200)).max(10).optional(),
+});
+export type ContinuityUpdate = z.infer<typeof ContinuitySchema>;
+
+/** After an episode is cut: what happened (for the show's timeline), what changed between people, which storylines
+ *  it left open and which of the open ones it closed. Written in the show's language of record-keeping (English,
+ *  so every department reads it). */
+export async function continuityUpdate(s: StudioState, show: StudioState['shows'][number], p: Production, cast: Character[], opts: EngineOptions = {}): Promise<ContinuityUpdate> {
+  const season = s.seasons.find((x) => x.id === p.seasonId);
+  const scenes = p.scenes.map((sc) => ({ number: sc.number, title: sc.title, purpose: sc.purpose, entryState: sc.entryState, exitState: sc.exitState, characters: sc.characterIds.map((id) => cast.find((c) => c.id === id)?.name).filter(Boolean), lines: sc.beats.flatMap((b) => b.lines).slice(0, 6).map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.text}`) }));
+  const user = `The episode "${p.title}" (season ${season?.number ?? '?'}, episode ${p.episodeNumber ?? '?'}) of the show "${show.title}" has been cut. Record it for the show's bible.
+Synopsis: ${p.synopsis}
+Scenes: ${compact(scenes)}
+The bible so far: ${compact(show.bible ?? {})}
+Return JSON: { events: [3–8 one-sentence facts that later episodes must respect, each starting with "S${season?.number ?? '?'}E${p.episodeNumber ?? '?'}:"], relationships: [changed relationships, one sentence each, only when something changed], unresolved: [the storylines this episode leaves open, including still-open ones from the bible], resolved: [bible.unresolved items this episode closed] }. English only; names exactly as in the cast.`;
+  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\nYou are the Continuity Writer: you keep the story bible. Record facts, not opinions.` }, { role: 'user', content: user }];
+  const r = await llmJson(ContinuitySchema, messages, { ...opts, maxTokens: 2500, temperature: 0.3 });
+  opts.onResult?.(r.result);
+  return r.data;
+}
+
+// ------------------------------------------------------------------------------------------- Character design
+
+const CharacterDesignSchema = z.object({
+  name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(120),
+  sex: z.enum(['FEMALE', 'MALE']), ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
+  build: z.string().min(2).max(200), face: z.string().min(2).max(300), hair: z.string().min(2).max(200), skin: z.string().min(2).max(120), eyes: z.string().min(2).max(120),
+  distinguishing: z.array(z.string().max(120)).max(6), wardrobe: z.string().min(2).max(300), personality: z.string().min(2).max(400),
+  voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']), timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
+});
+export type CharacterDesign = z.infer<typeof CharacterDesignSchema>;
+
+/** A character from a one-line brief: every appearance field filled so the portrait and the voice can be made. */
+export async function designCharacter(s: StudioState, req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string }, opts: EngineOptions = {}): Promise<CharacterDesign> {
+  const existing = s.characters.filter((c) => c.style === req.style).slice(0, 20).map((c) => ({ name: c.name, role: c.role, look: castSummary(c).look }));
+  const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
+Brief: """${req.brief}"""${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
+Existing characters (do not duplicate a look or a name): ${compact(existing)}
+Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot.`;
+  const messages: LlmMessage[] = [{ role: 'system', content: `${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}` }, { role: 'user', content: user }];
+  const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
+  opts.onResult?.(r.result);
+  return r.data;
 }
 
 // ----------------------------------------------------------------------------------------------- Manual Brief

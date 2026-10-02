@@ -2,6 +2,7 @@
 export type StudioErrorCode =
   | 'NOT_FOUND'
   | 'APPEARANCE_LOCKED'
+  | 'VOICE_LOCKED'
   | 'ASSET_PROTECTED'
   | 'INVALID'
   | 'CONFLICT'
@@ -26,6 +27,7 @@ export function httpStatusFor(code: StudioErrorCode): number {
   switch (code) {
     case 'NOT_FOUND': return 404;
     case 'APPEARANCE_LOCKED':
+    case 'VOICE_LOCKED':
     case 'ASSET_PROTECTED': return 423;
     case 'INVALID': return 400;
     case 'CONFLICT': return 409;

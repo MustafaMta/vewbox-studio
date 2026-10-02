@@ -21,9 +21,9 @@ import { AudioPlayer } from '@/components/players/Controls';
 import { IconLocations as IconLocationPin, IconAuto, IconChevronLeft, IconChevronRight, IconManual, IconMusicVideos, IconPlus, IconPreferences, IconShuffle, IconStory, IconUpload, IconVersions } from '@/components/ui/icons';
 import { aspectLabel, dialectLabel, fmtSeconds } from '@/lib/format';
 
-export type WizardKind = 'show' | 'episode' | 'short' | 'music-video';
+export type WizardKind = 'show' | 'season' | 'episode' | 'short' | 'music-video';
 type StepId = 'song' | 'idea' | 'look' | 'people' | 'review';
-const REQ_KIND: Record<WizardKind, AutoIdeaRequest['kind']> = { show: 'SHOW', episode: 'EPISODE', short: 'SHORT', 'music-video': 'MUSIC_VIDEO' };
+const REQ_KIND: Record<WizardKind, AutoIdeaRequest['kind']> = { show: 'SHOW', season: 'SEASON', episode: 'EPISODE', short: 'SHORT', 'music-video': 'MUSIC_VIDEO' };
 
 /** CREATING — two ways in, side by side.
  *
@@ -49,8 +49,8 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
   const [premise, setPremise] = useState('');
   const [waitingOn, setWaitingOn] = useState<string | null>(null);
   const [proposeError, setProposeError] = useState<string | null>(null);
-  const heading = kind === 'show' ? T('wizard.newShow') : kind === 'episode' ? T('wizard.newEpisode') : kind === 'short' ? T('wizard.newShort') : T('wizard.newMusicVideo');
-  const cancelHref = kind === 'episode' && show ? `/shows/${show.id}?tab=seasons${season ? `&season=${season.id}` : ''}` : kind === 'show' ? '/shows' : kind === 'short' ? '/shorts' : '/music-videos';
+  const heading = kind === 'show' ? T('wizard.newShow') : kind === 'season' ? T('wizard.newSeason') : kind === 'episode' ? T('wizard.newEpisode') : kind === 'short' ? T('wizard.newShort') : T('wizard.newMusicVideo');
+  const cancelHref = (kind === 'episode' || kind === 'season') && show ? `/shows/${show.id}?tab=seasons${season ? `&season=${season.id}` : ''}` : kind === 'show' ? '/shows' : kind === 'short' ? '/shorts' : '/music-videos';
   const request = (): AutoIdeaRequest => ({ kind: REQ_KIND[kind], showId: show?.id, seasonId: season?.id, preferences: prefs });
   /** The written example, for when no story engine is reachable. Labelled as a sample wherever it appears. */
   const proposeSample = (v: number) => { setVariant(v); setProposal(sampleProposal(state, request(), v)); setProposalJobId(undefined); setPath('review'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -78,7 +78,7 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          {kind === 'episode' && show && <p className="eyebrow mb-1" dir="auto">{show.title}{season ? ` · ${T('kind.SEASON')} ${season.number}` : ''}</p>}
+          {(kind === 'episode' || kind === 'season') && show && <p className="eyebrow mb-1" dir="auto">{show.title}{kind === 'episode' && season ? ` · ${T('kind.SEASON')} ${season.number}` : kind === 'season' ? ` · ${T('kind.SEASON')} ${state.seasons.filter((x) => x.showId === show.id).length + 1}` : ''}</p>}
           <h1 className="h1">{heading}</h1>
         </div>
         <Link href={cancelHref} className="btn btn-ghost btn-sm">{T('btn.cancel')}</Link>
@@ -92,7 +92,7 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
               <div className="min-w-0 flex-1">
                 <h2 id="auto-h" className="h2">{T('auto.title')}</h2>
                 <p className="mt-1 text-[13.5px] text-muted">{T('auto.lead')}</p>
-                {kind === 'episode' && show && <p className="mt-2 text-[12.5px] text-faint" dir="auto">{T('auto.showContext')} {show.title}: {T.dyn(`style.${show.style}`)} · {show.castIds.length} {T('tab.characters').toLowerCase()} · {show.locationIds.length} {T('tab.locations').toLowerCase()}.</p>}
+                {(kind === 'episode' || kind === 'season') && show && <p className="mt-2 text-[12.5px] text-faint" dir="auto">{T('auto.showContext')} {show.title}: {T.dyn(`style.${show.style}`)} · {show.language === 'AR' ? T('label.arabic') : T('label.english')} · {show.castIds.length} {T('tab.characters').toLowerCase()} · {show.locationIds.length} {T('tab.locations').toLowerCase()} · {state.productions.filter((p) => p.showId === show.id).length} {T('meta.episodes')}. {kind === 'season' ? T('auto.seasonContext') : T('auto.episodeContext')}</p>}
               </div>
             </div>
             <div className="mt-5"><Field label={T('auto.premiseLabel')} help={T('auto.premiseHint')}><Textarea value={premise} onChange={(e) => setPremise(e.target.value)} rows={2} maxLength={4000} /></Field></div>
@@ -116,7 +116,8 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
       )}
 
       {path === 'review' && proposal && <Review kind={kind} showId={show?.id} seasonId={season?.id} proposal={proposal} setProposal={setProposal} prefs={prefs} proposalJobId={proposalJobId} onBack={() => setPath('start')} onAnother={proposal.sample ? (SAMPLE_VARIANTS[REQ_KIND[kind]] > 1 ? () => proposeSample(variant + 1) : undefined) : () => { setPath('start'); void propose(); }} />}
-      {path === 'manual' && <Manual kind={kind} showId={show?.id} seasonId={season?.id} onBack={() => setPath('start')} />}
+      {path === 'manual' && kind === 'season' && show && <ManualSeason showId={show.id} onBack={() => setPath('start')} />}
+      {path === 'manual' && kind !== 'season' && <Manual kind={kind} showId={show?.id} seasonId={season?.id} onBack={() => setPath('start')} />}
     </div>
   );
 }
@@ -196,7 +197,7 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
       </section>
 
       <section className="card p-5 sm:p-6" aria-labelledby="structure-h">
-        <h2 id="structure-h" className="h2">{kind === 'show' ? T('auto.firstEpisodes') : T('auto.structure')}</h2>
+        <h2 id="structure-h" className="h2">{kind === 'show' ? T('auto.firstEpisodes') : kind === 'season' ? T('auto.nextEpisodes') : T('auto.structure')}</h2>
         <ol className="mt-3 space-y-2">{proposal.structure.map((x, i) => <li key={i} className="flex gap-3 rounded-lg bg-input px-3 py-2.5"><span className="num mt-0.5 grid size-6 flex-none place-items-center rounded-md bg-raised-2 text-[12px] font-semibold">{i + 1}</span><span className="min-w-0"><span className="block text-[13.5px] font-semibold text-fg" dir="auto">{x.title}</span><span className="block text-[12.5px] text-muted" dir="auto">{x.summary}</span></span></li>)}</ol>
       </section>
 
@@ -265,6 +266,26 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
 }
 
 /** MANUAL BRIEF — a title or a description is enough; everything after has a default. */
+/** A season by hand: a title or a line about it. The season inherits the show's language, cast and world; its
+ *  episodes are developed from the show's continuity (and this arc) when they are created. */
+function ManualSeason({ showId, onBack }: { showId: string; onBack: () => void }) {
+  const T = useT();
+  const router = useRouter();
+  const toast = useToast();
+  const { state, act } = useStudio();
+  const number = state.seasons.filter((x) => x.showId === showId).length + 1;
+  const [title, setTitle] = useState(''); const [arc, setArc] = useState(''); const [error, setError] = useState<string | null>(null);
+  return (
+    <form className="card space-y-4 p-5 fade-in sm:p-6" onSubmit={(e) => { e.preventDefault(); if (!title.trim() && !arc.trim()) { setError(T('wizard.needTitle')); return; } const r = act('addSeason', showId, title.trim() || `${T('kind.SEASON')} ${number}`, arc.trim()); toast.ok(T('toast.created')); router.push(`/shows/${showId}?tab=seasons&season=${r.season.id}`); }}>
+      <p className="text-[13.5px] text-muted">{T('season.manualHint')}</p>
+      <Field label={T('label.title')} hint={T('wizard.optional')}><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`${T('kind.SEASON')} ${number}`} /></Field>
+      <Field label={T('label.arc')} hint={T('wizard.optional')}><Textarea value={arc} onChange={(e) => setArc(e.target.value)} rows={4} dir="auto" /></Field>
+      {error && <Notice tone="bad">{error}</Notice>}
+      <div className="flex justify-between gap-2"><Button variant="ghost" onClick={onBack} icon={<IconChevronLeft className="rtl:rotate-180" />}>{T('btn.back')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
+    </form>
+  );
+}
+
 function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?: string; seasonId?: string; onBack: () => void }) {
   const T = useT();
   const router = useRouter();

@@ -1,5 +1,6 @@
 import type { Handler } from './index';
 import type { IdeaPreferences, Scene } from '@/domain/types';
+import type { Dialect } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { performanceFor, shotWindows } from '@/domain/timeline';
@@ -7,7 +8,7 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
-import { developStory as develop, libraryGuests, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { continuityUpdate, designCharacter as design, developStory as develop, libraryGuests, planPerformance, planShots as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
 import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
@@ -19,7 +20,7 @@ import { preflightPlan } from '@/server/org/preflight';
 const metric = (jobId: string, r: LlmResult) => recordMetric('llm.ms', r.ms, 'ms', { provider: r.provider, model: r.model, in: r.inputTokens ?? 0, out: r.outputTokens ?? 0 }, jobId);
 
 export const autoIdea: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string };
+  const payload = ctx.job.payload as { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string };
   await ctx.progress('GENERATING', { phase: 'writing', message: 'Writing a proposal' });
   const { state } = await readState();
   const proposal = await ctx.tool('story.structured_answer', () => proposeIdea(state, payload, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'proposal' });
@@ -28,6 +29,52 @@ export const autoIdea: Handler = async (ctx) => {
   await db().insert(schema.proposals).values({ id, jobId: ctx.job.id, request: payload, proposal, createdAt: new Date().toISOString() });
   await ctx.activity('IDEA_PROPOSED', `Proposed ${payload.kind.toLowerCase().replace('_', ' ')}: “${proposal.title}”`, { proposalId: id });
   return { proposalId: id, title: proposal.title };
+};
+
+/** THE CONTINUITY WRITER — after an episode is cut, the show's bible gains what happened, what changed between
+ *  people and which storylines stay open; the next season or episode is proposed from it. */
+export const episodeContinuity: Handler = async (ctx) => {
+  const { productionId } = ctx.job.payload as { productionId: string };
+  const { state } = await readState();
+  const p = state.productions.find((x) => x.id === productionId);
+  if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
+  const show = p.showId ? state.shows.find((x) => x.id === p.showId) : undefined;
+  if (!show) throw new StudioError('INVALID', 'Only an episode of a show is recorded in a bible.');
+  await ctx.progress('GENERATING', { phase: 'writing', message: `Recording ${p.title} in the bible of ${show.title}` });
+  const out = await ctx.tool('story.structured_answer', () => continuityUpdate(state, show, p, castOf(state, p), { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'continuity' });
+  await ctx.checkpoint();
+  const b = show.bible ?? {};
+  const season = state.seasons.find((x) => x.id === p.seasonId);
+  const tag = `S${season?.number ?? '?'}E${p.episodeNumber ?? '?'}`;
+  // this episode's entries replace an earlier record of the same episode (a re-cut), never another episode's
+  const timeline = [...(b.timeline ?? []).filter((x) => !x.startsWith(`${tag}:`)), ...out.events.map((e) => (e.startsWith(tag) ? e : `${tag}: ${e}`))];
+  const resolved = new Set((out.resolved ?? []).map((x) => x.toLowerCase()));
+  const unresolved = Array.from(new Set([...(b.unresolved ?? []).filter((x) => !resolved.has(x.toLowerCase())), ...out.unresolved])).slice(0, 12);
+  const relationships = Array.from(new Set([...(b.relationships ?? []), ...(out.relationships ?? [])])).slice(0, 24);
+  await command('updateShow', [show.id, { bible: { ...b, timeline, unresolved, relationships } }], 'worker');
+  await recordHandoff({ productionId: p.id, stage: 'EDIT', producerDepartment: 'STORY', receiverDepartment: 'EXECUTIVE', artifactIds: [show.id], outputVersions: { timelineEntries: timeline.length, unresolved: unresolved.length }, validation: { ok: out.events.length > 0, checks: [{ name: 'events-recorded', ok: out.events.length > 0, detail: `${out.events.length} event(s) under ${tag}` }, { name: 'open-storylines-carried', ok: true, detail: `${unresolved.length} open` }] }, jobId: ctx.job.id });
+  await ctx.activity('BIBLE_UPDATED', `${show.title}: ${tag} recorded in the bible (${out.events.length} events, ${unresolved.length} open storylines)`, { showId: show.id, events: out.events.length, unresolved: unresolved.length });
+  return { events: out.events.length, unresolved: unresolved.length, resolved: out.resolved?.length ?? 0 };
+};
+
+/** CASTING — a character designed from a one-line brief; every appearance field is filled, so the portrait and the
+ *  voice can follow. The record is added to the library (and to the production or show it was asked for). */
+export const designCharacter: Handler = async (ctx) => {
+  const payload = ctx.job.payload as { brief: string; name?: string; style?: 'CARTOON' | 'ANIME' | 'REALISTIC'; language?: 'EN' | 'AR'; dialect?: string; productionId?: string; showId?: string };
+  const { state } = await readState();
+  const p = payload.productionId ? state.productions.find((x) => x.id === payload.productionId) : undefined;
+  const show = payload.showId ? state.shows.find((x) => x.id === payload.showId) : p?.showId ? state.shows.find((x) => x.id === p.showId) : undefined;
+  const style = payload.style ?? show?.style ?? p?.style ?? state.settings.defaults.style;
+  const language = payload.language ?? show?.language ?? p?.language ?? state.settings.defaults.language;
+  const dialect = (language === 'AR' ? (payload.dialect as Dialect | undefined) ?? show?.dialect ?? p?.dialect ?? state.settings.defaults.dialect : undefined);
+  await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${payload.name ?? 'a character'}` });
+  const d = await ctx.tool('story.structured_answer', () => design(state, { brief: payload.brief, name: payload.name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design' });
+  await ctx.checkpoint();
+  const r = await command('addCharacter', [{ name: d.name, nameAr: d.nameAr, role: d.role, style, sex: d.sex, species: d.species, ageYears: d.ageYears, build: d.build, face: d.face, hair: d.hair, skin: d.skin, eyes: d.eyes, distinguishing: d.distinguishing, wardrobe: d.wardrobe, personality: d.personality, language, dialect, notes: `Designed by Casting from the brief: “${payload.brief.slice(0, 200)}”`, ...(d.voice ? { voice: { pitch: d.voice.pitch, pace: d.voice.pace, timbre: d.voice.timbre, notes: d.voice.notes ?? '', samples: [] } } : {}) }], 'worker');
+  if (p) await command('updateProduction', [p.id, { castIds: Array.from(new Set([...p.castIds, r.character.id])) }], 'worker');
+  if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, r.character.id])) }], 'worker');
+  await ctx.activity('CHARACTER_DESIGNED', `${d.name} designed (${d.role}) from the brief`, { characterId: r.character.id });
+  return { characterId: r.character.id, name: d.name };
 };
 
 export const developStory: Handler = async (ctx) => {

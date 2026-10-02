@@ -41,7 +41,9 @@ export function useLive<T>(url: string | null, deps: unknown[] = []): { data: T 
   return { data, error, reload: () => setN((x) => x + 1) };
 }
 
+export interface DepartmentResponse { department: DepartmentDef; agents: AgentDef[]; tools: ToolDef[]; skills: OrgSkill[]; activeRuns: AgentRunRow[]; recentRuns: AgentRunRow[]; handoffs: HandoffRow[]; reports: QaReportRow[]; events: StudioEventRow[] }
 export const useOrg = () => useLive<OrgResponse>('/api/studio/org');
+export const useDepartment = (id: string) => useLive<DepartmentResponse>(`/api/studio/org/departments/${encodeURIComponent(id)}`);
 export const useAgent = (id: string) => useLive<AgentResponse>(`/api/studio/org/agents/${encodeURIComponent(id)}`);
 export const useReliability = (hours = 24 * 7) => useLive<ReliabilitySummary>(`/api/studio/org/reliability?hours=${hours}`);
 export const useProductionPipeline = (id: string | null) => useLive<ProductionPipelineResponse>(id ? `/api/studio/org/productions/${encodeURIComponent(id)}` : null);

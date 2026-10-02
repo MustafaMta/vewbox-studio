@@ -10,7 +10,7 @@ import { adoptFile, assetFromStored, fileFor, storeBuffer } from '@/server/media
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
 import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport } from '@/server/media/assembly';
 import { takeLagAgainstMaster } from '@/server/media/sync';
-import { recordMetric } from '@/server/jobs/queue';
+import { enqueue, recordMetric } from '@/server/jobs/queue';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { listQaReports, recordHandoff, recordQaReport } from '@/server/org/runs';
 import { requireApproval } from '@/server/org/gates';
@@ -132,6 +132,8 @@ export const assemble: Handler = async (ctx) => {
   const doubled = r.mix.notes.some((n) => /refus|twice|double/i.test(n));
   await recordHandoff({ productionId, stage: 'EDIT', producerDepartment: 'POST', receiverDepartment: 'EXECUTIVE', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { cut: r.videoId, shots: r.shots }, validation: { ok: r.validation.ok && !doubled, checks: [{ name: 'cut-validated', ok: r.validation.ok }, { name: 'one-sound-per-stretch', ok: !doubled, detail: `${r.mix.tracks.length} track(s): ${Array.from(new Set(r.mix.tracks.map((t) => t.kind))).join(', ')}` }, { name: 'loudness-at-target', ok: r.loudness ? Math.abs(r.loudness.integrated - r.mix.targetLufs) <= 1.5 : true, detail: r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS for ${r.mix.targetLufs}` : 'not measured' }, ...(r.sync.length ? [{ name: 'performers-aligned', ok: true, detail: `${r.sync.filter((s) => s.droppedFrames).length} of ${r.sync.length} take(s) shifted` }] : [])] }, jobId: ctx.job.id });
   await ctx.activity('CUT_ASSEMBLED', `“${r.p.title}” assembled: ${r.shots} shots, ${Math.round(r.durationSeconds)} s, ${r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS` : 'loudness not measured'}`, { cutAssetId: r.videoId, shots: r.shots, seconds: r.durationSeconds });
+  // an episode that has a cut is a fact of its show: the Continuity Writer records it in the bible
+  if (r.p.kind === 'EPISODE' && r.p.showId) await enqueue({ type: 'EPISODE_CONTINUITY', payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `continuity:${productionId}:${r.videoId}` });
   return { cutAssetId: r.videoId, durationSeconds: r.durationSeconds, loudness: r.loudness, shots: r.shots, subtitleAssets: r.sidecars };
 };
 

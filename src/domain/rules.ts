@@ -48,6 +48,23 @@ export function guardCharacterPatch<P extends Partial<Character>>(c: Character, 
   return out as P;
 }
 
+/** THE VOICE RULE — once a character has been in a video, the voice they spoke with is preserved like their face:
+ *  the pinned identity and the chosen recording cannot be replaced or rebuilt. A character who reached their first
+ *  video with no voice at all may still be given one (that breaks no existing continuity); after that it holds. */
+export function voiceLock(c: Pick<Character, 'usage' | 'voice'>): { locked: boolean; reason: 'USED' | 'UNKNOWN' | null } {
+  const a = appearanceLock(c);
+  const hasVoice = Boolean(c.voice.identity || c.voice.selectedSampleId);
+  return a.locked && hasVoice ? { locked: true, reason: a.reason } : { locked: false, reason: null };
+}
+
+export const canChangeVoice = (c: Pick<Character, 'usage' | 'voice'>) => !voiceLock(c).locked;
+
+/** Refuse a change of the voice identity of a locked character. `what` names the change for the message. */
+export function guardVoiceChange(c: Character, what: string): void {
+  if (canChangeVoice(c)) return;
+  throw new StudioError('VOICE_LOCKED', `${c.name} has been used in a video; the voice is preserved for continuity (${what}).`, { characterId: c.id, reason: voiceLock(c).reason });
+}
+
 /** The assets a locked character's appearance rests on: its portrait and reference views. They cannot be deleted. */
 export function protectedAssetOwner(s: StudioState, assetId: string): Character | undefined {
   return s.characters.find((c) => appearanceLock(c).locked && (c.portraitAssetId === assetId || c.refs.some((r) => r.assetId === assetId)));

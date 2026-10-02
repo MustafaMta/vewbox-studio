@@ -3,7 +3,7 @@ import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError } from './errors';
-import { canChangeAppearance, guardCharacterPatch, markTakeRemoved, protectedAssetOwner, recordTakeUsage } from './rules';
+import { canChangeAppearance, guardCharacterPatch, guardVoiceChange, markTakeRemoved, protectedAssetOwner, recordTakeUsage } from './rules';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -352,6 +352,8 @@ export function addCharacterRefs(s: S, id: string, refs: CharacterRef[]): S {
  *  character. */
 export function addVoiceSample(s: S, id: string, sample: Omit<VoiceSample, 'id'> & { id?: string }, select = false): { state: S; sample: VoiceSample } {
   const c = mustFind(s.characters, id, 'Character');
+  // adding a line to listen to is always allowed; making it THE voice of a used character is not
+  if (select && c.voice.selectedSampleId) guardVoiceChange(c, 'chosen recording');
   const v: VoiceSample = { ...sample, id: sample.id ?? nid('voice') };
   return { state: updateCharacter(s, id, { voice: { ...c.voice, samples: [...c.voice.samples, v], selectedSampleId: select ? v.id : c.voice.selectedSampleId } }), sample: v };
 }
@@ -362,12 +364,14 @@ export function addVoiceRecording(s: S, id: string, assetId: string, label: stri
 
 export function removeVoiceSample(s: S, id: string, sampleId: string): S {
   const c = mustFind(s.characters, id, 'Character');
+  if (c.voice.selectedSampleId === sampleId) guardVoiceChange(c, 'chosen recording');
   return updateCharacter(s, id, { voice: { ...c.voice, samples: c.voice.samples.filter((x) => x.id !== sampleId), selectedSampleId: c.voice.selectedSampleId === sampleId ? undefined : c.voice.selectedSampleId } });
 }
 
 /** The character's one voice identity: set when the voice is built, bumped when rebuilt. */
 export function setVoiceIdentity(s: S, id: string, identity: Omit<VoiceIdentity, 'revision' | 'createdAt'>): S {
   const c = mustFind(s.characters, id, 'Character');
+  if (c.voice.identity) guardVoiceChange(c, 'voice identity');
   return updateCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now() } } });
 }
 
@@ -384,6 +388,7 @@ export function deleteCharacter(s: S, id: string): S {
 export function selectVoiceSample(s: S, id: string, sampleId: string | undefined): S {
   const c = mustFind(s.characters, id, 'Character');
   if (sampleId) { const sm = mustFind(c.voice.samples, sampleId, 'Voice sample'); if (!sm.assetId) throw new StudioError('INVALID', 'This voice has no recording yet.'); }
+  if (sampleId !== c.voice.selectedSampleId) guardVoiceChange(c, 'chosen recording');
   return { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, selectedSampleId: sampleId }, updatedAt: now() } : x)) };
 }
 
@@ -465,7 +470,7 @@ export function deleteAsset(s: S, id: string): S {
 /** Accept a reviewed proposal: create the new characters and places the producer kept (with no appearance yet),
  *  then the production — or, for a show, the show with its first season and first episode — with the structure as
  *  scenes. Nothing else is invented: kept existing characters and places are linked, not copied. */
-export function acceptProposal(s: S, input: { kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; aspect: Aspect; proposal: IdeaProposal; keepCast: string[]; keepLocations: string[]; preferences: IdeaPreferences; proposalJobId?: string }): { state: S; production: Production } {
+export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; aspect: Aspect; proposal: IdeaProposal; keepCast: string[]; keepLocations: string[]; preferences: IdeaPreferences; proposalJobId?: string }): { state: S; production: Production } {
   const { proposal: pr } = input;
   let st = s;
   let castIds: string[] = []; let locationIds: string[] = [];
@@ -493,6 +498,17 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'EPISODE' | 'SHORT'
     const ep = addProduction(r.state, { ...common, kind: 'EPISODE', title: first?.title ?? 'Episode 1', logline: first?.summary ?? '', synopsis: first?.summary ?? '', showId: r.show.id, seasonId: r.season.id, castIds: [], locationIds: [] });
     const next = updateSeason(ep.state, r.season.id, { arc: pr.structure.map((x) => x.title).join(' · ') });
     return { state: next, production: ep.production };
+  }
+  if (input.kind === 'SEASON') {
+    // a new season of an existing show: the season carries the proposal as its arc, its first episode is the first
+    // item of the structure, and the show's cast and world grow by whatever the season introduces
+    if (!input.showId) throw new StudioError('INVALID', 'A season needs a show.');
+    const show = mustFind(st.shows, input.showId, 'Show');
+    const r = addSeason(st, show.id, pr.title, pr.premise);
+    const first = pr.structure[0];
+    const ep = addProduction(r.state, { ...common, kind: 'EPISODE', title: first?.title ?? 'Episode 1', logline: first?.summary ?? '', synopsis: first?.summary ?? '', showId: show.id, seasonId: r.season.id, castIds: [], locationIds: [] });
+    const grown = updateShow(ep.state, show.id, { castIds: Array.from(new Set([...show.castIds, ...castIds])), locationIds: Array.from(new Set([...show.locationIds, ...locationIds])) });
+    return { state: grown, production: ep.production };
   }
   const kind: Kind = input.kind === 'MUSIC_VIDEO' ? 'MUSIC_VIDEO' : input.kind === 'SHORT' ? 'SHORT' : 'EPISODE';
   const song: Song | undefined = input.kind === 'MUSIC_VIDEO' && pr.song ? { id: nid('song'), title: pr.song.title, source: 'GENERATED_EXAMPLE', durationSeconds: pr.durationSeconds, caption: pr.song.caption, lyrics: pr.song.lyrics, sections: splitLyrics(pr.song.lyrics, pr.durationSeconds).map((x) => ({ ...x, singerIds: castIds })), singerIds: castIds } : undefined;

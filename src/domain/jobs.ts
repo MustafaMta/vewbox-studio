@@ -22,6 +22,8 @@ export const JOB_TYPES = [
   'EXPORT',             // assembled cut → export file
   'PRODUCE',            // orchestrate: frames → takes for every shot without a chosen take
   'MEDIA_PROBE',        // validate an uploaded file
+  'EPISODE_CONTINUITY', // a finished episode → the show's timeline, relationships and open storylines (Continuity Writer)
+  'DESIGN_CHARACTER',   // a one-line brief → a fully designed character record (Casting)
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -74,7 +76,7 @@ const ideaPreferences = z.object({
 }).strict();
 
 export const JOB_PAYLOADS = {
-  AUTO_IDEA: z.object({ kind: z.enum(['SHOW', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), preferences: ideaPreferences, brief: z.string().max(4000).optional() }),
+  AUTO_IDEA: z.object({ kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), preferences: ideaPreferences, brief: z.string().max(4000).optional() }),
   DEVELOP_STORY: z.object({ productionId: id }),
   WRITE_SCRIPT: z.object({ productionId: id, sceneIds: z.array(id).optional() }),
   PLAN_SHOTS: z.object({ productionId: id, sceneIds: z.array(id).optional(), force: z.boolean().optional(), /** music video: redo only the singing assignment and copy it onto the existing shots */ performanceOnly: z.boolean().optional() }),
@@ -91,6 +93,8 @@ export const JOB_PAYLOADS = {
   EXPORT: z.object({ productionId: id, format: z.enum(['mp4-h264', 'mp4-h265', 'mov-prores']), resolution: z.enum(['720', '1080', '2160']), subtitles: z.enum(['none', 'ar', 'en', 'both']) }),
   PRODUCE: z.object({ productionId: id, shotIds: z.array(id).optional(), framesOnly: z.boolean().optional(), /** re-record the speaking shots whose chosen take was never verified against the script (older pipeline) or failed; the new take replaces the choice when it passes */ respeak: z.boolean().optional() }),
   MEDIA_PROBE: z.object({ assetId: id }),
+  EPISODE_CONTINUITY: z.object({ productionId: id }),
+  DESIGN_CHARACTER: z.object({ brief: z.string().min(2).max(2000), name: z.string().max(80).optional(), style: z.enum(['CARTOON', 'ANIME', 'REALISTIC']).optional(), language: z.enum(['EN', 'AR']).optional(), dialect: z.string().optional(), /** the production or show the character is for (its world is the context) */ productionId: id.optional(), showId: id.optional() }),
 } satisfies Record<JobType, z.ZodTypeAny>;
 
 export type JobPayload<T extends JobType> = z.infer<(typeof JOB_PAYLOADS)[T]>;
@@ -101,6 +105,7 @@ export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   CHARACTER_APPEARANCE: 'GPU', CHARACTER_REFS: 'GPU', LOCATION_PLATES: 'GPU', SHOT_FRAMES: 'GPU', VOICE_BUILD: 'GPU', VOICE_PREVIEW: 'GPU', DIALOGUE_AUDIO: 'GPU',
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
+  EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM',
 };
 
 /** Readable names for the activity page. */
@@ -122,4 +127,6 @@ export const JOB_LABELS: Record<JobType, { en: string; ar: string }> = {
   EXPORT: { en: 'Export', ar: 'تصدير' },
   PRODUCE: { en: 'Produce', ar: 'إنتاج' },
   MEDIA_PROBE: { en: 'Check a file', ar: 'فحص ملف' },
+  EPISODE_CONTINUITY: { en: 'Record the episode in the story bible', ar: 'تسجيل الحلقة في سجل القصة' },
+  DESIGN_CHARACTER: { en: 'Design a character', ar: 'تصميم شخصية' },
 };

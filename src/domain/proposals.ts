@@ -16,6 +16,15 @@ type Template = Omit<IdeaProposal, 'sample' | 'style' | 'language' | 'dialect' |
 };
 
 const TEMPLATES: Record<AutoIdeaRequest['kind'], Template[]> = {
+  SEASON: [
+    {
+      title: 'The Second Year', logline: 'The market has survived its inspector; now it has to survive success.', genre: 'Comedy-drama', mood: 'Warm, nocturnal',
+      premise: 'A written example of a continuing season: the storylines the previous season left open are picked up one by one, the regulars return as they are, and one newcomer arrives because the story needs them. Each episode is one night.',
+      structure: [{ title: 'The queue', summary: 'Word has spread; the first night with a queue at the gate.' }, { title: 'The partner', summary: 'Faris brings a partner who wants to make the market permanent.' }, { title: 'Daylight', summary: 'The market opens an hour early and the regulars see it in daylight for the first time.' }],
+      newCast: [{ name: 'Hadeel', role: 'The partner who wants the market to be permanent', reason: 'The season’s pressure, from outside the family.', sex: 'FEMALE' }],
+      newLocations: [],
+    },
+  ],
   SHOW: [
     {
       title: 'The Night Market', logline: 'A market that opens at midnight, and the family who has sold tea at its gate for three generations.', genre: 'Comedy-drama', mood: 'Warm, nocturnal',
@@ -83,7 +92,7 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   const prefs = req.preferences;
   const show = req.showId ? s.shows.find((x) => x.id === req.showId) : undefined;
   const d = s.settings.defaults;
-  const durations = DURATIONS[req.kind === 'SHOW' ? 'EPISODE' : req.kind];
+  const durations = DURATIONS[req.kind === 'SHOW' || req.kind === 'SEASON' ? 'EPISODE' : req.kind];
   const showEpisodes = show ? s.productions.filter((p) => p.showId === show.id) : [];
   const showDuration = showEpisodes.length ? Math.round(showEpisodes.reduce((a, p) => a + p.targetSeconds, 0) / showEpisodes.length) : undefined;
   const language = prefs.language ?? show?.language ?? d.language;
@@ -101,7 +110,7 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   // a music video with no performer asked for: an existing singer, if the library has one
   if (req.kind === 'MUSIC_VIDEO' && cast.length === 0) { const singer = s.characters.find((c) => /singer|perform/i.test(c.role)); if (singer) addCast(singer.id, 'Already a singer in your library.', false); }
   // additions the story needs, proposed as new and optional
-  const wantsNewCast = req.kind === 'EPISODE' || cast.length === 0;
+  const wantsNewCast = req.kind === 'EPISODE' || req.kind === 'SEASON' || cast.length === 0;
   if (wantsNewCast) t.newCast.forEach((c, i) => cast.push({ key: `new-c-${i}`, name: c.name, role: c.role, reason: c.reason, isNew: true, fromPreference: false, sex: c.sex }));
   if (locations.length === 0) t.newLocations.forEach((l, i) => locations.push({ key: `new-l-${i}`, name: l.name, description: l.description, isNew: true, fromPreference: false, kind: l.kind }));
 
@@ -118,4 +127,4 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   };
 }
 
-export const SAMPLE_VARIANTS: Record<AutoIdeaRequest['kind'], number> = { SHOW: TEMPLATES.SHOW.length, EPISODE: TEMPLATES.EPISODE.length, SHORT: TEMPLATES.SHORT.length, MUSIC_VIDEO: TEMPLATES.MUSIC_VIDEO.length };
+export const SAMPLE_VARIANTS: Record<AutoIdeaRequest['kind'], number> = { SHOW: TEMPLATES.SHOW.length, SEASON: TEMPLATES.SEASON.length, EPISODE: TEMPLATES.EPISODE.length, SHORT: TEMPLATES.SHORT.length, MUSIC_VIDEO: TEMPLATES.MUSIC_VIDEO.length };

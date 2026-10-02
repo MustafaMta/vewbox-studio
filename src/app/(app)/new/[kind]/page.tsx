@@ -3,7 +3,7 @@
 import { notFound, useParams, useSearchParams } from 'next/navigation';
 import { CreateWizard, type WizardKind } from '@/components/wizard/CreateWizard';
 
-const KINDS: WizardKind[] = ['show', 'episode', 'short', 'music-video'];
+const KINDS: WizardKind[] = ['show', 'season', 'episode', 'short', 'music-video'];
 
 export default function NewPage() {
   const { kind } = useParams<{ kind: string }>();

@@ -15,6 +15,7 @@ import { recordMetric } from '@/server/jobs/queue';
 import { registerUnloader } from '../gpu';
 import { unloadAsr, unloadTts } from '@/server/providers/speech';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
+import { guardVoiceChange } from '@/domain/rules';
 
 /** VOICES — one persistent identity per character (which engine, which reference recording, which revision), a
  *  preview line, and the recording of every dialogue line of a production. Each generated line is transcribed back
@@ -83,6 +84,8 @@ export const voiceBuild: Handler = async (ctx) => {
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
+  // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED)
+  if (c.voice.identity) guardVoiceChange(c, 'rebuild the voice');
   const dir = await tmpDir('voice');
   const ref = await referenceWav(c, state.assets, dir);
   if (!ref) throw new StudioError('INVALID', `${c.name} has no recording to build a voice from. Upload a 5–30 second clip of the voice on the Voice tab first.`);
