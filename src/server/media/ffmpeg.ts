@@ -65,7 +65,7 @@ export async function measureLoudness(input: string): Promise<LoudnessStats | nu
 /** QUALITY CHECKS ON A TAKE — container and stream facts first (what was asked for vs what came back), then signal
  *  checks: black frames, frozen video, extreme flicker, silent or clipping audio. Each check is a line in the report;
  *  the report decides acceptance but a human still reviews the footage. */
-export async function qaTake(file: string, expect: { durationSeconds: number; width?: number; height?: number; expectAudio?: boolean; minFps?: number }): Promise<{ report: QaReport; probe: Probe }> {
+export async function qaTake(file: string, expect: { durationSeconds: number; width?: number; height?: number; expectAudio?: boolean; minFps?: number; /** false = a near-silent track is acceptable (an ambient shot with no lines); default: a silent clip fails */ speechExpected?: boolean }): Promise<{ report: QaReport; probe: Probe }> {
   const probe = await ffprobe(file);
   const checks: QaCheck[] = [];
   const dur = probe.durationSeconds ?? 0;
@@ -94,7 +94,8 @@ export async function qaTake(file: string, expect: { durationSeconds: number; wi
     checks.push({ name: 'flicker', ok: flickerRate < 0.08, value: Number(flickerRate.toFixed(3)), threshold: '< 0.08 of frames swing > 40 luma' });
     if (probe.hasAudio) {
       const silence = [...stderr.matchAll(/silence_duration: ([\d.]+)/g)].reduce((a, m) => a + Number(m[1]), 0);
-      checks.push({ name: 'audio_silence', ok: silence < dur * 0.95, value: Number(silence.toFixed(2)), threshold: `< ${(dur * 0.95).toFixed(1)}s`, detail: silence >= dur * 0.95 ? 'the whole clip is silent' : undefined });
+      const silent = silence >= dur * 0.95;
+      checks.push({ name: 'audio_silence', ok: !silent || expect.speechExpected === false, value: Number(silence.toFixed(2)), threshold: `< ${(dur * 0.95).toFixed(1)}s`, detail: silent ? (expect.speechExpected === false ? 'the clip is silent (no lines expected)' : 'the whole clip is silent') : undefined });
     }
   } catch (e) {
     checks.push({ name: 'signal_analysis', ok: false, detail: (e as Error).message });

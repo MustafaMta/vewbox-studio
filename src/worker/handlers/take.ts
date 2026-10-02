@@ -91,7 +91,8 @@ export const generateTake: Handler = async (ctx) => {
   await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
-  const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: undefined });
+  // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent
+  const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || (p.kind === 'MUSIC_VIDEO' && Boolean(songSegment)) });
   await ctx.checkpoint();
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
