@@ -1,7 +1,7 @@
 import type { Handler } from './index';
 import type { IdeaPreferences, Scene } from '@/domain/types';
 import type { Dialect } from '@/domain/vocabulary';
-import type { CharacterProfilePartial, JobPayloadParsed } from '@/domain/jobs';
+import type { JobPayloadParsed } from '@/domain/jobs';
 import type { CharacterInput } from '@/domain/actions';
 import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
@@ -59,10 +59,6 @@ export const episodeContinuity: Handler = async (ctx) => {
   await ctx.activity('BIBLE_UPDATED', `${show.title}: ${tag} recorded in the bible (${out.events.length} events, ${unresolved.length} open storylines)`, { showId: show.id, events: out.events.length, unresolved: unresolved.length });
   return { events: out.events.length, unresolved: unresolved.length, resolved: out.resolved?.length ?? 0 };
 };
-
-/** The look fields a designed character must have; a profile missing any of them is completed by Casting. */
-export const DESIGN_FIELDS = ['role', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality'] as const;
-export const profileNeedsDesign = (p: CharacterProfilePartial | undefined): boolean => !p || DESIGN_FIELDS.some((k) => p[k] === undefined || p[k] === '');
 
 /** CASTING — a character designed from a one-line brief, a name alone, or a partial profile the producer wrote:
  *  every appearance field is filled, so the portrait and the voice can follow; the producer's own fields are kept

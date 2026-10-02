@@ -1,13 +1,12 @@
 import type { Handler, HandlerContext } from './index';
 import { StudioError } from '@/domain/errors';
 import type { Character } from '@/domain/types';
-import { isTerminalStatus, type CreateCharacterResult, type CreateCharacterStep, type CreateCharacterStepOutcome, type Job, type JobPayloadParsed, type JobType } from '@/domain/jobs';
+import { isTerminalStatus, profileNeedsDesign, type CreateCharacterResult, type CreateCharacterStep, type CreateCharacterStepOutcome, type Job, type JobPayloadParsed, type JobType } from '@/domain/jobs';
 import { runCommand, type Command } from '@/domain/commands';
 import type { CharacterInput } from '@/domain/actions';
 import { commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { enqueue, getJob } from '@/server/jobs/queue';
 import { preflightCharacter, referenceImageProblem } from '@/server/org/preflight';
-import { profileNeedsDesign } from './story';
 
 /** CREATE A CHARACTER — the one job behind the three starts of the character page (contract §1.1): Describe (AUTO),
  *  Write the sheet (MANUAL), From a picture (REFERENCE). It runs the chain as durable child jobs — design (only when

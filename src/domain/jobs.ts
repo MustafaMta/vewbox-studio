@@ -90,6 +90,10 @@ const characterProfilePartial = z.object({
 });
 export type CharacterProfilePartial = z.infer<typeof characterProfilePartial>;
 
+/** The look fields a designed character must have; a profile missing any of them is completed by Casting. */
+export const DESIGN_FIELDS = ['role', 'sex', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality'] as const;
+export const profileNeedsDesign = (p: CharacterProfilePartial | undefined): boolean => !p || DESIGN_FIELDS.some((k) => p[k] === undefined || p[k] === '');
+
 export const JOB_PAYLOADS = {
   AUTO_IDEA: z.object({ kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), preferences: ideaPreferences, brief: z.string().max(4000).optional() }),
   DEVELOP_STORY: z.object({ productionId: id }),

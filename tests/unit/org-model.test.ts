@@ -47,7 +47,7 @@ describe('the studio organisation', () => {
       SHOT_FRAMES: ['image.generate', 'image.edit_with_references'],
       CHARACTER_APPEARANCE: ['image.generate', 'image.edit_with_references'],
       LOCATION_PLATES: ['image.generate', 'image.edit_with_references'],
-      PRODUCE: ['jobs.enqueue'],
+      PRODUCE: ['jobs.enqueue'], CREATE_CHARACTER: ['jobs.enqueue'], DESIGN_CHARACTER: ['story.structured_answer'],
       DEVELOP_STORY: ['story.structured_answer'], WRITE_SCRIPT: ['story.structured_answer'], PLAN_SHOTS: ['story.structured_answer'], AUTO_IDEA: ['story.structured_answer'],
       MEDIA_PROBE: ['media.probe'],
     };
