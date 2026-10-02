@@ -25,6 +25,14 @@
       ]
     },
     {
+      "name": "images-qwen-identity",
+      "purpose": "Character identity helpers for Edit-2511 (wave 2): fal's Multiple-Angles camera LoRA (96 poses, `<sks> {azimuth} {elevation} {distance}`) for derived views, and the MediaPipe face detector (models/detection) for reference validation and face crops. Both Apache-2.0, 300 MB together; fetched once into the models volume with a one-off container (docs/MODELS.md).",
+      "files": [
+        { "repo": "Comfy-Org/mediapipe", "file": "detection/mediapipe_face_fp32.safetensors", "folder": "detection", "bytes": 5423900, "sha256": "a98c4806081d40eba35102a0f6dc0000c2e1388b72cf24e691703d0605bd888a", "license": "Apache-2.0" },
+        { "repo": "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA", "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors", "folder": "loras", "bytes": 295140688, "sha256": "42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765", "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "asr-whisper",
       "purpose": "faster-whisper large-v3 (CTranslate2 fp16) for transcript validation and subtitle timing; MIT.",
       "files": [
