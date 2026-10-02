@@ -83,7 +83,8 @@ See `TEST-RESULTS.md`.
 | Assembly/export on real clips | done (CPU path) | S1E1 with uploaded clips: 10.5 s cut, 1080p export with burned-in AR+EN subtitles, sidecars, −23 LUFS |
 | Stage 1 — a MiniMax H3 take generated locally | **done** | S1E1 shot 1.3 from the shot editor: 1344×768, 3.75 s, native audio; ComfyUI 87.7 s (8 steps × 7.0 s), 94.6 s end to end; QA 8/8; the spoken Iraqi line transcribed back as «البيت ما بيه تشاي.» (scripted «البيت ما بي چاي») |
 | Stage 4 (prompt-only continuity) — a whole episode's shots generated and cut | **done** | "Produce every shot" on S1E1: 7/7 takes, 0 failures, QA 7/7, 10.4 min for the batch; assembled 31.25 s 1080p cut (−22.7 LUFS); exported with burned AR+EN subtitles; contact sheet in `docs/evidence/` |
-| Stages 2, 3, 5–8 | pending Qwen weights / voice images | see checklist 11.x |
+| Stage 5 (without drawn frames) — a short from a one-line brief, entirely through the UI | **done** | "The Last Bus to Karrada": brief → story (18 s) → script (14 s) → 11 shots (78 s) → 11/11 takes (25 min) → auto-assembled 64 s cut → export; prompt-only conditioning lets a character's look drift between shots (recorded with a contact sheet), which is what Stage 2's character sheets and frames address |
+| Stages 2, 3, 6–8 | pending Qwen weights / voice images | see checklist 11.x |
 
 ## 9. Reliability
 
