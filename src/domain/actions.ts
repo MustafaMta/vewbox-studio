@@ -402,11 +402,12 @@ export function updateLocation(s: S, id: string, patch: Partial<Omit<Location, '
   return { ...s, locations: s.locations.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: now() } : l)) };
 }
 
-/** The studio drew plates for a location. A MASTER replaces the master; other roles are added. */
+/** The studio drew plates for a location. A new MASTER starts a new plate set (the views and states made from the
+ *  old master no longer match it); other roles are added to the current set. Old pictures stay in the library. */
 export function addLocationRefs(s: S, id: string, refs: LocationRef[]): S {
   const l = mustFind(s.locations, id, 'Location');
   const master = refs.find((r) => r.role === 'MASTER');
-  const kept = master ? l.refs.filter((r) => r.role !== 'MASTER') : l.refs;
+  const kept = master ? [] : l.refs;
   return updateLocation(s, id, { refs: [...kept, ...refs], masterAssetId: master?.assetId ?? l.masterAssetId ?? refs[0]?.assetId });
 }
 
