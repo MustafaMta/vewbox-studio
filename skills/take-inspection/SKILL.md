@@ -2,9 +2,10 @@
 name: take-inspection
 description: How a take, cut or export is inspected and how failures are classified — the measured picture and sound checks, the script-spoken proof, thresholds, the failure classes and what a second attempt must change. Use for QA reports and reliability events.
 license: Proprietary to this studio
-allowed-tools: media.qa_take media.probe speech.transcribe media.align_lag media.validate_export
+allowed-tools: media.qa_take speech.transcribe media.validate_export
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
+  kind: "PROCEDURE"
   source: src/server/media/ffmpeg.ts (qaTake), src/server/org/runs.ts (classifyFailure), src/server/org/preflight.ts
   models: ffmpeg/ffprobe, faster-whisper large-v3
 ---

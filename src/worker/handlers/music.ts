@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler } from './index';
+import { step } from './step';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { command, readState } from '@/server/studio/engine';
@@ -58,7 +59,7 @@ export const generateSong: Handler = async (ctx) => {
   let file: string; let model: string; let requestId: string | undefined; let workflowVersion: string | undefined;
   if (engine === 'minimax-api') {
     let r;
-    try { r = await ctx.tool('music.generate', () => minimax.generateMusic({ prompt: caption, lyrics, instrumental, format: 'mp3' }), { label: 'minimax-api' }); }
+    try { r = await ctx.tool('music.generate', () => minimax.generateMusic({ prompt: caption, lyrics, instrumental, format: 'mp3' }), { label: 'minimax-api', input: { engine: 'minimax-api', caption, lyrics, instrumental } }); }
     catch (e) {
       // the hosted music API is closed to new accounts; say so and let the local engines take over on retry
       const m = (e as Error).message;
@@ -75,7 +76,7 @@ export const generateSong: Handler = async (ctx) => {
 async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullable<Awaited<ReturnType<typeof readState>>['state']['productions'][number]>; caption: string; lyrics: string; seconds: number; instrumental: boolean; language: string; t0: number; engine?: Engine }) {
   const engine = a.engine && a.engine !== 'minimax-api' ? a.engine : await pickLocalEngine();
   const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en' });
-  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine }), { jobId: ctx.job.id });
+  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'audio');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no audio.');
   const dir = await tmpDir('song');
@@ -102,9 +103,13 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnTyp
   const stems = await makeStems(ctx, a.p.id, id, `${a.p.song?.title ?? a.p.title}`);
   const aligned = stems?.vocals ? await alignSongLyrics(ctx, a.p.id, stems.vocals) : undefined;
   // the song is handed to Video Production with its proof: a recording of the right length, stems, and lyrics heard
-  const alignedRatio = aligned && aligned.lines ? aligned.aligned / aligned.lines : 0;
-  const lengthOk = Math.abs(duration - a.seconds) <= Math.max(5, a.seconds * 0.15);
-  await recordQaReport({ productionId: a.p.id, subjectKind: 'SONG', subjectId: id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'duration-as-planned', ok: lengthOk, value: Number(duration.toFixed(1)), threshold: a.seconds }, { name: 'stems-separated', ok: Boolean(stems?.vocals), detail: stems ? 'vocals + accompaniment' : 'no stems' }, { name: 'lyrics-heard-in-vocal', ok: alignedRatio >= 0.5, value: Number(alignedRatio.toFixed(2)), threshold: 0.5, detail: aligned ? `${aligned.aligned} of ${aligned.lines} lines placed` : 'not aligned' }], decision: lengthOk && alignedRatio >= 0.5 ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id, ...(stems?.vocals ? [stems.vocals] : [])], jobId: ctx.job.id, failureClass: lengthOk ? undefined : 'WRONG_PARAMETERS' });
+  // SONG CHECK (the Audio Synchronization Inspector's step): the length as planned, the stems, the lyrics heard
+  const { alignedRatio, lengthOk } = await step(ctx, 'audio-sync-inspector', `song-check: “${a.p.song?.title ?? a.p.title}”`, async () => {
+    const alignedRatio = aligned && aligned.lines ? aligned.aligned / aligned.lines : 0;
+    const lengthOk = Math.abs(duration - a.seconds) <= Math.max(5, a.seconds * 0.15);
+    await recordQaReport({ productionId: a.p.id, subjectKind: 'SONG', subjectId: id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'duration-as-planned', ok: lengthOk, value: Number(duration.toFixed(1)), threshold: a.seconds }, { name: 'stems-separated', ok: Boolean(stems?.vocals), detail: stems ? 'vocals + accompaniment' : 'no stems' }, { name: 'lyrics-heard-in-vocal', ok: alignedRatio >= 0.5, value: Number(alignedRatio.toFixed(2)), threshold: 0.5, detail: aligned ? `${aligned.aligned} of ${aligned.lines} lines placed` : 'not aligned' }], decision: lengthOk && alignedRatio >= 0.5 ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id, ...(stems?.vocals ? [stems.vocals] : [])], jobId: ctx.job.id, failureClass: lengthOk ? undefined : 'WRONG_PARAMETERS' });
+    return { alignedRatio, lengthOk };
+  });
   await recordHandoff({ productionId: a.p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(stems ? Object.values(stems).filter((x): x is string => Boolean(x)) : [])], outputVersions: { song: id, seconds: Math.round(duration) }, validation: { ok: lengthOk && Boolean(stems?.vocals), checks: [{ name: 'song-recorded', ok: true, detail: `${a.model}, ${Math.round(duration)} s` }, { name: 'duration-as-planned', ok: lengthOk }, { name: 'stems-separated', ok: Boolean(stems?.vocals) }, { name: 'lyrics-aligned', ok: alignedRatio >= 0.5, detail: `${Math.round(alignedRatio * 100)} % of the lines placed on the vocal` }] }, jobId: ctx.job.id });
   await ctx.activity('SONG_COMPOSED', `“${a.p.song?.title ?? a.p.title}” composed with ${a.model} (${Math.round(duration)} s)${aligned ? `; ${aligned.aligned} of ${aligned.lines} lyric lines placed on the vocal` : ''}`, { assetId: id, engine: a.engine, seconds: Math.round(duration), aligned });
   return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned, awaitingReview: !(lengthOk && alignedRatio >= 0.5) };
@@ -121,9 +126,10 @@ export async function alignSongLyrics(ctx: Parameters<Handler>[0], productionId:
   await ctx.progress('POSTPROCESSING', { phase: 'aligning', message: 'Placing the lyrics on the vocal track', percent: null });
   try {
     const file = fileFor({ storage: 'LIBRARY', path: String(vocals.provenance?.path ?? '') });
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(file, { language: p.language === 'AR' ? 'ar' : 'en' }), { label: 'vocal stem' }), { jobId: ctx.job.id });
+    const asr = { file, language: p.language === 'AR' ? ('ar' as const) : ('en' as const) };
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'vocal stem', input: asr }), { jobId: ctx.job.id });
     const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
-    const out = await ctx.tool('lyrics.align', async () => alignLyrics(p.song!.sections, words, p.language));
+    const out = await ctx.tool('lyrics.align', async () => alignLyrics(p.song!.sections, words, p.language), { input: { sections: p.song.sections, words, language: p.language } });
     const sections = p.song.sections.map((sec) => {
       const mine = out.filter((l) => l.sectionId === sec.id).sort((x, y) => x.index - y.index);
       if (!mine.length) return sec;
@@ -151,7 +157,7 @@ export async function makeStems(ctx: Parameters<Handler>[0], productionId: strin
   await ctx.progress('POSTPROCESSING', { phase: 'stems', message: 'Separating vocals from the accompaniment', percent: null });
   const dir = await tmpDir('stems');
   try {
-    const r = await ctx.gpu('ASR', 4000, () => ctx.tool('audio.separate_stems', () => separateStems(src, dir)), { jobId: ctx.job.id });
+    const r = await ctx.gpu('ASR', 4000, () => ctx.tool('audio.separate_stems', () => separateStems(src, dir), { input: { file: src, outDir: dir } }), { jobId: ctx.job.id });
     const out: { vocals?: string; instrumental?: string } = {};
     for (const [key, file] of [['vocals', r.files.vocals], ['instrumental', r.files.no_vocals]] as const) {
       if (!file) continue;

@@ -172,7 +172,8 @@ export function ReliabilityPanel({ r }: { r: ReliabilitySummary }) {
 
 export function SkillChip({ s }: { s: OrgSkill }) {
   const T = useT();
-  return <Badge tone={s.status === 'VALIDATED' ? 'ok' : s.status === 'UNAVAILABLE' ? 'warn' : 'neutral'} title={s.status === 'VALIDATED' ? T('studio.skillValidated') : s.status === 'UNAVAILABLE' ? T('studio.skillUnavailable') : T('studio.skillDraft')}><IconSkill aria-hidden />{s.name}</Badge>;
+  const label = s.status === 'VERIFIED' ? T('studio.skillValidated') : s.status === 'UNAVAILABLE' ? T('studio.skillUnavailable') : T('studio.skillDraft');
+  return <Badge tone={s.status === 'VERIFIED' ? 'ok' : s.status === 'UNAVAILABLE' ? 'warn' : 'neutral'} title={s.note ? `${label}: ${s.note}` : label}><IconSkill aria-hidden />{s.name}</Badge>;
 }
 export function ToolChip({ t }: { t: ToolDef }) {
   return <Badge tone="neutral" title={t.description}><IconTool aria-hidden /><span className="font-latin">{t.id}</span></Badge>;

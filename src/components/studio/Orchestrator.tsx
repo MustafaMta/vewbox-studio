@@ -76,7 +76,7 @@ export function CompanyDiagram({ org, selectedEdge, onSelectEdge, onSelectOrches
   const { state } = useStudio();
   const activeIds = state.productions.filter((p) => p.stage !== 'COMPLETE').map((p) => p.id);
   const c = useMemo(() => deriveCompany(org, activeIds), [org, activeIds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
-  const depts = RING.map((id) => org.departments.find((d) => d.id === id)).filter((d): d is DepartmentDef => Boolean(d));
+  const depts = RING.map((id) => org.departments.find((d) => d.id === id)).filter((d): d is OrgResponse['departments'][number] => Boolean(d));
   const pos = ringPositions(depts.length);
   const at = (id: string) => pos[RING.indexOf(id)] ?? { x: 50, y: 50 };
   const [hover, setHover] = useState<string | null>(null);

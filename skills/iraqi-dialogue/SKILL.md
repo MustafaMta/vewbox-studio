@@ -4,7 +4,8 @@ description: Iraqi (Baghdadi) Arabic as a first-class production language — wo
 license: Proprietary to this studio
 allowed-tools: story.structured_answer speech.synthesize speech.transcribe
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
+  kind: "PROCEDURE"
   source: this studio; docs/CONTRACTS-CHARACTER-VOICE.md §1.4–1.5; docs/research/VOICE-STACK.md; suite scripts/iraqi-voice-suite.mjs → docs/evidence/iraqi-suite-v2.md (plan: docs/evidence/iraqi-suite-phase2-plan.md)
   models: qwen3:14b, Habibi-TTS IRQ (F5-TTS v1), IndexTTS 2.5, faster-whisper large-v3
 ---
@@ -40,14 +41,14 @@ metadata:
 - Routing follows the **line's script**, identically in the worker and the suite (`routeLine`): Arabic script → the
   character's engine (Iraqi dialect → Habibi-TTS IRQ); two or more Latin letters next to Arabic (`MIXED`) or a Latin-only
   line → IndexTTS 2.5, with a job event naming the fallback. The identity's `model` is never changed by a fallback.
-- Every line is spoken with the identity's pinned parameters: `seed`, `speed`, Habibi `nfeStep` / `cfgStrength` /
-  `swaySamplingCoef`, IndexTTS `emotionAlpha`; the service reports the `engineVersion`, the seed it used, and the true
-  peak after its limiter (−1 dBTP, no clipping).
-- Verification (`verifyLine`): transcribe in the line's language, then **CER ≤ 0.15 and coverage ≥ 0.85** after the
+- Every line is spoken with the identity's pinned `seed`, `speed` and `emotionAlpha`; the service reports the engine
+  version, the seed it used, and the true peak after its limiter (−1 dBTP, no clipping).
+- Verification in the worker (`verifyLine`): transcribe in the line's language, then **coverage ≥ 0.85** after the
   Iraqi fold (`normalizeIraqi`: گ/ق/ك and چ/ج as one class each, hamza forms, ة/ه, ى/ي, diacritics, attached ما/و,
-  spelled numbers, the Iraqi/MSA word table — اني/انا, هسه/الان, شلون/كيف, باچر/بكرة…). `verdict()` gives PASS / REVIEW /
-  FAIL; FAIL regenerates once, REVIEW goes to a person, and an ASR outage is REVIEW — never a silent pass. Raw WER is
-  reported next to it, not gated: it charges Whisper's MSA spellings («گلتلي» → «قلتلي») as errors.
+  spelled numbers, the Iraqi/MSA word table — اني/انا, هسه/الان, شلون/كيف, باچر/بكرة…). A line below the gate is
+  regenerated once, then flagged; an ASR outage flags the line as unverified — never a silent pass. Raw WER is
+  reported next to it, not gated: it charges Whisper's MSA spellings («گلتلي» → «قلتلي») as errors. The suite adds
+  CER ≤ 0.15 and `verdict()` (PASS / REVIEW / FAIL); the worker does not apply them yet.
 
 ## The suite
 

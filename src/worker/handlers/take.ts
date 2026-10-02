@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler } from './index';
+import { step } from './step';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
@@ -42,14 +43,16 @@ export const generateTake: Handler = async (ctx) => {
   const backend = chooseBackend();
 
   await ctx.progress('PREPARING', { phase: 'preparing', message: 'Gathering references and writing the prompt' });
-  // PREFLIGHT — the request is refused before the engine is touched when it could not succeed: a failed check is a
-  // classified failure the producer corrects, not an attempt the engine burns
-  const preflight = preflightTake(state, p, sh, { backend, customPrompt: Boolean(payload.prompt) });
-  await ctx.event(preflight.ok ? 'info' : 'error', `preflight ${preflight.ok ? 'passed' : 'FAILED'}`, { checks: preflight.checks });
-  if (!preflight.ok) {
-    const failed = preflight.checks.filter((c) => !c.ok);
-    throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
-  }
+  // PREFLIGHT (the Executive Producer's step) — the request is refused before the engine is touched when it could not
+  // succeed: a failed check is a classified failure the producer corrects, not an attempt the engine burns
+  await step(ctx, 'executive-producer', `take-preflight: shot ${sh.number}`, async () => {
+    const preflight = preflightTake(state, p, sh, { backend, customPrompt: Boolean(payload.prompt) });
+    await ctx.event(preflight.ok ? 'info' : 'error', `preflight ${preflight.ok ? 'passed' : 'FAILED'}`, { checks: preflight.checks });
+    if (!preflight.ok) {
+      const failed = preflight.checks.filter((c) => !c.ok);
+      throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
+    }
+  });
   const prompt = payload.prompt?.trim() || takePrompt(p, sh, cast, loc, scene);
   let seconds = Math.min(15, Math.max(4, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it
@@ -100,7 +103,7 @@ export const generateTake: Handler = async (ctx) => {
       if (!text) continue;
       const have = storedLine(d);
       if (have) {
-        const dur = have.durationSeconds ?? d.durationSeconds ?? (await ctx.tool('media.probe', () => ffprobe(assetFile(have)))).durationSeconds ?? 2;
+        const dur = have.durationSeconds ?? d.durationSeconds ?? (await ctx.tool('media.probe', () => ffprobe(assetFile(have)), { input: { file: assetFile(have) } })).durationSeconds ?? 2;
         spoken.push({ file: assetFile(have), durationSeconds: dur, lineId: d.id, assetId: have.id, check: (have.provenance?.check as LineCheck | null | undefined) ?? null, reused: true });
         continue;
       }
@@ -160,28 +163,34 @@ export const generateTake: Handler = async (ctx) => {
   }
   if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
 
+  // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the usable portrait of each character in the shot
+  // (at most four, in the shot's order); a bundled sample or an SVG is never an identity reference
+  const identity: Array<{ characterId: string; asset: Asset }> = sh.characterIds.length
+    ? await step(ctx, 'character-continuity', `identity-handoff: shot ${sh.number}`, async () => sh.characterIds.slice(0, 4).flatMap((cid) => { const a = byId(cast.find((x) => x.id === cid)?.portraitAssetId); return usableImage(a) ? [{ characterId: cid, asset: a! }] : []; }))
+    : [];
+  // REFERENCE SELECTION (the Reference Conditioning Agent's step)
   // 4) PICTURES. With a drawn opening frame the clip starts on it (first-frame conditioning); otherwise identity comes
   //    from reference pictures: the characters' portraits and the location plate. A continuation starts on the guide
   //    instead of the drawn frame.
-  const firstFrame = !continuation && usableImage(opening) ? { file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' } : undefined;
-  const lastFrame = !continuation && usableImage(ending) ? { file: assetFile(ending!), mime: ending!.mimeType ?? 'image/png' } : undefined;
-  if (firstFrame) references.push({ kind: 'FIRST_FRAME', assetId: opening!.id });
-  if (lastFrame) references.push({ kind: 'LAST_FRAME', assetId: ending!.id });
-  const referenceImages: Array<{ file: string; mime: string }> = [];
-  if (!firstFrame) {
-    if (usableImage(opening)) { referenceImages.push({ file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' }); references.push({ kind: 'FIRST_FRAME', assetId: opening!.id, note: 'as reference picture' }); }
-    for (const cid of sh.characterIds.slice(0, 4)) {
-      const c = cast.find((x) => x.id === cid); const a = byId(c?.portraitAssetId);
-      if (usableImage(a)) { referenceImages.push({ file: assetFile(a!), mime: a!.mimeType ?? 'image/png' }); references.push({ kind: 'CHARACTER', assetId: a!.id, characterId: cid }); }
-    }
-    const plate = byId(loc?.masterAssetId);
-    if (usableImage(plate)) { referenceImages.push({ file: assetFile(plate!), mime: plate!.mimeType ?? 'image/png' }); references.push({ kind: 'LOCATION', assetId: plate!.id, locationId: loc?.id }); }
-  }
   // 5) VOICE TIMBRE for shots that still speak natively (no soundtrack): the chosen voice sample as audio reference
-  const referenceAudio: Array<{ file: string }> = [];
-  if (!soundtrackFile && referenceImages.length > 0) {
-    for (const cid of speakers.slice(0, 3)) { const v = voices.get(cid); if (v) { referenceAudio.push({ file: v.file }); references.push({ kind: 'AUDIO', assetId: v.asset.id, characterId: cid, note: 'voice timbre' }); } }
-  }
+  const { firstFrame, lastFrame, referenceImages, referenceAudio } = await step(ctx, 'reference-conditioning', `reference-selection: shot ${sh.number}`, async () => {
+    const firstFrame = !continuation && usableImage(opening) ? { file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' } : undefined;
+    const lastFrame = !continuation && usableImage(ending) ? { file: assetFile(ending!), mime: ending!.mimeType ?? 'image/png' } : undefined;
+    if (firstFrame) references.push({ kind: 'FIRST_FRAME', assetId: opening!.id });
+    if (lastFrame) references.push({ kind: 'LAST_FRAME', assetId: ending!.id });
+    const referenceImages: Array<{ file: string; mime: string }> = [];
+    if (!firstFrame) {
+      if (usableImage(opening)) { referenceImages.push({ file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' }); references.push({ kind: 'FIRST_FRAME', assetId: opening!.id, note: 'as reference picture' }); }
+      for (const { characterId, asset: a } of identity) { referenceImages.push({ file: assetFile(a), mime: a.mimeType ?? 'image/png' }); references.push({ kind: 'CHARACTER', assetId: a.id, characterId }); }
+      const plate = byId(loc?.masterAssetId);
+      if (usableImage(plate)) { referenceImages.push({ file: assetFile(plate!), mime: plate!.mimeType ?? 'image/png' }); references.push({ kind: 'LOCATION', assetId: plate!.id, locationId: loc?.id }); }
+    }
+    const referenceAudio: Array<{ file: string }> = [];
+    if (!soundtrackFile && referenceImages.length > 0) {
+      for (const cid of speakers.slice(0, 3)) { const v = voices.get(cid); if (v) { referenceAudio.push({ file: v.file }); references.push({ kind: 'AUDIO', assetId: v.asset.id, characterId: cid, note: 'voice timbre' }); } }
+    }
+    return { firstFrame, lastFrame, referenceImages, referenceAudio };
+  });
   await ctx.event('info', 'take request prepared', { backend, seconds, soundtrack: soundtrack?.kind, continuation: Boolean(continuation), prompt: prompt.slice(0, 500), references });
 
   const t0 = Date.now();
@@ -189,21 +198,27 @@ export const generateTake: Handler = async (ctx) => {
   // the local engine runs under the GPU lease (one model family on the card at a time; other services unload
   // first); the hosted API needs no card and runs in the hosted lane's concurrency
   const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', 28000, fn, { jobId: ctx.job.id }) : fn());
-  const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
+  // the request as the contract sees it (the callbacks below are the job's own plumbing)
+  const request = {
     prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,
     seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
+  };
+  const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
+    ...request,
     onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
-  }), { label: backend }));
+  }), { label: backend, input: request }));
   const genMs = Date.now() - t0;
   await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
   if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
-  // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent
-  const { report, probe } = await ctx.tool('media.qa_take', () => qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' }));
+  // PICTURE CHECK (the Visual Quality Inspector's step). MiniMax H3 always renders a soundtrack; a shot with no lines
+  // may legitimately be near-silent
+  const qa = { file: result.file, expect: { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' } };
+  const { report, probe } = await step(ctx, 'visual-quality-inspector', `picture-check: shot ${sh.number}`, (tool) => tool('media.qa_take', () => qaTake(qa.file, qa.expect), { input: qa }));
   const pictureChecks = report.checks.map((c) => ({ ...c }));
   await ctx.checkpoint();
   let scriptCheck: { ok: boolean; coverage?: number; wer?: number; heard?: string; detail?: string } | undefined;
@@ -213,25 +228,32 @@ export const generateTake: Handler = async (ctx) => {
   // with the script, and each line is placed where it is actually spoken. A take that does not say its lines fails.
   if (sh.dialogue.length && backend === 'local' && p.kind !== 'MUSIC_VIDEO') {
     try {
-      const wav = path.join(work, 'take-audio.wav');
-      await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
-      const lines = sh.dialogue.map((d) => ({ en: d.text, ar: d.textAr || d.text }));
-      const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
-      // the verification language follows the script of the lines (routing parity), not the production's setting
-      const heardIn = lineLanguage(expected, p.language);
-      const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(wav, { language: heardIn === 'AR' ? 'ar' : 'en' }), { label: 'take audio' }), { jobId: ctx.job.id });
-      const wer = wordErrorRate(expected, t.text, heardIn);
-      // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
-      // missing line); the take passes when the lines were spoken, and the report carries both numbers
-      const coverage = scriptCoverage(expected, t.text, heardIn);
-      report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${t.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
-      scriptCheck = { ok: coverage >= 0.7, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200) };
+      // SPEECH CHECK (the Audio Synchronization Inspector's step): the clip's sound is transcribed, compared with the
+      // script, and each line is placed where it is actually spoken
+      const heard = await step(ctx, 'audio-sync-inspector', `take-speech-check: shot ${sh.number}`, async (tool) => {
+        const wav = path.join(work, 'take-audio.wav');
+        await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
+        const lines = sh.dialogue.map((d) => ({ en: d.text, ar: d.textAr || d.text }));
+        const expected = lines.map((l) => (p.language === 'AR' ? l.ar : l.en)).join(' ');
+        // the verification language follows the script of the lines (routing parity), not the production's setting
+        const heardIn = lineLanguage(expected, p.language);
+        const asr = { file: wav, language: heardIn === 'AR' ? ('ar' as const) : ('en' as const) };
+        const t = await ctx.gpu('ASR', 4000, () => tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'take audio', input: asr }), { jobId: ctx.job.id });
+        const wer = wordErrorRate(expected, t.text, heardIn);
+        // coverage: how much of the script was heard, in order (a repeated phrase counts against WER but is not a
+        // missing line); the take passes when the lines were spoken, and the report carries both numbers
+        const coverage = scriptCoverage(expected, t.text, heardIn);
+        const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
+        const clipSeconds = probe.durationSeconds ?? seconds;
+        const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, heardIn);
+        return { text: t.text, wer, coverage, clipSeconds, placed };
+      });
+      const { wer, coverage, clipSeconds, placed } = heard;
+      report.checks.push({ name: 'script-spoken', ok: coverage >= 0.7, value: Number(coverage.toFixed(2)), threshold: 0.7, detail: `heard: ${heard.text.slice(0, 160)} (WER ${wer.toFixed(2)})` });
+      scriptCheck = { ok: coverage >= 0.7, coverage: Number(coverage.toFixed(2)), wer: Number(wer.toFixed(2)), heard: heard.text.slice(0, 200) };
       if (coverage < 0.7) report.ok = false;
-      const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
-      const clipSeconds = probe.durationSeconds ?? seconds;
-      const placed = alignLyrics([{ id: 'take', kind: 'VERSE', from: 0, to: clipSeconds, singerIds: [], text: lines.map((l) => l.en).join('\n'), textAr: lines.map((l) => l.ar).join('\n') }], words, heardIn);
       soundtrack = { kind: 'DIALOGUE', assetId: soundtrack?.assetId, lines: sh.dialogue.map((d, i) => { const w = placed[i]; return { lineId: d.id, from: w?.from ?? 0, to: w?.to ?? clipSeconds }; }) };
-      await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: t.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
+      await ctx.event('info', 'lines placed on the take', { wer: Number(wer.toFixed(2)), heard: heard.text.slice(0, 200), lines: placed.map((w) => ({ from: Number(w.from.toFixed(2)), to: Number(w.to.toFixed(2)), method: w.method, confidence: w.confidence })) });
     } catch (e) {
       // the take could not be heard back: it is not passed on trust. The picture checks stand (the take stays
       // READY, so nobody regenerates it blindly), but the script check is recorded as not passed, the take is not
