@@ -1,29 +1,27 @@
 import type { CreateCharacterResult, Job, JobPayload, JobType } from '@/domain/jobs';
-import type { Character, IdentityView, VideoUsage, VoiceIdentity, VoiceSample } from '@/domain/types';
-import { IDENTITY_VIEWS } from '@/domain/types';
+import type { Character, VideoUsage, VoiceIdentity, VoiceSample } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
 import { isCommandName } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
 
 /** THE CONTRACTS, AS THE FRONTEND CODES AGAINST THEM — docs/CONTRACTS-CHARACTER-VOICE.md §1.1, §1.2, §1.4 and
- *  docs/CONTRACTS-IDENTITY-PACK.md §2–§3. The shapes live in src/domain/*; this file names the frontend's views of
- *  them and is the ONLY place the character pages cast: the identity-pack commands and job payloads are being built
- *  in parallel on the backend, so until they merge the casts below bridge the names. After the merge each one
+ *  docs/CONTRACTS-IDENTITY-PACK.md (v2: one canonical front full-body image + one voice identity). The shapes live
+ *  in src/domain/*; this file names the frontend's views of them and is the ONLY place the character pages cast: the
+ *  canonical-image command, the creation chain's new step names and the secondary-material payload are being built
+ *  on the backend in parallel, so until they merge the casts below bridge the names. After the merge each one
  *  becomes a plain typed call (search this file for `PENDING-BACKEND`). */
 
 /* ---- the creation chain (CREATE_CHARACTER) ------------------------------------------------------------------ */
 
-/** The steps as the identity-pack contract names them: design → front → sides → voice, then the pack waits for the
- *  producer's approval. */
-export type CreateStepName = 'design' | 'front' | 'sides' | 'voice';
-export const CREATE_STEPS: readonly CreateStepName[] = ['design', 'front', 'sides', 'voice'];
+/** The steps as contract v2 names them: design → image → voice, then the image waits for the producer's approval. */
+export type CreateStepName = 'design' | 'image' | 'voice';
+export const CREATE_STEPS: readonly CreateStepName[] = ['design', 'image', 'voice'];
 /** The child job each step runs. */
-export const STEP_JOB: Record<CreateStepName, JobType> = { design: 'DESIGN_CHARACTER', front: 'CHARACTER_APPEARANCE', sides: 'CHARACTER_REFS', voice: 'VOICE_BUILD' };
-/** PENDING-BACKEND: the wave-2 chain reported 'appearance' (the portrait) and 'sheet' (the reference views); they map
- *  onto front and sides so a result from either backend reads the same. */
+export const STEP_JOB: Record<CreateStepName, JobType> = { design: 'DESIGN_CHARACTER', image: 'CHARACTER_APPEARANCE', voice: 'VOICE_BUILD' };
+/** PENDING-BACKEND: the wave-2 chain reported 'appearance' (the portrait) and 'sheet' (reference views). 'appearance'
+ *  is the image step; the sheet is no longer part of creation, so a 'sheet' outcome is not a row of the stepper. */
 export function normaliseStep(step: string): CreateStepName | null {
-  if (step === 'appearance') return 'front';
-  if (step === 'sheet') return 'sides';
+  if (step === 'appearance' || step === 'front') return 'image';
   return (CREATE_STEPS as readonly string[]).includes(step) ? (step as CreateStepName) : null;
 }
 
@@ -33,8 +31,8 @@ export type CharacterProfileInput = Pick<Character, 'name' | 'nameAr' | 'role' |
 /** contract §1.1 — `CREATE_CHARACTER` payload (zod `JOB_PAYLOADS.CREATE_CHARACTER`). */
 export type CreateCharacterPayload = JobPayload<'CREATE_CHARACTER'>;
 export interface CreateStepOutcome { step: CreateStepName; status: 'done' | 'skipped' | 'failed'; jobId?: string; reason?: string; failureClass?: string }
-/** The parent's result with the steps under their identity-pack names; `awaitingApproval` is the identity-pack
- *  chain's last word ("the result says awaiting approval"). */
+/** The parent's result with the steps under their v2 names; `awaitingApproval` is the chain's last word ("ending
+ *  awaiting your approval"). */
 export interface CreateResultView { characterId: string; steps: CreateStepOutcome[]; awaitingApproval: boolean }
 export type { CreateCharacterResult };
 
@@ -74,7 +72,7 @@ export const startCreateCharacter = (startJob: StartJob, payload: CreateCharacte
 export const startVoiceBuild = (startJob: StartJob, payload: VoiceBuildPayload, opts?: { idempotencyKey?: string }): Promise<Job> => startJob('VOICE_BUILD', payload, opts);
 
 export const isCreateCharacterJob = (j: Job): boolean => j.type === 'CREATE_CHARACTER';
-/** The parent's result, steps renamed to the identity-pack chain (an unknown step name is dropped, never guessed). */
+/** The parent's result, steps under their v2 names (a step that is not part of the chain any more is dropped). */
 export const createResultOf = (j: Job | undefined): CreateResultView | null => {
   const r = j?.result as { characterId?: unknown; steps?: unknown; awaitingApproval?: unknown; status?: unknown } | undefined;
   if (!r || typeof r.characterId !== 'string' || !Array.isArray(r.steps)) return null;
@@ -82,56 +80,38 @@ export const createResultOf = (j: Job | undefined): CreateResultView | null => {
   return { characterId: r.characterId, steps, awaitingApproval: r.awaitingApproval === true || r.status === 'AWAITING_APPROVAL' };
 };
 
-/* ---- the identity pack: jobs ------------------------------------------------------------------------------- */
+/* ---- the canonical image: jobs ----------------------------------------------------------------------------- */
 
-/** Optional material drawn on request (never by default): a portrait close-up, expressions, outfits. */
+/** Draw (or redraw) the canonical image: a new version, DRAFT until approved; the previous image becomes RAW. */
+export const startDrawImage = (startJob: StartJob, characterId: string): Promise<Job> => startJob('CHARACTER_APPEARANCE', { characterId });
+
+/** Optional material drawn on request only (never by creation): a portrait close-up, expressions, outfits. */
 export const SECONDARY_KINDS = ['PORTRAIT', 'EXPRESSION', 'OUTFIT'] as const;
 export type SecondaryKind = (typeof SECONDARY_KINDS)[number];
-/** The three views drawn from the FRONT view. */
-export const SIDE_VIEWS: readonly IdentityView[] = ['RIGHT', 'LEFT', 'BACK'];
-
-/** PENDING-BACKEND: `CHARACTER_REFS { characterId, views?, secondary? }` (the wave-2 payload had `roles`). */
-interface RefsPayloadV3 { characterId: string; views?: IdentityView[]; secondary?: SecondaryKind[] }
-const startRefs = (startJob: StartJob, payload: RefsPayloadV3, opts?: { idempotencyKey?: string }) => startJob('CHARACTER_REFS', payload as unknown as JobPayload<'CHARACTER_REFS'>, opts);
-
-/** Draw the FRONT view: a new pack version starts (the sides are then drawn again from it). */
-export const startDrawFront = (startJob: StartJob, characterId: string): Promise<Job> => startJob('CHARACTER_APPEARANCE', { characterId });
-/** Draw (or redraw) directional views from the FRONT view. */
-export const startDrawViews = (startJob: StartJob, characterId: string, views: readonly IdentityView[]): Promise<Job> => startRefs(startJob, { characterId, views: [...views] });
-/** Draw optional secondary material. */
-export const startSecondary = (startJob: StartJob, characterId: string, kinds: readonly SecondaryKind[]): Promise<Job> => startRefs(startJob, { characterId, secondary: [...kinds] });
-
-const isView = (v: unknown): v is IdentityView => typeof v === 'string' && (IDENTITY_VIEWS as readonly string[]).includes(v);
-/** The identity views a job draws: FRONT for CHARACTER_APPEARANCE; for CHARACTER_REFS the `views` it names (the
- *  wave-2 `roles` too), RIGHT/LEFT/BACK when it names none, and none at all when it draws secondary material. */
-export function jobViews(j: Pick<Job, 'type' | 'payload'>): IdentityView[] {
-  if (j.type === 'CHARACTER_APPEARANCE') return ['FRONT'];
-  if (j.type !== 'CHARACTER_REFS') return [];
-  const p = j.payload as { views?: unknown; roles?: unknown; secondary?: unknown };
-  if (Array.isArray(p.secondary) && p.secondary.length > 0) return [];
-  const named = Array.isArray(p.views) ? p.views : Array.isArray(p.roles) ? p.roles : null;
-  if (!named) return [...SIDE_VIEWS];
-  return named.filter(isView);
-}
-/** The secondary kinds a CHARACTER_REFS job draws. */
+/** PENDING-BACKEND: `CHARACTER_REFS { characterId, secondary }` (the wave-2 payload named `roles`). */
+export const startSecondary = (startJob: StartJob, characterId: string, kinds: readonly SecondaryKind[]): Promise<Job> => startJob('CHARACTER_REFS', { characterId, secondary: [...kinds] } as unknown as JobPayload<'CHARACTER_REFS'>);
+/** The secondary kinds a CHARACTER_REFS job draws (the wave-2 `roles` EXPRESSION / OUTFIT count too). */
 export function jobSecondary(j: Pick<Job, 'type' | 'payload'>): SecondaryKind[] {
   if (j.type !== 'CHARACTER_REFS') return [];
-  const s = (j.payload as { secondary?: unknown }).secondary;
-  return Array.isArray(s) ? s.filter((x): x is SecondaryKind => (SECONDARY_KINDS as readonly string[]).includes(String(x))) : [];
+  const p = j.payload as { secondary?: unknown; roles?: unknown };
+  const named = Array.isArray(p.secondary) ? p.secondary : Array.isArray(p.roles) ? p.roles : [];
+  return named.map(String).filter((x): x is SecondaryKind => (SECONDARY_KINDS as readonly string[]).includes(x));
 }
 
-/* ---- the identity pack: commands --------------------------------------------------------------------------- */
+/* ---- the canonical image: commands ------------------------------------------------------------------------- */
 
-/** PENDING-BACKEND: `approveIdentityPack(characterId, version, override?)` is a producer command the backend adds.
- *  Until it exists the call refuses in words instead of throwing a TypeError from the command table. */
-export const identityCommandsReady = (): boolean => isCommandName('approveIdentityPack');
-export function approveIdentityPack(act: unknown, characterId: string, version: number, override?: string): void {
-  if (!identityCommandsReady()) throw new StudioError('NOT_CONFIGURED', 'Approving an identity needs the identity-pack update of the studio server.');
+/** PENDING-BACKEND: `approveCanonicalImage(characterId, version, override?)` is the producer's command (refused for a
+ *  stale version; a failed check needs the override reason). Until it exists the call refuses in words instead of
+ *  throwing a TypeError from the command table. */
+export const canonicalCommandsReady = (): boolean => isCommandName('approveCanonicalImage');
+export function approveCanonicalImage(act: unknown, characterId: string, version: number, override?: string): void {
+  if (!canonicalCommandsReady()) throw new StudioError('NOT_CONFIGURED', 'Approving the image needs the canonical-image update of the studio server.');
   const run = act as (name: string, ...args: unknown[]) => unknown;
-  run('approveIdentityPack', characterId, version, ...(override ? [override] : []));
+  run('approveCanonicalImage', characterId, version, ...(override ? [override] : []));
 }
 
 /* ---- usage ------------------------------------------------------------------------------------------------- */
 
-/** PENDING-BACKEND: "a shot records the pack version it used" — read from the usage record when it carries one. */
-export const usagePackVersion = (v: VideoUsage): number | undefined => { const n = (v as VideoUsage & { packVersion?: unknown }).packVersion; return typeof n === 'number' ? n : undefined; };
+/** PENDING-BACKEND: "recorded on the usage of a take so a shot knows which image it was made with" — read from the
+ *  usage record when it carries the canonical image version. */
+export const usageImageVersion = (v: VideoUsage): number | undefined => { const r = v as VideoUsage & { imageVersion?: unknown; canonicalVersion?: unknown }; const n = r.imageVersion ?? r.canonicalVersion; return typeof n === 'number' ? n : undefined; };
