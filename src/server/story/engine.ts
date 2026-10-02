@@ -121,9 +121,12 @@ For a new character "appearance" is one dense sentence of how they look (age, bu
     for (const c of cast) if (c.characterId && show.castIds.includes(c.characterId) && !c.fromPreference) c.reason = c.reason && c.reason !== returning ? `${returning} ${c.reason}` : returning;
     for (const id of show.castIds.slice(0, 6)) { const m = s.characters.find((x) => x.id === id); if (m && !cast.some((c) => c.characterId === id)) cast.push({ key: `c-${id}`, characterId: id, name: m.name, role: m.role, reason: returning, isNew: false, fromPreference: false, sex: m.sex, ageYears: m.ageYears, appearance: undefined, personality: undefined }); }
   }
-  const locations = out.locations.map((l, i) => {
+  // two of the model's places that resolve to the same existing location are one offer (one key, one checkbox)
+  const locations: IdeaProposal['locations'] = [];
+  out.locations.forEach((l, i) => {
     const existing = resolveLoc(l.existingLocationId, l.name);
-    return { key: existing ? `l-${existing.id}` : `new-l-${i}`, locationId: existing?.id, name: existing?.name ?? l.name, description: existing?.description ?? l.description, isNew: !existing, fromPreference: Boolean(existing && mustLocs.some((m) => m.id === existing.id)), kind: l.kind ?? existing?.kind };
+    if (existing && locations.some((x) => x.locationId === existing.id)) return;
+    locations.push({ key: existing ? `l-${existing.id}` : `new-l-${i}`, locationId: existing?.id, name: existing?.name ?? l.name, description: existing?.description ?? l.description, isNew: !existing, fromPreference: Boolean(existing && mustLocs.some((m) => m.id === existing.id)), kind: l.kind ?? existing?.kind });
   });
   for (const m of mustLocs) if (!locations.some((l) => l.locationId === m.id)) locations.unshift({ key: `l-${m.id}`, locationId: m.id, name: m.name, description: m.description, isNew: false, fromPreference: true, kind: m.kind });
   if (show) for (const id of show.locationIds.slice(0, 3)) { const m = s.locations.find((x) => x.id === id); if (m && !locations.some((l) => l.locationId === id)) locations.push({ key: `l-${id}`, locationId: id, name: m.name, description: m.description, isNew: false, fromPreference: false, kind: m.kind }); }

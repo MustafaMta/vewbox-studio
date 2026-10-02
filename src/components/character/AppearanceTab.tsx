@@ -22,8 +22,9 @@ import { fmtBytes } from '@/lib/format';
 
 /** The identity sheet, in a fixed order; FACE is the crop the portrait rests on, OUTFIT is a wardrobe variant. */
 export const SHEET_VIEWS: CharacterRefRole[] = ['FRONT', 'THREE_QUARTER', 'SIDE', 'BACK', 'FULL_BODY', 'EXPRESSION'];
-/** The Image agent may add `view` to a ref (append-only); until then the role is the view. */
-const viewOf = (r: Character['refs'][number]): string => (r as { view?: string }).view ?? r.role;
+/** The ROLE is the view a tile stands for; `ref.view` is provenance (how it was drawn: 'SHEET_TILE' for a tile
+ *  cut from the identity sheet, 'FACE' for the crop, else the view name) and never decides where a tile sits. */
+const viewOf = (r: Character['refs'][number]): string => r.role;
 
 /** APPEARANCE — the portrait beside the generate card with the reference → result pair; the running job's phase
  *  sits in the result frame where the eye waits, a failure sits there with its one recovery action, and a picture
