@@ -2,11 +2,17 @@ import type { Asset, StudioState } from '@/domain/types';
 import type { Command } from '@/domain/commands';
 import type { Job, JobEvent, JobPayload, JobType } from '@/domain/jobs';
 import { StudioError, type StudioErrorCode } from '@/domain/errors';
+import type { VoiceReferenceResult } from '@/components/character/contract';
 
 /** THE BROWSER'S VIEW OF THE API — thin typed fetchers. Every error becomes a StudioError with the server's code
  *  and message, so pages can show the reason rather than "request failed". */
 
 export interface Capabilities { minimax: boolean; llm: string | null; anthropic: boolean; openaiCompatible: boolean; comfyui: string; tts: string; asr: string; videoModel: string; videoResolution: string }
+/** Live engine health from GET /api/status: whether each engine is reachable right now, and where it runs. */
+export interface EngineHealth { ok: boolean; detail: string; where: 'hosted' | 'local' | null; backend?: string; model?: string }
+export interface EngineStatus { video: EngineHealth; story: EngineHealth; images: EngineHealth; voice: EngineHealth; transcription: EngineHealth; music: EngineHealth; gpu: { device?: string; vramTotal?: number; vramFree?: number } | null; minimaxConfigured: boolean }
+/** contract §1.2 — the validation `POST /api/assets` returns for `purpose: 'character-reference'`. */
+export interface ImageReferenceValidation { ok: boolean; width: number; height: number; sharpness?: number; faces?: number; faceBoxHeight?: number; reasons: string[] }
 export interface SnapshotResponse { state: StudioState; version: number; hash: string; seeded: { kind: string | null; at: string | null; version: number } | null; capabilities: Capabilities }
 export type BatchResponse = { ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } };
 
@@ -41,6 +47,38 @@ export const api = {
     const r = await parse<{ asset: Asset }>(await fetch('/api/assets', { method: 'POST', body: fd }));
     return r.asset;
   },
+  /** contract §1.2 — a character reference picture: `expect: IMAGE`, `purpose: 'character-reference'`; the server
+   *  measures it (size, sharpness, one face) and answers with the asset and the validation. The caller refreshes the
+   *  snapshot afterwards so the asset appears in the library. */
+  uploadReference: async (file: File, meta: { label?: string; tags?: string[] }): Promise<{ asset: Asset; validation?: ImageReferenceValidation }> => {
+    const fd = new FormData();
+    fd.set('file', file, file.name);
+    fd.set('expect', 'IMAGE'); fd.set('purpose', 'character-reference');
+    if (meta.label) fd.set('label', meta.label);
+    if (meta.tags?.length) fd.set('tags', meta.tags.join(','));
+    return parse<{ asset: Asset; validation?: ImageReferenceValidation }>(await fetch('/api/assets', { method: 'POST', body: fd }));
+  },
+  /** contract §1.4 — `POST /api/characters/{id}/voice-reference` (multipart: file, label, language, dialect). The
+   *  server validates the recording (duration, sample rate, loudness, peak, speech by ASR, language), trims the window
+   *  and records the sample; a refusal comes back as `{ ok: false, code, message }` (HTTP 4xx), not as an exception. */
+  uploadVoiceReference: async (id: string, file: File, meta: { label?: string; language?: string; dialect?: string; transcript?: string }): Promise<VoiceReferenceResult> => {
+    const fd = new FormData();
+    fd.set('file', file, file.name);
+    if (meta.label) fd.set('label', meta.label);
+    if (meta.language) fd.set('language', meta.language);
+    if (meta.dialect) fd.set('dialect', meta.dialect);
+    if (meta.transcript) fd.set('transcript', meta.transcript);
+    const res = await fetch(`/api/characters/${encodeURIComponent(id)}/voice-reference`, { method: 'POST', body: fd });
+    const text = await res.text();
+    let body: unknown = null;
+    try { body = text ? JSON.parse(text) : null; } catch { /* not json */ }
+    const b = body as { ok?: boolean; code?: string; message?: string; error?: { code?: string; message?: string } } | null;
+    if (b && b.ok === false && b.code) return b as VoiceReferenceResult;
+    if (!res.ok) throw new StudioError((b?.error?.code as StudioErrorCode) ?? 'UNAVAILABLE', b?.error?.message ?? b?.message ?? `The server answered ${res.status}.`);
+    return b as unknown as VoiceReferenceResult;
+  },
+  /** Live engine health (GET /api/status), for gating a GPU button before it is pressed. */
+  status: () => fetch('/api/status', { cache: 'no-store' }).then((r) => parse<EngineStatus>(r)),
   deleteAsset: (id: string) => fetch(`/api/assets/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => parse<{ ok: true }>(r)),
   reset: (kind: 'sample' | 'empty') => fetch('/api/studio/reset', jsonInit('POST', { kind })).then((r) => parse<{ version: number; hash: string }>(r)),
   jobs: (q: { productionId?: string; active?: boolean; limit?: number } = {}) => {
