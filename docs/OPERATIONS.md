@@ -51,6 +51,13 @@ Activity (`/jobs`) lists every job with its phase, attempt, error and log. From 
 Backoff after a retryable failure: 15 s, 1 min, 4 min, then 15 min, with jitter. Attempts per type are set in
 `src/server/jobs/queue.ts` (`DEFAULT_ATTEMPTS`).
 
+## Several workers
+
+Any number of workers can share the queue (the host's `pnpm worker` beside the `worker` container, or several
+containers). They must run the same code: during host development stop the container worker
+(`docker compose stop worker`), or rebuild it (`docker compose build worker && docker compose up -d worker`) after
+pulling, otherwise an older worker may handle a job with older rules.
+
 ## GPU
 
 One model family holds the card at a time (image, video, voice, transcription, music). The worker's GPU lease asks

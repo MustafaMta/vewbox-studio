@@ -58,14 +58,15 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 
 ## VRAM plan (32 GB)
 
-| Family | Resident set (approx.) | Concurrency |
+| Family | Measured on the RTX 5090 | Concurrency |
 |---|---|---|
-| MiniMax H3 fl2va int8 + nvfp4 encoder | ~28 GB peak during a 768p 8 s clip | 1 |
-| Qwen-Image-Edit fp8 + encoder fp8 | ~24 GB | 1 |
-| IndexTTS 2.5 / Habibi | 3–5 GB | 1 (unloads on request) |
-| faster-whisper large-v3 fp16 | ~3.5 GB | 1 |
-| ACE-Step 1.5 XL | ~14 GB | 1 |
-| qwen3:14b (Ollama, Q4) | ~10 GB, unloads after 2 min idle | 1 |
+| MiniMax H3 fl2va int8 + nvfp4 encoder | 22–32 GB card total while generating (DiT staged dynamically, 20 GB); 60–95 s per 3.75–5.9 s clip at 1344×768, 8 turbo steps ≈ 7 s each | 1 (ComfyUI serialises) |
+| Qwen-Image-Edit fp8 + encoder fp8 | to be measured (weights in flight) | 1 |
+| IndexTTS 2.5 / Habibi | to be measured | 1 (unloads on request) |
+| faster-whisper large-v3 fp16 | ~3.7 GB; 6 s of speech in 1.2 s warm, 8.9 s with the first load | 1 |
+| Demucs htdemucs | ~2.3 GB; 1.5 s clip in ~1 s warm, 27 s with the first download + load | 1 |
+| ACE-Step 1.5 XL | to be measured | 1 |
+| qwen3:14b (Ollama, Q4) | 10 GB, 100% GPU even beside ComfyUI's staged H3; ~17 s median per structured answer; unloads after 2 min idle | 1 |
 
 `GPU_VRAM_BUDGET_MB` (default 30000) is the worker's ceiling; the GPU lease serialises families and records waits.
 
