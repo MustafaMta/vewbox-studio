@@ -467,7 +467,7 @@ export function deleteAsset(s: S, id: string): S {
 export function acceptProposal(s: S, input: { kind: 'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; aspect: Aspect; proposal: IdeaProposal; keepCast: string[]; keepLocations: string[]; preferences: IdeaPreferences; proposalJobId?: string }): { state: S; production: Production } {
   const { proposal: pr } = input;
   let st = s;
-  const castIds: string[] = []; const locationIds: string[] = [];
+  let castIds: string[] = []; let locationIds: string[] = [];
   for (const c of pr.cast.filter((x) => input.keepCast.includes(x.key))) {
     if (c.characterId) { castIds.push(c.characterId); continue; }
     const r = addCharacter(st, { name: c.name, role: c.role, style: pr.style, sex: c.sex ?? 'FEMALE', ageYears: c.ageYears ?? 30, build: '', face: c.appearance ?? '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: c.personality ?? c.reason, language: pr.language, dialect: pr.dialect, notes: pr.sample ? 'Proposed by Auto Idea (sample proposal).' : `Proposed by Auto Idea for “${pr.title}”: ${c.reason}` });
@@ -478,6 +478,8 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'EPISODE' | 'SHORT'
     const r = addLocation(st, { name: l.name, kind: l.kind ?? 'EXTERIOR', description: l.description, style: pr.style, lighting: [], landmarks: [], props: [] });
     st = r.state; locationIds.push(r.location.id);
   }
+  // the same library member can be offered twice by a proposal (two reasons, one person): one seat each
+  castIds = Array.from(new Set(castIds)); locationIds = Array.from(new Set(locationIds));
   const brief = { mode: 'AUTO_IDEA' as const, text: pr.premise, ideaTitle: pr.title, preferences: input.preferences, fromSampleProposal: pr.sample || undefined, proposalJobId: input.proposalJobId };
   const common = { style: pr.style, language: pr.language, dialect: pr.dialect, aspect: input.aspect, targetSeconds: pr.durationSeconds, brief };
   const withStructure = (state: S, productionId: string, items: IdeaProposal['structure']) => items.reduce((acc, it) => {
