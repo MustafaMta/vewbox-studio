@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AutoIdeaRequest, IdeaPreferences, IdeaProposal, Production, Song } from '@/domain/types';
+import { api } from '@/studio/api';
 import { ASPECTS, DIALECTS, DURATIONS, STYLES, type Aspect, type Dialect, type Language, type Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
@@ -37,17 +38,35 @@ const REQ_KIND: Record<WizardKind, AutoIdeaRequest['kind']> = { show: 'SHOW', ep
  *  are optional steps with defaults. */
 export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; showId?: string; seasonId?: string }) {
   const T = useT();
-  const { state } = useStudio();
+  const { state, jobs, startJob } = useStudio();
   const show = showById(state, showId);
   const season = seasonById(state, seasonId);
   const [path, setPath] = useState<'start' | 'manual' | 'review'>('start');
   const [prefs, setPrefs] = useState<IdeaPreferences>({});
   const [variant, setVariant] = useState(0);
   const [proposal, setProposal] = useState<IdeaProposal | null>(null);
+  const [proposalJobId, setProposalJobId] = useState<string | undefined>();
+  const [premise, setPremise] = useState('');
+  const [waitingOn, setWaitingOn] = useState<string | null>(null);
+  const [proposeError, setProposeError] = useState<string | null>(null);
   const heading = kind === 'show' ? T('wizard.newShow') : kind === 'episode' ? T('wizard.newEpisode') : kind === 'short' ? T('wizard.newShort') : T('wizard.newMusicVideo');
   const cancelHref = kind === 'episode' && show ? `/shows/${show.id}?tab=seasons${season ? `&season=${season.id}` : ''}` : kind === 'show' ? '/shows' : kind === 'short' ? '/shorts' : '/music-videos';
   const request = (): AutoIdeaRequest => ({ kind: REQ_KIND[kind], showId: show?.id, seasonId: season?.id, preferences: prefs });
-  const propose = (v: number) => { setVariant(v); setProposal(sampleProposal(state, request(), v)); setPath('review'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  /** The written example, for when no story engine is reachable. Labelled as a sample wherever it appears. */
+  const proposeSample = (v: number) => { setVariant(v); setProposal(sampleProposal(state, request(), v)); setProposalJobId(undefined); setPath('review'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  /** The real thing: an AUTO_IDEA job; the review opens when it finishes. */
+  const propose = async () => {
+    setProposeError(null);
+    try { const job = await startJob('AUTO_IDEA', { ...request(), brief: premise.trim() || undefined }); setWaitingOn(job.id); }
+    catch (e) { setProposeError((e as Error).message); }
+  };
+  const waiting = waitingOn ? jobs.find((j) => j.id === waitingOn) : undefined;
+  useEffect(() => {
+    if (!waiting) return;
+    if (waiting.status === 'COMPLETED' && waiting.result?.proposalId) {
+      api.proposal(String(waiting.result.proposalId)).then((r) => { setProposal(r.proposal); setProposalJobId(waiting.id); setWaitingOn(null); setPath('review'); window.scrollTo({ top: 0, behavior: 'smooth' }); }).catch((e) => { setProposeError((e as Error).message); setWaitingOn(null); });
+    } else if (waiting.status === 'FAILED' || waiting.status === 'CANCELLED') { setProposeError(waiting.error?.message ?? T('auto.failed')); setWaitingOn(null); }
+  }, [waiting, T]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -70,10 +89,12 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
                 {kind === 'episode' && show && <p className="mt-2 text-[12.5px] text-faint" dir="auto">{T('auto.showContext')} {show.title}: {T.dyn(`style.${show.style}`)} · {show.castIds.length} {T('tab.characters').toLowerCase()} · {show.locationIds.length} {T('tab.locations').toLowerCase()}.</p>}
               </div>
             </div>
+            <div className="mt-5"><Field label={T('auto.premiseLabel')} help={T('auto.premiseHint')}><Textarea value={premise} onChange={(e) => setPremise(e.target.value)} rows={2} maxLength={4000} /></Field></div>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <Button variant="primary" className="btn-lg" icon={<IconAuto />} onClick={() => propose(0)}>{T('auto.create')}</Button>
-              <span className="text-[12px] text-faint">{T('auto.nothingRequired')}</span>
+              <Button variant="primary" className="btn-lg" icon={<IconAuto />} onClick={() => void propose()} loading={Boolean(waiting)} disabled={Boolean(waiting)}>{T('auto.create')}</Button>
+              {waiting ? <span className="text-[12px] text-muted">{waiting.progress?.message ?? T('auto.writing')} · {T('auto.writingHint')}</span> : <span className="text-[12px] text-faint">{T('auto.nothingRequired')}</span>}
             </div>
+            {proposeError && <Notice tone="bad" className="mt-4" title={T('auto.failed')} action={<Button size="sm" variant="secondary" onClick={() => proposeSample(0)}>{T('auto.useSample')}</Button>}>{proposeError}</Notice>}
             <Details summary={<span className="inline-flex items-center gap-1.5"><IconPreferences aria-hidden className="size-4" />{T('auto.preferences')}{Object.values(prefs).some((v) => (Array.isArray(v) ? v.length : v)) ? <span className="badge badge-accent ms-1">{T('auto.preferencesSet')}</span> : null}</span>} className="mt-5 border-t border-line/70 pt-4">
               <Preferences kind={kind} prefs={prefs} setPrefs={setPrefs} inheritsFromShow={Boolean(show)} />
             </Details>
@@ -87,7 +108,7 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
         </div>
       )}
 
-      {path === 'review' && proposal && <Review kind={kind} showId={show?.id} seasonId={season?.id} proposal={proposal} setProposal={setProposal} prefs={prefs} onBack={() => setPath('start')} onAnother={SAMPLE_VARIANTS[REQ_KIND[kind]] > 1 ? () => propose(variant + 1) : undefined} />}
+      {path === 'review' && proposal && <Review kind={kind} showId={show?.id} seasonId={season?.id} proposal={proposal} setProposal={setProposal} prefs={prefs} proposalJobId={proposalJobId} onBack={() => setPath('start')} onAnother={proposal.sample ? (SAMPLE_VARIANTS[REQ_KIND[kind]] > 1 ? () => proposeSample(variant + 1) : undefined) : () => { setPath('start'); void propose(); }} />}
       {path === 'manual' && <Manual kind={kind} showId={show?.id} seasonId={season?.id} onBack={() => setPath('start')} />}
     </div>
   );

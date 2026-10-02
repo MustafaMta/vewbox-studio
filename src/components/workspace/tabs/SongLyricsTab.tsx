@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
 import { Section } from '@/components/ui/page';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton } from '@/components/ui/jobs';
 import { Waveform } from '@/components/players/Waveform';
 import { usePlayer, useTrackState, type Track } from '@/components/players/PlayerProvider';
 import { PlayerNotice } from '@/components/players/Controls';
@@ -60,7 +60,7 @@ export function SongLyricsTab({ p, track }: { p: Production; track: Track | null
           </div>
         </div>
 
-        <Section title={T('song.lyrics')} count={song.sections.length} description={T('mv.lyrics.hint')} action={<><LaterButton size="sm" icon={<IconGenerate />}>{T('wizard.generateSong')}</LaterButton><Button size="sm" icon={<IconPlus />} onClick={addSection}>{T('btn.addSection')}</Button></>}>
+        <Section title={T('song.lyrics')} count={song.sections.length} description={T('mv.lyrics.hint')} action={<><JobButton type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconGenerate />}>{T('gen.song')}</JobButton><Button size="sm" icon={<IconPlus />} onClick={addSection}>{T('btn.addSection')}</Button></>}>
           {song.sections.length === 0 ? <Empty compact title={T('song.sections')} action={<Button variant="primary" icon={<IconPlus />} onClick={addSection}>{T('btn.addSection')}</Button>} /> : (
             <ol className="space-y-2" aria-label={T('song.sections')}>
               {song.sections.map((sec) => {

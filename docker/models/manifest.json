@@ -1,0 +1,65 @@
+{
+  "comment": "Pinned model weights for the local RTX 5090 stack. Folders are relative to the models volume and mirror ComfyUI's models/ layout; the voice and transcription services read their own folders. Sizes and sha256 values come from the Hugging Face file listings (LFS oids). No LTX, Wan or other non-MiniMax video model is listed, by policy.",
+  "groups": [
+    {
+      "name": "video-minimax-h3",
+      "purpose": "Local MiniMax H3 (open weights) for ComfyUI: first/last-frame-to-video-with-audio, pruned int8 for 32 GB cards, nvfp4 text encoder, VAEs, turbo LoRAs.",
+      "files": [
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "vae/minimax_h3_audio_vae_fp32.safetensors", "folder": "vae", "bytes": 605254808, "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "vae/minimax_h3_video_vae_int8_convrot.safetensors", "folder": "vae", "bytes": 2811065184, "sha256": "52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "loras/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors", "folder": "loras", "bytes": 1956193000, "sha256": "2339acdf19bfe123f46b971ea35d367a84adb85de43627e1eceafa5a5b2b111e", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "folder": "text_encoders", "bytes": 15687142551, "sha256": "35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 20970379616, "sha256": "e889202c41dafb67b10d67b97f0d8541508036a6090af23425a5c2615d03c47a", "license": "MiniMax H3 Community License" }
+      ]
+    },
+    {
+      "name": "images-qwen",
+      "purpose": "Qwen-Image-Edit-2511 (multi-reference editing: character sheets, location views, storyboard frames) and Qwen-Image-2512 (text-to-image), Apache-2.0, fp8 for 32 GB.",
+      "files": [
+        { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "folder": "vae", "bytes": 253806246, "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f", "license": "Apache-2.0" },
+        { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "folder": "text_encoders", "bytes": 9384670680, "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4", "license": "Apache-2.0" },
+        { "repo": "Comfy-Org/Qwen-Image-Edit_ComfyUI", "file": "split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors", "folder": "diffusion_models", "bytes": 20533762817, "sha256": "c9fdc158e46d3b61ef75f21ae866ca2fe808bf4a53643120d1c1e87c19280a4e", "license": "Apache-2.0" },
+        { "repo": "lightx2v/Qwen-Image-Edit-2511-Lightning", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "folder": "loras", "license": "Apache-2.0" },
+        { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors", "folder": "diffusion_models", "bytes": 20430679144, "sha256": "5dc80554d5d83390046a2f4a94ece06afb7700bf7b0aaf8bde9769793875876b", "license": "Apache-2.0" },
+        { "repo": "lightx2v/Qwen-Image-2512-Lightning", "file": "Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors", "folder": "loras", "license": "Apache-2.0" }
+      ]
+    },
+    {
+      "name": "asr-whisper",
+      "purpose": "faster-whisper large-v3 (CTranslate2 fp16) for transcript validation and subtitle timing; MIT.",
+      "files": [
+        { "repo": "Systran/faster-whisper-large-v3", "file": "model.bin", "folder": "asr/faster-whisper-large-v3", "license": "MIT" },
+        { "repo": "Systran/faster-whisper-large-v3", "file": "config.json", "folder": "asr/faster-whisper-large-v3", "license": "MIT" },
+        { "repo": "Systran/faster-whisper-large-v3", "file": "tokenizer.json", "folder": "asr/faster-whisper-large-v3", "license": "MIT" },
+        { "repo": "Systran/faster-whisper-large-v3", "file": "vocabulary.json", "folder": "asr/faster-whisper-large-v3", "license": "MIT" },
+        { "repo": "Systran/faster-whisper-large-v3", "file": "preprocessor_config.json", "folder": "asr/faster-whisper-large-v3", "license": "MIT" }
+      ]
+    },
+    {
+      "name": "music-ace-step",
+      "purpose": "ACE-Step 1.5 XL turbo (MIT) with the 1.7B language model: songs with vocals from lyrics, Arabic listed as a supported language.",
+      "files": [
+        { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/vae/ace_1.5_vae.safetensors", "folder": "vae", "bytes": 337431732, "sha256": "6de92e3a862acd287e08b024ac90f0783a8635451b728721a33ff03565bcb2bb", "license": "MIT" },
+        { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/text_encoders/qwen_1.7b_ace15.safetensors", "folder": "text_encoders", "bytes": 3708523360, "sha256": "ed63e9247d1f55f3ace04fa11e95b085fc82d459c82c5626f0b2e37b91ebd710", "license": "MIT" },
+        { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "file": "split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors", "folder": "diffusion_models", "bytes": 9974719892, "sha256": "86a1afb0a1f711f0e3304ff65d874df3ae6783db683dcf982513fb9b6d14ae71", "license": "MIT" }
+      ]
+    },
+    {
+      "name": "video-minimax-h3-reference",
+      "purpose": "MiniMax H3 reference-to-video (up to 9 reference images, video and audio references) and its 4-step turbo LoRA.",
+      "files": [
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", "folder": "loras", "bytes": 1956193000, "sha256": "5b9ab5ade15d0775676d01a907268a69a1468dc6033b3b0d3ded5502f3ebb84c", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "file": "diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 20970379616, "sha256": "9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779", "license": "MiniMax H3 Community License" }
+      ]
+    },
+    {
+      "name": "music-minimax-3",
+      "purpose": "MiniMax Music 3 open weights (int8) for ComfyUI as a second music engine; MiniMax-Music3 Community License (UI attribution required).",
+      "files": [
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_dav.safetensors", "folder": "vae", "bytes": 216696128, "sha256": "2a32155b769be01445fcc2a8663b910fc9e1751e18dc1c3ec528064512d9ef0c", "license": "MiniMax-Music3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_dit_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 2502161682, "sha256": "d6b959633e69899f99f3a92d6741c0fe79f26958a30811e50e372ef978b24d5f", "license": "MiniMax-Music3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-Music-3", "file": "minimax_music3_text_encoder_pruned_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9196611886, "sha256": "010b7416d2336a08c711bc22ee65849c9623069ddb7d89bec011a75699e52014", "license": "MiniMax-Music3 Community License" }
+      ]
+    }
+  ]
+}

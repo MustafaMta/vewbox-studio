@@ -5,26 +5,30 @@ import { useT } from '@/components/ui/locale';
 import { MobileBar, SideNav } from '@/components/ui/nav';
 import { VewboxLogo } from '@/components/ui/brand';
 import { IconPlus } from '@/components/ui/icons';
+import { SyncErrors } from '@/components/ui/jobs';
 import { useStudio } from '@/studio/store';
+import { isActiveStatus } from '@/domain/jobs';
 
 /** THE SHELL — a fixed 244px sidebar in the panel colour: the brand, one primary action, the grouped navigation,
- *  and at the foot the one honest line about this build (generation is not connected; changes live in this
- *  browser). The work happens on the canvas to the side, in a column capped at a comfortable reading width. */
+ *  and at the foot the live state of the studio: connected or reconnecting, and how many jobs are running. The work
+ *  happens on the canvas to the side, in a column capped at a comfortable reading width. */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const T = useT();
-  const { ready, modified } = useStudio();
+  const { ready, connected, jobs } = useStudio();
+  const running = jobs.filter((j) => isActiveStatus(j.status)).length;
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
+      <SyncErrors />
       <a href="#main" className="sr-only-focusable fixed start-3 top-3 z-50 rounded-lg bg-primary px-3 py-2 text-[13px] font-semibold text-on-primary">{T('nav.skip')}</a>
       <aside className="sticky top-0 hidden h-dvh flex-col border-e border-line/70 bg-surface lg:flex">
         <Link href="/" className="flex items-center px-5 pb-4 pt-5" aria-label={T('app.name')}><VewboxLogo /></Link>
         <div className="px-3 pb-3"><Link href="/new" className="btn btn-primary btn-block"><IconPlus aria-hidden />{T('nav.newProduction')}</Link></div>
         <SideNav />
         <div className="space-y-1 border-t border-line/70 p-3">
-          <Link href="/settings#generation" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] text-muted transition-colors hover:bg-raised-2 hover:text-fg">
-            <span className="dot bg-warn" aria-hidden />{T('app.notConnected')}
+          <Link href="/jobs" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] text-muted transition-colors hover:bg-raised-2 hover:text-fg">
+            <span className={`dot ${connected ? (running ? 'bg-info' : 'bg-ok') : 'bg-warn'}`} aria-hidden />{connected ? (running ? `${running} ${T('jobs.running')}` : T('status.connected')) : T('status.disconnected')}
           </Link>
-          <p className="px-3 pb-1 text-[11px] leading-relaxed text-faint">{T('app.prototype')}{ready && modified ? ` · ${T('app.yourChanges')}` : ` · ${T('app.sampleData')}`}</p>
+          <p className="px-3 pb-1 text-[11px] leading-relaxed text-faint">{ready ? T('app.saved') : '…'}</p>
         </div>
       </aside>
       <div className="min-w-0">

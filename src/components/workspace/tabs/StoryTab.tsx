@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Block } from '@/components/ui/cinema';
 import { Button, Checkbox, Field, Input, Menu, MenuItem, Modal, Notice, Select, Status, Textarea } from '@/components/ui/kit';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton } from '@/components/ui/jobs';
 import { IconAuto, IconDelete, IconGenerate, IconManual, IconPlus } from '@/components/ui/icons';
 import { words } from '@/lib/format';
 
@@ -44,7 +44,10 @@ export function StoryTab({ p }: { p: Production }) {
           </div>
         </section>
 
-        <Block title={T('story.script')} count={p.scenes.length} actions={<div className="flex items-center gap-2"><LaterButton size="sm" icon={<IconGenerate />}>{T('next.writeScript')}</LaterButton><AddScene p={p} /></div>}>
+        <Block title={T('story.script')} count={p.scenes.length} actions={<div className="flex flex-wrap items-center gap-2">
+          <JobButton type="DEVELOP_STORY" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconAuto />} title={T('gen.writeStory.hint')} confirm={p.scenes.some((sc) => sc.beats.length > 0) ? undefined : undefined}>{T('gen.writeStory')}</JobButton>
+          <JobButton type="WRITE_SCRIPT" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconGenerate />} disabled={p.scenes.length === 0} title={p.scenes.length === 0 ? T('empty.scenes') : undefined}>{T('gen.writeScript')}</JobButton>
+          <AddScene p={p} /></div>}>
           {p.scenes.length === 0 ? <Notice tone="info">{T('empty.scenes')}</Notice> : (
             <ol className="space-y-6">{p.scenes.map((sc) => <SceneEditor key={sc.id} p={p} scene={sc} cast={cast.map((c) => ({ id: c.id, name: c.name }))} locations={world.map((l) => ({ id: l.id, name: l.name }))} />)}</ol>
           )}

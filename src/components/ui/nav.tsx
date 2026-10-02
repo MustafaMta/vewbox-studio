@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useT } from './locale';
 import type { Key } from '@/lib/i18n';
 import { VewboxMark } from './brand';
-import { IconAssets, IconCharacters, IconChevronRight, IconClose, IconHome, IconLocations, IconMenu, IconMusicVideos, IconPlus, IconSettings, IconShorts, IconShows } from './icons';
+import { IconAssets, IconCharacters, IconChevronRight, IconClose, IconHome, IconLocations, IconMenu, IconMusicVideos, IconPlus, IconQueue, IconSettings, IconShorts, IconShows } from './icons';
 
 /** THE STUDIO'S NAVIGATION — grouped by what each place is for: the productions first, then the library that
  *  serves them, then the studio itself. One primary action above it all: New production. */
@@ -19,6 +19,7 @@ export const NAV: NavItem[] = [
   { href: '/characters', key: 'nav.characters', icon: IconCharacters, group: 'nav.library' },
   { href: '/locations', key: 'nav.locations', icon: IconLocations, group: 'nav.library' },
   { href: '/assets', key: 'nav.assets', icon: IconAssets, group: 'nav.library' },
+  { href: '/jobs', key: 'nav.jobs', icon: IconQueue, group: 'nav.studio' },
   { href: '/settings', key: 'nav.settings', icon: IconSettings, group: 'nav.studio' },
 ];
 

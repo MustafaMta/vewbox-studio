@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, Checkbox, ConfirmDelete, Input, KV, Modal, Select, TabBar } from '@/components/ui/kit';
 import { Art, Block, Dots, Empty, Hero } from '@/components/ui/cinema';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton } from '@/components/ui/jobs';
 import { StageStatus } from '@/components/library/ProductionTile';
 import { LocationForm } from './LocationForm';
 import { IconCheck, IconDelete, IconEdit, IconGenerate, IconPlus, IconUpload } from '@/components/ui/icons';
@@ -96,7 +96,7 @@ function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; tit
     <div className="flex items-center gap-2">
       <Select aria-label={T('loc.views')} value={role} onChange={(e) => setRole(e.target.value as LocationRefRole)} options={LOCATION_REF_ROLES.filter((r) => roles.includes(r)).map((r) => ({ value: r, label: words(r) }))} className="w-auto" />
       <label className="btn btn-secondary btn-sm cursor-pointer"><IconUpload aria-hidden />{T('btn.upload')}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} /></label>
-      <LaterButton size="sm" icon={<IconGenerate />}>{T('btn.create')} {words(role).toLowerCase()}</LaterButton>
+      <JobButton type="LOCATION_PLATES" payload={{ locationId: l.id }} target={{ locationId: l.id }} size="sm" icon={<IconGenerate />}>{T('gen.plates')}</JobButton>
     </div>
   );
   return (

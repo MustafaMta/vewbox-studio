@@ -8,7 +8,7 @@ import { assetById, castOf, shotHref, shotLabel } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Card, Details, Field, Notice, SampleMark, Select, Status, Thumb } from '@/components/ui/kit';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { VideoPlaceholder, VideoPlayer } from '@/components/players/VideoPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
 import { aspectLabel, fmtSeconds, ratioClass, ratioCss } from '@/lib/format';
@@ -24,15 +24,17 @@ export function FinalCutTab({ p }: { p: Production }) {
   const missing = seq.filter((x) => !x.take).length;
   const total = seq.reduce((a, x) => a + x.sh.durationSeconds, 0);
   const cast = castOf(state, p);
-  const [format, setFormat] = useState('mp4-h264'); const [res, setRes] = useState('1080'); const [subs, setSubs] = useState(p.language === 'AR' ? 'ar' : 'none');
+  const anySample = seq.some((x) => x.take && assetById(state, x.take.assetId)?.sample);
+  const { start, busy } = useStartJob();
+  const [format, setFormat] = useState('mp4-h264'); const [res, setRes] = useState('1080'); const [subs, setSubs] = useState(p.language === 'AR' ? 'both' : 'none');
   if (p.shots.length === 0) return <Notice title={T('empty.shots')}>{T('empty.shots.hint')} <Link href="?tab=storyboard" className="font-medium text-accent-text hover:underline">{T('tab.storyboard')} →</Link></Notice>;
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="space-y-8">
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="h2">{T('final.assembled')}</h2>{missing > 0 ? <Status tone="warn">{missing} {T('final.missing')}</Status> : <Status tone="ok">{seq.length} {T('produce.shotsReady')}</Status>}</div>
-          {cut ? <div className={p.aspect === 'VERTICAL_9_16' ? 'mx-auto max-w-sm' : ''}><VideoPlayer src={cut.src} poster={cut.poster} title={p.title} aspect={ratioCss(p.aspect)} /><p className="mt-2 flex items-center gap-2 text-xs text-muted"><IconFinalCut className="size-3.5" />{T('final.sampleCut')}{cut.sample && <SampleMark className="!bg-surface-3 !text-muted" />} · {fmtSeconds(cut.durationSeconds)}</p></div>
-            : <VideoPlaceholder ratio={ratioCss(p.aspect)} className={p.aspect === 'VERTICAL_9_16' ? 'mx-auto max-w-sm' : ''} title={T('final.noCut')} hint={T('final.noCut.hint')} action={<LaterButton size="sm">{T('final.assemble')}</LaterButton>} />}
+          {cut ? <div className={p.aspect === 'VERTICAL_9_16' ? 'mx-auto max-w-sm' : ''}><VideoPlayer src={cut.src} poster={cut.poster} title={p.title} aspect={ratioCss(p.aspect)} /><p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted"><IconFinalCut className="size-3.5" />{cut.sample ? T('final.sampleCut') : T('final.realCut')}{cut.sample && <SampleMark className="!bg-surface-3 !text-muted" />} · {fmtSeconds(cut.durationSeconds)}<JobButton type="ASSEMBLE" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="xs" variant="ghost" disabled={missing > 0 || anySample} title={anySample ? T('final.needsRealTakes') : undefined}>{T('gen.assemble')}</JobButton></p></div>
+            : <VideoPlaceholder ratio={ratioCss(p.aspect)} className={p.aspect === 'VERTICAL_9_16' ? 'mx-auto max-w-sm' : ''} title={T('final.noCut')} hint={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : undefined} action={<JobButton type="ASSEMBLE" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" variant="primary" disabled={missing > 0 || anySample} title={anySample ? T('final.needsRealTakes') : undefined}>{T('gen.assemble')}</JobButton>} />}
         </section>
 
         <section aria-labelledby="seq">
@@ -54,7 +56,7 @@ export function FinalCutTab({ p }: { p: Production }) {
             {[[T('final.dialogueTrack'), seq.filter((x) => x.sh.dialogue.length).length, 'bg-info'], [T('final.musicTrack'), p.song ? 1 : 0, 'bg-accent'], [T('final.ambienceTrack'), p.scenes.length, 'bg-ok']].map(([label, n, tone]) => (
               <div key={String(label)} className="flex items-center gap-3 text-xs"><span className="w-20 flex-none text-muted">{label}</span><div className="flex h-5 flex-1 gap-0.5 overflow-hidden rounded bg-surface-2">{seq.map(({ sh }) => <span key={sh.id} className={`h-full ${Number(n) > 0 && (label === T('final.ambienceTrack') || label === T('final.musicTrack') || sh.dialogue.length) ? String(tone) : 'bg-surface-3'} opacity-70`} style={{ flex: sh.durationSeconds }} />)}</div></div>
             ))}
-            <p className="text-[11px] text-faint">{T('final.sound')}: {cast.filter((c) => c.voice.selectedSampleId).length}/{cast.length} {T('lib.voiceSelected')} · {T('later.short').toLowerCase()}</p>
+            <p className="text-[11px] text-faint">{T('final.sound')}: {cast.filter((c) => c.voice.selectedSampleId).length}/{cast.length} {T('lib.voiceSelected')}</p>
           </div>
         </section>
       </div>
@@ -67,10 +69,23 @@ export function FinalCutTab({ p }: { p: Production }) {
             <Field label="Resolution"><Select value={res} onChange={(e) => setRes(e.target.value)} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} /></Field>
             <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value)} options={[{ value: 'none', label: '—' }, { value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }, { value: 'both', label: 'AR + EN' }]} /></Field>
             <p className="text-xs text-muted">{aspectLabel(p.aspect)} · {fmtSeconds(total)}</p>
-            <LaterButton variant="primary" icon={<IconDownload />} className="w-full">{T('final.export')}</LaterButton>
-            <p className="text-xs text-faint">{T('final.exportHint')}</p>
+            <Button variant="primary" icon={<IconDownload />} className="w-full" loading={busy} disabled={missing > 0 || anySample} title={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : undefined} onClick={() => void start('EXPORT', { productionId: p.id, format: format as 'mp4-h264' | 'mp4-h265' | 'mov-prores', resolution: res as '720' | '1080' | '2160', subtitles: subs as 'none' | 'ar' | 'en' | 'both' })}>{T('gen.export')}</Button>
+            <p className="text-xs text-faint">{T('final.exportStarted')}</p>
           </div>
         </Card>
+        {(p.exports?.length ?? 0) > 0 && (
+          <Card>
+            <h2 className="h3 mb-3">{T('final.exportsTitle')}</h2>
+            <ul className="space-y-2 text-sm">
+              {[...(p.exports ?? [])].reverse().map((ex) => { const a = assetById(state, ex.assetId); return (
+                <li key={ex.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-input px-3 py-2">
+                  <span className="min-w-0"><span className="font-medium">{ex.resolution}p · {ex.format.toUpperCase()}</span>{ex.subtitles !== 'none' && <span className="text-muted"> · {T('final.subtitles')} {ex.subtitles}</span>}<span className="block text-xs text-faint">{ex.durationSeconds ? fmtSeconds(ex.durationSeconds) : ''}{ex.bytes ? ` · ${(ex.bytes / 1048576).toFixed(0)} MB` : ''}</span></span>
+                  {a && <a href={`${a.src}?download=1`} className="btn btn-secondary btn-xs" download><IconDownload />{T('final.download')}</a>}
+                </li>
+              ); })}
+            </ul>
+          </Card>
+        )}
         <Details summary={T('shot.advanced')}><p className="text-xs text-muted">Loudness −23 LUFS · true peak −1 dB · dialogue 0 dB · music −14 dB · ambience −12 dB</p></Details>
         {missing === 0 && p.stage !== 'COMPLETE' && <Button className="w-full" onClick={() => { act('markStepDone', p.id, 'FINAL_CUT'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button>}
       </aside>

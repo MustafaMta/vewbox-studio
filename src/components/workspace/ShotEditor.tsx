@@ -11,7 +11,8 @@ import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Crumbs } from '@/components/ui/nav';
 import { Button, ConfirmButton, Details, Input, LinkButton, Menu, MenuItem, Segmented, Status, Thumb } from '@/components/ui/kit';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton } from '@/components/ui/jobs';
+import { TakeProvenance } from './tabs/ProduceTab';
 import { VideoPlaceholder, VideoPlayer } from '@/components/players/VideoPlayer';
 import { ShotFields, type ShotDraft } from './ShotForm';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconDelete, IconDuplicate, IconFrame, IconTake } from '@/components/ui/icons';
@@ -76,11 +77,11 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
             {view === 'frame' && ending && <Segmented label={T('label.frames')} value={frameSide} onChange={setFrameSide} options={[{ value: 'a', label: T('shot.opening') }, { value: 'b', label: T('shot.ending') }]} size="sm" />}
           </div>
           {view === 'take' && takeAsset ? <VideoPlayer src={takeAsset.src} poster={takeAsset.poster} title={shownTake?.label} aspect={ratioCss(p.aspect)} className={vertical ? 'mx-auto max-w-[22rem]' : ''} />
-            : view === 'take' ? <VideoPlaceholder ratio={ratioCss(p.aspect)} posterSrc={opening?.src} className={vertical ? 'mx-auto max-w-[22rem]' : ''} title={T('empty.takes')} hint={T('player.noTake.hint')} action={<LaterButton size="sm" icon={<IconTake />}>{T('produce.generateVideo')}</LaterButton>} />
+            : view === 'take' ? <VideoPlaceholder ratio={ratioCss(p.aspect)} posterSrc={opening?.src} className={vertical ? 'mx-auto max-w-[22rem]' : ''} title={T('empty.takes')} hint={T('player.noTake.hint')} action={<JobButton type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: shot.id }} target={{ productionId: p.id, shotId: shot.id }} size="sm" icon={<IconTake />}>{T('gen.take')}</JobButton>} />
             : <Thumb src={frameShown?.src} alt={frameSide === 'b' ? T('shot.ending') : T('shot.opening')} ratio={ratio} sample={frameShown?.sample} className="rounded-2xl" empty={T('board.noFrame')} />}
 
           <section aria-labelledby="takes">
-            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="takes" className="h3">{T('label.takes')}<span className="ms-2 text-sm font-normal text-faint num">{shot.takes.length}</span></h2><LaterButton size="xs" icon={<IconTake />}>{shot.takes.length ? T('produce.anotherTake') : T('produce.generateVideo')}</LaterButton></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="takes" className="h3">{T('label.takes')}<span className="ms-2 text-sm font-normal text-faint num">{shot.takes.length}</span></h2><JobButton type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: shot.id }} target={{ productionId: p.id, shotId: shot.id }} size="xs" icon={<IconTake />}>{shot.takes.length ? T('gen.anotherTake') : T('gen.take')}</JobButton></div>
             {shot.takes.length === 0 ? <p className="text-sm text-muted">{T('produce.noTakes')}</p> : (
               <ul className="flex gap-3 overflow-x-auto pb-1" role="radiogroup" aria-label={T('label.takes')}>
                 {shot.takes.map((t) => {
@@ -93,7 +94,10 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
                       </button>
                       <div className="mt-1 flex items-center justify-between gap-1 text-xs"><span className="font-medium">{t.label}</span>{on ? <span className="text-ok">{T('btn.selected')}</span> : <button type="button" className="font-medium text-accent-text hover:underline" onClick={() => { act('selectTake', p.id, shot.id, t.id); toast.ok(T('toast.takeSelected')); }}>{T('btn.select')}</button>}</div>
                       <Input value={t.note ?? ''} placeholder={T('label.notes')} aria-label={`${t.label} ${T('label.notes')}`} onChange={(e) => act('noteTake', p.id, shot.id, t.id, e.target.value)} className="mt-1 !h-7 text-xs" />
-                      <button type="button" className="mt-1 text-[11px] text-faint hover:text-bad" onClick={() => { if (window.confirm(`${T('btn.remove')} ${t.label}?`)) act('removeTake', p.id, shot.id, t.id); }}>{T('btn.remove')}</button>
+                      <div className="mt-1 flex flex-wrap gap-x-2 text-[11px]">
+                        {t.status === 'REJECTED' ? <span className="text-bad" title={t.rejectionReason}>{T('gen.rejected')}</span> : <button type="button" className="text-faint hover:text-warn" onClick={() => { const why = window.prompt(T('gen.rejectReason'), ''); if (why !== null) act('rejectTake', p.id, shot.id, t.id, why.trim() || 'rejected by the producer'); }}>{T('gen.rejectTake')}</button>}
+                        <button type="button" className="text-faint hover:text-bad" onClick={() => { if (window.confirm(`${T('btn.remove')} ${t.label}?`)) act('removeTake', p.id, shot.id, t.id); }}>{T('btn.remove')}</button>
+                      </div>
                     </li>
                   );
                 })}
@@ -102,7 +106,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
           </section>
 
           <section aria-labelledby="frames">
-            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="frames" className="h3">{T('label.frames')}</h2><LaterButton size="xs" icon={<IconFrame />}>{T('produce.prepareFrames')}</LaterButton></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><h2 id="frames" className="h3">{T('label.frames')}</h2><JobButton type="SHOT_FRAMES" payload={{ productionId: p.id, shotId: shot.id, ending: true }} target={{ productionId: p.id, shotId: shot.id }} size="xs" icon={<IconFrame />}>{T('gen.frames')}</JobButton></div>
             <div className="flex gap-3">
               {[{ k: 'a' as const, a: opening, label: T('shot.opening') }, { k: 'b' as const, a: ending, label: T('shot.ending') }].map(({ k, a, label }) => (
                 <button key={k} type="button" onClick={() => { setFrameSide(k); setView('frame'); }} className={`w-32 text-start sm:w-36 ${!a ? 'opacity-70' : ''}`}><Thumb src={a?.src} alt={label} ratio={ratio} className={`rounded-lg ${view === 'frame' && frameSide === k ? 'ring-2 ring-[var(--ring)]' : ''}`} empty="—" /><span className="mt-1 block text-xs text-muted">{label}</span></button>
@@ -116,6 +120,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
             <div className="mb-4 flex items-center justify-between gap-2"><h2 className="h2">{T('shot.whatHappens')}</h2><span className="num text-xs text-muted">{fmtSeconds(draft.durationSeconds)} · {words(draft.framing)}</span></div>
             <ShotFields p={p} draft={draft} onChange={patch} showScene={p.scenes.length > 1} />
           </section>
+          {shownTake && shownTake.provider !== 'SAMPLE' && <section className="panel p-4 sm:p-5"><TakeProvenance take={shownTake} /></section>}
           <Details summary={`${T('shot.references')} · ${cast.length + (loc ? 1 : 0)}`} open={cast.length > 0}>
             <div className="flex flex-wrap gap-3">
               {cast.map((c) => <Link key={c.id} href={`/characters/${c.id}`} className="w-20 text-center"><Thumb src={assetSrc(state, c.portraitAssetId)} alt="" ratio="aspect-[4/5]" className="rounded-lg" /><span className="mt-1 block truncate text-xs" dir="auto">{c.name}</span></Link>)}

@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, ConfirmDelete, Dropzone, Field, KV, Modal, Notice, Select, Status, TabBar, Textarea, Thumb } from '@/components/ui/kit';
 import { Art, Block, Dots, Empty, Hero } from '@/components/ui/cinema';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton, useStartJob } from '@/components/ui/jobs';
 import { VoicePreview } from '@/components/players/Controls';
 import { StageStatus } from '@/components/library/ProductionTile';
 import { CharacterForm } from './CharacterForm';
@@ -181,8 +181,8 @@ function Appearance({ c, lock }: { c: Character; lock: AppearanceLock }) {
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line/70 pt-4">
             {lock.locked
               ? <Button variant="primary" icon={<IconGenerate />} disabled aria-describedby="appearance-lock">{hasAppearance ? T('char.regenerate') : T('char.generate')}</Button>
-              : <LaterButton variant="primary" icon={<IconGenerate />}>{hasAppearance ? (pending ? T('char.regenerateFromRef') : T('char.regenerate')) : (pending ? T('char.generateFromRef') : T('char.generate'))}</LaterButton>}
-            <span className="text-[12px] text-faint">{lock.locked ? '' : T('later.short')}</span>
+              : <><JobButton type="CHARACTER_APPEARANCE" payload={{ characterId: c.id }} target={{ characterId: c.id }} variant="primary" icon={<IconGenerate />}>{hasAppearance ? (pending ? T('char.regenerateFromRef') : T('char.regenerate')) : (pending ? T('char.generateFromRef') : T('char.generate'))}</JobButton>
+                {hasAppearance && <JobButton type="CHARACTER_REFS" payload={{ characterId: c.id }} target={{ characterId: c.id }} variant="secondary" icon={<IconImageAdd />}>{T('gen.refs')}</JobButton>}</>}
           </div>
         </div>
       </section>
@@ -226,7 +226,7 @@ function VoiceTab({ c }: { c: Character }) {
           {selected ? <VoicePreview track={trackFor(selected)} name={selected.label} detail={detail} source={selected.source} portraitSrc={portrait ?? ''} selected unavailableText={unavailable(selected)} />
             : <Empty compact title={T('lib.noVoice')} hint={T('char.voiceLead')} />}
         </section>
-        <Block title={T('voice.all')} count={c.voice.samples.length} description={T('char.voiceLead')} actions={<LaterButton size="sm" icon={<IconGenerate />}>{T('voice.generate')}</LaterButton>}>
+        <Block title={T('voice.all')} count={c.voice.samples.length} description={T('char.voiceLead')} actions={<div className="flex flex-wrap items-center gap-2"><JobButton type="VOICE_BUILD" payload={{ characterId: c.id }} target={{ characterId: c.id }} size="sm" icon={<IconGenerate />}>{T('gen.voiceBuild')}</JobButton><VoicePreviewButton c={c} /></div>}>
           {c.voice.samples.length === 0 ? <Empty compact title={T('char.noSamples')} /> : (
             <ul className="space-y-2" role="radiogroup" aria-label={T('tab.voice')}>
               {c.voice.samples.map((sm) => {
@@ -246,6 +246,23 @@ function VoiceTab({ c }: { c: Character }) {
       </div>
       <aside><Block title={T('label.voiceNotes')}><KV rows={[[T('label.pitch'), words(c.voice.pitch)], [T('label.pace'), words(c.voice.pace)], [T('label.timbre'), c.voice.timbre || '—'], [T('label.voiceNotes'), c.voice.notes || '—'], [T('label.language'), lang]]} /></Block><p className="text-[12px] text-faint">{T('voice.lockNote')}</p></aside>
     </div>
+  );
+}
+
+/** Speak one line in the character's voice: a small form that starts a VOICE_PREVIEW job. */
+function VoicePreviewButton({ c }: { c: Character }) {
+  const T = useT();
+  const { start, busy } = useStartJob();
+  const [text, setText] = useState(c.language === 'AR' ? (c.dialect === 'IRAQI_BAGHDADI' ? 'شلونك؟ اني هنا من زمان، وين چنت؟' : 'مرحباً، أنا هنا منذ وقت طويل، أين كنت؟') : 'Hello. I have been here a while — where were you?');
+  return (
+    <Modal title={T('gen.voicePreview')} trigger={(open) => <Button size="sm" icon={<IconVoice />} onClick={open}>{T('gen.voicePreview')}</Button>}>
+      {(close) => (
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void start('VOICE_PREVIEW', { characterId: c.id, text }).then((j) => { if (j) close(); }); }}>
+          <Field label={T('gen.voicePreview.text')}><Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={600} /></Field>
+          <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary" loading={busy} disabled={!text.trim()}>{T('gen.voicePreview')}</Button></div>
+        </form>
+      )}
+    </Modal>
   );
 }
 

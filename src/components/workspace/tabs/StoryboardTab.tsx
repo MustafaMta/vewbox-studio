@@ -8,7 +8,7 @@ import { assetById, castOf, locationById, shotHref, shotLabel } from '@/studio/s
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Button, Menu, MenuItem, MenuLink, Modal, Notice, Status, Thumb } from '@/components/ui/kit';
-import { LaterButton } from '@/components/ui/later';
+import { JobButton } from '@/components/ui/jobs';
 import { ShotFields, emptyShot, type ShotDraft } from '../ShotForm';
 import { IconDelete, IconDown, IconDrag, IconDuplicate, IconEdit, IconGenerate, IconPlus, IconUp } from '@/components/ui/icons';
 import { fmtSeconds, ratioClass, words } from '@/lib/format';
@@ -29,7 +29,9 @@ export function StoryboardTab({ p }: { p: Production }) {
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span><span className="num font-medium text-fg">{counts.planned}</span> {T('board.planned')}</span><span><span className="num font-medium text-fg">{counts.framed}</span> {T('board.framed')}</span><span><span className="num font-medium text-fg">{counts.filmed}</span> {T('board.filmed')}</span><span><span className="num font-medium text-fg">{counts.chosen}</span> {T('board.chosen')}</span><span className="text-faint">·</span><span className="num">{fmtSeconds(total)} {T('misc.of')} {fmtSeconds(p.targetSeconds)}</span>
         </p>
-        <div className="flex items-center gap-2"><LaterButton size="sm" icon={<IconGenerate />}>{T('next.planShots')}</LaterButton><AddShot p={p} /></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <JobButton type="PLAN_SHOTS" payload={{ productionId: p.id, force: p.shots.some((s) => s.takes.length > 0) }} target={{ productionId: p.id }} size="sm" icon={<IconGenerate />} disabled={!p.scenes.some((sc) => sc.beats.length > 0)} title={!p.scenes.some((sc) => sc.beats.length > 0) ? T('next.writeScript') : undefined} confirm={p.shots.some((s) => s.takes.length > 0) ? T('gen.replanConfirm') : undefined}>{p.shots.length ? T('gen.replanShots') : T('gen.planShots')}</JobButton>
+          <AddShot p={p} /></div>
       </div>
       {p.shots.length === 0 && <Notice>{T('empty.shots')} {T('empty.shots.hint')}</Notice>}
       {p.scenes.map((sc) => {

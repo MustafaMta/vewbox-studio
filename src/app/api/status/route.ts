@@ -1,0 +1,45 @@
+import { capabilities, env } from '@/server/env';
+import { json, route } from '@/server/http';
+import { videoBackendStatus } from '@/server/providers/video';
+import * as comfy from '@/server/providers/comfy';
+import { resolveProvider } from '@/server/providers/llm';
+
+export const dynamic = 'force-dynamic';
+
+async function probe(url: string, timeoutMs = 2500): Promise<{ ok: boolean; detail?: string; data?: Record<string, unknown> }> {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try { const r = await fetch(url, { signal: ctrl.signal }); const data = (await r.json().catch(() => ({}))) as Record<string, unknown>; return { ok: r.ok, detail: r.ok ? undefined : `HTTP ${r.status}`, data }; }
+  catch (e) { return { ok: false, detail: (e as Error).name === 'AbortError' ? 'timeout' : 'unreachable' }; }
+  finally { clearTimeout(t); }
+}
+
+/** Live engine status for the Settings page: what runs where, and whether it is reachable right now. */
+export const GET = route(async () => {
+  const e = env();
+  const caps = capabilities();
+  const [video, comfyHealth, tts, asr] = await Promise.all([videoBackendStatus(), comfy.health(), probe(`${e.TTS_URL}/health`), probe(`${e.ASR_URL}/health`)]);
+  let story: { ok: boolean; detail: string; where: 'hosted' | 'local' | null } = { ok: false, detail: 'not configured', where: null };
+  try {
+    const cfg = resolveProvider();
+    if (cfg.provider === 'openai-compatible') { const p = await probe(`${cfg.baseUrl}/models`); const ids = ((p.data?.data as Array<{ id: string }> | undefined) ?? []).map((m) => m.id); const has = ids.some((id) => id === cfg.model || id.startsWith(cfg.model)); story = { ok: p.ok && has, detail: p.ok ? (has ? `${cfg.model} (local)` : `${cfg.model} not pulled yet (${ids.length} models present)`) : `unreachable: ${p.detail}`, where: 'local' }; }
+    else story = { ok: true, detail: `${cfg.provider} ${cfg.model}`, where: 'hosted' };
+  } catch (err) { story = { ok: false, detail: (err as Error).message, where: null }; }
+  let images: { ok: boolean; detail: string } = { ok: false, detail: 'ComfyUI unreachable' };
+  let music: { ok: boolean; detail: string } = { ok: Boolean(e.MINIMAX_API_KEY), detail: e.MINIMAX_API_KEY ? 'MiniMax Music (hosted)' : 'no engine' };
+  if (comfyHealth.ok) {
+    const models = await comfy.listModels('diffusion_models').catch(() => [] as string[]);
+    const q = models.some((m) => m.includes('qwen_image'));
+    images = { ok: q, detail: q ? `Qwen-Image in ComfyUI ${comfyHealth.version ?? ''} on ${comfyHealth.device ?? 'GPU'}` : 'ComfyUI up; Qwen-Image weights not downloaded yet' };
+    const ace = models.some((m) => m.startsWith('acestep')); const m3 = models.some((m) => m.startsWith('minimax_music3'));
+    if (!e.MINIMAX_API_KEY) music = { ok: ace || m3, detail: ace ? 'ACE-Step 1.5 (local)' : m3 ? 'MiniMax Music 3 (local)' : 'music weights not downloaded yet' };
+  }
+  return json({
+    video: { ok: video.ready, detail: video.detail, where: video.backend === 'api' ? 'hosted' : 'local', backend: video.backend, model: video.backend === 'api' ? caps.videoModel : 'MiniMax-H3 (open weights)' },
+    story, images: { ...images, where: 'local' },
+    voice: { ok: tts.ok, detail: tts.ok ? String((tts.data?.engines as unknown) ?? 'ready') : `voice service ${tts.detail}`, where: 'local' },
+    transcription: { ok: asr.ok, detail: asr.ok ? String(asr.data?.model ?? 'ready') : `transcription service ${asr.detail}`, where: 'local' },
+    music: { ...music, where: e.MINIMAX_API_KEY ? 'hosted' : 'local' },
+    gpu: comfyHealth.ok ? { device: comfyHealth.device, vramTotal: comfyHealth.vramTotal, vramFree: comfyHealth.vramFree } : null,
+    minimaxConfigured: caps.minimax,
+  }, { headers: { 'Cache-Control': 'no-store' } });
+});
