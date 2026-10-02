@@ -65,7 +65,9 @@ try {
         const spec = specs[name];
         if (!spec || (Array.isArray(value) && value.length === 2 && typeof value[1] === 'number')) continue; // a link
         const opts = options(spec);
-        if (opts.length && !opts.includes(value)) { problems.push(`${wf.name}: ${node.class_type}.${name} = ${JSON.stringify(value)} is not one of ${opts.slice(0, 8).join(', ')}${opts.length > 8 ? ', …' : ''}`); continue; }
+        // file pickers (models, uploaded images/audio) are checked by the model list below, not by the template
+        const filePicker = /_name$|^(image|audio|video)$/.test(name);
+        if (opts.length && !filePicker && !opts.includes(value)) { problems.push(`${wf.name}: ${node.class_type}.${name} = ${JSON.stringify(value)} is not one of ${opts.slice(0, 8).join(', ')}${opts.length > 8 ? ', …' : ''}`); continue; }
         const cfg = Array.isArray(spec) && spec[1] && typeof spec[1] === 'object' ? spec[1] : {};
         if (typeof value === 'number') {
           if (typeof cfg.min === 'number' && value < cfg.min) problems.push(`${wf.name}: ${node.class_type}.${name} = ${value} is below the minimum ${cfg.min}`);
