@@ -81,14 +81,17 @@ export const generateTake: Handler = async (ctx) => {
 
   const t0 = Date.now();
   let lastStatus = '';
-  const result = await generateVideo({
+  // the local engine runs under the GPU lease (one model family on the card at a time; other services unload
+  // first); the hosted API needs no card and runs in the hosted lane's concurrency
+  const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', 28000, fn, { jobId: ctx.job.id }) : fn());
+  const result = await run(() => generateVideo({
     prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined,
     seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
     onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
-  });
+  }));
   const genMs = Date.now() - t0;
   await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
 
