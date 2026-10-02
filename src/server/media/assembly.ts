@@ -63,7 +63,9 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
   await opts.onProgress?.('mixing sound');
   const inputs: string[] = ['-i', joined];
   const filters: string[] = [];
-  const mixInputs: string[] = ['[0:a]volume=1.0[a0]'];
+  // a music video is carried by the song master: the takes' own singing (MiniMax sings along to the reference
+  // segment) would double the vocals, so it stays as faint ambience only
+  const mixInputs: string[] = [`[0:a]volume=${p.kind === 'MUSIC_VIDEO' && opts.song ? '0.08' : '1.0'}[a0]`];
   const labels: string[] = ['[a0]'];
   let n = 1;
   for (const d of opts.dialogueAudio ?? []) {
