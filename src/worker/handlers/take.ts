@@ -109,7 +109,8 @@ export const generateTake: Handler = async (ctx) => {
   const stored = await adoptFile(videoId, playable, { expectKind: 'VIDEO' });
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await fsp.rm(path.dirname(result.file), { recursive: true, force: true }).catch(() => {});
-  const takeNumber = sh.takes.length + 1;
+  // the next free number, counting any numbered label already on the shot (uploads and samples included)
+  const takeNumber = Math.max(sh.takes.length, ...sh.takes.map((t) => Number(/\bTake (\d+)/i.exec(t.label)?.[1] ?? 0))) + 1;
   const label = `Take ${takeNumber}`;
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params: result.params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id };
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
