@@ -1214,6 +1214,14 @@ const D = {
   'voice.refuse.WRONG_LANGUAGE': ['This recording is in another language than the character speaks.', 'هذا التسجيل بلغة غير التي تتكلم بها الشخصية.'],
   'voice.refuse.BAD_FORMAT': ['The file could not be read as audio.', 'تعذّرت قراءة الملف كصوت.'],
   'voice.build.needRecording': ['Upload a recording first.', 'ارفع تسجيلاً أولاً.'],
+  // navigation and the production page
+  'nav.new': ['New…', 'جديد…'],
+  'nav.files': ['Files', 'الملفات'],
+  'new.character.hint': ['A person the studio keeps: one look and one voice across every production.', 'شخص يحتفظ به الاستوديو: مظهر واحد وصوت واحد في كل إنتاج.'],
+  'new.location.hint': ['A place with its plates and views, reused across productions.', 'مكان بلوحاته ومناظره، يُعاد استخدامه في الإنتاجات.'],
+  'production.decisions': ['Needs your decision', 'يحتاج قرارك'],
+  'production.decisions.hint': ['Stages waiting for your approval before the studio goes on.', 'مراحل تنتظر موافقتك قبل أن يتابع الاستوديو.'],
+  'production.decisions.none': ['Nothing waits for you right now.', 'لا شيء ينتظرك الآن.'],
   'voice.dialectEngine': ['The language and dialect choose the engine; Latin words in an Arabic line go to the bilingual engine.', 'تختار اللغة واللهجة المحرك؛ الكلمات اللاتينية في جملة عربية تذهب إلى المحرك ثنائي اللغة.'],
 } as const satisfies Record<string, readonly [string, string]>;
 

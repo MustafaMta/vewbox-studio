@@ -338,9 +338,9 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
     let href = '/';
     try {
       if (kind === 'show') {
+        // a show lands on its own page (cast, world, bible); the first episode is offered there, never added unasked
         const r = act('addShow', { ...common, logline: common.logline || brief.text, genre: genre.trim(), castIds: cast, locationIds: locs });
-        const ep = act('addProduction', { ...common, title: `${T('kind.EPISODE')} 1`, titleAr: undefined, kind: 'EPISODE', showId: r.show.id, seasonId: r.season.id, castIds: [], locationIds: [] });
-        href = productionHref(ep.production);
+        href = `/shows/${r.show.id}`;
       } else {
         const r = act('addProduction', { ...common, kind: prodKind, showId: show?.id, seasonId: season?.id, song: buildSong() });
         href = productionHref(r.production);

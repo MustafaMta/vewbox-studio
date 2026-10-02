@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <a href="#main" className="sr-only-focusable fixed start-3 top-3 z-50 rounded-lg bg-primary px-3 py-2 text-[13px] font-semibold text-on-primary">{T('nav.skip')}</a>
       <aside className="sticky top-0 hidden h-dvh flex-col border-e border-line/70 bg-surface lg:flex">
         <Link href="/studio" className="flex items-center px-5 pb-4 pt-5" aria-label={T('app.name')}><VewboxLogo /></Link>
-        <div className="px-3 pb-3"><Link href="/new" className="btn btn-primary btn-block"><IconPlus aria-hidden />{T('nav.newProduction')}</Link></div>
+        <div className="px-3 pb-3"><Link href="/new" className="btn btn-primary btn-block"><IconPlus aria-hidden />{T('nav.new')}</Link></div>
         <SideNav />
         <div className="space-y-1 border-t border-line/70 p-3">
           <Link href="/production" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] text-muted transition-colors hover:bg-raised-2 hover:text-fg">
