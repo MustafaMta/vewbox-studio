@@ -134,11 +134,10 @@ def main() -> int:
                 continue
             if not fetch(entry, root, state, api, token):
                 ok_all = False
-    # clean up the hub's local_dir scaffolding
-    for p in root.rglob(".hf"):
-        shutil.rmtree(p, ignore_errors=True)
-    for p in root.rglob(".cache"):
-        shutil.rmtree(p, ignore_errors=True)
+    # the hub's local_dir scaffolding holds partial downloads; only remove it once everything is verified
+    if ok_all and not args.list:
+        for p in list(root.rglob(".hf")):
+            shutil.rmtree(p, ignore_errors=True)
     log("done", ok=ok_all, total_bytes=total)
     return 0 if ok_all else 1
 

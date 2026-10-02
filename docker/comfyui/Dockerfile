@@ -8,7 +8,7 @@ ARG TORCH_VERSION=2.13.0
 ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 PIP_BREAK_SYSTEM_PACKAGES=1 \
     HF_HUB_DISABLE_TELEMETRY=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # apt over a slow/shared link: retry and wait rather than fail
-RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "90";\nAcquire::https::Timeout "90";\n' > /etc/apt/apt.conf.d/80-retries \
+RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "90";\nAcquire::https::Timeout "90";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/80-retries \
  && apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv git ffmpeg libgl1 libglib2.0-0 curl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
