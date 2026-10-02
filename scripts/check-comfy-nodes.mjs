@@ -20,10 +20,10 @@ const NEEDED = {
   ImageScaleToTotalPixels: ['image', 'upscale_method', 'megapixels'], TextEncodeQwenImageEditPlus: ['clip', 'prompt', 'vae', 'image1', 'image2', 'image3'], VAEEncode: ['pixels', 'vae'],
   // music: ACE-Step 1.5 and MiniMax Music 3
   'TextEncodeAceStepAudio1.5': ['clip', 'tags', 'lyrics', 'seed', 'bpm', 'duration', 'timesignature', 'language', 'keyscale', 'generate_audio_codes', 'cfg_scale', 'temperature', 'top_p', 'top_k', 'min_p'],
-  ConditioningZeroOut: ['conditioning'], EmptyAceStep15LatentAudio: ['seconds', 'batch_size'], SaveAudio: ['audio', 'filename_prefix'],
+  ConditioningZeroOut: ['conditioning'], 'EmptyAceStep1.5LatentAudio': ['seconds', 'batch_size'], SaveAudio: ['audio', 'filename_prefix'],
   MiniMaxMusic3TextEncode: ['clip', 'caption', 'lyrics', 'seed', 'max_duration', 'cfg_scale', 'top_k'], EmptyMiniMaxMusic3LatentAudio: ['seconds', 'batch_size'],
 };
-const CLIP_TYPES = ['minimax', 'qwen_image', 'ace', 'minimax_music'];
+const CLIP_TYPES = ['minimax', 'qwen_image', 'ace']; // Music 3's encoder loads under `minimax` too (detected by its weights)
 const SAMPLERS = ['res_multistep', 'euler'];
 
 const res = await fetch(`${base}/object_info`);
@@ -37,9 +37,11 @@ for (const [cls, inputs] of Object.entries(NEEDED)) {
   const have = inputsOf(node);
   for (const inp of inputs) if (!(inp in have)) problems.push(`${cls}: missing input "${inp}" (has: ${Object.keys(have).join(', ')})`);
 }
-const clipTypes = info.CLIPLoader ? inputsOf(info.CLIPLoader).type?.[0] ?? [] : [];
+// combo options come either as a plain list (classic schema) or as ["COMBO", {options}] (v3 schema)
+const options = (spec) => (Array.isArray(spec) ? (Array.isArray(spec[0]) ? spec[0] : spec[0] === 'COMBO' ? spec[1]?.options ?? [] : []) : []);
+const clipTypes = info.CLIPLoader ? options(inputsOf(info.CLIPLoader).type) : [];
 for (const t of CLIP_TYPES) if (!clipTypes.includes(t)) problems.push(`CLIPLoader.type lacks "${t}" (has: ${clipTypes.join(', ')})`);
-const samplers = info.KSamplerSelect ? inputsOf(info.KSamplerSelect).sampler_name?.[0] ?? [] : [];
+const samplers = info.KSamplerSelect ? options(inputsOf(info.KSamplerSelect).sampler_name) : [];
 for (const s of SAMPLERS) if (!samplers.includes(s)) problems.push(`sampler "${s}" not available`);
 
 // model files the templates name, as ComfyUI sees them
