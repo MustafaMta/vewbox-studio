@@ -32,6 +32,18 @@ it, what changed, and what the evidence is. Status vocabulary, in increasing str
 
 ## Iraqi Arabic pronunciation suite
 
-See `docs/evidence/iraqi-suite.md` once run: the directive's phrases in male and female voices (Habibi-TTS IRQ), each
-read back by Whisper large-v3, with word error rate and the heard text. Dialect authenticity is **subjective quality
-pending review** by a native listener; the suite proves intelligibility and consistency, not nativeness.
+`scripts/iraqi-voice-suite.mjs` → `docs/evidence/iraqi-suite.md` and 32 WAVs under `docs/evidence/iraqi-suite/`:
+the directive's six phrases plus anger, happiness, sadness, excitement, hesitation, names, numbers, English technical
+words, Arabic/English switching and a long monologue, in two voices, each read back by Whisper large-v3.
+
+- With an **Iraqi reference clip** (the "male" voice): the conversational lines are intelligible — شلونك حبيبي شخبارك،
+  شنو السالفة، دير بالك على نفسك، the hesitation line and the names line at WER 0; anger, happiness, sadness, numbers
+  and the 10.6 s monologue at 0.13–0.30 (Whisper writes گ as ق and چ differently, which the metric counts).
+- With an **English reference clip** (the "female" voice): the same lines degrade badly (clipped openings, WER
+  0.4–1.0). An Iraqi voice needs an Arabic reference recording; the voice page should say so.
+- **Code-switching**: Habibi-TTS IRQ has no English — "wifi / app / battery" came out as Arabic-shaped noise (WER
+  0.78–1.0). IndexTTS 2.5 reads the same line intelligibly («شغل الواي فاي وافتح الاب. الباتري خلصت»), so the
+  worker now routes mixed-script lines to it.
+- Dialect authenticity (is it Baghdadi, not Levantine-tinged?) is **subjective quality pending review** by a native
+  listener; the suite proves intelligibility and consistency, not nativeness. The character voices used in the
+  acceptance productions are test clones (synthesised references), another reason a native review is owed.
