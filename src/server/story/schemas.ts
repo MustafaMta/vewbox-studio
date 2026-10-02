@@ -1,78 +1,94 @@
 import { z } from 'zod';
 import { CAMERA_MOVES, FRAMINGS, TIMES_OF_DAY, TRANSITIONS } from '@/domain/vocabulary';
+import { DIRECTION_SYNONYMS, FRAMING_SYNONYMS, KIND_SYNONYMS, MODE_SYNONYMS, MOVE_SYNONYMS, RELATION_SYNONYMS, SEX_SYNONYMS, TIME_SYNONYMS, TRANSITION_SYNONYMS, aliases, looseArray, looseEnum, looseNumber, looseString } from './lenient';
 
-/** WHAT THE STORY ENGINE MUST RETURN — strict shapes the language model fills in. Validation failures go back to the
- *  model once or twice with the exact problem before the job fails. */
+/** WHAT THE STORY ENGINE MUST RETURN — strict shapes the language model fills in. The shapes are strict about meaning
+ *  and tolerant about spelling (see lenient.ts): nulls, case, synonyms and near-miss keys are normalised before
+ *  validation, and genuine failures go back to the model once or twice with the exact problem before the job fails. */
 
-const str = (max = 400) => z.string().trim().max(max);
-const lines = z.array(z.object({ characterName: str(80), text: str(600), textAr: str(600).optional(), delivery: str(120).optional() })).max(16);
+const str = (max = 400) => looseString.pipe(z.string().trim().max(max));
+const req = (max = 400) => looseString.pipe(z.string().trim().min(1).max(max));
+const int = (min: number, max: number) => looseNumber.pipe(z.number().int().min(min).max(max));
+const strs = (max = 80, limit = 8) => looseArray(str(max), { max: limit });
+
+const timeOfDay = looseEnum(TIMES_OF_DAY, TIME_SYNONYMS);
+const framing = looseEnum(FRAMINGS, FRAMING_SYNONYMS, 'MEDIUM');
+const cameraMove = looseEnum(CAMERA_MOVES, MOVE_SYNONYMS, 'STATIC');
+const transition = looseEnum(TRANSITIONS, TRANSITION_SYNONYMS, 'CUT');
+const relation = looseEnum(['CONTINUATION', 'CUT', 'STORY_TRANSITION'], RELATION_SYNONYMS, 'CUT');
+const screenDirection = looseEnum(['LEFT', 'RIGHT', 'TOWARD', 'AWAY', 'NEUTRAL'], DIRECTION_SYNONYMS);
+const placeKind = looseEnum(['INTERIOR', 'EXTERIOR'], KIND_SYNONYMS);
+const sex = looseEnum(['FEMALE', 'MALE'], SEX_SYNONYMS);
+
+const lineAliases = aliases({ characterName: ['name', 'character', 'characterId', 'speaker', 'who', 'id'], text: ['line', 'dialogue', 'textEn', 'english'], textAr: ['arabic', 'ar', 'lineAr', 'dialogueAr'] });
+const lines = looseArray(z.preprocess(lineAliases, z.object({ characterName: str(80), text: str(600), textAr: str(600).optional(), delivery: str(120).optional() })), { max: 16 });
 
 export const ProposalSchema = z.object({
-  title: str(80).min(1),
+  title: req(80),
   titleAr: str(80).optional(),
-  logline: str(240).min(1),
-  premise: str(1600).min(20),
-  genre: str(60).min(1),
-  mood: str(80).min(1),
-  structure: z.array(z.object({ title: str(80).min(1), summary: str(400).min(1) })).min(2).max(8),
-  cast: z.array(z.object({ existingCharacterId: z.string().optional(), name: str(60).min(1), role: str(120).min(1), reason: str(240).min(1), sex: z.enum(['FEMALE', 'MALE']).optional(), ageYears: z.number().int().min(1).max(120).optional(), appearance: str(400).optional(), personality: str(400).optional() })).min(1).max(8),
-  locations: z.array(z.object({ existingLocationId: z.string().optional(), name: str(60).min(1), description: str(400).min(1), kind: z.enum(['INTERIOR', 'EXTERIOR']).optional() })).min(1).max(6),
-  song: z.object({ title: str(80), caption: str(300), lyrics: z.string().trim().max(4000) }).optional(),
+  logline: req(240),
+  premise: looseString.pipe(z.string().trim().min(20).max(1600)),
+  genre: req(60),
+  mood: req(80),
+  structure: looseArray(z.preprocess(aliases({ title: ['name', 'act', 'heading'], summary: ['description', 'text', 'beat'] }), z.object({ title: req(80), summary: req(400) })), { min: 2, max: 8 }),
+  cast: looseArray(z.preprocess(aliases({ existingCharacterId: ['characterId', 'id'], reason: ['why', 'note', 'function'], appearance: ['look', 'description'] }), z.object({ existingCharacterId: z.string().optional(), name: req(60), role: req(120), reason: str(240).optional(), sex: sex.optional(), ageYears: int(1, 120).optional(), appearance: str(400).optional(), personality: str(400).optional() })), { min: 1, max: 8 }),
+  locations: looseArray(z.preprocess(aliases({ existingLocationId: ['locationId', 'id'], description: ['look', 'summary'], kind: ['type'] }), z.object({ existingLocationId: z.string().optional(), name: req(60), description: req(400), kind: placeKind.optional() })), { min: 1, max: 6 }),
+  song: z.object({ title: str(80), caption: str(300).optional(), lyrics: z.string().trim().max(4000) }).optional(),
 });
 export type ProposalOut = z.infer<typeof ProposalSchema>;
 
-export const CharacterDesignSchema = z.object({
-  build: str(160), face: str(300), hair: str(160), skin: str(80), eyes: str(80), distinguishing: z.array(str(80)).max(6), wardrobe: str(300), personality: str(400), ageYears: z.number().int().min(1).max(120).optional(), sex: z.enum(['FEMALE', 'MALE']).optional(), nameAr: str(60).optional(),
-  canon: z.object({ heightCm: z.number().int().min(30).max(250).optional(), accessories: z.array(str(80)).max(6).optional(), visualRestrictions: z.array(str(120)).max(6).optional(), agePresentation: str(80).optional(), speech: str(200).optional() }).optional(),
-});
+export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['distinguishingFeatures', 'features', 'marks'], wardrobe: ['clothing', 'outfit', 'costume'] }), z.object({
+  build: str(160), face: str(300), hair: str(160), skin: str(80), eyes: str(80), distinguishing: strs(80, 6), wardrobe: str(300), personality: str(400), ageYears: int(1, 120).optional(), sex: sex.optional(), nameAr: str(60).optional(),
+  canon: z.object({ heightCm: int(30, 250).optional(), accessories: strs(80, 6).optional(), visualRestrictions: strs(120, 6).optional(), agePresentation: str(80).optional(), speech: str(200).optional() }).optional(),
+}));
 
-export const LocationDesignSchema = z.object({
-  description: str(600), kind: z.enum(['INTERIOR', 'EXTERIOR']), landmarks: z.array(str(120)).max(8), props: z.array(str(80)).max(10), lighting: z.array(z.enum(TIMES_OF_DAY)).min(1).max(4), nameAr: str(60).optional(),
-  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: z.array(str(60)).max(8).optional(), cameraZones: z.array(str(120)).max(6).optional(), entrances: z.array(str(80)).max(4).optional(), spatial: str(400).optional() }).optional(),
-});
+export const LocationDesignSchema = z.preprocess(aliases({ kind: ['type'], lighting: ['timesOfDay', 'times'] }), z.object({
+  description: str(600), kind: placeKind, landmarks: strs(120, 8), props: strs(80, 10), lighting: looseArray(timeOfDay, { min: 1, max: 4 }), nameAr: str(60).optional(),
+  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: strs(60, 8).optional(), cameraZones: strs(120, 6).optional(), entrances: strs(80, 4).optional(), spatial: str(400).optional() }).optional(),
+}));
 
 export const DevelopSchema = z.object({
-  logline: str(240).min(1),
-  synopsis: str(2400).min(40),
+  logline: req(240),
+  synopsis: looseString.pipe(z.string().trim().min(40).max(2400)),
   genre: str(60).optional(),
   mood: str(80).optional(),
   titleAr: str(80).optional(),
-  newCharacters: z.array(z.object({ name: str(60).min(1), role: str(120), sex: z.enum(['FEMALE', 'MALE']), design: CharacterDesignSchema })).max(6),
-  newLocations: z.array(z.object({ name: str(60).min(1), design: LocationDesignSchema })).max(5),
-  scenes: z.array(z.object({ title: str(80).min(1), locationName: str(60), timeOfDay: z.enum(TIMES_OF_DAY), characterNames: z.array(str(60)).max(8), purpose: str(300), emotionalObjective: str(200), entryState: str(300), exitState: str(300), targetSeconds: z.number().int().min(5).max(900) })).min(1).max(24),
+  newCharacters: looseArray(z.preprocess(aliases({ sex: ['gender'] }), z.object({ name: req(60), role: str(120), sex, design: CharacterDesignSchema })), { max: 6 }),
+  newLocations: looseArray(z.object({ name: req(60), design: LocationDesignSchema }), { max: 5 }),
+  scenes: looseArray(z.preprocess(aliases({ locationName: ['location', 'place'], characterNames: ['characters', 'cast'], targetSeconds: ['seconds', 'duration', 'durationSeconds'], emotionalObjective: ['emotion', 'objective'] }), z.object({ title: req(80), locationName: str(60), timeOfDay, characterNames: strs(60, 8), purpose: str(300), emotionalObjective: str(200), entryState: str(300), exitState: str(300), targetSeconds: int(5, 900) })), { min: 1, max: 24 }),
 });
 
-export const ScriptSceneSchema = z.object({
-  sceneId: z.string(),
-  beats: z.array(z.object({ action: str(600).min(1), lines })).min(1).max(12),
-});
-export const ScriptSchema = z.object({ scenes: z.array(ScriptSceneSchema).min(1) });
+export const ScriptSceneSchema = z.preprocess(aliases({ sceneId: ['id', 'scene'] }), z.object({
+  sceneId: looseString,
+  beats: looseArray(z.preprocess(aliases({ action: ['description', 'text', 'beat'], lines: ['dialogue'] }), z.object({ action: req(600), lines })), { min: 1, max: 12 }),
+}));
+export const ScriptSchema = z.object({ scenes: looseArray(ScriptSceneSchema, { min: 1 }) });
 
-export const ContinuitySchema = z.object({
-  characters: z.array(z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), screenDirection: z.enum(['LEFT', 'RIGHT', 'TOWARD', 'AWAY', 'NEUTRAL']).optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: z.array(str(60)).max(4).optional() })).max(8),
-  props: z.array(z.object({ name: str(60), ownerCharacterName: str(60).optional(), state: str(120).optional(), position: str(120).optional() })).max(10),
-  environment: z.object({ timeOfDay: z.enum(TIMES_OF_DAY).optional(), weather: str(80).optional(), lighting: str(200).optional(), state: str(200).optional() }),
-  camera: z.object({ lensIntent: str(120).optional(), angle: str(120).optional() }),
-  relationToPrevious: z.enum(['CONTINUATION', 'CUT', 'STORY_TRANSITION']),
+export const ContinuitySchema = z.preprocess(aliases({ characters: ['cast', 'people'], relationToPrevious: ['relation', 'relationship', 'relationToPreviousShot', 'continuity'] }), z.object({
+  characters: looseArray(z.preprocess(aliases({ characterName: ['name', 'character', 'characterId', 'who', 'id'], wardrobe: ['clothing', 'outfit', 'costume'], holding: ['props', 'items'] }), z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), screenDirection: screenDirection.optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: strs(60, 4).optional() })), { max: 8 }),
+  props: looseArray(z.preprocess(aliases({ name: ['prop', 'item'], ownerCharacterName: ['owner', 'heldBy', 'character'] }), z.object({ name: str(60), ownerCharacterName: str(60).optional(), state: str(120).optional(), position: str(120).optional() })), { max: 10 }),
+  environment: z.preprocess((v) => v ?? {}, z.object({ timeOfDay: timeOfDay.optional(), weather: str(80).optional(), lighting: str(200).optional(), state: str(200).optional() })),
+  camera: z.preprocess((v) => v ?? {}, z.object({ lensIntent: str(120).optional(), angle: str(120).optional() })),
+  relationToPrevious: relation,
   notes: str(300).optional(),
-});
+}));
 
 export const ShotPlanSchema = z.object({
-  shots: z.array(z.object({
-    purpose: str(160).min(1),
-    action: str(600).min(1),
-    framing: z.enum(FRAMINGS),
-    cameraMove: z.enum(CAMERA_MOVES),
-    durationSeconds: z.number().min(2).max(15),
-    characterNames: z.array(str(60)).max(6),
-    dialogueLineIndexes: z.array(z.number().int().min(0)).max(6).optional(),
-    transition: z.enum(TRANSITIONS),
-    continuity: ContinuitySchema,
-    prompt: str(1600).min(20),
-  })).min(1).max(14),
+  shots: looseArray(z.preprocess(aliases({ purpose: ['intent', 'goal', 'title'], action: ['description', 'beat'], framing: ['shotSize', 'size', 'shotType'], cameraMove: ['camera', 'move', 'movement', 'cameraMovement'], durationSeconds: ['duration', 'seconds', 'length'], characterNames: ['characters', 'cast'], dialogueLineIndexes: ['lines', 'dialogue', 'lineIndexes', 'dialogueLines'], prompt: ['videoPrompt', 'generationPrompt'] }), z.object({
+    purpose: req(160),
+    action: req(600),
+    framing,
+    cameraMove,
+    durationSeconds: looseNumber.pipe(z.number().min(2).max(15)),
+    characterNames: strs(60, 6),
+    dialogueLineIndexes: looseArray(int(0, 999), { max: 6 }).optional(),
+    transition,
+    continuity: z.preprocess((v) => v ?? {}, ContinuitySchema),
+    prompt: str(1600).optional(),
+  })), { min: 1, max: 14 }),
 });
 export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;
 
 export const PerformancePlanSchema = z.object({
-  sections: z.array(z.object({ sectionId: z.string(), mode: z.enum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL']), singerNames: z.array(str(60)).max(6), lines: z.array(z.object({ singerName: str(60), text: str(300) })).max(24).optional() })).min(1),
+  sections: looseArray(z.preprocess(aliases({ sectionId: ['id', 'section'], singerNames: ['singers', 'performers'] }), z.object({ sectionId: looseString, mode: looseEnum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL'], MODE_SYNONYMS), singerNames: strs(60, 6), lines: looseArray(z.preprocess(aliases({ singerName: ['singer', 'name', 'who'] }), z.object({ singerName: str(60), text: str(300) })), { max: 24 }).optional() })), { min: 1 }),
 });

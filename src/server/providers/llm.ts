@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { log } from '../log';
+import { dropNulls } from '../story/lenient';
 
 /** THE STORY ENGINE'S LANGUAGE MODEL — one small interface over three hosted/local backends:
  *  - MiniMax text (M3) through its Anthropic-compatible messages endpoint (the same MiniMax key as video);
@@ -99,7 +100,7 @@ export async function json<T>(schema: z.ZodType<T>, messages: LlmMessage[], opts
       history.push({ role: 'assistant', content: last.text }, { role: 'user', content: `That was not valid JSON (${(e as Error).message}). Answer again with only the JSON object, no prose, no code fences.` });
       continue;
     }
-    const v = schema.safeParse(parsed);
+    const v = schema.safeParse(dropNulls(parsed));
     if (v.success) return { data: v.data, result: last, attempts: attempt };
     const issues = v.error.issues.slice(0, 12).map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('\n');
     log.warn({ attempt, provider: last.provider, issues }, 'llm json failed validation');
