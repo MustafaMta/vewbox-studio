@@ -264,7 +264,21 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
       if (!sh.characterIds.includes(l.characterId)) sh.characterIds.push(l.characterId);
     }
   }
-  return shots;
+  return fitDurations(shots, budget, maxShot);
+}
+
+/** The model plans shots near the short end of the range, so a scene comes out well under its running time.
+ *  Stretch every shot by the same factor (rounded to whole seconds, never above maxShot) until the scene fills at
+ *  least 90 % of its budget; a plan that already fits is left alone. Longer shots mean longer generations, not more. */
+export function fitDurations<T extends { durationSeconds: number }>(shots: T[], budget: number, maxShot = 10, minShot = 3): T[] {
+  const sum = shots.reduce((a, s) => a + s.durationSeconds, 0);
+  if (!shots.length || sum <= 0 || sum >= budget * 0.9) return shots;
+  const factor = budget / sum;
+  let out = shots.map((s) => ({ ...s, durationSeconds: Math.min(maxShot, Math.max(minShot, Math.round(s.durationSeconds * factor))) }));
+  // rounding and the cap may leave a gap: hand spare seconds to the shots with room, one at a time, in order
+  let gap = budget - out.reduce((a, s) => a + s.durationSeconds, 0);
+  for (let i = 0; gap > 0 && out.some((s) => s.durationSeconds < maxShot); i = (i + 1) % out.length) if (out[i].durationSeconds < maxShot) { out[i] = { ...out[i], durationSeconds: out[i].durationSeconds + 1 }; gap--; }
+  return out;
 }
 
 // ------------------------------------------------------------------------------------------ performance plan
