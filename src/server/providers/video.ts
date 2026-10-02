@@ -36,7 +36,7 @@ export interface VideoRequest {
 export interface VideoResult { file: string; backend: VideoBackend; model: string; requestId: string; resolution: string; seconds: number; costUsd?: number; ms: number; workflowVersion?: string; params: Record<string, unknown> }
 
 export function chooseBackend(): VideoBackend {
-  const want = (process.env.VIDEO_BACKEND ?? 'auto').toLowerCase();
+  const want = env().VIDEO_BACKEND;
   if (want === 'api') { if (!env().MINIMAX_API_KEY) throw new StudioError('NOT_CONFIGURED', 'VIDEO_BACKEND=api but MINIMAX_API_KEY is not set.'); return 'api'; }
   if (want === 'local') return 'local';
   return env().MINIMAX_API_KEY ? 'api' : 'local';

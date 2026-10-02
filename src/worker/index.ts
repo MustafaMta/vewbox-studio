@@ -9,6 +9,7 @@ import { closeDb } from '@/server/db/client';
 import { addEvent, cancelled, claim, complete, fail, heartbeat, setProgress } from '@/server/jobs/queue';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { gpuLease } from './gpu';
+import { syncRegistry } from '@/server/registry';
 
 /** THE WORKER — claims jobs from Postgres and runs them. Lanes: hosted (MiniMax, many at once), LLM (a few), CPU
  *  (ffmpeg, a few) and GPU (one at a time against the RTX 5090's VRAM budget). Each running job heartbeats its lease;
@@ -82,6 +83,7 @@ async function tick() {
 async function main() {
   log.info({ workerId, lanes: Object.fromEntries(Object.entries(LANES).map(([k, v]) => [k, v.limit])) }, 'worker starting');
   await bootstrap();
+  syncRegistry().catch((e) => log.warn({ err: (e as Error).message }, 'registry sync failed'));
   const loop = setInterval(() => { void tick(); }, 1500);
   void tick();
   const shutdown = async (sig: string) => {

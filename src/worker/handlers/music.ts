@@ -22,16 +22,20 @@ import { recordMetric } from '@/server/jobs/queue';
 
 type Engine = 'minimax-api' | 'ace-step' | 'minimax-music3';
 
-async function pickEngine(): Promise<Engine> {
-  const want = (process.env.MUSIC_ENGINE ?? 'auto').toLowerCase() as Engine | 'auto';
-  if (want !== 'auto') return want;
-  if (env().MINIMAX_API_KEY) return 'minimax-api';
+async function pickLocalEngine(): Promise<Exclude<Engine, 'minimax-api'>> {
   const h = await comfy.health();
   if (!h.ok) throw new StudioError('UNAVAILABLE', 'No music engine is reachable: set MINIMAX_API_KEY or start the comfyui service with ACE-Step weights.');
   const models = await comfy.listModels('diffusion_models').catch(() => [] as string[]);
   if (models.some((m) => m.startsWith('acestep'))) return 'ace-step';
   if (models.some((m) => m.startsWith('minimax_music3'))) return 'minimax-music3';
   throw new StudioError('NOT_CONFIGURED', 'No music weights are downloaded yet (see docker/models: music-ace-step).');
+}
+
+async function pickEngine(): Promise<Engine> {
+  const want = env().MUSIC_ENGINE as Engine | 'auto';
+  if (want !== 'auto') return want;
+  if (env().MINIMAX_API_KEY) return 'minimax-api';
+  return pickLocalEngine();
 }
 
 export const generateSong: Handler = async (ctx) => {
@@ -56,7 +60,7 @@ export const generateSong: Handler = async (ctx) => {
     catch (e) {
       // the hosted music API is closed to new accounts; say so and let the local engines take over on retry
       const m = (e as Error).message;
-      if (/not available|permission|2049|1004/i.test(m) && (await comfy.health()).ok) { await ctx.event('warn', `MiniMax Music API refused (${m.slice(0, 120)}); using the local engine`); process.env.MUSIC_ENGINE = process.env.MUSIC_ENGINE ?? 'auto'; return generateSongLocal(ctx, { p, caption, lyrics, seconds, instrumental: Boolean(instrumental), language: p.language, t0 }); }
+      if (/not available|permission|2049|1004/i.test(m) && (await comfy.health()).ok) { await ctx.event('warn', `MiniMax Music API refused (${m.slice(0, 120)}); using the local engine`); return generateSongLocal(ctx, { p, caption, lyrics, seconds, instrumental: Boolean(instrumental), language: p.language, t0 }); }
       throw e;
     }
     file = path.join(dir, `song.${r.format}`); await fsp.writeFile(file, r.bytes); model = env().MINIMAX_MUSIC_MODEL; requestId = r.traceId;
@@ -67,7 +71,7 @@ export const generateSong: Handler = async (ctx) => {
 };
 
 async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullable<Awaited<ReturnType<typeof readState>>['state']['productions'][number]>; caption: string; lyrics: string; seconds: number; instrumental: boolean; language: string; t0: number; engine?: Engine }) {
-  const engine = a.engine ?? (await pickEngine());
+  const engine = a.engine && a.engine !== 'minimax-api' ? a.engine : await pickLocalEngine();
   const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en' });
   const run = await ctx.gpu('MUSIC', 20000, () => comfy.run(graph, { timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'audio');

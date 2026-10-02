@@ -34,7 +34,10 @@ const Schema = z.object({
   /** Local GPU services. */
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),
+  TTS_HABIBI_URL: z.string().default('http://tts-habibi:8021'),
   ASR_URL: z.string().default('http://asr:8030'),
+  MUSIC_ENGINE: z.enum(['auto', 'minimax-api', 'ace-step', 'minimax-music3']).default('auto'),
+  VIDEO_BACKEND: z.enum(['auto', 'api', 'local']).default('auto'),
   /** Where the public web origin is, for callbacks and absolute media URLs handed to providers. */
   PUBLIC_BASE_URL: z.string().optional().default(''),
   /** Worker tuning. */

@@ -14,7 +14,7 @@ export type TtsEngine = 'indextts' | 'habibi' | 'auto';
 export interface SynthesizeInput { text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string; emotionAlpha?: number; speed?: number; engine?: TtsEngine; seed?: number }
 export interface SynthesizeResult { file: string; sampleRate: number; durationSeconds: number; engine: string; model: string; ms: number }
 
-const tts = (engine: Exclude<TtsEngine, 'auto'>) => (engine === 'habibi' ? (process.env.TTS_HABIBI_URL || env().TTS_URL.replace(/:8020\b/, ':8021')) : env().TTS_URL).replace(/\/$/, '');
+const tts = (engine: Exclude<TtsEngine, 'auto'>) => (engine === 'habibi' ? env().TTS_HABIBI_URL : env().TTS_URL).replace(/\/$/, '');
 const asr = () => env().ASR_URL.replace(/\/$/, '');
 
 async function post(url: string, fd: FormData, timeoutMs: number): Promise<Response> {
