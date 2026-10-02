@@ -155,15 +155,23 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string, o
 }
 
 /** What the reference recording says. Habibi (F5-TTS) conditions on the reference transcript; it is stored once on
- *  the sample (at upload, or here on first use) and never transcribed again. */
-export async function referenceText(ctx: HandlerContext, c: Character, ref: Reference): Promise<string | undefined> {
-  if (ref.text !== undefined) return ref.text || undefined;
+ *  the sample (at upload, or here on first use) and never transcribed again. Without it the engine would run its own
+ *  Whisper inside the container on every line — a different transcript each time, an identity pinned with none
+ *  (finding 17) — so a transcript that cannot be had is a refusal: UNAVAILABLE while the transcription service is
+ *  away (the job is retried when it is back), MISSING_REFERENCE when the recording yields no words. */
+export async function referenceText(ctx: HandlerContext, c: Character, ref: Reference): Promise<string> {
+  if (ref.text) return ref.text;
+  let heard: Awaited<ReturnType<typeof transcribe>>;
   try {
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
-    ref.text = t.text.trim();
-    if (ref.sample && ref.text) await command('updateVoiceSample', [c.id, ref.sample.id, { text: ref.text, language: t.language === 'ar' ? 'AR' : t.language === 'en' ? 'EN' : undefined }], 'worker');
-  } catch (e) { await ctx.event('warn', `reference transcription skipped: ${(e as Error).message}`); ref.text = ''; }
-  return ref.text || undefined;
+    heard = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
+  } catch (e) {
+    throw new StudioError('UNAVAILABLE', `The Iraqi engine needs the words of ${c.name}'s reference recording and the transcription service could not provide them (${(e as Error).message}); nothing was spoken with a guessed transcript — retry when the service is back.`, { failureClass: 'INFRASTRUCTURE', characterId: c.id, sampleId: ref.sample?.id });
+  }
+  const text = heard.text.trim();
+  if (!text) throw missingReference(`No words were heard in ${c.name}'s reference recording “${ref.sample?.label ?? ref.asset.label}”; the Iraqi engine needs a recording of clear speech.`, { characterId: c.id, sampleId: ref.sample?.id });
+  ref.text = text;
+  if (ref.sample) await command('updateVoiceSample', [c.id, ref.sample.id, { text, language: heard.language === 'ar' ? 'AR' : heard.language === 'en' ? 'EN' : undefined }], 'worker');
+  return text;
 }
 
 export interface SpokenLine { file: string; engine: string; model: string; ms: number; language: Language; durationSeconds?: number; fallback?: string }

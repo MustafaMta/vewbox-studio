@@ -236,6 +236,18 @@ describe('VOICE_BUILD', () => {
     expect(ch('nour').voice.samples.find((x) => x.id === uploaded.id)!.text).toBe('هلا شلونكم اليوم هاي عينة صوتي');
     expect(fake.synth[0]).toMatchObject({ engine: 'habibi', referenceText: 'هلا شلونكم اليوم هاي عينة صوتي' });
   });
+  it('Habibi path with the transcription service away: no line is spoken with a guessed reference transcript and nothing is pinned (finding 17)', async () => {
+    prepare({ language: 'AR', dialect: 'IRAQI_BAGHDADI' }); // no stored transcript
+    fake.asrFails = true;
+    const before = JSON.stringify(fake.state);
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ code: 'UNAVAILABLE', failureClass: 'INFRASTRUCTURE' });
+    expect(fake.synth).toHaveLength(0);
+    expect(JSON.stringify(fake.state)).toBe(before);
+    // the service answers but hears nothing: a reference without words is not cloned from either
+    fake.asrFails = false; fake.asrHears = '';
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE' });
+    expect(fake.synth).toHaveLength(0);
+  });
   it('an ASR outage pins the identity in REVIEW and the job awaits review; nothing is passed silently', async () => {
     prepare({ text: 'x y z' });
     fake.asrFails = true;
