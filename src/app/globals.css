@@ -220,7 +220,7 @@ html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-mo
   .co-spine > li:not(:first-child)::before, .co-spine > li:not(:last-child)::after { content: ''; position: absolute; inset-inline-start: 19.5px; border-inline-start: 1px solid var(--line); block-size: calc(50% - 20px); }
   .co-spine > li::before { inset-block-start: 0; } .co-spine > li::after { inset-block-end: 0; }
   .co-spine > li[data-lit-above]::before, .co-spine > li:has(+ li[data-lit-above])::after { border-color: var(--edge-lit); }
-  .co-spine-row { display: flex; align-items: center; gap: 12px; min-block-size: 64px; padding-block: 10px; padding-inline-end: 4px; border-radius: var(--r-2); }
+  .co-spine-row { display: flex; align-items: center; gap: 24px; min-block-size: 64px; padding-block: 10px; padding-inline-end: 4px; border-radius: var(--r-2); }
   .co-spine-row:hover { background: var(--input); }
   /* a person's monogram: initials on the field tone; the director's carries a 1.5 px ivory ring */
   .monogram { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--input); color: var(--fg-muted); font-weight: 600; letter-spacing: 0; line-height: 1; border: 1px solid var(--line); }
@@ -569,6 +569,9 @@ html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-mo
   .facts { display: flex; flex-direction: column; }
   .facts > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding-block: 0.7rem; }
   .facts > div + div { border-block-start: 1px solid var(--line-soft); }
+  /* definition rows on the ground (an agent's executes / now / track record) */
+  .facts-rows { border-block: 1px solid var(--line-soft); }
+  .facts-rows > div + div { border-block-start: 1px solid var(--line-soft); }
   .facts > div:first-child { padding-block-start: 0; } .facts > div:last-child { padding-block-end: 0; }
   .facts dt { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--fg-faint); }
   .facts dt svg { inline-size: 0.9rem; block-size: 0.9rem; color: var(--ink-500); }

@@ -50,7 +50,7 @@ export default function StudioPage() {
     setAnnounce(T.f('co.announce', { from: name(pair.from), stage: T.dyn(`pipeline.${h.stage}`, h.stage), to: name(pair.to) }));
   }, [org]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const header = <PageHeader size="display" title={T('nav.company')} subtitle={T('co.lead')} action={<Button aria-pressed={listView} onClick={toggleView}>{T('co.viewList')}</Button>} />;
+  const header = <PageHeader size="display" title={T('nav.company')} subtitle={T('co.lead')} action={<Button aria-pressed={listView} onClick={toggleView} className="hidden md:inline-flex">{T('co.viewList')}</Button>} />;
   if (error && !org) return <>{header}<Notice tone="bad" title={T('co.error')} action={<Button onClick={reload}>{T('co.tryAgain')}</Button>}>{error}</Notice></>;
   if (!org || !company) return (
     <>{header}<div className="co-layout" aria-busy><StageSkeleton /><div className="panel hidden space-y-3 p-5 md:block"><div className="skeleton h-6 w-48" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line-short" /></div></div></>

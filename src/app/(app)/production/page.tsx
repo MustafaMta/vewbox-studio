@@ -41,7 +41,7 @@ export default function ProductionPage() {
   return (
     <>
       <PageHeader title={T('production.title')} subtitle={T('production.lead')} />
-      <Section title={T('production.decisions')} count={decisions.length} className="mb-12" description={T('production.decisions.hint')}>
+      <Section title={T('production.decisions')} count={decisions.length || undefined} className="mb-12" description={T('production.decisions.hint')}>
         {decisions.length === 0 ? <p className="text-[13px] text-faint">{T('production.decisions.none')}</p> : (
           <ol className="space-y-3">
             {decisions.map(({ p, stage }) => (
@@ -55,7 +55,7 @@ export default function ProductionPage() {
           </ol>
         )}
       </Section>
-      <Section title={T('studio.pipeline')} count={active.length} className="mb-12">
+      <Section title={T('studio.pipeline')} count={active.length || undefined} className="mb-12">
         {active.length === 0 ? <Empty icon={<IconProduce />} title={T('production.empty')} hint={T('production.empty.hint')} action={<Link href="/new" className="btn btn-primary">{T('nav.new')}</Link>} /> : (
           <ol className="space-y-3">
             {active.map((p) => {
