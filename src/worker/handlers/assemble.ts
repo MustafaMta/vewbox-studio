@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler } from './index';
+import { step } from './step';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset } from '@/domain/types';
@@ -33,10 +34,14 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   // the QA stage's handoff to Post: every chosen take carries its inspectors' reports; a chosen take that failed a
   // check is the producer's own choice and is named here, not hidden
   if (opts.kind === 'cut') {
-    const reports = await listQaReports({ productionId: p.id, limit: 1000 });
-    const perTake = timeline.items.map((it) => { const takeId = p.shots.find((s) => s.id === it.shot.id)?.selectedTakeId; const mine = reports.filter((r) => r.subjectKind === 'TAKE' && r.subjectId === takeId); return { shotId: it.shot.id, inspected: mine.length > 0, rejected: mine.some((r) => r.decision === 'REJECT') }; });
-    const uninspected = perTake.filter((t) => !t.inspected).length; const rejected = perTake.filter((t) => t.rejected).length;
-    await recordHandoff({ productionId: p.id, stage: 'QA', producerDepartment: 'QA', receiverDepartment: 'POST', artifactIds: timeline.items.map((it) => it.take.id), outputVersions: { takes: timeline.items.length }, validation: { ok: uninspected === 0 && rejected === 0, checks: [{ name: 'every-chosen-take-inspected', ok: uninspected === 0, detail: uninspected ? `${uninspected} take(s) without a report (uploaded or older takes)` : `${perTake.length} takes` }, { name: 'no-chosen-take-rejected', ok: rejected === 0, detail: rejected ? `${rejected} chosen take(s) were rejected by an inspector; the producer chose them anyway` : undefined }] }, jobId: ctx.job.id });
+    // the QA hand-off review (the Quality Director's step)
+    const items = timeline.items;
+    await step(ctx, 'quality-director', `qa-handoff-review: “${p.title}”`, async () => {
+      const reports = await listQaReports({ productionId: p.id, limit: 1000 });
+      const perTake = items.map((it) => { const takeId = p.shots.find((s) => s.id === it.shot.id)?.selectedTakeId; const mine = reports.filter((r) => r.subjectKind === 'TAKE' && r.subjectId === takeId); return { shotId: it.shot.id, inspected: mine.length > 0, rejected: mine.some((r) => r.decision === 'REJECT') }; });
+      const uninspected = perTake.filter((t) => !t.inspected).length; const rejected = perTake.filter((t) => t.rejected).length;
+      await recordHandoff({ productionId: p.id, stage: 'QA', producerDepartment: 'QA', receiverDepartment: 'POST', artifactIds: items.map((it) => it.take.id), outputVersions: { takes: items.length }, validation: { ok: uninspected === 0 && rejected === 0, checks: [{ name: 'every-chosen-take-inspected', ok: uninspected === 0, detail: uninspected ? `${uninspected} take(s) without a report (uploaded or older takes)` : `${perTake.length} takes` }, { name: 'no-chosen-take-rejected', ok: rejected === 0, detail: rejected ? `${rejected} chosen take(s) were rejected by an inspector; the producer chose them anyway` : undefined }] }, jobId: ctx.job.id });
+    });
   }
   const size = exportSize(p.aspect, opts.resolution);
   const song = p.song?.assetId ? state.assets.find((a) => a.id === p.song!.assetId && !a.sample) : undefined;
@@ -51,7 +56,8 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
       const hasAudio = Boolean((it.take.provenance as { probe?: { hasAudio?: boolean } } | undefined)?.probe?.hasAudio);
       if (!hasAudio || (it.shot.performance?.mode ?? 'SOLO') === 'INSTRUMENTAL') continue;
       try {
-        const r = await ctx.tool('media.align_lag', () => takeLagAgainstMaster(assetFile(it.take), assetFile(song), it.start, it.duration), { label: it.shot.id });
+        const lag = { takeFile: assetFile(it.take), masterFile: assetFile(song), from: it.start, seconds: it.duration };
+        const r = await ctx.tool('media.align_lag', () => takeLagAgainstMaster(lag.takeFile, lag.masterFile, lag.from, lag.seconds), { label: it.shot.id, input: lag });
         const frames = r.lagMs >= 60 && r.corrBest > Math.max(0.2, r.corrZero + 0.1) ? Math.min(14, Math.round((r.lagMs / 1000) * 24)) : 0;
         if (frames) extraTrim[it.shot.id] = frames;
         sync.push({ shotId: it.shot.id, lagMs: r.lagMs, corrZero: Number(r.corrZero.toFixed(2)), corrBest: Number(r.corrBest.toFixed(2)), droppedFrames: frames });
@@ -60,45 +66,58 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
     if (Object.keys(extraTrim).length) timeline = buildTimeline(p, state.assets, { extraTrim });
     await ctx.event('info', 'performers aligned to the song', { shots: sync, totalSeconds: Number(timeline.total.toFixed(3)) });
   }
-  // recorded dialogue lines for shots whose take is silent (MiniMax H3 speaks natively; uploaded or legacy takes may not)
-  const dialogueAudio: Array<{ assetId: string; start: number; durationSeconds?: number; shotId: string }> = [];
   const files: Record<string, string> = {};
-  for (const it of timeline.items) {
-    files[it.take.id] = assetFile(it.take);
-    const takeHasAudio = Boolean(it.take.provenance && (it.take.provenance as { probe?: { hasAudio?: boolean } }).probe?.hasAudio);
-    if (takeHasAudio) continue;
-    let cursor = it.start + 0.2;
-    for (const d of it.shot.dialogue) {
-      const a = d.audioAssetId ? state.assets.find((x) => x.id === d.audioAssetId) : undefined;
-      if (!a) continue;
-      files[a.id] = assetFile(a);
-      dialogueAudio.push({ assetId: a.id, start: cursor, durationSeconds: d.durationSeconds ?? a.durationSeconds, shotId: it.shot.id });
-      cursor += (d.durationSeconds ?? a.durationSeconds ?? 2) + 0.25;
-    }
-  }
+  for (const it of timeline.items) files[it.take.id] = assetFile(it.take);
   if (song) files[song.id] = assetFile(song);
-  // the typed mix plan: one authoritative sound per stretch, sample-placed, kept with the cut's provenance
-  const mix = buildMixPlan(p, timeline, { song, dialogueAudio });
-  await ctx.event('info', 'mix plan', { tracks: mix.tracks.map((t) => ({ kind: t.kind, source: t.sourceAssetId, startSample: t.startSample, durationSamples: t.durationSamples, gain: t.gain, muted: t.muted ?? false, policy: t.policy })), targetLufs: mix.targetLufs, notes: mix.notes });
-  // subtitles
+  // THE MIX PLAN (the Audio Engineer's step): one authoritative sound per stretch, sample-placed, kept with the cut's
+  // provenance; recorded dialogue lines only for shots whose take is silent (MiniMax H3 speaks natively; uploaded or
+  // legacy takes may not)
+  const tl = timeline;
+  const { mix, dialogueAudio } = await step(ctx, 'audio-engineer', `mix-plan: ${opts.kind} of “${p.title}”`, async () => {
+    const dialogueAudio: Array<{ assetId: string; start: number; durationSeconds?: number; shotId: string }> = [];
+    for (const it of tl.items) {
+      const takeHasAudio = Boolean(it.take.provenance && (it.take.provenance as { probe?: { hasAudio?: boolean } }).probe?.hasAudio);
+      if (takeHasAudio) continue;
+      let cursor = it.start + 0.2;
+      for (const d of it.shot.dialogue) {
+        const a = d.audioAssetId ? state.assets.find((x) => x.id === d.audioAssetId) : undefined;
+        if (!a) continue;
+        files[a.id] = assetFile(a);
+        dialogueAudio.push({ assetId: a.id, start: cursor, durationSeconds: d.durationSeconds ?? a.durationSeconds, shotId: it.shot.id });
+        cursor += (d.durationSeconds ?? a.durationSeconds ?? 2) + 0.25;
+      }
+    }
+    const mix = buildMixPlan(p, tl, { song, dialogueAudio });
+    await ctx.event('info', 'mix plan', { tracks: mix.tracks.map((t) => ({ kind: t.kind, source: t.sourceAssetId, startSample: t.startSample, durationSamples: t.durationSamples, gain: t.gain, muted: t.muted ?? false, policy: t.policy })), targetLufs: mix.targetLufs, notes: mix.notes });
+    return { mix, dialogueAudio };
+  });
+  // SUBTITLE CUES (the Subtitle Specialist's step)
   const dir = await tmpDir('subs');
-  const cuesAr = p.kind === 'MUSIC_VIDEO' ? lyricCues(p, 'ar') : dialogueCues(p, timeline, cast, 'ar');
-  const cuesEn = p.kind === 'MUSIC_VIDEO' ? lyricCues(p, 'en') : dialogueCues(p, timeline, cast, 'en');
-  const cues = opts.subtitles === 'ar' ? cuesAr : opts.subtitles === 'en' ? cuesEn : opts.subtitles === 'both' ? mergeBilingual(cuesAr, cuesEn) : [];
   const srtPath = path.join(dir, 'subs.srt');
-  if (cues.length) await fsp.writeFile(srtPath, toSrt(cues), 'utf8');
+  const { cuesAr, cuesEn, cues } = await step(ctx, 'subtitle-specialist', `subtitle-cues: ${opts.kind} of “${p.title}”`, async () => {
+    const cuesAr = p.kind === 'MUSIC_VIDEO' ? lyricCues(p, 'ar') : dialogueCues(p, tl, cast, 'ar');
+    const cuesEn = p.kind === 'MUSIC_VIDEO' ? lyricCues(p, 'en') : dialogueCues(p, tl, cast, 'en');
+    const cues = opts.subtitles === 'ar' ? cuesAr : opts.subtitles === 'en' ? cuesEn : opts.subtitles === 'both' ? mergeBilingual(cuesAr, cuesEn) : [];
+    if (cues.length) await fsp.writeFile(srtPath, toSrt(cues), 'utf8');
+    return { cuesAr, cuesEn, cues };
+  });
   const outDir = await tmpDir(opts.kind);
   const ext = opts.format === 'mov-prores' ? 'mov' : 'mp4';
   const outFile = path.join(outDir, `${opts.kind}.${ext}`);
   const t0 = Date.now();
-  const result = await ctx.tool('media.assemble', () => assembleCut(p, timeline, { width: size.width, height: size.height, fps: 24, mix, files, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : 'none' }, codec: opts.format === 'mp4-h265' ? 'h265' : opts.format === 'mov-prores' ? 'prores' : 'h264', outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) }), { label: opts.kind });
+  const cut = { productionId: p.id, shots: timeline.items.length, width: size.width, height: size.height, fps: 24, mix, files, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : ('none' as const) }, codec: opts.format === 'mp4-h265' ? ('h265' as const) : opts.format === 'mov-prores' ? ('prores' as const) : ('h264' as const), outFile };
+  const result = await ctx.tool('media.assemble', () => assembleCut(p, timeline, { width: cut.width, height: cut.height, fps: cut.fps, mix, files, subtitles: cut.subtitles, codec: cut.codec, outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) }), { label: opts.kind, input: cut });
   await ctx.checkpoint();
-  // the finished file is inspected, not trusted: lengths, rate, size, timestamps, black stretches — the Technical
-  // Media Inspector's report is recorded whether it passes or not
+  // FILE VALIDATION (the Technical Media Inspector's step): the finished file is inspected, not trusted — lengths,
+  // rate, size, timestamps, black stretches — and the report is recorded whether it passes or not
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the finished file' });
-  const validation = await ctx.tool('media.validate_export', () => validateExport(outFile, { width: size.width, height: size.height, fps: 24, durationSeconds: timeline.total, subtitlesBurned: opts.kind === 'export' && opts.subtitles !== 'none' }));
-  await ctx.event(validation.ok ? 'info' : 'error', `${opts.kind} validation ${validation.ok ? 'passed' : 'FAILED'}`, { checks: validation.checks });
-  await recordQaReport({ productionId: p.id, subjectKind: opts.kind === 'cut' ? 'CUT' : 'EXPORT', subjectId: `${ctx.job.id}:${opts.kind}`, inspectorId: 'technical-media-inspector', checks: validation.checks, failureClass: validation.ok ? undefined : 'OUTPUT_CORRUPTION', decision: validation.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `${size.width}×${size.height}, ${mix.tracks.length} audio track(s), target ${mix.targetLufs} LUFS` });
+  const check = { file: outFile, expect: { width: size.width, height: size.height, fps: 24, durationSeconds: timeline.total, subtitlesBurned: opts.kind === 'export' && opts.subtitles !== 'none' } };
+  const validation = await step(ctx, 'technical-media-inspector', `file-validation: ${opts.kind} of “${p.title}”`, async (tool) => {
+    const v = await tool('media.validate_export', () => validateExport(check.file, check.expect), { input: check });
+    await ctx.event(v.ok ? 'info' : 'error', `${opts.kind} validation ${v.ok ? 'passed' : 'FAILED'}`, { checks: v.checks });
+    await recordQaReport({ productionId: p.id, subjectKind: opts.kind === 'cut' ? 'CUT' : 'EXPORT', subjectId: `${ctx.job.id}:${opts.kind}`, inspectorId: 'technical-media-inspector', checks: v.checks, failureClass: v.ok ? undefined : 'OUTPUT_CORRUPTION', decision: v.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `${size.width}×${size.height}, ${mix.tracks.length} audio track(s), target ${mix.targetLufs} LUFS` });
+    return v;
+  });
   if (!validation.ok) throw Object.assign(new StudioError('PROVIDER', `The ${opts.kind} failed validation: ${validation.checks.filter((c) => !c.ok).map((c) => `${c.name} (${c.value ?? ''} ${c.detail ?? ''})`.trim()).join('; ')}`), { failureClass: 'OUTPUT_CORRUPTION' });
   const poster = path.join(outDir, 'poster.jpg');
   await thumbnail(outFile, poster, { at: Math.min(2, result.durationSeconds / 3), width: 1280 });
@@ -139,8 +158,8 @@ export const assemble: Handler = async (ctx) => {
 
 export const exportCut: Handler = async (ctx) => {
   const { productionId, format, resolution, subtitles } = ctx.job.payload as { productionId: string; format: 'mp4-h264' | 'mp4-h265' | 'mov-prores'; resolution: '720' | '1080' | '2160'; subtitles: 'none' | 'ar' | 'en' | 'both' };
-  // the second human gate: only an approved cut is exported
-  await requireApproval(productionId, 'EDIT');
+  // the second human gate (the Quality Director's step): only an approved cut is exported
+  await step(ctx, 'quality-director', `cut-gate: production ${productionId}`, () => requireApproval(productionId, 'EDIT'));
   const r = await render(ctx, { productionId, format, resolution, subtitles, kind: 'export' });
   const asset = (await readState()).state.assets.find((a) => a.id === r.videoId);
   await command('recordExport', [productionId, { assetId: r.videoId, format, resolution, subtitles, jobId: ctx.job.id, durationSeconds: r.durationSeconds, bytes: asset?.bytes }], 'worker');

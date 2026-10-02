@@ -10,7 +10,9 @@ import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
 import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, setProgress, type Lane } from '@/server/jobs/queue';
 import { HANDLERS, type HandlerContext } from './handlers';
+import { step } from './handlers/step';
 import { gpuLease } from './gpu';
+import type { FailureClass } from '@/server/org/model';
 import { syncRegistry } from '@/server/registry';
 import { syncOrg } from '@/server/org/registry';
 import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
@@ -47,7 +49,11 @@ async function run(job: Job, lane: Lane) {
   const jl = log.child({ jobId: job.id, type: job.type, attempt: job.attempts, productionId: job.productionId, shotId: job.shotId, agent: agent.id });
   running[lane].add(job.id);
   let cancelRequested = false;
-  const hb = setInterval(() => { heartbeat(job.id, workerId).then((r) => { if (r.cancelRequested) cancelRequested = true; }).catch((e) => { jl.warn({ err: e.message }, 'heartbeat failed; another worker may own this job now'); cancelRequested = true; }); }, 20_000);
+  // the lease this attempt holds: every write of the job's progress and outcome is fenced on it, so a worker that
+  // lost the job (its lease went stale and another worker reclaimed it) can no longer overwrite the new attempt
+  const lease = { workerId, attempt: job.attempts };
+  let leaseLost = false;
+  const hb = setInterval(() => { heartbeat(job.id, workerId).then((r) => { if (r.cancelRequested) cancelRequested = true; }).catch((e) => { jl.warn({ err: e.message }, 'heartbeat failed; another worker may own this job now'); cancelRequested = true; if (isStudioError(e) && e.code === 'CONFLICT') leaseLost = true; }); }, 20_000);
   const t0 = Date.now();
   // Recording the outcome can itself fail (the database is away, or a reset removed the job while it ran); that is
   // logged and never takes the worker down. The lease expires and another worker, or the next tick, carries on.
@@ -63,7 +69,7 @@ async function run(job: Job, lane: Lane) {
     delegate: runId ? makeDelegator(job, runId, jl) : (_agentId, _purpose, fn) => fn((_id, f) => f()),
     activity: (kind, message, data, opts) => studioEvent({ departmentId: opts?.departmentId ?? agent.department, agentId: opts?.agentId ?? agent.id, productionId: opts?.productionId ?? job.productionId, kind, message, data, jobId: job.id }),
     checkpoint: async () => { if (cancelRequested) throw new Cancelled(); },
-    progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); await setProgress(job.id, status, progress, extra); },
+    progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; throw new Cancelled(); } },
     event: (level, message, data) => addEvent(job.id, level, message, data),
     gpu: gpuLease,
   };
@@ -74,30 +80,52 @@ async function run(job: Job, lane: Lane) {
     const result = await handler(ctx);
     const ms = Date.now() - t0;
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
-    await record('complete', () => complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome));
+    await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
+    if (leaseLost) {
+      if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before completion: another worker reclaimed the job; this attempt’s result was discarded', ms }));
+      jl.warn('lease lost before completion; the result was discarded (another attempt owns the job)');
+      return;
+    }
     if (runId) await record('finish run', () => finishRun(runId, { outcome, ms, costUsd: typeof result?.costUsd === 'number' ? result.costUsd : undefined }));
     if (job.attempts > 1) await record('resolve reliability', () => resolveReliability(job.id, `attempt ${job.attempts} succeeded`));
     await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: outcome === 'COMPLETED' ? 'RUN_COMPLETED' : 'RUN_REVIEW', message: `${agent.name} finished: ${label} in ${ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${(ms / 60_000).toFixed(1)} min`}${outcome === 'AWAITING_REVIEW' ? ' — awaiting review' : ''}`, data: { ms, attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
     jl.info({ ms }, 'job completed');
   } catch (e) {
     const ms = Date.now() - t0;
-    if (e instanceof Cancelled || cancelRequested) {
-      await record('cancelled', () => cancelled(job.id));
+    if (leaseLost) {
+      // another worker reclaimed this job: its attempt owns the record now; only this run is closed
+      if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost: another worker reclaimed the job; this attempt’s writes were refused', ms }));
+      jl.warn('lease lost; this attempt stopped without writing the job');
+    } else if (e instanceof Cancelled || cancelRequested) {
+      await record('cancelled', async () => { await cancelled(job.id, lease); });
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'CANCELLED', failureClass: 'CANCELLED', ms }));
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_CANCELLED', message: `${agent.name} stopped: ${label} was cancelled`, jobId: job.id });
       jl.info('job cancelled');
     } else {
       const err = e as Error & { code?: string; retryable?: boolean; details?: Record<string, unknown> };
       const code = isStudioError(e) ? e.code : err.code ?? 'ERROR';
-      const failureClass = classifyFailure(e);
       // a blind retry is allowed only for transient infrastructure and provider failures; every other class needs a
       // change (a corrected reference, plan or parameter) before it is tried again, which the retry endpoint provides
-      const retryable = RETRYABLE_CLASSES.includes(failureClass) && (isStudioError(e) ? (e.code === 'PROVIDER' || e.code === 'UNAVAILABLE') : err.retryable !== false);
+      const retryPolicy = (failureClass: FailureClass) => RETRYABLE_CLASSES.includes(failureClass) && (isStudioError(e) ? (e.code === 'PROVIDER' || e.code === 'UNAVAILABLE') : err.retryable !== false);
+      // FAILURE CLASSIFICATION (the Reliability Engineer's step): the class, the retry decision and the reliability
+      // event every failure leaves; if the step cannot be recorded the classification still decides
+      let verdict: { failureClass: FailureClass; retryable: boolean };
+      try {
+        verdict = await step(ctx, 'reliability-engineer', `failure-classification: ${label}`, async () => {
+          const failureClass = classifyFailure(e);
+          const retryable = retryPolicy(failureClass);
+          await reliabilityEvent({ job, failureClass, failureMessage: err.message, changeMade: retryable && job.attempts < job.maxAttempts ? `automatic retry scheduled (${failureClass})` : undefined });
+          return { failureClass, retryable };
+        });
+      } catch (re) {
+        jl.error({ err: (re as Error).message, what: 'reliability' }, 'could not record the job outcome');
+        const failureClass = classifyFailure(e);
+        verdict = { failureClass, retryable: retryPolicy(failureClass) };
+      }
+      const { failureClass, retryable } = verdict;
       jl.error({ err: err.message, code, failureClass, retryable, stack: err.stack?.split('\n').slice(0, 4).join(' | ') }, 'job failed');
-      await record('fail', () => fail(job.id, { code, message: err.message, retryable, details: { ...(isStudioError(e) ? e.details : err.details), failureClass } }, job.attempts, job.maxAttempts));
+      await record('fail', async () => { if (!(await fail(job.id, { code, message: err.message, retryable, details: { ...(isStudioError(e) ? e.details : err.details), failureClass } }, job.attempts, job.maxAttempts, lease))) jl.warn('lease lost before the failure was written; another attempt owns the job'); });
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass, errorMessage: err.message, ms }));
-      // every failure is accounted; a retry that follows is an event the Reliability Engineer sees
-      await record('reliability', () => reliabilityEvent({ job, failureClass, failureMessage: err.message, changeMade: retryable && job.attempts < job.maxAttempts ? `automatic retry scheduled (${failureClass})` : undefined }));
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_FAILED', message: `${agent.name} failed: ${label} — ${failureClass}: ${err.message.slice(0, 200)}`, data: { failureClass, code, attempt: job.attempts, retryable, shotId: job.shotId }, jobId: job.id });
     }
   } finally {

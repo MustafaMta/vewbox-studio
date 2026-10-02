@@ -7,7 +7,7 @@ import type { OrgResponse } from '@/studio/org';
  *  a handoff, an approval. These tests pin the derivation. */
 
 const base = (over: Partial<OrgResponse> = {}): OrgResponse => ({
-  version: 3, departments: DEPARTMENTS, agents: AGENTS, tools: TOOLS, skills: SKILLS.map((s) => ({ ...s, instructions: null, updatedAt: '' })), pipeline: PIPELINE,
+  version: 5, departments: DEPARTMENTS.map((d) => ({ ...d, plannedRoles: [] })), agents: AGENTS.map((a) => ({ ...a, instructionsReachModel: false })), tools: TOOLS.map((t) => ({ ...t, contract: null })), skills: SKILLS.map((s) => ({ ...s, status: 'DRAFT' as const, version: '1.0.0', evidence: null, instructions: null, updatedAt: '' })), pipeline: PIPELINE,
   stats: [], events: [], queue: { queued: 0, running: 0, failed24h: 0, completed24h: 0 }, hours: 24, handoffs: [], approvals: [], positions: [], jobs: [], ...over,
 });
 const stages = (status: 'DONE' | 'AWAITING_APPROVAL' | 'REJECTED' | 'INVALID' | 'READY' | 'BLOCKED', id = 'STORY', department = 'STORY') => [{ id, department, status, at: null, failed: status === 'INVALID' ? ['every-line-assigned-once'] : [] }];

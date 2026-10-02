@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
+import { step } from './step';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, Production, VoiceIdentity, VoiceSample } from '@/domain/types';
@@ -163,7 +164,7 @@ export async function referenceText(ctx: HandlerContext, c: Character, ref: Refe
   if (ref.text) return ref.text;
   let heard: Awaited<ReturnType<typeof transcribe>>;
   try {
-    heard = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text' }), { jobId: ctx.job.id });
+    heard = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(ref.file, { language: 'auto' }), { label: 'reference text', input: { file: ref.file, language: 'auto' } }), { jobId: ctx.job.id });
   } catch (e) {
     throw new StudioError('UNAVAILABLE', `The Iraqi engine needs the words of ${c.name}'s reference recording and the transcription service could not provide them (${(e as Error).message}); nothing was spoken with a guessed transcript — retry when the service is back.`, { failureClass: 'INFRASTRUCTURE', characterId: c.id, sampleId: ref.sample?.id });
   }
@@ -179,13 +180,16 @@ export interface SpokenLine { file: string; engine: string; model: string; ms: n
 /** Speak one line as the character: the engine and language follow the line's script (routeLine); the speech
  *  parameters are the identity's (speed from the pace, the seed), so every line of a voice sounds like its proof. */
 export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string } = {}): Promise<SpokenLine> {
-  const route = routeLine(c, text);
   const identity = c.voice.identity;
+  // LINE PREPARATION (the Iraqi Arabic Language Specialist's step, for an Iraqi character): the engine and the
+  // verification language follow the line's script (a fallback off the Iraqi engine is named below)
+  const route = c.dialect === 'IRAQI_BAGHDADI' ? await step(ctx, 'iraqi-specialist', `line-preparation: ${c.name} — “${text.slice(0, 40)}”`, async () => routeLine(c, text)) : routeLine(c, text);
   const provider = (identity?.provider ?? (env().MINIMAX_API_KEY && (await readState()).state.settings.generation?.voiceProvider === 'MINIMAX' ? 'MINIMAX' : 'LOCAL_TTS')) as 'LOCAL_TTS' | 'MINIMAX';
   if (provider === 'MINIMAX') {
     const voiceId = identity?.providerVoiceId;
     if (!voiceId) throw new StudioError('INVALID', 'Build the voice first (MiniMax clone).');
-    const r = await ctx.tool('speech.synthesize', () => minimax.speak({ text, voiceId, languageBoost: route.language === 'AR' ? 'Arabic' : 'English', emotion: opts.emotion, format: 'wav' }), { label: 'minimax' });
+    const hosted = { text, voiceId, languageBoost: route.language === 'AR' ? 'Arabic' : 'English', emotion: opts.emotion };
+    const r = await ctx.tool('speech.synthesize', () => minimax.speak({ ...hosted, format: 'wav' }), { label: 'minimax', input: hosted });
     const file = path.join(dir, `mm-${Date.now().toString(36)}.wav`);
     await fsp.writeFile(file, r.bytes);
     return { file, engine: 'minimax', model: env().MINIMAX_SPEECH_MODEL, ms: 0, language: route.language };
@@ -194,7 +198,8 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   if (route.fallback) await ctx.event('info', `engine fallback for “${text.slice(0, 40)}”: ${route.fallback}`, { characterId: c.id, engine: route.engine, pinned: identity?.model, script: route.script });
   const refText = route.engine === 'habibi' ? await referenceText(ctx, c, ref) : undefined;
   const params = identity?.params ?? { speed: speedForPace(c.voice.pace), emotionAlpha: 1 };
-  const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize({ text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine }, dir), { label: route.engine }), { jobId: ctx.job.id });
+  const local = { text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine };
+  const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };
 }
 
@@ -219,7 +224,8 @@ export const shouldRegenerate = (check: LineCheck | null): boolean => check?.sta
  *  be heard back (the transcription service was away): callers treat that as unverified — flagged, never passed. */
 export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, context: 'line' | 'take' = 'line'): Promise<LineCheck | null> {
   try {
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(file, { language: language === 'AR' ? 'ar' : 'en' }), { label: 'verify line' }), { jobId: ctx.job.id });
+    const asr = { file, language: language === 'AR' ? ('ar' as const) : ('en' as const) };
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'verify line', input: asr }), { jobId: ctx.job.id });
     return judgeHeard(text, t.text, language, context);
   } catch (e) { await ctx.event('warn', `transcription unavailable; the line is flagged for review: ${(e as Error).message}`); return null; }
 }
@@ -272,7 +278,8 @@ export const voiceBuild: Handler = async (ctx) => {
       if (!MINIMAX_CLONE.types.includes(original.mimeType ?? '')) { const wav = path.join(dir, `clone-${original.id}.wav`); await ffmpeg(['-v', 'error', '-i', cloneFrom, '-vn', '-c:a', 'pcm_s16le', wav], { timeoutMs: 120_000 }); cloneFrom = wav; }
       await ctx.progress('GENERATING', { phase: 'cloning', message: 'Cloning the voice with MiniMax' });
       const voiceId = `vb_${c.id.replace(/[^a-z0-9]/gi, '').slice(0, 20)}_${Date.now().toString(36)}`;
-      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice({ file: cloneFrom, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' }));
+      const clone = { file: cloneFrom, voiceId, languageBoost: c.language === 'AR' ? 'Arabic' : 'English' };
+      const r = await ctx.tool('speech.clone_voice', () => minimax.cloneVoice(clone), { input: clone });
       head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: r.voiceId };
     }
   } else {
@@ -286,8 +293,9 @@ export const voiceBuild: Handler = async (ctx) => {
   const text = proofLineFor(c);
   await ctx.progress('GENERATING', { phase: 'speaking', message: 'Speaking a proof line' });
   const line = await speakLine(ctx, trial, text, ref, dir);
-  // the proof is a recorded line: coverage ≥ 0.85 and CER ≤ 0.15 (anything else, or unheard, is REVIEW)
-  const check = await verifyLine(ctx, line.file, text, line.language, 'line');
+  // the proof is a recorded line: coverage ≥ 0.85 and CER ≤ 0.15 (anything else, or unheard, is REVIEW) — heard back
+  // by the Audio Synchronization Inspector (its step, with its own tool runner)
+  const check = await step(ctx, 'audio-sync-inspector', `voice-proof-check: ${c.name}`, (tool) => verifyLine({ ...ctx, tool }, line.file, text, line.language, 'line'));
   const status: VoiceIdentity['status'] = check?.ok ? 'ACTIVE' : 'REVIEW';
 
   // 4) into the studio in one batch: the audio first, then its sample, then the identity that cites both
