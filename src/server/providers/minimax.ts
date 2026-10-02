@@ -35,11 +35,12 @@ function key(): string {
 const base = () => env().MINIMAX_BASE_URL.replace(/\/$/, '');
 
 async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
+  const apiKey = key(); // a missing key is NOT_CONFIGURED (terminal, actionable), never a retryable provider failure
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), init.timeoutMs ?? 60_000);
   const url = `${base()}${path}`;
   try {
-    const res = await fetch(url, { ...init, signal: ctrl.signal, headers: { authorization: `Bearer ${key()}`, ...(init.body && !(init.body instanceof FormData) ? { 'content-type': 'application/json' } : {}), ...(init.headers ?? {}) } });
+    const res = await fetch(url, { ...init, signal: ctrl.signal, headers: { authorization: `Bearer ${apiKey}`, ...(init.body && !(init.body instanceof FormData) ? { 'content-type': 'application/json' } : {}), ...(init.headers ?? {}) } });
     const reqId = res.headers.get('x-request-id') ?? res.headers.get('trace-id') ?? undefined;
     const text = await res.text();
     let json: unknown = null;
@@ -61,7 +62,7 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     }
     return json as T;
   } catch (e) {
-    if (e instanceof MinimaxError) throw e;
+    if (e instanceof StudioError) throw e; // MinimaxError and any studio-level refusal keep their code
     if ((e as Error).name === 'AbortError') throw new MinimaxError(`MiniMax ${path} timed out`, { status: 0, retryable: true });
     throw new MinimaxError(`MiniMax ${path}: ${(e as Error).message}`, { status: 0, retryable: true });
   } finally { clearTimeout(t); }

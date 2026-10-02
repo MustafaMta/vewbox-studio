@@ -23,7 +23,7 @@ const sex = looseEnum(['FEMALE', 'MALE'], SEX_SYNONYMS);
 const lineAliases = aliases({ characterName: ['name', 'character', 'characterId', 'speaker', 'who', 'id'], text: ['line', 'dialogue', 'textEn', 'english'], textAr: ['arabic', 'ar', 'lineAr', 'dialogueAr'] });
 const lines = looseArray(z.preprocess(lineAliases, z.object({ characterName: str(80), text: str(600), textAr: str(600).optional(), delivery: str(120).optional() })), { max: 16 });
 
-export const ProposalSchema = z.object({
+export const ProposalSchema = z.preprocess(aliases({ title: ['name', 'titleEn'], logline: ['tagline', 'hook', 'oneLiner'], premise: ['synopsis', 'description', 'summary', 'story', 'concept', 'plot'], structure: ['scenes', 'episodes', 'sections', 'acts', 'beats'], cast: ['characters', 'people'], locations: ['places', 'settings'], mood: ['tone'] }), z.object({
   title: req(80),
   titleAr: str(80).optional(),
   logline: req(240),
@@ -33,8 +33,8 @@ export const ProposalSchema = z.object({
   structure: looseArray(z.preprocess(aliases({ title: ['name', 'act', 'heading'], summary: ['description', 'text', 'beat'] }), z.object({ title: req(80), summary: req(400) })), { min: 2, max: 8 }),
   cast: looseArray(z.preprocess(aliases({ existingCharacterId: ['characterId', 'id'], reason: ['why', 'note', 'function'], appearance: ['look', 'description'] }), z.object({ existingCharacterId: z.string().optional(), name: req(60), role: req(120), reason: str(240).optional(), sex: sex.optional(), ageYears: int(1, 120).optional(), appearance: str(400).optional(), personality: str(400).optional() })), { min: 1, max: 8 }),
   locations: looseArray(z.preprocess(aliases({ existingLocationId: ['locationId', 'id'], description: ['look', 'summary'], kind: ['type'] }), z.object({ existingLocationId: z.string().optional(), name: req(60), description: req(400), kind: placeKind.optional() })), { min: 1, max: 6 }),
-  song: z.object({ title: str(80), caption: str(300).optional(), lyrics: z.string().trim().max(4000) }).optional(),
-});
+  song: z.preprocess(aliases({ caption: ['description', 'style', 'musicalCaption'], lyrics: ['text', 'words'] }), z.object({ title: str(80), caption: str(300).optional(), lyrics: z.string().trim().max(4000) })).optional(),
+}));
 export type ProposalOut = z.infer<typeof ProposalSchema>;
 
 export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['distinguishingFeatures', 'features', 'marks'], wardrobe: ['clothing', 'outfit', 'costume'] }), z.object({

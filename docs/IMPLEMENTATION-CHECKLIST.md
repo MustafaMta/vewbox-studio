@@ -24,7 +24,7 @@ REMOVAL-MANIFEST.md); this build must not reintroduce any. No MiniMax API key is
 | 1.3 | Media | Upload (MIME sniff, size limits, ffprobe), serve with Range, library on volume | VERIFIED | API tests: real MP4 upload probed (320×180, 2 s), 206 Range, 416, fake/exe rejected 400, protected delete 423 | — | — |
 | 1.4 | Frontend store | Replace localStorage store with API-backed store, keep pages | VERIFIED | `src/studio/store.tsx`; optimistic commands + hash check; pages unchanged except call sites | — | — |
 | 1.5 | Continuity rule | Enforce appearance lock in service layer + DB, not only UI | VERIFIED | server refuses `updateCharacter` on Layla with 409 APPEARANCE_LOCKED (API test); unit tests | — | — |
-| 2.1 | Jobs | Durable Postgres queue: states, leases, heartbeats, retries, backoff, cancel, stale recovery, idempotency | TESTING | `src/server/jobs/queue.ts`; idempotency and cancel covered by API tests; take job retried with backoff after engine unavailable (negative test) | stale-lease recovery not yet exercised by a test | — |
+| 2.1 | Jobs | Durable Postgres queue: states, leases, heartbeats, retries, backoff, cancel, stale recovery, idempotency | VERIFIED | `tests/worker/queue.test.ts` 6/6 against the live DB: stale lease reclaimed by a second worker (first loses it), backoff schedule, non-retryable never retries, idempotency key collapses duplicates, cancel flag via heartbeat; take job retried with backoff after engine unavailable (negative test) | worker crashed when a reset deleted a job it was finishing (FK on job_events) | fixed: outcome recording never throws; events for gone jobs ignored; process-level rejection handlers |
 | 2.2 | Jobs UI | Jobs / Activity page, per-production progress, cancel/retry/regenerate | VERIFIED | `/jobs` shows the failed take job with reason, attempt 2/3, retry; in-place JobButton states | — | — |
 | 3.1 | MiniMax video | Client: create task, poll, retrieve, download; model/param mapping; error table | IMPLEMENTED | `src/server/providers/minimax.ts` (v2 H3 + v1 envelope) | cannot be exercised without a key | — |
 | 3.2 | MiniMax video | Take generation job: first frame + subject refs → download → ffprobe → proxy/thumb → QA → take | IMPLEMENTED | `src/worker/handlers/take.ts`; two backends (hosted API, local H3 in ComfyUI) | awaiting H3 weights (fetching) | — |
@@ -32,8 +32,9 @@ REMOVAL-MANIFEST.md); this build must not reintroduce any. No MiniMax API key is
 | 3.4 | Music | Song generation job (MiniMax Music API, ACE-Step 1.5 local, MiniMax Music 3 local) | IMPLEMENTED | `src/worker/handlers/music.ts` | weights pending | — |
 | 4.1 | LLM | Story engine provider abstraction (MiniMax text / Anthropic / OpenAI-compatible local) | VERIFIED | `src/server/providers/llm.ts`; Ollama qwen3:14b on the 5090 | — | — |
 | 4.2 | Auto Idea | Real proposal generation (format, premise, cast, locations, style, duration, structure) | VERIFIED | API job 64 s → proposal "The Forgotten Observatory" (Iraqi, reused library cat + café); UI job → review rendered, generated notice | — | — |
-| 4.3 | Manual Brief | Brief → concept, characters, locations, synopsis, scenes, beats, lines | IMPLEMENTED | `DEVELOP_STORY` + `WRITE_SCRIPT` handlers | to exercise | — |
-| 4.4 | Shot planning | Scenes → shots with framing, action, continuity entry/exit state | IMPLEMENTED | `PLAN_SHOTS` handler with versioned continuity | to exercise | — |
+| 4.3 | Manual Brief | Brief → concept, characters, locations, synopsis, scenes, beats, lines | TESTING | `WRITE_SCRIPT` on "The Forgotten Observatory": 5 scenes written in 23 s (Iraqi lines + English gloss); `DEVELOP_STORY` not yet exercised end to end | local 14B model is terse (2 beats/scene) | — |
+| 4.4 | Shot planning | Scenes → shots with framing, action, continuity entry/exit state | VERIFIED | `PLAN_SHOTS`: 11 shots over 5 scenes with continuity (CUT/CONTINUATION, wardrobe, screen direction) and prompts; first attempt failed strict validation 3× then succeeded on retry → tolerant schemas added (`lenient.ts`, unit-tested) → scene re-planned first try in 19 s | — | — |
+| 4.5 | Story schemas | Model output normalised (nulls, synonyms, near-miss keys) before strict validation | VERIFIED | `tests/unit/lenient.test.ts` uses the exact failures seen from Qwen3-14B | — | — |
 | 5.1 | Images | ComfyUI container (GPU) with pinned models; workflow templates versioned | NOT_STARTED | | | |
 | 5.2 | Images | Character appearance + reference pack generation | NOT_STARTED | | | |
 | 5.3 | Images | Location master + views generation | NOT_STARTED | | | |
@@ -49,8 +50,9 @@ REMOVAL-MANIFEST.md); this build must not reintroduce any. No MiniMax API key is
 | 9.1 | Docker | Compose: web, worker, db, comfyui, tts, asr (+ optional local LLM); healthchecks, volumes, GPU | NOT_STARTED | | | |
 | 9.2 | Docker | Clean start / stop / restart; migrations on boot; `.env.example` | NOT_STARTED | | | |
 | 9.3 | GPU scheduling | VRAM budget, model unload between services, measurements | NOT_STARTED | | | |
-| 10.1 | Tests | Unit (reducers, rules), API, worker, media validation | NOT_STARTED | | | |
-| 10.2 | Tests | Playwright E2E against the real stack | NOT_STARTED | | | |
+| 10.1 | Tests | Unit (reducers, rules), API, worker, media validation | VERIFIED | unit 38/38 (actions, commands, lenient schemas, password gate); API 13/13 live; worker 6/6 live | — | — |
+| 10.2 | Tests | Playwright E2E against the real stack | VERIFIED | run 1: 41/54 (stale copy, fake-audio fixture, external fonts, jobs/settings leaking between tests, aborted reset); run 2: 49/54; run 3 (full, clean): **54/54 in 2.3 min** incl. two real Auto Idea proposals from the local model and the phone/RTL projects | reset request aborted by navigation (trace) | keepalive writes; reset clears jobs; fonts self-hosted (OFL files in `src/app/fonts`) |
+| 10.4 | Security | Access gate when `STUDIO_PASSWORD` is set (HTTP Basic on pages + API, health exempt, constant-time) | VERIFIED | `src/proxy.ts`; `tests/unit/proxy.test.ts` 3/3; proxy seen in request timing logs | was declared in env but not enforced before | — |
 | 10.3 | Negative tests | Invalid key, timeout, rate limit, bad media, restart mid-job, duplicate submit | NOT_STARTED | | | |
 | 11.1 | Acceptance | Stage 1–8 ladder | NOT_STARTED | | | |
-| 12.1 | Docs | Setup, operations, models, production, architecture, final report | NOT_STARTED | | | |
+| 12.1 | Docs | Setup, operations, models, production, architecture, final report | IN_PROGRESS | ARCHITECTURE.md, SETUP.md, OPERATIONS.md, MODELS.md written; PRODUCTION.md, README rewrite and final report pending | — | — |

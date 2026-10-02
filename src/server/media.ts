@@ -61,15 +61,16 @@ export function fileFor(asset: { storage: string; path: string }): string {
 export async function sniff(buf: Buffer, declared?: string): Promise<{ mime: string; kind: AssetKind; ext: string }> {
   const ft = await fileTypeFromBuffer(buf.subarray(0, 4100));
   let mime = ft?.mime as string | undefined;
-  // subtitles and svg are text; file-type does not detect them
+  // subtitles are text; file-type does not detect them. SVG is never accepted from outside: it can carry script and
+  // would run in the studio's origin when opened directly (the bundled sample art is the only SVG, served from /sample).
   if (!mime) {
     const head = buf.subarray(0, 512).toString('utf8');
     if (/^WEBVTT/.test(head)) mime = 'text/vtt';
     else if (/^\s*1\s*\r?\n\d\d:\d\d:\d\d/.test(head)) mime = 'application/x-subrip';
-    else if (/^\s*<(\?xml|svg)/i.test(head) && declared === 'image/svg+xml') mime = 'image/svg+xml';
+    else if (/^\s*<(\?xml|svg)/i.test(head) || declared === 'image/svg+xml') throw new StudioError('INVALID', 'SVG files are not accepted; use PNG, JPEG or WebP.');
   }
   if (!mime) throw new StudioError('INVALID', 'The file type could not be recognised.');
-  const allowed = ALLOWED_TYPES[mime] ?? (mime === 'image/svg+xml' ? { kind: 'IMAGE' as AssetKind, ext: 'svg' } : undefined);
+  const allowed = ALLOWED_TYPES[mime];
   if (!allowed) throw new StudioError('INVALID', `Files of type ${mime} are not accepted.`);
   return { mime, ...allowed };
 }
@@ -125,7 +126,7 @@ export async function storeBuffer(assetId: string, buf: Buffer, opts: { declared
   const tmp = `${absPath}.part`;
   await fsp.writeFile(tmp, buf);
   let probe: Probe | undefined;
-  if (opts.probe !== false && kind !== 'SUBTITLE' && mime !== 'image/svg+xml') {
+  if (opts.probe !== false && kind !== 'SUBTITLE') {
     try { probe = await ffprobe(tmp); if (kind !== 'IMAGE') { const d = await decodeCheck(tmp); if (!d.ok) throw new StudioError('INVALID', `The file does not decode cleanly: ${d.error}`); } }
     catch (e) { await fsp.rm(tmp, { force: true }); throw e; }
   }
