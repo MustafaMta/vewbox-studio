@@ -141,6 +141,13 @@ Measured on every generated file (20 WAVs + 2 line-engine renderings; ASR = fast
   (Iraqi fold), coverage 0.43 → contract verdict FAIL. Dialect authenticity unverified (no native listener).
 - Not judged by any of this: naturalness, accent (English, MSA), Iraqi dialect, whether a voice matches its
   description. The report lists the files a listener should hear.
+- Iraqi A/B (`scripts/iraqi-ab.ts` → `docs/evidence/voice-design/iraqi-ab/results.json`, `results-h8.json`,
+  `listen-sheet.csv`): 8 designed seeds (MSA wording vs Baghdadi wording + Baghdadi-accent description, 2 voices × 2
+  seeds) × 4 Iraqi lines × 2 Habibi seeds. The Baghdadi seed text did not measurably help (pooled CER 0.052 vs 0.056,
+  PASS 12 vs 12 of 32; the sign flips between Habibi seeds); the individual seed mattered more (best
+  `iraqi-male-c1-s5002`: CER 0.016, 6/2/0). «الچاي» and «باچر» never came back with a /tʃ/ letter (0 of 36, also with
+  Habibi's own real Iraqi demo clip as reference) — a listener question, not settled by ASR. Space-insensitive view:
+  `src/server/media/arabic-align.ts` (6 of 72 lines were REVIEW only because «گلتلك» was written «قلت لك»).
 
 ## Music
 
