@@ -29,7 +29,8 @@ export function bestLag(a: Float32Array, b: Float32Array, frameMs = ENVELOPE_MS,
   const corrAt = (lag: number) => { let s = 0; let c = 0; for (let i = 0; i < n; i++) { const j = i + lag; if (j < 0 || j >= n) continue; s += a[j] * b[i]; c++; } return c ? s / c : -1; };
   const maxLag = Math.round(maxMs / frameMs);
   let best = { lagMs: 0, corrBest: -2, corrZero: corrAt(0) };
-  for (let lag = -maxLag; lag <= maxLag; lag++) { const c = corrAt(lag); if (c > best.corrBest + 1e-9) best = { ...best, corrBest: c, lagMs: lag * frameMs }; }
+  // lags are tried from zero outwards, so a periodic signal (a beat) resolves to the smallest shift, not a whole bar
+  for (let d = 0; d <= maxLag; d++) for (const lag of d === 0 ? [0] : [-d, d]) { const c = corrAt(lag); if (c > best.corrBest + 1e-6) best = { ...best, corrBest: c, lagMs: lag * frameMs }; }
   return best;
 }
 
