@@ -5,11 +5,11 @@ import { expect, test, BASE } from './helpers';
  *  pipeline, and the human gate on the Produce tab. The sample studio has no agent runs, so the pages must say so
  *  instead of inventing activity. */
 
-test('the navigation puts the product first (Shows, Shorts, Music Videos, Characters, Studio Company) with operations behind it', async ({ page }) => {
+test('the navigation puts the product first (Shows, Shorts, Music Videos, Characters, Studio Company), then the Library (Locations, Files) and the Studio (Production, Settings)', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/\/shows$/);
   const nav = page.getByRole('navigation', { name: 'Studio areas' }).first();
-  await expect(nav.getByRole('link')).toHaveText(['Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Production', 'Locations', 'Asset Library', 'Settings']);
+  await expect(nav.getByRole('link')).toHaveText(['Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Locations', 'Files', 'Production', 'Settings']);
 });
 
 test('the Studio Company shows the orchestrator with its real state, the nine departments as links, and the orchestrator panel', async ({ page }) => {
