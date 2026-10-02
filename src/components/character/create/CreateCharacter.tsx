@@ -17,13 +17,13 @@ import { PageHeader } from '@/components/ui/page';
 import { Badge, Button, ChoiceCards, Notice } from '@/components/ui/kit';
 import { IconAuto, IconImageAdd, IconManual, IconOpen, IconRetry } from '@/components/ui/icons';
 import { CharacterForm } from '../CharacterForm';
-import { startCreateCharacter, startVoiceBuild, type CharacterProfileInput, type CreateCharacterPayload, type CreateStepName } from '../contract';
+import { createResultOf, startCreateCharacter, startVoiceBuild, type CharacterProfileInput, type CreateCharacterPayload, type CreateStepName } from '../contract';
 import { SharedHeader, type HeaderValues } from './SharedHeader';
-import { DescribeStart, type DescribeValues } from './DescribeStart';
+import { DescribeStart, describeVoiceMode, type DescribeRecording, type DescribeValues } from './DescribeStart';
 import { PictureStart, type PictureValues } from './PictureStart';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
-import { checkBrief, createdCharacterId, creationSettled, creationSteps, engineGate } from './preflight';
+import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, engineGate } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
 const KEY = 'vewbox.newCharacter';
@@ -60,6 +60,9 @@ export function CreateCharacter() {
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // the recording chosen on the Describe start, and what became of it once the character existed (finding 15)
+  const [recording, setRecording] = useState<DescribeRecording | null>(null);
+  const [voiceUpload, setVoiceUpload] = useState<{ forJob: string; state: 'waiting' | 'uploading' | 'accepted' | 'refused' | 'error'; message?: string; sampleId?: string } | null>(null);
 
   // the home chosen in the header becomes the show or production the character is for
   const forShow = header.forId.startsWith('show:') ? state.shows.find((s) => s.id === header.forId.slice(5)) : undefined;
@@ -70,7 +73,7 @@ export function CreateCharacter() {
     const d = readDraft(); draft.current = d;
     if (d.start) setStart(d.start);
     if (d.header && !sp.get('show') && !sp.get('production')) setHeader(d.header);
-    if (d.describe) setDescribe(d.describe);
+    if (d.describe) setDescribe({ ...d.describe, voiceMode: describeVoiceMode(d.describe.voiceMode) });
     if (d.jobId) setParentId(d.jobId);
     setHydrated(true);
   }, [sp]);
@@ -93,13 +96,36 @@ export function CreateCharacter() {
   const steps = useMemo(() => creationSteps(parent, jobs, retries), [parent, jobs, retries]);
   const characterId = createdCharacterId(parent, jobs);
   const created = characterId ? state.characters.find((c) => c.id === characterId) : undefined;
-  const settled = creationSettled(parent, steps);
+  const recordingBusy = Boolean(voiceUpload && voiceUpload.forJob === parentId && (voiceUpload.state === 'waiting' || voiceUpload.state === 'uploading'));
+  const settled = creationSettled(parent, steps) && !recordingBusy;
   const allGood = settled && parent?.status === 'COMPLETED' && steps.every((s) => s.state === 'done' || s.state === 'skipped') && Boolean(created);
   const running = Boolean(parentId) && !allGood;
   const referenceSrc = assetById(state, picture.asset?.id ?? draft.current.referenceAssetId)?.src;
 
+  // the recording chosen on the Describe start is checked as soon as the character exists (the voice-reference
+  // endpoint needs the character); the chain's voice step builds from it when it is there in time, and when the chain
+  // passed the voice step first, the page builds it now — that build is the voice row (finding 15)
+  useEffect(() => {
+    if (!voiceUpload || voiceUpload.forJob !== parentId || voiceUpload.state !== 'waiting' || !characterId || !recording) return;
+    const c = state.characters.find((x) => x.id === characterId);
+    if (!c) return;
+    setVoiceUpload({ ...voiceUpload, state: 'uploading' });
+    api.uploadVoiceReference(characterId, recording.file, { label: recording.file.name.replace(/\.[a-z0-9]+$/i, ''), language: c.language, dialect: c.dialect })
+      .then((r) => setVoiceUpload((v) => (v && v.forJob === voiceUpload.forJob ? (r.ok ? { ...v, state: 'accepted', sampleId: r.sample.id } : { ...v, state: 'refused', message: r.message }) : v)))
+      .catch((e: unknown) => setVoiceUpload((v) => (v && v.forJob === voiceUpload.forJob ? { ...v, state: 'error', message: isStudioError(e) ? e.message : (e as Error).message } : v)));
+  }, [voiceUpload, parentId, characterId, recording, state.characters]);
+  const voiceOutcome = createResultOf(parent)?.steps.find((s) => s.step === 'voice');
+  useEffect(() => {
+    if (!voiceUpload || voiceUpload.state !== 'accepted' || !voiceUpload.sampleId || !characterId || retries.voice) return;
+    if (!voiceOutcome || voiceOutcome.status !== 'skipped') return; // the chain built it (or is about to)
+    const sampleId = voiceUpload.sampleId;
+    startVoiceBuild(startJob, { characterId, mode: 'REFERENCE', referenceSampleId: sampleId })
+      .then((job) => setRetries((r) => ({ ...r, voice: job.id })))
+      .catch((e: unknown) => setVoiceUpload((v) => (v ? { ...v, state: 'error', message: isStudioError(e) ? e.message : (e as Error).message } : v)));
+  }, [voiceUpload, voiceOutcome, characterId, retries.voice, startJob]);
+
   // preflight: the engines this start needs, read live
-  const needsVoice = describe.voiceMode === 'AUTOMATIC';
+  const needsVoice = describe.voiceMode === 'RECORDING';
   const gate = engineGate(engines.status, start === 'sheet' ? ['images'] : needsVoice ? ['images', 'voice'] : ['images']);
   const gateReason = !gate.ok ? `${T('char.create.engineDown')}: ${gate.blocked.map((b) => `${T.dyn(`status.${b.need}`)} — ${b.detail}`).join(' · ')}` : null;
   const dialectReason = header.language === 'AR' && !header.dialect ? T('char.create.needDialect') : null;
@@ -109,11 +135,12 @@ export function CreateCharacter() {
 
   const basePayload = (): Pick<CreateCharacterPayload, 'style' | 'language' | 'dialect' | 'productionId' | 'showId'> => ({ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, showId: forShow?.id, productionId: forProduction?.id });
 
-  const launch = useCallback(async (payload: CreateCharacterPayload) => {
+  const launch = useCallback(async (payload: CreateCharacterPayload, withRecording = false) => {
     setBusy(true); setStartError(null);
     try {
       const job = await startCreateCharacter(startJob, payload);
       setLastPayload(payload); setRetries({}); setPolled(null); setParentId(job.id);
+      setVoiceUpload(withRecording ? { forJob: job.id, state: 'waiting' } : null);
       writeDraft({ ...readDraft(), jobId: job.id, referenceAssetId: payload.referenceAssetId });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) { setStartError(isStudioError(e) ? e.message : (e as Error).message); }
@@ -124,7 +151,10 @@ export function CreateCharacter() {
     const check = checkBrief(describe.brief, describe.name); if (!check.ok) return;
     const profile: Partial<CharacterProfileInput> = {};
     if (describe.sex) profile.sex = describe.sex; if (describe.ageYears) profile.ageYears = describe.ageYears; if (describe.species) profile.species = describe.species;
-    void launch({ mode: 'AUTO', name: describe.name.trim() || undefined, brief: describe.brief.trim() || undefined, profile: Object.keys(profile).length ? profile : undefined, ...basePayload(), voice: { mode: describe.voiceMode }, draw: true });
+    // a recording added here is uploaded once the character exists; the chain's voice step (AUTOMATIC) builds from it
+    // — an AUTOMATIC voice always needs an uploaded recording, there is no voice bank
+    const voice = describeVoicePayload(describe.voiceMode, Boolean(recording));
+    void launch({ mode: 'AUTO', name: describe.name.trim() || undefined, brief: describe.brief.trim() || undefined, profile: Object.keys(profile).length ? profile : undefined, ...basePayload(), voice, draw: true }, voice.mode === 'AUTOMATIC');
   };
   const submitSheet = (profile: CharacterProfileInput, draw: boolean) => {
     void launch({ mode: 'MANUAL', profile, ...basePayload(), voice: { mode: 'NONE' }, draw });
@@ -141,11 +171,14 @@ export function CreateCharacter() {
     void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
   };
 
+  /** A relaunch of a creation that made nothing carries the recording again (it was never uploaded: no character). */
+  const relaunchWithRecording = () => lastPayload?.voice?.mode === 'AUTOMATIC' && Boolean(recording);
+
   /** One recovery per failed step: the design step re-runs the whole chain (the brief is kept); a later step re-runs
    *  only its own job for the record that exists, and the row then follows that job. */
   const retryStep = async (step: CreateStepName) => {
     try {
-      if (step === 'design' || !characterId) { if (lastPayload) await launch(lastPayload); return; }
+      if (step === 'design' || !characterId) { if (lastPayload) await launch(lastPayload, relaunchWithRecording()); return; }
       const job = step === 'appearance' ? await startJob('CHARACTER_APPEARANCE', { characterId })
         : step === 'sheet' ? await startJob('CHARACTER_REFS', { characterId })
         : await startVoiceBuild(startJob, { characterId, mode: lastPayload?.voice?.referenceSampleId ? 'REFERENCE' : 'AUTOMATIC', referenceSampleId: lastPayload?.voice?.referenceSampleId });
@@ -154,7 +187,7 @@ export function CreateCharacter() {
   };
   const writeMyself = () => { setSheetPrefill({ name: lastPayload?.name ?? describe.name, personality: lastPayload?.brief ?? describe.brief }); reset(); setStart('sheet'); };
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
-  const reset = () => { setParentId(null); setPolled(null); setRetries({}); writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
+  const reset = () => { setParentId(null); setPolled(null); setRetries({}); setVoiceUpload(null); writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
   const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok(T('toast.deleted')); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const anotherLook = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); setRetries((r) => ({ ...r, appearance: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 
@@ -183,7 +216,7 @@ export function CreateCharacter() {
           ]} />
           {startError && <Notice tone="bad" title={T('gen.failed')}>{startError}</Notice>}
           <div key={start} className="fade-in">
-            {start === 'describe' && <DescribeStart value={describe} onChange={setDescribe} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} />}
+            {start === 'describe' && <DescribeStart value={describe} onChange={setDescribe} recording={recording} onRecording={setRecording} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} />}
             {start === 'sheet' && <div className="card p-4 sm:p-6"><CharacterForm onSaved={() => undefined} onCancel={() => router.push(cancelHref)} create={{ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, name: sheetPrefill.name, personality: sheetPrefill.personality, onCreate: submitSheet, busy, drawDisabledReason: disabledReason ?? undefined }} /></div>}
             {start === 'picture' && <PictureStart value={picture} onChange={setPicture} onSubmit={submitPicture} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} />}
           </div>
@@ -193,6 +226,15 @@ export function CreateCharacter() {
       {running && (
         <div className="space-y-4">
           <CreationProgress parent={parent} steps={steps} characterId={characterId} referenceSrc={start === 'picture' || draft.current.referenceAssetId ? referenceSrc : undefined} onCancel={() => void cancel()} cancelling={cancelling} onRetryStep={(s) => void retryStep(s)} onWriteMyself={writeMyself}>
+            {voiceUpload && voiceUpload.forJob === parentId && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px]" role="status">
+                <span className={`status ${voiceUpload.state === 'accepted' ? 'status-ok' : voiceUpload.state === 'refused' || voiceUpload.state === 'error' ? 'status-bad' : 'status-info'}`} dir="auto">
+                  {T.dyn(`char.create.rec.${voiceUpload.state}`)}{voiceUpload.message ? ` — ${voiceUpload.message}` : ''}
+                </span>
+                {voiceUpload.state === 'error' && recording && <Button size="sm" variant="ghost" icon={<IconRetry />} onClick={() => setVoiceUpload({ ...voiceUpload, state: 'waiting', message: undefined })}>{T('jobs.retry')}</Button>}
+                {(voiceUpload.state === 'refused' || voiceUpload.state === 'error') && characterId && <Link href={`/characters/${characterId}?tab=voice`} className="btn btn-secondary btn-sm">{T('char.create.addRecording')}</Link>}
+              </div>
+            )}
             {settled && (
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line-soft pt-4">
                 {created ? <>
@@ -200,7 +242,7 @@ export function CreateCharacter() {
                   <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />{T('char.create.openProfile')}</Link>
                 </> : <>
                   <p className="me-auto text-[13px] text-body">{T('char.create.nothingMade')}</p>
-                  <Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload); else reset(); }}>{T('jobs.retry')}</Button>
+                  <Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>{T('jobs.retry')}</Button>
                   <Button variant="ghost" onClick={reset}>{T('btn.back')}</Button>
                 </>}
               </div>

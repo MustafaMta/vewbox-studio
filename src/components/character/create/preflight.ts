@@ -74,6 +74,18 @@ export function measureAudio(file: Blob): Promise<number | null> {
   });
 }
 
+/* ---- the voice of a Describe start -------------------------------------------------------------------------- */
+
+/** The studio has no voice bank: a voice is always cloned from a real person's recording. So the Describe start
+ *  offers exactly two honest choices — no voice yet, or a recording added now (finding 15). */
+export const DESCRIBE_VOICE_MODES = ['NONE', 'RECORDING'] as const;
+export type DescribeVoiceMode = (typeof DESCRIBE_VOICE_MODES)[number];
+/** A remembered draft from an older page may say 'AUTOMATIC' (the "Studio voice" that could never produce a voice). */
+export const describeVoiceMode = (v: unknown): DescribeVoiceMode => (v === 'RECORDING' ? 'RECORDING' : 'NONE');
+/** What CREATE_CHARACTER is asked for: AUTOMATIC only when a recording travels with the request (the page uploads
+ *  it as soon as the character exists, and AUTOMATIC builds from the uploaded recording); otherwise no voice. */
+export const describeVoicePayload = (mode: DescribeVoiceMode, hasRecording: boolean): { mode: 'AUTOMATIC' | 'NONE' } => ({ mode: mode === 'RECORDING' && hasRecording ? 'AUTOMATIC' : 'NONE' });
+
 /* ---- the engines ------------------------------------------------------------------------------------------- */
 
 export type EngineNeed = 'images' | 'voice' | 'story';

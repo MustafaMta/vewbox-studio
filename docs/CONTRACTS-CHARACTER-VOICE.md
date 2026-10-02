@@ -31,6 +31,12 @@ this file decides what lands now; the rest is backlog.
   carry `parentId` and idempotency keys `create:${jobId}:${step}`; a restart adopts in-flight children (as PRODUCE).
   Partial success keeps the record: the result lists each step's outcome (`done` / `skipped(reason)` / `failed(class,
   message)`), the page shows them and offers the single recovery action per failed step.
+  *Wave-2 fix (review finding 15):* the Describe start no longer offers a "Studio voice" (there is no voice bank, so
+  AUTOMATIC with no upload can never produce one). It offers "No voice yet" (and says why: a voice is always built
+  from a real person's recording) or "Add a recording now": the page checks the file in the browser, uploads it to
+  `/api/characters/:id/voice-reference` as soon as the character exists, and asks the chain for `voice.mode:
+  'AUTOMATIC'`, which builds from that upload; if the chain passed the voice step before the upload landed, the page
+  starts the `VOICE_BUILD` itself and the voice row follows it; a refused recording is shown with its reason.
   *Wave-2 fix (review findings 10, 12, 19):* orchestrators (`CREATE_CHARACTER`, `PRODUCE`) run in an `ORCHESTRATION`
   lane of their own (`laneOf` in `src/server/jobs/queue.ts`), so a waiting chain never holds a CPU slot; the chain is
   bounded by the Casting Director's `limits.timeoutMs` and then fails `INFRASTRUCTURE` naming its children (which keep
