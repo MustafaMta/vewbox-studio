@@ -5,8 +5,9 @@ import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored } from '@/server/media';
+import { adoptFile, assetFromStored, fileFor } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
+import { separateStems } from '@/server/providers/speech';
 import * as comfy from '@/server/providers/comfy';
 import * as minimax from '@/server/providers/minimax';
 import { aceStepSong, minimaxMusic3Song } from '@/server/workflows';
@@ -92,5 +93,34 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnTyp
   const sections = (old.length ? old : splitLyrics(a.lyrics, duration).map((s) => ({ ...s, singerIds: singers }))).map((s, i, arr) => ({ ...s, from: Math.round((i / arr.length) * duration), to: Math.round(((i + 1) / arr.length) * duration) }));
   await command('updateSong', [a.p.id, { source: 'GENERATED', assetId: id, durationSeconds: Math.round(duration), lyrics: a.lyrics, caption: a.caption, provider: a.engine, model: a.model, requestId: a.requestId, jobId: ctx.job.id, sections }], 'worker');
   await recordMetric('song.generation_ms', genMs, 'ms', { engine: a.engine, seconds: Math.round(duration) }, ctx.job.id);
-  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs };
+  const stems = await makeStems(ctx, a.p.id, id, `${a.p.song?.title ?? a.p.title}`);
+  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems };
+}
+
+/** Vocals and accompaniment of a song as two more assets (Demucs in the audio service). Best effort: a song without
+ *  stems is still a song, and the job says why they are missing. */
+export async function makeStems(ctx: Parameters<Handler>[0], productionId: string, songAssetId: string, title: string): Promise<{ vocals?: string; instrumental?: string } | undefined> {
+  const { state } = await readState();
+  const asset = state.assets.find((x) => x.id === songAssetId);
+  if (!asset) return undefined;
+  const src = fileFor({ storage: asset.sample ? 'PUBLIC' : 'LIBRARY', path: asset.sample ? asset.src.replace(/^\/+/, '') : String(asset.provenance?.path ?? '') });
+  await ctx.progress('POSTPROCESSING', { phase: 'stems', message: 'Separating vocals from the accompaniment', percent: null });
+  const dir = await tmpDir('stems');
+  try {
+    const r = await ctx.gpu('ASR', 4000, () => separateStems(src, dir), { jobId: ctx.job.id });
+    const out: { vocals?: string; instrumental?: string } = {};
+    for (const [key, file] of [['vocals', r.files.vocals], ['instrumental', r.files.no_vocals]] as const) {
+      if (!file) continue;
+      const sid = nid('gen');
+      const stored = await adoptFile(sid, file, { expectKind: 'AUDIO' });
+      await command('addAsset', [assetFromStored(sid, stored, { label: `${title} — ${key}`, tags: ['song', 'stem', key], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: songAssetId, model: r.model, ms: r.ms, productionId } })], 'worker');
+      out[key] = sid;
+    }
+    await command('updateSong', [productionId, { stems: out }], 'worker');
+    await recordMetric('stems.ms', r.ms, 'ms', { model: r.model }, ctx.job.id);
+    return out;
+  } catch (e) {
+    await ctx.event('warn', `stems not made: ${(e as Error).message}`);
+    return undefined;
+  } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
 }

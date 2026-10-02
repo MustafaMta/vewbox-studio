@@ -72,6 +72,42 @@ export async function transcribe(file: string, opts: { language?: 'ar' | 'en' | 
   return { language: j.language, languageProbability: j.language_probability, duration: j.duration, text: j.text, segments: j.segments, ms: j.ms, model: j.model };
 }
 
+/** Split a mix into stems (Demucs in the audio service). Writes `vocals.wav` and `no_vocals.wav` (or four stems)
+ *  into outDir and returns their paths. */
+export async function separateStems(file: string, outDir: string, opts: { four?: boolean } = {}): Promise<{ files: Record<string, string>; ms: number; model: string }> {
+  const fd = new FormData();
+  fd.set('file', new Blob([await fsp.readFile(file)]), path.basename(file));
+  fd.set('stems', opts.four ? 'four' : 'two');
+  const res = await post(`${asr()}/separate`, fd, 20 * 60_000);
+  const zip = Buffer.from(await res.arrayBuffer());
+  const files = await unzipTo(zip, outDir);
+  return { files, ms: Number(res.headers.get('x-separation-ms') ?? 0), model: res.headers.get('x-demucs-model') ?? 'htdemucs' };
+}
+
+/** A minimal zip reader (stored or deflated entries) so the worker needs no extra dependency for a handful of WAVs. */
+async function unzipTo(zip: Buffer, outDir: string): Promise<Record<string, string>> {
+  const { inflateRawSync } = await import('node:zlib');
+  const out: Record<string, string> = {};
+  const eocd = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocd < 0) throw new StudioError('PROVIDER', 'The stems archive is malformed.');
+  const count = zip.readUInt16LE(eocd + 10); let off = zip.readUInt32LE(eocd + 16);
+  for (let i = 0; i < count; i++) {
+    if (zip.readUInt32LE(off) !== 0x02014b50) break;
+    const method = zip.readUInt16LE(off + 10), csize = zip.readUInt32LE(off + 20), nameLen = zip.readUInt16LE(off + 28), extraLen = zip.readUInt16LE(off + 30), commentLen = zip.readUInt16LE(off + 32), local = zip.readUInt32LE(off + 42);
+    const name = zip.subarray(off + 46, off + 46 + nameLen).toString('utf8');
+    const lnameLen = zip.readUInt16LE(local + 26), lextraLen = zip.readUInt16LE(local + 28);
+    const start = local + 30 + lnameLen + lextraLen;
+    const data = zip.subarray(start, start + csize);
+    const bytes = method === 8 ? inflateRawSync(data) : data;
+    const safe = path.basename(name).replace(/[^\w.-]/g, '_');
+    const dest = path.join(outDir, safe);
+    await fsp.writeFile(dest, bytes);
+    out[safe.replace(/\.wav$/i, '')] = dest;
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
 export async function unloadTts(): Promise<void> { for (const e of ['indextts', 'habibi'] as const) { try { await fetch(`${tts(e)}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } } }
 export async function unloadAsr(): Promise<void> { try { await fetch(`${asr()}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } }
 

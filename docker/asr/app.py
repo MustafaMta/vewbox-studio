@@ -1,19 +1,24 @@
-"""Transcription service — faster-whisper large-v3 (float16) with word timestamps and VAD.
+"""Audio analysis service — faster-whisper large-v3 (float16) with word timestamps and VAD, and Demucs stems.
 
 POST /transcribe  multipart: file, language (ar|en|auto), prompt (optional), words (1|0)  -> JSON segments/words
-POST /unload      drop the model from the GPU (the worker calls this when another family needs the card)
-GET  /health      model name, loaded flag, GPU memory
+POST /separate    multipart: file, stems (two|four)  -> zip of WAV stems (vocals + no_vocals, or the four htdemucs stems)
+POST /unload      drop the models from the GPU (the worker calls this when another family needs the card)
+GET  /health      model names, loaded flags, GPU memory
 """
 from __future__ import annotations
 
+import io
 import os
+import shutil
+import subprocess
 import tempfile
 import threading
 import time
+import zipfile
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 MODEL_DIR = os.environ.get("ASR_MODEL_DIR", "/models/asr/faster-whisper-large-v3")
 MODEL_NAME = os.environ.get("ASR_MODEL_NAME", "large-v3")
@@ -52,16 +57,88 @@ def model():
         return _model
 
 
+_demucs: Any = None
+_demucs_lock = threading.Lock()
+DEMUCS_MODEL = os.environ.get("DEMUCS_MODEL", "htdemucs")
+
+
+def demucs_model():
+    global _demucs
+    with _demucs_lock:
+        if _demucs is None:
+            import torch  # type: ignore
+            from demucs.pretrained import get_model  # type: ignore
+
+            t0 = time.time()
+            m = get_model(DEMUCS_MODEL)
+            m.to("cuda" if torch.cuda.is_available() else "cpu").eval()
+            _demucs = m
+            print(f"[asr] loaded demucs {DEMUCS_MODEL} in {time.time() - t0:.1f}s", flush=True)
+        return _demucs
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "model": MODEL_NAME, "compute": COMPUTE, "loaded": _model is not None, "gpu": gpu_mem(), "weights_present": os.path.exists(os.path.join(MODEL_DIR, "model.bin"))}
+    return {"ok": True, "model": MODEL_NAME, "compute": COMPUTE, "loaded": _model is not None, "demucs": DEMUCS_MODEL, "demucs_loaded": _demucs is not None, "gpu": gpu_mem(), "weights_present": os.path.exists(os.path.join(MODEL_DIR, "model.bin"))}
+
+
+@app.post("/separate")
+async def separate(file: UploadFile = File(...), stems: str = Form("two")):
+    """Split a mix into stems with Demucs. `two` = vocals + no_vocals (the accompaniment summed); `four` = all htdemucs stems."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty file")
+    work = tempfile.mkdtemp(prefix="sep-")
+    try:
+        src = os.path.join(work, "in" + (os.path.splitext(file.filename or "a.wav")[1] or ".wav"))
+        with open(src, "wb") as f:
+            f.write(data)
+        wav = os.path.join(work, "in.wav")
+        # decode anything ffmpeg understands to 44.1 kHz stereo for the model
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", wav], check=True, timeout=600)
+        import torch  # type: ignore
+        import soundfile as sf  # type: ignore
+        from demucs.apply import apply_model  # type: ignore
+
+        audio, sr = sf.read(wav, dtype="float32", always_2d=True)  # (frames, channels)
+        t0 = time.time()
+        m = demucs_model()
+        with _demucs_lock, torch.no_grad():
+            x = torch.from_numpy(audio.T).unsqueeze(0).to(next(m.parameters()).device)
+            ref = x.mean(0)
+            x = (x - ref.mean()) / (ref.std() + 1e-8)
+            out = apply_model(m, x, shifts=1, split=True, overlap=0.25, progress=False)[0]
+            out = out * (ref.std() + 1e-8) + ref.mean()
+        names = list(m.sources)  # ['drums', 'bass', 'other', 'vocals'] for htdemucs
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            def put(name: str, tensor):
+                b = io.BytesIO()
+                sf.write(b, tensor.cpu().numpy().T, sr, format="WAV", subtype="PCM_16")
+                z.writestr(f"{name}.wav", b.getvalue())
+            vi = names.index("vocals")
+            put("vocals", out[vi])
+            if stems == "four":
+                for i, n in enumerate(names):
+                    if i != vi:
+                        put(n, out[i])
+            else:
+                acc = sum(out[i] for i in range(len(names)) if i != vi)
+                put("no_vocals", acc)
+        return Response(content=buf.getvalue(), media_type="application/zip", headers={"X-Separation-Ms": str(int((time.time() - t0) * 1000)), "X-Demucs-Model": DEMUCS_MODEL})
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e}") from e
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
 
 
 @app.post("/unload")
 def unload():
-    global _model
+    global _model, _demucs
     with _lock:
         _model = None
+    with _demucs_lock:
+        _demucs = None
     try:
         import gc
 
