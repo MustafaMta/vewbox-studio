@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { Asset, Character, Production, Shot } from '@/domain/types';
+import type { Asset, Character, Production, Shot, Take } from '@/domain/types';
+import { orderedShots } from '@/domain/timeline';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';
 import { ffprobe, fileFor } from '../media';
@@ -12,79 +13,128 @@ import { log } from '../log';
  *  of a music video, and loudness brought to broadcast level. Subtitles are written as SRT/VTT sidecars and can be
  *  burned in on export. Every intermediate is probed; nothing is trusted because it exists. */
 
-export interface Timeline { items: Array<{ shot: Shot; take: Asset; start: number; duration: number; sceneNumber: number }>; total: number }
+/** The cut's clock runs in whole frames at the cut's frame rate and in whole samples at 48 kHz: every shot starts on
+ *  a frame boundary, every sound at a sample offset derived from that frame count. No accumulated float estimates. */
+export const CUT_FPS = 24;
+export const CUT_RATE = 48000;
+
+export interface TimelineItem { shot: Shot; take: Asset; takeRecord: Take; start: number; duration: number; startFrame: number; frames: number; /** frames dropped at the head of the take (continuation guide) */ trimStartFrames: number; sceneNumber: number }
+export interface Timeline { items: TimelineItem[]; total: number; totalFrames: number }
 
 const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
 export function buildTimeline(p: Production, assets: Asset[]): Timeline {
-  const items: Timeline['items'] = [];
-  let t = 0;
-  for (const sh of p.shots) {
+  const items: TimelineItem[] = [];
+  let frame = 0;
+  for (const sh of orderedShots(p)) {
     const take = sh.takes.find((x) => x.id === sh.selectedTakeId);
     if (!take) throw new StudioError('INVALID', `Shot ${p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? '?'}.${sh.number} has no chosen take.`);
     const a = assets.find((x) => x.id === take.assetId);
     if (!a) throw new StudioError('NOT_FOUND', `The file of ${take.label} is missing.`);
-    const duration = take.durationSeconds ?? a.durationSeconds ?? sh.durationSeconds;
-    items.push({ shot: sh, take: a, start: t, duration, sceneNumber: p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? 0 });
-    t += duration;
+    const trimStartFrames = Math.max(0, take.trimStartFrames ?? 0);
+    const sourceFrames = Math.round((take.durationSeconds ?? a.durationSeconds ?? sh.durationSeconds) * CUT_FPS);
+    const frames = Math.max(1, sourceFrames - trimStartFrames);
+    items.push({ shot: sh, take: a, takeRecord: take, start: frame / CUT_FPS, duration: frames / CUT_FPS, startFrame: frame, frames, trimStartFrames, sceneNumber: p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? 0 });
+    frame += frames;
   }
   if (items.length === 0) throw new StudioError('INVALID', 'There are no shots to assemble.');
-  return { items, total: t };
+  return { items, total: frame / CUT_FPS, totalFrames: frame };
 }
 
-export interface AssembleOptions { width: number; height: number; fps?: number; song?: Asset; dialogueAudio?: Array<{ assetId: string; start: number; file: string }>; subtitles?: { srt?: string; burn?: 'ar' | 'en' | 'both' | 'none' }; crf?: number; codec?: 'h264' | 'h265' | 'prores'; targetLufs?: number; outFile: string; onProgress?: (msg: string) => Promise<void> | void }
+/** AUDIO TRACKS — every sound in a cut is a typed track with a stable source, a sample-exact placement and a gain
+ *  set by policy, so the same timeline always mixes to the same result and no source can be routed twice. */
+export type AudioTrackKind = 'MASTER_MUSIC' | 'LEAD_VOCAL' | 'BACKING_VOCAL' | 'DIALOGUE' | 'AMBIENCE' | 'FOLEY' | 'SOUND_EFFECTS' | 'GENERATED_VIDEO_AUDIO';
+export interface AudioTrack {
+  kind: AudioTrackKind;
+  /** stable source: the asset (or the take's file) and, for a take, the frames skipped at its head */
+  sourceAssetId: string;
+  sourceOffsetSamples: number;
+  startSample: number;
+  durationSamples: number;
+  gain: number;
+  /** why this gain: the policy that set it (shown in the Final Cut mix panel and kept in provenance) */
+  policy: string;
+  shotId?: string;
+  muted?: boolean;
+}
+export interface MixPlan { rate: number; tracks: AudioTrack[]; targetLufs: number; notes: string[] }
 
-/** Concatenate the takes with a uniform conform, then mix. Returns the output path and the measured loudness. */
+/** The mix plan for a timeline: the one authoritative sound for each stretch of the cut.
+ *  - A music video with a song master: the song is the soundtrack from sample 0; the takes' own sound is muted
+ *    (MiniMax sings along to its anchored stretch of the song, so it would double the vocals); nothing else.
+ *  - Otherwise: each take's own sound (MiniMax speaks natively, or carries the anchored dialogue soundtrack) at unity;
+ *    recorded dialogue lines only under takes that have no sound of their own; a song, when present, as a bed.
+ *  Each source appears once. */
+export function buildMixPlan(p: Production, timeline: Timeline, opts: { song?: Asset; dialogueAudio?: Array<{ assetId: string; start: number; durationSeconds?: number; shotId?: string }>; targetLufs?: number }): MixPlan {
+  const rate = CUT_RATE;
+  const tracks: AudioTrack[] = [];
+  const notes: string[] = [];
+  const musicVideo = p.kind === 'MUSIC_VIDEO' && Boolean(opts.song);
+  for (const it of timeline.items) {
+    const hasAudio = Boolean((it.take.provenance as { probe?: { hasAudio?: boolean } } | undefined)?.probe?.hasAudio);
+    if (!hasAudio) continue;
+    const muted = musicVideo;
+    tracks.push({ kind: 'GENERATED_VIDEO_AUDIO', sourceAssetId: it.take.id, sourceOffsetSamples: Math.round((it.trimStartFrames / CUT_FPS) * rate), startSample: Math.round((it.startFrame / CUT_FPS) * rate), durationSamples: Math.round((it.frames / CUT_FPS) * rate), gain: muted ? 0 : 1, muted, policy: muted ? 'music video: the song master is the soundtrack; the take sang along to it' : it.takeRecord.soundtrack?.kind === 'DIALOGUE' ? 'carries the anchored dialogue soundtrack' : 'native MiniMax sound', shotId: it.shot.id });
+  }
+  if (!musicVideo) {
+    for (const d of opts.dialogueAudio ?? []) tracks.push({ kind: 'DIALOGUE', sourceAssetId: d.assetId, sourceOffsetSamples: 0, startSample: Math.round(d.start * rate), durationSamples: Math.round((d.durationSeconds ?? 2) * rate), gain: 1, policy: 'recorded line under a take without its own sound', shotId: d.shotId });
+  }
+  if (opts.song) tracks.push({ kind: 'MASTER_MUSIC', sourceAssetId: opts.song.id, sourceOffsetSamples: 0, startSample: 0, durationSamples: Math.round(timeline.total * rate), gain: musicVideo ? 1 : 0.35, policy: musicVideo ? 'the song master, once, from the first frame' : 'music bed under dialogue' });
+  if (musicVideo) notes.push(`${tracks.filter((t) => t.muted).length} take soundtracks muted under the song master`);
+  const ids = tracks.filter((t) => !t.muted).map((t) => `${t.sourceAssetId}@${t.startSample}`);
+  if (new Set(ids).size !== ids.length) throw new StudioError('INVALID', 'The mix plan routes one source twice.');
+  return { rate, tracks, targetLufs: opts.targetLufs ?? (p.kind === 'MUSIC_VIDEO' ? -14 : -23), notes };
+}
+
+export interface AssembleOptions { width: number; height: number; fps?: number; /** the typed, sample-placed tracks (see buildMixPlan) */ mix: MixPlan; /** file of every source the mix names */ files: Record<string, string>; subtitles?: { srt?: string; burn?: 'ar' | 'en' | 'both' | 'none' }; crf?: number; codec?: 'h264' | 'h265' | 'prores'; outFile: string; onProgress?: (msg: string) => Promise<void> | void }
+
+/** Concatenate the takes' pictures with a uniform conform, lay the mix plan's tracks at their sample offsets, bring
+ *  the loudness to target, encode. Returns the output path and the measured loudness. */
 export async function assemble(p: Production, timeline: Timeline, opts: AssembleOptions): Promise<{ file: string; loudness: { integrated: number; truePeak: number } | null; durationSeconds: number }> {
   const dir = await tmpDir('cut');
-  const fps = opts.fps ?? 24;
+  const fps = opts.fps ?? CUT_FPS;
   const { width, height } = opts;
-  // 1) conform each take: same size (letterboxed), same fps, same audio layout; silent takes get a silent track
+  // 1) conform each take's PICTURE: same size (letterboxed), same fps, exactly its frame count, head frames of a
+  //    continuation guide dropped; no audio here — sound is placed by the mix plan, never carried by the parts
   const parts: string[] = [];
   for (const [i, it] of timeline.items.entries()) {
     await opts.onProgress?.(`conforming shot ${it.sceneNumber}.${it.shot.number} (${i + 1}/${timeline.items.length})`);
     const src = assetFile(it.take);
-    const probe = await ffprobe(src);
     const out = path.join(dir, `part-${String(i).padStart(3, '0')}.mp4`);
-    const vf = `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${fps},format=yuv420p,setsar=1`;
-    const args = ['-i', src];
-    if (!probe.hasAudio) args.push('-f', 'lavfi', '-t', String(it.duration), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000');
-    args.push('-map', '0:v:0', '-map', probe.hasAudio ? '0:a:0' : '1:a:0', '-t', String(it.duration), '-vf', vf, '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', '-shortest', out);
-    await ffmpeg(args, { timeoutMs: 20 * 60_000 });
+    const vf = `fps=${fps},select=gte(n\\,${it.trimStartFrames}),setpts=N/FRAME_RATE/TB,scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p,setsar=1`;
+    await ffmpeg(['-i', src, '-map', '0:v:0', '-an', '-vf', vf, '-frames:v', String(it.frames), '-r', String(fps), '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-video_track_timescale', String(fps * 1000), out], { timeoutMs: 20 * 60_000 });
     parts.push(out);
   }
-  // 2) concat
+  // 2) concat the pictures (same codec, same timescale: a frame-exact join)
   await opts.onProgress?.('joining shots');
   const list = path.join(dir, 'list.txt');
   await fsp.writeFile(list, parts.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
   const joined = path.join(dir, 'joined.mp4');
   await ffmpeg(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', joined], { timeoutMs: 20 * 60_000 });
-  // 3) mix: take audio (dialogue from MiniMax) + recorded dialogue lines placed at their shot start + song under everything
+  // 3) the mix: every unmuted track is cut from its source by sample, placed at its start sample, scaled by its
+  //    gain, and summed without automatic normalisation; the result is padded/cut to the picture's exact length
   await opts.onProgress?.('mixing sound');
+  const rate = opts.mix.rate;
+  const totalSamples = Math.round((timeline.totalFrames / fps) * rate);
+  const live = opts.mix.tracks.filter((t) => !t.muted && t.gain > 0);
   const inputs: string[] = ['-i', joined];
   const filters: string[] = [];
-  // a music video is carried by the song master: the takes' own singing (MiniMax sings along to the reference
-  // segment) would double the vocals, so it stays as faint ambience only
-  const mixInputs: string[] = [`[0:a]volume=${p.kind === 'MUSIC_VIDEO' && opts.song ? '0.08' : '1.0'}[a0]`];
-  const labels: string[] = ['[a0]'];
-  let n = 1;
-  for (const d of opts.dialogueAudio ?? []) {
-    inputs.push('-i', d.file);
-    filters.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,adelay=${Math.round(d.start * 1000)}|${Math.round(d.start * 1000)},volume=1.0[d${n}]`);
-    labels.push(`[d${n}]`); n++;
-  }
-  if (opts.song) {
-    inputs.push('-i', assetFile(opts.song));
-    filters.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${timeline.total.toFixed(3)},volume=${p.kind === 'MUSIC_VIDEO' ? '1.0' : '0.35'}[m]`);
-    labels.push('[m]'); n++;
-  }
-  filters.unshift(...mixInputs);
-  filters.push(`${labels.join('')}amix=inputs=${labels.length}:duration=first:dropout_transition=0:normalize=0[mix]`);
+  const labels: string[] = [];
+  live.forEach((t, k) => {
+    const file = opts.files[t.sourceAssetId];
+    if (!file) throw new StudioError('NOT_FOUND', `The mix names a source that has no file (${t.kind} ${t.sourceAssetId}).`);
+    inputs.push('-i', file);
+    const n = k + 1;
+    filters.push(`[${n}:a]aformat=sample_rates=${rate}:channel_layouts=stereo,atrim=start_sample=${t.sourceOffsetSamples}:end_sample=${t.sourceOffsetSamples + t.durationSamples},asetpts=PTS-STARTPTS,volume=${t.gain.toFixed(4)},adelay=${t.startSample}S:all=1[t${n}]`);
+    labels.push(`[t${n}]`);
+  });
+  if (!labels.length) { inputs.push('-f', 'lavfi', '-i', `anullsrc=channel_layout=stereo:sample_rate=${rate}`); filters.push(`[1:a]atrim=end_sample=${totalSamples}[t1]`); labels.push('[t1]'); }
+  filters.push(`${labels.join('')}${labels.length > 1 ? `amix=inputs=${labels.length}:duration=longest:dropout_transition=0:normalize=0,` : ''}apad=whole_len=${totalSamples},atrim=end_sample=${totalSamples}[mix]`);
   const mixed = path.join(dir, 'mixed.mp4');
-  await ffmpeg([...inputs, '-filter_complex', filters.join(';'), '-map', '0:v:0', '-map', '[mix]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', mixed], { timeoutMs: 30 * 60_000 });
+  await ffmpeg([...inputs, '-filter_complex', filters.join(';'), '-map', '0:v:0', '-map', '[mix]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', String(rate), mixed], { timeoutMs: 30 * 60_000 });
   // 4) loudness: two-pass EBU R128 to the target (−23 LUFS for episodes/shorts, −14 for music videos), true peak −1
   await opts.onProgress?.('normalising loudness');
-  const target = opts.targetLufs ?? (p.kind === 'MUSIC_VIDEO' ? -14 : -23);
+  const target = opts.mix.targetLufs;
   const stats = await measureLoudness(mixed);
   const loudArgs = stats ? `loudnorm=I=${target}:LRA=11:TP=-1:measured_I=${stats.integrated}:measured_LRA=${stats.range}:measured_TP=${stats.truePeak}:measured_thresh=${stats.threshold}:linear=true:print_format=summary` : `loudnorm=I=${target}:LRA=11:TP=-1`;
   const normalised = path.join(dir, 'normalised.mp4');
@@ -115,6 +165,18 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
   for (const it of timeline.items) {
     const lines = it.shot.dialogue.filter((d) => (lang === 'ar' ? d.textAr || d.text : d.text || d.textAr));
     if (!lines.length) continue;
+    // a take generated to a recorded soundtrack knows exactly when each line is spoken
+    const exact = it.takeRecord.soundtrack?.kind === 'DIALOGUE' ? it.takeRecord.soundtrack.lines : [];
+    if (exact.length) {
+      const head = it.trimStartFrames / CUT_FPS;
+      for (const d of lines) {
+        const w = exact.find((x) => x.lineId === d.id);
+        if (!w) continue;
+        const who = cast.find((c) => c.id === d.characterId);
+        cues.push({ start: it.start + Math.max(0, w.from - head), end: Math.min(it.start + it.duration, it.start + w.to - head), text: rtlMark(lang, lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || ''), speaker: who?.name });
+      }
+      continue;
+    }
     const weights = lines.map((d) => Math.max(1, (lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || '').split(/\s+/).length));
     const total = weights.reduce((a, b) => a + b, 0);
     let cursor = it.start + 0.15;

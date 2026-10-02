@@ -8,7 +8,7 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { adoptFile, assetFromStored, fileFor, storeBuffer } from '@/server/media';
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
-import { assemble as assembleCut, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt } from '@/server/media/assembly';
+import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt } from '@/server/media/assembly';
 import { recordMetric } from '@/server/jobs/queue';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 
@@ -28,20 +28,27 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   if (sampleTakes.length) throw new StudioError('INVALID', `${sampleTakes.length} chosen take(s) are bundled sample clips, not generated footage. Generate real takes before assembling.`);
   await ctx.progress('PREPARING', { phase: 'preparing', message: `Assembling ${timeline.items.length} shots (${Math.round(timeline.total)} s)` });
   const size = exportSize(p.aspect, opts.resolution);
-  const song = p.song?.assetId ? state.assets.find((a) => a.id === p.song!.assetId) : undefined;
+  const song = p.song?.assetId ? state.assets.find((a) => a.id === p.song!.assetId && !a.sample) : undefined;
   // recorded dialogue lines for shots whose take is silent (MiniMax H3 speaks natively; uploaded or legacy takes may not)
-  const dialogueAudio: Array<{ assetId: string; start: number; file: string }> = [];
+  const dialogueAudio: Array<{ assetId: string; start: number; durationSeconds?: number; shotId: string }> = [];
+  const files: Record<string, string> = {};
   for (const it of timeline.items) {
+    files[it.take.id] = assetFile(it.take);
     const takeHasAudio = Boolean(it.take.provenance && (it.take.provenance as { probe?: { hasAudio?: boolean } }).probe?.hasAudio);
     if (takeHasAudio) continue;
     let cursor = it.start + 0.2;
     for (const d of it.shot.dialogue) {
       const a = d.audioAssetId ? state.assets.find((x) => x.id === d.audioAssetId) : undefined;
       if (!a) continue;
-      dialogueAudio.push({ assetId: a.id, start: cursor, file: assetFile(a) });
+      files[a.id] = assetFile(a);
+      dialogueAudio.push({ assetId: a.id, start: cursor, durationSeconds: d.durationSeconds ?? a.durationSeconds, shotId: it.shot.id });
       cursor += (d.durationSeconds ?? a.durationSeconds ?? 2) + 0.25;
     }
   }
+  if (song) files[song.id] = assetFile(song);
+  // the typed mix plan: one authoritative sound per stretch, sample-placed, kept with the cut's provenance
+  const mix = buildMixPlan(p, timeline, { song, dialogueAudio });
+  await ctx.event('info', 'mix plan', { tracks: mix.tracks.map((t) => ({ kind: t.kind, source: t.sourceAssetId, startSample: t.startSample, durationSamples: t.durationSamples, gain: t.gain, muted: t.muted ?? false, policy: t.policy })), targetLufs: mix.targetLufs, notes: mix.notes });
   // subtitles
   const dir = await tmpDir('subs');
   const cuesAr = p.kind === 'MUSIC_VIDEO' ? lyricCues(p, 'ar') : dialogueCues(p, timeline, cast, 'ar');
@@ -53,7 +60,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const ext = opts.format === 'mov-prores' ? 'mov' : 'mp4';
   const outFile = path.join(outDir, `${opts.kind}.${ext}`);
   const t0 = Date.now();
-  const result = await assembleCut(p, timeline, { width: size.width, height: size.height, fps: 24, song: song && !song.sample ? song : undefined, dialogueAudio, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : 'none' }, codec: opts.format === 'mp4-h265' ? 'h265' : opts.format === 'mov-prores' ? 'prores' : 'h264', outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) });
+  const result = await assembleCut(p, timeline, { width: size.width, height: size.height, fps: 24, mix, files, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : 'none' }, codec: opts.format === 'mp4-h265' ? 'h265' : opts.format === 'mov-prores' ? 'prores' : 'h264', outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) });
   await ctx.checkpoint();
   const poster = path.join(outDir, 'poster.jpg');
   await thumbnail(outFile, poster, { at: Math.min(2, result.durationSeconds / 3), width: 1280 });
@@ -61,7 +68,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const storedPoster = await adoptFile(posterId, poster, { expectKind: 'IMAGE' });
   const stored = await adoptFile(videoId, outFile, { expectKind: 'VIDEO' });
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id })], 'worker');
-  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration })), loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
+  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames })), fps: 24, mix, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: dialogueAudio.length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
   // sidecar subtitle files
   const sidecars: string[] = [];
   for (const [lang, cs] of [['ar', cuesAr], ['en', cuesEn]] as const) {

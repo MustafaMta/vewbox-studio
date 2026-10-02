@@ -3,14 +3,17 @@ import path from 'node:path';
 import type { Handler } from './index';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, TakeReference } from '@/domain/types';
+import type { Asset, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, fileFor, libraryRoot } from '@/server/media';
-import { qaTake, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
-import { shotWindows } from '@/domain/timeline';
+import { adoptFile, assetFromStored, ffprobe, fileFor, libraryRoot } from '@/server/media';
+import { ffmpeg, joinSpeech, qaTake, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
+import { orderedShots, shotWindows } from '@/domain/timeline';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
+import { H3_GUIDE_FRAMES } from '@/server/workflows/minimax-h3';
+import { transcribe, wordErrorRate } from '@/server/providers/speech';
+import { referenceWav, speakLine, verifyLine, type Reference } from './voice';
 import { takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
@@ -37,47 +40,99 @@ export const generateTake: Handler = async (ctx) => {
 
   await ctx.progress('PREPARING', { phase: 'preparing', message: 'Gathering references and writing the prompt' });
   const prompt = payload.prompt?.trim() || takePrompt(p, sh, cast, loc, scene);
-  const seconds = Math.min(15, Math.max(4, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
+  let seconds = Math.min(15, Math.max(4, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it
   const seed = payload.seed ?? Math.floor(Math.random() * 2 ** 31);
   const info = ASPECT_INFO[p.aspect];
   const references: TakeReference[] = [];
+  const usableImage = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
   const opening = byId(sh.openingFrameAssetId);
   const ending = byId(sh.endingFrameAssetId);
-  // Music video with a song file: the shot's stretch of the song goes in as reference audio, so the performer's
-  // mouth follows the real track. MiniMax takes audio only in reference mode, so the opening frame (when there is
-  // one) becomes the first reference picture instead of a first frame.
+  const work = await tmpDir('take-prep');
+  const guides: NonNullable<Parameters<typeof generateVideo>[0]['guides']> = [];
+  let trimStartFrames = 0;
+  let soundtrack: Take['soundtrack'] | undefined;
+  let soundtrackFile: string | undefined;
+
+  // 1) SOUND FIRST. A speaking shot is generated to follow an authoritative soundtrack: every line recorded with its
+  //    character's canonical voice, checked by transcription, joined with natural gaps, then anchored inside the clip
+  //    (MiniMax H3 keeps an anchored soundtrack exactly and animates the mouths to it). Only when a speaker has no
+  //    usable voice does the shot fall back to MiniMax's own native speech from the <d> tags.
+  const speakers = Array.from(new Set(sh.dialogue.map((d) => d.characterId)));
+  const voices = new Map<string, Reference>();
+  for (const cid of speakers) { const c = cast.find((x) => x.id === cid); const ref = c ? await referenceWav(c, state.assets, work) : null; if (ref) voices.set(cid, ref); }
   const songAsset = p.kind === 'MUSIC_VIDEO' && p.song?.assetId ? byId(p.song.assetId) : undefined;
+  if (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length && speakers.every((cid) => voices.has(cid)) && backend === 'local' && !payload.prompt) {
+    await ctx.progress('PREPARING', { phase: 'recording', message: `Recording ${sh.dialogue.length} line${sh.dialogue.length > 1 ? 's' : ''} with the characters' voices` });
+    const spoken: Array<{ file: string; durationSeconds: number; lineId: string; check: { wer: number; heard: string } | null }> = [];
+    for (const d of sh.dialogue) {
+      const c = cast.find((x) => x.id === d.characterId)!;
+      const text = (p.language === 'AR' ? d.textAr || d.text : d.text).trim();
+      if (!text) continue;
+      let line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work);
+      let check = await verifyLine(ctx, line.file, text, c.language);
+      if (check && check.wer > 0.35) { line = await speakLine(ctx, c, text, voices.get(d.characterId)!, work); check = await verifyLine(ctx, line.file, text, c.language); }
+      const pr = await ffprobe(line.file);
+      spoken.push({ file: line.file, durationSeconds: pr.durationSeconds ?? ('durationSeconds' in line ? line.durationSeconds : 2), lineId: d.id, check });
+    }
+    if (spoken.length) {
+      const joined = await joinSpeech(spoken, path.join(work, 'dialogue.wav'));
+      // the shot runs as long as its words need (plus room to breathe), within the engine's 15 s
+      const need = Math.ceil(joined.durationSeconds + 0.5);
+      if (need > 15) await ctx.event('warn', `the dialogue runs ${joined.durationSeconds.toFixed(1)} s, longer than one clip can hold; split the shot`, { lines: spoken.length });
+      seconds = Math.min(15, Math.max(seconds, need));
+      soundtrackFile = joined.file;
+      soundtrack = { kind: 'DIALOGUE', lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
+      await ctx.event('info', 'dialogue recorded as the shot\'s soundtrack', { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, durationSeconds: s.durationSeconds, wer: s.check?.wer, heard: s.check?.heard })) });
+    }
+  }
+  // 2) A music video shot anchors its stretch of the song: the take's soundtrack IS the song, so the performer's
+  //    mouth follows the real vocal and the cut carries one copy of the music.
   const window = songAsset ? shotWindows(p).get(sh.id) : undefined;
-  const songSegment = songAsset && songAsset.kind === 'AUDIO' && window && window.to > window.from && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL'
-    ? await trimAudio(assetFile(songAsset), path.join(await tmpDir('song'), `${sh.id}.wav`), window.from, Math.min(window.to, window.from + seconds))
-    : undefined;
-  const useFrames = !songSegment;
-  const firstFrame = useFrames && opening && opening.kind === 'IMAGE' && opening.mimeType !== 'image/svg+xml' ? { file: assetFile(opening), mime: opening.mimeType ?? 'image/png' } : undefined;
-  const lastFrame = useFrames && ending && ending.kind === 'IMAGE' && ending.mimeType !== 'image/svg+xml' ? { file: assetFile(ending), mime: ending.mimeType ?? 'image/png' } : undefined;
+  if (songAsset && songAsset.kind === 'AUDIO' && window && window.to > window.from && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') {
+    soundtrackFile = await trimAudio(assetFile(songAsset), path.join(work, `${sh.id}-song.wav`), window.from, Math.min(window.to, window.from + seconds));
+    soundtrack = { kind: 'SONG', assetId: songAsset.id, lines: [] };
+    references.push({ kind: 'AUDIO', assetId: songAsset.id, note: `song ${window.from.toFixed(2)}–${Math.min(window.to, window.from + seconds).toFixed(2)} s` });
+  }
+  // 3) An unbroken continuation: the previous shot's last frames and audio are anchored at frame 0, so the new clip
+  //    starts exactly where the old one ended; those frames are dropped again in the cut.
+  const ordered = orderedShots(p);
+  const prevShot = ordered[ordered.findIndex((x) => x.id === sh.id) - 1];
+  const prevTake = prevShot?.takes.find((t) => t.id === prevShot.selectedTakeId);
+  const prevAsset = prevTake && prevTake.provider !== 'SAMPLE' ? byId(prevTake.assetId) : undefined;
+  const continuation = sh.continuity?.relationToPrevious === 'CONTINUATION' && prevShot?.sceneId === sh.sceneId && prevAsset && prevAsset.kind === 'VIDEO' && backend === 'local';
+  if (continuation) {
+    const tail = await tailClip(assetFile(prevAsset!), path.join(work, 'tail.mp4'), H3_GUIDE_FRAMES);
+    guides.push({ frameIdx: 0, imageFile: tail, imageIsVideo: true });
+    trimStartFrames = H3_GUIDE_FRAMES;
+    references.push({ kind: 'VIDEO', assetId: prevAsset!.id, note: `continuation guide: last ${H3_GUIDE_FRAMES} frames of the previous take` });
+    seconds = Math.min(15, seconds + 1); // the guide eats most of a second
+  }
+  if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
+
+  // 4) PICTURES. With a drawn opening frame the clip starts on it (first-frame conditioning); otherwise identity comes
+  //    from reference pictures: the characters' portraits and the location plate. A continuation starts on the guide
+  //    instead of the drawn frame.
+  const firstFrame = !continuation && usableImage(opening) ? { file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' } : undefined;
+  const lastFrame = !continuation && usableImage(ending) ? { file: assetFile(ending!), mime: ending!.mimeType ?? 'image/png' } : undefined;
   if (firstFrame) references.push({ kind: 'FIRST_FRAME', assetId: opening!.id });
   if (lastFrame) references.push({ kind: 'LAST_FRAME', assetId: ending!.id });
-  // without an opening frame, condition on identity references instead: character portraits and the location plate
   const referenceImages: Array<{ file: string; mime: string }> = [];
-  if (songSegment && opening && opening.kind === 'IMAGE' && opening.mimeType !== 'image/svg+xml') { referenceImages.push({ file: assetFile(opening), mime: opening.mimeType ?? 'image/png' }); references.push({ kind: 'FIRST_FRAME', assetId: opening.id }); }
   if (!firstFrame) {
+    if (usableImage(opening)) { referenceImages.push({ file: assetFile(opening!), mime: opening!.mimeType ?? 'image/png' }); references.push({ kind: 'FIRST_FRAME', assetId: opening!.id, note: 'as reference picture' }); }
     for (const cid of sh.characterIds.slice(0, 4)) {
       const c = cast.find((x) => x.id === cid); const a = byId(c?.portraitAssetId);
-      if (a && a.kind === 'IMAGE' && a.mimeType !== 'image/svg+xml') { referenceImages.push({ file: assetFile(a), mime: a.mimeType ?? 'image/png' }); references.push({ kind: 'CHARACTER', assetId: a.id, characterId: cid }); }
+      if (usableImage(a)) { referenceImages.push({ file: assetFile(a!), mime: a!.mimeType ?? 'image/png' }); references.push({ kind: 'CHARACTER', assetId: a!.id, characterId: cid }); }
     }
     const plate = byId(loc?.masterAssetId);
-    if (plate && plate.kind === 'IMAGE' && plate.mimeType !== 'image/svg+xml') { referenceImages.push({ file: assetFile(plate), mime: plate.mimeType ?? 'image/png' }); references.push({ kind: 'LOCATION', assetId: plate.id, locationId: loc?.id }); }
+    if (usableImage(plate)) { referenceImages.push({ file: assetFile(plate!), mime: plate!.mimeType ?? 'image/png' }); references.push({ kind: 'LOCATION', assetId: plate!.id, locationId: loc?.id }); }
   }
-  // voice identity for speaking characters: the chosen voice sample as audio reference (timbre)
+  // 5) VOICE TIMBRE for shots that still speak natively (no soundtrack): the chosen voice sample as audio reference
   const referenceAudio: Array<{ file: string }> = [];
-  if (songSegment) { referenceAudio.push({ file: songSegment }); references.push({ kind: 'AUDIO', assetId: songAsset!.id }); }
-  for (const cid of Array.from(new Set(sh.dialogue.map((d) => d.characterId))).slice(0, songSegment ? 2 : 3)) {
-    const c = cast.find((x) => x.id === cid);
-    const sample = c?.voice.samples.find((v) => v.id === c.voice.selectedSampleId);
-    const a = byId(sample?.assetId);
-    if (a && a.kind === 'AUDIO' && !a.sample && referenceImages.length > 0) { referenceAudio.push({ file: assetFile(a) }); references.push({ kind: 'AUDIO', assetId: a.id, characterId: cid }); }
+  if (!soundtrackFile && referenceImages.length > 0) {
+    for (const cid of speakers.slice(0, 3)) { const v = voices.get(cid); if (v) { referenceAudio.push({ file: v.file }); references.push({ kind: 'AUDIO', assetId: v.asset.id, characterId: cid, note: 'voice timbre' }); } }
   }
-  await ctx.event('info', 'take request prepared', { backend, seconds, prompt: prompt.slice(0, 500), references });
+  await ctx.event('info', 'take request prepared', { backend, seconds, soundtrack: soundtrack?.kind, continuation: Boolean(continuation), prompt: prompt.slice(0, 500), references });
 
   const t0 = Date.now();
   let lastStatus = '';
@@ -85,7 +140,7 @@ export const generateTake: Handler = async (ctx) => {
   // first); the hosted API needs no card and runs in the hosted lane's concurrency
   const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', 28000, fn, { jobId: ctx.job.id }) : fn());
   const result = await run(() => generateVideo({
-    prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined,
+    prompt, seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,
     seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
     onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
@@ -98,8 +153,22 @@ export const generateTake: Handler = async (ctx) => {
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
   // MiniMax H3 always renders a soundtrack; a shot with no lines may legitimately be near-silent
-  const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || (p.kind === 'MUSIC_VIDEO' && Boolean(songSegment)) });
+  const { report, probe } = await qaTake(result.file, { durationSeconds: seconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' });
   await ctx.checkpoint();
+  // a take generated to a dialogue soundtrack must carry that soundtrack: transcribe the clip and compare it with the
+  // script (the anchored audio is kept exactly, so a bad reading here means the engine ignored the guide)
+  if (soundtrack?.kind === 'DIALOGUE' && backend === 'local') {
+    try {
+      const wav = path.join(work, 'take-audio.wav');
+      await ffmpeg(['-y', '-v', 'error', '-i', result.file, '-vn', '-ac', '1', '-ar', '16000', wav]);
+      const expected = sh.dialogue.map((d) => (p.language === 'AR' ? d.textAr || d.text : d.text)).join(' ');
+      const t = await ctx.gpu('ASR', 4000, () => transcribe(wav, { language: p.language === 'AR' ? 'ar' : 'en' }), { jobId: ctx.job.id });
+      const wer = wordErrorRate(expected, t.text, p.language);
+      report.checks.push({ name: 'soundtrack-kept', ok: wer <= 0.5, value: Number(wer.toFixed(2)), threshold: 0.5, detail: `heard: ${t.text.slice(0, 160)}` });
+      if (wer > 0.5) report.ok = false;
+    } catch (e) { report.checks.push({ name: 'soundtrack-kept', ok: true, detail: `not checked: ${(e as Error).message}` }); }
+  }
+  if (soundtrackFile) { const id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' }); await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines } })], 'worker'); soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id }; }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
   const playable = path.join(dir, 'take.mp4');
@@ -119,7 +188,8 @@ export const generateTake: Handler = async (ctx) => {
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params: result.params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id };
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
   await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` })], 'worker');
-  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params: result.params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId }], 'worker');
+  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params: result.params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack }], 'worker');
+  await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);

@@ -1,0 +1,75 @@
+import type { LyricSection } from '@/domain/types';
+import { normalizeArabic } from '../providers/speech';
+
+/** LYRIC ALIGNMENT — the written lines of a song placed on the real vocal track. The vocal stem is transcribed with
+ *  word timings; each lyric line is matched to the best-scoring run of transcript words in order (a monotone
+ *  alignment: lines never cross), and takes that run's first and last word times. Sung words are mis-heard far more
+ *  than spoken ones, so matching is fuzzy and a line that finds no credible run keeps an even spread inside its
+ *  section instead of a wrong anchor. Section boundaries from the plan are respected as soft limits. */
+
+export interface Word { start: number; end: number; word: string }
+export interface AlignedLine { sectionId: string; index: number; text: string; textAr?: string; from: number; to: number; confidence: number; method: 'ALIGNED' | 'SPREAD' }
+
+const norm = (s: string, lang: 'EN' | 'AR') => (lang === 'AR' ? normalizeArabic(s) : s.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim());
+const tokens = (s: string, lang: 'EN' | 'AR') => norm(s, lang).split(' ').filter(Boolean);
+
+/** Similarity of two words: exact, or a shared prefix of at least three letters, or a small edit distance. */
+function similar(a: string, b: string): number {
+  if (a === b) return 1;
+  if (a.length >= 3 && b.length >= 3 && (a.startsWith(b.slice(0, 3)) || b.startsWith(a.slice(0, 3)))) return 0.7;
+  const d = edit(a, b);
+  const m = Math.max(a.length, b.length);
+  return m > 0 && d / m <= 0.34 ? 0.6 : 0;
+}
+function edit(a: string, b: string): number {
+  const dp: number[] = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) { let prev = dp[0]; dp[0] = i; for (let j = 1; j <= b.length; j++) { const tmp = dp[j]; dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; } }
+  return dp[b.length];
+}
+
+/** Score of matching `line` tokens against transcript words [i, i+len): mean best similarity in order. */
+function runScore(line: string[], words: string[], i: number, len: number): number {
+  let total = 0; let w = i;
+  for (const tok of line) {
+    let best = 0; let at = w;
+    for (let k = w; k < i + len && k < w + 3; k++) { const s = similar(tok, words[k] ?? ''); if (s > best) { best = s; at = k; } }
+    total += best; if (best > 0) w = at + 1;
+  }
+  return total / Math.max(1, line.length);
+}
+
+export function alignLyrics(sections: LyricSection[], words: Word[], lang: 'EN' | 'AR'): AlignedLine[] {
+  const out: AlignedLine[] = [];
+  const wtok = words.map((w) => norm(w.word, lang));
+  let cursor = 0; // transcript words are consumed in order
+  for (const sec of sections) {
+    const source = (lang === 'AR' ? sec.textAr || sec.text : sec.text) || '';
+    const lines = source.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    const en = sec.text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    const span = Math.max(0.001, sec.to - sec.from) / Math.max(1, lines.length);
+    // only words that fall inside (a padded) section window are candidates
+    const lo = Math.max(cursor, words.findIndex((w) => w.end >= sec.from - 1.5));
+    const hi = (() => { const k = words.findIndex((w) => w.start > sec.to + 1.5); return k < 0 ? words.length : k; })();
+    let local = Math.max(0, lo);
+    lines.forEach((text, i) => {
+      const toks = tokens(text, lang);
+      let best = { score: 0, i: -1, len: 0 };
+      for (let s = local; s < hi; s++) {
+        for (let len = Math.max(1, toks.length - 2); len <= toks.length + 3 && s + len <= hi; len++) {
+          const sc = runScore(toks, wtok, s, len);
+          if (sc > best.score + 1e-9) best = { score: sc, i: s, len };
+        }
+        if (best.score >= 0.95) break;
+      }
+      const spreadFrom = sec.from + span * i, spreadTo = sec.from + span * (i + 1);
+      if (best.i >= 0 && best.score >= 0.5 && toks.length >= 2) {
+        const from = words[best.i].start, to = words[Math.min(words.length - 1, best.i + best.len - 1)].end;
+        out.push({ sectionId: sec.id, index: i, text: en[i] ?? text, textAr: lang === 'AR' ? text : undefined, from, to: Math.max(to, from + 0.3), confidence: best.score, method: 'ALIGNED' });
+        local = best.i + best.len; cursor = local;
+      } else out.push({ sectionId: sec.id, index: i, text: en[i] ?? text, textAr: lang === 'AR' ? text : undefined, from: spreadFrom, to: spreadTo, confidence: best.score, method: 'SPREAD' });
+    });
+  }
+  // lines never overlap or run backwards: a later line starts no earlier than the previous one ends
+  for (let k = 1; k < out.length; k++) if (out[k].from < out[k - 1].to) { out[k].from = out[k - 1].to; if (out[k].to < out[k].from + 0.3) out[k].to = out[k].from + 0.3; }
+  return out;
+}

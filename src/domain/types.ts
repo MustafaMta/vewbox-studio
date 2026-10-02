@@ -116,6 +116,11 @@ export interface Take {
   codeVersion?: string;
   workflowVersion?: string;
   thumbnailAssetId?: string;
+  /** Frames at the start that repeat the previous shot's tail (a continuation guide); the cut drops them. */
+  trimStartFrames?: number;
+  /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
+   *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
+  soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
 }
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';

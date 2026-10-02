@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest';
+import type { LyricSection } from '@/domain/types';
+import { alignLyrics, type Word } from '@/server/media/lyrics';
+
+/** Words as Whisper returns them for a sung verse: a few mis-hearings, a sustained word, a pause. */
+const words: Word[] = [
+  ...'these streets know every crack in my voice'.split(' ').map((w, i) => ({ word: w, start: 7.2 + i * 0.5, end: 7.6 + i * 0.5 })),
+  ...'every mile ive driven through the night'.split(' ').map((w, i) => ({ word: w, start: 11.2 + i * 0.45, end: 11.6 + i * 0.45 })),
+  ...'headlights cars stories on the asphalt'.split(' ').map((w, i) => ({ word: w, start: 14.2 + i * 0.5, end: 14.6 + i * 0.5 })), // "carve" heard as "cars"
+  ...'but the city never listens'.split(' ').map((w, i) => ({ word: w, start: 17.6 + i * 0.45, end: 18.0 + i * 0.45 })),
+];
+const section: LyricSection = { id: 'v1', kind: 'VERSE', from: 0, to: 20, singerIds: ['a'], text: 'These streets know every crack in my voice\nEvery mile I\'ve driven through the night\nHeadlights carve stories on the asphalt\nBut the city never listens' } as LyricSection;
+
+describe('alignLyrics', () => {
+  it('places each line on the words that sing it, in order', () => {
+    const out = alignLyrics([section], words, 'EN');
+    expect(out).toHaveLength(4);
+    expect(out.every((l) => l.method === 'ALIGNED')).toBe(true);
+    expect(out[0].from).toBeCloseTo(7.2, 1);
+    expect(out[1].from).toBeCloseTo(11.2, 1);
+    expect(out[2].from).toBeCloseTo(14.2, 1);
+    expect(out[3].to).toBeCloseTo(18.0 + 4 * 0.45, 1);
+    for (let i = 1; i < out.length; i++) expect(out[i].from).toBeGreaterThanOrEqual(out[i - 1].to);
+  });
+  it('falls back to an even spread when the transcript has nothing credible', () => {
+    const out = alignLyrics([section], [{ word: 'la', start: 1, end: 1.2 }], 'EN');
+    expect(out.every((l) => l.method === 'SPREAD')).toBe(true);
+    expect(out[0].from).toBe(0);
+    expect(out[3].to).toBe(20);
+  });
+  it('handles Arabic with normalisation', () => {
+    const ar: LyricSection = { id: 'c', kind: 'CHORUS', from: 0, to: 10, singerIds: ['a'], text: 'the river keeps the lights\nwe borrow them one by one', textAr: 'النهر يحفظ الأضواء\nنستعيرها واحداً واحداً' } as LyricSection;
+    const w: Word[] = [...'النهر يحفظ الاضواء'.split(' ').map((x, i) => ({ word: x, start: 1 + i * 0.6, end: 1.5 + i * 0.6 })), ...'نستعيرها واحدا واحدا'.split(' ').map((x, i) => ({ word: x, start: 4 + i * 0.6, end: 4.5 + i * 0.6 }))];
+    const out = alignLyrics([ar], w, 'AR');
+    expect(out[0].method).toBe('ALIGNED');
+    expect(out[1].method).toBe('ALIGNED');
+    expect(out[1].from).toBeCloseTo(4, 1);
+    expect(out[1].textAr).toContain('نستعيرها');
+  });
+});

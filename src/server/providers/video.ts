@@ -23,6 +23,8 @@ export interface VideoRequest {
   lastFrame?: { file: string; mime: string };
   referenceImages?: Array<{ file: string; mime: string }>;
   referenceAudio?: Array<{ file: string }>;
+  /** local engine only: media anchored inside the clip (authoritative soundtrack, previous shot's tail) */
+  guides?: Array<{ frameIdx: number; imageFile?: string; imageIsVideo?: boolean; audioFile?: string }>;
   seed?: number;
   model?: string; resolution?: string;
   /** Called with provider status while waiting. */
@@ -95,7 +97,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const last = req.lastFrame ? await comfy.uploadInput(req.lastFrame.file) : undefined;
   const refs = req.referenceImages?.length ? await Promise.all(req.referenceImages.map((r) => comfy.uploadInput(r.file))) : undefined;
   const audio = req.referenceAudio?.length ? await Promise.all(req.referenceAudio.map((a) => comfy.uploadInput(a.file))) : undefined;
-  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(4, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, filenamePrefix: 'vewbox/h3' });
+  const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined }))) : undefined;
+  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(4, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
   await req.onStatus?.({ status: 'queued' });
   const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
   const out = comfy.firstOutput(run.outputs, 'video') ?? comfy.firstOutput(run.outputs, 'gifs') ?? comfy.firstOutput(run.outputs, 'images');
@@ -104,7 +107,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const dir = await tmpDir('h3');
   const file = path.join(dir, out.filename.endsWith('.mp4') ? out.filename : `${out.filename}.mp4`);
   await fsp.writeFile(file, bytes);
-  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: req.seconds, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, params: { graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, engineMs: run.engineMs } };
+  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: req.seconds, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, params: { graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio) })), engineMs: run.engineMs } };
 }
 
 export async function videoBackendStatus(): Promise<{ backend: VideoBackend | null; ready: boolean; detail: string }> {

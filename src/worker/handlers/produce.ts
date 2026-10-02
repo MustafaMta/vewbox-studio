@@ -21,12 +21,18 @@ export const produce: Handler = async (ctx) => {
   if (targets.length === 0) return { message: 'every shot already has a chosen take', shots: 0 };
   const round = ctx.job.attempts;
   const children: string[] = [];
+  // a reclaimed or retried run adopts the children it already queued and that are still working, so a shot never
+  // gets a second generation in flight (and no duplicate MiniMax request)
+  const inFlight = (await listJobs({ productionId, activeOnly: true, limit: 500 })).filter((j) => j.parentId === ctx.job.id);
+  const adopt = (type: 'SHOT_FRAMES' | 'GENERATE_TAKE', shotId: string) => inFlight.find((j) => j.type === type && j.shotId === shotId)?.id;
   // frames first (local GPU, fast), then takes (MiniMax). Frames need the image engine; when its weights are not
   // there yet the takes go ahead from the prompt and references alone, and the summary says so.
   const imagesReady = await comfy.health().then(async (h) => h.ok && (await comfy.listModels('diffusion_models').catch(() => [] as string[])).some((m) => m.includes('qwen_image'))).catch(() => false);
   if (!imagesReady) await ctx.event('warn', 'image engine not ready: opening frames skipped, takes generated from prompt and references');
   for (const sh of targets) {
     if (!sh.openingFrameAssetId && imagesReady) {
+      const existing = adopt('SHOT_FRAMES', sh.id);
+      if (existing) { children.push(existing); continue; }
       const r = await enqueue({ type: 'SHOT_FRAMES', payload: { productionId, shotId: sh.id }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:frame:${sh.id}:${round}`, priority: 2 });
       children.push(r.job.id);
     }
@@ -35,6 +41,8 @@ export const produce: Handler = async (ctx) => {
   if (framesOnly) return { frames: children.length, shots: targets.length };
   const takeJobs: string[] = [];
   for (const sh of targets) {
+    const existing = adopt('GENERATE_TAKE', sh.id);
+    if (existing) { takeJobs.push(existing); continue; }
     const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 });
     takeJobs.push(r.job.id);
   }

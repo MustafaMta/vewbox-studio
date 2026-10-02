@@ -115,6 +115,44 @@ export async function trimAudio(input: string, out: string, from: number, to: nu
   return out;
 }
 
+/** Join spoken lines into one soundtrack with silence between them: a lead-in, a gap after every line, a tail. Mono
+ *  48 kHz PCM. Returns each line's window inside the track (exact, from the measured durations). */
+export async function joinSpeech(lines: Array<{ file: string; durationSeconds: number }>, out: string, opts: { leadIn?: number; gap?: number; tail?: number } = {}): Promise<{ file: string; durationSeconds: number; windows: Array<{ from: number; to: number }> }> {
+  const leadIn = opts.leadIn ?? 0.4, gap = opts.gap ?? 0.35, tail = opts.tail ?? 0.3;
+  const args: string[] = ['-y', '-v', 'error'];
+  const parts: string[] = [];
+  const windows: Array<{ from: number; to: number }> = [];
+  let t = leadIn;
+  for (const [i, l] of lines.entries()) {
+    args.push('-i', l.file);
+    parts.push(`[${i}:a]aformat=sample_rates=48000:channel_layouts=mono,adelay=${Math.round(t * 48000)}S:all=1[s${i}]`);
+    windows.push({ from: t, to: t + l.durationSeconds });
+    t += l.durationSeconds + gap;
+  }
+  const total = t - gap + tail;
+  parts.push(`${lines.map((_, i) => `[s${i}]`).join('')}amix=inputs=${lines.length}:duration=longest:normalize=0,apad=whole_dur=${total.toFixed(3)},atrim=0:${total.toFixed(3)}[mix]`);
+  await ffmpeg([...args, '-filter_complex', parts.join(';'), '-map', '[mix]', '-ac', '1', '-ar', '48000', '-c:a', 'pcm_s16le', out]);
+  return { file: out, durationSeconds: total, windows };
+}
+
+/** The last `frames` frames of a clip as a small video (with its audio), for a continuation guide. */
+export async function tailClip(video: string, out: string, frames: number, fps = 24): Promise<string> {
+  const p = await ffprobe(video);
+  const total = p.frames ?? Math.round((p.durationSeconds ?? 0) * fps);
+  const startFrame = Math.max(0, total - frames);
+  const start = startFrame / fps;
+  await ffmpeg(['-y', '-v', 'error', '-ss', start.toFixed(6), '-i', video, '-frames:v', String(frames), '-vf', `fps=${fps}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '12', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '1', out.replace(/\.mp4$/, '.mov')]);
+  return out.replace(/\.mp4$/, '.mov');
+}
+
+/** The audio of a clip's last `seconds`, mono 48 kHz. */
+export async function audioTail(video: string, out: string, seconds: number): Promise<string> {
+  const p = await ffprobe(video);
+  const start = Math.max(0, (p.durationSeconds ?? seconds) - seconds);
+  await ffmpeg(['-y', '-v', 'error', '-ss', start.toFixed(6), '-i', video, '-vn', '-ac', '1', '-ar', '48000', '-c:a', 'pcm_s16le', out]);
+  return out;
+}
+
 export async function fileExists(p: string): Promise<boolean> { try { await fsp.access(p); return true; } catch { return false; } }
 
 export async function ffmpegVersion(): Promise<string> { try { const { stdout } = await execFileP('ffmpeg', ['-version']); return stdout.split('\n')[0]; } catch { return 'unavailable'; } }
