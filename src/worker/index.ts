@@ -43,20 +43,23 @@ async function run(job: Job, lane: Lane) {
     gpu: gpuLease,
   };
   const t0 = Date.now();
+  // Recording the outcome can itself fail (the database is away, or a reset removed the job while it ran); that is
+  // logged and never takes the worker down. The lease expires and another worker, or the next tick, carries on.
+  const record = async (what: string, fn: () => Promise<void>) => { try { await fn(); } catch (e) { jl.error({ err: (e as Error).message, what }, 'could not record the job outcome'); } };
   try {
     const handler = HANDLERS[job.type];
     if (!handler) throw Object.assign(new Error(`No handler for ${job.type}`), { retryable: false });
     const result = await handler(ctx);
-    await complete(job.id, { ...result, ms: Date.now() - t0 }, result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED');
+    await record('complete', () => complete(job.id, { ...result, ms: Date.now() - t0 }, result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED'));
     jl.info({ ms: Date.now() - t0 }, 'job completed');
   } catch (e) {
-    if (e instanceof Cancelled || cancelRequested) { await cancelled(job.id); jl.info('job cancelled'); }
+    if (e instanceof Cancelled || cancelRequested) { await record('cancelled', () => cancelled(job.id)); jl.info('job cancelled'); }
     else {
       const err = e as Error & { code?: string; retryable?: boolean; details?: Record<string, unknown> };
       const code = isStudioError(e) ? e.code : err.code ?? 'ERROR';
       const retryable = isStudioError(e) ? (e.code === 'PROVIDER' || e.code === 'UNAVAILABLE') : err.retryable !== false;
       jl.error({ err: err.message, code, retryable, stack: err.stack?.split('\n').slice(0, 4).join(' | ') }, 'job failed');
-      await fail(job.id, { code, message: err.message, retryable, details: isStudioError(e) ? e.details : err.details }, job.attempts, job.maxAttempts);
+      await record('fail', () => fail(job.id, { code, message: err.message, retryable, details: isStudioError(e) ? e.details : err.details }, job.attempts, job.maxAttempts));
     }
   } finally {
     clearInterval(hb);
@@ -71,7 +74,7 @@ async function tick() {
       let job: Job | undefined;
       try { job = await claim(workerId, cfg.types); } catch (e) { log.error({ err: (e as Error).message }, 'claim failed'); break; }
       if (!job) break;
-      void run(job, lane);
+      run(job, lane).catch((e) => log.error({ err: (e as Error).message, jobId: job!.id }, 'job runner threw'));
     }
   }
 }
@@ -93,6 +96,9 @@ async function main() {
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
+  // a stray rejection (a heartbeat after a reset, a provider stream closing late) is logged, not fatal
+  process.on('unhandledRejection', (e) => log.error({ err: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack?.split('\n').slice(0, 5).join(' | ') : undefined }, 'unhandled rejection'));
+  process.on('uncaughtException', (e) => { log.fatal({ err: e.message, stack: e.stack?.split('\n').slice(0, 5).join(' | ') }, 'uncaught exception; stopping'); void shutdown('uncaughtException'); });
 }
 
 main().catch((e) => { log.fatal({ err: e }, 'worker crashed'); process.exit(1); });

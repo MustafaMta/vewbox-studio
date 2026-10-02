@@ -219,6 +219,7 @@ test.describe('dialogs, keyboard, files', () => {
     await page.goto('/settings');
     await page.getByRole('button', { name: 'Reset sample data' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Reset sample data' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Sample data restored.' })).toBeVisible(); // the reset has completed on the server
     await page.goto('/assets');
     await expect(page.getByRole('listitem').filter({ hasText: 'added.png' })).toHaveCount(0);
     const saved = await snapshot<{ assets: Array<{ sample: boolean; label: string; origin: string }> }>();

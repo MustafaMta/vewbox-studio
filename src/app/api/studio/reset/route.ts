@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { StudioError } from '@/domain/errors';
 import { replaceStudio } from '@/server/studio/seed';
-import { readState } from '@/server/studio/engine';
+import { notifyJobs, readState } from '@/server/studio/engine';
+import { clearJobs } from '@/server/jobs/queue';
 import { removeFile } from '@/server/media';
 import { json, readJson, route } from '@/server/http';
 
@@ -15,10 +16,12 @@ export const POST = route(async (req) => {
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) throw new StudioError('INVALID', 'kind must be sample or empty');
   const before = await readState();
+  const jobs = await clearJobs();
   const out = await replaceStudio(parsed.data.kind, parsed.data.keepSettings ?? true);
   for (const a of before.state.assets) {
     const rel = a.provenance?.path as string | undefined;
     if (!a.sample && rel) await removeFile(rel);
   }
-  return json({ version: out.version, hash: out.hash });
+  await notifyJobs('*', 'CLEARED');
+  return json({ version: out.version, hash: out.hash, jobsRemoved: jobs.removed });
 });

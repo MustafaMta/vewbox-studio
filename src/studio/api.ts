@@ -21,7 +21,9 @@ async function parse<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-const jsonInit = (method: string, body: unknown): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+/** Writes are sent `keepalive` when small enough (the browser's limit is 64 KB in flight): a batch of edits or a reset
+ *  then survives the page being left mid-request, instead of being cut off by the navigation. */
+const jsonInit = (method: string, body: unknown): RequestInit => { const text = JSON.stringify(body); return { method, headers: { 'Content-Type': 'application/json' }, body: text, keepalive: text.length < 48_000 }; };
 
 export const api = {
   snapshot: () => fetch('/api/studio', { cache: 'no-store' }).then((r) => parse<SnapshotResponse>(r)),

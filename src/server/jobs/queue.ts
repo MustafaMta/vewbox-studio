@@ -82,7 +82,13 @@ export async function listEvents(jobId: string, limit = 200): Promise<JobEvent[]
 }
 
 export async function addEvent(jobId: string, level: JobEvent['level'], message: string, data?: Record<string, unknown>) {
-  await db().insert(schema.jobEvents).values({ jobId, at: new Date().toISOString(), level, message, data: data ?? null });
+  try {
+    await db().insert(schema.jobEvents).values({ jobId, at: new Date().toISOString(), level, message, data: data ?? null });
+  } catch (e) {
+    // the job row is gone (a reset cleared the history while the worker was still finishing): nothing to record
+    if ((e as { code?: string }).code === '23503' || (e as { cause?: { code?: string } }).cause?.code === '23503') { log.info({ jobId, message }, 'event for a job that no longer exists'); return; }
+    throw e;
+  }
 }
 
 /** The user asks for a job to stop. Queued jobs stop at once; running jobs stop at their next checkpoint. */
@@ -192,6 +198,18 @@ export async function cancelled(id: string) {
   await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: now, lockedBy: null, updatedAt: now, progress: { phase: 'cancelled' } }).where(eq(schema.jobs.id, id));
   await addEvent(id, 'info', 'cancelled');
   await notifyJobs(id, 'CANCELLED');
+}
+
+/** A studio reset takes the job history with it: running jobs lose their lease (the worker stops at its next
+ *  heartbeat or checkpoint), queued ones never start, and the activity list starts clean. Metrics stay. */
+export async function clearJobs(): Promise<{ removed: number; running: number }> {
+  return db().transaction(async (tx) => {
+    const running = await tx.select({ id: schema.jobs.id }).from(schema.jobs).where(inArray(schema.jobs.status, ['PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING']));
+    await tx.delete(schema.jobEvents);
+    await tx.delete(schema.proposals);
+    const gone = await tx.delete(schema.jobs).returning({ id: schema.jobs.id });
+    return { removed: gone.length, running: running.length };
+  });
 }
 
 export async function setProviderTask(id: string, providerTaskId: string) {

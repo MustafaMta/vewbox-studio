@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Sans_Arabic, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-/** Fonts are bundled at build time and served from this origin: the studio makes no request to a font service
- *  from the browser (it must work on a closed network, and nothing outside the studio is contacted). */
-const inter = Inter({ subsets: ['latin', 'latin-ext'], display: 'swap', variable: '--font-inter', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] });
-const plexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weight: ['400', '500', '600', '700'], display: 'swap', variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'] });
+/** Fonts ship with the application (src/app/fonts, SIL Open Font License) and are served from this origin: the studio
+ *  makes no request to a font service, so it works on a closed network and contacts nothing outside itself. */
+const inter = localFont({ src: './fonts/InterVariable.woff2', weight: '100 900', display: 'swap', variable: '--font-inter', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] });
+const plexArabic = localFont({
+  src: [
+    { path: './fonts/IBMPlexSansArabic-Regular.ttf', weight: '400' },
+    { path: './fonts/IBMPlexSansArabic-Medium.ttf', weight: '500' },
+    { path: './fonts/IBMPlexSansArabic-SemiBold.ttf', weight: '600' },
+    { path: './fonts/IBMPlexSansArabic-Bold.ttf', weight: '700' },
+  ],
+  display: 'swap', variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'],
+});
 import { StudioProvider } from '@/studio/store';
 import { LocaleProvider } from '@/components/ui/locale';
 import { ToastProvider } from '@/components/ui/toast';

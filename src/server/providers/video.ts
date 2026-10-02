@@ -71,7 +71,17 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
       await req.onTaskCreated?.(taskId);
       log.info({ taskId, model, resolution, seconds, refs: req.referenceImages?.length ?? 0 }, 'minimax video task created');
     } else log.info({ taskId }, 'resuming minimax video task');
-    const task = await minimax.waitForVideo(taskId, { shouldStop: req.shouldStop, onTick: (t) => req.onStatus?.({ status: t.status }) });
+    let task: Awaited<ReturnType<typeof minimax.waitForVideo>>;
+    try {
+      task = await minimax.waitForVideo(taskId, { shouldStop: req.shouldStop, onTick: (t) => req.onStatus?.({ status: t.status }) });
+    } catch (e) {
+      // the producer cancelled while MiniMax was still working: tell MiniMax so a queued task is not billed
+      if (e instanceof StudioError && e.code === 'CONFLICT' && e.message === 'cancelled') {
+        const r = await minimax.cancelVideo(taskId).catch((err: Error) => ({ action: `cancel failed: ${err.message}` }));
+        log.info({ taskId, action: r.action }, 'minimax video task cancelled by the producer');
+      }
+      throw e;
+    }
     const dir = await tmpDir('mmx');
     const file = path.join(dir, `${taskId}.mp4`);
     await req.onStatus?.({ status: 'downloading' });
