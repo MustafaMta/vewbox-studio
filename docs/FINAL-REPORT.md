@@ -128,20 +128,32 @@ who was not in the shot; the wizard's "everyone sings everything" placeholder ke
 
 ## 12. Remaining limitations
 
-- Hosted MiniMax path unexercised (no key). The local H3 path is built and node-verified but waits on the 21 GB model.
-- Qwen-Image, ACE-Step, Music 3 weights not yet downloaded; voice images not yet built → image/voice/music stages
-  unexercised.
-- The local 14B story model is terse (2–3 beats per scene) and needs repair rounds; a hosted model (MiniMax M3 or
+- Hosted MiniMax path unexercised (no key on this machine). Every acceptance stage ran on the local MiniMax H3
+  weights in ComfyUI (first-to-last-frame and reference-to-video graphs); the hosted client is implemented and its
+  error paths are tested against the real endpoint.
+- The local 14B story model needs guard rails that a hosted model would not: lenient schemas and repair rounds,
+  an English-gloss pass when it leaves Arabic in the English slot, a cast rule that stops it filling an episode with
+  the whole library, a placeholder-aware singing planner, and a duration fit when it under-plans a scene. Its Iraqi
+  dialogue mixes in Egyptian/Levantine forms and its English glosses are approximate. A hosted model (MiniMax M3 or
   Anthropic) is a configuration change.
+- Qwen-Image-Edit keeps the plate's composition, so a requested close-up or insert often comes out as a wide frame;
+  the reference-to-video takes vary framing more than the frame-conditioned ones.
+- Voice cloning in the acceptance runs used test reference clips (synthesised speech, the same voice for two
+  characters); a producer uploads real recordings. Short Iraqi exclamations are the lines most often flagged by the
+  transcription check.
+- Music-video takes sing along to their reference segment, so the cut keeps them as faint ambience under the song
+  master; lip timing follows the segment but is not frame-exact.
 - No post-hoc lipsync model is shipped (MiniMax H3 speaks natively; MuseTalk/KeySync noted as candidates; LatentSync
   excluded by policy).
+- The IndexTTS and Habibi images carry the pre-fix entrypoint and app; the containers run the repository copies
+  through bind mounts, and a rebuild is scheduled when bandwidth allows.
 
 ## 13. External blockers
 
 | Blocker | Evidence | Smallest action |
 |---|---|---|
 | No MiniMax API key on this machine | no `MINIMAX_API_KEY` in any env/file; client returns NOT_CONFIGURED; wrong key → real 401-class refusal | put `MINIMAX_API_KEY=…` in `.env` and restart web + worker |
-| Internet ~5 MB/s | 15.7 GB text encoder took 3 resumes; 21 GB DiT ≈ 1–2 h; Qwen stack ≈ 45 GB | none required; the fetcher resumes; a faster link shortens the wait |
+| Internet ~5–8 MB/s | 143 GB of pinned weights fetched over the session with resumes (two H3 models of 21 GB each, the 15.7 GB text encoder, Qwen stack, ACE-Step, Music 3); image builds of 12–20 GB had to run from a detached client | none required now: every pinned file is present and verified; a faster link shortens any re-fetch |
 
 ## 14. Startup
 
