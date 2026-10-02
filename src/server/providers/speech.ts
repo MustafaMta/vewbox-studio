@@ -14,7 +14,7 @@ export type TtsEngine = 'indextts' | 'habibi' | 'auto';
 export interface SynthesizeInput { text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string; emotionAlpha?: number; speed?: number; engine?: TtsEngine; seed?: number }
 export interface SynthesizeResult { file: string; sampleRate: number; durationSeconds: number; engine: string; model: string; ms: number }
 
-const tts = () => env().TTS_URL.replace(/\/$/, '');
+const tts = (engine: Exclude<TtsEngine, 'auto'>) => (engine === 'habibi' ? (process.env.TTS_HABIBI_URL || env().TTS_URL.replace(/:8020\b/, ':8021')) : env().TTS_URL).replace(/\/$/, '');
 const asr = () => env().ASR_URL.replace(/\/$/, '');
 
 async function post(url: string, fd: FormData, timeoutMs: number): Promise<Response> {
@@ -50,7 +50,7 @@ export async function synthesize(i: SynthesizeInput, outDir: string): Promise<Sy
   if (i.speed !== undefined) fd.set('speed', String(i.speed));
   if (i.seed !== undefined) fd.set('seed', String(i.seed));
   const t0 = Date.now();
-  const res = await post(`${tts()}/synthesize`, fd, 10 * 60_000);
+  const res = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
   const buf = Buffer.from(await res.arrayBuffer());
   const file = path.join(outDir, `line-${Date.now().toString(36)}.wav`);
   await fsp.writeFile(file, buf);
@@ -72,7 +72,7 @@ export async function transcribe(file: string, opts: { language?: 'ar' | 'en' | 
   return { language: j.language, languageProbability: j.language_probability, duration: j.duration, text: j.text, segments: j.segments, ms: j.ms, model: j.model };
 }
 
-export async function unloadTts(): Promise<void> { try { await fetch(`${tts()}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } }
+export async function unloadTts(): Promise<void> { for (const e of ['indextts', 'habibi'] as const) { try { await fetch(`${tts(e)}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } } }
 export async function unloadAsr(): Promise<void> { try { await fetch(`${asr()}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } }
 
 /** Normalise Arabic for comparing what was said with what was written: strip diacritics and tatweel, unify alef,

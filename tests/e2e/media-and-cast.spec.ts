@@ -1,4 +1,4 @@
-import { EP1, expect, tab, test } from './helpers';
+import { BASE, EP1, expect, snapshot, tab, test } from './helpers';
 
 /** PLAYERS AND THE CAST — one sound at a time across songs, voices and video; the song player and its compact
  *  copy stay in step; lyric sections seek; and a character's appearance is protected once they have been in a
@@ -89,7 +89,7 @@ test.describe('players', () => {
 
   test('a missing audio file says so instead of playing silence', async ({ page }) => {
     await page.goto('/characters/nour?tab=voice');
-    await expect(page.getByRole('listitem').filter({ hasText: 'Studio voice (not generated yet)' })).toContainText('Not generated yet — voice generation is not connected.');
+    await expect(page.getByRole('listitem').filter({ hasText: 'Studio voice (not generated yet)' })).toContainText('Not generated yet.');
     await expect(page.getByRole('radio', { name: 'Select Studio voice (not generated yet)' })).toBeDisabled();
     // point a voice at a file that is not there: the preview reports it
     // a file that is there but is not audio: the player reports the failure (a 404 would also log a console error)
@@ -133,9 +133,12 @@ test.describe('the cast directory and the continuity rule', () => {
     // and the usage records say where
     await tab(page, 'Used In').click();
     await expect(page.getByRole('listitem').filter({ hasText: 'The Opening Hour' }).first()).toContainText('Shot 1.1 · Take 1');
-    // a direct write through the shared state cannot change her portrait either
-    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('vewbox.studio.v1')!).characters.find((c: { id: string }) => c.id === 'layla').portraitAssetId);
-    expect(before).toBe('portrait-layla');
+    // the server refuses an appearance change for her, whatever the client sends
+    const r = await fetch(`${BASE}/api/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ clientId: 'e2e', commands: [{ name: 'updateCharacter', args: ['layla', { portraitAssetId: 'portrait-nour' }], seed: 'e2e-seed-1', at: new Date().toISOString() }] }) });
+    expect(r.status).toBe(409);
+    expect((await r.json()).error.code).toBe('APPEARANCE_LOCKED');
+    const after = await snapshot<{ characters: Array<{ id: string; portraitAssetId?: string }> }>();
+    expect(after.characters.find((c) => c.id === 'layla')!.portraitAssetId).toBe('portrait-layla');
   });
 
   test('an unknown history is treated as used', async ({ page }) => {
@@ -151,7 +154,8 @@ test.describe('the cast directory and the continuity rule', () => {
     await page.getByLabel('Upload a reference').setInputFiles(png('first'));
     await expect(page.getByText('Reference added.')).toBeVisible();
     await expect(page.getByRole('img', { name: 'Your reference' })).toBeVisible();
-    const pending = () => page.evaluate(() => JSON.parse(localStorage.getItem('vewbox.studio.v1') ?? 'null')?.characters.find((c: { id: string }) => c.id === 'nour').pendingReference?.assetId ?? null);
+    type S = { characters: Array<{ id: string; pendingReference?: { assetId: string }; portraitAssetId?: string }>; assets: Array<{ id: string }> };
+    const pending = async () => (await snapshot<S>()).characters.find((c) => c.id === 'nour')!.pendingReference?.assetId ?? null;
     await expect.poll(pending).not.toBeNull();
     const first = await pending();
     await page.getByLabel('Replace').setInputFiles(png('second'));
@@ -159,14 +163,12 @@ test.describe('the cast directory and the continuity rule', () => {
     await expect.poll(pending).not.toBe(first);
     await page.reload();
     await expect(page.getByRole('img', { name: 'Your reference' })).toBeVisible();
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('vewbox.studio.v1')!));
-    const nour = saved.characters.find((c: { id: string }) => c.id === 'nour');
-    expect(nour.pendingReference.assetId).not.toBe(first);
+    const saved = await snapshot<S>();
+    const nour = saved.characters.find((c) => c.id === 'nour')!;
+    expect(nour.pendingReference!.assetId).not.toBe(first);
     expect(nour.portraitAssetId).toBe('portrait-nour'); // the reference is not the appearance
-    expect(saved.assets.some((a: { id: string }) => a.id === first)).toBe(false); // the replaced one is gone
-    await page.getByRole('button', { name: 'Regenerate from reference' }).click();
-    await expect(page.getByRole('dialog')).toContainText('not connected in this prototype');
-    await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+    expect(saved.assets.some((a) => a.id === first)).toBe(false); // the replaced one is gone
+    await expect(page.getByRole('button', { name: 'Regenerate from reference' })).toBeEnabled();
     await page.getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(page.getByText('Reference removed.')).toBeVisible();
     await page.reload();

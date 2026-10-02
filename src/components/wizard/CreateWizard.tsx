@@ -93,6 +93,7 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <Button variant="primary" className="btn-lg" icon={<IconAuto />} onClick={() => void propose()} loading={Boolean(waiting)} disabled={Boolean(waiting)}>{T('auto.create')}</Button>
               {waiting ? <span className="text-[12px] text-muted">{waiting.progress?.message ?? T('auto.writing')} · {T('auto.writingHint')}</span> : <span className="text-[12px] text-faint">{T('auto.nothingRequired')}</span>}
+              <Button variant="quiet" size="sm" onClick={() => proposeSample(0)} disabled={Boolean(waiting)}>{T('auto.useSample')}</Button>
             </div>
             {proposeError && <Notice tone="bad" className="mt-4" title={T('auto.failed')} action={<Button size="sm" variant="secondary" onClick={() => proposeSample(0)}>{T('auto.useSample')}</Button>}>{proposeError}</Notice>}
             <Details summary={<span className="inline-flex items-center gap-1.5"><IconPreferences aria-hidden className="size-4" />{T('auto.preferences')}{Object.values(prefs).some((v) => (Array.isArray(v) ? v.length : v)) ? <span className="badge badge-accent ms-1">{T('auto.preferencesSet')}</span> : null}</span>} className="mt-5 border-t border-line/70 pt-4">
@@ -170,9 +171,9 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
   const badge = (x: { isNew: boolean; fromPreference: boolean }) => x.fromPreference ? <span className="badge badge-accent">{T('auto.yourChoice')}</span> : x.isNew ? <span className="badge badge-info">{T('auto.new')}</span> : <span className="badge">{T('auto.existing')}</span>;
   return (
     <div className="space-y-6 fade-in">
-      <Notice tone="info" title={T('auto.sampleTitle')}>{T('auto.sampleBody')}</Notice>
+      {proposal.sample ? <Notice tone="info" title={T('auto.sampleTitle')}>{T('auto.sampleBody')}</Notice> : <Notice tone="ok" title={T('auto.generatedTitle')}>{T('auto.generatedBody')}</Notice>}
       <section className="card space-y-4 p-5 sm:p-6" aria-labelledby="concept-h">
-        <div className="flex items-center justify-between gap-2"><h2 id="concept-h" className="h2">{T('auto.concept')}</h2><span className="badge">{T('label.sample')}</span></div>
+        <div className="flex items-center justify-between gap-2"><h2 id="concept-h" className="h2">{T('auto.concept')}</h2>{proposal.sample && <span className="badge">{T('label.sample')}</span>}</div>
         <Field label={T('label.title')} required error={error}><Input value={proposal.title} onChange={(e) => { set({ title: e.target.value }); setError(null); }} /></Field>
         <Field label={T('label.logline')}><Input value={proposal.logline} onChange={(e) => set({ logline: e.target.value })} /></Field>
         <Field label={T('auto.premise')}><Textarea value={proposal.premise} onChange={(e) => set({ premise: e.target.value })} rows={4} /></Field>

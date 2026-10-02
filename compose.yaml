@@ -24,6 +24,7 @@ x-app-env: &app-env
   OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3:14b}
   COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
   TTS_URL: ${TTS_URL:-http://tts:8020}
+  TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -133,6 +134,42 @@ services:
       retries: 10
     stop_grace_period: 30s
 
+  # Voices: IndexTTS 2.5 (EN/AR) and Habibi-TTS IRQ (Iraqi Arabic); transcription: faster-whisper large-v3.
+  tts:
+    build: { context: ., dockerfile: docker/tts/Dockerfile, target: indextts }
+    image: vewbox/tts-indextts:${CODE_VERSION:-dev}
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
+    volumes: [ "models:/models" ]
+    ports: [ "127.0.0.1:${TTS_PORT:-8020}:8020" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8020/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
+    stop_grace_period: 30s
+
+  tts-habibi:
+    build: { context: ., dockerfile: docker/tts/Dockerfile, target: habibi }
+    image: vewbox/tts-habibi:${CODE_VERSION:-dev}
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
+    volumes: [ "models:/models" ]
+    ports: [ "127.0.0.1:${TTS_HABIBI_PORT:-8021}:8021" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8021/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
+    stop_grace_period: 30s
+
+  asr:
+    build: { context: ., dockerfile: docker/asr/Dockerfile }
+    image: vewbox/asr:${CODE_VERSION:-dev}
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models", "nvjit:/cache/nv-jit" ]
+    ports: [ "127.0.0.1:${ASR_PORT:-8030}:8030" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8030/health"], interval: 20s, timeout: 10s, start_period: 60s, retries: 10 }
+
   # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume.
   llm:
     image: ollama/ollama:0.12.3
@@ -182,3 +219,4 @@ volumes:
   comfyout:
   comfyin:
   ollama:
+  nvjit:

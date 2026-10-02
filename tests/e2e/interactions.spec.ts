@@ -1,4 +1,4 @@
-import { EP1, expect, tab, test } from './helpers';
+import { EP1, expect, snapshot, tab, test } from './helpers';
 
 /** EVERY VISIBLE INTERACTION — duplication, deletion, filtering, grid/list, drag reorder, playback, dialogs,
  *  keyboard, and files kept in the browser across a reload. Generation stays unavailable and says so. */
@@ -200,12 +200,9 @@ test.describe('dialogs, keyboard, files', () => {
     await expect(page.getByText('File added.')).toBeVisible();
     await expect(page.locator('.poster-title', { hasText: 'Back' })).toBeVisible();
     await page.reload();
-    await expect(page.locator('img[src^="blob:"]').first()).toBeVisible();
+    await expect(page.locator('img[src^="/api/media/"]').first()).toBeVisible();
     await page.goto('/assets');
-    await expect(page.getByRole('listitem').filter({ hasText: 'Nour — Back' })).toContainText('Kept in this browser');
-    await page.evaluate(() => new Promise<void>((res) => { const r = indexedDB.open('vewbox-media', 1); r.onsuccess = () => { const tx = r.result.transaction('blobs', 'readwrite'); tx.objectStore('blobs').clear(); tx.oncomplete = () => res(); }; }));
-    await page.reload();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Nour — Back' })).toContainText('File not available in this browser');
+    await expect(page.getByRole('listitem').filter({ hasText: 'Nour — Back' })).toContainText('Uploaded');
     await page.getByRole('listitem').filter({ hasText: 'Nour — Back' }).getByRole('button').click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByRole('listitem').filter({ hasText: 'Nour — Back' })).toHaveCount(0);
@@ -224,17 +221,21 @@ test.describe('dialogs, keyboard, files', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Reset sample data' }).click();
     await page.goto('/assets');
     await expect(page.getByRole('listitem').filter({ hasText: 'added.png' })).toHaveCount(0);
-    const blobs = await page.evaluate(() => new Promise<number>((res) => { const r = indexedDB.open('vewbox-media', 1); r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('blobs')) { res(0); return; } const c = db.transaction('blobs').objectStore('blobs').count(); c.onsuccess = () => res(c.result); }; r.onerror = () => res(-1); }));
-    expect(blobs).toBe(0);
+    const saved = await snapshot<{ assets: Array<{ sample: boolean }> }>();
+    expect(saved.assets.every((a) => a.sample)).toBe(true);
   });
 
-  test('generation stays unavailable everywhere it is offered', async ({ page }) => {
-    for (const [path, button] of [[`${EP1}?tab=story`, 'Write the script'], [`${EP1}?tab=storyboard`, 'Plan the shots'], [`${EP1}?tab=final`, 'Export'], ['/characters/layla?tab=voice', 'Generate voice'], ['/characters/nour', /Regenerate appearance/], ['/locations/cafe?tab=views', /Create view/], ['/music-videos/river-lights?tab=song', 'Generate Song']] as Array<[string, string | RegExp]>) {
+  test('generation starts a real job everywhere it is offered; export refuses sample takes', async ({ page }) => {
+    for (const [path, button] of [[`${EP1}?tab=story`, 'Write the script'], [`${EP1}?tab=storyboard`, /Replan the shots|Plan the shots/], ['/characters/layla?tab=voice', 'Build the voice'], ['/characters/nour', /Regenerate appearance/], ['/locations/cafe?tab=views', 'Draw plates'], ['/music-videos/river-lights?tab=song', 'Generate the song']] as Array<[string, string | RegExp]>) {
       await page.goto(path);
+      page.once('dialog', (d) => d.accept());
       await page.getByRole('button', { name: button }).first().click();
-      await expect(page.getByRole('dialog')).toContainText('not connected in this prototype');
-      await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Started. Progress shows in Activity.' }).first()).toBeVisible();
     }
+    await page.goto(`${EP1}?tab=final`);
+    await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeDisabled();
+    await page.goto('/jobs');
+    await expect(page.getByRole('listitem')).toHaveCount(6, { timeout: 15_000 });
   });
 
   test('long titles and missing artwork stay composed', async ({ page }) => {

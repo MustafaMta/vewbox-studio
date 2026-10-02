@@ -1,4 +1,4 @@
-import { EP1, expect, tab, test } from './helpers';
+import { EP1, expect, snapshot, tab, test } from './helpers';
 
 /** THE PROTOTYPE, USED — navigation, the stepped wizard's validation, demo persistence and reset, storyboard
  *  editing, take selection, media playback, unsaved-change handling, empty states, Arabic and the phone layout. */
@@ -109,10 +109,10 @@ test.describe('creating', () => {
     await expect(page.getByRole('textbox', { name: /brief/i }).first()).toHaveValue(/exactly one minute every night/);
   });
 
-  test('Auto Idea with no input at all: one button, an editable labelled sample review, and a project that persists', async ({ page }) => {
+  test('Auto Idea from a written example: an editable labelled review, and a project that persists on the server', async ({ page }) => {
     await page.goto('/new/short');
-    await page.getByRole('button', { name: 'Create an idea for me' }).click();
-    await expect(page.getByText('Sample proposal — automatic writing is not connected')).toBeVisible();
+    await page.getByRole('button', { name: 'Use a written example instead' }).click();
+    await expect(page.getByText('Sample proposal — a written example')).toBeVisible();
     const title = page.getByRole('textbox', { name: 'Title', exact: true });
     const proposed = await title.inputValue();
     expect(proposed.length).toBeGreaterThan(0);
@@ -128,8 +128,8 @@ test.describe('creating', () => {
     await expect(page.getByText(/Started from Auto Idea \(a sample proposal\)/)).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: `${proposed} (edited)` })).toBeVisible();
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('vewbox.studio.v1') ?? '{}'));
-    const created = saved.productions.find((p: { title: string }) => p.title === `${proposed} (edited)`);
+    const saved = await snapshot<{ productions: Array<{ title: string; brief: unknown; scenes: unknown[] }> }>();
+    const created = saved.productions.find((p) => p.title === `${proposed} (edited)`)!;
     expect(created.brief).toMatchObject({ mode: 'AUTO_IDEA', fromSampleProposal: true });
     expect(created.scenes.length).toBeGreaterThan(0);
   });
@@ -292,12 +292,14 @@ test.describe('media, generation, persistence', () => {
     await expect(page.getByRole('spinbutton', { name: 'From' })).toHaveValue('24');
   });
 
-  test('generation buttons explain that the backend is not connected', async ({ page }) => {
+  test('generation buttons start real jobs that appear in Activity, and never invent progress', async ({ page }) => {
     await page.goto(`${EP1}?tab=produce`);
     await page.getByRole('button', { name: 'Prepare frames' }).first().click();
-    await expect(page.getByRole('dialog')).toContainText('not connected in this prototype');
-    await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByText(/rendering|progress|queued/i)).toHaveCount(0);
+    await expect(page.getByRole('status').filter({ hasText: 'Started. Progress shows in Activity.' })).toBeVisible();
+    await page.goto('/jobs');
+    await expect(page.getByRole('listitem').filter({ hasText: 'Prepare frames' }).first()).toContainText(/The Opening Hour · Shot 1\.1/);
+    // no percentage is shown for a step whose progress the engine does not report
+    await expect(page.getByRole('progressbar')).toHaveCount(0);
   });
 
   test('sample content is labelled and the demo state resets from Settings', async ({ page }) => {
