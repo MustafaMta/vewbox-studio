@@ -347,7 +347,8 @@ const D = {
 
   // songs
   'song.title': ['Song', 'الأغنية'],
-  'song.generated': ['Example song', 'أغنية نموذجية'],
+  'song.generated': ['Generated song', 'أغنية مولّدة'],
+  'song.notRecorded': ['Not recorded yet', 'لم تُسجَّل بعد'],
   'song.uploaded': ['Uploaded track', 'مقطوعة مرفوعة'],
   'song.sections': ['Sections', 'المقاطع'],
   'song.singers': ['Singers', 'المغنّون'],

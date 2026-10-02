@@ -49,7 +49,7 @@ export function SongLyricsTab({ p, track }: { p: Production; track: Track | null
           <div className="flex flex-wrap items-start gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2"><h3 className="h3" dir="auto">{song.title}</h3>{asset?.sample && <span className="badge">{T('label.sample')}</span>}</div>
-              <p className="mt-0.5 text-[13px] text-muted">{song.source === 'UPLOADED' ? T('song.uploaded') : T('song.generated')} · {fmtSeconds(song.durationSeconds)} · {song.sections.length} {T('mv.sections')}</p>
+              <p className="mt-0.5 text-[13px] text-muted">{song.source === 'UPLOADED' ? T('song.uploaded') : song.assetId ? T('song.generated') : T('song.notRecorded')} · {fmtSeconds(song.durationSeconds)} · {song.sections.length} {T('mv.sections')}</p>
               {song.caption && <p className="mt-2 text-[13px] leading-relaxed text-faint" dir="auto">{song.caption}</p>}
             </div>
             <div className="flex items-center gap-2"><ReplaceSong p={p} /></div>

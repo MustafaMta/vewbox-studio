@@ -21,7 +21,7 @@ async function http<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     const res = await fetch(`${baseUrl()}${path}`, { ...init, signal: ctrl.signal });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new StudioError(res.status >= 500 ? 'UNAVAILABLE' : 'PROVIDER', `ComfyUI ${path}: HTTP ${res.status} ${text.slice(0, 400)}`, { status: res.status });
+      throw new StudioError(res.status >= 500 ? 'UNAVAILABLE' : 'PROVIDER', `ComfyUI ${path}: HTTP ${res.status} ${text.slice(0, 1500)}`, { status: res.status });
     }
     const ct = res.headers.get('content-type') ?? '';
     return (ct.includes('application/json') ? await res.json() : await res.text()) as T;

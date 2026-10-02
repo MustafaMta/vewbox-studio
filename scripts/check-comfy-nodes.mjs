@@ -59,6 +59,19 @@ try {
       const cls = info[node.class_type];
       if (!cls) { problems.push(`${wf.name}: node ${id} uses unknown class ${node.class_type}`); continue; }
       for (const req of Object.keys(cls.input?.required ?? {})) if (!(req in node.inputs)) problems.push(`${wf.name}: ${node.class_type} (${id}) does not provide required input "${req}"`);
+      // literal values must satisfy the input's range or option list (ACE-Step refused bpm 0 and keyscale "")
+      const specs = inputsOf(cls);
+      for (const [name, value] of Object.entries(node.inputs)) {
+        const spec = specs[name];
+        if (!spec || (Array.isArray(value) && value.length === 2 && typeof value[1] === 'number')) continue; // a link
+        const opts = options(spec);
+        if (opts.length && !opts.includes(value)) { problems.push(`${wf.name}: ${node.class_type}.${name} = ${JSON.stringify(value)} is not one of ${opts.slice(0, 8).join(', ')}${opts.length > 8 ? ', …' : ''}`); continue; }
+        const cfg = Array.isArray(spec) && spec[1] && typeof spec[1] === 'object' ? spec[1] : {};
+        if (typeof value === 'number') {
+          if (typeof cfg.min === 'number' && value < cfg.min) problems.push(`${wf.name}: ${node.class_type}.${name} = ${value} is below the minimum ${cfg.min}`);
+          if (typeof cfg.max === 'number' && value > cfg.max) problems.push(`${wf.name}: ${node.class_type}.${name} = ${value} is above the maximum ${cfg.max}`);
+        }
+      }
     }
   }
 } catch (e) { console.log(`(workflow templates not checked: ${e.message})`); }
