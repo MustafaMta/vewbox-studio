@@ -147,6 +147,13 @@ this file decides what lands now; the rest is backlog.
   after an Arabic dialect fold (گ↔ق/ك, چ↔ج/ك, ـه/ـة, ى/ي, hamza forms, diacritics, Iraqi spellings table). `verifyLine`
   on an ASR outage marks the line `REVIEW` (never passes it silently). (Voice owns `speech.ts` metrics; Backend applies
   them in handlers.)
+  *Wave-2 fix (review findings 6, 11, 16, 17, 18):* the server derives the build key and, whoever supplied a
+  `VOICE_BUILD:` key, a finished build under it never turns a new request into a no-op (`requeueKeyFor`,
+  `src/server/jobs/keys.ts`; the Voice tab sends no key). The hosted MiniMax clone gets the ORIGINAL upload and
+  refuses one outside 10 s – 5 min / 20 MB up front. The upload route keeps nothing of a failed upload and refuses
+  files over 50 MB before reading them. A Habibi line never runs on a guessed reference transcript: without one the
+  job is `UNAVAILABLE` (retried) or `MISSING_REFERENCE` (no words), so an identity is never pinned without its
+  `referenceText`.
   *Wave-2 fix (review findings 7, 9, 20):* one measurement stack — `src/server/media/voice-check.ts` measures
   provenance, format, level, clipping (samples counted at full scale, not guessed from the true peak) and the window,
   and trims with a static gain measured on the mono 24 kHz cut; `src/server/studio/voice-reference.ts` keeps only the
@@ -178,6 +185,11 @@ this file decides what lands now; the rest is backlog.
   `identity.referenceAssetId` of a used character, lock reasons surfaced in `GET /api/studio` through the existing
   `usage` record. The frontend shows the lock in the hero, on the Appearance tab and on the Voice tab with the reason
   and the videos.
+
+- *Wave-2 fix (review finding 8):* a voice locked by its chosen recording alone (the character spoke in a video
+  before any identity existed) may be built only from that very recording — `voiceBuildLockProblem` /
+  `guardVoiceBuild` in `rules.ts`, applied by the enqueue preflight, the `VOICE_BUILD` handler (AUTOMATIC is held to
+  the chosen recording, a catalogue voice is refused) and `setVoiceIdentity`.
 
 ### 1.7 Assets — Backend
 - `assets.unavailable` persisted (migration), set by `MEDIA_PROBE`/the file sweep; the UI reads it.
