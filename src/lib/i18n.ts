@@ -51,7 +51,6 @@ const D = {
   'wizard.manual.hint': ['Describe it in a line or a paragraph.', 'صِفها بسطر أو فقرة.'],
   'wizard.describe': ['Describe your idea, or enter a title.', 'صِف فكرتك أو اكتب عنواناً.'],
   'wizard.exampleIdeas': ['Example ideas', 'أفكار نموذجية'],
-  'wizard.exampleNote': ['These are written examples included with the prototype. Idea research is not connected yet.', 'هذه أمثلة مكتوبة مضمّنة في النموذج الأولي. البحث عن الأفكار غير متصل بعد.'],
   'wizard.useIdea': ['Use this idea', 'استخدم هذه الفكرة'],
   'wizard.chosenIdea': ['Chosen idea', 'الفكرة المختارة'],
   'wizard.moreSettings': ['More settings', 'إعدادات إضافية'],
@@ -259,7 +258,7 @@ const D = {
   'settings.data.empty': ['The studio is empty.', 'الاستوديو فارغ.'],
   'toast.emptied': ['The studio is empty.', 'الاستوديو فارغ.'],
   'home.emptyLead': ['Nothing here yet. Start with a show, a short or a music video.', 'لا شيء هنا بعد. ابدأ بمسلسل أو فيلم قصير أو فيديو موسيقي.'],
-  'produce.sampleNote': ['The takes here are sample clips. Generating real takes is not connected yet.', 'اللقطات المصوّرة هنا مقاطع نموذجية. توليد لقطات حقيقية غير متصل بعد.'],
+  'produce.sampleNote': ['The takes here are sample clips. Generate makes real ones; they cannot be exported as yours.', 'اللقطات المصوّرة هنا مقاطع نموذجية. «ولّد» يصنع لقطات حقيقية؛ ولا يمكن تصدير النماذج على أنها من إنتاجك.'],
 
   // empty states
   'empty.shows': ['No shows yet.', 'لا مسلسلات بعد.'],
@@ -505,7 +504,6 @@ const D = {
   'nav.closeMenu': ['Close menu', 'أغلق القائمة'],
   'nav.skip': ['Skip to content', 'انتقل إلى المحتوى'],
   'app.tagline': ['Film production', 'إنتاج سينمائي'],
-  'app.notConnected': ['Generation not connected', 'التوليد غير متصل'],
   'new.lead': ['Choose what to make. Each opens a short wizard: the idea, the look and format, the people and places, then one button.', 'اختر ما تريد صنعه. يفتح كل خيار معالجاً قصيراً: الفكرة والمظهر والصيغة والأشخاص والأماكن ثم زر واحد.'],
   'home.start': ['Start a production', 'ابدأ إنتاجاً'],
   'home.inProduction': ['In production', 'قيد الإنتاج'],
@@ -554,7 +552,7 @@ const D = {
   'player.nextFrame': ['Next frame', 'الإطار التالي'],
   'player.videoFailed': ['This clip can’t be played', 'لا يمكن تشغيل هذا المقطع'],
   'player.videoFailed.hint': ['The file is missing or in a format this browser does not play.', 'الملف مفقود أو بصيغة لا يشغّلها هذا المتصفح.'],
-  'player.noTake.hint': ['A take appears here once one exists. Video generation is not connected in this build.', 'تظهر اللقطة هنا حين توجد. توليد الفيديو غير متصل في هذه النسخة.'],
+  'player.noTake.hint': ['A take appears here once one exists. Generate one from the shot, or upload a clip.', 'تظهر اللقطة هنا حين توجد. ولّد واحدة من اللقطة أو ارفع مقطعاً.'],
   'mv.waveformUnavailable': ['The waveform could not be drawn from this file.', 'تعذّر رسم شكل الموجة من هذا الملف.'],
   'final.assemble': ['Assemble the cut', 'جمّع المونتاج'],
   // voice
@@ -599,7 +597,7 @@ const D = {
   'char.regenerateFromRef': ['Regenerate from reference', 'أعد التوليد من المرجع'],
   'char.ref.yours': ['Your reference', 'مرجعك'],
   'char.ref.result': ['Resulting appearance', 'المظهر الناتج'],
-  'char.ref.resultHint': ['Appears here after generation. Generation is not connected in this build.', 'يظهر هنا بعد التوليد. التوليد غير متصل في هذه النسخة.'],
+  'char.ref.resultHint': ['Appears here after generation; progress shows in Activity.', 'يظهر هنا بعد التوليد؛ يظهر التقدّم في النشاط.'],
   'char.ref.upload': ['Upload a reference', 'ارفع مرجعاً'],
   'char.ref.uploadHint': ['A picture to generate from: PNG, JPEG or WebP. Stored in the studio library.', 'صورة للتوليد منها: PNG أو JPEG أو WebP. تُحفظ في مكتبة الاستوديو.'],
   'char.ref.replace': ['Replace', 'استبدل'],

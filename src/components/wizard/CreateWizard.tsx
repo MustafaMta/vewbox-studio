@@ -31,8 +31,8 @@ const REQ_KIND: Record<WizardKind, AutoIdeaRequest['kind']> = { show: 'SHOW', ep
  *  mood, characters and places to include, a music video's treatment) are optional and collapsed; each defaults to
  *  "let the studio decide". For an episode the show's world is the context. The result — concept, title, premise,
  *  structure, cast and places, the song for a music video — comes back as one editable review; nothing is created
- *  until it is accepted. Automatic writing is not connected in this build, so the review holds a labelled SAMPLE
- *  proposal (src/demo/proposals.ts); the preferences still shape it the way a backend must.
+ *  until it is accepted. The proposal is written by the story engine (an AUTO_IDEA job; the review reopens from
+ *  `?proposal=` after a reload); a labelled written example (src/domain/proposals.ts) is offered as a fallback.
  *
  *  MANUAL BRIEF needs a title or a short description, nothing else; look, people and (for a music video) the song
  *  are optional steps with defaults. */

@@ -1,7 +1,7 @@
 import type { AutoIdeaRequest, IdeaProposal, ProposedCast, ProposedLocation, StudioState } from '@/domain/types';
 import { DURATIONS } from '@/domain/vocabulary';
 
-/** SAMPLE PROPOSALS — what the Auto Idea review shows while automatic writing is not connected. They are written
+/** SAMPLE PROPOSALS — the written examples the Auto Idea review offers as a fallback to the story engine. They are written
  *  templates, labelled as samples wherever they appear, and never the result of research or generation.
  *
  *  What is real is the shape and the rules a backend must follow, and those are applied here too:

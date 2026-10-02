@@ -14,7 +14,6 @@ const Schema = z.object({
   PUBLIC_ROOT: z.string().min(1).default('./public'),
   /** Optional password gate for the whole studio. Empty = open (local use). */
   STUDIO_PASSWORD: z.string().optional().default(''),
-  STUDIO_SESSION_SECRET: z.string().optional().default(''),
   /** Upload limits. */
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(2048),
   /** MiniMax (hosted). */
