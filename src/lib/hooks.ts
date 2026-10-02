@@ -2,6 +2,23 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, type EngineStatus } from '@/studio/api';
+
+/** Live engine health, read once on mount and again on demand (Check again), for the preflight of a GPU button.
+ *  `status` stays null until the first answer: nothing is gated on a guess. */
+export function useEngineStatus(): { status: EngineStatus | null; loading: boolean; error: string | null; reload: () => void } {
+  const [status, setStatus] = useState<EngineStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let on = true;
+    setLoading(true);
+    api.status().then((s) => { if (on) { setStatus(s); setError(null); } }).catch((e) => { if (on) setError((e as Error).message); }).finally(() => { if (on) setLoading(false); });
+    return () => { on = false; };
+  }, [n]);
+  return { status, loading, error, reload: () => setN((x) => x + 1) };
+}
 
 /** The current tab lives in the URL (`?tab=`), so a reload and the back button both work. */
 export function useTab<T extends string>(all: readonly T[], fallback: T): [T, (t: T) => void] {

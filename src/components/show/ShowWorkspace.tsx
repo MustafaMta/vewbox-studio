@@ -11,12 +11,12 @@ import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, ConfirmDelete, Field, Input, LinkButton, Menu, MenuItem, Modal, Select, Status, TabBar, Textarea, Thumb } from '@/components/ui/kit';
-import { Art, Empty } from '@/components/ui/cinema';
+import { Art, Empty, Hero } from '@/components/ui/cinema';
 import { FactList, ProgressBar, Section } from '@/components/ui/page';
 import { CanonPicker } from '@/components/library/CanonPicker';
 import { StageStatus } from '@/components/library/ProductionTile';
 import { stageFraction } from '@/components/library/Cards';
-import { IconArrowRight, IconAspect, IconChevronLeft, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
+import { IconArrowRight, IconAspect, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/players/VideoPlayer';
 import { aspectLabel, aspectShort, dialectLabel, fmtAgo, fmtSeconds, ratioCss } from '@/lib/format';
 
@@ -49,26 +49,19 @@ export function ShowWorkspace({ show }: { show: Show }) {
 
   return (
     <>
-      <header className="hero -mx-5 -mt-6 mb-8 px-5 pt-24 sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-32 lg:-mt-10 lg:pt-36">
-        <div className="hero-backdrop">{cover && !cover.unavailable ? <img src={cover.src} alt="" aria-hidden /> : <div className="hero-plain h-full w-full" />}</div>
-        <Link href="/shows" className="mb-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{T('nav.shows')}</Link>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="eyebrow mb-2">{T('kind.SHOW')}{show.genre ? ` · ${show.genre}` : ''}{cover?.sample ? ` · ${T('label.sample')}` : ''}</p>
-            <h1 className="page-title bi text-[1.75rem] sm:text-[2.1rem] lg:text-[2.25rem]" dir="auto"><span>{show.title}</span>{show.titleAr && <span className="bi-ar" dir="rtl">{show.titleAr}</span>}</h1>
-            <p className="mt-2 line-clamp-3 max-w-3xl text-[14px] leading-relaxed text-body" dir="auto">{show.synopsis || show.logline}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">{preview && <Button variant="secondary" icon={<IconPlay />} onClick={() => setShowPreview((v) => !v)} aria-expanded={showPreview}>{T('show.preview')}</Button>}{primary}</div>
-        </div>
+      <Hero layout="wide" backdropSrc={cover && !cover.unavailable ? cover.src : undefined} back={{ href: '/shows', label: T('nav.shows') }}
+        eyebrow={<>{T('kind.SHOW')}{show.genre ? ` · ${show.genre}` : ''} · {seasons.length} {T(seasons.length === 1 ? 'meta.season' : 'meta.seasons')} · {episodes.length} {T(episodes.length === 1 ? 'meta.episode' : 'meta.episodes')}{cover?.sample ? ` · ${T('label.sample')}` : ''}</>}
+        title={show.title} titleAr={show.titleAr} description={show.synopsis || show.logline}
+        actions={<>{primary}{preview && <Button variant="secondary" icon={<IconPlay />} onClick={() => setShowPreview((v) => !v)} aria-expanded={showPreview}>{T('show.preview')}</Button>}</>}>
         {preview && showPreview && (
           <div className="mt-6 max-w-3xl fade-in">
             <VideoPlayer src={preview.cut!.src} poster={preview.cut!.poster} title={`${show.title} — ${preview.p.title}`} aspect={ratioCss(show.aspect)} />
             <p className="mt-2 text-[12px] text-muted" dir="auto">{T('show.preview.hint')} · <Link href={productionHref(preview.p)} className="hover:text-fg">{preview.p.title}</Link></p>
           </div>
         )}
-      </header>
+      </Hero>
 
-      <TabBar ariaLabel={show.title} current={tab} hrefFor={hrefFor} className="mb-8" tabs={[
+      <TabBar ariaLabel={show.title} current={tab} hrefFor={hrefFor} className="mb-8" sticky tabs={[
         { id: 'overview', label: T('tab.overview') }, { id: 'seasons', label: T('tab.seasons'), count: seasons.length }, { id: 'episodes', label: T('tab.episodes'), count: episodes.length }, { id: 'characters', label: T('tab.showCast'), count: show.castIds.length },
         { id: 'locations', label: T('show.world'), count: show.locationIds.length }, { id: 'settings', label: T('tab.settings') },
       ]} />
@@ -108,43 +101,33 @@ function WorldBible({ show }: { show: Show }) {
   );
 }
 
-/** The overview: the seasons as cards, then the shared cast and world with room to breathe; beside them the
- *  show's progress, its facts, and the episode to pick up next. */
+/** The overview: a compact "Continue" (the episode to pick up, or the first season to add), then the shared cast
+ *  and world with room to breathe and the World Bible; beside them the show's progress and its facts. Seasons and
+ *  episodes live on their own tabs and are not listed a third time here. */
 function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; episodes: Production[] }) {
   const T = useT();
   const { state } = useStudio();
   const overall = episodes.length ? episodes.reduce((a, p) => a + stageFraction(p), 0) / episodes.length : 0;
   const cast = state.characters.filter((c) => show.castIds.includes(c.id));
   const world = state.locations.filter((l) => show.locationIds.includes(l.id));
-  const addSeason = <AddSeason showId={show.id} variant={seasons.length ? 'secondary' : 'primary'} />;
   const recent = [...episodes].filter((p) => p.stage !== 'COMPLETE').sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+  const latestSeason = seasons[seasons.length - 1];
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-10">
-        <Section title={T('tab.seasons')} description={`${seasons.length} ${T(seasons.length === 1 ? 'meta.season' : 'meta.seasons')} · ${episodes.length} ${T(episodes.length === 1 ? 'meta.episode' : 'meta.episodes')}`} action={seasons.length ? addSeason : undefined}>
-          {seasons.length === 0 ? <Empty compact title={T('empty.seasons')} hint={T('show.firstSeason')} action={addSeason} /> : (
-            <ol className="space-y-3">
-              {seasons.map((season) => {
-                const eps = episodesOf(state, season.id);
-                const progress = eps.length ? eps.reduce((a, p) => a + stageFraction(p), 0) / eps.length : 0;
-                return (
-                  <li key={season.id}>
-                    <Link href={`/shows/${show.id}?tab=seasons&season=${season.id}`} className="card card-hover flex gap-4 p-4 sm:gap-5 sm:p-5">
-                      <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-raised-2 text-center"><span><span className="block text-[10px] uppercase tracking-wider text-faint">{T('kind.SEASON')}</span><span className="num block text-[20px] font-semibold leading-none text-fg">{season.number}</span></span></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-[16px] font-semibold text-fg" dir="auto">{season.title || `${T('kind.SEASON')} ${season.number}`}</span>
-                          <span className="badge num">{eps.length} {T(eps.length === 1 ? 'meta.episode' : 'meta.episodes')}</span>
-                        </span>
-                        <span className="mt-1.5 line-clamp-2 block text-[13px] leading-relaxed text-faint" dir="auto">{season.arc || '—'}</span>
-                        <span className="mt-3 flex items-center gap-3"><ProgressBar value={progress} label={`${T('kind.SEASON')} ${season.number}: ${T('meta.progress')}`} /><span className="num shrink-0 text-[12px] text-faint">{Math.round(progress * 100)}%</span></span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+        <Section title={T('home.continue')} description={`${seasons.length} ${T(seasons.length === 1 ? 'meta.season' : 'meta.seasons')} · ${episodes.length} ${T(episodes.length === 1 ? 'meta.episode' : 'meta.episodes')}`}>
+          {seasons.length === 0 ? <Empty compact title={T('empty.seasons')} hint={T('show.firstSeason')} action={<AddSeason showId={show.id} variant="primary" />} />
+            : recent ? (
+              <Link href={`${productionHref(recent)}?tab=${nextStep(recent).tab === 'cast' ? 'characters' : nextStep(recent).tab}`} className="card card-hover group flex items-center gap-4 p-4">
+                <div className="w-28 flex-none sm:w-40"><Thumb src={assetSrc(state, recent.coverAssetId)} alt="" ratio="aspect-video" className="rounded-md" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="num text-[11.5px] text-faint">{T('misc.episodeOf')} {recent.episodeNumber} · {fmtAgo(recent.updatedAt, T.locale)}</p>
+                  <p className="truncate text-[15px] font-semibold text-fg" dir="auto">{recent.title}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[12.5px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5 rtl:rotate-180" /></p>
+                </div>
+                <StageStatus p={recent} className="hidden sm:inline-flex" />
+              </Link>
+            ) : <Empty compact title={T('show.noEpisodes')} action={<LinkButton href={`/new/episode?show=${show.id}&season=${latestSeason.id}`} variant="primary" icon={<IconPlus />}>{T('btn.addEpisode')}</LinkButton>} />}
         </Section>
 
         <Section title={T('tab.characters')} count={cast.length} description={T('show.canonHint')} action={<Link href={`/shows/${show.id}?tab=characters`} className="btn btn-subtle btn-sm">{T('btn.edit')}</Link>}>
@@ -171,12 +154,6 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
           <div className="kicker mb-3">{T('show.overallProgress')}</div>
           <div className="mb-2 flex items-end justify-between"><span className="num text-[26px] font-semibold text-fg">{Math.round(overall * 100)}%</span><span className="text-[12px] text-faint">{episodes.length} {T(episodes.length === 1 ? 'meta.episode' : 'meta.episodes')}</span></div>
           <ProgressBar value={overall} label={`${show.title}: ${T('meta.progress')}`} />
-          {recent && (
-            <Link href={`${productionHref(recent)}?tab=${nextStep(recent).tab === 'cast' ? 'characters' : nextStep(recent).tab}`} className="group mt-4 flex items-center gap-3 rounded-xl border border-line bg-input p-2.5 transition-colors hover:border-line-strong">
-              <div className="w-16 flex-none"><Thumb src={assetSrc(state, recent.coverAssetId)} alt="" ratio="aspect-video" className="rounded-md" /></div>
-              <div className="min-w-0 flex-1"><p className="text-[11px] text-faint">{T('home.continue')} · {fmtAgo(recent.updatedAt, T.locale)}</p><p className="truncate text-[13px] font-semibold text-fg" dir="auto">{recent.title}</p><p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5 rtl:rotate-180" /></p></div>
-            </Link>
-          )}
         </div>
         <div className="card p-5">
           <div className="kicker mb-3">{T('show.styleFormat')}</div>

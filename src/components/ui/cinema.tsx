@@ -13,14 +13,14 @@ export type Ratio = 'poster' | 'square' | 'portrait' | 'wide' | 'vertical';
 export const RATIO: Record<Ratio, string> = { poster: 'aspect-[2/3]', square: 'aspect-square', portrait: 'aspect-[4/5]', wide: 'aspect-video', vertical: 'aspect-[9/16]' };
 
 /** A picture in its frame; with no picture, the title set as type — never a fake image. */
-export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode }) {
+export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children, top }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode; /** faces first: crop from the top (portraits) */ top?: boolean }) {
   const T = useT();
   void sample;
   const r = (RATIO as Record<string, string>)[ratio] ?? ratio;
   return (
     <div className={cls('poster', r, className)}>
       {unavailable ? <div className="poster-text absolute inset-0 items-center justify-center text-center text-sm !font-sans !font-medium">{T('media.unavailable')}</div>
-        : src ? <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute inset-0" />
+        : src ? <img src={src} alt={alt} loading="lazy" decoding="async" className={cls('absolute inset-0', top && 'object-top')} />
         : <div className="poster-text absolute inset-0" aria-hidden><span dir="auto" className="line-clamp-4">{title ?? T('misc.noArtwork')}</span></div>}
       {children}
     </div>
@@ -61,25 +61,51 @@ export function ArtRow({ href, src, ratio = 'poster', title, titleAr, cells, sta
 /** THE BANNER HEADER — a wide picture bleeding to the edges of the page and fading into the canvas; on its lower
  *  edge the object, the eyebrow, the title, a short synopsis, one line of facts, and one primary action. Compact on
  *  a phone: the art shrinks, the text stacks. */
-export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, meta, actions, back, children, compact }: { backdropSrc?: string | null; art: ReactNode; eyebrow?: ReactNode; title: string; titleAr?: string; description?: ReactNode; meta?: ReactNode; actions?: ReactNode; back?: { href: string; label: string }; children?: ReactNode; compact?: boolean }) {
+export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, meta, actions, back, children, compact, layout = 'object' }: { backdropSrc?: string | null; art?: ReactNode; eyebrow?: ReactNode; title: string; titleAr?: string; description?: ReactNode; meta?: ReactNode; actions?: ReactNode; back?: { href: string; label: string }; children?: ReactNode; compact?: boolean; /** `wide`: no art object, the key art is the backdrop and the words sit on its lower edge (shows); `object` (default): the poster / sleeve / portrait beside the words */ layout?: 'object' | 'wide' }) {
+  const wide = layout === 'wide';
+  const pad = wide ? 'pt-24 sm:pt-32 lg:pt-36' : compact ? 'pt-6 lg:pt-8' : 'pt-10 sm:pt-16 lg:pt-20';
+  const words = (
+    <div className="min-w-0 flex-1 pb-1">
+      {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+      <h1 className={cls('page-title bi', wide ? 'display-xl' : compact ? 'text-[1.5rem] sm:text-[1.9rem]' : 'text-[1.6rem] sm:text-[2.1rem] lg:text-[2.25rem]')} dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar" dir="rtl">{titleAr}</span>}</h1>
+      {description && <p className={cls('mt-2 max-w-3xl text-[14px] leading-relaxed text-body', wide ? 'line-clamp-3' : 'hidden sm:block')} dir="auto">{description}</p>}
+      {meta && <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">{meta}</p>}
+      {actions && <div className="mt-4 flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
   return (
-    <header className={cls('hero -mx-5 -mt-6 mb-8 px-5 sm:-mx-8 sm:-mt-8 sm:px-8 lg:-mt-10', compact ? 'pt-6 lg:pt-8' : 'pt-10 sm:pt-16 lg:pt-20')}>
+    <header className={cls('hero -mx-5 -mt-6 mb-8 px-5 sm:-mx-8 sm:-mt-8 sm:px-8 lg:-mt-10', wide && 'hero-wide', pad)}>
       <div className="hero-backdrop">{backdropSrc ? <img src={backdropSrc} alt="" aria-hidden /> : <div className="hero-plain h-full w-full" />}</div>
       {back && <Link href={back.href} className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link>}
-      <div className={cls('flex gap-5 sm:gap-7', compact ? 'items-center' : 'items-end')}>
-        <div className={cls('flex-none', compact ? 'w-20 sm:w-28' : 'w-28 sm:w-40 lg:w-44')}>{art}</div>
-        <div className="min-w-0 flex-1 pb-1">
-          {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-          <h1 className={cls('page-title bi', compact ? 'text-[1.5rem] sm:text-[1.9rem]' : 'text-[1.6rem] sm:text-[2.1rem] lg:text-[2.25rem]')} dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar" dir="rtl">{titleAr}</span>}</h1>
-          {description && <p className="mt-2 hidden max-w-3xl text-[14px] leading-relaxed text-body sm:block" dir="auto">{description}</p>}
-          {meta && <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">{meta}</p>}
-          {actions && <div className="mt-4 flex flex-wrap items-center gap-2">{actions}</div>}
+      {wide ? words : (
+        <div className={cls('flex gap-5 sm:gap-7', compact ? 'items-center' : 'items-end')}>
+          <div className={cls('flex-none', compact ? 'w-20 sm:w-28' : 'w-28 sm:w-40 lg:w-44')}>{art}</div>
+          {words}
         </div>
-      </div>
-      {description && <p className="mt-3 text-[13.5px] leading-relaxed text-body sm:hidden" dir="auto">{description}</p>}
+      )}
+      {description && !wide && <p className="mt-3 text-[13.5px] leading-relaxed text-body sm:hidden" dir="auto">{description}</p>}
       {children}
     </header>
   );
+}
+
+/** Loading placeholders that mirror the card shapes (16:9, 2:3, 1:1, 4:5, a 44 px row) and the hero. The shimmer
+ *  stops under reduced motion; the block stays. */
+export function Skeleton({ kind, count = 1, className = '' }: { kind: 'wide' | 'poster' | 'square' | 'portrait' | 'row' | 'hero' | 'lines'; count?: number; className?: string }) {
+  const items = Array.from({ length: count }, (_, i) => i);
+  if (kind === 'hero') return <div aria-busy className={cls('space-y-4', className)}><div className="skeleton skeleton-hero" /><div className="skeleton skeleton-line w-3/5" /></div>;
+  if (kind === 'lines') return <div aria-busy className={cls('space-y-2', className)}>{items.map((i) => <div key={i} className={cls('skeleton', i % 2 ? 'skeleton-line-short' : 'skeleton-line')} />)}</div>;
+  if (kind === 'row') return <div aria-busy className={cls('space-y-2', className)}>{items.map((i) => <div key={i} className="skeleton skeleton-row" />)}</div>;
+  return (
+    <div aria-busy className={cls('contents', className)}>
+      {items.map((i) => <div key={i} className="space-y-2"><div className={cls('skeleton', `skeleton-${kind}`)} /><div className="skeleton skeleton-line w-4/5" /><div className="skeleton skeleton-line-short" /></div>)}
+    </div>
+  );
+}
+
+/** One line that says what the colours mean. */
+export function Legend({ items, className = '' }: { items: Array<{ color: string; label: ReactNode }>; className?: string }) {
+  return <p className={cls('org-legend', className)}>{items.map((it, i) => <span key={i} style={{ '--c': it.color } as React.CSSProperties}>{it.label}</span>)}</p>;
 }
 
 /** Metadata as dots between words. */

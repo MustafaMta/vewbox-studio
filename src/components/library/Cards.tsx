@@ -11,6 +11,7 @@ import { useT } from '@/components/ui/locale';
 import { TrackButton } from '@/components/players/PlayerProvider';
 import { trackOf } from '@/components/workspace/MusicWorkspace';
 import { CastStack, ProgressBar } from '@/components/ui/page';
+import { Art } from '@/components/ui/cinema';
 import { IconArrowRight, IconDuration } from '@/components/ui/icons';
 import { StageStatus } from './ProductionTile';
 import { aspectShort, fmtSeconds } from '@/lib/format';
@@ -138,8 +139,9 @@ export function MusicVideoCard({ p, menu }: { p: Production; menu?: ReactNode })
   );
 }
 
-/** CHARACTERS: a casting card — the portrait first; the name, role and style; where they belong; whether they have
- *  been in a video; and their voice as one small play button. Secondary actions sit in the card's menu. */
+/** CHARACTERS: a directory portrait — the card loses its box: a 4:5 portrait in a `.poster` frame, faces first,
+ *  nothing on the picture; beneath it the name (+ Arabic), the role, where they belong, and whether they have been
+ *  in a video. The voice's play button and the menu appear on hover (always on touch). The whole thing is one link. */
 export function CharacterCard({ c, menu }: { c: Character; menu?: ReactNode }) {
   const T = useT();
   const { state } = useStudio();
@@ -150,23 +152,21 @@ export function CharacterCard({ c, menu }: { c: Character; menu?: ReactNode }) {
   const voice = c.voice.samples.find((v) => v.id === c.voice.selectedSampleId);
   const voiceAsset = assetById(state, voice?.assetId);
   const track = voice && voiceAsset && !voiceAsset.unavailable && voiceAsset.src ? { id: `voice-${c.id}-${voice.id}`, src: voiceAsset.src, title: `${c.name} — ${voice.label}`, artworkSrc: portrait?.src, duration: voiceAsset.durationSeconds } : null;
-  const usage = !lock.locked ? { tone: 'status-neutral', label: T('char.usage.unused') } : lock.reason === 'UNKNOWN' ? { tone: 'status-warn', label: T('char.usage.unknown') } : { tone: 'status-accent', label: T('char.usage.used') };
+  const n = new Set(lock.videos.map((v) => v.productionId)).size;
+  const usage = !lock.locked ? { tone: 'status-neutral', label: T('char.usage.unused') } : lock.reason === 'UNKNOWN' ? { tone: 'status-warn', label: T('char.usage.unknown') } : { tone: 'status-accent', label: `${T('char.usage.used')} · ${n}` };
   return (
-    <li className="card card-hover group relative min-w-0 overflow-hidden">
-      <Link href={`/characters/${c.id}`} className="absolute inset-0 z-0 rounded-[inherit] outline-none" aria-label={`${c.name} — ${c.role}`} />
-      <div className="pointer-events-none relative aspect-[4/5] overflow-hidden bg-input">
-        {portrait && !portrait.unavailable ? <img src={portrait.src} alt="" loading="lazy" className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]" /> : <div className="poster-text absolute inset-0" aria-hidden><span dir="auto">{c.name}</span></div>}
+    <li className="poster-card group relative min-w-0">
+      <Link href={`/characters/${c.id}`} className="poster-link block outline-none" aria-label={`${c.name} — ${c.role}`}>
+        <Art src={portrait && !portrait.unavailable ? portrait.src : undefined} ratio="portrait" title={c.name} unavailable={portrait?.unavailable} top />
+        <p className="poster-title bi pe-9 text-[14px]" dir="auto"><span>{c.name}</span>{c.nameAr && <span className="bi-ar" dir="rtl">{c.nameAr}</span>}</p>
+        <p className="mt-0.5 truncate text-[12px] text-faint" dir="auto">{c.role || '—'}</p>
+        <p className="mt-0.5 truncate text-[12px] text-muted" dir="auto">{homes.length ? `${homes[0]}${homes.length > 1 ? ` +${homes.length - 1}` : ''}` : T.dyn(`style.${c.style}`)}</p>
+        <p className={`status mt-1.5 min-w-0 ${usage.tone}`}><span className="truncate">{usage.label}</span></p>
+      </Link>
+      <div className="card-tools absolute end-0 top-[calc(100%-5.75rem)] flex items-center gap-1">
+        {track && <TrackButton track={track} size="xs" labelPlay={`${T('misc.play')} ${c.name}`} labelPause={`${T('misc.pause')} ${c.name}`} />}
+        {menu}
       </div>
-      <div className="pointer-events-none relative p-3.5">
-        <div className="bi truncate text-[14px] font-semibold text-fg" dir="auto"><span>{c.name}</span>{c.nameAr && <span className="bi-ar" dir="rtl">{c.nameAr}</span>}</div>
-        <div className="mt-0.5 truncate text-[12px] text-faint" dir="auto">{c.role}</div>
-        <div className="mt-0.5 truncate text-[12px] text-muted" dir="auto">{T.dyn(`style.${c.style}`)}{homes.length ? ` · ${homes[0]}${homes.length > 1 ? ` +${homes.length - 1}` : ''}` : ''}</div>
-        <div className="mt-2.5 flex items-center justify-between gap-2">
-          <span className={`status min-w-0 ${usage.tone}`}><span className="truncate">{usage.label}</span></span>
-          {track ? <span className="pointer-events-auto relative z-10 flex min-w-0 items-center gap-1.5"><span className="hidden max-w-[6rem] truncate text-[11.5px] text-faint xl:inline">{voice!.label}</span><TrackButton track={track} size="xs" labelPlay={`${T('misc.play')} ${c.name}`} labelPause={`${T('misc.pause')} ${c.name}`} /></span> : <span className="shrink-0 text-[11.5px] text-faint">{T('lib.noVoice')}</span>}
-        </div>
-      </div>
-      {menu && <div className="card-tools absolute end-2 top-2 z-10">{menu}</div>}
     </li>
   );
 }

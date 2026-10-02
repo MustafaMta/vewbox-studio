@@ -9,8 +9,9 @@ import { VewboxMark } from './brand';
 import { IconAssets, IconCharacters, IconChevronRight, IconClose, IconLocations, IconMenu, IconMusicVideos, IconPlus, IconProduce, IconSettings, IconShorts, IconShows, IconStudio } from './icons';
 
 /** THE STUDIO'S NAVIGATION — the product first: Shows, Shorts, Music Videos, Characters and the Studio Company
- *  that makes them. Behind the scenes, smaller: where productions stand and what runs, the places and files, and
- *  Settings. One primary action above it all: New production. */
+ *  that makes them. Then the Library (the places and the files, the same kind of thing as Characters) and the
+ *  Studio (where productions stand and what runs, and Settings). One primary action above it all: New…, a sheet
+ *  with five starts. */
 export type NavItem = { href: string; key: Key; icon: React.ComponentType<{ className?: string }>; /** other routes that belong to this area */ also?: string[]; group?: Key };
 export const NAV: NavItem[] = [
   { href: '/shows', key: 'nav.shows', icon: IconShows, also: ['/new/show', '/new/season', '/new/episode'] },
@@ -18,10 +19,10 @@ export const NAV: NavItem[] = [
   { href: '/music-videos', key: 'nav.musicVideos', icon: IconMusicVideos, also: ['/new/music-video'] },
   { href: '/characters', key: 'nav.characters', icon: IconCharacters },
   { href: '/studio', key: 'nav.company', icon: IconStudio },
-  { href: '/production', key: 'nav.production', icon: IconProduce, also: ['/jobs'], group: 'nav.operations' },
-  { href: '/locations', key: 'nav.locations', icon: IconLocations, group: 'nav.operations' },
-  { href: '/assets', key: 'nav.assets', icon: IconAssets, group: 'nav.operations' },
-  { href: '/settings', key: 'nav.settings', icon: IconSettings, group: 'nav.operations' },
+  { href: '/locations', key: 'nav.locations', icon: IconLocations, group: 'nav.libraryArea' },
+  { href: '/assets', key: 'nav.files', icon: IconAssets, group: 'nav.libraryArea' },
+  { href: '/production', key: 'nav.production', icon: IconProduce, also: ['/jobs'], group: 'nav.studioArea' },
+  { href: '/settings', key: 'nav.settings', icon: IconSettings, group: 'nav.studioArea' },
 ];
 
 export function isActive(pathname: string, href: string, also: string[] = []): boolean {
@@ -79,7 +80,7 @@ export function MobileBar() {
           <VewboxMark size={28} /><span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">{T('app.name')}</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link href="/new" className="btn btn-primary btn-sm btn-icon" aria-label={T('nav.newProduction')}><IconPlus aria-hidden /></Link>
+          <Link href="/new" className="btn btn-primary btn-sm btn-icon" aria-label={T('nav.new')}><IconPlus aria-hidden /></Link>
           <button type="button" onClick={() => setOpen((o) => !o)} aria-label={open ? T('nav.closeMenu') : T('nav.openMenu')} aria-expanded={open} aria-controls="mobile-nav" className="btn btn-ghost btn-sm btn-icon">
             {open ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
           </button>
@@ -87,7 +88,7 @@ export function MobileBar() {
       </div>
       {open && (
         <nav id="mobile-nav" aria-label={T('nav.areas')} className="animate-fade max-h-[80dvh] space-y-5 overflow-y-auto border-t border-line/60 px-3 pb-4 pt-3">
-          <Link href="/new" className="btn btn-primary btn-block" onClick={() => setOpen(false)}><IconPlus aria-hidden />{T('nav.newProduction')}</Link>
+          <Link href="/new" className="btn btn-primary btn-block" onClick={() => setOpen(false)}><IconPlus aria-hidden />{T('nav.new')}</Link>
           <NavLinks onNavigate={() => setOpen(false)} />
         </nav>
       )}
