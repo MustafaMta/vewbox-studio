@@ -1,6 +1,6 @@
 # Design system v5: Viewfinder
 
-**Interface language: English-only, left-to-right (producer's change of requirement, 2026-10-03; see §9). Arabic and other languages remain fully supported as content: scripts, dialogue, names, lyrics, subtitles and films.**
+**Interface language: English only, left-to-right — one website language (producer's final requirement, 2026-10-03; §9). Film content stays multilingual: Iraqi Arabic dialogue, scripts, names, lyrics, voices and subtitles are production assets, not website translations.**
 
 Status: the visual identity, the design system and the page compositions for the complete redesign · written
 2026-10-03 · creative direction, UI/UX and design-system engineering (one point of view) · **revised 2026-10-03 after
@@ -1179,52 +1179,45 @@ Written by … · Storyboard … · Filmed by … · Characters … · Voices �
 
 ---
 
-## 9. Content in other languages (amended 2026-10-03: the interface is English-only)
+## 9. One interface language: English (final requirement, 2026-10-03)
 
-**Change of requirement (producer, 2026-10-03):** the Vewbox interface is **English-only and always left-to-right**.
-No Arabic interface, no RTL page layouts, no direction switching, no Arabic-Indic numerals setting. This supersedes
-the earlier §9 (Arabic and RTL), the Arabic columns of §3.3, the RTL art-direction rules (§5.4 `rtlFrame`), the Arabic
-captures in §11.5 and §13, and the QA follow-ups that only concern the Arabic interface (F2, M8, N3). The design
-research is kept; nothing working is discarded because of this change.
+**The website is completely English-only and left-to-right.** One interface language; no Arabic or other interface
+language, no RTL website mode, no language selector or preference, no Arabic numeral setting, no translation
+dictionaries, no language-specific routes, tokens, components, prototypes or tests, and no localization
+infrastructure kept for later. This replaces every earlier multilingual and RTL requirement in this document (the
+Arabic columns of §3.3, the RTL art direction in §5.4, the Arabic captures in §11.5/§13, QA items F2, M8, N3).
 
-**English-only interface is not English-only filmmaking.** Scripts, dialogue lines, character names, lyrics,
-subtitles, voices and finished films stay multilingual — Iraqi Arabic first among them. Everything the producer or
-the studio writes in another language is preserved and shown correctly inside the English interface:
+**The website is separate from film content.** Iraqi Arabic and other languages remain production features: scripts,
+dialogue, character names, lyrics, voice generation, subtitles and finished films. Production data is never
+translated, deleted or corrupted. Arabic film content stays intact and readable inside the English interface:
 
-### 9.1 Content faces
+### 9.1 Type
 
-Markazi Text (titles, names) and IBM Plex Sans Arabic (body text, lines, lyrics) stay loaded as the faces for
-Arabic-script content; English content uses Newsreader and IBM Plex Sans as specified. Arabic content is never set
-below 13 px and never tracked or italicised.
+Only the three interface families load: Newsreader, IBM Plex Sans, IBM Plex Mono. No language-specific interface
+fonts. Arabic content renders through the operating system's Arabic font via the fallback chain of each family stack
+(e.g. `"IBM Plex Sans", system-ui, "Segoe UI", "Noto Sans Arabic", "Geeza Pro", Tahoma, sans-serif`), legible at the
+same size as the surrounding text.
 
-### 9.2 Direction of content
+### 9.2 Content rendering (not an RTL website)
 
-- The interface is `<html lang="en" dir="ltr">` everywhere; nothing in the chrome mirrors.
-- **User-authored or generated content in another script** (a character name such as «أبو سلام», a title, a
-  logline, a dialogue line, a lyric line, a subtitle cue, a note) is rendered in its own direction, isolated, inside
-  the LTR interface: one content rule — `.content-text` with `dir="auto"` (or an explicit `lang`/`dir` from the data)
-  and `unicode-bidi: isolate` — owned by DS. One-line items keep the interface's start edge; multi-line Arabic blocks
-  are right-aligned within their own isolated box.
-- `lang` is set on every content string whose language is known (WCAG 3.1.2): `lang="ar"` on an Arabic line,
-  `lang="en"` on English.
-- Media never mirrors (it never did).
+The document is `<html lang="en" dir="ltr">`. A user-authored or generated string (a name, a title, a dialogue line, a
+lyric, a subtitle cue, a note) carries one rule, `.content-text`: `dir="auto"` and `unicode-bidi: isolate`, so Arabic
+text reads in its own direction inside the LTR layout without reordering what surrounds it. Where the data knows the
+language, `lang` is set on that string (WCAG 3.1.2). Nothing in the interface mirrors.
 
 ### 9.3 Numerals
 
-Western digits everywhere in the interface. The by-kind rule stays for presentation: readouts (timecodes, clock
-times, m:ss durations, frame rates, resolutions, file sizes, formats) and identifiers (shot, take, cut, version,
-scene, episode, season and note numbers) in IBM Plex Mono, isolated so compounds like "1344×768" are never reordered
-next to Arabic content; counts and dates in the interface sans. `formatNumber(value, kind)` in `src/lib/format.ts`
-(DS) with the kinds `count | date | duration-words | readout | identifier | file`. Numbers inside user-authored Arabic
-content are left exactly as written.
+Western digits everywhere. Readouts (timecodes, times, m:ss durations, frame rates, resolutions, file sizes, formats)
+and identifiers (shot, take, cut, version, scene, episode, season, note numbers) in IBM Plex Mono; counts and dates in
+IBM Plex Sans. `formatNumber(value, kind)` in `src/lib/format.ts` has no locale parameter. Numbers inside film content
+are left exactly as written.
 
-### 9.4 What is removed or not built
+### 9.4 Implementation
 
-The language switch and `html[dir]` logic in the shell; `[dir=rtl]` styling; the Arabic interface strings for new
-work (new v5 string files are English only); Arabic prototypes and Arabic captures. The Arabic halves of the existing
-v4 dictionaries are removed by the consolidation package (Q2) after the pages land — a measured bundle saving — and
-only where no user-facing content depends on them. User data, Arabic content and the multilingual production
-pipeline are untouched.
+DS-1 loads only the three families and fixes the document language; EN-1 removes the multilingual layer (strings,
+locale state, switches, interface-locale branches, Arabic halves of server labels, RTL-only CSS, language options in
+scripts, multilingual tests). The string lookup survives only as a plain English copy module until the page packages
+have written their copy inline; the consolidation package then deletes it.
 
 ---
 ## 10. Accessibility (WCAG 2.2 AA; AAA where noted)
