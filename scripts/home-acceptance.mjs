@@ -49,8 +49,8 @@ for (const size of SIZES) {
   const m = await page.evaluate(() => {
     const r = (sel) => [...document.querySelectorAll(sel)].map((e) => e.getBoundingClientRect());
     const x = (sel) => r(sel).map((b) => Math.round(b.left));
-    const starts = [...x('.home-hero-frame'), ...x('.home-hero-caption'), ...x('.home-feature'), ...x('.home-shelf-head')];
-    const tools = r('.home-tool').map((b) => Math.round(b.height));
+    const starts = [...x('.home-hero-frame'), ...x('.home-hero-caption'), ...x('.home-feature'), ...x('.home .shead')];
+    const tools = r('.home-tools > li').map((b) => Math.round(b.height));
     const fonts = new Set(); const small = [];
     const walker = document.createTreeWalker(document.querySelector('main') ?? document.body, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
