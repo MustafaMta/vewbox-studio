@@ -7,7 +7,7 @@ import path from 'node:path';
 /** NEGATIVE PATHS through the real API: broken media, wrong shapes, missing engines, double submissions. The server
  *  must refuse clearly (a code and a sentence), never crash, never half-apply. */
 
-const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
+const BASE = process.env.STUDIO_URL || 'http://127.0.0.1:4210';
 const post = (p: string, body: unknown) => fetch(`${BASE}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -47,7 +47,8 @@ describe('broken and hostile uploads', () => {
 });
 
 describe('jobs that cannot run', () => {
-  it('a take for a shot whose video engine is not available fails with a reason and schedules a retry, never a fake take', async () => {
+  // needs a worker on the TEST database (the isolated test server starts none): STUDIO_TEST_WORKER=1 says one runs
+  it.skipIf(process.env.STUDIO_TEST_WORKER !== '1')('a take for a shot whose video engine is not available fails with a reason and schedules a retry, never a fake take', async () => {
     const studio = await (await fetch(`${BASE}/api/studio`)).json();
     const ep = studio.state.productions.find((p: { id: string }) => p.id === 's1e1');
     const shot = ep.shots[0];

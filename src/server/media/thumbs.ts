@@ -1,12 +1,11 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import { DEFAULT_FOCAL, type Presentation } from '@/domain/presentation';
 import { ffmpeg } from './ffmpeg';
 import { oklchToRgb8, parseOklch } from './presentation';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** DISPLAY-SIZE DERIVATIVES (docs/CONTRACTS-REDESIGN-BACKEND.md B7; docs/DESIGN-SYSTEM-V5.md §5.9, §8.13 Files) — the
  *  thumbnail every picture gets beside its original (a JPEG at most 2× of a 480 px long side, ≤ 120 KB for a figure

@@ -11,7 +11,7 @@ import { fmtClock, timecode } from '@/components/players/time';
  *  Picture: clips on `--clip` with a 1 px `--clip-edge`, the 2 px precision radius and 1 px gaps; the shot number in
  *  `.tc`, the purpose on hover and focus (and always in the accessible name). Dialogue: line blocks with a strong
  *  edge. Music: the waveform. A selected clip has a 2 px ivory outline; Shift selects a range, Ctrl/⌘ toggles. The
- *  playhead is a 1 px ivory line through every track with an iris handle on the ruler. Trim handles (8 px) sit at the
+ *  playhead is a 1 px ivory line through every track with a light handle on the ruler. Trim handles (8 px) sit at the
  *  clip edges on hover and focus; their pointer and keyboard alternative is the ±1 frame nudges in the toolbar (and the
  *  numeric in/out in the inspector) (2.5.7). Zoom: − / +, Ctrl+wheel and Fit. It scrolls horizontally only, and it is
  *  LEFT TO RIGHT. */

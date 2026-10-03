@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 /** ACCESS — when STUDIO_PASSWORD is set, every page and API call (except the health probe) needs it, as HTTP Basic
  *  authentication: the browser asks once and remembers; API clients send `Authorization: Basic …`. With no password
- *  the studio is open, which is the right default on a private machine or LAN. The comparison is constant-time. */
+ *  the studio is open, which is why it listens on 127.0.0.1 by default and refuses a LAN address without one
+ *  (src/server/exposure.ts, scripts/serve.ts, compose WEB_BIND). The comparison is constant-time. */
 
 const PASSWORD = process.env.STUDIO_PASSWORD ?? '';
 const REALM = 'Vewbox Studio';

@@ -1,17 +1,17 @@
 // Run the wave-2 acceptance journeys (tests/e2e/journeys) against the running studio.
 //
-//   node scripts/qa-journeys.mjs [--gpu] [--restart] [--base http://localhost:4200] [--grep <regex>] [--headed] [--yes] [-- <playwright args>]
+//   node scripts/qa-journeys.mjs [--gpu] [--restart] [--base http://127.0.0.1:4210] [--grep <regex>] [--headed] [--yes] [-- <playwright args>]
 //
 //   --gpu       include the `@gpu` scenarios (real generation: portraits, sheets, voices, a take). Only when the
 //               architect has confirmed the GPU is free and the worker is running.
 //   --restart   include Test 9: the run pauses and waits for you to restart web + worker and create
 //               var/qa-restarted.flag (see docs/TEST-RESULTS.md, "Wave 2 journeys").
-//   --base      the studio's address (STUDIO_URL); default http://localhost:4200.
+//   --base      the TEST studio's address (STUDIO_URL); default http://127.0.0.1:4210 (`pnpm test:server`).
 //   --grep      only the tests whose title matches.
-//   --yes       required: every test RESETS the live database to the sample studio.
+//   --yes       required: every test RESETS the target studio to the sample studio.
 //
-// The sample studio is a test fixture: the studio server must run with STUDIO_SAMPLE_FIXTURE=1 or every reset is
-// refused (NOT_CONFIGURED), e.g. `$env:STUDIO_SAMPLE_FIXTURE='1'; pnpm dev`.
+// Only a TEST server is accepted (docs/BACKEND-AUDIT-2026-10.md C3): `QA_JOURNEYS=1 pnpm test:server` runs one on its
+// own database with VEWBOX_ALLOW_RESET=1 and STUDIO_SAMPLE_FIXTURE=1; the producer's studio refuses every reset (403).
 //
 // Evidence: screenshots under docs/evidence/qa/, the Playwright report under playwright-report/journeys/, traces
 // and videos of failures under test-results/.
@@ -26,18 +26,19 @@ const gpu = flag('gpu');
 const restart = flag('restart');
 const headed = flag('headed');
 const yes = flag('yes');
-const base = opt('base', process.env.STUDIO_URL || 'http://localhost:4200');
+const base = opt('base', process.env.STUDIO_URL || 'http://127.0.0.1:4210');
 const grep = opt('grep', '');
 const rest = args.filter((a) => a !== '--');
 
 if (!yes) {
-  console.error('The journeys reset the live database to the sample studio before every test (the server must run with STUDIO_SAMPLE_FIXTURE=1). Re-run with --yes when that is intended.');
+  console.error('The journeys reset the target (test) studio to the sample studio before every test. Re-run with --yes when that is intended.');
   process.exit(2);
 }
 
 const get = async (p) => { try { const r = await fetch(`${base}${p}`, { signal: AbortSignal.timeout(8000) }); return r.ok ? await r.json() : null; } catch { return null; } };
 const health = await get('/api/health');
-if (!health?.ok) { console.error(`The studio at ${base} does not answer /api/health. Start web (pnpm dev) and the worker (pnpm worker) first.`); process.exit(2); }
+if (!health?.ok) { console.error(`The studio at ${base} does not answer /api/health. Start the test server (QA_JOURNEYS=1 pnpm test:server) and, for @gpu scenarios, a worker on the same test database first.`); process.exit(2); }
+if (health.testServer !== true) { console.error(`Refusing: ${base} is not a test server (its /api/health does not report testServer: true). The journeys never run against the producer's studio.`); process.exit(2); }
 console.log(`studio ${base}: healthy, version ${health.version}, queue ${JSON.stringify(health.queue)}`);
 const status = await get('/api/status');
 if (status) {

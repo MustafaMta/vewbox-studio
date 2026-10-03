@@ -11,7 +11,7 @@ import { useShortcutScope } from './useShortcutScope';
 
 /** THE THEATRE PLAYER (docs/DESIGN-SYSTEM-V4.md §2.3, §5.12, §6.15) — the cut at its native ratio on the black
  *  surround, at most 76vh. The overlay transport sits on `rgb(0 0 0 / .55)` with a 12 px backdrop blur: the ONLY blur
- *  in the product (§1.5), and solid `--chip-on-art` under `prefers-reduced-transparency`. Notes appear as iris ticks on
+ *  in the product (§1.5), and solid `--chip-on-art` under `prefers-reduced-transparency`. Notes appear as light ticks on
  *  the seek bar. Lights down: while playing, after 2 s idle, the transport fades and `onLights(true)` lets the page dim
  *  everything above the player; any pointer movement or focus brings them back (`onLights(false)`). Instant under
  *  reduced motion (the global rule). The transport is LTR. */

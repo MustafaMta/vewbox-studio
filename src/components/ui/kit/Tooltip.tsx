@@ -26,7 +26,7 @@ export function Tooltip({ content, side = 'top', children, className }: {
   const tip = useRef<HTMLSpanElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<CSSProperties>({ left: -9999, top: -9999 });
+  const [pos, setPos] = useState<CSSProperties>({ left: -9999, top: -9999 }); // v5-lint: allow physical — viewport coordinates of a fixed tooltip
 
   const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
   const show = useCallback(() => {
