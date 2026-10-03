@@ -24,8 +24,11 @@ const EV = 'docs/evidence';
 const now = new Date('2026-10-03T09:00:00.000Z').getTime();
 const ago = (h) => new Date(now - h * 3600_000).toISOString();
 
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width, height: isPhone ? 844 : 900 }, colorScheme: 'dark', ...(isPhone ? { isMobile: true, hasTouch: true } : {}) });
+let browser = await chromium.launch();
+const pageOptions = { viewport: { width, height: isPhone ? 844 : 900 }, colorScheme: 'dark', ...(isPhone ? { isMobile: true, hasTouch: true } : {}) };
+// one fresh browser per scenario: no event stream, connection or cache carries over from the previous page (a second
+// page in the same browser could wait forever on the dev server's held connections)
+let page = await browser.newPage(pageOptions);
 
 // ---- placeholder pictures: crops of earlier generations, made in the browser's canvas -----------------------------
 const dataUrl = async (file) => `data:image/png;base64,${(await fs.readFile(path.join(EV, file))).toString('base64')}`;
@@ -87,29 +90,39 @@ const production = (id, title, cover) => ({ id, kind: 'SHORT', title, logline: '
 const productions = [production('fx-p0', 'The Kite', 'fx-cover-1'), production('fx-p1', 'Rooftops', 'fx-cover-2')];
 const jobs = [{ id: 'fx-draw', type: 'CHARACTER_APPEARANCE', status: 'GENERATING', priority: 0, payload: { characterId: 'fx-abu' }, attempts: 1, maxAttempts: 2, cancelRequested: false, characterId: 'fx-abu', progress: { phase: 'GENERATING', message: 'Drawing Abu Samir · full length' }, createdAt: ago(0.05), updatedAt: ago(0.01), startedAt: ago(0.04) }];
 
-await page.addInitScript((l) => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ locale: l, motion: true })); } catch { /* fine */ } }, lang);
-await page.route('**/api/**', async (route) => {
-  const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
-  if (req.method() !== 'GET') {
-    if (p === '/api/commands') return route.fulfill({ json: { ok: true, version: 1, hash: 'fixture', results: [] } });
-    return route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'fixture: writes are not sent' } } });
-  }
-  if (p === '/api/studio') {
-    const res = await route.fetch(); const body = await res.json();
-    body.state.settings.uiLanguage = lang;
-    body.state.characters = [...characters, ...body.state.characters];
-    body.state.assets = [...assets, ...body.state.assets];
-    body.state.productions = [...productions, ...body.state.productions];
-    return route.fulfill({ response: res, json: body });
-  }
-  if (p === '/api/jobs') return route.fulfill({ json: { jobs } });
-  if (p.startsWith('/api/jobs/')) { const j = jobs.find((x) => x.id === p.split('/')[3]); return j ? route.fulfill({ json: { job: j, events: [] } }) : route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'fixture' } } }); }
-  if (p.startsWith('/api/media/fx-')) { const id = p.split('/').pop(); const b = media[id]; return b ? route.fulfill({ body: b, contentType: id === 'fx-proof' ? 'audio/wav' : 'image/png' }) : route.fulfill({ status: 404, body: '' }); }
-  return route.continue();
-});
+const prepare = async (page) => {
+  page.on('pageerror', (e) => console.log(`  page error: ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error') console.log(`  console error: ${m.text().slice(0, 300)}`); });
+  await page.addInitScript((l) => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ locale: l, motion: true })); } catch { /* fine */ } }, lang);
+  await page.route('**/api/**', async (route) => {
+    const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
+    if (req.method() !== 'GET') {
+      if (p === '/api/commands') return route.fulfill({ json: { ok: true, version: 1, hash: 'fixture', results: [] } });
+      return route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'fixture: writes are not sent' } } });
+    }
+    if (p === '/api/studio') {
+      const res = await route.fetch();
+      if (!res.ok()) return route.fulfill({ response: res }); // a dev server hiccup: the page retries on its own
+      const body = await res.json();
+      body.state.settings.uiLanguage = lang;
+      body.state.characters = [...characters, ...body.state.characters];
+      body.state.assets = [...assets, ...body.state.assets];
+      body.state.productions = [...productions, ...body.state.productions];
+      return route.fulfill({ response: res, json: body });
+    }
+    if (p === '/api/jobs') return route.fulfill({ json: { jobs } });
+    if (p.startsWith('/api/jobs/')) { const j = jobs.find((x) => x.id === p.split('/')[3]); return j ? route.fulfill({ json: { job: j, events: [] } }) : route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'fixture' } } }); }
+    if (p.startsWith('/api/media/fx-')) { const id = p.split('/').pop(); const b = media[id]; return b ? route.fulfill({ body: b, contentType: id === 'fx-proof' ? 'audio/wav' : 'image/png' }) : route.fulfill({ status: 404, body: '' }); }
+    return route.continue();
+  });
+};
 
 // ---- scenarios ---------------------------------------------------------------------------------------------------
-const ready = async () => { await page.waitForFunction(() => document.querySelector('main h1') && !/Reconnecting/.test(document.body.innerText), null, { timeout: 90_000 }); await page.waitForTimeout(1800); };
+const ready = async () => {
+  try { await page.waitForFunction(() => document.querySelector('main h1') && !/Reconnecting/.test(document.body.innerText), null, { timeout: 45_000 }); }
+  catch (e) { console.log(`  not ready: ${(await page.evaluate(() => document.body.innerText)).slice(0, 300).replace(/\s+/g, ' ')}`); throw e; }
+  await page.waitForTimeout(1800);
+};
 const click = async (name) => { const b = page.getByRole('button', { name }).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await page.waitForTimeout(400); };
 const scenarios = {
   directory: { path: '/characters' },
@@ -126,8 +139,12 @@ const wanted = args.length ? args : Object.keys(scenarios);
 await fs.mkdir(out, { recursive: true });
 for (const name of wanted) {
   const s = scenarios[name]; if (!s) { console.log(`unknown scenario ${name}`); continue; }
-  await page.goto(`${base}${s.path}`, { waitUntil: 'domcontentloaded' });
-  await ready();
+  // the dev server can hand out a chunk mid-compile: a page that never becomes ready is opened again (three tries)
+  for (let attempt = 1; ; attempt++) {
+    await browser.close(); browser = await chromium.launch(); page = await browser.newPage(pageOptions); await prepare(page);
+    await page.goto(`${base}${s.path}`, { waitUntil: 'domcontentloaded' });
+    try { await ready(); break; } catch (e) { if (attempt >= 3) throw e; console.log(`  retrying ${s.path}`); }
+  }
   if (s.after) await s.after();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(300);
