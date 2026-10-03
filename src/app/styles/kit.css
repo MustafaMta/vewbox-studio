@@ -641,4 +641,7 @@
   .job-dot[data-tone='waiting'] .job-dot-mark { background: var(--tungsten); box-shadow: none; animation: none; }
   .job-dot[data-tone='idle'] { color: var(--fg-muted); }
   .job-dot[data-tone='idle'] .job-dot-mark { background: var(--fg-faint); box-shadow: none; animation: none; }
+
+  /* a key (§5.13): Geist Mono 12/16 on surface-2, radius 6 */
+  :is(.kbd, .shell-kbd) { display: inline-flex; flex: none; align-items: center; padding: 2px 6px; border-radius: var(--r-xs); background: var(--surface-2); font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 400; color: var(--text-3); white-space: nowrap; }
 }

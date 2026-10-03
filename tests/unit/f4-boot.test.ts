@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOOT } from '@/app/boot';
-import { parsePrefs, prefAttributes } from '@/components/shell/preferences';
+import { parsePrefs, parseSidebar, prefAttributes } from '@/components/shell/preferences';
 
 /** docs/DESIGN-SYSTEM-V4.md §4.9: the preference boot applies motion, contrast, density, previews, single keys and the
  *  navigation's shape before the first paint — exactly what the shell applies afterwards. It never touches the
@@ -8,10 +8,10 @@ import { parsePrefs, prefAttributes } from '@/components/shell/preferences';
  *  for a browser that still holds an old `locale` preference. The boot is a string in <head>; here it runs against a
  *  stand-in document. Package F4. */
 
-function runBoot(raw: string | null, wide: boolean) {
+function runBoot(raw: string | null, wide: boolean, sidebar: string | null = null) {
   const attrs: Record<string, string> = {};
   const html = { lang: 'en', dir: 'ltr', setAttribute: (n: string, v: string) => { attrs[n] = v; } };
-  const g = { document: { documentElement: html }, localStorage: { getItem: () => raw }, window: { matchMedia: () => ({ matches: wide }) } };
+  const g = { document: { documentElement: html }, localStorage: { getItem: (k: string) => (k === 'vb.sidebar' ? sidebar : raw) }, window: { matchMedia: () => ({ matches: wide }) } };
   new Function('document', 'localStorage', 'window', BOOT)(g.document, g.localStorage, g.window);
   return { lang: html.lang, dir: html.dir, attrs };
 }
@@ -23,18 +23,17 @@ const CASES: Array<string | null> = [
   'null',
   '{"locale":"ar","motion":true}',
   '{"locale":"en","contrast":"more","density":"comfortable","previews":false,"keys":false}',
-  '{"contrast":"standard","nav":{"lobby":"rail"}}',
-  '{"contrast":"loud","density":"tight","previews":"no","nav":{"lobby":"wide"}}',
-  '{"nav":{"lobby":"sidebar","cutting":"sidebar"}}',
+  '{"contrast":"standard"}',
+  '{"contrast":"loud","density":"tight","previews":"no"}',
 ];
 
 describe('the preference boot', () => {
   for (const raw of CASES) {
-    for (const wide of [true, false]) {
-      it(`sets what the shell sets, for ${raw} at ${wide ? '≥' : '<'} 1024`, () => {
-        const r = runBoot(raw, wide);
+    for (const wide of [true, false]) for (const sidebar of [null, 'expanded', 'collapsed', 'junk']) {
+      it(`sets what the shell sets, for ${raw} at ${wide ? '≥' : '<'} 1280, sidebar ${sidebar}`, () => {
+        const r = runBoot(raw, wide, sidebar);
         const p = parsePrefs(raw);
-        const want = Object.fromEntries(Object.entries(prefAttributes(p, wide)).filter(([, v]) => v !== null));
+        const want = Object.fromEntries(Object.entries(prefAttributes(p, wide, parseSidebar(sidebar))).filter(([, v]) => v !== null));
         if (p.motion) want['data-motion'] = 'reduce';
         expect(r.attrs).toEqual(want);
         expect(r.dir).toBe('ltr');
@@ -50,7 +49,7 @@ describe('the preference boot', () => {
 
 describe('parsePrefs', () => {
   it('keeps what it knows and drops the rest, field by field', () => {
-    expect(parsePrefs('{"locale":"ar","contrast":"more","keys":false,"junk":1}')).toEqual({ motion: undefined, contrast: 'more', density: undefined, previews: undefined, keys: false, nav: { lobby: undefined, cutting: undefined } });
-    expect(parsePrefs('[1,2]')).toEqual({ motion: undefined, contrast: undefined, density: undefined, previews: undefined, keys: undefined, nav: { lobby: undefined, cutting: undefined } });
+    expect(parsePrefs('{"locale":"ar","contrast":"more","keys":false,"junk":1}')).toEqual({ motion: undefined, contrast: 'more', density: undefined, previews: undefined, keys: false });
+    expect(parsePrefs('[1,2]')).toEqual({ motion: undefined, contrast: undefined, density: undefined, previews: undefined, keys: undefined });
   });
 });

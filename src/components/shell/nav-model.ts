@@ -3,12 +3,14 @@
  *  everywhere). Pure, so the order, the areas and the current item are unit-tested (tests/unit/f4-nav.test.ts); the
  *  components map the icon names to icons. The interface is English-only: labels are written here, not looked up.
  *
- *    sidebar   brand · New · Search
+ *  (docs/design/VISUAL-STANDARD-V5.1.md §5.1, §5.2)
+ *
+ *    sidebar   brand row (mark, Vewbox, collapse) · Search
  *              Home · Shows · Shorts · Music Videos · Characters · Studio Company
- *              Production:  Production (needs-you count) · Screening Room · Locations · Files
- *              footer:      Settings · Help & shortcuts · (connection, save state: only when abnormal) · Collapse
- *    phone     Home · Productions (Shows | Shorts | Music Videos) · Characters · Studio · More
- *              More:        Locations · Production (count) · Screening Room · Files · Settings · Help & shortcuts */
+ *              Workspace:   Locations · Production (needs-you count) · Screening Room · Files
+ *              footer:      the studio's state · Settings · Help & shortcuts
+ *    phone     Home · Productions (→ Shows; Shorts and Music Videos are reached from there) · Characters · Studio · More
+ *              More:        Locations · Production (count) · Screening Room · Files · Settings · Help & shortcuts · the state */
 
 export type NavIcon = 'home' | 'shows' | 'shorts' | 'musicVideos' | 'characters' | 'company' | 'production' | 'screening' | 'locations' | 'files' | 'settings';
 export interface NavItem {
@@ -20,7 +22,7 @@ export interface NavItem {
   /** the needs-you count is shown on this item */
   needsYou?: boolean;
 }
-export interface NavGroup { id: 'primary' | 'production'; /** a visible heading, or none for the first group */ label: string | null; items: NavItem[] }
+export interface NavGroup { id: 'primary' | 'workspace'; /** a visible heading, or none for the first group */ label: string | null; items: NavItem[] }
 
 const ITEM = {
   home: { href: '/', label: 'Home', icon: 'home' },
@@ -38,7 +40,7 @@ const ITEM = {
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'primary', label: null, items: [ITEM.home, ITEM.shows, ITEM.shorts, ITEM.musicVideos, ITEM.characters, ITEM.company] },
-  { id: 'production', label: 'Production', items: [ITEM.production, ITEM.screening, ITEM.locations, ITEM.files] },
+  { id: 'workspace', label: 'Workspace', items: [ITEM.locations, ITEM.production, ITEM.screening, ITEM.files] },
 ];
 
 /** The footer's one link (Help, the connection, the save state and Collapse are controls, not places). */
@@ -50,15 +52,16 @@ export const NAV_ITEMS: NavItem[] = [...NAV_GROUPS.flatMap((g) => g.items), SETT
 /** The home: the brand mark goes here. */
 export const HOME = '/';
 
-/** The phone: five tabs. `productions` and `more` open a sheet of the places they hold. */
+/** The phone and tablet (< 1024): five tabs. Productions opens Shows, which carries Shows | Shorts | Music Videos at
+ *  its top, and is the current tab on all three; More opens a sheet of the places it holds. */
 export type PhoneTab =
-  | { id: 'home' | 'characters' | 'studio'; label: string; icon: NavIcon; item: NavItem }
-  | { id: 'productions' | 'more'; label: string; icon: NavIcon | 'more'; items: NavItem[] };
+  | { id: 'home' | 'productions' | 'characters' | 'studio'; label: string; icon: NavIcon; item: NavItem; also?: NavItem[] }
+  | { id: 'more'; label: string; icon: 'more'; items: NavItem[] };
 export const PRODUCTION_ITEMS: NavItem[] = [ITEM.shows, ITEM.shorts, ITEM.musicVideos];
 export const MORE_ITEMS: NavItem[] = [ITEM.locations, ITEM.production, ITEM.screening, ITEM.files, ITEM.settings];
 export const PHONE_TABS: PhoneTab[] = [
   { id: 'home', label: 'Home', icon: 'home', item: ITEM.home },
-  { id: 'productions', label: 'Productions', icon: 'shows', items: PRODUCTION_ITEMS },
+  { id: 'productions', label: 'Productions', icon: 'shows', item: ITEM.shows, also: [ITEM.shorts, ITEM.musicVideos] },
   { id: 'characters', label: 'Characters', icon: 'characters', item: ITEM.characters },
   { id: 'studio', label: 'Studio', icon: 'company', item: ITEM.company },
   { id: 'more', label: 'More', icon: 'more', items: MORE_ITEMS },
@@ -77,7 +80,7 @@ export function currentItem(pathname: string): NavItem | undefined {
 /** The phone tab the page belongs to, if any. */
 export function currentTab(pathname: string): PhoneTab['id'] | undefined {
   for (const t of PHONE_TABS) {
-    const items = 'item' in t ? [t.item] : t.items;
+    const items = 'item' in t ? [t.item, ...(t.also ?? [])] : t.items;
     if (items.some((n) => isActive(pathname, n.href, n.also))) return t.id;
   }
   return undefined;

@@ -21,9 +21,10 @@ describe('D1 — the shell says "saved" only when nothing is waiting', () => {
     // a failure that left nothing behind (the queue drained on the next attempt) is saved
     expect(saveStateOf({ pending: 0, inflight: 0, failures: 2 })).toBe('saved');
   });
-  it('the three phrases exist (the shell writes them inline in SaveState.tsx)', () => {
-    const src = readFileSync('src/components/shell/SaveState.tsx', 'utf8');
-    for (const w of ["'Saved'", "'Saving…'", "'Not saved — retrying'"]) expect(src).toContain(w);
+  it('a change that could not be saved is said in the shell (the studio state line, Shell.tsx)', () => {
+    const src = readFileSync('src/components/shell/Shell.tsx', 'utf8');
+    expect(src).toContain("saving === 'unsaved'");
+    expect(src).toContain("'Not saved — retrying'");
   });
 });
 

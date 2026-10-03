@@ -7,7 +7,8 @@ import { useLive } from '@/studio/org';
 import { SyncErrors } from '@/components/ui/jobs';
 import { ShellContext, type RoomName, type ShellApi } from './context';
 import { waitingDecisions, type PipelineRow } from './decisions';
-import { readPrefs, usePrefs, writePrefs, type NavShape } from './preferences';
+import { readPrefs, sidebarShape, usePrefs, useSidebarChoice, writeSidebar, type SidebarShape } from './preferences';
+import { isActiveStatus } from '@/domain/jobs';
 import { shortcutFor } from './shortcuts';
 import { DocumentTitle } from './DocumentTitle';
 import { Sidebar } from './Sidebar';
@@ -33,6 +34,7 @@ import { ShortcutSheet } from './ShortcutSheet';
 /** How long the event stream must stay down before the ServerBar says so (its first retry comes after 1 s). */
 export const SERVER_GRACE_MS = 3000;
 
+const readSidebarNow = () => { try { const v = localStorage.getItem('vb.sidebar'); return v === 'expanded' || v === 'collapsed' ? v : null; } catch { return null; } };
 const subscribeMedia = (q: string) => (cb: () => void) => { const m = matchMedia(q); m.addEventListener('change', cb); return () => m.removeEventListener('change', cb); };
 function useMedia(q: string): boolean {
   const sub = useMemo(() => subscribeMedia(q), [q]);
@@ -40,11 +42,9 @@ function useMedia(q: string): boolean {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { ready, state, jobs, stream } = useStudio();
+  const { ready, state, jobs, stream, saving } = useStudio();
   const prefs = usePrefs();
-  const wide = useMedia('(min-width: 1024px)');
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const wide = useMedia('(min-width: 1280px)');
 
   // ---- the room and the lights -------------------------------------------------------------------------------------
   const [room, setRoom] = useState<RoomName>('lobby');
@@ -68,17 +68,38 @@ export function Shell({ children }: { children: ReactNode }) {
   const { data: pipe } = useLive<{ productions: PipelineRow[] }>('/api/studio/org/pipeline');
   const decisions = useMemo(() => waitingDecisions(state, pipe?.productions ?? null, jobs), [state, pipe, jobs]);
 
-  // ---- the navigation's shape -------------------------------------------------------------------------------------
-  const kind = room === 'cutting' ? 'cutting' : 'lobby';
-  const chosen = prefs.nav?.[kind];
-  // below 1024 the sidebar is always the icon rail (and below 768 the phone's bars replace it); at 1024 and wider it is
-  // expanded, or what the producer chose for this kind of room (the cutting room starts collapsed)
-  const nav: NavShape = !mounted ? 'sidebar' : !wide ? 'rail' : chosen ?? (room === 'cutting' ? 'rail' : 'sidebar');
+  // ---- the sidebar's shape (§5.1, §6.5) ------------------------------------------------------------------------------
+  // the producer's choice (`vb.sidebar`), else expanded at ≥ 1280 and collapsed at 1024–1279 and in the cutting room.
+  // The boot script drew the same shape before the first paint (<html data-sidebar>); from here the shell keeps the
+  // attribute current. The width animates only after the first frame, so loading never moves the column.
+  const choice = useSidebarChoice();
+  const shape: SidebarShape = sidebarShape(choice, wide && room !== 'cutting');
+  useEffect(() => {
+    const html = document.documentElement;
+    // before hydration the server snapshot says "no choice, not wide": keep the boot's attribute until the client knows
+    html.setAttribute('data-sidebar', sidebarShape(readSidebarNow(), matchMedia('(min-width: 1280px)').matches && room !== 'cutting'));
+  }, [shape, room]);
+  useEffect(() => { const id = requestAnimationFrame(() => document.documentElement.setAttribute('data-sidebar-ready', '')); return () => cancelAnimationFrame(id); }, []);
+  const nav = shape === 'collapsed' ? 'rail' : 'sidebar';
   const toggleNav = useCallback(() => {
     if (!matchMedia('(min-width: 1024px)').matches) return;
-    const next: NavShape = nav === 'rail' ? 'sidebar' : 'rail';
-    writePrefs({ nav: kind === 'cutting' ? { cutting: next } : { lobby: next } });
-  }, [kind, nav]);
+    writeSidebar(document.documentElement.getAttribute('data-sidebar') === 'collapsed' ? 'expanded' : 'collapsed');
+  }, []);
+
+  // ---- the studio's state, one line (§5.1 footer; the More sheet) ------------------------------------------------
+  const { data: health } = useLive<{ intake?: { paused: boolean } | null }>('/api/health');
+  const { data: engines } = useLive<Record<string, { ok?: boolean } | undefined>>('/api/status');
+  const studio = useMemo(() => {
+    const running = jobs.filter((j) => isActiveStatus(j.status) && j.status !== 'QUEUED').length;
+    if (serverDown) return { tone: 'failed' as const, words: 'Not connected', href: '/production#engine-room' };
+    // a change the studio could not save is held and retried; it is said here until it lands (audit D1)
+    if (ready && saving === 'unsaved') return { tone: 'failed' as const, words: 'Not saved — retrying', href: '/production#engine-room' };
+    if (health?.intake?.paused) return { tone: 'idle' as const, words: 'Studio paused', href: '/studio' };
+    if (running > 0) return { tone: 'running' as const, words: `Making · ${running} ${running === 1 ? 'job' : 'jobs'}`, href: '/studio' };
+    const engineDown = engines ? ['video', 'images', 'voice'].some((k) => engines[k] && engines[k]?.ok === false) : false;
+    if (engineDown) return { tone: 'failed' as const, words: 'Engine offline', href: '/production#engine-room' };
+    return { tone: 'idle' as const, words: 'Studio ready', href: '/studio' };
+  }, [jobs, serverDown, health, engines, ready, saving]);
 
   // ---- the palette and the sheet ----------------------------------------------------------------------------------
   const [palette, setPalette] = useState(false);
@@ -108,8 +129,8 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [openPalette, openShortcuts]);
 
-  const api: ShellApi = useMemo(() => ({ room, setRoom, lightsDown, setLightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown }),
-    [room, lightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown]);
+  const api: ShellApi = useMemo(() => ({ room, setRoom, lightsDown, setLightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown, studio }),
+    [room, lightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown, studio]);
 
   const density = room === 'cutting' ? (prefs.density === 'comfortable' ? 'comfortable' : 'compact') : undefined;
   return (
@@ -117,7 +138,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* every route's own <title> (§7.3); it reads the search params, so it waits in its own boundary */}
       <Suspense fallback={null}><DocumentTitle /></Suspense>
       <SyncErrors />
-      <div className="shell" data-nav={mounted ? nav : undefined} data-shell-room={room} data-lights={lightsDown ? 'down' : undefined}>
+      <div className="shell" data-shell-room={room} data-lights={lightsDown ? 'down' : undefined}>
         <a href="#main" className="skip-link">Skip to content</a>
         <Sidebar />
         <div className="shell-column" data-room={room} data-density={density} data-server={serverDown ? 'down' : undefined}

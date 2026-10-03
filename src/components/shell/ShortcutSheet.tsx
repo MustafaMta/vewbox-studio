@@ -22,7 +22,7 @@ export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () =>
 function Keys({ combo }: { combo: KeyName[] }) {
   const mod = useModLabel();
   const name = (k: KeyName) => (k === 'Mod' ? mod : k === 'Space' ? T('shell.key.space') : k === 'Click' ? T('shell.key.click') : k === 'Scroll' ? T('shell.key.scroll') : k);
-  return <span className="keys-combo">{combo.map((k, i) => <Fragment key={i}>{i > 0 && <span aria-hidden>+</span>}<kbd className="shell-kbd">{name(k)}</kbd></Fragment>)}</span>;
+  return <span className="keys-combo">{combo.map((k, i) => <Fragment key={i}>{i > 0 && <span aria-hidden>+</span>}<kbd className="kbd">{name(k)}</kbd></Fragment>)}</span>;
 }
 
 function SheetBody() {
