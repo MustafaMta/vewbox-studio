@@ -7,7 +7,7 @@ import { nid } from '@/domain/actions';
 import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Modal, Notice, Segmented, Textarea } from '@/components/ui/kit';
-import { splitLyrics } from '@/components/wizard/CreateWizard';
+import { splitLyrics } from '@/domain/lyrics';
 import { IconUpload } from '@/components/ui/icons';
 
 /** Give a music video its song, or replace it: describe and write it (saved as an example song), or bring a file. */
