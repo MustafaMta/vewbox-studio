@@ -1,7 +1,7 @@
 'use client';
 
 import { useStudio } from '@/studio/store';
-import { assetSrc } from '@/studio/selectors';
+import { assetSrc, primaryImageSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { PageHeader } from '@/components/ui/page';
 import { StartCard } from '@/components/library/Cards';
@@ -13,7 +13,7 @@ export default function NewPage() {
   const T = useT();
   const { state } = useStudio();
   const art = (id: string) => assetSrc(state, id);
-  const firstPortrait = state.characters.map((c) => assetSrc(state, c.portraitAssetId)).find(Boolean);
+  const firstPortrait = state.characters.map((c) => primaryImageSrc(state, c)).find(Boolean);
   const firstPlate = state.locations.map((l) => assetSrc(state, l.masterAssetId)).find(Boolean);
   return (
     <div className="mx-auto max-w-5xl">

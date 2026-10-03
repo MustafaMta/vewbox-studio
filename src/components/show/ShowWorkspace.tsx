@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { Production, Season, Show } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { assetById, assetSrc, episodesOf, nextStep, productionHref, progressOf, seasonsOf } from '@/studio/selectors';
+import { assetById, assetSrc, episodesOf, nextStep, primaryImageSrc, productionHref, progressOf, seasonsOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
@@ -133,7 +133,7 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
         <Section title={T('tab.characters')} count={cast.length} description={T('show.canonHint')} action={<Link href={`/shows/${show.id}?tab=characters`} className="btn btn-subtle btn-sm">{T('btn.edit')}</Link>}>
           {cast.length === 0 ? <Empty compact title={T('empty.cast')} action={<LinkButton href={`/shows/${show.id}?tab=characters`} size="sm" icon={<IconPlus />}>{T('lib.addCharacter')}</LinkButton>} /> : (
             <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-              {cast.slice(0, 6).map((c) => <li key={c.id}><Link href={`/characters/${c.id}`} className="poster-link block"><Art src={assetSrc(state, c.portraitAssetId)} ratio="portrait" title={c.name} /><span className="mt-1.5 block truncate text-[13px] font-medium text-fg" dir="auto">{c.name}</span><span className="block truncate text-[11.5px] text-faint" dir="auto">{c.role}</span></Link></li>)}
+              {cast.slice(0, 6).map((c) => <li key={c.id}><Link href={`/characters/${c.id}`} className="poster-link block"><Art src={primaryImageSrc(state, c)} ratio="portrait" top title={c.name} /><span className="mt-1.5 block truncate text-[13px] font-medium text-fg" dir="auto">{c.name}</span><span className="block truncate text-[11.5px] text-faint" dir="auto">{c.role}</span></Link></li>)}
             </ul>
           )}
         </Section>

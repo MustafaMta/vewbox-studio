@@ -8,7 +8,7 @@ import { newSeed } from '@/domain/ids';
 import { hashState } from '@/domain/hash';
 import { StudioError, isStudioError } from '@/domain/errors';
 import { type Job, type JobPayload, type JobType, isActiveStatus } from '@/domain/jobs';
-import { api, type Capabilities } from './api';
+import { api, type Capabilities, type StartedJob } from './api';
 
 /** THE STORE — the studio as the server holds it, mirrored in React state. Every change is a named command: it is
  *  applied here at once (so the interface never waits) and sent to the server in small batches, where the same
@@ -43,7 +43,8 @@ interface Api {
   /** Counts up whenever the studio records an activity event (an agent started, finished, handed off, inspected);
    *  pages that show the organisation refetch on it. */
   activityTick: number;
-  startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<Job>;
+  /** Queue a job; the result carries the server preflight's `warnings` when there are any. */
+  startJob: <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<StartedJob>;
   cancelJob: (id: string) => Promise<Job>;
   retryJob: (id: string, changeMade?: string) => Promise<Job>;
 }
@@ -186,10 +187,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(async () => { pending.current = []; await api.reset('sample'); await refresh(); await loadJobs(); }, [refresh, loadJobs]);
   const startEmpty = useCallback(async () => { pending.current = []; await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs]);
 
-  const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}) => {
+  const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
     const r = await api.startJob(type, payload, opts);
     setJobs((js) => (js.some((j) => j.id === r.job.id) ? js.map((j) => (j.id === r.job.id ? r.job : j)) : [r.job, ...js]));
-    return r.job;
+    // the preflight's warnings travel with the job to the page that started it
+    return r.warnings?.length ? { ...r.job, warnings: r.warnings } : r.job;
   }, []);
   const cancelJob = useCallback(async (id: string) => { const j = await api.cancelJob(id); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; }, []);
   // a refused retry (a non-transient failure needs a stated change) is shown, not swallowed by a `void` caller

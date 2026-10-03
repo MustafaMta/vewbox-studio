@@ -2,23 +2,22 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import type { Character, Location, Production, Show } from '@/domain/types';
+import type { Location, Production, Show } from '@/domain/types';
 import { STAGES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { assetById, assetSrc, assignmentsOf, castOf, episodesOfShow, productionHref, progressOf, seasonsOf, stageIndex } from '@/studio/selectors';
-import { appearanceLock } from '@/domain/rules';
+import { assetById, castOf, episodesOfShow, primaryImageSrc, productionHref, progressOf, seasonsOf, stageIndex } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { TrackButton } from '@/components/players/PlayerProvider';
 import { trackOf } from '@/components/workspace/MusicWorkspace';
 import { CastStack, ProgressBar } from '@/components/ui/page';
-import { Art } from '@/components/ui/cinema';
 import { IconArrowRight, IconDuration } from '@/components/ui/icons';
 import { StageStatus } from './ProductionTile';
 import { aspectShort, fmtSeconds } from '@/lib/format';
 
 /** THE LIBRARY CARDS — each kind of thing the studio keeps, in the shape that suits it: a show as wide key art
  *  with its numbers and cast, a short as a poster, a music video as a record sleeve with a play button, a
- *  character as a portrait, a location as a wide plate. All of them share one surface, one radius, one hover. */
+ *  location as a wide plate (a character is a cast card: src/components/character/CastCard.tsx). All of them share
+ *  one surface, one radius, one hover. */
 
 /** How far a production is, as a fraction of its stages. */
 export const stageFraction = (p: Production) => stageIndex(p.stage) / (STAGES.length - 1);
@@ -34,7 +33,7 @@ export function ShowCard({ show, menu }: { show: Show; menu?: ReactNode }) {
   const seasons = seasonsOf(state, show.id).length;
   const episodes = episodesOfShow(state, show.id);
   const progress = episodes.length ? episodes.reduce((a, p) => a + stageFraction(p), 0) / episodes.length : 0;
-  const cast = state.characters.filter((c) => show.castIds.includes(c.id)).map((c) => ({ id: c.id, name: c.name, src: assetSrc(state, c.portraitAssetId) }));
+  const cast = state.characters.filter((c) => show.castIds.includes(c.id)).map((c) => ({ id: c.id, name: c.name, src: primaryImageSrc(state, c) }));
   return (
     <li className="card card-hover group relative flex min-w-0 flex-col overflow-hidden">
       <Link href={`/shows/${show.id}`} className="flex flex-1 flex-col outline-none">
@@ -66,7 +65,7 @@ export function ShortCard({ p, menu }: { p: Production; menu?: ReactNode }) {
   const art = poster ?? cover;
   const vertical = !poster && p.aspect === 'VERTICAL_9_16';
   const pr = progressOf(p);
-  const cast = castOf(state, p).map((c) => ({ id: c.id, name: c.name, src: assetSrc(state, c.portraitAssetId) }));
+  const cast = castOf(state, p).map((c) => ({ id: c.id, name: c.name, src: primaryImageSrc(state, c) }));
   return (
     <li className="poster-card group relative min-w-0">
       <Link href={productionHref(p)} className="poster-link block outline-none">
@@ -135,38 +134,6 @@ export function MusicVideoCard({ p, menu }: { p: Production; menu?: ReactNode })
         <div className="mt-3 flex items-center justify-between gap-2 text-[12px]"><span className="truncate text-muted">{T.dyn(`style.${p.style}`)}</span><StageStatus p={p} /></div>
       </div>
       {menu && <div className="card-tools absolute end-2 top-2 z-10">{menu}</div>}
-    </li>
-  );
-}
-
-/** CHARACTERS: a directory portrait — the card loses its box: a 4:5 portrait in a `.poster` frame, faces first,
- *  nothing on the picture; beneath it the name (+ Arabic), the role, where they belong, and whether they have been
- *  in a video. The voice's play button and the menu appear on hover (always on touch). The whole thing is one link. */
-export function CharacterCard({ c, menu }: { c: Character; menu?: ReactNode }) {
-  const T = useT();
-  const { state } = useStudio();
-  const portrait = assetById(state, c.portraitAssetId);
-  const lock = appearanceLock(c);
-  const { shows, productions } = assignmentsOf(state, c.id);
-  const homes = [...shows.map((s) => s.title), ...productions.filter((p) => !p.showId).map((p) => p.title)];
-  const voice = c.voice.samples.find((v) => v.id === c.voice.selectedSampleId);
-  const voiceAsset = assetById(state, voice?.assetId);
-  const track = voice && voiceAsset && !voiceAsset.unavailable && voiceAsset.src ? { id: `voice-${c.id}-${voice.id}`, src: voiceAsset.src, title: `${c.name} — ${voice.label}`, artworkSrc: portrait?.src, duration: voiceAsset.durationSeconds } : null;
-  const n = new Set(lock.videos.map((v) => v.productionId)).size;
-  const usage = !lock.locked ? { tone: 'status-neutral', label: T('char.usage.unused') } : lock.reason === 'UNKNOWN' ? { tone: 'status-warn', label: T('char.usage.unknown') } : { tone: 'status-accent', label: `${T('char.usage.used')} · ${n}` };
-  return (
-    <li className="poster-card group relative min-w-0">
-      <Link href={`/characters/${c.id}`} className="poster-link block outline-none" aria-label={`${c.name} — ${c.role}`}>
-        <Art src={portrait && !portrait.unavailable ? portrait.src : undefined} ratio="portrait" title={c.name} unavailable={portrait?.unavailable} top />
-        <p className="poster-title bi pe-9 text-[14px]" dir="auto"><span>{c.name}</span>{c.nameAr && <span className="bi-ar" dir="rtl">{c.nameAr}</span>}</p>
-        <p className="mt-0.5 truncate text-[12px] text-faint" dir="auto">{c.role || '—'}</p>
-        <p className="mt-0.5 truncate text-[12px] text-muted" dir="auto">{homes.length ? `${homes[0]}${homes.length > 1 ? ` +${homes.length - 1}` : ''}` : T.dyn(`style.${c.style}`)}</p>
-        <p className={`status mt-1.5 min-w-0 ${usage.tone}`}><span className="truncate">{usage.label}</span></p>
-      </Link>
-      <div className="card-tools absolute end-0 top-[calc(100%-5.75rem)] flex items-center gap-1">
-        {track && <TrackButton track={track} size="xs" labelPlay={`${T('misc.play')} ${c.name}`} labelPause={`${T('misc.pause')} ${c.name}`} />}
-        {menu}
-      </div>
     </li>
   );
 }

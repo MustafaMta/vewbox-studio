@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { assetById, assetSrc, castOf } from '@/studio/selectors';
+import { assetById, castOf, primaryImageSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Status } from '@/components/ui/kit';
@@ -35,7 +35,7 @@ export function PerformersTab({ p }: { p: Production }) {
             const audio = assetById(state, sample?.assetId);
             return (
               <li key={c.id} className="panel flex gap-4 p-4">
-                <Link href={`/characters/${c.id}`} className="poster-link w-24 flex-none"><Art src={assetSrc(state, c.portraitAssetId)} ratio="portrait" title={c.name} className="!rounded-lg" /></Link>
+                <Link href={`/characters/${c.id}`} className="poster-link w-24 flex-none"><Art src={primaryImageSrc(state, c)} ratio="portrait" top title={c.name} className="!rounded-lg" /></Link>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2"><Link href={`/characters/${c.id}`} className="bi truncate font-medium hover:underline" dir="auto"><span>{c.name}</span>{c.nameAr && <span className="bi-ar" dir="rtl">{c.nameAr}</span>}</Link>{i === 0 && <Badge tone="accent">{T('mv.lead')}</Badge>}</div>
                   <p className="mt-0.5 truncate text-sm text-muted" dir="auto">{c.role}</p>

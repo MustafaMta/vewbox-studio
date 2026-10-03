@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { assetSrc } from '@/studio/selectors';
+import { assetSrc, primaryImageSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { AddTile, Button, Modal, PickGrid } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';
@@ -33,7 +33,7 @@ export function CanonPicker({ castIds, locationIds, inheritedCast = [], inherite
           <ul className={`grid gap-4 ${only ? 'grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]'}`}>
             {chosenCast.map((c) => (
               <li key={c.id}><Link href={`/characters/${c.id}`} className="poster-link group block">
-                <Art src={assetSrc(state, c.portraitAssetId)} ratio="portrait" title={c.name} />
+                <Art src={primaryImageSrc(state, c)} ratio="portrait" top title={c.name} />
                 <span className="mt-2 block truncate text-sm font-medium" dir="auto">{c.name}</span>
                 <span className="block truncate text-xs text-muted">{inheritedCast.includes(c.id) && !castIds.includes(c.id) ? T('lib.inheritedFromShow') : c.role}</span>
               </Link></li>
@@ -70,7 +70,7 @@ export function Picker({ kind, style, selected, locked = [], onChange, label }: 
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);
   const items = kind === 'cast'
-    ? state.characters.map((c) => ({ id: c.id, label: c.name, labelAr: c.nameAr, src: assetSrc(state, c.portraitAssetId), sub: c.role }))
+    ? state.characters.map((c) => ({ id: c.id, label: c.name, labelAr: c.nameAr, src: primaryImageSrc(state, c), sub: c.role }))
     : state.locations.map((l) => ({ id: l.id, label: l.name, labelAr: l.nameAr, src: assetSrc(state, l.masterAssetId), sub: l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior') }));
   const toggle = (id: string) => { if (locked.includes(id)) return; setDraft((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id])); };
   const title = label ?? (kind === 'cast' ? T('label.cast') : T('label.locations'));

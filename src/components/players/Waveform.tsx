@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const cache = new Map<string, Float32Array>();
 
-async function peaksFor(src: string, buckets: number): Promise<Float32Array> {
+export async function peaksFor(src: string, buckets: number): Promise<Float32Array> {
   const key = `${src}#${buckets}`;
   const hit = cache.get(key); if (hit) return hit;
   const res = await fetch(src);
