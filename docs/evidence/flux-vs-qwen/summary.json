@@ -1,0 +1,687 @@
+{
+  "generatedAt": "2026-10-03T04:25:13.827Z",
+  "arms": {
+    "text:QWEN": {
+      "label": "Qwen-Image-2512 30 steps cfg 4 / Qwen-Image-Edit-2511 24 steps cfg 4 (shipping)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "10/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 5
+        },
+        "ANIME": {
+          "styleOk": "2/4",
+          "quality": 4.5
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.75
+        }
+      },
+      "qualityMean": 4.75,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        106,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "sided": [
+        17,
+        26
+      ],
+      "engineSecWarmMedian": 41.9,
+      "engineSecCold": 61,
+      "vramPeakMiBMax": 30935,
+      "vramBaseMiB": 3125
+    },
+    "text:K4D": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 4.25
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.5
+        }
+      },
+      "qualityMean": 4.25,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        108,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "sided": [
+        9,
+        26
+      ],
+      "engineSecWarmMedian": 1.8,
+      "engineSecCold": 9.2,
+      "vramPeakMiBMax": 21935,
+      "vramBaseMiB": 2575
+    },
+    "text:K4D-T": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1, FLUX-style prompt (no negations)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 4.25
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.5
+        }
+      },
+      "qualityMean": 4.25,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        108,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "sided": [
+        8,
+        26
+      ],
+      "engineSecWarmMedian": 1.6,
+      "engineSecCold": 10.7,
+      "vramPeakMiBMax": 21839,
+      "vramBaseMiB": 2575
+    },
+    "text:K4B": {
+      "label": "FLUX.2 [klein] 4B Base, 50 steps, cfg 4 + negative",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "9/12",
+      "fullBodyByEye": "9/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 3
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 3.5
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 3.5,
+      "anatomy": {
+        "ok": 9,
+        "minor": 3,
+        "major": 0
+      },
+      "tokens": [
+        109,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "3/12",
+      "sided": [
+        10,
+        26
+      ],
+      "engineSecWarmMedian": 28.8,
+      "engineSecCold": 37.8,
+      "vramPeakMiBMax": 22517,
+      "vramBaseMiB": 2935
+    },
+    "text:K4B-T": {
+      "label": "FLUX.2 [klein] 4B Base, 50 steps, cfg 4 + negative, FLUX-style prompt (no negations)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "10/12",
+      "fullBodyByEye": "10/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 3
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 3.5
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 3.5,
+      "anatomy": {
+        "ok": 9,
+        "minor": 3,
+        "major": 0
+      },
+      "tokens": [
+        109,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "2/12",
+      "sided": [
+        11,
+        26
+      ],
+      "engineSecWarmMedian": 28.9,
+      "engineSecCold": 36,
+      "vramPeakMiBMax": 22517,
+      "vramBaseMiB": 3125
+    },
+    "text:K4D-S": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1, shipping prompt with picture-side wording",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 4.25
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.5
+        }
+      },
+      "qualityMean": 4.25,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        108,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "sided": [
+        17,
+        26
+      ],
+      "engineSecWarmMedian": 1.6,
+      "engineSecCold": 7.4,
+      "vramPeakMiBMax": 22519,
+      "vramBaseMiB": 3125
+    },
+    "text:QWEN-S": {
+      "label": "Qwen-Image-2512 30 steps cfg 4 / Qwen-Image-Edit-2511 24 steps cfg 4 (shipping), shipping prompt with picture-side wording",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "10/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 5
+        },
+        "ANIME": {
+          "styleOk": "2/4",
+          "quality": 4.5
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.75
+        }
+      },
+      "qualityMean": 4.75,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        106,
+        110
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "sided": [
+        18,
+        26
+      ],
+      "engineSecWarmMedian": 42,
+      "engineSecCold": 55.4,
+      "vramPeakMiBMax": 31575,
+      "vramBaseMiB": 3127
+    },
+    "reference:QWEN": {
+      "label": "Qwen-Image-2512 30 steps cfg 4 / Qwen-Image-Edit-2511 24 steps cfg 4 (shipping)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "9/12",
+      "fullBodyByEye": "9/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 3.75
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4.75
+        }
+      },
+      "qualityMean": 4.17,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        70,
+        80
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "3/12",
+      "likenessMean": 3.42,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 101.9,
+        "uploadOnly": 66.3
+      },
+      "engineSecCold": 122,
+      "vramPeakMiBMax": 31747,
+      "vramBaseMiB": 3127,
+      "sfaceCos": {
+        "realisticTargetMean": 0.86,
+        "realisticTargetWholeFigureOnly": [
+          0.838
+        ],
+        "cartoonTargetMean": 0.223,
+        "animeTargetMean": 0.568
+      },
+      "dinoFaceCosMean": 0.652,
+      "ccipDiffIr3Mean": 0.026
+    },
+    "reference:K4D": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 4,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        64,
+        80
+      ],
+      "hallucinated": 8,
+      "unscored": 0,
+      "failureRate": "8/12",
+      "likenessMean": 2.92,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 3.7,
+        "uploadOnly": 2.5
+      },
+      "engineSecCold": 10.3,
+      "vramPeakMiBMax": 21903,
+      "vramBaseMiB": 2575,
+      "sfaceCos": {
+        "realisticTargetMean": 0.713,
+        "realisticTargetWholeFigureOnly": [
+          0.742,
+          0.721,
+          0.707,
+          0.68
+        ],
+        "cartoonTargetMean": 0.318,
+        "animeTargetMean": 0.544
+      },
+      "dinoFaceCosMean": 0.663,
+      "ccipDiffIr3Mean": 0.049
+    },
+    "reference:K4D-T": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1, FLUX-style prompt (no negations)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 4,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        72,
+        80
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "likenessMean": 3.58,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 3.7,
+        "uploadOnly": 2.5
+      },
+      "engineSecCold": 11.2,
+      "vramPeakMiBMax": 21871,
+      "vramBaseMiB": 2575,
+      "sfaceCos": {
+        "realisticTargetMean": 0.813,
+        "realisticTargetWholeFigureOnly": [
+          0.824,
+          0.845,
+          0.808,
+          0.776
+        ],
+        "cartoonTargetMean": 0.272,
+        "animeTargetMean": 0.576
+      },
+      "dinoFaceCosMean": 0.673,
+      "ccipDiffIr3Mean": 0.028
+    },
+    "reference:K4B": {
+      "label": "FLUX.2 [klein] 4B Base, 50 steps, cfg 4 + negative",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "9/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 3
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 3
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 3.33,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        61,
+        80
+      ],
+      "hallucinated": 5,
+      "unscored": 0,
+      "failureRate": "7/12",
+      "likenessMean": 2.42,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 80.6,
+        "uploadOnly": 52.4
+      },
+      "engineSecCold": 87.2,
+      "vramPeakMiBMax": 22549,
+      "vramBaseMiB": 3125,
+      "sfaceCos": {
+        "realisticTargetMean": 0.645,
+        "realisticTargetWholeFigureOnly": [
+          0.591
+        ],
+        "cartoonTargetMean": -0.04,
+        "animeTargetMean": 0.448
+      },
+      "dinoFaceCosMean": 0.586,
+      "ccipDiffIr3Mean": 0.062
+    },
+    "reference:K4B-T": {
+      "label": "FLUX.2 [klein] 4B Base, 50 steps, cfg 4 + negative, FLUX-style prompt (no negations)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "11/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "12/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 3
+        },
+        "ANIME": {
+          "styleOk": "4/4",
+          "quality": 3.75
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 3.58,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        66,
+        80
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "1/12",
+      "likenessMean": 2.67,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 80.8,
+        "uploadOnly": 52.5
+      },
+      "engineSecCold": 87.1,
+      "vramPeakMiBMax": 22549,
+      "vramBaseMiB": 3125,
+      "sfaceCos": {
+        "realisticTargetMean": 0.722,
+        "realisticTargetWholeFigureOnly": [
+          0.747,
+          0.777,
+          0.624
+        ],
+        "cartoonTargetMean": -0.051,
+        "animeTargetMean": 0.464
+      },
+      "dinoFaceCosMean": 0.585,
+      "ccipDiffIr3Mean": 0.048
+    },
+    "reference-extra:K4D-T": {
+      "label": "FLUX.2 [klein] 4B distilled, 4 steps, cfg 1, FLUX-style prompt (no negations)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "12/12",
+      "fullBodyByEye": "12/12",
+      "styleOk": "8/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "0/4",
+          "quality": 4
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 4,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        68,
+        72
+      ],
+      "hallucinated": 0,
+      "unscored": 0,
+      "failureRate": "0/12",
+      "likenessMean": 3.83,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 3.7,
+        "uploadOnly": 2.5
+      },
+      "engineSecCold": 10.1,
+      "vramPeakMiBMax": 22553,
+      "vramBaseMiB": 3129,
+      "sfaceCos": {
+        "realisticTargetMean": 0.705,
+        "realisticTargetWholeFigureOnly": [
+          0.717,
+          0.79,
+          0.624,
+          0.689
+        ],
+        "cartoonTargetMean": 0.37,
+        "animeTargetMean": 0.26
+      },
+      "dinoFaceCosMean": 0.631
+    },
+    "reference-extra:QWEN": {
+      "label": "Qwen-Image-2512 30 steps cfg 4 / Qwen-Image-Edit-2511 24 steps cfg 4 (shipping)",
+      "pictures": 12,
+      "errors": 0,
+      "framingPass": "8/12",
+      "fullBodyByEye": "9/12",
+      "styleOk": "8/12",
+      "byStyle": {
+        "CARTOON": {
+          "styleOk": "4/4",
+          "quality": 4
+        },
+        "ANIME": {
+          "styleOk": "0/4",
+          "quality": 4
+        },
+        "REALISTIC": {
+          "styleOk": "4/4",
+          "quality": 4
+        }
+      },
+      "qualityMean": 4,
+      "anatomy": {
+        "ok": 12,
+        "minor": 0,
+        "major": 0
+      },
+      "tokens": [
+        66,
+        72
+      ],
+      "hallucinated": 1,
+      "unscored": 0,
+      "failureRate": "5/12",
+      "likenessMean": 3.58,
+      "engineSecWarmMedian": {
+        "uploadAndFace": 101.7,
+        "uploadOnly": 66.3
+      },
+      "engineSecCold": 114.6,
+      "vramPeakMiBMax": 31737,
+      "vramBaseMiB": 3129,
+      "sfaceCos": {
+        "realisticTargetMean": 0.858,
+        "realisticTargetWholeFigureOnly": [
+          0.839,
+          0.822
+        ],
+        "cartoonTargetMean": 0.199,
+        "animeTargetMean": 0.299
+      },
+      "dinoFaceCosMean": 0.581
+    }
+  }
+}
