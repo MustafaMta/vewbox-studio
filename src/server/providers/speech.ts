@@ -274,7 +274,24 @@ export function foldEnglishNumbers(normalized: string): string {
     .replace(/\s+/g, ' ').trim();
 }
 
-const fold = (x: string, lang: Language) => (lang === 'AR' ? normalizeIraqi(x) : foldEnglishNumbers(normalizeLatin(x.replace(/(\p{L})-(\p{L})/gu, '$1 $2'))));
+/** Contractions written out, the way Whisper sometimes writes them back ("That's… not possible." heard as "That is
+ *  not possible": coverage 0.67 for a correct line, D27). Ambiguous ones take one reading on both sides. */
+const EN_CONTRACTIONS: Record<string, string> = {
+  "it's": 'it is', "that's": 'that is', "there's": 'there is', "here's": 'here is', "what's": 'what is', "who's": 'who is', "where's": 'where is', "how's": 'how is', "he's": 'he is', "she's": 'she is', "let's": 'let us',
+  "isn't": 'is not', "aren't": 'are not', "wasn't": 'was not', "weren't": 'were not', "don't": 'do not', "doesn't": 'does not', "didn't": 'did not', "can't": 'can not', cannot: 'can not', "couldn't": 'could not', "won't": 'will not', "wouldn't": 'would not', "shouldn't": 'should not', "haven't": 'have not', "hasn't": 'has not', "hadn't": 'had not', "mustn't": 'must not', "needn't": 'need not',
+  "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are',
+  "i'll": 'i will', "you'll": 'you will', "he'll": 'he will', "she'll": 'she will', "we'll": 'we will', "they'll": 'they will', "it'll": 'it will', "that'll": 'that will',
+  "i've": 'i have', "you've": 'you have', "we've": 'we have', "they've": 'they have', "could've": 'could have', "would've": 'would have', "should've": 'should have',
+  "i'd": 'i would', "you'd": 'you would', "he'd": 'he would', "she'd": 'she would', "we'd": 'we would', "they'd": 'they would',
+};
+
+/** English contractions written out and every other apostrophe dropped ("'87" → "87", "static's" → "statics"), on
+ *  both sides of the gate. Input: `normalizeLatin` output. */
+export function foldEnglishContractions(normalized: string): string {
+  return normalized.split(' ').map((w) => EN_CONTRACTIONS[w] ?? w.replace(/'/g, '')).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+const fold = (x: string, lang: Language) => (lang === 'AR' ? normalizeIraqi(x) : foldEnglishNumbers(foldEnglishContractions(normalizeLatin(x.replace(/(\p{L})-(\p{L})/gu, '$1 $2')))));
 
 /** Share of the intended words heard in order (longest common subsequence over folded words). Insertions — a
  *  repeated phrase, a filler — do not lower it; missing or wrong words do. Arabic goes through the dialect fold. */

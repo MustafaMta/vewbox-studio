@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { charErrorRate, foldEnglishNumbers, scriptCoverage } from '@/server/providers/speech';
+import { charErrorRate, foldEnglishContractions, foldEnglishNumbers, scriptCoverage } from '@/server/providers/speech';
+
+describe('English contractions in the voice gate (D27): the lines of "The Static Sky"', () => {
+  it('writes contractions out and drops other apostrophes', () => {
+    expect(foldEnglishContractions("it's still functional isn't it")).toBe('it is still functional is not it');
+    expect(foldEnglishContractions("the mariner it vanished in '87")).toBe('the mariner it vanished in 87');
+    expect(foldEnglishContractions("static's just a story")).toBe('statics just a story');
+  });
+  it('the two flagged lines pass, and the third reaches full coverage', () => {
+    for (const [intended, heard] of [['It’s still… functional, isn’t it?', "It is still functional, isn't it?"], ['That’s… not possible.', 'That is not possible.'], ['The Mariner… it vanished in ’87.', 'The Mariner. It vanished in 87.']] as const) {
+      expect(scriptCoverage(intended, heard, 'EN')).toBe(1);
+      expect(charErrorRate(intended, heard, 'EN')).toBe(0);
+    }
+  });
+  it('a wrong word is still wrong', () => {
+    expect(scriptCoverage('That’s not possible.', 'That was possible.', 'EN')).toBeLessThan(1);
+  });
+});
 
 describe('English numbers in the voice gate (D8): one spelled form on both sides', () => {
   it('spells digits as words and drops the inner "and"', () => {
