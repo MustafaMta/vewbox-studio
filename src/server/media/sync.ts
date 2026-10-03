@@ -42,8 +42,9 @@ async function pcm(file: string, from?: number, seconds?: number, rate = 16000):
   return new Float32Array(stdout.buffer, stdout.byteOffset, Math.floor(stdout.byteLength / 4));
 }
 
-/** How late (or early) a take's sound runs against the master's stretch [from, from+seconds). */
-export async function takeLagAgainstMaster(takeFile: string, masterFile: string, from: number, seconds: number): Promise<{ lagMs: number; corrZero: number; corrBest: number }> {
-  const [a, b] = await Promise.all([pcm(takeFile, 0, seconds), pcm(masterFile, from, seconds)]);
+/** How late (or early) a take's sound runs against the master's stretch [from, from+seconds). `takeFrom` skips the
+ *  take's head that repeats the previous shot (a continuation guide): the cut never plays it, so it is not measured. */
+export async function takeLagAgainstMaster(takeFile: string, masterFile: string, from: number, seconds: number, takeFrom = 0): Promise<{ lagMs: number; corrZero: number; corrBest: number }> {
+  const [a, b] = await Promise.all([pcm(takeFile, Math.max(0, takeFrom), seconds), pcm(masterFile, from, seconds)]);
   return bestLag(envelope(a, 16000), envelope(b, 16000));
 }

@@ -40,6 +40,10 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
+    // a reference shot with its opening frame anchored at 0 and the recorded line at frame 0 (CUT / STORY_TRANSITION)
+    { name: 'minimax-h3.ref2va-opening', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png', 'b.png'], firstFrame: 'c.png', guides: [{ frameIdx: 0, audio: 'a.wav' }] }) },
+    // a continuation: the previous take's tail, frames AND sound, at 0; the recorded line at the first new frame
+    { name: 'minimax-h3.ref2va-continuation', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png', 'b.png'], guides: [{ frameIdx: 0, image: 'tail.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audio: 'a.wav' }] }) },
     { name: 'ace-step-1.5.song', graph: aceStepSong({ caption: '', lyrics: '', seconds: 60 }) },
     { name: 'minimax-music-3.song', graph: minimaxMusic3Song({ caption: '', lyrics: '', seconds: 60 }) },
   ];

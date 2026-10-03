@@ -135,14 +135,37 @@ export async function joinSpeech(lines: Array<{ file: string; durationSeconds: n
   return { file: out, durationSeconds: total, windows };
 }
 
-/** The last `frames` frames of a clip as a small video (with its audio), for a continuation guide. */
+/** The ffmpeg arguments of a tail clip: the last `frames` frames of a clip of `totalFrames` frames, picture and sound
+ *  bounded to exactly frames/fps seconds (the sound would otherwise run to the end of the input, a few ms past the
+ *  picture), mono 48 kHz PCM in a .mov. Pure, so the shape is tested. */
+export function tailClipArgs(video: string, out: string, frames: number, totalFrames: number, fps = 24): string[] {
+  const startFrame = Math.max(0, totalFrames - frames);
+  const n = Math.min(frames, totalFrames || frames);
+  return ['-y', '-v', 'error', '-ss', (startFrame / fps).toFixed(6), '-i', video, '-t', (n / fps).toFixed(6), '-frames:v', String(n), '-vf', `fps=${fps}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '12', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '1', out];
+}
+
+/** The last `frames` frames of a clip as a small video WITH its audio, for a continuation guide: both streams are
+ *  anchored together at frame 0 of the next take (the template's continuation idiom). */
 export async function tailClip(video: string, out: string, frames: number, fps = 24): Promise<string> {
   const p = await ffprobe(video);
   const total = p.frames ?? Math.round((p.durationSeconds ?? 0) * fps);
-  const startFrame = Math.max(0, total - frames);
-  const start = startFrame / fps;
-  await ffmpeg(['-y', '-v', 'error', '-ss', start.toFixed(6), '-i', video, '-frames:v', String(frames), '-vf', `fps=${fps}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '12', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '1', out.replace(/\.mp4$/, '.mov')]);
-  return out.replace(/\.mp4$/, '.mov');
+  const mov = out.replace(/\.mp4$/, '.mov');
+  await ffmpeg(tailClipArgs(video, mov, frames, total, fps));
+  return mov;
+}
+
+/** The last frame of a clip as a PNG (the hosted continuation: the previous take's closing frame becomes the next
+ *  take's first frame, the platform's own continuation idiom). */
+export async function lastFrame(video: string, out: string): Promise<string> {
+  await ffmpeg(['-y', '-v', 'error', '-sseof', '-1', '-i', video, '-an', '-update', '1', '-q:v', '1', out]);
+  return out;
+}
+
+/** The ffmpeg arguments that extract a take's sound for transcription (mono 16 kHz WAV), starting after the head that
+ *  repeats the previous shot (`fromSeconds`, a continuation guide): those words were the previous shot's and are not
+ *  this take's script, so they are not heard back as insertions. */
+export function speechAudioArgs(video: string, wav: string, fromSeconds = 0): string[] {
+  return ['-y', '-v', 'error', ...(fromSeconds > 0 ? ['-ss', fromSeconds.toFixed(6)] : []), '-i', video, '-vn', '-ac', '1', '-ar', '16000', wav];
 }
 
 /** The audio of a clip's last `seconds`, mono 48 kHz. */
