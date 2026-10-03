@@ -41,6 +41,8 @@ export interface FrameProps {
   number?: number;
   art?: ArtVars | null;
   presentation?: Presentation | null;
+  /** an explicit `object-position` (a figure portrait-cropped to its face: art.ts portraitPosition) */
+  position?: string;
   /** the producer judges these pixels: no light-backdrop filter */
   judge?: boolean;
   /** media 14 (tiles) · hero 20 (the marquee, detail heroes) · none (inside a card, which clips it) */
@@ -53,7 +55,7 @@ export interface FrameProps {
   children?: ReactNode;
 }
 
-export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', focal, alt, priority, state = 'ready', phase, title, titleLang, titleState, number, art, presentation, judge, radius = 'media', decorative, className, style, children }: FrameProps) {
+export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', focal, position, alt, priority, state = 'ready', phase, title, titleLang, titleState, number, art, presentation, judge, radius = 'media', decorative, className, style, children }: FrameProps) {
   const src = asset?.src ?? plainSrc ?? null;
   const pres = presentation ?? asset?.presentation ?? null;
   const [loaded, setLoaded] = useState(false);
@@ -99,7 +101,7 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
     <div ref={boxRef} className={cls('frame', className)} data-fit={fit} data-radius={radius} data-loaded={loaded || undefined} data-tint={tinted || undefined} style={{ aspectRatio: cssRatio(ratio), ...vars, ...style }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img ref={imgRef} src={src} alt={alt} loading={priority || near ? 'eager' : 'lazy'} decoding="async" fetchPriority={priority ? 'high' : undefined}
-        data-light={dimsLight(pres, judge) || undefined} style={fit === 'cover' ? { objectPosition: objectPosition(pres, focal) } : undefined}
+        data-light={dimsLight(pres, judge) || undefined} style={fit === 'cover' ? { objectPosition: position ?? objectPosition(pres, focal) } : undefined}
         onLoad={(e) => reveal(e.currentTarget)} onError={() => setFailed(true)} />
       {state === 'drawing' && (
         <span className="frame-phase" role="status"><span className="m-tally" aria-hidden />{phase ?? T('media.state.drawing')}</span>
