@@ -100,7 +100,7 @@ function JobDetail({ job }: { job: Job }) {
         <p className="mb-2 text-xs font-medium text-muted">{T('jobs.events')}</p>
         {events.length === 0 ? <p className="text-sm text-faint">—</p> : (
           <ol className="max-h-80 space-y-1 overflow-auto text-[12px]">
-            {events.map((e) => <li key={e.id} className={cls('flex gap-2', e.level === 'error' ? 'text-bad' : e.level === 'warn' ? 'text-warn' : 'text-body')}><span className="num flex-none text-faint">{new Date(e.at).toLocaleTimeString()}</span><span className="min-w-0 break-words" dir="auto">{e.message}{e.data && Object.keys(e.data).length ? <span className="text-faint"> · {JSON.stringify(e.data).slice(0, 240)}</span> : null}</span></li>)}
+            {events.map((e) => <li key={e.id} className={cls('flex gap-2', e.level === 'error' ? 'text-bad' : e.level === 'warn' ? 'text-warn' : 'text-body')}><span className="num flex-none text-faint">{new Date(e.at).toLocaleTimeString('en-GB')}</span><span className="min-w-0 break-words" dir="auto">{e.message}{e.data && Object.keys(e.data).length ? <span className="text-faint"> · {JSON.stringify(e.data).slice(0, 240)}</span> : null}</span></li>)}
           </ol>
         )}
       </div>

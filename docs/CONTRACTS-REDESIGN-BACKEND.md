@@ -175,8 +175,9 @@ A cut of the production is the current `cutAssetId`, or a DERIVED video tagged `
 ## B7 — Presentation additions, thumbnails, frame poster
 
 **Presentation** (`src/domain/presentation.ts`) gains `portraitFocal?: { x, y }` (the point a 2:3 crop keeps when it
-differs from `focal`) and `rtlFrameAssetId?: string` (the picture to show instead in an RTL interface). Both are set by
-the producer or the poster step, never measured; absent means `focal` → `DEFAULT_FOCAL`, and the same picture.
+differs from `focal`), set by the producer or the poster step, never measured; absent means `focal` →
+`DEFAULT_FOCAL`. (`rtlFrameAssetId`, a picture for an RTL interface, was removed on 2026-10-03 by EN-1: the website is
+English-only and never mirrors; no asset carried it.)
 
 **Thumbnails.** `Asset.thumb?: { src: string; path: string; width; height; bytes }` (`assets.thumb` jsonb without
 `src`). A JPEG beside the original in the library (`…/{assetId}.thumb.jpg`): long side ≤ 960 px (2× of 480), never
