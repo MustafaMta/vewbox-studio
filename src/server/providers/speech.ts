@@ -242,7 +242,39 @@ export function normalizeIraqi(s: string): string {
   return t.replace(/\s+/g, ' ').trim();
 }
 
-const fold = (x: string, lang: Language) => (lang === 'AR' ? normalizeIraqi(x) : normalizeLatin(x));
+const EN_UNITS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+const EN_TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+
+const UNIT_WORD = Object.fromEntries(Object.entries(EN_UNITS).map(([w, n]) => [n, w])) as Record<number, string>;
+const TENS_WORD = Object.fromEntries(Object.entries(EN_TENS).map(([w, n]) => [n, w])) as Record<number, string>;
+function spellBelowThousand(n: number): string[] {
+  const out: string[] = [];
+  if (n >= 100) { out.push(UNIT_WORD[Math.floor(n / 100)], 'hundred'); n %= 100; }
+  if (n >= 20) { out.push(TENS_WORD[Math.floor(n / 10) * 10]); n %= 10; if (n) out.push(UNIT_WORD[n]); }
+  else if (n > 0 || out.length === 0) out.push(UNIT_WORD[n]);
+  return out;
+}
+/** Spell a whole number in English words ("32" → "thirty two"); numbers beyond a million stay digits. */
+function spellNumber(digits: string): string {
+  const n = Number(digits);
+  if (!Number.isSafeInteger(n) || n >= 1_000_000 || digits.length > 1 && digits.startsWith('0')) return digits;
+  if (n < 1000) return spellBelowThousand(n).join(' ');
+  return [...spellBelowThousand(Math.floor(n / 1000)), 'thousand', ...(n % 1000 ? spellBelowThousand(n % 1000) : [])].join(' ');
+}
+
+/** English numbers in ONE spelled form on both sides of the gate: digits become words ("32 ships" → "thirty two
+ *  ships"), the "and" inside a spelled number goes, and thousands separators go ("1,000" → "one thousand"). Whisper
+ *  writes "Thirty-two" back as "32"; spelling digits (rather than parsing words into digits) keeps a near miss like
+ *  "nine ten" → "nina tin" close at the letter level (found 2026-10-03: a correct preview scored CER 0.14 only because
+ *  of "Thirty-two" vs "32"). */
+export function foldEnglishNumbers(normalized: string): string {
+  return normalized.replace(/(\d),(?=\d{3}\b)/g, '$1')
+    .replace(/\b\d+\b/g, (d) => spellNumber(d))
+    .replace(/\b(hundred|thousand) and (?=(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\b)/g, '$1 ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+const fold = (x: string, lang: Language) => (lang === 'AR' ? normalizeIraqi(x) : foldEnglishNumbers(normalizeLatin(x.replace(/(\p{L})-(\p{L})/gu, '$1 $2'))));
 
 /** Share of the intended words heard in order (longest common subsequence over folded words). Insertions — a
  *  repeated phrase, a filler — do not lower it; missing or wrong words do. Arabic goes through the dialect fold. */
