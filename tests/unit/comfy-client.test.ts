@@ -130,6 +130,13 @@ describe('ComfyUI client: classified failures (C2, C3)', () => {
     expect(ex.message).toContain('CLIPLoader #2 failed: RuntimeError: bad header');
     expect(comfy.classifyExecutionError([['execution_interrupted', {}]]).kind).toBe('INTERRUPTED');
   });
+  it('a broken engine environment (no C compiler for Triton) is not retryable: the same graph would fail the same way', () => {
+    const ex = comfy.classifyExecutionError([['execution_error', { node_id: '7', node_type: 'CLIPTextEncode', exception_type: 'RuntimeError', exception_message: 'Failed to find C compiler. Please specify via CC environment variable or set triton.knobs.build.impl.' }]]);
+    expect(ex.kind).toBe('ENVIRONMENT');
+    expect(ex.code).toBe('NOT_CONFIGURED');
+    expect(ex.retryable).toBe(false);
+    expect(ex.message).toContain('needs fixing');
+  });
 });
 
 describe('ComfyUI client: lost prompts and targeted cancel (C4, C5)', () => {

@@ -111,12 +111,13 @@ export const workflowVersion = (graph: Record<string, unknown>) => structuralWor
 
 // ----------------------------------------------------------------------------------------- failure classes
 
-export type ComfyFailureKind = 'MODEL_OR_NODE_MISSING' | 'INPUT_FILE_MISSING' | 'BAD_INPUT' | 'OUT_OF_MEMORY' | 'EXECUTION' | 'LOST' | 'INTERRUPTED' | 'TIMEOUT';
+export type ComfyFailureKind = 'MODEL_OR_NODE_MISSING' | 'ENVIRONMENT' | 'INPUT_FILE_MISSING' | 'BAD_INPUT' | 'OUT_OF_MEMORY' | 'EXECUTION' | 'LOST' | 'INTERRUPTED' | 'TIMEOUT';
 
 /** kind → the studio's error code (decides the worker's blind-retry rule: only PROVIDER/UNAVAILABLE retry) and the
  *  failure class `classifyFailure` reads first. */
 const KIND: Record<ComfyFailureKind, { code: StudioErrorCode; failureClass: FailureClass; retryable: boolean }> = {
   MODEL_OR_NODE_MISSING: { code: 'NOT_CONFIGURED', failureClass: 'INFRASTRUCTURE', retryable: false },
+  ENVIRONMENT: { code: 'NOT_CONFIGURED', failureClass: 'INFRASTRUCTURE', retryable: false },
   INPUT_FILE_MISSING: { code: 'UNAVAILABLE', failureClass: 'INFRASTRUCTURE', retryable: true },
   BAD_INPUT: { code: 'INVALID', failureClass: 'WRONG_PARAMETERS', retryable: false },
   OUT_OF_MEMORY: { code: 'UNAVAILABLE', failureClass: 'RESOURCE_EXHAUSTION', retryable: true },
@@ -192,6 +193,9 @@ export function classifyExecutionError(messages: unknown[] | undefined, promptId
   const details = { promptId, nodeId: ex.node_id, nodeType: ex.node_type, exceptionType: type, providerErrorType: type || 'execution_error' };
   if (/OutOfMemory|out of memory|Allocation on device/i.test(`${type} ${msg}`)) return new ComfyError('OUT_OF_MEMORY', `ComfyUI ran out of GPU memory in ${node}: ${msg.slice(0, 300)}`, details);
   if (String(ex.node_type) === 'LoadImage' && /FileNotFound|No such file|Invalid image/i.test(`${type} ${msg}`)) return new ComfyError('INPUT_FILE_MISSING', `ComfyUI could not read the input picture in ${node}: ${msg.slice(0, 300)}`, details);
+  // the engine's own environment is broken (a toolchain, a kernel build): retrying the same graph cannot help — it fails
+  // the same way until the container is fixed (found 2026-10-03: "Failed to find C compiler" retried 3× unchanged)
+  if (/Failed to find C compiler|triton\.knobs\.build|No such file or directory: '(gcc|cc|clang|nvcc)'|no kernel image is available|ninja: (not found|command not found)/i.test(`${type} ${msg}`)) return new ComfyError('ENVIRONMENT', `ComfyUI's environment cannot run ${node}: ${msg.slice(0, 300)} — the ComfyUI container needs fixing (see docs/OPERATIONS.md); retrying unchanged will fail the same way.`, details);
   return new ComfyError('EXECUTION', `ComfyUI ${node} failed: ${type ? `${type}: ` : ''}${msg.slice(0, 600)}`, details);
 }
 
