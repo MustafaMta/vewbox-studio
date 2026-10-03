@@ -14,7 +14,7 @@ import { decisionCard, type DecisionCard as CardModel } from '@/components/home/
 import { Frame } from '@/components/media/Frame';
 import { DecisionCardSkeleton } from '@/components/media/Skeletons';
 import { ContentName, DecisionCard } from '@/components/media/Cards';
-import { Button, Drawer, PanelCard, Segmented, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
+import { Button, Drawer, FilterChips, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
 import { RetryControl } from '@/components/ui/jobs';
 import { useToast } from '@/components/ui/toast';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton, useNow } from '@/components/studio/parts';
@@ -119,7 +119,8 @@ function History() {
       {/* the old /jobs address lands on #activity (src/components/shell/redirects.ts) */}
       <span id="activity" className="ctl-anchor" aria-hidden />
       <div className="ctl-filter">
-        <Segmented label="Show" value={filter} onChange={(v) => { setFilter(v); setLimit(12); }} options={HISTORY_FILTERS.map((f) => ({ value: f.value, label: <>{f.label}<span className="t-ro ctl-seg-count">{counts[f.value]}</span></> }))} />
+        <FilterChips label="Show" value={filter === 'all' ? [] : [filter]} onChange={(v) => { setFilter((v[0] as HistoryFilter | undefined) ?? 'all'); setLimit(12); }}
+          options={HISTORY_FILTERS.filter((f) => f.value !== 'all').map((f) => ({ value: f.value, label: f.label, count: counts[f.value], disabled: counts[f.value] === 0, reason: 'Nothing in the record' }))} />
       </div>
       {list.length === 0 ? <EmptyLine>{filter === 'all' ? 'The studio has not finished a job yet.' : 'No job in the record matches this filter.'}</EmptyLine> : (
         <>

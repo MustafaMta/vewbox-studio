@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { EngineHealth, EngineStatus } from '@/studio/api';
 import { useLive, useReliability } from '@/studio/org';
-import { Button, PanelCard, Skeleton, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
+import { Button, ErrorState, PanelCard, Skeleton, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { EmptyLine, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from '@/components/studio/parts';
 import { duration, failureWords, jobWords, percent, plural, shortWhen, spanWords } from '@/components/studio/model';
 import type { Health } from '@/components/studio/Company';
@@ -44,7 +44,7 @@ export function EngineRoom({ health }: { health: Health | null }) {
           <span className="t-meta">{since ? `Since ${since}` : 'Paused'}{health.intake.reason ? <> · <span dir="auto">{health.intake.reason}</span></> : null}</span>
         </div>
       )}
-      {error && !engines ? <EmptyLine action={<Button size="sm" onClick={reload}>Try again</Button>}>The engines could not be asked: {error}</EmptyLine> : (
+      {error && !engines ? <ErrorState title="The engines could not be asked" action={<Button size="sm" onClick={reload}>Try again</Button>} details={error}>The status check did not answer; the engines may still be fine.</ErrorState> : (
         <ul className="ctl-engines" role="list" aria-busy={!engines || undefined} aria-label={engines ? `${ENGINES.length - offline} of ${ENGINES.length} engines ready` : 'Engines'}>
           {ENGINES.map((e) => <li key={e.key}><EngineCard name={e.name} does={e.does} row={engines ? engines[e.key] : undefined} loading={!engines} /></li>)}
         </ul>

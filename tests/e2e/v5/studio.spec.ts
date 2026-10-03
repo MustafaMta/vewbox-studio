@@ -161,9 +161,9 @@ test('Production: the history filter, a job’s log in a drawer, and ?job= openi
   const failed = jobs.filter((j: { status: string }) => j.status === 'FAILED');
   await open(page, '/production', '.control:not(.sk-region) #history');
   const history = page.locator('#history');
-  await history.getByRole('radio', { name: /^Failed/ }).click();
+  await history.getByRole('button', { name: /^Failed/ }).click();
   await expect(history.locator('.cp-rows .cp-row')).toHaveCount(Math.min(12, failed.length));
-  await history.getByRole('radio', { name: /^All/ }).click();
+  await history.getByRole('button', { name: /^Failed/ }).click(); // choosing it again clears the filter
   await history.locator('.cp-row').first().getByRole('button', { name: 'Details' }).click();
   const drawer = page.getByRole('dialog');
   await expect(drawer).toBeVisible();
@@ -228,12 +228,14 @@ test('Files: grouped by owner, search and filters narrow it, a file opens in pla
   await open(page, '/assets', '.files:not(.sk-region) .fl-bar');
   await expect(page.locator('.fl-count')).toHaveText(`${snap.state.assets.length} files`);
   if (snap.state.characters.length) await expect(page.locator('#files-character')).toBeVisible();
-  await page.getByRole('radio', { name: /^Subtitles/ }).click();
+  const kind = page.getByRole('group', { name: 'Kind' });
+  await kind.getByRole('button', { name: /^Subtitles/ }).click();
   await expect(page.locator('.fl-grid')).toHaveCount(0);
-  await page.getByRole('radio', { name: /^All/ }).click();
-  await page.getByRole('radio', { name: 'Characters' }).click();
+  await kind.getByRole('button', { name: /^Subtitles/ }).click();
+  const owner = page.getByRole('group', { name: 'Owner' });
+  await owner.getByRole('button', { name: /^Characters/ }).click();
   await expect(page.locator('#files-production')).toHaveCount(0);
-  await page.getByRole('radio', { name: 'Everyone' }).click();
+  await owner.getByRole('button', { name: /^Characters/ }).click();
   await page.getByLabel('Search files').fill('zzzz-no-such-file');
   await expect(page.locator('main')).toContainText('No file matches.');
   await page.getByRole('button', { name: 'Clear the search and filters' }).click();

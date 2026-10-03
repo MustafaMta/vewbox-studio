@@ -78,10 +78,7 @@
   .fl-upload { cursor: pointer; }
   .fl-upload:focus-within { outline: 2px solid var(--text-1); outline-offset: 2px; }
   .fl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-  .fl-search { position: relative; display: flex; flex: 1 1 260px; min-inline-size: 0; max-inline-size: 420px; }
-  .fl-search > svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; inline-size: 16px; block-size: 16px; color: var(--text-3); transform: translateY(-50%); pointer-events: none; }
-  .fl-search > input { inline-size: 100%; padding-inline-start: 36px; }
-  .fl-bar .seg { max-inline-size: 100%; }
+  .fl-search { flex: 1 1 260px; min-inline-size: 0; max-inline-size: 420px; }
   .fl-count { margin: 12px 0 0; }
   .files .cp-section:first-of-type { margin-block-start: 24px; }
   .fl-owner + .fl-owner { margin-block-start: 32px; }

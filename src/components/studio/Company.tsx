@@ -7,7 +7,7 @@ import { useLive, useOrg, type HandoffRow, type OrgDepartment, type OrgResponse 
 import { RING, VIEW, deriveCompany, edgeGeometry, seats, type Company, type CompanyEdge, type NodeState, type Seat } from '@/studio/company';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
-import { Button, JobDot, LinkButton, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
+import { Button, ErrorState, JobDot, LinkButton, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
 import { RunningNow } from '@/components/production/Running';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
@@ -42,7 +42,7 @@ export function StudioCompany() {
     if (error) return (
       <div className="cp company">
         <PageHead title="Studio Company" />
-        <EmptyLine action={<Button size="sm" onClick={reload}>Try again</Button>}>The company record could not be read: {error}</EmptyLine>
+        <ErrorState title="The company record could not be read" action={<Button size="sm" onClick={reload}>Try again</Button>} details={error}>The organisation did not answer. Nothing is lost; try again.</ErrorState>
       </div>
     );
     return <StudioCompanySkeleton />;

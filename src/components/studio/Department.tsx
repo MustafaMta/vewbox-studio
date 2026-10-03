@@ -6,7 +6,7 @@ import { plannedRolesOf, skillStatusOf, useDepartment, useOrg, type AgentRunRow,
 import { deriveCompany, pipelineNeighbours } from '@/studio/company';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { Button, LinkButton, PanelCard, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
+import { Button, ErrorState, LinkButton, PanelCard, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
 import { PanelCardSkeleton } from '@/components/media/Skeletons';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
@@ -28,8 +28,7 @@ export function DepartmentPage({ id }: { id: string }) {
   const back = { href: '/studio', label: 'Studio Company' };
   if (error && !data) return (
     <div className="cp dept">
-      <PageHead back={back} title="This department isn’t in the studio" />
-      <EmptyLine action={<Button size="sm" onClick={reload}>Try again</Button>}>Its record could not be read: {error}</EmptyLine>
+      <ErrorState kind="page" title="This department isn’t in the studio" back={{ href: back.href, label: `Back to ${back.label}` }} action={<Button onClick={reload}>Try again</Button>}>Its record could not be read.</ErrorState>
     </div>
   );
   if (!org || !data || !company) return <DepartmentSkeleton />;

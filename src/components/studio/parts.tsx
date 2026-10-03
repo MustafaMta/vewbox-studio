@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { SectionHead, Skeleton, cls } from '@/components/ui/kit';
+import { EmptyState, SectionHead, Skeleton, cls } from '@/components/ui/kit';
 import { IconChevronLeft } from '@/components/ui/icons';
 import { SectionHeadSkeleton as SharedSectionHeadSkeleton } from '@/components/media/Skeletons';
 
@@ -58,7 +58,7 @@ export function Row({ start, title, meta, end, children, className }: { start?: 
 
 /** One sentence in place of a section's content (the section head stays), with at most one action. */
 export function EmptyLine({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return <div className="cp-empty"><p className="t-body">{children}</p>{action}</div>;
+  return <EmptyState action={action}>{children}</EmptyState>;
 }
 
 /** The time now, ticking each second while `on` (elapsed clocks of running jobs). */

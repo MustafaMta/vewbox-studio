@@ -5,7 +5,7 @@ import { JOB_LABELS, type JobType } from '@/domain/jobs';
 import { stepsOf, useAgent } from '@/studio/org';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { Button, JobDot, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
+import { Button, ErrorState, JobDot, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
 import { PanelCardSkeleton } from '@/components/media/Skeletons';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
 import { RunRows, ToolsAndSkills } from './Department';
@@ -23,8 +23,7 @@ export function AgentPage({ id }: { id: string }) {
   const { state } = useStudio();
   if (error && !data) return (
     <div className="cp agent">
-      <PageHead back={{ href: '/studio', label: 'Studio Company' }} title="This agent isn’t in the studio" />
-      <EmptyLine action={<Button size="sm" onClick={reload}>Try again</Button>}>Its record could not be read: {error}</EmptyLine>
+      <ErrorState kind="page" title="This agent isn’t in the studio" back={{ href: '/studio', label: 'Back to Studio Company' }} action={<Button onClick={reload}>Try again</Button>}>Its record could not be read.</ErrorState>
     </div>
   );
   if (!data) return <AgentSkeleton />;
