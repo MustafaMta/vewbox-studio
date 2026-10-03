@@ -15,7 +15,7 @@ export async function fixture(kind: 'sample' | 'empty' | 'states', lang: 'en' | 
 }
 
 /** Open a page on the fixture studio and wait for the page's own heading (not the shell's placeholder). */
-export async function open(page: Page, path: string, opts: { kind?: 'sample' | 'empty' | 'states'; lang?: 'en' | 'ar'; prefs?: Record<string, unknown>; /** more set-up after the harness's, before the page loads */ before?: (page: Page) => Promise<void> } = {}) {
+export async function open(page: Page, path: string, opts: { kind?: 'sample' | 'empty' | 'states'; lang?: 'en' | 'ar'; prefs?: Record<string, unknown>; /** more set-up after the harness's, before the page loads */ before?: (page: Page) => Promise<unknown> } = {}) {
   const lang = opts.lang ?? 'en';
   const fx = await fixture(opts.kind ?? 'sample', lang);
   await prepare(page, { lang, fixture: fx, motion: 'reduce' });
