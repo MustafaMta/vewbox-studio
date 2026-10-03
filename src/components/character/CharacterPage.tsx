@@ -49,7 +49,9 @@ export function CharacterPage({ c }: { c: Character }) {
       <JustCreated c={c} />
       {/* the canonical image is the identity: the largest thing on the page (≈ 40 % of the content width on desktop) */}
       <div className="grid gap-8 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
-        <div id="image" className="mx-auto w-full max-w-[24rem] scroll-mt-24 md:mx-0 md:max-w-none md:self-start lg:sticky lg:top-8"><ImagePanel c={c} s={s} /></div>
+        {/* not sticky: the image is taller than many laptop screens, and a sticky panel would hide its own Approve /
+            Redraw actions below the fold for good (found in the browser, 2026-10-03) */}
+        <div id="image" className="mx-auto w-full max-w-[24rem] scroll-mt-24 md:mx-0 md:max-w-none md:self-start"><ImagePanel c={c} s={s} /></div>
 
         <div className="min-w-0 space-y-12">
           <header id="about" className="scroll-mt-24">
