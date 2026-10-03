@@ -1,5 +1,5 @@
 /** THE STAGE METER (docs/DESIGN-SYSTEM-V4.md §5.7, §5.10) — six segments of 16 × 3 px with a 2 px gap, one per stage
- *  (Story · Cast & world · Storyboard · Produce · Final cut · Finished). Done segments are muted, the current one is iris
+ *  (Story · Cast & world · Storyboard · Produce · Final cut · Finished). Done segments are muted, the current one is light
  *  while running, warn while waiting for the producer, ivory otherwise; upcoming ones are the strong hairline. It is
  *  the decorative twin of the words beside it, so it is hidden from assistive technology. */
 

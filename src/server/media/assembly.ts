@@ -1,10 +1,9 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import type { Asset, Character, Production, Shot, ShotRelation, Take } from '@/domain/types';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 import { buildAudioTimeline, CLOCK_FPS, CLOCK_RATE, type AudioTimeline, type AudioTimelineOptions, type ShotClock } from '@/domain/timeline';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';

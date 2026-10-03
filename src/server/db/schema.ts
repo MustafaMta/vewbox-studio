@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
 import type { RunPhaseEvent } from '@/domain/phases';
@@ -314,7 +315,10 @@ export const jobs = pgTable('jobs', {
   locationId: text('location_id'),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
-}, (t) => [uniqueIndex('jobs_idempotency_idx').on(t.idempotencyKey), index('jobs_status_idx').on(t.status, t.priority, t.createdAt), index('jobs_production_idx').on(t.productionId), index('jobs_parent_idx').on(t.parentId)]);
+}, (t) => [uniqueIndex('jobs_idempotency_idx').on(t.idempotencyKey), index('jobs_status_idx').on(t.status, t.priority, t.createdAt), index('jobs_production_idx').on(t.productionId), index('jobs_parent_idx').on(t.parentId),
+  // ONE ACTIVE JOB PER CHARACTER for the character jobs (src/server/jobs/queue.ts ONE_PER_CHARACTER): enforced here, so
+  // two concurrent requests can never both insert one (audit H4)
+  uniqueIndex('jobs_one_active_per_character').on(t.type, t.characterId).where(sql`status in ('QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and type in ('VOICE_BUILD', 'VOICE_DESIGN', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS') and character_id is not null`)]);
 
 export const jobEvents = pgTable('job_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),

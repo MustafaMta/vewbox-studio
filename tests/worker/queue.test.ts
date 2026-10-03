@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { backoffMs, cancelled, claim, complete, enqueue, fail, getJob, heartbeat, requestCancel, retry, setProgress } from '@/server/jobs/queue';
+import { backoffMs, cancelled, claim, complete, enqueue, fail, getJob, heartbeat, isUniqueViolation, reapStale, requestCancel, retry, setProgress } from '@/server/jobs/queue';
 import { db, schema } from '@/server/db/client';
 
 /** THE QUEUE'S PROMISES, against the real database. A worker that goes quiet loses its lease; a second worker takes
@@ -118,5 +118,155 @@ describe('queue leases', () => {
     expect(b1).toBeGreaterThanOrEqual(12_000); expect(b1).toBeLessThanOrEqual(18_000);
     expect(b2).toBeGreaterThan(b1); expect(b3).toBeGreaterThan(b2);
     expect(b9).toBeLessThanOrEqual(15 * 60_000 * 1.2);
+  });
+});
+
+describe('queue hardening (audit H4, step 3)', () => {
+  const stale = () => new Date(Date.now() - 10 * 60_000).toISOString();
+  const parked = async (maxAttempts: number) => { const { job } = await enqueue({ type: 'MEDIA_PROBE', payload: { assetId: `asset-h4-${Math.random().toString(36).slice(2)}` }, maxAttempts, runAfter: new Date(Date.now() + 3600_000).toISOString() }); made.push(job.id); return job; };
+
+  it('a job whose worker died on its last attempt is not reclaimed: the reaper fails it (INFRASTRUCTURE, not retryable)', async () => {
+    const job = await parked(2);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'dead-worker', heartbeatAt: stale(), attempts: 2, runAfter: null }).where(eq(schema.jobs.id, job.id));
+    for (let i = 0; i < 3; i++) { const c = await claim('test-worker-poison', ['MEDIA_PROBE']); expect(c?.id).not.toBe(job.id); if (c) await complete(c.id, { skipped: true }); }
+    const r = await reapStale();
+    expect(r.failed).toContain(job.id);
+    const j = (await getJob(job.id))!;
+    expect(j.status).toBe('FAILED'); expect(j.finishedAt).toBeTruthy();
+    expect(j.error).toMatchObject({ code: 'UNAVAILABLE', retryable: false, details: { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' } });
+    // a deliberate retry still revives it
+    expect((await retry(job.id)).status).toBe('QUEUED');
+    await requestCancel(job.id);
+  });
+
+  it('a job cancelled while its worker died is settled CANCELLED by the reaper; a live one is left alone', async () => {
+    const dead = await parked(3); const live = await parked(3);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'dead-worker', heartbeatAt: stale(), attempts: 1, cancelRequested: true }).where(eq(schema.jobs.id, dead.id));
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'live-worker', heartbeatAt: new Date().toISOString(), attempts: 1, cancelRequested: true }).where(eq(schema.jobs.id, live.id));
+    const r = await reapStale();
+    expect(r.cancelled).toContain(dead.id); expect(r.cancelled).not.toContain(live.id);
+    expect((await getJob(dead.id))!.status).toBe('CANCELLED');
+    expect((await getJob(live.id))!.status).toBe('GENERATING');
+    await cancelled(live.id);
+  });
+
+  it('cancel and claim racing: the job is either cancelled before it starts, or claimed WITH the cancel flag — never claimed and unflagged', async () => {
+    let claimedFlagged = 0; let cancelledQueued = 0;
+    for (let i = 0; i < 25; i++) {
+      const { job } = await enqueue({ type: 'EPISODE_CONTINUITY', payload: { productionId: `race-${i}-${Math.random().toString(36).slice(2)}` }, priority: 10_000 });
+      made.push(job.id);
+      const [, got] = await Promise.all([requestCancel(job.id), claim('test-worker-race', ['EPISODE_CONTINUITY'])]);
+      const j = (await getJob(job.id))!;
+      if (got?.id === job.id) { expect(j.cancelRequested).toBe(true); expect(j.status).toBe('PREPARING'); claimedFlagged++; await cancelled(job.id); }
+      else { expect(j.status).toBe('CANCELLED'); expect(j.cancelRequested).toBe(true); cancelledQueued++; if (got) await cancelled(got.id); }
+    }
+    expect(claimedFlagged + cancelledQueued).toBe(25);
+  });
+
+  it('one active job per character: concurrent requests get the same job; the database refuses a second active row', async () => {
+    const characterId = `char-h4-${Math.random().toString(36).slice(2)}`;
+    const results = await Promise.all(Array.from({ length: 6 }, (_, i) => enqueue({ type: 'VOICE_BUILD', payload: { characterId }, idempotencyKey: i % 2 ? `vb-${characterId}-${i}` : undefined, runAfter: new Date(Date.now() + 3600_000).toISOString() })));
+    for (const r of results) made.push(r.job.id);
+    expect(results.filter((r) => r.created)).toHaveLength(1);
+    expect(new Set(results.map((r) => r.job.id)).size).toBe(1);
+    const now = new Date().toISOString();
+    const second = db().insert(schema.jobs).values({ id: `job-h4-${Math.random().toString(36).slice(2)}`, type: 'VOICE_BUILD', status: 'QUEUED', payload: { characterId }, characterId, createdAt: now, updatedAt: now });
+    const err = await second.then(() => null, (e: unknown) => e);
+    expect(isUniqueViolation(err, 'jobs_one_active_per_character')).toBe(true);
+    // once it is finished, a new one may start
+    await requestCancel(results[0].job.id);
+    const next = await enqueue({ type: 'VOICE_BUILD', payload: { characterId }, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+    made.push(next.job.id);
+    expect(next.created).toBe(true);
+    await requestCancel(next.job.id);
+  });
+});
+describe('fenced result writes (audit C1, step 5)', () => {
+  it('a reclaimed attempt cannot add a take, an asset or a QA report; the owner can; the refusal is recorded on the job', async () => {
+    const { command, commands } = await import('@/server/studio/engine');
+    const { runInJobScope } = await import('@/server/jobs/context');
+    const { isFencedWrite } = await import('@/server/jobs/fence');
+    const { recordQaReport } = await import('@/server/org/runs');
+    const { listEvents } = await import('@/server/jobs/queue');
+    // a fixture production with one shot and one asset, written outside any job (no fence)
+    const assetId = `up-fence-${Math.random().toString(36).slice(2, 10)}`;
+    const [, prod] = await commands([
+      { name: 'addAsset', args: [{ id: assetId, kind: 'VIDEO', src: `/api/media/${assetId}`, label: 'fence', tags: [], sample: false, origin: 'UPLOAD', provenance: { path: `video/2026/10/${assetId}.mp4` } }] },
+      { name: 'addProduction', args: [{ kind: 'SHORT', title: 'Fence test', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'x' }, castIds: [], locationIds: [] }] },
+    ]) as [unknown, { production: { id: string } }];
+    const productionId = prod.production.id;
+    const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
+    const { shot } = await command('addShot', [productionId, { sceneId: scene.id, purpose: '', action: '', framing: 'WIDE', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [], dialogue: [], transition: 'CUT' }]);
+    // attempt 1 on worker A went quiet; attempt 2 on worker B owns the job now
+    const { job } = await enqueue({ type: 'MEDIA_PROBE', payload: { assetId }, maxAttempts: 3, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+    made.push(job.id);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'test-worker-b', heartbeatAt: new Date().toISOString(), attempts: 2 }).where(eq(schema.jobs.id, job.id));
+    const stale = { jobId: job.id, signal: new AbortController().signal, lease: { workerId: 'test-worker-a', attempt: 1 } };
+    const owner = { jobId: job.id, signal: new AbortController().signal, lease: { workerId: 'test-worker-b', attempt: 2 } };
+    const takesOf = async () => (await (await import('@/server/studio/engine')).readState()).state.productions.find((p) => p.id === productionId)!.shots[0].takes;
+
+    const refused = await runInJobScope(stale, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'stale take' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refused)).toBe(true);
+    expect(refused).toMatchObject({ code: 'CONFLICT', details: { reason: 'LEASE_LOST', failureClass: 'INFRASTRUCTURE' } });
+    expect(await takesOf()).toHaveLength(0);
+    const refusedAsset = await runInJobScope(stale, () => command('addAsset', [{ kind: 'IMAGE', src: '/x', label: 'x', tags: [], sample: false, origin: 'GENERATED' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refusedAsset)).toBe(true);
+    const refusedQa = await runInJobScope(stale, () => recordQaReport({ subjectKind: 'TAKE', subjectId: 'x', inspectorId: 'take-inspector', checks: [], decision: 'ACCEPT', jobId: job.id })).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refusedQa)).toBe(true);
+    await new Promise((r) => setTimeout(r, 200)); // the refusal event is written after the rollback
+    expect((await listEvents(job.id)).some((ev) => /refused: attempt 1 on test-worker-a no longer holds the lease/.test(ev.message))).toBe(true);
+
+    // the owner writes; once the job is finished (lease released) even the owner is refused
+    await runInJobScope(owner, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'owner take' }]));
+    expect((await takesOf()).map((t) => t.label)).toEqual(['owner take']);
+    await complete(job.id, { ok: true }, 'COMPLETED', owner.lease);
+    const late = await runInJobScope(owner, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'late take' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(late)).toBe(true);
+    expect(await takesOf()).toHaveLength(1);
+
+    await commands([{ name: 'deleteProduction', args: [productionId] }, { name: 'deleteAsset', args: [assetId] }]);
+  });
+});
+describe('settling a DIALOGUE_AUDIO review (keepLineRecordings / re-recording)', () => {
+  it('the job stays in review while a flagged line is open; keeping it (or recording it again) completes the job', async () => {
+    const { command, commands } = await import('@/server/studio/engine');
+    const { settleDialogueReviews } = await import('@/server/jobs/reviews');
+    const tag = Math.random().toString(36).slice(2, 8);
+    const [, prod] = await commands([
+      { name: 'updateSettings', args: [{}] },
+      { name: 'addProduction', args: [{ kind: 'SHORT', title: `Review ${tag}`, style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'x' }, castIds: [], locationIds: [] }] },
+    ]) as [unknown, { production: { id: string } }];
+    const productionId = prod.production.id;
+    const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
+    const dialogue = [{ id: `l1-${tag}`, characterId: 'c', text: 'one' }, { id: `l2-${tag}`, characterId: 'c', text: 'two' }];
+    const { shot } = await command('addShot', [productionId, { sceneId: scene.id, purpose: '', action: '', framing: 'WIDE', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [], dialogue, transition: 'CUT' }]);
+    const reviewJobs: string[] = [];
+    const parkJob = async () => {
+      const { job } = await enqueue({ type: 'DIALOGUE_AUDIO', payload: { productionId }, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+      made.push(job.id); reviewJobs.push(job.id);
+      await db().update(schema.jobs).set({ status: 'AWAITING_REVIEW', result: { lines: 2, flagged: 1, unverified: 0, awaitingReview: true } }).where(eq(schema.jobs.id, job.id));
+      return job.id;
+    };
+    const rec = (id: string, jobId: string, ok: boolean) => ({ name: 'addAsset' as const, args: [{ id, kind: 'AUDIO', src: `/api/media/${id}`, label: id, tags: ['dialogue'], sample: false, origin: 'GENERATED', jobId, provenance: { check: { ok } } }] as [never] });
+    const jobA = await parkJob();
+    await commands([rec(`ra1-${tag}`, jobA, false), rec(`ra2-${tag}`, jobA, true),
+      { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[0].id, { audioAssetId: `ra1-${tag}`, durationSeconds: 1 }] },
+      { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `ra2-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([]);
+    expect((await getJob(jobA))!.status).toBe('AWAITING_REVIEW');
+    // the producer keeps the flagged line
+    await command('keepLineRecordings', [productionId, [{ shotId: shot.id, lineId: dialogue[0].id }], { by: 'producer' }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([jobA]);
+    const a = (await getJob(jobA))!;
+    expect(a.status).toBe('COMPLETED'); expect(a.finishedAt).toBeTruthy();
+    expect(a.result).toMatchObject({ awaitingReview: false, review: { kept: [{ shotId: shot.id, lineId: dialogue[0].id }] } });
+    // another review: its flagged line is recorded again by a later job (passing) — settled as well
+    const jobB = await parkJob();
+    await commands([rec(`rb1-${tag}`, jobB, false), { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `rb1-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([]);
+    await commands([rec(`rc1-${tag}`, 'job-rerecord', true), { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `rc1-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([jobB]);
+    expect((await getJob(jobB))!.result).toMatchObject({ review: { kept: [] } });
+    await commands([{ name: 'deleteProduction', args: [productionId] }]);
   });
 });

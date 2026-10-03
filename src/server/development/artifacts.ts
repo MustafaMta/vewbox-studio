@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/server/db/client';
 import { nid } from '@/domain/ids';
 import type { DevelopmentStage } from '@/domain/development';
+import { fenced } from '../jobs/fence';
 
 /** THE DEVELOPMENT ARTIFACT STORE — every development agent writes its output here as a new version; nothing is
  *  overwritten (docs/CONTRACTS-AUTO-IDEA.md §1). Stages read earlier stages by artifact id, so a retried stage reads
@@ -20,7 +21,7 @@ export async function saveArtifact<T extends object>(a: { ideaJobId: string; sta
     if (a.jobId) { const mine = existing.find((r) => r.jobId === a.jobId); if (mine) return toArtifact<T>(mine); }
     const version = (existing[0]?.version ?? 0) + 1;
     const row = { id: nid('dev'), ideaJobId: a.ideaJobId, stage: a.stage, version, agentId: a.agentId, jobId: a.jobId ?? null, content: a.content as unknown as Record<string, unknown>, createdAt: new Date().toISOString() };
-    const inserted = await db().insert(schema.developmentArtifacts).values(row).onConflictDoNothing({ target: [schema.developmentArtifacts.ideaJobId, schema.developmentArtifacts.stage, schema.developmentArtifacts.version] }).returning();
+    const inserted = await fenced(`${a.stage} artifact`, (tx) => tx.insert(schema.developmentArtifacts).values(row).onConflictDoNothing({ target: [schema.developmentArtifacts.ideaJobId, schema.developmentArtifacts.stage, schema.developmentArtifacts.version] }).returning());
     if (inserted.length) return toArtifact<T>(inserted[0]);
     if (attempt >= 2) throw new Error(`could not write the ${a.stage} artifact of ${a.ideaJobId}: version ${version} was taken twice`);
   }

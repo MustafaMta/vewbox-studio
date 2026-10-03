@@ -2,6 +2,7 @@ import type { Asset, Character, Production, Shot, StudioState } from '@/domain/t
 import type { Job } from '@/domain/jobs';
 import { approval, identityStatus, imageJobs } from '@/components/character/identity';
 import { productionHref } from '@/studio/selectors';
+import { openReviewLines } from '@/domain/line-review';
 
 /** ONE SOURCE OF TRUTH FOR DECISIONS (docs/CONTRACTS-REDESIGN-BACKEND.md B8; docs/DESIGN-SYSTEM-V5.md §6.7) — what
  *  waits for the producer, from real state only, never estimated. The same pure function runs in the shell (on the
@@ -14,8 +15,9 @@ import { productionHref } from '@/studio/selectors';
  *    - `lines`     ONE item per production for its dialogue lines to hear again (one decision per thing the producer
  *                  decides, §6.7: "two dialogue lines to hear again"): every line recorded by a DIALOGUE_AUDIO job (or
  *                  by a take) waiting in AWAITING_REVIEW whose recording drifted from the script or could not be heard
- *                  back; the lines are inside (`lines`, `subject.lineIds`) — decided in the shot workspace (one shot)
- *                  or on the production map (several);
+ *                  back and that the producer has neither kept (`keepLineRecordings`) nor recorded again; the lines
+ *                  are inside (`lines`, `subject.lineIds`) — decided in the shot workspace (one shot) or on the
+ *                  production map (several). A production with no open line has no `lines` item;
  *    - `take`      a take with a REVIEW verdict (its speech could not be verified) from a GENERATE_TAKE job awaiting
  *                  review — decided in the shot workspace;
  *    - `pass`      a production pass (PRODUCE) parked for review — decided on the production map;
@@ -43,8 +45,7 @@ export interface Decision {
   title: string;
   titleAr?: string;
   subject: DecisionSubject;
-  /** `lines` only: the lines to hear (`lines.length` is the "2 lines to hear" of the item; it may be 0 when a review
-   *  job's recordings were replaced since — the item still stands until the job is settled) */
+  /** `lines` only: the lines to hear (`lines.length` is the "2 lines to hear" of the item; never 0) */
   lines?: DecisionLine[];
   /** when it started waiting (ISO), when known */
   since: string | null;
@@ -62,25 +63,14 @@ const sinceOf = (j: Job) => j.finishedAt ?? j.updatedAt ?? j.createdAt ?? null;
 const shotHref = (p: Production, shotId: string) => `${productionHref(p)}/shots/${encodeURIComponent(shotId)}`;
 const mapHref = (p: Production) => `${productionHref(p)}/production`;
 
-/** Why a recording needs a human ear, from its check (src/worker/handlers/voice.ts LineCheck): none or null — it
- *  was not heard back; `ok: false` — it drifted from the script. Undefined when it passed. */
-const earReason = (a: Asset): DecisionLine['reason'] | undefined => {
-  const prov = a.provenance ?? {};
-  if (!('check' in prov) || prov.check === null) return 'NOT_HEARD';
-  return (prov.check as { ok?: boolean } | undefined)?.ok === false ? 'DRIFTED' : undefined;
-};
-
-/** The lines a job recorded (their current recording carries the job's id) that still need a human ear. */
+/** The lines a job recorded (their current recording carries the job's id) that still need a human ear: flagged by
+ *  the voice check (drifted, or not heard back) and neither kept by the producer (`keepLineRecordings`) nor recorded
+ *  again — src/domain/line-review.ts, the same rule the server settles the job's review by. */
 function linesToHear(p: Production, assets: Map<string, Asset>, jobId: string, who: (id: string) => Character | undefined): Array<DecisionLine & { shot: Shot }> {
-  const out: Array<DecisionLine & { shot: Shot }> = [];
-  for (const sh of p.shots) for (const d of sh.dialogue) {
-    const a = d.audioAssetId ? assets.get(d.audioAssetId) : undefined;
-    const reason = a && a.jobId === jobId ? earReason(a) : undefined;
-    if (!a || !reason) continue;
+  return openReviewLines(p, assets, jobId).map(({ shot: sh, line: d, asset: a, reason }) => {
     const c = who(d.characterId);
-    out.push({ shot: sh, lineId: d.id, shotId: sh.id, characterId: d.characterId, speaker: c?.name, speakerAr: c?.nameAr, text: d.text, textAr: d.textAr, jobId, audioAssetId: a.id, reason });
-  }
-  return out;
+    return { shot: sh, lineId: d.id, shotId: sh.id, characterId: d.characterId, speaker: c?.name, speakerAr: c?.nameAr, text: d.text, textAr: d.textAr, jobId, audioAssetId: a.id, reason };
+  });
 }
 
 export function waitingDecisions(state: DecisionState, pipeline: PipelineRow[] | null, jobs: Job[]): Decisions {
@@ -126,8 +116,9 @@ export function waitingDecisions(state: DecisionState, pipeline: PipelineRow[] |
       if (!p) continue;
       const r = (j.result ?? {}) as { takeId?: string; takeUnverified?: boolean; flagged?: number; unverified?: number };
       const lines = linesToHear(p, assetsById, j.id, nameOf);
-      // a dialogue job always stands for its lines (even when their recordings were replaced since: nothing is lost)
-      if (lines.length || j.type === 'DIALOGUE_AUDIO') addLines(p, j, lines);
+      // only lines still open: a line the producer kept, or recorded again, is decided — a job with none left is no
+      // longer a decision (the server settles its review: src/server/jobs/reviews.ts)
+      if (lines.length) addLines(p, j, lines);
       if (j.type === 'GENERATE_TAKE' && j.shotId && (r.takeUnverified || lines.length === 0)) {
         items.push({ kind: 'take', id: `take:${j.id}:${r.takeId ?? 'take'}`, title: titleOf(p), titleAr: p.titleAr, subject: { productionId: p.id, shotId: j.shotId, takeId: r.takeId, jobId: j.id }, since: sinceOf(j), href: shotHref(p, j.shotId) });
       }

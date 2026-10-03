@@ -30,6 +30,9 @@ export interface HandlerContext {
   event: (level: 'info' | 'warn' | 'error', message: string, data?: Record<string, unknown>) => Promise<void>;
   /** Hold the GPU for a local model; released automatically when the callback returns. */
   gpu: GpuLease;
+  /** Aborted when the job is cancelled, passes its deadline or loses its lease (src/server/jobs/context.ts). Providers,
+   *  ffmpeg and ComfyUI already follow it through the job scope; pass it to anything else long-running. */
+  signal?: AbortSignal;
 }
 
 export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> & { awaitingReview?: boolean }) | void>;

@@ -10,7 +10,7 @@ import { cls } from './cls';
 /** STATUS (docs/DESIGN-SYSTEM-V4.md §5.10) — state lives under the picture, in words (§1.2 principle 5): a 6 px dot
  *  and a phrase. Colour is never the only carrier: the words say it, the dot repeats it. */
 
-/** idle: faint dot, muted words · running: the tally (an iris dot that breathes; the word carries it under reduced
+/** idle: faint dot, muted words · running: the tally (a light dot that breathes; the word carries it under reduced
  *  motion) · done: ok dot · waiting (for the producer): warn dot and words · failed: bad dot and words. */
 export type StateTone = 'idle' | 'running' | 'done' | 'waiting' | 'failed';
 
