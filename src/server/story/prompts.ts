@@ -130,7 +130,9 @@ export function speakerIds(p: Production, sh: Shot): Map<string, number> {
   return new Map(order.map((id, i) => [id, i + 1]));
 }
 
-function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string) => string | undefined): string {
+const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
+
+function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string) => string | undefined, body = ''): string {
   const c = sh.continuity;
   if (!c) return '';
   const parts = c.characters.map((x) => {
@@ -140,7 +142,8 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
     return bits.length ? `${who} ${bits.join(', ')}.` : '';
   }).filter(Boolean);
   const props = c.props.filter((x) => x.position || x.state).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}${x.position ? ` ${clean(x.position)}` : ''}`);
-  return [parts.join(' '), props.length ? `Props: ${props.join('; ')}.` : '', c.environment.lighting ? `Light: ${clean(c.environment.lighting)}.` : ''].filter(Boolean).join(' ');
+  const light = c.environment.lighting && !body.includes(clean(c.environment.lighting)) ? `Light: ${clean(c.environment.lighting)}.` : '';
+  return [parts.join(' '), props.length ? `Props: ${props.join('; ')}.` : '', light].filter(Boolean).join(' ');
 }
 
 /** A shot's continuity state in words (positions, screen direction, eyeline, what each person holds and wears, props,
@@ -176,7 +179,8 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     const features = [clean(loc.description), loc.landmarks.length ? loc.landmarks.slice(0, 4).map(clean).join(', ') : '', loc.props.length ? loc.props.slice(0, 5).map(clean).join(', ') : ''].filter(Boolean).join('; ');
     defs.push(`<Subject ${placeNo}> is the ${loc.kind === 'INTERIOR' ? 'interior' : 'exterior'} environment in ${pictureLabel(b, b.location.picture)}${features ? `, featuring ${features}` : ''}.`);
   }
-  if (b.opening?.kind === 'FRAME' && b.opening.picture) defs.push(`${pictureLabel(b, b.opening.picture)} is the first frame of [Shot 1], showing ${clean(sh.action).replace(/\.$/, '')}.`);
+  const action = lowerFirst(clean(sh.action).replace(/\.$/, ''));
+  if (b.opening?.kind === 'FRAME' && b.opening.picture) defs.push(`${pictureLabel(b, b.opening.picture)} is the first frame of [Shot 1], showing how ${action}.`);
   (b.audioRefs ?? []).forEach((a, j) => { const who = subjectOf(a.characterId); if (who) defs.push(`${audioLabel(b, j + 1)} is the voice-timbre reference for ${who}.`); });
   // summary
   const cast2 = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
@@ -184,7 +188,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const relationLine = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL'
     ? `It continues the previous shot without a cut: the first ${b.opening.seconds.toFixed(1)} seconds are the end of the previous shot, anchored on the timeline, and the action carries on from there.`
     : b.opening?.kind === 'FRAME' ? `It begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}${opts.relation === 'CUT' ? ', a new camera angle on the same moment as the previous shot' : ''}.` : '';
-  const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${clean(sh.action).replace(/\.$/, '')}. ${relationLine}`.trim();
+  const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}`.trim();
   // retention_analysis
   const ret: string[] = [];
   for (const [i, s] of b.subjects.entries()) ret.push(`<Subject ${i + 1}> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly.`);
@@ -193,13 +197,18 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   (b.audioRefs ?? []).forEach((a, j) => { if (subjectOf(a.characterId)) ret.push(`${audioLabel(b, j + 1)}: reference - guides the voice timbre of ${subjectOf(a.characterId)} without copying the original signal.`); });
   // detailed_description
   const includeDialogue = opts.includeDialogue !== false;
-  const body = opts.body ?? shotBody(sh, cast, loc, scene, includeDialogue);
+  // the planner's own direction (tags stripped), else a body that leans on the bindings: the people and the place are
+  // defined above, so the middle is the action, the camera and the light
+  const body = opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : [`${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`, `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, ${sh.cameraMove === 'STATIC' ? 'static camera' : sh.cameraMove.toLowerCase().replace(/_/g, ' ')}.`].join(' '));
   const opening = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL' ? 'The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there:' : b.opening?.kind === 'FRAME' ? `The shot begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}.` : '';
-  const cont = continuitySentence(sh, cast, subjectOf);
-  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : dialogueTags(p, sh, cast, speaker, 'says,');
+  const cont = continuitySentence(sh, cast, subjectOf, body);
+  // a shot without lines says so: continuing from a speaking tail, H3 otherwise invents new words (C1,
+  // docs/evidence/minimax-p1: "Talk with her, Patrick. Do you need her?" in a shot with no dialogue)
+  const silent = includeDialogue && p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length === 0;
+  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot.' : dialogueTags(p, sh, cast, speaker, 'says,');
   const detailed = [`${d.visual}.`, '[Shot 1]', opening, body, cont, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
-  const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : ''}.`;
+  const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [
     'subject_definitions:', ...defs, '',
     'summary:', summary, '',

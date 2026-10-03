@@ -97,6 +97,15 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 2, audios: 1, lines: ['We close in ten minutes.'] }).ok).toBe(true);
   });
 
+  it('a shot without lines says nobody speaks (a continuation of a speaking tail otherwise invents words — C1)', () => {
+    const { p, cast, loc } = setup();
+    const sh = shotOf(p, 's13');
+    const prompt = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, { labels: 'LOCAL', subjects: [{ characterId: sh.characterIds[0], picture: 1 }], location: { picture: 2 }, opening: { kind: 'TAIL', seconds: 22 / 24 } }, { relation: 'CONTINUATION' });
+    expect(prompt).toContain('Nobody speaks in this shot.');
+    expect(prompt).toMatch(/overall_soundscape:\nIndoor ambience of the place at dusk; no dialogue and no voices\./);
+    expect(prompt).not.toContain('<d>');
+  });
+
   it('hosted labels are “Image i” (frame roles never mixed with references, so no opening picture)', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's13');
