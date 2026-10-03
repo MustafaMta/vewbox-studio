@@ -36,6 +36,22 @@ browser, with the evidence it produced. Defects found are listed with their fix 
   v2: same character, same misses (streak on her right; comic-like style) — consistent, so the style gap is the
   pipeline's, not a seed's. Fed to the FLUX vs Qwen comparison (anime style fidelity).
 
+## A3 — Realistic character, Auto, Arabic (Iraqi Baghdadi) — 2026-10-03
+
+- Brief (Arabic): «صاحب مقهى شعبي في شارع المتنبي ببغداد، بالستينات من عمره، هادئ وحكيم ويحب يحچي قصص الزمن
+  القديم، يلبس دشداشة رمادية وسترة صوف بنية ونظارات طبية». Name أبو سلام. Realistic. `char-bc112248bf`.
+- v1 `gen-ae45fc676a`: photographic studio portrait, head to feet ✓, glasses ✓ — but **no dishdasha, no cardigan**:
+  the design model wrote the garment as «deshdaша» (two Cyrillic letters) and the identity line dropped the whole
+  wardrobe field → **D12** root-caused and fixed (`bbfa91f`: stray-alphabet words transliterated; only a field with a
+  word wholly in another script is reported). Full beard drawn where the design says a moustache (prompt adherence).
+- **Redraw** after the fix → v2 `gen-655c17f72b`: grey-blue robe with an embroidered hem, terracotta cardigan frayed
+  at the elbows, patterned trousers, leather slippers — the designed wardrobe ✓; the robe reads tunic-length rather
+  than an ankle-length Iraqi dishdasha (cultural accuracy partial); beard still full. **Approved** (Version 2).
+- Voice: AUTOMATIC for an Iraqi character without a recording → the panel says «Iraqi voices are cloned from a real
+  Iraqi recording: record or upload 5–12 seconds of the voice» and offers the recording path with the required
+  consent choice ("This is my voice" / "I have the speaker's permission") — no designed voice passed off as Iraqi ✓.
+  A real Iraqi voice needs an authorised Iraqi recording (the producer's own, or decisions V3/V4).
+
 ### Defects found in A1
 
 | # | Defect | Status |
@@ -50,4 +66,6 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 | D8 | English voice check does not normalise numbers ("Thirty-two" vs "32") → false CER | fixed `d8d5897` (digits spelled as words on both sides; near misses stay close; tests incl. the real preview line) |
 | D9 | "Write the sheet" voice step says "The voice itself is built from a recording on the profile" — ignores the automatic and design ways | open |
 | D10 | Anime style fidelity: two draws of an Anime character came out comic-illustrative rather than cel anime | open — FLUX vs Qwen A/B and prompt review |
-| D11 | Casting's design invents brand-like logos/text on clothing ("Mori Express", a star sneaker mark resembling a real brand) | open — design prompt: no logos, lettering or brand marks unless the producer asks |
+| D11 | Casting's design invents brand-like logos/text on clothing ("Mori Express", a star sneaker mark resembling a real brand) | fixed `cd648f8` (design skill 2.1.0 rule; negative prompt) — to re-verify on the next design |
+| D12 | A garment word with stray Cyrillic letters ("deshdaша") dropped the WHOLE wardrobe from the identity line | fixed `bbfa91f`; verified in a real redraw (v2 shows the designed wardrobe) |
+| D13 | Realistic prompt adherence: a "thick, gray mustache" drawn as a full beard (2/2 draws); an Iraqi dishdasha drawn tunic-length | open — model limitation; candidate for the FLUX vs Qwen comparison and a wardrobe wording rule ("ankle-length dishdasha") |
