@@ -143,6 +143,9 @@ export const takes = pgTable('takes', {
   thumbnailAssetId: text('thumbnail_asset_id'),
   trimStartFrames: integer('trim_start_frames'),
   soundtrack: jsonb('soundtrack').$type<{ kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> }>(),
+  /** CONTINUATION | CUT | STORY_TRANSITION, as generated; and the take whose tail a continuation anchored */
+  relation: text('relation'),
+  continuesTakeId: text('continues_take_id'),
 }, (t) => [index('takes_shot_idx').on(t.shotId), index('takes_production_idx').on(t.productionId)]);
 
 export const characters = pgTable('characters', {

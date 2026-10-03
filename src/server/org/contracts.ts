@@ -86,7 +86,13 @@ export const ComfyRunOutput = z.looseObject({
 // ---------------------------------------------------------------------------------------------------- video
 
 const picture = z.object({ file, mime: z.string().min(1) });
-/** generateVideo()'s request without its callbacks (onStatus, onTaskCreated, shouldStop); limits are MiniMax H3's. */
+/** One guide anchored on the clip's timeline (`MiniMaxH3AddGuide`): a still, a clip (optionally with its own
+ *  soundtrack), audio, or a clip and audio together; at least one medium; a soundtrack from the clip needs a clip. */
+const VideoGuide = z.object({ frameIdx: z.number().int().min(0), imageFile: file.optional(), imageIsVideo: z.boolean().optional(), audioFile: file.optional(), audioFromVideo: z.boolean().optional() })
+  .refine((g) => Boolean(g.imageFile || g.audioFile), 'a guide anchors an image, a clip or audio')
+  .refine((g) => !g.audioFromVideo || Boolean(g.imageFile && g.imageIsVideo), 'audioFromVideo needs a guide clip');
+/** generateVideo()'s request without its callbacks (onStatus, onTaskCreated, shouldStop); limits are MiniMax H3's
+ *  (`MiniMaxH3ReferenceToVideo`: 9 pictures, 3 audios; the studio chains at most 4 guides). */
 export const VideoGenerateInput = z.object({
   prompt: z.string().min(1),
   seconds: z.number().min(1).max(15),
@@ -94,7 +100,8 @@ export const VideoGenerateInput = z.object({
   firstFrame: picture.optional(), lastFrame: picture.optional(),
   referenceImages: z.array(picture).max(9).optional(),
   referenceAudio: z.array(z.object({ file })).max(3).optional(),
-  guides: z.array(z.object({ frameIdx: z.number().int().min(0), imageFile: file.optional(), imageIsVideo: z.boolean().optional(), audioFile: file.optional() })).max(4).optional(),
+  guides: z.array(VideoGuide).max(4).optional(),
+  lowering: z.string().optional(),
   seed: z.number().int().optional(), model: z.string().optional(), resolution: z.string().optional(), resumeTaskId: z.string().optional(),
 });
 export const VideoGenerateOutput = z.looseObject({
@@ -179,7 +186,8 @@ export const AssembleInput = z.object({
 export const AssembleOutput = z.looseObject({ file, loudness: z.looseObject({ integrated: metric, truePeak: metric }).nullable(), durationSeconds: z.number() });
 export const ValidateExportInput = z.object({ file, expect: z.object({ width: z.number().int().positive(), height: z.number().int().positive(), fps: z.number().positive(), durationSeconds: z.number().min(0), subtitlesBurned: z.boolean() }) });
 export const ValidateExportOutput = z.looseObject({ ok: z.boolean(), checks: z.array(z.looseObject({ name: z.string().min(1), ok: z.boolean(), value: z.union([z.string(), metric]).optional(), detail: z.string().optional() })).min(1) });
-export const AlignLagInput = z.object({ takeFile: file, masterFile: file, from: z.number().min(0), seconds: z.number().min(0) });
+/** `takeFrom`: seconds of the take's head that repeat the previous shot (a continuation guide) and are not measured. */
+export const AlignLagInput = z.object({ takeFile: file, masterFile: file, from: z.number().min(0), seconds: z.number().min(0), takeFrom: z.number().min(0).optional() });
 export const AlignLagOutput = z.looseObject({ lagMs: metric, corrZero: metric, corrBest: metric });
 export const LyricsAlignInput = z.object({
   sections: z.array(z.looseObject({ id: z.string().min(1), text: z.string(), textAr: z.string().optional(), from: z.number(), to: z.number() })),

@@ -56,8 +56,9 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
       const hasAudio = Boolean((it.take.provenance as { probe?: { hasAudio?: boolean } } | undefined)?.probe?.hasAudio);
       if (!hasAudio || (it.shot.performance?.mode ?? 'SOLO') === 'INSTRUMENTAL') continue;
       try {
-        const lag = { takeFile: assetFile(it.take), masterFile: assetFile(song), from: it.start, seconds: it.duration };
-        const r = await ctx.tool('media.align_lag', () => takeLagAgainstMaster(lag.takeFile, lag.masterFile, lag.from, lag.seconds), { label: it.shot.id, input: lag });
+        // a continuation's head repeats the previous shot and is dropped from the cut: measured from where the cut starts
+        const lag = { takeFile: assetFile(it.take), masterFile: assetFile(song), from: it.start, seconds: it.duration, takeFrom: it.trimStartFrames / 24 };
+        const r = await ctx.tool('media.align_lag', () => takeLagAgainstMaster(lag.takeFile, lag.masterFile, lag.from, lag.seconds, lag.takeFrom), { label: it.shot.id, input: lag });
         const frames = r.lagMs >= 60 && r.corrBest > Math.max(0.2, r.corrZero + 0.1) ? Math.min(14, Math.round((r.lagMs / 1000) * 24)) : 0;
         if (frames) extraTrim[it.shot.id] = frames;
         sync.push({ shotId: it.shot.id, lagMs: r.lagMs, corrZero: Number(r.corrZero.toFixed(2)), corrBest: Number(r.corrBest.toFixed(2)), droppedFrames: frames });

@@ -1,6 +1,7 @@
 import type { Asset, Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
-import { orderedShots } from '@/domain/timeline';
+import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
+import { clipSecondsFor, continuationSource, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
@@ -25,8 +26,11 @@ function identityWarning(characters: Character[]): PreflightWarning | null {
   return { name: 'identity-approved', detail: `identity not approved: ${pending.map((c) => `${c.name} (${c.canonicalImage ? `draft v${c.canonicalImage.version}` : primaryImageSourceOf(c) === 'PORTRAIT' ? 'legacy portrait, no canonical image' : 'no canonical image'})`).join(', ')}`, characterIds: pending.map((c) => c.id) };
 }
 
-/** MiniMax H3 limits as the local graphs apply them. */
-export const H3_LIMITS = { maxReferenceImages: 9, maxReferenceAudio: 3, minSeconds: 1, maxSeconds: 15, maxGuides: 4 } as const;
+/** MiniMax H3 limits as the local graphs apply them — verified in ComfyUI v0.38.1 `nodes_minimax_h3.py`:
+ *  `MiniMaxH3ReferenceToVideo` takes at most 9 pictures, 3 videos and 3 audios; frames snap up to the 17k+5 grid and
+ *  the trained range is 124–362 frames; guide clips are 5, 22, 39 … frames and must fit inside the clip. The studio
+ *  chains at most 4 guides. */
+export const H3_LIMITS = { maxReferenceImages: 9, maxReferenceVideos: 3, maxReferenceAudio: 3, minSeconds: 1, maxSeconds: 15, maxGuides: 4, minFrames: H3_MIN_FRAMES, maxFrames: H3_MAX_FRAMES } as const;
 
 const usableImage = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
 const usableAudio = (a?: Asset) => Boolean(a && a.kind === 'AUDIO' && !a.sample);
@@ -51,19 +55,34 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   add('prompt-complete', hasWords, 'PROMPT_AMBIGUITY', hasWords ? undefined : 'the shot has neither an action nor a prompt');
   const emptyLines = sh.dialogue.filter((d) => !(p.language === 'AR' ? d.textAr || d.text : d.text)?.trim());
   add('lines-have-text', emptyLines.length === 0, 'PROMPT_AMBIGUITY', emptyLines.length ? `${emptyLines.length} empty line(s)` : undefined);
-  // the parameters
-  add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s (engine: ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s)`);
-  // references and their limits: each character's primary image is the canonical front full-body image (a character
-  // drawn before canonical images falls back to the legacy portrait)
-  const opening = byId(sh.openingFrameAssetId);
+  // the parameters: the clip the engine will really make (frames snapped up, held in the trained range)
+  const pack = resolveShotPack(state, p, sh, { backend: opts.backend });
+  const clip = clipSecondsFor(pack, sh.durationSeconds);
+  add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s → ${clip.frames} frames (${(clip.frames / 24).toFixed(2)} s; engine ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s, trained ${H3_LIMITS.minFrames}–${H3_LIMITS.maxFrames} frames)`);
+  if (clip.truncated) warnings.push({ name: 'continuation-length', detail: `a continuation carries at most ${clip.newFrames} new frames (${(clip.newFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s is cut short — split the shot` });
+  // references and their limits (the pack's slot order): each character's primary image is the canonical front
+  // full-body image (a character drawn before canonical images falls back to the legacy portrait), then the plate,
+  // then the drawn opening frame when it is bound as a picture
   const inShot = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter((c): c is Character => Boolean(c));
   const primaries = inShot.map((c) => byId(primaryImageOf(c))).filter(usableImage);
-  const plate = byId(loc?.masterAssetId);
-  const pictures = (usableImage(opening) ? 1 : 0) + primaries.length + (usableImage(plate) ? 1 : 0);
-  add('reference-pictures-within-limit', pictures <= H3_LIMITS.maxReferenceImages, 'UNSUPPORTED_CAPABILITY', `${pictures} picture(s), limit ${H3_LIMITS.maxReferenceImages}`);
+  add('reference-pictures-within-limit', pack.pictures.length <= H3_LIMITS.maxReferenceImages, 'UNSUPPORTED_CAPABILITY', `${pack.pictures.length} picture(s) (${pack.subjects.length} character(s)${pack.location ? ', the plate' : ''}${pack.openingPicture ? ', the opening frame' : ''}), limit ${H3_LIMITS.maxReferenceImages}`);
+  const overBudget = pack.unreferenced.filter((u) => /budget/.test(u.reason));
+  if (overBudget.length) warnings.push({ name: 'characters-over-picture-budget', detail: `${overBudget.length} character(s) beyond the ${H3_LIMITS.maxReferenceImages}-picture budget go unreferenced: ${overBudget.map((u) => cast.find((c) => c.id === u.characterId)?.name ?? u.characterId).join(', ')}`, characterIds: overBudget.map((u) => u.characterId) });
+  // identity comes from the characters' own images on every shot (an opening frame is a production asset, not an
+  // identity; a hosted continuation in frame mode is the one documented exception)
   const identityNeeded = sh.characterIds.length > 0;
-  const identityOk = !identityNeeded || usableImage(opening) || primaries.length > 0;
-  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (usableImage(opening) ? 'opening frame' : `${primaries.length} character image(s)`) : 'the shot has characters but neither an opening frame nor a character image to hold their identity; draw them first');
+  const identityOk = !identityNeeded || primaries.length > 0 || (pack.opening.kind === 'LAST_FRAME_AS_FIRST');
+  add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (identityNeeded ? (pack.graph === 'FRAMES' ? 'the previous take’s last frame (hosted frame mode)' : `${pack.subjects.length} character image(s) bound as subjects`) : undefined) : 'the shot has characters but none has a canonical image to hold their identity; draw them first');
+  // guides: count and fit, as the request will chain them (the soundtrack guide exists for a speaking or singing shot)
+  const soundtrack = opts.backend === 'local' && !opts.customPrompt && ((p.kind === 'MUSIC_VIDEO' && Boolean(p.song?.assetId) && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') || (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length > 0));
+  const guides = plannedGuides(pack, { soundtrack });
+  add('guides-within-limit', guides.length <= H3_LIMITS.maxGuides, 'UNSUPPORTED_CAPABILITY', `${guides.length} guide(s)${guides.length ? ` (${guides.map((g) => `${g.kind.toLowerCase()}@${g.frameIdx}`).join(', ')})` : ''}, limit ${H3_LIMITS.maxGuides}`);
+  const misfit = guideProblems(guides, clip.frames);
+  add('guides-fit-clip', misfit.length === 0, 'WRONG_PARAMETERS', misfit.length ? misfit.join('; ') : undefined);
+  // the editorial transition agrees with the relation (relationToPrevious decides the request; transition only renders)
+  if (pack.relation === 'CONTINUATION' && (sh.transition === 'DISSOLVE' || sh.transition === 'FADE')) warnings.push({ name: 'transition-matches-relation', detail: `a continuation is joined by a cut, not a ${sh.transition.toLowerCase()}` });
+  if (pack.relation === 'CUT' && sh.transition === 'EXTEND') warnings.push({ name: 'transition-matches-relation', detail: 'EXTEND on a shot planned as a cut: it is generated as a cut (relationToPrevious decides)' });
+  if (pack.lowering) warnings.push({ name: 'hosted-lowering', detail: pack.lowering });
   if (identityNeeded) {
     const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
     const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));
@@ -85,12 +104,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   }
   // a continuation needs the take it continues
   if (sh.continuity?.relationToPrevious === 'CONTINUATION') {
-    const ordered = orderedShots(p);
-    const prev = ordered[ordered.findIndex((x) => x.id === sh.id) - 1];
-    const sameScene = prev && prev.sceneId === sh.sceneId;
-    const prevTake = prev?.takes.find((t) => t.id === prev.selectedTakeId);
-    const ok = !sameScene || Boolean(prevTake && prevTake.provider !== 'SAMPLE' && byId(prevTake.assetId)?.kind === 'VIDEO');
-    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? 'previous take available' : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
+    const prev = previousShot(p, sh);
+    const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
+    const ok = !sameScene || Boolean(continuationSource(state, prev));
+    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
   }
   return { ok: checks.every((c) => c.ok), checks, warnings };
 }

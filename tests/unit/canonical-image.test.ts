@@ -230,7 +230,7 @@ describe('preflight', () => {
     const s = drawn(); const { p, sh } = rl2(s);
     const r = preflightTake(s, p, sh, { backend: 'local', customPrompt: true });
     expect(r.checks.find((c) => c.name === 'every-character-has-image')).toMatchObject({ ok: true });
-    expect(r.checks.find((c) => c.name === 'identity-reference-present')).toMatchObject({ ok: true, detail: '1 character image(s)' });
+    expect(r.checks.find((c) => c.name === 'identity-reference-present')).toMatchObject({ ok: true, detail: '1 character image(s) bound as subjects' });
     expect(r.warnings).toEqual([expect.objectContaining({ name: 'identity-approved', characterIds: ['nour'], detail: expect.stringMatching(/identity not approved: Nour \(draft v1\)/) })]);
     // the warning never turns into a failed check
     expect(r.checks.some((c) => c.name === 'identity-approved')).toBe(false);

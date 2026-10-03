@@ -271,7 +271,7 @@ export interface NewTakeInput {
   assetId: string; label?: string; note?: string; status?: Take['status'];
   provider?: Take['provider']; model?: string; requestId?: string; prompt?: string; params?: Record<string, unknown>; seed?: number; references?: TakeReference[];
   width?: number; height?: number; durationSeconds?: number; fps?: number; generationMs?: number; costUsd?: number; qa?: QaReport; rejectionReason?: string; jobId?: string; codeVersion?: string; workflowVersion?: string; thumbnailAssetId?: string;
-  trimStartFrames?: number; soundtrack?: Take['soundtrack'];
+  trimStartFrames?: number; soundtrack?: Take['soundtrack']; relation?: Take['relation']; continuesTakeId?: string;
 }
 
 /** A take arrives for a shot (from a generation, or an upload): every character in the shot is recorded as having

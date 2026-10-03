@@ -5,7 +5,7 @@ import { env } from '../env';
 import { log } from '../log';
 import * as minimax from './minimax';
 import * as comfy from './comfy';
-import { minimaxH3Video } from '../workflows';
+import { H3_FPS, h3FrameCount, h3GraphKind, minimaxH3Video } from '../workflows';
 import { tmpDir } from '../media/ffmpeg';
 
 /** VIDEO = MINIMAX, two ways to run it. `api`: the hosted MiniMax H3 on platform.minimax.io. `local`: the
@@ -23,8 +23,12 @@ export interface VideoRequest {
   lastFrame?: { file: string; mime: string };
   referenceImages?: Array<{ file: string; mime: string }>;
   referenceAudio?: Array<{ file: string }>;
-  /** local engine only: media anchored inside the clip (authoritative soundtrack, previous shot's tail) */
-  guides?: Array<{ frameIdx: number; imageFile?: string; imageIsVideo?: boolean; audioFile?: string }>;
+  /** local engine only: media anchored on the clip's timeline (the recorded line or song stretch, the previous shot's
+   *  tail with its own sound). The hosted API has no anchored guides: a request carrying any is REFUSED there, never
+   *  silently dropped — the take handler lowers a hosted request first (docs/research/MINIMAX-CONTINUITY.md §3.8). */
+  guides?: Array<{ frameIdx: number; imageFile?: string; imageIsVideo?: boolean; audioFile?: string; /** anchor the guide video's own soundtrack with its frames */ audioFromVideo?: boolean }>;
+  /** how the shot's plan was lowered for this backend (recorded in provenance), e.g. "hosted continuation: last frame as first frame" */
+  lowering?: string;
   seed?: number;
   model?: string; resolution?: string;
   /** Called with provider status while waiting. */
@@ -45,11 +49,30 @@ export function chooseBackend(): VideoBackend {
 }
 
 const RATIOS: Record<string, string> = { WIDE_16_9: '16:9', VERTICAL_9_16: '9:16', SQUARE_1_1: '1:1', CINEMA_2_39: '21:9' };
+/** the H3 checkpoint this process last ran on the local engine */
+let lastH3Checkpoint: string | undefined;
+
+/** Why the hosted MiniMax API cannot run this request as asked, or null. The platform has no anchored guides and
+ *  forbids mixing frame roles (first/last frame) with reference roles (pictures, audio); reference audio needs a
+ *  reference picture or video; at most 9 pictures and 3 audios (platform.minimax.io /v2/video_generation). Nothing is
+ *  dropped to make a request fit: the caller lowers it (take.ts) or runs it on the local engine. */
+export function hostedVideoProblem(req: Pick<VideoRequest, 'guides' | 'firstFrame' | 'lastFrame' | 'referenceImages' | 'referenceAudio'>): string | null {
+  if (req.guides?.length) return `the hosted MiniMax API has no anchored guides (${req.guides.length} given: ${req.guides.map((g) => (g.imageIsVideo ? 'clip' : g.imageFile ? 'frame' : 'audio') + `@${g.frameIdx}`).join(', ')}); lower the request (a continuation starts from the previous take's last frame) or run it on the local engine`;
+  const frames = Boolean(req.firstFrame || req.lastFrame);
+  const refs = (req.referenceImages?.length ?? 0) + (req.referenceAudio?.length ?? 0) > 0;
+  if (frames && refs) return 'the hosted MiniMax API cannot mix a first/last frame with reference pictures or audio; send one or the other';
+  if ((req.referenceAudio?.length ?? 0) > 0 && !(req.referenceImages?.length ?? 0)) return 'hosted reference audio needs a reference picture';
+  if ((req.referenceImages?.length ?? 0) > 9) return `${req.referenceImages!.length} reference pictures (hosted limit 9)`;
+  if ((req.referenceAudio?.length ?? 0) > 3) return `${req.referenceAudio!.length} reference audios (hosted limit 3)`;
+  return null;
+}
 
 export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const backend = chooseBackend();
   const t0 = Date.now();
   if (backend === 'api') {
+    const problem = hostedVideoProblem(req);
+    if (problem) throw new StudioError('NOT_CONFIGURED', `Unsupported on the hosted MiniMax API: ${problem}.`, { failureClass: 'UNSUPPORTED_CAPABILITY', backend: 'api' });
     const e = env();
     const model = req.model ?? e.MINIMAX_VIDEO_MODEL;
     const resolution = req.resolution ?? e.MINIMAX_VIDEO_RESOLUTION;
@@ -88,7 +111,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
     const file = path.join(dir, `${taskId}.mp4`);
     await req.onStatus?.({ status: 'downloading' });
     await minimax.download(task.url!, file);
-    return { file, backend, model, requestId: taskId, resolution: task.resolution ?? resolution, seconds: task.duration ?? seconds, costUsd: minimax.estimateVideoCostUsd(model, task.resolution ?? resolution, task.duration ?? seconds, (req.referenceImages?.length ?? 0) + (req.firstFrame ? 1 : 0) + (req.lastFrame ? 1 : 0)), ms: Date.now() - t0, params: { ratio, content: content.map((c) => ({ type: c.type, role: c.role })), usage: task.usage } };
+    return { file, backend, model, requestId: taskId, resolution: task.resolution ?? resolution, seconds: task.duration ?? seconds, costUsd: minimax.estimateVideoCostUsd(model, task.resolution ?? resolution, task.duration ?? seconds, (req.referenceImages?.length ?? 0) + (req.firstFrame ? 1 : 0) + (req.lastFrame ? 1 : 0)), ms: Date.now() - t0, params: { ratio, content: content.map((c) => ({ type: c.type, role: c.role })), usage: task.usage, ...(req.lowering ? { lowering: req.lowering } : {}) } };
   }
   // local: ComfyUI MiniMax H3
   const h = await comfy.health();
@@ -97,8 +120,15 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const last = req.lastFrame ? await comfy.uploadInput(req.lastFrame.file) : undefined;
   const refs = req.referenceImages?.length ? await Promise.all(req.referenceImages.map((r) => comfy.uploadInput(r.file))) : undefined;
   const audio = req.referenceAudio?.length ? await Promise.all(req.referenceAudio.map((a) => comfy.uploadInput(a.file))) : undefined;
-  const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined }))) : undefined;
-  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(4, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
+  const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined, audioFromVideo: gd.audioFromVideo }))) : undefined;
+  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
+  const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
+  // FL2VA and Ref2VA are separate 19.5 GB checkpoints next to a 14.6 GB text encoder: switching between them with both
+  // held in host RAM got ComfyUI OOM-killed (exit 137, 2026-10-03, docs/evidence/minimax-p1). Its models are freed
+  // before a run on the other checkpoint (the text encoder reloads; a minute at most)
+  const checkpoint = String(graph['1']?.inputs?.unet_name ?? '');
+  if (lastH3Checkpoint && lastH3Checkpoint !== checkpoint) await comfy.free().catch((e: Error) => log.warn({ err: e.message }, 'ComfyUI free before an H3 checkpoint switch failed'));
+  lastH3Checkpoint = checkpoint;
   await req.onStatus?.({ status: 'queued' });
   // the prompt id is recorded on the job as soon as it exists: a worker that restarts mid-generation waits for the
   // same prompt instead of asking the engine for a second one
@@ -109,7 +139,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const dir = await tmpDir('h3');
   const file = path.join(dir, out.filename.endsWith('.mp4') ? out.filename : `${out.filename}.mp4`);
   await fsp.writeFile(file, bytes);
-  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: req.seconds, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, params: { graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio) })), engineMs: run.engineMs } };
+  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, params: { graph: graphKind, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
 }
 
 export async function videoBackendStatus(): Promise<{ backend: VideoBackend | null; ready: boolean; detail: string }> {
