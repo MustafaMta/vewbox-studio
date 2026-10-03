@@ -26,16 +26,20 @@ function RegistryPanels() {
   const [reg, setReg] = useState<RegistryBody | null>(null);
   const [met, setMet] = useState<MetricsBody | null>(null);
   const [open, setOpen] = useState(false);
+  const [checking, setChecking] = useState(false);
   useEffect(() => {
     fetch('/api/registry', { cache: 'no-store' }).then((r) => r.json()).then(setReg).catch(() => setReg(null));
     fetch('/api/metrics?hours=168', { cache: 'no-store' }).then((r) => r.json()).then(setMet).catch(() => setMet(null));
   }, []);
+  // reading the registry never asks the engines; this does (the worker also checks on every start)
+  const checkAgain = () => { setChecking(true); fetch('/api/registry', { method: 'POST', cache: 'no-store' }).then((r) => r.json()).then(setReg).catch(() => undefined).finally(() => setChecking(false)); };
   const tone = (s: string) => (s === 'PRESENT' || s === 'CONFIGURED' || s === 'SERVICE' ? 'ok' : s === 'MISSING' || s === 'NO_KEY' ? 'warn' : 'neutral');
   const label = (s: string) => T.dyn(`registry.status.${s}`);
   const shown = reg ? (open ? reg.models : reg.models.filter((m) => m.status !== 'PRESENT' || !m.local || m.kind === 'DIFFUSION')) : [];
+  const more = reg && reg.models.length > shown.length ? <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>{T('registry.showAll')} ({reg.models.length})</Button> : open ? <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>{T('registry.showFewer')}</Button> : null;
   return (
     <>
-      <Section id="models" title={T('registry.title')} description={T('registry.lead')} action={reg && reg.models.length > shown.length ? <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>{T('registry.showAll')} ({reg.models.length})</Button> : open ? <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>{T('registry.showFewer')}</Button> : undefined}>
+      <Section id="models" title={T('registry.title')} description={T('registry.lead')} action={<span className="flex flex-wrap items-center gap-2">{more}<Button size="sm" icon={<IconRetry />} loading={checking} onClick={checkAgain}>{T('btn.refresh')}</Button></span>}>
         <div className="card divide-y divide-line p-0">
           {!reg && <p className="px-5 py-3 text-[12.5px] text-muted">…</p>}
           {shown.map((m) => (
@@ -69,14 +73,18 @@ function RegistryPanels() {
   );
 }
 
-/** SETTINGS — the interface, defaults for new projects, the engines (what runs where, live), and the sample data. */
+/** SETTINGS — the interface, defaults for new projects, the engines (what runs where, live), and the studio's data:
+ *  what it holds, how it began, and the one way to empty it. */
 export default function SettingsPage() {
   const T = useT();
-  const { state, act, reset, startEmpty, modified, connected } = useStudio();
+  const { state, act, startEmpty, seeded, connected } = useStudio();
   const toast = useToast();
   const s = state.settings;
   const set = (patch: Parameters<typeof act<'updateSettings'>>[1]) => act('updateSettings', patch);
   const empty = state.productions.length + state.characters.length + state.locations.length + state.shows.length === 0;
+  const files = state.assets.filter((a) => !a.sample).length;
+  const holds = T.f('settings.data.holds', { productions: state.productions.length, characters: state.characters.length, locations: state.locations.length, files });
+  const began = seeded?.at ? T.f(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty', { date: new Date(seeded.at).toLocaleDateString(T.locale === 'ar' ? 'ar-IQ' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' }) }) : null;
   const [status, setStatus] = useState<StatusBody | null>(null);
   const [checking, setChecking] = useState(false);
   const check = () => { setChecking(true); fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then(setStatus).catch(() => setStatus(null)).finally(() => setChecking(false)); };
@@ -116,9 +124,9 @@ export default function SettingsPage() {
       <RegistryPanels />
       <Section id="data" title={T('settings.data')} description={T('settings.data.hint')}>
         <div className="card space-y-4 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {empty ? <Status tone="neutral">{T('settings.data.empty')}</Status> : modified ? <Status tone="info">{T('settings.data.modified')}</Status> : <Status tone="ok">{T('settings.data.pristine')}</Status>}
-            <ConfirmButton variant="secondary" label={T('btn.reset')} title={T('btn.reset')} message={T('settings.resetConfirm')} confirmLabel={T('btn.reset')} onConfirm={() => { void reset().then(() => toast.ok(T('toast.reset'))); }} />
+          <div className="space-y-1">
+            {empty ? <Status tone="neutral">{T('settings.data.empty')}</Status> : <p className="text-[13.5px] text-body">{holds}</p>}
+            {began && <p className="text-[12.5px] text-muted">{began}</p>}
           </div>
           <div className="divider" />
           <div className="flex flex-wrap items-center justify-between gap-3">

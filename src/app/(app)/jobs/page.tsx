@@ -75,7 +75,9 @@ export function StatusOf({ job }: { job: Job }) {
 function JobDetail({ job }: { job: Job }) {
   const T = useT();
   const [events, setEvents] = useState<JobEvent[]>([]);
-  useEffect(() => { let on = true; const load = () => api.job(job.id).then((r) => { if (on) setEvents(r.events); }).catch(() => {}); load(); const t = setInterval(load, isTerminalStatus(job.status) ? 30_000 : 4000); return () => { on = false; clearInterval(t); }; }, [job.id, job.status, job.updatedAt]);
+  // the log is read when the panel opens and again when the job moves to another status or phase (the event stream
+  // carries those with the row); its lines are written at those steps, so no timer is needed
+  useEffect(() => { let on = true; api.job(job.id).then((r) => { if (on) setEvents(r.events); }).catch(() => {}); return () => { on = false; }; }, [job.id, job.status, job.progress?.phase, job.attempts]);
   const resultAsset = (job.result?.assetId ?? job.result?.cutAssetId ?? job.result?.exportAssetId ?? job.result?.portraitAssetId ?? job.result?.openingFrameAssetId) as string | undefined;
   return (
     <div className="mt-4 grid gap-4 border-t border-line pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

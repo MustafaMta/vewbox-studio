@@ -58,13 +58,6 @@ export function statusWords(s: Pick<IdentityStatus, 'kind' | 'lock' | 'videos'> 
 
 /* ---- the primary image ------------------------------------------------------------------------------------- */
 
-/** The primary image's asset, and whether it is the full-body canonical image or an older close-up. */
-export function primaryImage<A extends Pick<Asset, 'id'>>(c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>, assets: A[]): { asset?: A; kind: 'CANONICAL' | 'PORTRAIT' | 'NONE' } {
-  const id = primaryImageOf(c);
-  const asset = id ? assets.find((a) => a.id === id) : undefined;
-  return asset ? { asset, kind: primaryImageSourceOf(c) ?? 'NONE' } : { kind: 'NONE' };
-}
-
 /** How a frame should treat the primary image: full-body canonical, an older close-up, or the honest placeholder. */
 export const imageKindOf = (c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): 'CANONICAL' | 'PORTRAIT' | 'NONE' => primaryImageSourceOf(c) ?? 'NONE';
 

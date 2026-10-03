@@ -43,10 +43,6 @@ export function words(v: string | null | undefined): string {
   return v.toLowerCase().replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
 }
 
-export function isArabic(s: string | null | undefined): boolean { return Boolean(s && /[؀-ۿ]/.test(s)); }
-
-export function clip(s: string | null | undefined, n = 120): string { if (!s) return ''; return s.length > n ? `${s.slice(0, n - 1)}…` : s; }
-
 /** Tailwind ratio class for an aspect. */
 /** The same, as a CSS aspect-ratio value. */
 export function ratioCss(a: Aspect): string { return a === 'VERTICAL_9_16' ? '9 / 16' : a === 'SQUARE_1_1' ? '1 / 1' : a === 'CINEMA_2_39' ? '2.39 / 1' : '16 / 9'; }

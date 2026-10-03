@@ -6,7 +6,7 @@ import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, fileFor } from '@/server/media';
+import { adoptFile, assetFile, assetFromStored, fileFor } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { separateStems, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
@@ -153,7 +153,7 @@ export async function makeStems(ctx: Parameters<Handler>[0], productionId: strin
   const { state } = await readState();
   const asset = state.assets.find((x) => x.id === songAssetId);
   if (!asset) return undefined;
-  const src = fileFor({ storage: asset.sample ? 'PUBLIC' : 'LIBRARY', path: asset.sample ? asset.src.replace(/^\/+/, '') : String(asset.provenance?.path ?? '') });
+  const src = assetFile(asset);
   await ctx.progress('POSTPROCESSING', { phase: 'stems', message: 'Separating vocals from the accompaniment', percent: null });
   const dir = await tmpDir('stems');
   try {

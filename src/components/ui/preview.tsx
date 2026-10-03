@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useT } from './locale';
 import { Button, SampleMark, Thumb, cls } from './kit';
 import { RATIO, type Ratio } from './cinema';
-import { IconArrowRight, IconDelete, IconUpload } from './icons';
+import { IconDelete, IconUpload } from './icons';
 import { fmtBytes } from '@/lib/format';
 
 /** A PICTURE YOU CHOSE — in a `.media` frame at the kind's ratio (4:5 for references, 16:9 for plates, 1:1 for
@@ -39,25 +39,3 @@ export function ImagePreview({ src, alt, ratio = 'portrait', fileName, width, he
   );
 }
 
-/** Your reference → the result, side by side with the arrow between them (stacked on a phone). The result slot
- *  is whatever the caller passes: a real picture, the job's phase, or an honest "nothing yet". */
-export function ImagePair({ reference, result, referenceLabel, resultLabel, className = '' }: { reference: ReactNode; result: ReactNode; referenceLabel?: ReactNode; resultLabel?: ReactNode; className?: string }) {
-  const T = useT();
-  return (
-    <div className={cls('grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start', className)}>
-      <div className="min-w-0"><p className="kicker mb-2">{referenceLabel ?? T('char.ref.yours')}</p>{reference}</div>
-      <IconArrowRight aria-hidden className="mx-auto mt-24 hidden size-5 text-ink-500 sm:block rtl:rotate-180" />
-      <div className="min-w-0"><p className="kicker mb-2">{resultLabel ?? T('char.ref.result')}</p>{result}</div>
-    </div>
-  );
-}
-
-/** The result frame while nothing exists yet: the reason in words (never a placeholder picture). */
-export function ResultSlot({ ratio = 'portrait', icon, children, tone = 'empty' }: { ratio?: Ratio; icon?: ReactNode; children: ReactNode; tone?: 'empty' | 'busy' | 'bad' }) {
-  return (
-    <div className={cls('media media-empty flex-col gap-1.5 p-4 text-center text-[12.5px]', RATIO[ratio], tone === 'busy' && 'border-solid border-accent/50 text-body', tone === 'bad' && 'border-bad/50 text-bad')} role="status" aria-live="polite">
-      {icon && <span className="[&>svg]:size-5" aria-hidden>{icon}</span>}
-      <span dir="auto">{children}</span>
-    </div>
-  );
-}

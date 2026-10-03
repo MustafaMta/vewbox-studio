@@ -1,4 +1,4 @@
-import type { Asset, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
+import type { Asset, Brief, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
 import type { Stage } from '@/domain/vocabulary';
 import { primaryImageOf } from '@/domain/identity';
 
@@ -17,17 +17,20 @@ export const assetSrc = (s: StudioState, id: string | undefined | null): string 
  *  approval state: see src/domain/identity.ts. `primaryImageSrc` is the one-liner for a card, a picker or a hero. */
 export { canonicalStatusOf, isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 export const primaryImageSrc = (s: StudioState, c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): string | undefined => assetSrc(s, primaryImageOf(c));
-export const characterById = (s: StudioState, id: string | undefined | null): Character | undefined => (id ? s.characters.find((c) => c.id === id) : undefined);
 export const locationById = (s: StudioState, id: string | undefined | null): Location | undefined => (id ? s.locations.find((l) => l.id === id) : undefined);
 export const showById = (s: StudioState, id: string | undefined | null): Show | undefined => (id ? s.shows.find((x) => x.id === id) : undefined);
 export const seasonById = (s: StudioState, id: string | undefined | null): Season | undefined => (id ? s.seasons.find((x) => x.id === id) : undefined);
-export const productionById = (s: StudioState, id: string | undefined | null): Production | undefined => (id ? s.productions.find((p) => p.id === id) : undefined);
 
 export const seasonsOf = (s: StudioState, showId: string): Season[] => s.seasons.filter((x) => x.showId === showId).sort((a, b) => a.number - b.number);
 export const episodesOf = (s: StudioState, seasonId: string): Production[] => s.productions.filter((p) => p.seasonId === seasonId).sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0));
 export const episodesOfShow = (s: StudioState, showId: string): Production[] => s.productions.filter((p) => p.showId === showId);
 export const shorts = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'SHORT');
 export const musicVideos = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'MUSIC_VIDEO');
+
+/** How a production's brief began, as a phrase key: a proposal the story engine wrote (AUTO_IDEA), the written
+ *  example the wizard offers instead (`fromSampleProposal`), or by hand. Only the written example says "example". */
+export const briefOriginKey = (b: Pick<Brief, 'mode' | 'fromSampleProposal'>): 'story.autoIdea' | 'story.autoIdea.example' | 'story.manual' =>
+  b.mode === 'AUTO_IDEA' ? (b.fromSampleProposal ? 'story.autoIdea.example' : 'story.autoIdea') : 'story.manual';
 
 /** Where a production lives in the URL. */
 export function productionHref(p: Production): string {
@@ -54,7 +57,6 @@ export const shotLabel = (p: Production, sh: Shot): string => {
   return `${scene?.number ?? '?'}.${sh.number}`;
 };
 
-export const selectedTake = (sh: Shot) => sh.takes.find((t) => t.id === sh.selectedTakeId);
 export const readyTakes = (sh: Shot) => sh.takes.filter((t) => t.status !== 'REJECTED');
 /** A shot still needs a real take when nothing is chosen, or the chosen take is only a bundled sample clip. */
 export const needsTake = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); return !t || t.provider === 'SAMPLE'; };
@@ -87,29 +89,12 @@ export function nextStep(p: Production): { tab: 'story' | 'cast' | 'storyboard' 
   return { tab: 'final', key: 'next.reviewCut' };
 }
 
-/** Productions with something waiting: a shot without a chosen take, a character without a voice, an empty script. */
-export function attentionItems(s: StudioState): Array<{ id: string; href: string; title: string; detail: string; tone: 'warn' | 'info' }> {
-  const out: Array<{ id: string; href: string; title: string; detail: string; tone: 'warn' | 'info' }> = [];
-  for (const p of s.productions) {
-    const pr = progressOf(p);
-    if (pr.shots > 0 && pr.withTake > pr.chosen) out.push({ id: `${p.id}-takes`, href: `${productionHref(p)}?tab=produce`, title: p.title, detail: `${pr.withTake - pr.chosen} shot${pr.withTake - pr.chosen === 1 ? '' : 's'} with takes to choose from`, tone: 'warn' });
-    else if (pr.shots > 0 && pr.framed < pr.shots) out.push({ id: `${p.id}-frames`, href: `${productionHref(p)}?tab=storyboard`, title: p.title, detail: `${pr.shots - pr.framed} shot${pr.shots - pr.framed === 1 ? '' : 's'} without an opening frame`, tone: 'info' });
-    else if (!pr.hasSynopsis) out.push({ id: `${p.id}-story`, href: `${productionHref(p)}?tab=story`, title: p.title, detail: 'The story has no synopsis yet', tone: 'info' });
-  }
-  for (const c of s.characters) {
-    if (c.voice.samples.length > 0 && !c.voice.selectedSampleId) out.push({ id: `${c.id}-voice`, href: `/characters/${c.id}?tab=voice`, title: c.name, detail: 'No voice chosen yet', tone: 'info' });
-  }
-  return out.slice(0, 6);
-}
-
 /** Where a character is cast without (yet) being in a video: shows and productions whose cast includes them. */
 export function assignmentsOf(s: StudioState, characterId: string): { shows: Show[]; productions: Production[] } {
   const shows = s.shows.filter((x) => x.castIds.includes(characterId));
   const productions = s.productions.filter((p) => p.castIds.includes(characterId) || p.scenes.some((sc) => sc.characterIds.includes(characterId)) || p.shots.some((sh) => sh.characterIds.includes(characterId)) || shows.some((x) => x.id === p.showId));
   return { shows, productions };
 }
-
-export const recentProductions = (s: StudioState, n = 6): Production[] => [...s.productions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, n);
 
 export function search<T extends { title?: string; titleAr?: string; name?: string; nameAr?: string; logline?: string; role?: string; description?: string }>(items: T[], q: string): T[] {
   const needle = q.trim().toLowerCase();

@@ -172,13 +172,6 @@ export function agentPrompt(agentId: string | undefined): string {
   return `\n\n${parts.join('\n\n')}`;
 }
 
-/** The PROMPT skills' bodies an agent's calls receive (empty for agents that do not call the model). */
-export function skillPrompt(agentId: string | undefined): string[] {
-  const a = agentId ? agentById(agentId) : undefined;
-  if (!a || !callsModel(a)) return [];
-  return a.skills.map((id) => skillById(id)).filter((d): d is SkillDef => d?.kind === 'PROMPT').map((d) => skillFile(d.id)?.body ?? '').filter(Boolean);
-}
-
 /** The versions a run used: the agent's skills (SKILL.md metadata.version) and its tools (ToolDef.version). */
 export function skillVersions(a: Pick<AgentDef, 'skills'>): Record<string, string> {
   return Object.fromEntries(a.skills.map((id) => [id, skillVersionOf(skillFile(id))]));

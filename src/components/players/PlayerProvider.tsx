@@ -119,9 +119,6 @@ export function useTrackState(track: Track | null) {
   return { mine, playing: mine && p.playing, loading: mine && p.status === 'loading' && p.playing === false, error: mine && p.status === 'error' ? p.error : null, notice: mine && p.status !== 'error' ? p.error : null, time: mine ? Math.min(p.time, duration || p.time) : 0, duration, provisional: !fileDuration && Boolean(track?.duration) };
 }
 
-/** Is this track the one playing right now? */
-export function useIsPlaying(trackId: string): boolean { const p = usePlayer(); return p.current?.id === trackId && p.playing; }
-
 /** A play/pause control for one track. `primary` is the large violet transport in a header; `onArt` sits on a
  *  picture; the default is a quiet round button. While the file loads after a press, it shows a spinner. */
 export function TrackButton({ track, primary, onArt, size, className = '', labelPlay = 'Play', labelPause = 'Pause' }: { track: Track; primary?: boolean; onArt?: boolean; size?: 'xs' | 'sm'; className?: string; labelPlay?: string; labelPause?: string }) {

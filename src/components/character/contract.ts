@@ -1,17 +1,15 @@
 import type { CreateCharacterResult, Job, JobPayload, JobType } from '@/domain/jobs';
 import type { Character, VideoUsage, VoiceIdentity, VoiceSample } from '@/domain/types';
-import { JOB_TYPES } from '@/domain/jobs';
 import type { Language } from '@/domain/vocabulary';
-import { isCommandName } from '@/domain/commands';
-import { StudioError } from '@/domain/errors';
+import { canonical, hashString } from '@/domain/hash';
 import { nonHumanSpecies } from '@/domain/identity';
 import type { StartedJob } from '@/studio/api';
 
 /** THE CONTRACTS, AS THE FRONTEND CODES AGAINST THEM — docs/CONTRACTS-CHARACTER-VOICE.md §1.1, §1.2, §1.4 and
  *  docs/CONTRACTS-IDENTITY-PACK.md (v2: one canonical front full-body image + one voice identity). The shapes live
- *  in src/domain/*; this file names the frontend's views of them and is the ONLY place the character pages cast.
- *  Two bridges are left (`PENDING-BACKEND`): the creation chain's step names (the worker still reports the wave-2
- *  names, mapped onto the v2 chain here) and the voice identity v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md). */
+ *  in src/domain/*; this file names the frontend's views of them and is the ONLY place the character pages cast. The
+ *  voice identity is v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md); the creation chain's 'appearance' step is shown as the
+ *  image step (normaliseStep). */
 
 /* ---- the creation chain (CREATE_CHARACTER) ------------------------------------------------------------------ */
 
@@ -20,8 +18,8 @@ export type CreateStepName = 'design' | 'image' | 'voice';
 export const CREATE_STEPS: readonly CreateStepName[] = ['design', 'image', 'voice'];
 /** The child job each step runs. */
 export const STEP_JOB: Record<CreateStepName, JobType> = { design: 'DESIGN_CHARACTER', image: 'CHARACTER_APPEARANCE', voice: 'VOICE_BUILD' };
-/** PENDING-BACKEND: the wave-2 chain reported 'appearance' (the portrait) and 'sheet' (reference views). 'appearance'
- *  is the image step; the sheet is no longer part of creation, so a 'sheet' outcome is not a row of the stepper. */
+/** The worker names the image step 'appearance' (CHARACTER_APPEARANCE draws the canonical image); results the wave-2
+ *  chain stored in the database may also name a 'sheet' step, which is no longer part of creation and is dropped. */
 export function normaliseStep(step: string): CreateStepName | null {
   if (step === 'appearance' || step === 'front') return 'image';
   return (CREATE_STEPS as readonly string[]).includes(step) ? (step as CreateStepName) : null;
@@ -41,9 +39,6 @@ export type { CreateCharacterResult };
 /** contract §1.4 — `VOICE_BUILD` payload (zod `JOB_PAYLOADS.VOICE_BUILD`). */
 export type VoiceBuildPayload = JobPayload<'VOICE_BUILD'>;
 
-/** contract §1.4 — the extended identity is the domain's `VoiceIdentity`; the name stays for the pages that read it. */
-export type VoiceIdentityV2 = VoiceIdentity;
-
 /** contract §1.2 — what `POST /api/assets` returns for `purpose: 'character-reference'` (typed beside the fetcher). */
 export type { ImageReferenceValidation } from '@/studio/api';
 
@@ -60,20 +55,15 @@ export type VoiceReferenceResult =
 
 type StartJob = <T extends JobType>(type: T, payload: JobPayload<T>, opts?: { idempotencyKey?: string; priority?: number }) => Promise<StartedJob>;
 
-/** A stable rendering of a payload: keys sorted at every level, so the same request always reads the same. */
-const stable = (v: unknown): string => (Array.isArray(v) ? `[${v.map(stable).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v as Record<string, unknown>).filter((k) => (v as Record<string, unknown>)[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v));
-/** FNV-1a, hex: short and deterministic (no crypto needed for a dedupe key). */
-const fnv = (s: string): string => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
-
 /** The dedupe key of a creation (finding 19): the same request within the same minute — a double submit, two tabs,
  *  a request retried after a timeout — is one parent job. A deliberate relaunch after a failure is not blocked: the
- *  server queues it under a fresh key when the earlier one has failed or was cancelled. */
-export const createCharacterKey = (payload: CreateCharacterPayload, now: number = Date.now()): string => `CREATE_CHARACTER:${fnv(stable(payload))}:${Math.floor(now / 60_000)}`;
+ *  server queues it under a fresh key when the earlier one has failed or was cancelled. The payload is rendered and
+ *  hashed by the studio's one canonical hash (src/domain/hash.ts: keys sorted at every level, undefined dropped). */
+export const createCharacterKey = (payload: CreateCharacterPayload, now: number = Date.now()): string => `CREATE_CHARACTER:${hashString(canonical(payload))}:${Math.floor(now / 60_000)}`;
 
 export const startCreateCharacter = (startJob: StartJob, payload: CreateCharacterPayload, now: number = Date.now()): Promise<StartedJob> => startJob('CREATE_CHARACTER', payload, { idempotencyKey: createCharacterKey(payload, now) });
 export const startVoiceBuild = (startJob: StartJob, payload: VoiceBuildPayload, opts?: { idempotencyKey?: string }): Promise<StartedJob> => startJob('VOICE_BUILD', payload, opts);
 
-export const isCreateCharacterJob = (j: Job): boolean => j.type === 'CREATE_CHARACTER';
 /** The parent's result, steps under their v2 names (a step that is not part of the chain any more is dropped). */
 export const createResultOf = (j: Job | undefined): CreateResultView | null => {
   const r = j?.result as { characterId?: unknown; steps?: unknown; awaitingApproval?: unknown; status?: unknown } | undefined;
@@ -98,10 +88,8 @@ export function jobSecondary(j: Pick<Job, 'type' | 'payload'>): SecondaryKind[] 
 
 
 /* ---- the voice identity, v2 (docs/CONTRACTS-VOICE-IDENTITY-V2.md) ------------------------------------------ */
-/* PENDING-BACKEND: the VOICE_DESIGN job, the AUTOMATIC/DESIGN/REFERENCE build modes, the identity's origin, consent,
-   evaluation and listening records, and the recordVoiceListening command are being built now. Every read below is
-   defensive (absent fields render as "not recorded"); every write goes through one cast here; and until the job type
-   and the command exist the panel says so instead of failing. */
+/* Identities built before v2 carry none of the v2 fields: every read below is defensive (absent fields render as "not
+   recorded"). */
 
 export type VoiceOrigin = 'UPLOAD_CONSENTED' | 'DESIGNED' | 'HOSTED' | 'GENERATED';
 export type ConsentStatement = 'MY_VOICE' | 'SPEAKER_PERMISSION';
@@ -115,11 +103,6 @@ export function voiceExtras(identity: VoiceIdentity | undefined): VoiceIdentityE
   const x = (identity ?? {}) as Partial<VoiceIdentityExtras> & { listening?: unknown };
   return { origin: x.origin, designId: x.designId, seedSha256: x.seedSha256, consent: x.consent, dialectStatus: x.dialectStatus, evaluation: x.evaluation, listening: Array.isArray(x.listening) ? (x.listening as VoiceListening[]) : [] };
 }
-
-/** The voice-design job type exists on this server (the panel offers Automatic and Design only then). */
-export const voiceDesignReady = (): boolean => (JOB_TYPES as readonly string[]).includes('VOICE_DESIGN');
-/** The listening command exists on this server. */
-export const listeningReady = (): boolean => isCommandName('recordVoiceListening');
 
 /** `VOICE_DESIGN { characterId, description }` → three candidates speaking a calibration sentence. */
 export const startVoiceDesign = (startJob: StartJob, characterId: string, description: string): Promise<StartedJob> => startJob('VOICE_DESIGN', { characterId, description });
@@ -145,11 +128,9 @@ export function designResultOf(j: Pick<Job, 'result'> | undefined): DesignResult
 
 /** `recordVoiceListening(characterId, { natural 1–5, dialectAuthentic?, note? })` — the producer's own listening. */
 export function recordVoiceListening(act: unknown, characterId: string, record: { natural: number; dialectAuthentic?: boolean; note?: string }): void {
-  if (!listeningReady()) throw new StudioError('NOT_CONFIGURED', 'Recording a listening needs the voice-identity update of the studio server.');
   (act as (name: string, ...args: unknown[]) => unknown)('recordVoiceListening', characterId, record);
 }
 
-/** The Settings experiment switch that lets an Iraqi voice start from a designed Arabic seed (default off). */
 /** The Settings experiment switch that lets an Iraqi voice start from a designed Arabic seed (default off); the server
  *  keeps it at `settings.voice.allowDesignedIraqi`. */
 export const designedIraqiAllowed = (settings: unknown): boolean => (settings as { voice?: { allowDesignedIraqi?: unknown } } | undefined)?.voice?.allowDesignedIraqi === true;

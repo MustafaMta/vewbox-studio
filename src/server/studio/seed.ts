@@ -1,6 +1,7 @@
 import { sql as dsql } from 'drizzle-orm';
 import type { StudioState } from '@/domain/types';
-import { DEFAULT_SETTINGS, seed as sampleState } from '@/domain/sample';
+import { seed as sampleState } from '@/domain/sample';
+import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { emptyStudio } from '@/domain/actions';
 import { hashState } from '@/domain/hash';
 import { db, schema } from '../db/client';
@@ -9,11 +10,15 @@ import { persistState } from './persist';
 import { notifyChange } from './engine';
 import { log } from '../log';
 
-/** SEEDING — the first start fills an empty database with the sample studio (so every screen has something to show);
- *  Settings can return to it or empty the studio. Library files on disk belong to assets; when assets go, the
- *  caller removes the files (see media.ts). */
+/** SEEDING — the first start creates an EMPTY studio; Settings can empty it again. The sample studio
+ *  (src/domain/sample.ts) is a test fixture: it is loaded only on a server started with STUDIO_SAMPLE_FIXTURE=1 (the
+ *  browser and API tests' reset), or on a first start with SEED_KIND=sample. Library files on disk belong to assets;
+ *  when assets go, the caller removes the files (see media.ts). */
 
 export type SeedKind = 'sample' | 'empty';
+
+/** True when this server may load the sample studio on request (a test run). Read per call, not cached. */
+export const sampleFixtureAllowed = () => process.env.STUDIO_SAMPLE_FIXTURE === '1';
 
 export async function replaceStudio(kind: SeedKind, keepSettings = true): Promise<{ version: number; hash: string }> {
   const out = await db().transaction(async (tx) => {
@@ -35,7 +40,7 @@ export async function replaceStudio(kind: SeedKind, keepSettings = true): Promis
 }
 
 /** On boot: an untouched database starts as an EMPTY studio (no demonstration content). The sample studio is loaded
- *  only on request (Settings, or the test suites' reset); `SEED_KIND=sample` restores the old first-start behaviour. */
+ *  only by the test suites' reset (STUDIO_SAMPLE_FIXTURE=1); `SEED_KIND=sample` seeds it on a first start instead. */
 export async function seedIfEmpty(): Promise<boolean> {
   const meta = await db().select().from(schema.studioMeta);
   if (meta.length > 0) return false;

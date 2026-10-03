@@ -6,7 +6,6 @@ import type { Asset, Character } from '@/domain/types';
  *  them. Pure; unit-tested. */
 
 export const LOOK_KEYS = ['build', 'face', 'hair', 'eyes', 'skin', 'wardrobe'] as const satisfies ReadonlyArray<keyof Character>;
-export type LookKey = (typeof LOOK_KEYS)[number];
 
 /** The look comes from a picture: one is pending (the drawing has not replaced it yet), or the portrait was drawn
  *  from one (the CHARACTER_APPEARANCE provenance says `lookFrom: 'REFERENCE'`). */

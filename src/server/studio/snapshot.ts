@@ -1,7 +1,7 @@
 import { asc } from 'drizzle-orm';
 import type { Asset, AssetTier, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
 import { STATE_VERSION } from '@/domain/version';
-import { DEFAULT_SETTINGS } from '@/domain/sample';
+import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { canonical, hashString } from '@/domain/hash';
 import { db, schema, type Db } from '../db/client';
 import { canonicalFromColumns } from './canonical-image';

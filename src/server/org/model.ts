@@ -517,9 +517,7 @@ export const FAILURE_CLASSES = ['INVALID_INPUT', 'UNSUPPORTED_CAPABILITY', 'MISS
 export type FailureClass = (typeof FAILURE_CLASSES)[number];
 
 export const agentById = (id: string) => AGENTS.find((a) => a.id === id);
-export const departmentById = (id: DepartmentId) => DEPARTMENTS.find((d) => d.id === id);
 export const toolById = (id: string) => TOOLS.find((t) => t.id === id);
 export const skillById = (id: string) => SKILLS.find((s) => s.id === id);
-export const stepOf = (agentId: string, stepId: string) => agentById(agentId)?.steps.find((s) => s.id === stepId);
 /** Agents whose model calls go through the story engine (they receive their instructions and PROMPT skills). */
 export const callsModel = (a: Pick<AgentDef, 'tools'>) => a.tools.includes('story.structured_answer');

@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Job, JobPayload, JobType } from '@/domain/jobs';
-import { JOB_LABELS, isActiveStatus } from '@/domain/jobs';
+import { isActiveStatus } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { useStudio } from '@/studio/store';
 import { retryNeedsChange } from '@/studio/retry';
@@ -92,15 +91,6 @@ export function RetryControl({ job, size = 'xs', label }: { job: Job; size?: 'xs
       {error && <span role="alert" className="text-xs text-bad" dir="auto">{error}</span>}
     </form>
   );
-}
-
-/** A compact line for a job anywhere: label, status dot, phase. */
-export function JobLine({ job, link = true }: { job: Job; link?: boolean }) {
-  const T = useT();
-  const tone = job.status === 'COMPLETED' ? 'ok' : job.status === 'FAILED' ? 'bad' : job.status === 'CANCELLED' ? 'neutral' : job.status === 'AWAITING_REVIEW' ? 'warn' : 'info';
-  const label = JOB_LABELS[job.type]?.[T.locale] ?? job.type;
-  const body = <Status tone={tone} live={isActiveStatus(job.status)} title={job.progress?.message ?? job.error?.message}>{label}{job.progress?.message && isActiveStatus(job.status) ? ` · ${job.progress.message}` : ''}</Status>;
-  return link ? <Link href={`/production?job=${job.id}`} className="hover:underline">{body}</Link> : body;
 }
 
 /** Surfaces the store's sync and command errors as toasts. Mounted once in the layout. */

@@ -35,7 +35,6 @@ export const ProposalSchema = z.preprocess(aliases({ title: ['name', 'titleEn'],
   locations: looseArray(z.preprocess(aliases({ existingLocationId: ['locationId', 'id'], description: ['look', 'summary'], kind: ['type'] }), z.object({ existingLocationId: z.string().optional(), name: req(60), description: req(400), kind: placeKind.optional() })), { min: 1, max: 6 }),
   song: z.preprocess(aliases({ caption: ['description', 'style', 'musicalCaption'], lyrics: ['text', 'words'] }), z.object({ title: str(80), caption: str(300).optional(), lyrics: z.string().trim().max(4000) })).optional(),
 }));
-export type ProposalOut = z.infer<typeof ProposalSchema>;
 
 export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['distinguishingFeatures', 'features', 'marks'], wardrobe: ['clothing', 'outfit', 'costume'] }), z.object({
   build: str(160), face: str(300), hair: str(160), skin: str(80), eyes: str(80), distinguishing: strs(80, 6), wardrobe: str(300), personality: str(400), ageYears: int(1, 120).optional(), sex: sex.optional(), nameAr: str(60).optional(),

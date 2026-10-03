@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { cloneElement, isValidElement, type ReactElement, type ReactNode, useEffect, useId, useRef, useState } from 'react';
-import { useToast } from './toast';
 import { useT } from './locale';
 import { IconBad, IconCheck, IconClose, IconInfo, IconMore, IconOk, IconWarn } from './icons';
 
@@ -210,18 +209,6 @@ export function SampleMark({ className = '' }: { className?: string }) {
 export function Card({ children, className = '', as: As = 'section', padded = true, ...rest }: { children: ReactNode; className?: string; as?: 'section' | 'div' | 'article' | 'li'; padded?: boolean } & React.HTMLAttributes<HTMLElement>) {
   return <As className={cls('panel', padded && 'p-4 sm:p-5', className)} {...rest}>{children}</As>;
 }
-export function CardHeader({ title, eyebrow, actions, description, as: As = 'h2' }: { title: ReactNode; eyebrow?: ReactNode; actions?: ReactNode; description?: ReactNode; as?: 'h2' | 'h3' }) {
-  return (
-    <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0">
-        {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-        <As className={As === 'h2' ? 'h2' : 'h3'}>{title}</As>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
-      </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </header>
-  );
-}
 export function Details({ summary, children, open, className = '' }: { summary: ReactNode; children: ReactNode; open?: boolean; className?: string }) {
   return (
     <details className={cls('details', className)} open={open}>
@@ -375,29 +362,6 @@ export function TabBar({ tabs, current, hrefFor, ariaLabel, className = '', stic
   );
 }
 
-/** A drawer for a quick edit: the same native dialog, docked to the end side. */
-export function Drawer({ trigger, title, description, children, size }: { trigger: (open: () => void) => ReactNode; title: ReactNode; description?: ReactNode; children: (close: () => void) => ReactNode; /** `lg` (40rem) for job and activity detail */ size?: 'md' | 'lg' }) {
-  const T = useT();
-  const ref = useRef<HTMLDialogElement>(null);
-  const id = useId();
-  const [open, setOpen] = useState(false);
-  const close = () => ref.current?.close();
-  return (
-    <>
-      {trigger(() => { setOpen(true); ref.current?.showModal(); })}
-      <dialog ref={ref} className={cls('drawer', size === 'lg' && 'drawer-lg')} aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
-            <div className="min-w-0"><h2 id={`${id}-h`} className="h2">{title}</h2>{description && <p className="mt-0.5 text-sm text-muted">{description}</p>}</div>
-            <Button variant="ghost" size="sm" aria-label={T('btn.close')} onClick={close} icon={<IconClose />} />
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-5">{open && children(close)}</div>
-        </div>
-      </dialog>
-    </>
-  );
-}
-
 /** A row of checkable picture chips, for choosing people or places. */
 export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', empty, extra }: { items: Array<{ id: string; label: string; labelAr?: string; src?: string; sub?: string }>; selected: string[]; onToggle: (id: string) => void; ratio?: string; empty?: ReactNode; extra?: ReactNode }) {
   if (items.length === 0 && !extra) return <>{empty}</>;
@@ -425,7 +389,3 @@ export function AddTile({ onClick, children, ratio = 'aspect-[4/5]' }: { onClick
   return <button type="button" onClick={onClick} className={cls('flex w-full flex-col items-center justify-center gap-1 rounded-[var(--r-3)] border border-dashed border-line-field bg-input text-sm text-muted transition-colors hover:border-faint hover:text-fg', ratio)}>{children}</button>;
 }
 
-export function useMounted() { const [m, setM] = useState(false); useEffect(() => setM(true), []); return m; }
-
-/** One line of confirmation after a saved change, from anywhere. */
-export function useSaved() { const toast = useToast(); const T = useT(); return () => toast.ok(T('toast.saved')); }

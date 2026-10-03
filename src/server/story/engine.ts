@@ -339,12 +339,6 @@ export interface PlannedShot { purpose: string; action: string; framing: ShotPla
 /** A scene's planned shots before the timing fit, with the running-time budget and per-shot cap they are fitted to. */
 export interface ShotPlanDraft { shots: PlannedShot[]; budget: number; maxShot: number }
 
-/** The scene's shots, fitted to its budget (the Shot Planner's step in the worker does the fit separately). */
-export async function planShots(s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string }, opts: EngineOptions = {}): Promise<PlannedShot[]> {
-  const draft = await planShotsDraft(s, p, scene, cast, world, previous, opts);
-  return fitDurations(draft.shots, draft.budget, draft.maxShot);
-}
-
 export async function planShotsDraft(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}): Promise<ShotPlanDraft> {
   const loc = world.find((l) => l.id === scene.locationId);
   const present = scene.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];

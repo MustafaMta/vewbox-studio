@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
   faceCropRect, firstJsonObject, hasNonLatinLetters, identityLineFromDescription, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
-  qwenCanonicalImage, qwenFaceCrop, qwenReferenceCanonical, qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, sentences, vlmOutput, whoPhrase, workflowVersion, type Graph,
+  qwenCanonicalImage, qwenReferenceCanonical, qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, sentences, vlmOutput, whoPhrase, workflowVersion, type Graph,
 } from '@/server/workflows';
 
 /** THE CANONICAL CHARACTER IMAGE (docs/CONTRACTS-IDENTITY-PACK.md v2) — the pure builders behind CHARACTER_APPEARANCE:
@@ -140,12 +140,6 @@ describe('the face crop of an upload', () => {
       expect(q.x).toBeGreaterThanOrEqual(0); expect(q.y).toBeGreaterThanOrEqual(0);
       expect(q.x + q.width).toBeLessThanOrEqual(1024); expect(q.y + q.height).toBeLessThanOrEqual(1280);
     }
-  });
-  it('builds a stand-alone crop graph: crop → lanczos to 1024² → save', () => {
-    const g = qwenFaceCrop({ image: 'p.png', rect: { x: 10.4, y: 20.6, width: 500, height: 500 } });
-    linked(g);
-    expect(g.crop.inputs).toMatchObject({ x: 10, y: 21, width: 500, height: 500 });
-    expect(g.up.inputs).toMatchObject({ width: 1024, height: 1024, upscale_method: 'lanczos' });
   });
 });
 

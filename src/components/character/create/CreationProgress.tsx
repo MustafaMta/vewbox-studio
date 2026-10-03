@@ -14,6 +14,7 @@ import type { CreateStepName } from '../contract';
 import type { StepView } from './preflight';
 import type { Key } from '@/lib/i18n';
 import { CharacterImage } from '../CharacterImage';
+import { ConsentChoice } from '../ConsentChoice';
 import { imageKindOf } from '../identity';
 
 const STEP_KEY: Record<CreateStepName, Key> = { design: 'cast.step.design', image: 'cast.step.image', voice: 'cast.step.voice' };
@@ -46,6 +47,8 @@ export function CreationProgress({ parent, steps, characterId, referenceSrc, onC
         reference: s.step === 'voice' && characterId ? <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm"><IconVoice aria-hidden />{T('char.create.addRecording')}</Link> : s.step === 'image' && characterId ? <Link href={`/characters/${characterId}#image`} className="btn btn-secondary btn-sm"><IconOpen aria-hidden />{T('cast.new.openProfile')}</Link> : retry,
         fields: s.step === 'design' ? <Button size="sm" variant="secondary" icon={<IconEdit />} onClick={onWriteMyself}>{T('char.create.writeMyself')}</Button> : retry,
         usage: characterId ? <Link href={`/characters/${characterId}#productions`} className="btn btn-secondary btn-sm">{copy.fix.label}</Link> : null,
+        // a recording without a consent statement: the producer's statement, then the voice step again (never a blind retry)
+        consent: characterId ? <ConsentChoice characterId={characterId} sampleId={s.job?.error?.details?.sampleId} onConfirmed={() => onRetryStep(s.step)} /> : null,
       };
       action = (
         <span className="flex flex-wrap items-center gap-2">

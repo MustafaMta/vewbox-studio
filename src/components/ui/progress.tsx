@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Job, JobError, JobStatus } from '@/domain/jobs';
+import type { StudioErrorCode } from '@/domain/errors';
 import { isActiveStatus, isTerminalStatus } from '@/domain/jobs';
 import { useT } from './locale';
 import { Button, Spinner, cls, type Tone } from './kit';
@@ -35,16 +36,22 @@ export function PhaseStrip({ phases, label, className = '' }: { phases: Phase[];
 
 /* ---- error copy -------------------------------------------------------------------------------------------- */
 
-export interface ErrorCopy { code: string; title: string; hint: string; fix: { label: string; kind: 'retry' | 'settings' | 'reference' | 'usage' | 'job' | 'fields' | 'none' } }
+/** `consent`: the producer's consent statement for a recording (src/components/character/ConsentChoice.tsx) — a
+ *  plain retry can never fix it, so nothing here offers one. */
+export interface ErrorCopy { code: string; title: string; hint: string; fix: { label: string; kind: 'retry' | 'settings' | 'reference' | 'usage' | 'job' | 'fields' | 'consent' | 'none' } }
 
-const KNOWN: Record<string, { title: Key; hint: Key; fix: Key; kind: ErrorCopy['fix']['kind'] }> = {
+/** Every StudioError code has its words and its one recovery (typed exhaustively: a new code that has none fails the
+ *  type check instead of falling back to a generic Retry), plus CANCELLED, which jobs record. */
+export const ERROR_COPY: Record<StudioErrorCode | 'CANCELLED', { title: Key; hint: Key; fix: Key; kind: ErrorCopy['fix']['kind'] }> = {
   UNAVAILABLE: { title: 'err.UNAVAILABLE', hint: 'err.UNAVAILABLE.hint', fix: 'err.UNAVAILABLE.fix', kind: 'settings' },
   NOT_CONFIGURED: { title: 'err.NOT_CONFIGURED', hint: 'err.NOT_CONFIGURED.hint', fix: 'err.NOT_CONFIGURED.fix', kind: 'settings' },
   PROVIDER: { title: 'err.PROVIDER', hint: 'err.PROVIDER.hint', fix: 'err.PROVIDER.fix', kind: 'retry' },
   INVALID: { title: 'err.INVALID', hint: 'err.INVALID.hint', fix: 'err.INVALID.fix', kind: 'fields' },
   MISSING_REFERENCE: { title: 'err.MISSING_REFERENCE', hint: 'err.MISSING_REFERENCE.hint', fix: 'err.MISSING_REFERENCE.fix', kind: 'reference' },
+  CONSENT_REQUIRED: { title: 'err.CONSENT_REQUIRED', hint: 'err.CONSENT_REQUIRED.hint', fix: 'err.CONSENT_REQUIRED.fix', kind: 'consent' },
   APPEARANCE_LOCKED: { title: 'err.LOCKED', hint: 'err.LOCKED.hint', fix: 'err.LOCKED.fix', kind: 'usage' },
   VOICE_LOCKED: { title: 'err.LOCKED', hint: 'err.LOCKED.hint', fix: 'err.LOCKED.fix', kind: 'usage' },
+  ASSET_PROTECTED: { title: 'err.ASSET_PROTECTED', hint: 'err.ASSET_PROTECTED.hint', fix: 'err.LOCKED.fix', kind: 'usage' },
   CONFLICT: { title: 'err.CONFLICT', hint: 'err.CONFLICT.hint', fix: 'err.CONFLICT.fix', kind: 'job' },
   NOT_FOUND: { title: 'err.NOT_FOUND', hint: 'err.NOT_FOUND.hint', fix: 'err.NOT_FOUND.fix', kind: 'none' },
   CANCELLED: { title: 'err.CANCELLED', hint: 'err.CANCELLED.hint', fix: 'err.PROVIDER.fix', kind: 'retry' },
@@ -56,21 +63,22 @@ export function useErrorCopy() {
   const T = useT();
   return (err?: JobError | { code: string; message?: string } | null): ErrorCopy => {
     const code = err?.code ?? 'UNKNOWN';
-    const k = KNOWN[code];
+    const k = (ERROR_COPY as Record<string, (typeof ERROR_COPY)[StudioErrorCode] | undefined>)[code];
     if (!k) return { code, title: T('err.unknown'), hint: err?.message ?? '', fix: { label: T('err.PROVIDER.fix'), kind: 'retry' } };
     return { code, title: T(k.title), hint: err?.message && err.message.length > 12 ? err.message : T(k.hint), fix: { label: T(k.fix), kind: k.kind } };
   };
 }
 
 /** The one recovery control for a failure: Retry (your handler), Settings → Engines (a link), the job's page, or
- *  whatever the caller supplies for the reference / usage / fields kinds. */
+ *  whatever the caller supplies for the reference / usage / fields / consent kinds. A consent failure without the
+ *  caller's consent choice offers only the job, never a retry. */
 export function RecoveryAction({ copy, onRetry, jobId, custom, size = 'sm' }: { copy: ErrorCopy; onRetry?: () => void; jobId?: string; custom?: Partial<Record<ErrorCopy['fix']['kind'], ReactNode>>; size?: 'sm' | 'xs' }) {
   const T = useT();
   const k = copy.fix.kind;
   if (custom?.[k]) return <>{custom[k]}</>;
   if (k === 'settings') return <span className="flex flex-wrap items-center gap-2"><Link href="/settings#engines" className={cls('btn btn-secondary', `btn-${size}`)}><IconSettings aria-hidden />{copy.fix.label}</Link>{onRetry && <Button size={size} variant="ghost" icon={<IconRetry />} onClick={onRetry}>{T('jobs.retry')}</Button>}</span>;
-  if (k === 'job' && jobId) return <Link href={`/production?job=${jobId}`} className={cls('btn btn-secondary', `btn-${size}`)}><IconOpen aria-hidden />{T('err.openJob')}</Link>;
-  if (k === 'none') return null;
+  if ((k === 'job' || k === 'consent') && jobId) return <Link href={`/production?job=${jobId}`} className={cls('btn btn-secondary', `btn-${size}`)}><IconOpen aria-hidden />{T('err.openJob')}</Link>;
+  if (k === 'none' || k === 'consent') return null;
   return onRetry ? <Button size={size} variant="secondary" icon={<IconRetry />} onClick={onRetry}>{copy.fix.label}</Button> : null;
 }
 

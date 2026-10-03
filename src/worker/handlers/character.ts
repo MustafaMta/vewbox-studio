@@ -20,8 +20,8 @@ import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
 
 /** design → image → voice (contract v2: no sheet or extra views by default; "appearance" is the canonical-image step). */
 const STEPS: CreateCharacterStep[] = ['design', 'appearance', 'voice'];
-const CHILD_TYPE: Record<CreateCharacterStep, JobType> = { design: 'DESIGN_CHARACTER', appearance: 'CHARACTER_APPEARANCE', sheet: 'CHARACTER_REFS', voice: 'VOICE_BUILD' };
-const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the character image', sheet: 'Drawing secondary material', voice: 'Building the voice' };
+const CHILD_TYPE: Record<CreateCharacterStep, JobType> = { design: 'DESIGN_CHARACTER', appearance: 'CHARACTER_APPEARANCE', voice: 'VOICE_BUILD' };
+const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the character image', voice: 'Building the voice' };
 /** The DESIGN_CHARACTER payload's brief limit (src/domain/jobs.ts). */
 const BRIEF_MAX = 2000;
 /** In REFERENCE mode the look fields are the picture's: they count as present when deciding whether to design. */

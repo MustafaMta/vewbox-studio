@@ -40,7 +40,6 @@ vi.mock('@/server/jobs/queue', () => ({
   getJob: async (id: string) => fake.jobs.get(id),
   // the queue's retry: the same row runs again and (in this fake) ends as the type's outcome says now
   retry: async (id: string) => { const j = fake.jobs.get(id)!; fake.retried.push(id); const o = fake.outcomes[j.type] ?? { status: 'COMPLETED' as const, result: {} }; o.effect?.(j.payload); fake.jobs.set(id, { ...j, status: o.status, result: o.result, error: o.error }); return fake.jobs.get(id)!; },
-  listChildren: async (parentId: string) => [...fake.jobs.values()].filter((j) => j.parentId === parentId),
   recordMetric: async () => {},
 }));
 vi.mock('@/server/env', () => ({ env: () => ({ MINIMAX_API_KEY: '' }) }));

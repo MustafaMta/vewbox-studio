@@ -11,9 +11,15 @@ import type { Job, JobEvent, JobType } from '../../src/domain/jobs';
 
 export const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
 
+/** The sample studio is a test fixture: the server loads it only when it runs with STUDIO_SAMPLE_FIXTURE=1
+ *  (playwright.config.ts starts its server that way; a reused server must have been started with it). */
 export async function resetStudio(kind: 'sample' | 'empty' = 'sample') {
   const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind, keepSettings: false }) });
-  if (!r.ok) throw new Error(`reset failed: ${r.status}`);
+  if (!r.ok) {
+    const body = (await r.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+    const hint = body?.error?.code === 'NOT_CONFIGURED' ? ' — start the studio server with STUDIO_SAMPLE_FIXTURE=1 to run the browser tests' : '';
+    throw new Error(`reset failed: ${r.status} ${body?.error?.message ?? ''}${hint}`);
+  }
 }
 
 /** The authoritative state, straight from the server. */
@@ -58,8 +64,8 @@ export async function settled(page: Page) {
 export type Snap = StudioState;
 export type { Asset, Character, Job };
 
-/** Generous ceilings for real generation (a portrait ~30 s, a sheet ~2 min, a voice ~1 min, a take 2–8 min). */
-export const WAIT = { design: 3 * 60_000, portrait: 4 * 60_000, sheet: 8 * 60_000, voice: 6 * 60_000, preview: 4 * 60_000, take: 12 * 60_000, create: 16 * 60_000 } as const;
+/** Generous ceilings for real generation (the canonical image ~1 min, a voice ~1 min, a take 2–8 min). */
+export const WAIT = { design: 3 * 60_000, image: 6 * 60_000, voice: 6 * 60_000, preview: 4 * 60_000, take: 12 * 60_000, create: 16 * 60_000 } as const;
 
 export const GPU = process.env.QA_GPU === '1';
 export const EVIDENCE_DIR = path.join('docs', 'evidence', 'qa');

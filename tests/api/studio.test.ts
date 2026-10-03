@@ -142,11 +142,17 @@ describe('event stream', () => {
 });
 
 describe('reset', () => {
-  it('restores the sample studio and the version advances', async () => {
+  // the sample studio is a test fixture: a server started with STUDIO_SAMPLE_FIXTURE=1 loads it; any other refuses
+  it('loads the sample studio on a test server (the version advances), and is refused NOT_CONFIGURED elsewhere', async () => {
     const before = await snapshot();
     const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'sample' }) });
-    expect(r.status).toBe(200);
     const after = await snapshot();
+    if (r.status === 424) {
+      expect(((await r.json()) as { error: { code: string } }).error.code).toBe('NOT_CONFIGURED');
+      expect(after.version).toBe(before.version);
+      return;
+    }
+    expect(r.status).toBe(200);
     expect(after.version).toBeGreaterThan(before.version);
     expect(after.state.shows.map((s) => s.id).sort()).toEqual(['last-sip', 'paper-kites']);
   });

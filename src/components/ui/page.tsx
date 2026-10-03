@@ -46,18 +46,6 @@ export function Section({ title, description, action, count, children, className
   );
 }
 
-/** A studio metric: the number leads. */
-export function Stat({ label, value, hint, href, icon }: { label: ReactNode; value: ReactNode; hint?: ReactNode; href?: string; icon?: ReactNode }) {
-  const body = (
-    <>
-      <div className="flex items-center justify-between gap-2"><span className="text-[12.5px] font-medium text-muted">{label}</span>{icon && <span className="text-ink-500 [&>svg]:size-4">{icon}</span>}</div>
-      <div className="num mt-3 text-[28px] font-semibold leading-none tracking-[-0.02em] text-fg">{value}</div>
-      {hint && <div className="mt-2 text-[12px] text-faint">{hint}</div>}
-    </>
-  );
-  return href ? <Link href={href} className="card card-hover block px-5 py-4">{body}</Link> : <div className="card px-5 py-4">{body}</div>;
-}
-
 /** Term / value pairs for production facts. */
 export function FactList({ items }: { items: Array<{ label: ReactNode; value: ReactNode; icon?: ReactNode }> }) {
   return (
@@ -83,7 +71,3 @@ export function CastStack({ cast, max = 5, emptyLabel }: { cast: Array<{ id: str
   );
 }
 
-/** A quiet piece of text that says "everything you see here is a sample" — used once per page where it matters. */
-export function Kicker({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={cls('kicker', className)}>{children}</div>;
-}

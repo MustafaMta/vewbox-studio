@@ -27,21 +27,6 @@ export function Art({ src, alt = '', ratio = 'poster', title, sample, className 
   );
 }
 
-/** A library item: the art, then the title and one line. The whole thing is one link; a menu may sit beside it. */
-export function ArtCard({ href, src, ratio = 'poster', title, titleAr, meta, status, sample, badge, menu, unavailable }: { href: string; src?: string | null; ratio?: Ratio; title: string; titleAr?: string; meta?: ReactNode; status?: ReactNode; sample?: boolean; badge?: ReactNode; menu?: ReactNode; unavailable?: boolean }) {
-  return (
-    <li className="poster-card relative min-w-0">
-      <Link href={href} className="poster-link block outline-none">
-        <Art src={src} ratio={ratio} title={title} sample={sample} unavailable={unavailable}>{badge && <span className="absolute start-2 top-2">{badge}</span>}</Art>
-        <p className={cls('poster-title bi', Boolean(menu) && 'pe-9')} dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar" dir="rtl">{titleAr}</span>}</p>
-        {meta && <p className="poster-meta">{meta}</p>}
-        {status && <div className="mt-1.5">{status}</div>}
-      </Link>
-      {menu && <div className="card-tools absolute end-0 top-[calc(100%-4.25rem)]">{menu}</div>}
-    </li>
-  );
-}
-
 /** A list row for the same item, for management: art small on the start side, columns after. */
 export function ArtRow({ href, src, ratio = 'poster', title, titleAr, cells, status, menu, sample }: { href: string; src?: string | null; ratio?: Ratio; title: string; titleAr?: string; cells?: ReactNode[]; status?: ReactNode; menu?: ReactNode; sample?: boolean }) {
   const w = ratio === 'poster' ? 'w-10' : ratio === 'square' ? 'w-12' : ratio === 'portrait' ? 'w-11' : 'w-20';
@@ -87,25 +72,6 @@ export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, m
       {children}
     </header>
   );
-}
-
-/** Loading placeholders that mirror the card shapes (16:9, 2:3, 1:1, 4:5, a 44 px row) and the hero. The shimmer
- *  stops under reduced motion; the block stays. */
-export function Skeleton({ kind, count = 1, className = '' }: { kind: 'wide' | 'poster' | 'square' | 'portrait' | 'row' | 'hero' | 'lines'; count?: number; className?: string }) {
-  const items = Array.from({ length: count }, (_, i) => i);
-  if (kind === 'hero') return <div aria-busy className={cls('space-y-4', className)}><div className="skeleton skeleton-hero" /><div className="skeleton skeleton-line w-3/5" /></div>;
-  if (kind === 'lines') return <div aria-busy className={cls('space-y-2', className)}>{items.map((i) => <div key={i} className={cls('skeleton', i % 2 ? 'skeleton-line-short' : 'skeleton-line')} />)}</div>;
-  if (kind === 'row') return <div aria-busy className={cls('space-y-2', className)}>{items.map((i) => <div key={i} className="skeleton skeleton-row" />)}</div>;
-  return (
-    <div aria-busy className={cls('contents', className)}>
-      {items.map((i) => <div key={i} className="space-y-2"><div className={cls('skeleton', `skeleton-${kind}`)} /><div className="skeleton skeleton-line w-4/5" /><div className="skeleton skeleton-line-short" /></div>)}
-    </div>
-  );
-}
-
-/** One line that says what the colours mean. */
-export function Legend({ items, className = '' }: { items: Array<{ color: string; label: ReactNode }>; className?: string }) {
-  return <p className={cls('org-legend', className)}>{items.map((it, i) => <span key={i} style={{ '--c': it.color } as React.CSSProperties}>{it.label}</span>)}</p>;
 }
 
 /** Metadata as dots between words. */

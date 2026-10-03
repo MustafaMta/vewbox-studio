@@ -65,7 +65,8 @@ try {
     for (const t of JSON.parse(await readFile(process.env.TEMPLATES_JSON, 'utf8'))) templates.push(t);
     console.log(`templates: ${templates.length} from ${process.env.TEMPLATES_JSON}`);
   } else {
-    const reg = await fetch(`${studio}/api/registry`).then((r) => r.json());
+    // POST: the registry is synced now (a GET only reads what the last sync wrote), so new templates are listed
+    const reg = await fetch(`${studio}/api/registry`, { method: 'POST' }).then((r) => r.json());
     const seenWf = new Set();
     for (const wf of reg.workflows ?? []) {
       if (seenWf.has(wf.name)) continue; seenWf.add(wf.name);

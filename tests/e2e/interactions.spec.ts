@@ -211,19 +211,20 @@ test.describe('dialogs, keyboard, files', () => {
     await expect(page.locator('.poster-title', { hasText: /^Front$/ })).toBeVisible();
   });
 
-  test('reset from Settings clears kept files as well as records', async ({ page }) => {
+  test('emptying the studio from Settings clears kept files as well as records, and offers no way back to the sample', async ({ page }) => {
     await page.goto('/assets');
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
     await page.locator('input[type=file]').setInputFiles({ name: 'added.png', mimeType: 'image/png', buffer: png });
     await expect(page.getByRole('listitem').filter({ hasText: 'added.png' })).toBeVisible();
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Reset sample data' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Reset sample data' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Sample data restored.' })).toBeVisible(); // the reset has completed on the server
+    await expect(page.getByRole('button', { name: /sample/i })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Start with an empty studio' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Start with an empty studio' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'The studio is empty.' }).first()).toBeVisible(); // the reset has completed on the server
     await page.goto('/assets');
     await expect(page.getByRole('listitem').filter({ hasText: 'added.png' })).toHaveCount(0);
     const saved = await snapshot<{ assets: Array<{ sample: boolean; label: string; origin: string }> }>();
-    expect(saved.assets.filter((a) => !a.sample).map((a) => `${a.label} (${a.origin})`)).toEqual([]);
+    expect(saved.assets.map((a) => `${a.label} (${a.origin})`)).toEqual([]);
   });
 
   test('generation starts a real job everywhere it is offered; export refuses sample takes', async ({ page }) => {
