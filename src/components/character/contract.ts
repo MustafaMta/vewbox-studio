@@ -120,12 +120,11 @@ export const voiceDesignReady = (): boolean => (JOB_TYPES as readonly string[]).
 /** The listening command exists on this server. */
 export const listeningReady = (): boolean => isCommandName('recordVoiceListening');
 
-type LooseStart = (type: string, payload: Record<string, unknown>, opts?: { idempotencyKey?: string }) => Promise<StartedJob>;
 /** `VOICE_DESIGN { characterId, description }` → three candidates speaking a calibration sentence. */
-export const startVoiceDesign = (startJob: StartJob, characterId: string, description: string): Promise<StartedJob> => (startJob as unknown as LooseStart)('VOICE_DESIGN', { characterId, description });
+export const startVoiceDesign = (startJob: StartJob, characterId: string, description: string): Promise<StartedJob> => startJob('VOICE_DESIGN', { characterId, description });
 /** `VOICE_BUILD` in the v2 modes: AUTOMATIC (designed from the profile, or for Iraqi from an Iraqi recording), DESIGN
  *  (a chosen candidate of a design), REFERENCE (a consented recording). */
-export const startVoiceBuildV2 = (startJob: StartJob, p: { characterId: string; mode: 'AUTOMATIC' } | { characterId: string; mode: 'DESIGN'; designId: string; candidate: number } | { characterId: string; mode: 'REFERENCE'; referenceSampleId: string }): Promise<StartedJob> => (startJob as unknown as LooseStart)('VOICE_BUILD', p);
+export const startVoiceBuildV2 = (startJob: StartJob, p: { characterId: string; mode: 'AUTOMATIC' } | { characterId: string; mode: 'DESIGN'; designId: string; candidate: number } | { characterId: string; mode: 'REFERENCE'; referenceSampleId: string }): Promise<StartedJob> => startJob('VOICE_BUILD', p);
 
 export interface DesignCandidate { index: number; assetId?: string; seed?: number; durationSeconds?: number; cer?: number; coverage?: number; lufs?: number; passed?: boolean; reasons?: string[] }
 export interface DesignResult { designId: string; description?: string; candidates: DesignCandidate[] }
@@ -150,20 +149,19 @@ export function recordVoiceListening(act: unknown, characterId: string, record: 
 }
 
 /** The Settings experiment switch that lets an Iraqi voice start from a designed Arabic seed (default off). */
-export const designedIraqiAllowed = (settings: unknown): boolean => {
-  const s = settings as { allowDesignedIraqi?: unknown; generation?: { allowDesignedIraqi?: unknown }; experiments?: { allowDesignedIraqi?: unknown } } | undefined;
-  return s?.allowDesignedIraqi === true || s?.generation?.allowDesignedIraqi === true || s?.experiments?.allowDesignedIraqi === true;
-};
+/** The Settings experiment switch that lets an Iraqi voice start from a designed Arabic seed (default off); the server
+ *  keeps it at `settings.voice.allowDesignedIraqi`. */
+export const designedIraqiAllowed = (settings: unknown): boolean => (settings as { voice?: { allowDesignedIraqi?: unknown } } | undefined)?.voice?.allowDesignedIraqi === true;
 
-/** A deterministic description of the voice from the profile (contract v2 §2: sex, age, pitch, pace, timbre,
- *  personality — no language model), as the starting text of a design the producer may edit. */
-export function voiceDescriptionOf(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'personality' | 'species'> & { voice: Pick<Character['voice'], 'pitch' | 'pace' | 'timbre'> }): string {
+/** A deterministic description of the voice from the profile (contract v2 §2: sex, age, pitch, pace, timbre — no
+ *  language model), as the starting text of a design the producer may edit. Personality text is left out on purpose:
+ *  it can name people, and the server refuses a description that names anyone. */
+export function voiceDescriptionOf(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'species'> & { voice: Pick<Character['voice'], 'pitch' | 'pace' | 'timbre'> }): string {
   const who = c.species ? c.species : `${c.sex === 'FEMALE' ? 'woman' : 'man'} of about ${c.ageYears}`;
   const pitch = { LOW: 'a low', MID: 'a middle', HIGH: 'a high' }[c.voice.pitch];
   const pace = { SLOW: 'slow, unhurried', MEASURED: 'measured', QUICK: 'quick' }[c.voice.pace];
   const parts = [`A ${who}`, `${pitch} voice`, `${pace} delivery`, c.voice.timbre.trim() ? c.voice.timbre.trim().toLowerCase() : '', c.language === 'AR' ? 'speaking Modern Standard Arabic' : 'speaking English'];
-  const feel = c.personality.trim().split(/[.!?]/)[0]?.trim();
-  return `${parts.filter(Boolean).join(', ')}.${feel ? ` ${feel}.` : ''}`;
+  return `${parts.filter(Boolean).join(', ')}.`;
 }
 
 /* ---- usage ------------------------------------------------------------------------------------------------- */
