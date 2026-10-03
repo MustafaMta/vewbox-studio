@@ -4,6 +4,7 @@ import { isCommandName, isSystemCommand, systemCommandMessage, validateClientCom
 import { applyCommands } from '@/server/studio/engine';
 import { json, readJson, route } from '@/server/http';
 import { log } from '@/server/log';
+import { settleDialogueReviews } from '@/server/jobs/reviews';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,5 +41,8 @@ export const POST = route(async (req) => {
     commands.push(c as unknown as Command);
   }
   const result = await applyCommands(commands, parsed.data.clientId);
+  // kept recordings may settle a DIALOGUE_AUDIO review (src/server/jobs/reviews.ts); the batch is committed either way
+  const kept = commands.filter((c) => c.name === 'keepLineRecordings').map((c) => String((c.args as unknown[])[0]));
+  if (result.ok && kept.length) await settleDialogueReviews([...new Set(kept)]).catch((e) => log.error({ err: (e as Error).message }, 'settling dialogue reviews failed'));
   return json(result, { status: result.ok ? 200 : 409 });
 });

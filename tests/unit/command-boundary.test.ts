@@ -173,7 +173,9 @@ describe('what a page may not send', () => {
 // ------------------------------------------------------------------------------------------- the HTTP route
 
 const applied = vi.hoisted(() => ({ batches: [] as unknown[] }));
+const settled = vi.hoisted(() => ({ calls: [] as string[][] }));
 vi.mock('@/server/studio/engine', () => ({ applyCommands: async (cmds: unknown[]) => { applied.batches.push(cmds); return { ok: true, version: 2, hash: 'h', results: [] }; } }));
+vi.mock('@/server/jobs/reviews', () => ({ settleDialogueReviews: async (ids: string[]) => { settled.calls.push(ids); return []; } }));
 import { POST } from '@/app/api/commands/route';
 
 const post = (commands: Array<{ name: string; args: unknown[] }>) => POST(new Request('http://studio.test/api/commands', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ clientId: 'unit', commands: commands.map((c, i) => ({ ...c, seed: `seed-${i}-unit`, at: new Date().toISOString() })) }) }), undefined);
@@ -197,6 +199,14 @@ describe('POST /api/commands', () => {
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: { message: string; details: { failedAt: number } } }).error).toMatchObject({ message: expect.stringMatching(/cutAssetId/), details: { failedAt: 0 } });
     expect(applied.batches).toHaveLength(1);
+  });
+
+  it('keepLineRecordings is applied, then the production’s dialogue reviews are settled', async () => {
+    settled.calls = [];
+    expect((await post([{ name: 'keepLineRecordings', args: ['s1e1', [{ shotId: 'sh-1', lineId: 'l-1' }]] }])).status).toBe(200);
+    expect(settled.calls).toEqual([['s1e1']]);
+    expect((await post([{ name: 'updateSettings', args: [{ reducedMotion: true }] }])).status).toBe(200);
+    expect(settled.calls).toHaveLength(1);
   });
 
   it('the one-release rollback (STUDIO_LEGACY_COMMANDS=1) accepts system commands again', async () => {

@@ -14,6 +14,7 @@ import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
 import { isFencedWrite } from '@/server/jobs/fence';
+import { settleDialogueReviews } from '@/server/jobs/reviews';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { step } from './handlers/step';
 import { gpuLease } from './gpu';
@@ -124,6 +125,8 @@ async function run(job: Job, lane: Lane) {
     }
     if (runId) await record('finish run', () => finishRun(runId, { outcome, ms, costUsd: typeof result?.costUsd === 'number' ? result.costUsd : undefined }));
     if (job.attempts > 1) await record('resolve reliability', () => resolveReliability(job.id, `attempt ${job.attempts} succeeded`));
+    // lines recorded again settle earlier reviews of the production whose flagged lines are now all decided
+    if (job.type === 'DIALOGUE_AUDIO' && job.productionId) await record('settle dialogue reviews', async () => { await settleDialogueReviews([job.productionId!]); });
     await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: outcome === 'COMPLETED' ? 'RUN_COMPLETED' : 'RUN_REVIEW', message: `${agent.name} finished: ${label} in ${ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${(ms / 60_000).toFixed(1)} min`}${outcome === 'AWAITING_REVIEW' ? ' — awaiting review' : ''}`, data: { ms, attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
     jl.info({ ms }, 'job completed');
   } catch (thrown) {

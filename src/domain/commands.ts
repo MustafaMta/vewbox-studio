@@ -15,7 +15,7 @@ export const COMMANDS = {
   setStage: A.setStage, markStepDone: A.markStepDone, recordExport: A.recordExport, setCut: A.setCut,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
-  selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio,
+  selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
   setSong: A.setSong, updateSong: A.updateSong,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
@@ -265,6 +265,8 @@ export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>>
   moveShot: argList([id, id, z.union([z.literal(-1), z.literal(1)])]), reorderShot: argList([id, id], [id]), setShotContinuity: argList([id, id, Continuity]),
   selectTake: argList([id, id], [id]), rateTake: existing('rateTake'), noteTake: argList([id, id, id, line(4000)]), rejectTake: argList([id, id, id, line(2000)]), removeTake: argList([id, id, id]),
   addTake: argList([id, id, UploadedTake]),
+  // the producer keeps flagged dialogue recordings: (productionId, [{ shotId, lineId }…], { by? })
+  keepLineRecordings: argList([id, z.array(z.object({ shotId: id, lineId: id }).strict()).min(1).max(500)], [z.object({ by: line(80) }).partial().strict()]),
   setSong: argList([id], [Song]), updateSong: argList([id, SongPatch]),
   addCharacter: existing('addCharacter'), updateCharacter: existing('updateCharacter'), setPendingReference: existing('setPendingReference'), deleteCharacter: argList([id]),
   addVoiceRecording: existing('addVoiceRecording'), removeVoiceSample: argList([id, id]), selectVoiceSample: existing('selectVoiceSample'),

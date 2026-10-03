@@ -227,3 +227,46 @@ describe('fenced result writes (audit C1, step 5)', () => {
     await commands([{ name: 'deleteProduction', args: [productionId] }, { name: 'deleteAsset', args: [assetId] }]);
   });
 });
+describe('settling a DIALOGUE_AUDIO review (keepLineRecordings / re-recording)', () => {
+  it('the job stays in review while a flagged line is open; keeping it (or recording it again) completes the job', async () => {
+    const { command, commands } = await import('@/server/studio/engine');
+    const { settleDialogueReviews } = await import('@/server/jobs/reviews');
+    const tag = Math.random().toString(36).slice(2, 8);
+    const [, prod] = await commands([
+      { name: 'updateSettings', args: [{}] },
+      { name: 'addProduction', args: [{ kind: 'SHORT', title: `Review ${tag}`, style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'x' }, castIds: [], locationIds: [] }] },
+    ]) as [unknown, { production: { id: string } }];
+    const productionId = prod.production.id;
+    const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
+    const dialogue = [{ id: `l1-${tag}`, characterId: 'c', text: 'one' }, { id: `l2-${tag}`, characterId: 'c', text: 'two' }];
+    const { shot } = await command('addShot', [productionId, { sceneId: scene.id, purpose: '', action: '', framing: 'WIDE', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [], dialogue, transition: 'CUT' }]);
+    const reviewJobs: string[] = [];
+    const parkJob = async () => {
+      const { job } = await enqueue({ type: 'DIALOGUE_AUDIO', payload: { productionId }, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+      made.push(job.id); reviewJobs.push(job.id);
+      await db().update(schema.jobs).set({ status: 'AWAITING_REVIEW', result: { lines: 2, flagged: 1, unverified: 0, awaitingReview: true } }).where(eq(schema.jobs.id, job.id));
+      return job.id;
+    };
+    const rec = (id: string, jobId: string, ok: boolean) => ({ name: 'addAsset' as const, args: [{ id, kind: 'AUDIO', src: `/api/media/${id}`, label: id, tags: ['dialogue'], sample: false, origin: 'GENERATED', jobId, provenance: { check: { ok } } }] as [never] });
+    const jobA = await parkJob();
+    await commands([rec(`ra1-${tag}`, jobA, false), rec(`ra2-${tag}`, jobA, true),
+      { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[0].id, { audioAssetId: `ra1-${tag}`, durationSeconds: 1 }] },
+      { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `ra2-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([]);
+    expect((await getJob(jobA))!.status).toBe('AWAITING_REVIEW');
+    // the producer keeps the flagged line
+    await command('keepLineRecordings', [productionId, [{ shotId: shot.id, lineId: dialogue[0].id }], { by: 'producer' }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([jobA]);
+    const a = (await getJob(jobA))!;
+    expect(a.status).toBe('COMPLETED'); expect(a.finishedAt).toBeTruthy();
+    expect(a.result).toMatchObject({ awaitingReview: false, review: { kept: [{ shotId: shot.id, lineId: dialogue[0].id }] } });
+    // another review: its flagged line is recorded again by a later job (passing) — settled as well
+    const jobB = await parkJob();
+    await commands([rec(`rb1-${tag}`, jobB, false), { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `rb1-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([]);
+    await commands([rec(`rc1-${tag}`, 'job-rerecord', true), { name: 'setDialogueAudio', args: [productionId, shot.id, dialogue[1].id, { audioAssetId: `rc1-${tag}`, durationSeconds: 1 }] }]);
+    expect(await settleDialogueReviews([productionId])).toEqual([jobB]);
+    expect((await getJob(jobB))!.result).toMatchObject({ review: { kept: [] } });
+    await commands([{ name: 'deleteProduction', args: [productionId] }]);
+  });
+});
