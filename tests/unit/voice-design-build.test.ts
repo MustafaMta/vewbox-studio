@@ -116,7 +116,7 @@ vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording } from '@/domain/actions';
 import { CALIBRATION_TEXT, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, MSA_ACCENT_PENDING, PREVIEW_SENTENCES, describeVoiceFromProfile } from '@/domain/voice-identity';
-import { judgeHeard, shouldRegenerate, voiceBuild, voicePreview } from '@/worker/handlers/voice';
+import { judgeHeard, proofLineFor, shouldRegenerate, voiceBuild, voicePreview } from '@/worker/handlers/voice';
 import { voiceDesign } from '@/worker/handlers/voice-design';
 import type { HandlerContext } from '@/worker/handlers';
 
@@ -321,6 +321,16 @@ describe('Rule V-DESIGN at the clone boundary', () => {
     expect(fake.synth.at(-1)).toMatchObject({ referenceWav: '/lib/audio/gen-oldwin.wav', text: 'Hi again.' });
     // ...but a rebuild from it still needs the consent
     await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'REFERENCE', referenceSampleId: old.id } }))).rejects.toMatchObject({ code: 'CONSENT_REQUIRED' });
+  });
+});
+
+describe('the proof sentence', () => {
+  it('an Arabic proof names the character only in Arabic — never a Latin name inside an Arabic line', () => {
+    expect(proofLineFor({ language: 'EN', name: 'Rana' })).toBe('Hello. My name is Rana, and this is my voice.');
+    expect(proofLineFor({ language: 'AR', dialect: 'MSA', name: 'Salim', nameAr: 'سليم' })).toBe('أهلاً بك. اسمي سليم، وهذا صوتي.');
+    expect(proofLineFor({ language: 'AR', dialect: 'MSA', name: 'Salim' })).toBe('أهلاً بك. هذا صوتي، وسأقرأ لك اليوم.');
+    expect(proofLineFor({ language: 'AR', dialect: 'IRAQI_BAGHDADI', name: 'زهرة' })).toBe('هلا بيك. اني اسمي زهرة، وهذا صوتي.');
+    expect(proofLineFor({ language: 'AR', dialect: 'IRAQI_BAGHDADI', name: 'Zahra' })).toBe('هلا بيك. هذا صوتي، شلونك اليوم؟');
   });
 });
 

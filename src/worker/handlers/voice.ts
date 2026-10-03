@@ -306,7 +306,14 @@ export async function verifyLine(ctx: HandlerContext, file: string, text: string
 
 // ------------------------------------------------------------------------------------------------ VOICE_BUILD
 
-const proofLineFor = (c: Character) => (c.language === 'AR' ? (c.dialect === 'IRAQI_BAGHDADI' ? 'هلا بيك. اني اسمي ' + (c.nameAr || c.name) + '، وهذا صوتي.' : 'أهلاً بك. اسمي ' + (c.nameAr || c.name) + '، وهذا صوتي.') : `Hello. My name is ${c.name}, and this is my voice.`);
+/** The proof sentence in the character's language. An Arabic line names the character only by an Arabic name: a Latin
+ *  name inside it would be measured against how the transcriber spells it in Arabic (and route the line as mixed). */
+export const proofLineFor = (c: Pick<Character, 'language' | 'dialect' | 'name' | 'nameAr'>) => {
+  if (c.language !== 'AR') return `Hello. My name is ${c.name}, and this is my voice.`;
+  const nameAr = c.nameAr?.trim() || (lineScript(c.name) === 'AR' ? c.name.trim() : '');
+  if (c.dialect === 'IRAQI_BAGHDADI') return nameAr ? `هلا بيك. اني اسمي ${nameAr}، وهذا صوتي.` : 'هلا بيك. هذا صوتي، شلونك اليوم؟';
+  return nameAr ? `أهلاً بك. اسمي ${nameAr}، وهذا صوتي.` : 'أهلاً بك. هذا صوتي، وسأقرأ لك اليوم.';
+};
 
 /** Build and pin a character's voice (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). Modes: REFERENCE clones from one
  *  consented upload; DESIGN pins the producer's chosen design candidate; AUTOMATIC uses a consented recording when there

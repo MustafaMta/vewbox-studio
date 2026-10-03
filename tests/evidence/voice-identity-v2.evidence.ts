@@ -56,7 +56,7 @@ const gpuMb = async (): Promise<{ usedMb: number; totalMb: number } | null> => {
 };
 const health = async (url: string) => { try { const r = await fetch(`${url.replace(/\/$/, '')}/health`, { signal: AbortSignal.timeout(5000) }); return await r.json() as Record<string, unknown>; } catch (e) { return { error: (e as Error).message }; } };
 
-const profile = (p: { name: string; role: string; sex: 'FEMALE' | 'MALE'; ageYears: number; language: 'EN' | 'AR'; dialect?: 'MSA' | 'IRAQI_BAGHDADI'; pitch: 'LOW' | 'MID' | 'HIGH'; pace: 'SLOW' | 'MEASURED' | 'QUICK'; timbre: string; personality: string }) => ({ name: p.name, role: p.role, style: 'REALISTIC' as const, sex: p.sex, ageYears: p.ageYears, build: '', face: '', hair: '', skin: '', eyes: '', wardrobe: '', personality: p.personality, distinguishing: [], language: p.language, dialect: p.dialect, voice: { pitch: p.pitch, pace: p.pace, timbre: p.timbre } });
+const profile = (p: { name: string; nameAr?: string; role: string; sex: 'FEMALE' | 'MALE'; ageYears: number; language: 'EN' | 'AR'; dialect?: 'MSA' | 'IRAQI_BAGHDADI'; pitch: 'LOW' | 'MID' | 'HIGH'; pace: 'SLOW' | 'MEASURED' | 'QUICK'; timbre: string; personality: string }) => ({ name: p.name, ...(p.nameAr ? { nameAr: p.nameAr } : {}), role: p.role, style: 'REALISTIC' as const, sex: p.sex, ageYears: p.ageYears, build: '', face: '', hair: '', skin: '', eyes: '', wardrobe: '', personality: p.personality, distinguishing: [], language: p.language, dialect: p.dialect, voice: { pitch: p.pitch, pace: p.pace, timbre: p.timbre } });
 const addCharacter = (input: ReturnType<typeof profile>): string => {
   const r = runCommand(mem.state, { name: 'addCharacter', args: [input], seed: `ev-${input.name}`, at: new Date().toISOString() } as Command<'addCharacter'>);
   mem.state = r.state;
@@ -139,7 +139,7 @@ describe('voice identity v2 — real engines', () => {
     save();
 
     // B — AUTOMATIC, MSA, no recording
-    const salim = addCharacter(profile({ name: 'Salim', role: 'News archivist', sex: 'MALE', ageYears: 52, language: 'AR', dialect: 'MSA', pitch: 'LOW', pace: 'SLOW', timbre: 'deep, calm', personality: 'precise' }));
+    const salim = addCharacter(profile({ name: 'Salim', nameAr: 'سليم', role: 'News archivist', sex: 'MALE', ageYears: 52, language: 'AR', dialect: 'MSA', pitch: 'LOW', pace: 'SLOW', timbre: 'deep, calm', personality: 'precise' }));
     runs.push(await runJob('B-automatic-msa', 'AUTOMATIC MSA build (no recording → designed voice)', 'VOICE_BUILD', voiceBuild, { characterId: salim, mode: 'AUTOMATIC' }, 'ev-B'));
     save();
 
@@ -155,14 +155,14 @@ describe('voice identity v2 — real engines', () => {
     save();
 
     // D — Iraqi without an Iraqi recording: refused (preflight and handler alike), nothing designed
-    const hamid = addCharacter(profile({ name: 'Hamid', role: 'Tea seller', sex: 'MALE', ageYears: 45, language: 'AR', dialect: 'IRAQI_BAGHDADI', pitch: 'LOW', pace: 'MEASURED', timbre: 'husky', personality: 'talkative' }));
+    const hamid = addCharacter(profile({ name: 'Hamid', nameAr: 'حامد', role: 'Tea seller', sex: 'MALE', ageYears: 45, language: 'AR', dialect: 'IRAQI_BAGHDADI', pitch: 'LOW', pace: 'MEASURED', timbre: 'husky', personality: 'talkative' }));
     runs.push(await runJob('D-iraqi-refusal', 'AUTOMATIC Iraqi build without an Iraqi recording (experiment off)', 'VOICE_BUILD', voiceBuild, { characterId: hamid, mode: 'AUTOMATIC' }, 'ev-D'));
     runs.push(await runJob('D-iraqi-refusal', 'VOICE_DESIGN for an Iraqi character (experiment off)', 'VOICE_DESIGN', voiceDesign, { characterId: hamid }, 'ev-D-design'));
     save();
 
     // E — the allowDesignedIraqi experiment (switched on for this run only): screened on the four probe lines
     mem.state = { ...mem.state, settings: { ...mem.state.settings, voice: { allowDesignedIraqi: true } } };
-    const zahra = addCharacter(profile({ name: 'Zahra', role: 'Pharmacist', sex: 'FEMALE', ageYears: 30, language: 'AR', dialect: 'IRAQI_BAGHDADI', pitch: 'MID', pace: 'MEASURED', timbre: 'warm', personality: 'kind' }));
+    const zahra = addCharacter(profile({ name: 'Zahra', nameAr: 'زهرة', role: 'Pharmacist', sex: 'FEMALE', ageYears: 30, language: 'AR', dialect: 'IRAQI_BAGHDADI', pitch: 'MID', pace: 'MEASURED', timbre: 'warm', personality: 'kind' }));
     runs.push(await runJob('E-iraqi-experiment', 'AUTOMATIC Iraqi build with allowDesignedIraqi ON (experiment: dialect unverified, REVIEW)', 'VOICE_BUILD', voiceBuild, { characterId: zahra, mode: 'AUTOMATIC' }, 'ev-E'));
     mem.state = { ...mem.state, settings: { ...mem.state.settings, voice: { allowDesignedIraqi: false } } };
     save();
