@@ -100,9 +100,9 @@ export async function ready(page, { motion = '', settle = true } = {}) {
 
 /** Open one path in a fresh context (no connection carries over) and run `fn` on the ready page; a page that never
  *  becomes ready (the dev server can hand out a chunk mid-compile) is opened again, three times at most. */
-export async function withPage(browser, { size, url, lang, fixture, motion, settle = true }, fn) {
+export async function withPage(browser, { size, url, lang, fixture, motion, contrast, settle = true }, fn) {
   for (let attempt = 1; ; attempt++) {
-    const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, colorScheme: 'dark', ...(size.touch ? { isMobile: true, hasTouch: true } : {}) });
+    const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, colorScheme: 'dark', ...(contrast ? { contrast } : {}), ...(size.touch ? { isMobile: true, hasTouch: true } : {}) });
     const page = await context.newPage();
     try {
       await prepare(page, { lang, fixture, motion });

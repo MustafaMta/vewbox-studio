@@ -2,19 +2,21 @@
 //
 //   node scripts/capture-evidence.mjs [--base http://localhost:4200] [--out docs/evidence] [--prefix studio]
 //        [--width 1440 | --device desktop,tablet,phone] [--lang en,ar] [--suffix -ar-desktop]
-//        [--fixture sample|empty|states|<file.json>] [--set <pkg>] [--motion reduce] [--axe] [path ...]
+//        [--fixture sample|empty|states|<file.json>] [--set <pkg>] [--state <label>] [--motion reduce] [--contrast more] [--axe] [path ...]
 //
 // Pages:   the paths given, or with --set <pkg> that package's page list (scripts/lib/capture.mjs SETS; §8.5).
 // Sizes:   --width <px> (a phone below 768), or --device: desktop 1440×900 · tablet 834×1112 touch · phone 390×844 touch.
 //          Several devices and languages may be listed (comma-separated): every page is captured in each combination.
 // Files:   <out>/<prefix>-<slug><suffix>.png. With several devices or languages and no --suffix, the suffix is
-//          -<lang>-<width>. With --set: <out>/v4-<pkg>-<page>-<state>-<lang>-<width>.png (state = the fixture, or live).
+//          -<lang>-<width>. With --set: <out>/v4-<pkg>-<page>-<state>-<lang>-<width>.png (state = --state, else the fixture,
+//          else live).
 // Data:    by default the live studio, read-only. --lang answers the studio snapshot with settings.uiLanguage = <lang>
 //          for this browser only. --fixture answers the browser's own GET /api/studio, /api/jobs[/:id] and
 //          /api/studio/org/pipeline from scripts/v4-fixture.ts (or a JSON file of the same shape) and replaces the
 //          event stream in the page; media, the organisation and engine status are read from the server as they are.
 // Writes:  NEVER sent, in every mode: a POST/PUT/PATCH/DELETE to /api/* is answered here (commands "accepted",
 //          anything else refused) and navigator.sendBeacon is a no-op. A capture cannot change a record.
+// --contrast more  emulates the OS preference prefers-contrast: more.
 // --motion reduce  renders with reduced motion (deterministic: no live-dot loop, no fades mid-way) — use it for
 //                  before/after comparisons.
 // --axe     runs axe-core on each page when @axe-core/playwright is installed (a devDependency to approve, §8.4) and
@@ -38,6 +40,7 @@ const langOpt = opt('lang', '');
 const suffixOpt = opt('suffix', null);
 const fixtureOpt = opt('fixture', '');
 const motion = opt('motion', '');
+const contrast = opt('contrast', ''); // more: emulates prefers-contrast: more (§2.1's More contrast tokens)
 const axe = flag('axe');
 
 const sizes = deviceOpt
@@ -45,7 +48,7 @@ const sizes = deviceOpt
   : (widthOpt || '1440').split(',').map((w) => { const width = Number(w); const phone = width < 768; return { width, height: phone ? 844 : 900, touch: phone }; });
 const langs = langOpt ? langOpt.split(',').map((l) => l.trim()) : [''];
 const matrix = sizes.length > 1 || langs.length > 1;
-const state = fixtureName(fixtureOpt);
+const state = opt('state', fixtureName(fixtureOpt));
 
 let pages;
 if (setName) {
@@ -73,7 +76,7 @@ for (const size of sizes) {
         ? path.join(out, `${prefix}-${setName}-${pg.name}-${state}-${lang || 'en'}-${size.width}.png`)
         : path.join(out, `${prefix}-${pg.name}${suffixOpt ?? (matrix ? `-${lang || 'en'}-${size.width}` : '')}.png`);
       try {
-        await withPage(browser, { size, url: `${base}${target}`, lang, fixture, motion }, async (page) => {
+        await withPage(browser, { size, url: `${base}${target}`, lang, fixture, motion, contrast }, async (page) => {
           await page.screenshot({ path: file, fullPage: true });
           const info = await page.evaluate(() => ({ title: document.title, overflow: document.documentElement.scrollWidth - window.innerWidth }));
           let axeNote = '';
