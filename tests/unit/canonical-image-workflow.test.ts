@@ -39,7 +39,7 @@ describe('the English identity line (style first, age, Latin script only)', () =
     expect(r.line).toContain('a man of about 70');
   });
   it('keeps a stored English line, adding the style and, when it has none, the age', () => {
-    expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'Identity: short grey hair; full white beard.' } }, { style: 'ANIME' }).line).toBe('Identity: 2D anime character, a man of about 70; short grey hair; full white beard.');
+    expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'Identity: short grey hair; full white beard.' } }, { style: 'ANIME' }).line).toBe('Identity: Japanese anime character, a man of about 70; short grey hair; full white beard.');
     expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'an elderly man, about 70 years old, white beard' } }).line).toBe('Identity: an elderly man, about 70 years old, white beard.');
   });
   it('detects non-Latin letters but not punctuation or accents', () => {
@@ -155,7 +155,7 @@ describe('the canonical prompt: medium first, one whole figure', () => {
   });
   it('redraws an upload into the production medium, face from image 2 when there is one', () => {
     const p = referenceCanonicalPrompt({ style: 'ANIME', identityLine: 'Identity: z.', faceImage: true });
-    expect(p).toContain('Redraw the person in image 1, with the face exactly as in image 2, as a 2D anime character');
+    expect(p).toContain('Redraw the person in image 1, with the face exactly as in image 2, as a Japanese anime character');
     expect(p).toContain('one character, full-body front view');
     expect(p).toContain('Identity: z.');
     expect(referenceCanonicalPrompt({ style: 'REALISTIC', identityLine: '' })).not.toContain('image 2');
@@ -252,8 +252,8 @@ describe('the description of an uploaded picture', () => {
   });
   it('a child or a teenager is said so, and an accessory entry that is a field’s answer ("glasses none") is dropped (confirmation reads, 2026-10-03)', () => {
     const line = (json: string) => identityLineFromDescription(parseCharacterDescription(json), { style: 'ANIME' }).line;
-    expect(line('{"sex": "male", "ageRange": "10-19"}')).toBe('Identity: 2D anime character, a teenage boy aged about 10-19.');
-    expect(line('{"sex": "female", "ageRange": "child"}')).toBe('Identity: 2D anime character, a girl.');
+    expect(line('{"sex": "male", "ageRange": "10-19"}')).toBe('Identity: Japanese anime character, a teenage boy aged about 10-19.');
+    expect(line('{"sex": "female", "ageRange": "child"}')).toBe('Identity: Japanese anime character, a girl.');
     expect(line('{"sex": "female", "ageRange": "6-9"}')).toContain('a girl aged about 6-9');
     expect(line('{"sex": "male", "ageRange": "60-70"}')).toContain('a man aged about 60-70');
     const a = line('{"sex": "female", "glasses": "red frames", "accessories": [{"item": "glasses", "side": "none"}, {"item": "earring", "side": "left"}, "none"]}');

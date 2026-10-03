@@ -118,7 +118,7 @@ describe('the canonical image and the identity line from a picture', () => {
     const c = looked({ wardrobe: 'a blue raincoat', distinguishing: ['a scar over the left eyebrow'] });
     const look = referenceLook(c, described);
     expect(look.from).toBe('DESCRIPTION');
-    expect(look.line.startsWith(`Identity: ${c.style === 'ANIME' ? '2D anime character' : c.style === 'CARTOON' ? 'stylized 3D animated character' : 'photorealistic real person'}, a woman aged about 35-45;`)).toBe(true);
+    expect(look.line.startsWith(`Identity: ${c.style === 'ANIME' ? 'Japanese anime character' : c.style === 'CARTOON' ? 'stylized 3D animated character' : 'photorealistic real person'}, a woman aged about 35-45;`)).toBe(true);
     expect(look.line).toContain('long wavy black hair');
     expect(look.line).toContain('wearing green cardigan');
     expect(look.line).toContain('wearing a blue raincoat; a scar over the left eyebrow');

@@ -61,10 +61,13 @@ export const STYLE_MEDIUM: Record<Style, { lead: string; noun: string; identity:
     identity: 'stylized 3D animated character',
     negative: 'photograph, photorealistic, live-action, real person, realistic skin pores',
   },
+  // "Japanese anime" named with what makes it anime (D10, docs/evidence/flux-vs-qwen/anime): with "2D anime …" alone
+  // Qwen drew the courier as a western comic (2/2 → 0/2 with this wording) and klein redrew photos as a western flat
+  // cartoon (4/4 → 1/4)
   ANIME: {
-    lead: '2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D:',
-    noun: 'a 2D anime character (cel-shaded illustration with clean line art and flat colours, not 3D)',
-    identity: '2D anime character',
+    lead: 'Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D:',
+    noun: 'a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not 3D)',
+    identity: 'Japanese anime character',
     negative: 'photograph, photorealistic, 3D render, CG, realistic skin texture, real person',
   },
   REALISTIC: {
@@ -341,7 +344,7 @@ export function qwenReferenceCanonical(i: { upload: string; face?: string; faceR
  *  prompt and reads words literally (docs/research/FLUX-VS-QWEN.md §5). */
 export const KLEIN_MEDIUM: Record<Style, string> = {
   CARTOON: 'a stylized 3D animated feature-film character (CG render)',
-  ANIME: 'a 2D anime character (cel-shaded illustration with clean line art and flat colours)',
+  ANIME: 'a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours)',
   REALISTIC: 'a photorealistic full-length studio photograph of a real person',
 };
 /** CANONICAL_FRAMING without "no props, no text". */

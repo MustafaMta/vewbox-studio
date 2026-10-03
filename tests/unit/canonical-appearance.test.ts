@@ -102,11 +102,11 @@ describe('CHARACTER_APPEARANCE: the canonical image from text', () => {
     expect(g['8'].inputs).toMatchObject({ width: 928, height: 1664 });
     expect(g['9'].inputs.seed).toBe(identitySeedFor(c));
     const prompt = String(g['6'].inputs.text);
-    expect(prompt).toMatch(/^(3D animated feature-film character design|2D anime character design|Photorealistic full-length studio photograph)/);
+    expect(prompt).toMatch(/^(3D animated feature-film character design|Japanese anime character design|Photorealistic full-length studio photograph)/);
     expect(prompt).toContain('the whole figure from the top of the head to the soles of the feet');
     const img = fake.state.characters.find((x) => x.id === c.id)!.canonicalImage!;
     expect(img).toMatchObject({ status: 'DRAFT', version: 1, jobId: 'job-ap', seed: identitySeedFor(c), check: { ok: true } });
-    expect(img.identityLine).toMatch(/^Identity: (stylized 3D animated character|2D anime character|photorealistic real person), /);
+    expect(img.identityLine).toMatch(/^Identity: (stylized 3D animated character|Japanese anime character|photorealistic real person), /);
     expect(img.engine).toMatch(/Qwen-Image-2512/);
     expect(asset(img.assetId).tier).toBe('CANONICAL');
     expect(r).toMatchObject({ canonicalAssetId: img.assetId, status: 'DRAFT', version: 1, lookFrom: 'DESCRIPTION', message: expect.stringMatching(/awaiting your approval/) });

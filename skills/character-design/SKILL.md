@@ -54,7 +54,7 @@ metadata:
    ankles", trousers worn under it). On the GPU the cut wording lengthened a dishdasha from mid-thigh to mid-calf; the
    model still drew a full beard on an old man with a "moustache only" (docs/evidence/image-v2/d13).
 3. From text (Auto, Manual): the prompt starts with the medium ("3D animated feature-film character design, stylized
-   CG render, not a photograph" / "2D anime character design, cel-shaded … not 3D" / "Photorealistic full-length
+   CG render, not a photograph" / "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes … cel shading … not 3D" / "Photorealistic full-length
    studio photograph"), then the framing, the identity line and the production direction; Qwen-Image-2512 in quality
    mode (30 steps, cfg 4), 928×1664.
 4. From a picture (Image Reference): the picture is validated, then read once — before the design when a character
