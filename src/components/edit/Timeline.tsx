@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconFit, IconZoomIn, IconZoomOut } from '@/components/ui/icons';
 import { Waveform } from '@/components/players/Waveform';
@@ -76,45 +75,45 @@ export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [
   const ticks = Array.from({ length: Math.floor(duration / step) + 1 }, (_, i) => i * step);
 
   return (
-    <div className={cls('tl', className)} dir="ltr" role="region" aria-label={T('media.tl.label')}>
+    <div className={cls('tl', className)} dir="ltr" role="region" aria-label={'Timeline'}>
       <div className="tl-toolbar">
-        <button type="button" className="ebtn ebtn-icon" aria-label={T('media.tl.zoomOut')} onClick={() => zoom(1 / 1.5)} disabled={scale <= fit + 1e-6}><IconZoomOut aria-hidden /></button>
-        <button type="button" className="ebtn ebtn-icon" aria-label={T('media.tl.zoomIn')} onClick={() => zoom(1.5)} disabled={scale >= 400}><IconZoomIn aria-hidden /></button>
-        <button type="button" className="ebtn" onClick={() => setPps(null)} aria-pressed={pps === null}><IconFit aria-hidden />{T('media.tl.fit')}</button>
+        <button type="button" className="ebtn ebtn-icon" aria-label={'Zoom out'} onClick={() => zoom(1 / 1.5)} disabled={scale <= fit + 1e-6}><IconZoomOut aria-hidden /></button>
+        <button type="button" className="ebtn ebtn-icon" aria-label={'Zoom in'} onClick={() => zoom(1.5)} disabled={scale >= 400}><IconZoomIn aria-hidden /></button>
+        <button type="button" className="ebtn" onClick={() => setPps(null)} aria-pressed={pps === null}><IconFit aria-hidden />Fit</button>
         {one && onTrim && (
-          <span className="tl-nudges" role="group" aria-label={T.f('media.shot', { n: one.number })}>
-            <span className="tl-nudge-label">{T.f('media.tl.trimStart', { n: one.number })}</span>
-            <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from - frame)}>{T('media.tl.startEarlier')}</button>
-            <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from + frame)}>{T('media.tl.startLater')}</button>
-            <span className="tl-nudge-label">{T.f('media.tl.trimEnd', { n: one.number })}</span>
-            <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to - frame)}>{T('media.tl.endEarlier')}</button>
-            <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to + frame)}>{T('media.tl.endLater')}</button>
+          <span className="tl-nudges" role="group" aria-label={`Shot ${one.number}`}>
+            <span className="tl-nudge-label">{`Start of shot ${one.number}`}</span>
+            <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from - frame)}>Start 1 frame earlier</button>
+            <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from + frame)}>Start 1 frame later</button>
+            <span className="tl-nudge-label">{`End of shot ${one.number}`}</span>
+            <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to - frame)}>End 1 frame earlier</button>
+            <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to + frame)}>End 1 frame later</button>
           </span>
         )}
         <span className="prow-spacer" />
-        {selected.length > 1 && <span className="caption num">{T.f('media.tl.selected', { n: selected.length })}</span>}
+        {selected.length > 1 && <span className="caption num">{`${selected.length} selected`}</span>}
         <span className="tc tl-now">{timecode(time, fps)}</span>
       </div>
       <div className="tl-body">
         <div className="tl-heads" aria-hidden>
           <span className="tl-head tl-head-ruler" />
-          <span className="tl-head caption">{T('media.tl.picture')}</span>
-          {dialogue.length > 0 && <span className="tl-head caption">{T('media.tl.dialogue')}</span>}
-          {music && <span className="tl-head caption" data-track="music">{T('media.tl.music')}</span>}
+          <span className="tl-head caption">Picture</span>
+          {dialogue.length > 0 && <span className="tl-head caption">Dialogue</span>}
+          {music && <span className="tl-head caption" data-track="music">Music</span>}
         </div>
         <div ref={scroller} className="tl-scroll">
           <div className="tl-content" style={{ inlineSize: content }}>
-            <div className="tl-ruler" role="slider" tabIndex={0} aria-label={T('media.tl.ruler')} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(time)} aria-valuetext={timecode(time, fps)}
+            <div className="tl-ruler" role="slider" tabIndex={0} aria-label={'Ruler: click to move the playhead'} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(time)} aria-valuetext={timecode(time, fps)}
               onPointerDown={(e) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, Math.min(duration, (e.clientX - r.left) / scale))); }} onKeyDown={onRulerKey}>
               {ticks.map((t) => <span key={t} className="tl-tick" style={{ insetInlineStart: x(t) }}><span className="tc tl-tick-label">{timecode(t, fps)}</span></span>)}
               <span className="tl-handle" style={{ insetInlineStart: x(time) }} aria-hidden />
             </div>
-            <div className="tl-track" data-track="picture" role="listbox" aria-label={T('media.tl.picture')} aria-multiselectable="true" onKeyDown={onClipsKey}>
+            <div className="tl-track" data-track="picture" role="listbox" aria-label={'Picture'} aria-multiselectable="true" onKeyDown={onClipsKey}>
               {clips.map((c, i) => {
                 const on = selected.includes(c.id);
                 return (
                   <div key={c.id} role="option" aria-selected={on} tabIndex={i === focusI ? 0 : -1} data-ci={i} className="tl-clip" data-selected={on || undefined}
-                    aria-label={`${T.f('media.shot', { n: c.number })}${c.purpose ? `: ${c.purpose}` : ''}, ${fmtClock(c.from)}–${fmtClock(c.to)}`}
+                    aria-label={`${`Shot ${c.number}`}${c.purpose ? `: ${c.purpose}` : ''}, ${fmtClock(c.from)}–${fmtClock(c.to)}`}
                     style={{ insetInlineStart: x(c.from), inlineSize: Math.max(4, x(c.to) - x(c.from) - 1) }}
                     onClick={(e) => { setFocusI(i); select(c.id, e); }} onFocus={() => setFocusI(i)}>
                     <span className="tc tl-clip-n" aria-hidden>{c.number}</span>
@@ -130,7 +129,7 @@ export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [
               })}
             </div>
             {dialogue.length > 0 && (
-              <div className="tl-track" data-track="dialogue" role="list" aria-label={T('media.tl.dialogue')}>
+              <div className="tl-track" data-track="dialogue" role="list" aria-label={'Dialogue'}>
                 {dialogue.map((l) => (
                   <div key={l.id} role="listitem" className="tl-line" style={{ insetInlineStart: x(l.from), inlineSize: Math.max(4, x(l.to) - x(l.from) - 1) }}>
                     <span className="sr-only">{fmtClock(l.from)}–{fmtClock(l.to)}: </span><span className="tl-line-text" dir="auto" lang={l.lang}>{l.text}</span>
@@ -140,7 +139,7 @@ export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [
             )}
             {music && (
               <div className="tl-track" data-track="music">
-                <Waveform src={music.src} progress={duration ? time / duration : 0} onSeek={(f) => onSeek(f * duration)} height={36} showLabel={false} duration={duration} label={music.label ?? T('media.tl.music')} unavailableText={T('media.wave.unavailable')} />
+                <Waveform src={music.src} progress={duration ? time / duration : 0} onSeek={(f) => onSeek(f * duration)} height={36} showLabel={false} duration={duration} label={music.label ?? 'Music'} unavailableText={'The waveform could not be drawn from this file.'} />
               </div>
             )}
             <span className="tl-playhead" style={{ insetInlineStart: x(time) }} aria-hidden />

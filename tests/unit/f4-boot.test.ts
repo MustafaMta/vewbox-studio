@@ -41,6 +41,15 @@ describe('the preference boot', () => {
       });
     }
   }
+  it('starts collapsed on a cutting-room route (a production workspace, a shot) unless the producer chose', () => {
+    const run = (path: string, sidebar: string | null) => { const attrs: Record<string, string> = {}; new Function('document', 'localStorage', 'window', BOOT)({ documentElement: { setAttribute: (n: string, v: string) => { attrs[n] = v; } } }, { getItem: (k: string) => (k === 'vb.sidebar' ? sidebar : null) }, { matchMedia: () => ({ matches: true }), location: { pathname: path } }); return attrs['data-sidebar']; };
+    expect(run('/shorts/abc/production', null)).toBe('collapsed');
+    expect(run('/music-videos/abc/shots/s1', null)).toBe('collapsed');
+    expect(run('/shows/a/seasons/b/episodes/c/production/', null)).toBe('collapsed');
+    expect(run('/shorts/abc', null)).toBe('expanded');
+    expect(run('/production', null)).toBe('expanded');
+    expect(run('/shorts/abc/production', 'expanded')).toBe('expanded');
+  });
   it('throws nothing when storage is unavailable', () => {
     const html = { setAttribute: () => { throw new Error('no'); } };
     expect(() => new Function('document', 'localStorage', 'window', BOOT)({ documentElement: html }, { getItem: () => { throw new Error('denied'); } }, {})).not.toThrow();

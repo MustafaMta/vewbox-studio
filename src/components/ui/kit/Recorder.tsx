@@ -89,7 +89,7 @@ export function Recorder({ onRecorded, primary, maxSeconds = 120, consent: contr
   return (
     <div className={cls('recorder', className)}>
       <fieldset className="recorder-consent">
-        <legend className="label">{T('kit.rec.consent')}</legend>
+        <legend className="label">Whose voice is this?</legend>
         {(['MY_VOICE', 'SPEAKER_PERMISSION'] as const).map((c) => (
           <label key={c} className="flex cursor-pointer items-center gap-2.5 text-sm">
             <input type="radio" name={`${id}-consent`} className="check" checked={consent === c} disabled={recording} onChange={() => setConsent(c)} required />
@@ -99,16 +99,16 @@ export function Recorder({ onRecorded, primary, maxSeconds = 120, consent: contr
       </fieldset>
       <div className="recorder-row">
         {recording
-          ? <Button size="lg" variant="secondary" onClick={stop} icon={<span aria-hidden className="recorder-stop" />}>{T('kit.rec.stop')}</Button>
-          : <Button size="lg" variant={primary ? 'primary' : 'secondary'} icon={<IconVoice />} onClick={() => void start()} disabled={!consent || phase === 'asking'} aria-describedby={!consent ? `${id}-why` : undefined}>{phase === 'done' ? T('kit.rec.again') : T('kit.rec.record')}</Button>}
-        <span className="recorder-meter" dir="ltr" role="meter" aria-label={T('kit.rec.level')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}><span style={{ inlineSize: `${Math.round(level * 100)}%` }} /></span>
+          ? <Button size="lg" variant="secondary" onClick={stop} icon={<span aria-hidden className="recorder-stop" />}>Stop</Button>
+          : <Button size="lg" variant={primary ? 'primary' : 'secondary'} icon={<IconVoice />} onClick={() => void start()} disabled={!consent || phase === 'asking'} aria-describedby={!consent ? `${id}-why` : undefined}>{phase === 'done' ? 'Record again' : 'Record'}</Button>}
+        <span className="recorder-meter" dir="ltr" role="meter" aria-label={'Input level'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}><span style={{ inlineSize: `${Math.round(level * 100)}%` }} /></span>
         <span className="tc" aria-live="off">{mmss(seconds)}</span>
       </div>
-      {!consent && <p id={`${id}-why`} className="help">{T('kit.rec.needConsent')}</p>}
-      {phase === 'denied' && <p role="alert" className="help text-bad">{T('kit.rec.denied')}</p>}
-      {phase === 'unsupported' && <p role="alert" className="help text-bad">{T('kit.rec.unsupported')}</p>}
-      {recording && <p className="sr-only" role="status">{T('kit.rec.recording')}</p>}
-      {url && phase === 'done' && <audio src={url} controls className="recorder-preview" aria-label={T.f('kit.rec.recorded', { time: mmss(seconds) })} />}
+      {!consent && <p id={`${id}-why`} className="help">Choose one of the two statements before you record.</p>}
+      {phase === 'denied' && <p role="alert" className="help text-bad">The microphone is not available. Allow it for this site in the browser, then try again.</p>}
+      {phase === 'unsupported' && <p role="alert" className="help text-bad">This browser cannot record sound. Upload a recording instead.</p>}
+      {recording && <p className="sr-only" role="status">Recording</p>}
+      {url && phase === 'done' && <audio src={url} controls className="recorder-preview" aria-label={`Your recording, ${mmss(seconds)}`} />}
     </div>
   );
 }

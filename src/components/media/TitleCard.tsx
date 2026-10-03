@@ -5,7 +5,8 @@ import { cls } from '@/components/ui/kit/cls';
 import { cssRatio, type FrameRatio } from './art';
 
 /** THE TITLE CARD (docs/design/VISUAL-STANDARD-V5.1.md §5.11) — an object without a picture, in the object's own
- *  shape: surface-1, radius 14, four viewfinder corners, the state at the top start (12/16 text-3; "Drawing…" with the
+ *  shape: surface-1, radius 14, four viewfinder corners (inset 8, 12 px arms; the words 20 in, clear of the arms), the
+ *  state at the top start (12/16 text-3; "Drawing…" with the
  *  running dot), the name at the bottom start (15/20, 20/26 on a 16:9 card 320 px or wider; never larger, never serif,
  *  never an empty card without a name). The name is isolated on the start edge (§4.4). */
 

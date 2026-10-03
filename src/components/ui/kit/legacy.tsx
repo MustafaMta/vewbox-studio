@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { IconCheck, IconClose, IconWarn } from '../icons';
 import { Button, type ButtonSize } from './Button';
 import { cls } from './cls';
@@ -40,8 +39,8 @@ export function ConfirmButton({ onConfirm, label, title, message, confirmLabel, 
           <h2 id={`${id}-h`} className="h2" dir="auto">{title}</h2>
           {message && <p className="mt-2 text-sm text-muted">{message}</p>}
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
-            <Button variant="destructive" onClick={() => { ref.current?.close(); onConfirm(); }}>{confirmLabel ?? T('btn.delete')}</Button>
+            <Button variant="quiet" onClick={() => ref.current?.close()}>Cancel</Button>
+            <Button variant="destructive" onClick={() => { ref.current?.close(); onConfirm(); }}>{confirmLabel ?? 'Delete'}</Button>
           </div>
         </div>
       </dialog>
@@ -56,17 +55,17 @@ export function ConfirmDelete({ title, onDelete, label, children, size = 'sm', v
   const id = useId();
   return (
     <>
-      <Button variant={variant} size={size} icon={icon} onClick={() => { setTyped(''); ref.current?.showModal(); }}>{label ?? T('btn.delete')}</Button>
+      <Button variant={variant} size={size} icon={icon} onClick={() => { setTyped(''); ref.current?.showModal(); }}>{label ?? 'Delete'}</Button>
       <dialog ref={ref} className="dlg w-[min(92vw,26rem)]" aria-labelledby={`${id}-h`} onClose={() => setTyped('')}>
         <form method="dialog" className="p-5" onSubmit={(e) => { e.preventDefault(); ref.current?.close(); onDelete(); }}>
-          <h2 id={`${id}-h`} className="h2">{T('btn.delete')}: <span dir="auto">{title}</span></h2>
-          <p className="mt-2 text-sm text-muted">{children ?? T('kit.deleteAll')}</p>
-          <Field label={T('label.confirmTitle')} className="mt-4" htmlFor={`${id}-i`}>
+          <h2 id={`${id}-h`} className="h2">{'Delete'}: <span dir="auto">{title}</span></h2>
+          <p className="mt-2 text-sm text-muted">{children ?? 'This removes it and everything that belongs to it.'}</p>
+          <Field label={'Type the title to confirm'} className="mt-4" htmlFor={`${id}-i`}>
             <Input id={`${id}-i`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" placeholder={title} />
           </Field>
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => ref.current?.close()}>{T('btn.cancel')}</Button>
-            <Button type="submit" variant="destructive" disabled={typed.trim() !== title.trim()}>{T('btn.delete')}</Button>
+            <Button variant="quiet" onClick={() => ref.current?.close()}>Cancel</Button>
+            <Button type="submit" variant="destructive" disabled={typed.trim() !== title.trim()}>Delete</Button>
           </div>
         </form>
       </dialog>
@@ -89,7 +88,7 @@ export function Modal({ trigger, title, description, children, size }: { trigger
         <div className="flex max-h-[88dvh] flex-col">
           <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3.5">
             <div className="min-w-0"><h2 id={`${id}-h`} className="h2">{title}</h2>{description && <p className="mt-0.5 text-sm text-muted">{description}</p>}</div>
-            <Button variant="ghost" size="sm" aria-label={T('btn.close')} onClick={close} icon={<IconClose />} />
+            <Button variant="ghost" size="sm" aria-label={'Close'} onClick={close} icon={<IconClose />} />
           </div>
           <div className="min-h-0 overflow-y-auto p-5">{open && children(close)}</div>
         </div>
@@ -108,10 +107,10 @@ export function Thumb({ src, alt, kind, className = '', ratio = 'aspect-video', 
   return <div className={cls('media', contain && 'media-contain', ratio, className)}><img src={src} alt={alt} loading="lazy" decoding="async" /></div>;
 }
 
-function NoPictureYet() { return <>{T('v3.noPictureYet')}</>; }
+function NoPictureYet() { return <>No picture yet</>; }
 
 function UnavailableNote() {
-  return <span className="flex flex-col items-center gap-1 px-3 text-center text-xs" title={T('media.unavailable.hint')}><IconWarn className="size-4 text-warn" aria-hidden />{T('media.unavailable')}</span>;
+  return <span className="flex flex-col items-center gap-1 px-3 text-center text-xs" title={'The record exists but its file is missing from the studio library: it was removed from the library folder, or the volume was replaced.'}><IconWarn className="size-4 text-warn" aria-hidden />File not available</span>;
 }
 
 /** A row of checkable picture chips, for choosing people or places (v3). */

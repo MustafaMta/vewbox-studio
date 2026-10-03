@@ -13,7 +13,7 @@ import { useModLabel } from './Sidebar';
  *  preference for single-key shortcuts (WCAG 2.1.4). Key combinations are written left to right. */
 export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <ShellDialog open={open} onClose={onClose} title={T('shell.keys.title')} placement="center" width={720} className="keys-dialog">
+    <ShellDialog open={open} onClose={onClose} title={'Keyboard shortcuts'} placement="center" width={720} className="keys-dialog">
       <SheetBody />
     </ShellDialog>
   );
@@ -21,7 +21,7 @@ export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () =>
 
 function Keys({ combo }: { combo: KeyName[] }) {
   const mod = useModLabel();
-  const name = (k: KeyName) => (k === 'Mod' ? mod : k === 'Space' ? T('shell.key.space') : k === 'Click' ? T('shell.key.click') : k === 'Scroll' ? T('shell.key.scroll') : k);
+  const name = (k: KeyName) => (k === 'Mod' ? mod : k === 'Space' ? 'Space' : k === 'Click' ? 'Click' : k === 'Scroll' ? 'Scroll' : k);
   return <span className="keys-combo">{combo.map((k, i) => <Fragment key={i}>{i > 0 && <span aria-hidden>+</span>}<kbd className="kbd">{name(k)}</kbd></Fragment>)}</span>;
 }
 
@@ -31,7 +31,7 @@ function SheetBody() {
   return (
     <div className="keys-sheet">
       <div className="keys-pref">
-        <Toggle label={T('shell.keys.pref')} help={T('shell.keys.pref.hint')} checked={on} onChange={(v) => writePrefs({ keys: v })} />
+        <Toggle label={'Single-key shortcuts'} help={'Keys pressed without Ctrl or ⌘, such as ? and F and the player’s keys. Turn them off if they get in the way of a screen reader or voice control.'} checked={on} onChange={(v) => writePrefs({ keys: v })} />
       </div>
       <div className="keys-scopes">
         {SHORTCUT_SCOPES.map((scope) => (
@@ -41,7 +41,7 @@ function SheetBody() {
               {scope.rows.map((r) => (
                 <tr key={r.label}>
                   <th scope="row">{T(r.label)}</th>
-                  <td><span dir="ltr" className="keys-alts">{r.keys.map((combo, i) => <Fragment key={i}>{i > 0 && <span className="keys-or">{T('shell.keys.or')}</span>}<Keys combo={combo} /></Fragment>)}</span></td>
+                  <td><span dir="ltr" className="keys-alts">{r.keys.map((combo, i) => <Fragment key={i}>{i > 0 && <span className="keys-or">or</span>}<Keys combo={combo} /></Fragment>)}</span></td>
                 </tr>
               ))}
             </tbody>
