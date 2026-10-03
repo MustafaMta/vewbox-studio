@@ -17,7 +17,11 @@ true" list); both research studies (conclusions, §3 and §4 of the first, §0 a
 
 ## 0. Verdict
 
-**Approve with required changes.** The direction is right and the prototypes are, as a whole, premium, cinematic
+> **Re-check of the revision (merge `82beb5e`): approved with listed follow-ups — see §10.** Three follow-ups
+> (F1 focus clipped/hidden, F2 the other-script rule's specificity, F3 the strip affordance) are DS-1 entry conditions;
+> the rest are page-level.
+
+Round 1: **Approve with required changes.** The direction is right and the prototypes are, as a whole, premium, cinematic
 and coherent: one typographic identity (Newsreader / Markazi Text titles over IBM Plex) carries the entertainment
 pages, the cutting room and the Studio Company; the chrome is near-neutral and the pictures do carry the colour;
 there are no KPI dashboards, no neon, no glow, no gradients beyond the four allowed, no node graph, no engine names in
@@ -490,3 +494,179 @@ notices 75.
 - Crops: `docs/evidence/redesign-qa/crops/crop-*.png` (19), named by finding.
 - The harness and the aggregation scripts were run from the session scratchpad and are not part of the repository;
   their method is described in §7 and can be reproduced from `render.mjs` plus the measurements listed.
+
+---
+
+## 10. Re-check of the revision (merge `82beb5e`, 2026-10-03)
+
+The Creative Director's revision (spec §14 "QA response", revised `v5.css`, `ws.css`, `v5.js` and all twelve pages, a
+new `measure.mjs`, a width-true `render.mjs`) was re-checked with my own method, not theirs. Their `measure.mjs` reads
+the computed `outline` style of each Tab stop and measures targets by bounding box; it cannot see a ring that is
+clipped by an overflow container or hidden under a fixed bar, and it does not test the visual order of numbers. My
+harness therefore adds: (1) a keyboard pass with a **pixel test of every focus ring** — the region around each Tab stop
+is captured focused and unfocused, and the ring band 2–6 px outside the box is checked on all four sides for a light
+ring and its contrast against the ground it replaced; (2) a 7 × 7 hit-test grid inside every focused box to find
+stops **hidden under sticky or fixed bars** (WCAG 2.4.11); (3) **hit-tested touch targets** (a transparent `::after`
+counts, a covered centre does not); (4) the **visual order of numeric pairs** in Arabic (`W×H`, `a / b`, ranges) from
+text-range geometry; (5) English-block line geometry in Arabic; plus the round-1 checks (overflow, type floors, flat
+and on-art contrast, strips, clipping). Matrix: 12 pages × EN/AR × 1440/1920/834/390 = 96 states; focus pass at 1440
+and 390 (48 states, 1,754 Tab stops; 1,444 on the 11 product pages). Evidence: `docs/evidence/redesign-qa/recheck/`
+(96 full-page renders, 48 phone/tablet folds, 198 focus crops in `focus/`, 14 crops in `crops/`).
+
+### 10.0 Verdict
+
+**Approved with listed follow-ups.** The revision fixes what the round-1 review asked for: 15 of 17 majors are fixed
+and verified at the widths and languages where they were found, B2 and B3 are fixed, and the identity is intact —
+nothing was cheapened to pass a check. The work does not need another design round.
+
+It is not "approved" without conditions, because the focus fix (B1) is only partly effective in the rendered pages and
+three of the follow-ups live in the shared sheet, not in a page. Those three (**F1–F3** below) are small, fully
+specified CSS changes; they must land **inside DS-1** and be proven by DS-1's acceptance gate (a pixel focus test like
+this one, zero clipped rings, zero stops hidden under a bar) before page packages build on the kit. Everything else is
+page-level or a spec wording change and can be taken by the owning package.
+
+**DS-1 entry conditions (must be in the DS-1 merge):**
+
+- **F1 Focus is clipped and hidden** (B1 residual). 1,225 of 1,444 product-page Tab stops (84.8 %) show a complete ring
+  at ≥ 3:1 (lowest ring-vs-ground 7.42:1) — a real improvement, and no state shadow suppresses a ring any more. The
+  rest fail in three systemic ways:
+  - **80 stops: the ring's top and bottom are cut off** by the container's `overflow-x: auto` (a scroll container
+    clips on both axes): the tabs on Show, Short, Character (anchor nav) and the Screening Room's review tabs at
+    ≥ 640 px, the Home contact sheet, the music-video rail, the Shows chip rows at 390. What remains is two vertical
+    bars (`recheck/focus/show-en-1440-stop18-focused.png`, `home-en-1440-stop22`, `shows-en-390-stop10`).
+  - **30 stops are entirely hidden** under the fixed bottom tab bar (and 19 more partly hidden, mostly by the
+    music video's now-playing bar), all at 390: Short tabs Overview/Story/Cast & World/Storyboard, the shot page's
+    four camera-move picks, Show's "Add from Characters" and credits, the Character anchor tabs, Screening's
+    "Cut 3 · latest" picker, Song/Video, "Help & shortcuts" (`short-en-390-stop12-focused.png`). This fails WCAG 2.4.11
+    (AA). `v5.css` sets `scroll-padding-block-start` only; §10 of the spec promises "never obscured by sticky bars".
+  - **79 stops lose one side**: workspace outline rows (left edge at x = 0 is off-screen, right edge painted over by
+    the canvas column — `shot-en-1440-stop24-focused.png` shows two horizontal lines only), the 72–78 px tall
+    crumbs (ring collides with the slate below), segmented options (the neighbour paints over the shared side), rail
+    items at the faded end. A focused `.scrolls` strip shows no ring at all (the new `mask-image` clips its outline).
+
+  Required: `@media (max-width: 1023px) { html { scroll-padding-block-end: calc(var(--tabbar-h) + 16px) } }` plus the
+  now-playing bar's height where it is shown; inside scroll containers and full-bleed panel rows draw the ring
+  inset (`.tabs :focus-visible, .rail :focus-visible, .contact :focus-visible, .chips :focus-visible,
+  .ol-shot:focus-visible, .seg :focus-visible { outline-offset: -2px }` — the gap then sits inside the control) or
+  give the container `padding-block: 6px` so a 4 px offset ring fits; put the mask of `.scrolls` on a wrapper, not on
+  the focusable scroller; make DS-1's acceptance include a pixel focus test (ring on all visible sides, not hidden).
+- **F2 The other-script rule loses on specificity** (M8 residual). `html[dir=rtl] :is(div, …, span.block, a.block)[lang=en]
+  { text-align: right }` has the specificity of `span.block` (0,1,1) and beats the block rule
+  `:is(p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)[lang=en] { text-align: left }`
+  (0,1,0) for any **div** block. Measured: the shot inspector's "What happens" (`div.ta[lang=en]`) is LTR but
+  right-aligned, lines starting at x = 105, 42, 280 (`recheck/crops/rc-shot-ar-1440-what-happens.png`). Required: make
+  the block rule the more specific one (e.g. `:where()` on the run rule, or list the block classes with `div` in the
+  block rule), since the product will copy this rule verbatim.
+- **F3 The strip affordance is overridden** (M17 residual). The "thin visible scrollbar" of `.scrolls` loses to
+  later rules: computed `scrollbar-width: none` on 6 of 8 phone strips (`.strip`'s own rule comes later in `v5.css`;
+  `home.html` and `shows.html` reset it in page styles). The end fade survives, so Home and Music are acceptable;
+  the **Shows chip rows at 390 have neither fade nor scrollbar** and still hide "Finished 1" and "Recently updated"
+  (`.toolbar .chips` sets `scrollbar-width: none` after the `thin` it was meant to get). Required: one strip rule with
+  the affordance that pages cannot silently undo (order it last or raise specificity), and `.scrolls` on every strip.
+
+### 10.1 Status of every round-1 item
+
+| # | Item | Status | Re-check evidence (where found → where verified) |
+|---|---|---|---|
+| B1 | Focus invisible on paper controls; suppressed by states | **Partly fixed** | Ring now an outline: on the primary, play discs, the selected chip and every selected state the ring shows with a dark gap (ring vs the gap beside it: median 17.3:1, lowest 4.3:1 on a selected segment). Residuals in F1: 80 clipped, 30 hidden, 79 one-sided of 1,444 stops |
+| B2 | Numerals/bidi: reversed W×H, Arabic-Indic in mono, ids two ways | **Fixed** (minor residuals R1–R3) | 0 reversed numeric pairs (geometry test, all AR states); "1344×768" and resolutions read correctly (`recheck/shot-ar-1440.png`); 0 Arabic-Indic digits in a mono face; 0 shot ids in Arabic-Indic; outline, cards, strips and headings all read "2.3" |
+| B3 | Text under 12 px; targets under 44 px on touch | **Fixed** (minor residual R4) | 0 text nodes under 12 px (Latin) / 13 px (Arabic) in 96 states; 0 under 13.5 / 14 px in the workspace main content; on coarse pointers every control hit-tests at ≥ 44 × 44 except tabs (spacing exception, as the spec now states) and items scrolled out of their rail |
+| M1 | AR phone hero lost its subject | **Fixed** | Najm (face, glasses, the radio) fills the 4:5 crop (`recheck/home-ar-390-fold.png`); the kicker sits on the radio, not the face |
+| M2 | Centre play disc on the face | **Fixed** | No centre disc while a transport is shown (Short at all widths; `recheck/short-en-1440.png`); the transport's play is the paper disc |
+| M3 | Placeholder key art crops heads | **Fixed** | Both figure tiles show the whole head with headroom (`recheck/shows-en-1440.png`) |
+| M4 | Production map statistic strip | **Fixed** | One typographic line of links under a hairline (`recheck/production-en-1440.png`) |
+| M5 | Take readout showed generation time | **Fixed** | "7.3 s" readout; "made in 7 min 11 s" in words (`recheck/shot-en-1440.png`) |
+| M6 | Caption under the theatre transport | **Fixed** | Transport docked below the frame; "She never left." fully clear at 1440, 1920 and 390 (`recheck/screening-en-1440.png`, `screening-en-390-fold.png`) |
+| M7 | Voice disc on the figure's feet | **Fixed**, new issue N1 | Disc in the name row at all widths; but see N1 (nested interactive) and F1 (Hana's disc focused under the tab bar at 390, 71 % hidden) |
+| M8 | English blocks right-aligned in Arabic | **Partly fixed** (F2) | Character profile, loglines, leads, role, notes: LTR, left-aligned, every line starting at the same x (e.g. look values all start at x = 220 at 1440, x = 16 at 390); the look list flipped as a whole. Residual: `div` blocks (F2) and the voice quote at 390 (a `div.quote` without `lang`, 2 lines starting at x = 29 and 224) |
+| M9 | Top bar faint links over heroes | **Fixed** | 13 px secondary links over the real hero art: median 12.1–13.5:1 on Home and Show, EN/AR, 1440/1920 (was 3.30) |
+| M10 | "Running now" held totals; detached label | **Fixed** | Totals moved to "On record · The Static Sky"; every ring label 6–10 px from its node; the paragraph capped at 66ch |
+| M11 | Workspace bar title clipped at 390 | **Fixed** | Title on one line, kind line ellipsised; paused line shortened (`recheck/crops/rc-production-en-390-wsbar.png`) |
+| M12 | Studio overflow at 834 | **Fixed** | `scrollWidth` = 834 (the spine is used below 1024; the ring drawing is not shown on tablets — a fair trade) |
+| M13 | Small-text contrast failures | **Fixed** | Selected-chip count, review button label and menu descriptions no longer under 4.5:1; remaining flat "failures" are the disabled labels (4.32:1, exempt and now readable) and the decorative episode numeral |
+| M14 | Facts presented as real | **Partly fixed** | Home, Short slate and Screening slate now say "English subtitles, burned in"; the poster deliverable is gone; *Good take* and *Draft / Final* carry "proposal · B5 / B6". Residuals: the Screening Room still lists "Subtitles · SRT · VTT · English · Arabic · 4 files" and a "Subtitles 2" tab — every subtitle file in the library is English text (four carry a right-to-left mark, none contains Arabic); and see N4 |
+| M15 | Phone Needs-you rail without a cue | **Fixed** | "1 of 4 · swipe" with dots and an end fade (`recheck/crops/rc-home-en-390-needs-you-cue.png`) |
+| M16 | Studio tags/pills low boundary | **Fixed** | `carbon-8` boundaries, role pills 12.5 / 13 px; the bracket replaced by a legend line |
+| M17 | Strips/tabs hide content without affordance | **Partly fixed** (F3) | Tabs wrap to two 44 px rows on phones (`rc-show-en-390-tabs-wrap.png`); strips fade; the Shows chip rows still hide items with no cue |
+
+Round-1 minors: 1 disabled text **fixed** (4.32:1); 2 interactive boundaries **fixed**; 3 episode numeral
+**unchanged** (decorative, 1.64:1, acceptable); 4 measures **fixed** (synopsis 58ch, running paragraph 66ch); 5
+waveform **fixed** (no bar beyond its column at 390); 6 production record **fixed** ("at 06:36"); 7 *New episode*
+menu **not fixed** — it still covers Episode 1's state column at 1440 (`rc-show-en-1440-episodes-menu.png`;
+acceptable as a demonstration of the open menu, but the page should not ship a menu open by default); 8 shot page empty
+canvas at 390 **fixed**; 9 screening note **fixed** (opens away from the face, "Use another take…"); 10 music wash
+**fixed**; 11 Studio AR split names **fixed**; 12 secondary hover **fixed**; 13 footer links on touch **fixed** (44 px);
+14 marquee at ≥ 1800 **fixed** (860 px).
+
+### 10.2 New problems introduced or uncovered by the revision
+
+| # | Severity | Page · width · lang | What | Required |
+|---|---|---|---|---|
+| F1–F3 | major (DS-1) | shared sheet | See §10.0 | See §10.0 |
+| N1 | minor | Characters · all · EN/AR | The voice disc is `<span role="button" tabindex="0">` **inside** the tile's `<a>`: interactive content nested in a link (invalid HTML; a screen reader announces a button inside a link; Enter on the disc can follow the link) | Make the tile two siblings: the link (frame + name) and the disc button after it, positioned in the name row |
+| N2 | minor | Shot · 390 · EN/AR | The phone transport hides Audio and Compare (`.opt { display: none }`). Compare survives in the takes header; the audio toggle disappears — "advanced controls may move, never disappear" | Move Audio into the shot switcher row or a More menu on phones |
+| N3 | minor | Shot, Show, Home, Screening, Studio, Character · AR | Numerals residuals: **R1** decimal durations are classed as identifiers by the `n.n` pattern, so the same screen reads "٧ ث" (length setting) and "7.3 ث" / "4.2 ث" (take length, recorded line); **R2** a range split across systems: "الموسم 1–٢" (Show cast caption); **R3** a date and its time in two systems: "٣ تشرين الأول، 09:29" (Studio pause line, Screening slate, Home handoffs, Character approval) | In `formatNumber`, decide by kind, not by pattern: a duration is a duration whatever its decimals; a range takes one system for both ends; a date-time in prose follows the date's system (clock times stay Western only in readout columns). State the date-time case in §9.4 |
+| N4 | minor | Shot, Short, Screening · all · EN/AR | Backend status overtook the annotations: B2 (notes, Send to shot), B5 (take judgement), B6 (quality tier recorded) and B7 (the key-frame poster, 512×768 from shot 2.4's selected take) were merged in `16f017b`, yet the prototypes still say "needs B2" / "proposal · B5 / B6 / B7". Conversely the record says B6 has **no draft path** on this machine, so a selectable "Draft · faster" option would be a false control in the product | Update the annotations; spec §8.11: *Draft* shown disabled with its reason ("No draft engine on this studio") until a draft path exists |
+| N5 | minor | Production, Shot · 1440/1920 | Standalone workspace links are 20–22 px high ("Open the script", "Screen it in the Screening Room", "Compare", "Resume", "Reuse settings") against §4.6's "standalone links get 24 px of height" (WCAG 2.5.8 passes by spacing) | `min-block-size: 24px` on `.shead .link`, `.textlink`, `.reuse`, `.paused-line a` for fine pointers |
+| N6 | nit | Production, Shot · 1440 | The 13.5 px workspace floor truncates four outline descriptions ("Najm enters the work…") | Allow two lines in the outline's description, or a `title`/tooltip |
+| N7 | nit | Short · 1440/1920 | The location plate at 16:9 now spans the remaining columns and is taller than the two figures beside it; the row's bottoms no longer align | Cap the plate's width (or use 2.39:1) so its height matches the figures |
+| N8 | nit | Studio · 1440 | The faint ring ellipse runs through "Idle · script handed over 06:50" under Story Development | Give labels a `--sunken` text background or nudge the label |
+| N9 | nit | Shot · 390 | The selected take (Take 4) is the last card of the takes rail, off-screen on arrival | Scroll the selected take into view, or order selected first on phones |
+
+### 10.3 The §9.2 amendment and the honesty annotations
+
+- **§9.2** now states the rule I asked for (runs and one-line items at the start edge; blocks of two or more lines in
+  their own direction and alignment, isolated; English-valued definition lists flip as a whole; English italic kept).
+  The wording is right. The implementation in `v5.css` has the specificity defect of F2; fix the CSS, not the text.
+  The rendered result on the character profile is what ruling (c) asked for (`recheck/character-ar-1440.png`).
+- **§9.4** is now one table by kind of number with "the mono never carries Arabic-Indic digits"; the rendered pages
+  obey it. Add the three cases of N3 (decimal durations, ranges, date-times) so `formatNumber` does not inherit the
+  prototype's pattern-matching.
+- **Honesty.** Placeholder shows, the placeholder song and the example note remain clearly annotated; the subtitle and
+  poster claims on Home and in the Short were corrected. Two items remain (M14 residual, N4): the Arabic subtitle
+  claim in the Screening Room, and annotations that understate what the backend now provides.
+
+### 10.4 Whole-page review at 1440, 1920, 834 and 390, EN and AR
+
+Every page was looked at full-page at all four widths in both languages (renders in `recheck/`). No page overflows
+(`scrollWidth` equals the device width in all 96 states; every PNG is exactly the device width). No page lost its
+composition to the fixes. Observed beyond the items above: the Studio Company shows the spine instead of the ring at
+834 — the tablet loses the page's signature drawing but gains a readable list (acceptable); the music-video
+now-playing bar sits above the phone tab bar and covers the performers row at the fold (by design; its focus effect is
+in F1); the Short's frame poster now carries a pink "proposal · B7" tag inside the art (prototype-only, see N4).
+
+### 10.5 Scores after the revision
+
+| Page | Round 1 | Re-check | Why it moved |
+|---|---|---|---|
+| Home | 8 | **9** | AR phone hero shows its subject; rail cue; honest credit line |
+| Shows | 7 | **8** | Faces whole; chip rows on phones still need the F3 cue |
+| Show | 8 | **8** | Tabs wrap on phones; tab rings clipped (F1) |
+| Short | 8 | **9** | Disc off the face, record readable, 0 overflow; plate/figure balance nit |
+| Music video | 8 | **8** | Wash cleaner; rail and now-playing focus issues (F1) |
+| Characters | 7 | **8** | Disc in the name row; N1 to fix |
+| Character (EN / AR) | 8 / 6 | **8 / 8** | English blocks set as English in the Arabic page |
+| Studio Company | 7 | **8** | Honest "Running now", labels at their nodes, no overflow |
+| Production map | 7 | **8** | Flow as a line, bar fixed at 390, workspace floor met |
+| Shot workspace | 7 | **8** | Takes read as clips, floor met, resolution order right; F1/F2 residuals |
+| Screening Room | 7 | **8** | Captions clear; Arabic subtitle claim to correct |
+| System sheet | 7 | **8** | Focus specimens on every surface; floor met |
+| Identity across the three experiences | 8 | **8** | Unchanged and intact |
+
+### 10.6 Measurements (re-check)
+
+| Check | Result (96 states unless stated) |
+|---|---|
+| Document overflow | 0 (`scrollWidth` = viewport in every state) |
+| Text under 12 px Latin / 13 px Arabic | 0 |
+| Workspace main content under 13.5 / 14 px | 0 (production, shot; 16 states) |
+| Flat-background text under 4.5:1 (3:1 large) | only disabled labels (4.32:1, exempt) and the decorative episode numeral (1.64:1) |
+| Text on art, median under 4.5:1 | only the past lyric lines (4.00:1 at 21–26 px, passes as large text) |
+| Top-bar secondary links over hero art | median 12.1–13.5:1 (Home, Show; EN/AR; 1440/1920) |
+| Arabic: mono text with Arabic-Indic digits / shot ids in Arabic-Indic / reversed numeric pairs | 0 / 0 / 0 |
+| Arabic: elements mixing digit systems | 47 unique — all by the §9.4 rule (identifier or readout beside a count), except the N3 cases |
+| Coarse-pointer targets under 44 × 44 (hit-tested) | 0 real; tabs 21–41 px wide (spacing exception); items scrolled out of a rail |
+| Fine-pointer standalone links under 24 px high | 5 kinds of link in the workspace, 20–22 px (N5) |
+| Focus: product-page Tab stops (1440 + 390, EN + AR) | 1,444 · complete ring at ≥ 3:1: 1,225 (84.8 %) · top/bottom clipped: 80 · one side missing: 79 · fully hidden under a bar: 30 (all at 390) · partly hidden: 19 · lowest ring-vs-ground 7.42:1 |
+| Studio label-to-node distance | 6–10 px for all eight departments |
+
