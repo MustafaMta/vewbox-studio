@@ -537,3 +537,68 @@ export const proposals = pgTable('proposals', {
   proposal: jsonb('proposal').$type<import('@/domain/types').IdeaProposal>().notNull(),
   createdAt: ts('created_at').notNull(),
 });
+
+// ------------------------------------------------------------------------------------------------- the World Bible
+// docs/research/MINIMAX-CONTINUITY.md §4 (src/domain/world.ts, src/server/world). Append-only: rows are inserted,
+// never updated or deleted by the studio. No foreign keys to the studio's rows: the history outlives a deleted show
+// or production, and the studio saver never touches these tables.
+
+/** A revision of a scope's World Bible (`show:<id>` or `production:<id>`): the resolved bible and what changed. */
+export const worldRevisions = pgTable('world_revisions', {
+  id: text('id').primaryKey(),
+  scopeKey: text('scope_key').notNull(),
+  showId: text('show_id'),
+  productionId: text('production_id'),
+  number: integer('number').notNull(),
+  parentId: text('parent_id'),
+  authorKind: text('author_kind').notNull(),
+  authorId: text('author_id').notNull(),
+  reason: text('reason').notNull(),
+  changes: jsonb('changes').$type<import('@/domain/types').WorldChange[]>().notNull().default([]),
+  hash: text('hash').notNull(),
+  bible: jsonb('bible').$type<import('@/domain/types').WorldBible>().notNull(),
+  jobId: text('job_id'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [uniqueIndex('world_revisions_scope_number_idx').on(t.scopeKey, t.number), index('world_revisions_show_idx').on(t.showId), index('world_revisions_production_idx').on(t.productionId)]);
+
+/** A production's pin to a revision (the latest row is the pin): at story approval, and each safe re-pin after. */
+export const worldPins = pgTable('world_pins', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id').notNull(),
+  revisionId: text('revision_id').notNull().references(() => worldRevisions.id, { onDelete: 'restrict' }),
+  revisionNumber: integer('revision_number').notNull(),
+  scopeKey: text('scope_key').notNull(),
+  reason: text('reason').notNull(),
+  approvalId: text('approval_id'),
+  diff: jsonb('diff').$type<import('@/domain/types').WorldChange[]>().notNull().default([]),
+  by: text('by').notNull(),
+  jobId: text('job_id'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('world_pins_production_idx').on(t.productionId, t.createdAt)]);
+
+/** What a job read from the bible for a shot: the revision, whether it was the pin, the plate and images used. */
+export const worldReads = pgTable('world_reads', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  productionId: text('production_id').notNull(),
+  revisionId: text('revision_id').notNull(),
+  revisionNumber: integer('revision_number').notNull(),
+  pinned: boolean('pinned').notNull(),
+  jobId: text('job_id'),
+  jobType: text('job_type').notNull(),
+  shotId: text('shot_id'),
+  takeId: text('take_id'),
+  read: jsonb('read').$type<import('@/domain/types').WorldRead>().notNull(),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [index('world_reads_production_idx').on(t.productionId, t.createdAt), index('world_reads_take_idx').on(t.takeId)]);
+
+/** The production audio timeline a cut was rendered from (src/domain/timeline.ts), one revision per change. */
+export const audioTimelines = pgTable('audio_timelines', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id').notNull(),
+  revision: integer('revision').notNull(),
+  hash: text('hash').notNull(),
+  timeline: jsonb('timeline').$type<Record<string, unknown>>().notNull(),
+  cutAssetId: text('cut_asset_id'),
+  jobId: text('job_id'),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [uniqueIndex('audio_timelines_production_revision_idx').on(t.productionId, t.revision)]);

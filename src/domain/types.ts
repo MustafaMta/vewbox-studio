@@ -692,3 +692,134 @@ export interface StudioState {
   assets: Asset[];
   settings: Settings;
 }
+
+// ------------------------------------------------------------------------------------------------- World Bible
+// THE WORLD BIBLE (docs/research/MINIMAX-CONTINUITY.md §4; directive Part 7): the structured, versioned record of a
+// show's (or a short's / music video's) world. Revisions are append-only; a production PINS the revision its story was
+// approved against and every job reads that pin; a take records the revision it used. Canon (what is always true:
+// faces, voices, architecture) is kept apart from state (what is true at a story time: wardrobe of the day, prop
+// positions, weather). Pure logic in src/domain/world.ts; storage in src/server/world.
+
+/** Whose world: a show (its episodes inherit it) or one production (a short, a music video, a standalone episode). */
+export type WorldScope = { kind: 'SHOW'; showId: string } | { kind: 'PRODUCTION'; productionId: string };
+
+export interface WorldRule { id: string; text: string; scope: 'WORLD' | 'VISUAL' | 'AUDIO' | 'LANGUAGE'; source: 'SHOW_BIBLE' | 'STYLE' | 'PRODUCER' }
+
+/** A garment set a character wears: the profile's own wardrobe is the default; variants are what the shot plan put
+ *  them in, first seen in a scene. */
+export interface WorldWardrobe { id: string; label: string; description: string; firstSeen?: { productionId: string; sceneId: string } }
+
+export interface WorldCharacter {
+  characterId: string;
+  name: string;
+  /** the canonical front full-body image as pinned: asset, version, status */
+  canonical?: { assetId: string; version: number; status: 'DRAFT' | 'APPROVED' };
+  /** the voice identity as pinned: revision, engine, status */
+  voice?: { revision: number; provider: string; model: string; status: string; language: string; dialect?: string };
+  identityLine?: string;
+  wardrobe: WorldWardrobe[];
+  defaultWardrobeId?: string;
+}
+
+export interface WorldRelationship { id: string; text: string; characterIds: string[]; source: 'SHOW_BIBLE' | 'PRODUCER' }
+
+/** MASTER/VIEW/STATE: drawn plates (LOCATION_PLATES). ESTABLISHED: a frame of an approved take — what the audience
+ *  has already seen of the place — reused by id when the story returns. */
+export type WorldPlateRole = 'MASTER' | 'VIEW' | 'STATE' | 'ESTABLISHED';
+export interface WorldPlate {
+  assetId: string;
+  role: WorldPlateRole;
+  label: string;
+  timeOfDay?: TimeOfDay;
+  /** ESTABLISHED: the framing of the shot it was taken from (the camera setup it stands for) */
+  framing?: Framing;
+  source: { kind: 'DRAWN'; refId?: string } | { kind: 'FROM_TAKE'; productionId: string; sceneId: string; shotId: string; takeId: string; frame: number; approvalId?: string; approvedAt?: string };
+  addedAt: string;
+}
+
+export interface WorldLocation {
+  locationId: string;
+  name: string;
+  kind: 'INTERIOR' | 'EXTERIOR';
+  /** what never changes: architecture, materials, fixed features, layout */
+  canon: { description: string; architecture?: string; materials: string[]; fixedFeatures: string[]; geography?: string; spatial?: string; entrances: string[]; zones: string[] };
+  lighting: TimeOfDay[];
+  /** every plate the place has had in this world, in the order it got them; never swapped once locked */
+  plates: WorldPlate[];
+  ambience?: { assetId?: string; description?: string };
+  /** used in an approved cut: its plates are kept (a redraw adds plates, it never replaces them) */
+  locked: boolean;
+}
+
+export interface WorldProp { id: string; name: string; ownerCharacterId?: string; fixedAtLocationId?: string; description?: string; last?: { state?: string; position?: string; productionId: string; sceneId: string; shotId: string } }
+
+/** A fact on the story timeline, in story order. */
+export interface WorldEvent { id: string; order: number; text: string; productionId?: string; sceneId?: string; timeOfDay?: TimeOfDay; source: 'SHOW_BIBLE' | 'SCENE' | 'PRODUCER' }
+
+/** The state of the world when a scene ends (its last shot's continuity): where people are, what they wear and hold,
+ *  where the props are, the light and the weather. The next scene at that place starts from it. */
+export interface WorldSceneState {
+  id: string;
+  productionId: string;
+  sceneId: string;
+  order: number;
+  locationId?: string;
+  environment: { timeOfDay?: TimeOfDay; weather?: string; lighting?: string; state?: string };
+  characters: Array<{ characterId: string; wardrobe?: string; position?: string; holding?: string[] }>;
+  props: Array<{ name: string; state?: string; position?: string; ownerCharacterId?: string }>;
+  exitState?: string;
+}
+
+/** How the cut treats speech and songs (src/domain/timeline.ts). DIALOGUE — MODEL_VOICE: the take's own (MiniMax)
+ *  speech; RECORDED_VOICE: the character's recorded line replaces it in every speaking shot; AUTO: the recorded line
+ *  where the take has no sound or its speech check did not pass, the take's speech elsewhere. SONG_BED — a song under a
+ *  film's dialogue: its instrumental stem when one exists (no vocals under speech), else the master, ducked. */
+export interface WorldAudioPolicy { dialogue: 'AUTO' | 'MODEL_VOICE' | 'RECORDED_VOICE'; songBed: 'INSTRUMENTAL_WHEN_AVAILABLE' | 'MASTER' }
+
+export interface WorldSong { productionId: string; songId: string; title: string; assetId?: string; stems?: { vocals?: string; instrumental?: string } }
+
+/** The resolved World Bible at one revision. */
+export interface WorldBible {
+  scope: WorldScope;
+  title: string;
+  rules: WorldRule[];
+  styleNotes?: string;
+  characters: WorldCharacter[];
+  relationships: WorldRelationship[];
+  locations: WorldLocation[];
+  props: WorldProp[];
+  timeline: WorldEvent[];
+  states: WorldSceneState[];
+  songs: WorldSong[];
+  openStorylines: string[];
+  audio: WorldAudioPolicy;
+}
+
+export interface WorldChange { op: 'ADD' | 'UPDATE' | 'REMOVE'; path: string; detail?: string }
+
+export interface WorldRevision {
+  id: string;
+  scopeKey: string;
+  number: number;
+  parentId?: string;
+  author: { kind: 'AGENT' | 'HUMAN'; id: string };
+  reason: string;
+  changes: WorldChange[];
+  hash: string;
+  bible: WorldBible;
+  jobId?: string;
+  createdAt: string;
+}
+
+/** A production's pin: the revision every job of the production reads. Append-only; the latest row is the pin. */
+export interface WorldPin { id: string; productionId: string; revisionId: string; revisionNumber: number; scopeKey: string; reason: 'STORY_APPROVAL' | 'SAFE_REPIN'; approvalId?: string; diff: WorldChange[]; by: string; jobId?: string; createdAt: string }
+
+/** What one job read from the bible for one shot (recorded per take). */
+export interface WorldRead {
+  revisionId: string;
+  revisionNumber: number;
+  pinned: boolean;
+  location?: { locationId: string; assetId: string; role: WorldPlateRole; label: string; why: string; source: WorldPlate['source']; alternates: string[] };
+  characters: Array<{ characterId: string; pinnedVersion?: number; assetId?: string; currentVersion?: number; usedPinned: boolean }>;
+  conflicts: string[];
+}
