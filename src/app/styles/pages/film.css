@@ -102,6 +102,8 @@
   /* ------------------------------------------------------------------------------------------- the skeletons */
   .film-skeleton .film-title { display: block; }
   .film-skeleton .film-strip-frame { block-size: 64px; }
+  .film-skeleton .film-sk-phone { display: none !important; }
+  .film-skeleton .film-player-pic { background: var(--art-ph); }
 
   /* ------------------------------------------------------------------------------------------------ narrower */
   @media (max-width: 1599px) {
@@ -115,7 +117,7 @@
   }
   @media (max-width: 639px) {
     .shorts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-block-start: 20px; }
-    .shorts-head { align-items: center; }
+    .shorts-head { flex-direction: column; align-items: flex-start; }
     /* the phone: the player first (no poster), the strip under it, then the words; actions share the row */
     .film-back { display: none; }
     .film-stage { order: -1; margin-block-start: 0; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'screen' 'strip'; gap: 12px; }
@@ -123,7 +125,7 @@
     .film-player { border-radius: var(--r-md); }
     .film-head { margin-block-start: 16px; }
     .film-head-row { flex-direction: column; align-items: stretch; }
-    .film-acts .btn { flex: 1; }
+    .film-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .film-strip { overflow-x: auto; scrollbar-width: none; }
     .film-strip::-webkit-scrollbar { display: none; }
     .film-strip-scene { flex-shrink: 0; }
@@ -132,5 +134,9 @@
     .film-files { grid-template-columns: minmax(0, 1fr); }
     .film-cast { --fig-w: 136px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
     .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    /* a typical slate wraps to two lines and a logline to four on a phone */
+    .film-skeleton .film-meta { min-block-size: 66px; align-content: flex-start; }
+    .film-skeleton .film-sk-phone { display: block !important; }
+    .film-skeleton .film-acts > * { inline-size: 100% !important; }
   }
 }

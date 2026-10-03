@@ -11,6 +11,7 @@ import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/u
 import { IconChevronLeft, IconDownload, IconPlay } from '@/components/ui/icons';
 import { runtime } from '@/components/home/model';
 import { FilmPlayer, type FilmPlayerHandle } from './FilmPlayer';
+import { SkLine } from './parts';
 import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, type FilmPage, type StripScene, type StripShot } from './model';
 
 /** A SHORT'S TITLE PAGE (docs/DESIGN-SYSTEM-V5.md §8.5 under docs/design/VISUAL-STANDARD-V5.1.md) — the film presented
@@ -248,6 +249,7 @@ function Credits({ p }: { p: Production }) {
 
 // ------------------------------------------------------------------------------------------------- the skeleton
 
+
 /** The title page while the studio's first snapshot loads (§5.22): the head, the poster beside the player with its
  *  docked transport and the strip, in their final sizes — the same classes size them, so nothing moves. */
 export function ShortSkeleton() {
@@ -258,10 +260,10 @@ export function ShortSkeleton() {
         <div className="film-head-row">
           <div className="film-words">
             <div className="film-meta"><Skeleton.Block width={64} height={22} radius="pill" /><Skeleton.Line width="18rem" /></div>
-            <div className="t-display film-title"><Skeleton.Block width="min(28rem, 80%)" height="0.9em" radius="media" /></div>
-            <div className="t-lead film-logline"><Skeleton.Text lines={2} /></div>
+            <div className="t-display film-title"><SkLine width="min(28rem, 80%)" height="0.8em" /></div>
+            <div className="t-lead film-logline"><SkLine width="92%" /><SkLine width="64%" /><SkLine width="88%" className="film-sk-phone" /><SkLine width="40%" className="film-sk-phone" /></div>
           </div>
-          <div className="film-acts"><Skeleton.Block width={148} height={40} radius="pill" /><Skeleton.Block width={120} height={40} radius="pill" /></div>
+          <div className="film-acts"><Skeleton.Block width={141} height="var(--control-h)" radius="pill" /><Skeleton.Block width={112} height="var(--control-h)" radius="pill" /></div>
         </div>
       </div>
       <div className="film-stage">

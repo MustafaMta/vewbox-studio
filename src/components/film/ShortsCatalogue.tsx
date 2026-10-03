@@ -6,7 +6,7 @@ import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { ShortCard } from '@/components/library/ShortCard';
 import { MediaCardSkeleton, StartCard } from '@/components/media';
 import { NEW_SHORT, shortsCatalogue, type PosterCard } from './model';
-import { NewShortButton } from './parts';
+import { NewShortButton, SkLine } from './parts';
 
 /** SHORTS — the catalogue of single films (docs/DESIGN-SYSTEM-V5.md §8.4 under docs/design/VISUAL-STANDARD-V5.1.md):
  *  the page title and one line, New short as the page's primary (split: let the studio propose, or
@@ -59,10 +59,10 @@ export function ShortsSkeleton() {
     <SkeletonRegion label="Opening the shorts…" className="shorts shorts-skeleton">
       <div className="shorts-head">
         <div className="shorts-head-words">
-          <div className="t-page shorts-title"><Skeleton.Line size="title" width="7rem" /></div>
-          <div className="t-body shorts-lead"><Skeleton.Line width="15rem" /></div>
+          <div className="t-page shorts-title"><SkLine width="7rem" height="0.8em" /></div>
+          <div className="t-body shorts-lead"><SkLine width="15rem" /></div>
         </div>
-        <Skeleton.Block width={152} height={40} radius="pill" />
+        <Skeleton.Block width={152} height="var(--control-h)" radius="pill" />
       </div>
       <div className="shorts-grid">
         {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="2/3" /></div>)}

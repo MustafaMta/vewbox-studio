@@ -1,0 +1,279 @@
+{
+  "checked": "2026-10-03T23:00:21.242Z",
+  "base": "http://localhost:4254",
+  "report": [
+    {
+      "page": "/shorts",
+      "size": "1440×900",
+      "film": false,
+      "starts": [
+        288,
+        288
+      ],
+      "startOk": true,
+      "columns": 2,
+      "posters": [
+        312,
+        312
+      ],
+      "postersEqual": true,
+      "stage": null,
+      "stageEqual": true,
+      "files": [],
+      "filesEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 1,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 900,
+      "checks": {
+        "shared start edge": true,
+        "5 columns": true,
+        "posters equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "/shorts/short-28bdb3342b",
+      "size": "1440×900",
+      "film": true,
+      "starts": [
+        288,
+        288
+      ],
+      "startOk": true,
+      "columns": null,
+      "posters": [],
+      "postersEqual": true,
+      "stage": {
+        "poster": [
+          322,
+          483
+        ],
+        "player": [
+          766,
+          483
+        ]
+      },
+      "stageEqual": true,
+      "files": [
+        168,
+        168,
+        168
+      ],
+      "filesEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 12,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 2444,
+      "checks": {
+        "shared start edge": true,
+        "poster and player one height": true,
+        "download cards equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "/shorts",
+      "size": "1920×1080",
+      "film": false,
+      "starts": [
+        400,
+        400
+      ],
+      "startOk": true,
+      "columns": 2,
+      "posters": [
+        389,
+        389
+      ],
+      "postersEqual": true,
+      "stage": null,
+      "stageEqual": true,
+      "files": [],
+      "filesEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 1,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 1080,
+      "checks": {
+        "shared start edge": true,
+        "5 columns": true,
+        "posters equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "/shorts/short-28bdb3342b",
+      "size": "1920×1080",
+      "film": true,
+      "starts": [
+        400,
+        400
+      ],
+      "startOk": true,
+      "columns": null,
+      "posters": [],
+      "postersEqual": true,
+      "stage": {
+        "poster": [
+          392,
+          588
+        ],
+        "player": [
+          952,
+          588
+        ]
+      },
+      "stageEqual": true,
+      "files": [
+        168,
+        168,
+        168
+      ],
+      "filesEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 12,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 2537,
+      "checks": {
+        "shared start edge": true,
+        "poster and player one height": true,
+        "download cards equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "/shorts",
+      "size": "390×844",
+      "film": false,
+      "starts": [
+        16,
+        16
+      ],
+      "startOk": true,
+      "columns": 2,
+      "posters": [
+        260,
+        260
+      ],
+      "postersEqual": true,
+      "stage": null,
+      "stageEqual": true,
+      "files": [],
+      "filesEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 1,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 844,
+      "checks": {
+        "shared start edge": true,
+        "2 columns": true,
+        "posters equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "/shorts/short-28bdb3342b",
+      "size": "390×844",
+      "film": true,
+      "starts": [
+        16,
+        16
+      ],
+      "startOk": true,
+      "columns": null,
+      "posters": [],
+      "postersEqual": true,
+      "stage": {
+        "poster": [
+          0,
+          0
+        ],
+        "player": [
+          358,
+          253
+        ]
+      },
+      "stageEqual": true,
+      "files": [
+        168,
+        168,
+        168
+      ],
+      "filesEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 12,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "height": 3455,
+      "checks": {
+        "shared start edge": true,
+        "poster and player one height": true,
+        "download cards equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    }
+  ]
+}
