@@ -149,7 +149,6 @@ const COPY = {
 
   // libraries
   'lib.addShow': 'Add Show',
-  'lib.addShort': 'Add Short',
   'lib.addMusicVideo': 'Add Music Video',
   'lib.addCharacter': 'Add Character',
   'lib.addLocation': 'Add Location',
@@ -161,7 +160,6 @@ const COPY = {
   'lib.sortRecent': 'Recently updated',
   'lib.sortTitle': 'Title',
   'lib.filterStyle': 'Style',
-  'lib.filterStage': 'Stage',
   'lib.inheritedFromShow': 'from the show',
   'lib.images': 'Pictures',
   'lib.videos': 'Clips',
@@ -177,7 +175,6 @@ const COPY = {
   // empty states
   'empty.shows': 'No shows yet.',
   'empty.shows.hint': 'A show holds seasons and episodes that share a cast and a world.',
-  'empty.shorts': 'No shorts yet.',
   'empty.shorts.hint': 'A short is one film, from idea to final cut.',
   'empty.musicVideos': 'No music videos yet.',
   'empty.musicVideos.hint': 'A music video starts with its song.',

@@ -1,4 +1,147 @@
 /* ============================================================================================================
-   SHORTS AND THE CUTTING ROOM — owned by P1b (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   §6.3–6.6. Empty until P1b.
+   SHORTS — the catalogue (/shorts) and a short's title page (/shorts/[id]); owned by P-Film.
+   docs/DESIGN-SYSTEM-V5.md §8.4–8.5 under docs/design/VISUAL-STANDARD-V5.1.md, on Home's reference (the producer's
+   Krea standard). Layout only: every colour, radius, duration and type size is a token or a kit class. The skeletons
+   (ShortsSkeleton, ShortSkeleton) use the same classes, so they have the pages' exact shapes.
+   The player block (.film-player, .film-transport) is a TEMPORARY page-local wrapper of the docked video chrome
+   (§5.24) until the kit's player chrome reaches main.
    ============================================================================================================ */
+@layer components {
+  /* ------------------------------------------------------------------------------------------- the catalogue */
+  .shorts { display: flex; flex-direction: column; }
+  .shorts-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+  .shorts-head-words { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+  .shorts-title, .shorts-lead { margin: 0; }
+  .shorts-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 24px; }
+  .shorts-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gutter); margin: 24px 0 0; padding: 0; list-style: none; }
+  .shorts-grid > * { min-inline-size: 0; }
+  .short-card { position: relative; }
+  .short-card-link { display: block; }
+  .short-card-play { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity var(--dur-1) var(--ease-out); }
+  .short-card:is(:hover, :focus-within) .short-card-play { opacity: 1; }
+  @media (hover: none) { .short-card-play { opacity: 1; } }
+  .short-start { inline-size: 100%; }
+
+  /* ------------------------------------------------------------------------------------------- the film: head */
+  .film { display: flex; flex-direction: column; }
+  .film-back { align-self: flex-start; margin-block-end: 16px; }
+  .film-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+  .film-words { display: flex; flex-direction: column; min-inline-size: 0; }
+  .film-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-block-size: 22px; margin: 0; }
+  .film-slate { display: flex; flex-wrap: wrap; min-inline-size: 0; }
+  .film-title { margin: 12px 0 0; }
+  .film-logline { margin: 8px 0 0; }
+  .film-acts { display: flex; flex: none; gap: 8px; }
+
+  /* ------------------------------------------------------------------------------- the film: poster and player */
+  /* the poster and the player (the 16:9 picture + the docked transport) share one height H across the column:
+     poster = H × 2/3, player = (H − transport) × 16/9, poster + gap + player = 100 % */
+  .film-stage { --transport: 52px; --gap: 16px; display: grid; gap: var(--gap); margin-block-start: 24px; align-items: start;
+    grid-template-columns: calc((100% - var(--gap) + var(--transport) * 16 / 9) / (2 / 3 + 16 / 9) * 2 / 3) minmax(0, 1fr);
+    grid-template-areas: 'poster screen' 'poster strip'; }
+  .film-poster { grid-area: poster; display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; margin: 0; }
+  .film-poster-frame { inline-size: 100%; aspect-ratio: 2 / 3; }
+  .film-poster-cap { margin: 0; }
+  .film-screen { grid-area: screen; min-inline-size: 0; }
+
+  .film-player { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); }
+  .film-player-pic { position: relative; inline-size: 100%; aspect-ratio: 16 / 9; background: var(--black); }
+  .film-player-video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; background: var(--black); cursor: pointer; }
+  .film-player[data-full] { border-radius: 0; }
+  .film-player[data-full] .film-player-pic { flex: 1; aspect-ratio: auto; }
+  .film-transport { display: flex; flex: none; align-items: center; gap: 8px; block-size: var(--transport, 52px); padding: 0 12px; background: var(--surface-1); }
+  .film-play { inline-size: 36px; block-size: 36px; }
+  .film-play svg { inline-size: 16px; block-size: 16px; }
+  .film-time { margin-inline: 4px; color: var(--text-2); white-space: nowrap; }
+  .film-seek { flex: 1; }
+  .film-seek .seek { --seek-track: var(--surface-3); }
+  .film-transport-note { padding-inline: 16px; }
+  .film-transport-note .t-body { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .film-player-still .film-player-pic { border-radius: 0; }
+
+  /* the strip: the cut's shots at their share of the running time, grouped by scene */
+  .film-strip { grid-area: strip; display: flex; gap: 4px; min-inline-size: 0; }
+  .film-strip-scene { display: flex; flex-basis: 0; flex-direction: column; gap: 8px; min-inline-size: 0; }
+  .film-strip-shots { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .film-strip-shots > * { flex-basis: 0; min-inline-size: 0; }
+  .film-strip-shot { display: block; inline-size: 100%; padding: 0; border: 0; border-radius: var(--r-xs); background: none; color: inherit; cursor: pointer; }
+  span.film-strip-shot { cursor: default; }
+  .film-strip-shot:focus-visible { outline-offset: 3px; }
+  .film-strip-frame { block-size: 64px; border-radius: var(--r-xs); }
+  .film-strip-shot[aria-current] .film-strip-frame { outline: 2px solid var(--text-1); outline-offset: -2px; }
+  .film-strip-chip { position: absolute; inset-block-end: 4px; inset-inline-start: 4px; display: inline-flex; align-items: center; block-size: 22px; padding: 0 6px; border-radius: var(--r-xs); background: var(--chip-on-art); color: var(--text-1); }
+  .film-strip-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .film-strip-num { color: var(--text-2); }
+
+  /* ------------------------------------------------------------------------------------------- the sections */
+  .film-section { margin-block-start: var(--section-gap); }
+
+  .film-files { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter); margin: 0; padding: 0; list-style: none; }
+  .film-file { display: flex; flex-direction: column; min-inline-size: 0; padding: 16px; }
+  .film-file-title { margin-block-start: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .film-file-detail { min-block-size: 40px; margin-block-start: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .film-file-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 16px; }
+
+  .film-story { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: start; }
+  .film-synopsis { margin: 0; }
+  .film-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; margin: 0; padding: 20px; }
+  .film-fact { display: flex; flex-direction: column; min-inline-size: 0; }
+  .film-fact > dd { margin: 0; }
+  .film-fact-value { margin-block-start: 4px !important; }
+  .film-fact-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* the cast as standing figures, then the locations' plates at the figures' height; one row that scrolls */
+  .film-cast { --fig-w: 168px; --fig-h: calc(var(--fig-w) * 1664 / 928); display: flex; gap: 12px; margin: -4px; padding: 4px; list-style: none; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+  .film-cast::-webkit-scrollbar { display: none; }
+  .film-cast > li { flex: none; scroll-snap-align: start; }
+  .film-person { inline-size: var(--fig-w); }
+  .film-place { inline-size: calc(var(--fig-h) * 16 / 9); }
+  .film-tile { display: flex; flex-direction: column; border-radius: var(--r-md); color: var(--text-1); text-decoration: none; }
+  .film-tile:focus-visible { outline-offset: 3px; }
+  .film-figure, .film-plate { inline-size: 100%; }
+  .film-tile-name { margin-block-start: 12px; }
+  .film-tile-line { margin-block-start: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .film-credits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 16px; margin: 0; }
+  .film-credit { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+  .film-credit > dd { margin: 0; }
+  .film-credit-name a { color: var(--text-1); text-decoration: none; }
+  .film-credit-name a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  .film-credit-name, .film-credit-made { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ------------------------------------------------------------------------------------------- the skeletons */
+  .film-skeleton .film-title { display: block; }
+  .film-skeleton .film-strip-frame { block-size: 64px; }
+
+  /* ------------------------------------------------------------------------------------------------ narrower */
+  @media (max-width: 1599px) {
+    .film-credits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .shorts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .film-files { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .film-story { grid-template-columns: minmax(0, 1fr); }
+    .film-credits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 639px) {
+    .shorts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-block-start: 20px; }
+    .shorts-head { align-items: center; }
+    /* the phone: the player first (no poster), the strip under it, then the words; actions share the row */
+    .film-back { display: none; }
+    .film-stage { order: -1; margin-block-start: 0; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'screen' 'strip'; gap: 12px; }
+    .film-poster { display: none; }
+    .film-player { border-radius: var(--r-md); }
+    .film-head { margin-block-start: 16px; }
+    .film-head-row { flex-direction: column; align-items: stretch; }
+    .film-acts .btn { flex: 1; }
+    .film-strip { overflow-x: auto; scrollbar-width: none; }
+    .film-strip::-webkit-scrollbar { display: none; }
+    .film-strip-scene { flex-shrink: 0; }
+    .film-strip-shots > * { min-inline-size: 72px; }
+    .film-transport { gap: 4px; padding-inline: 8px; }
+    .film-files { grid-template-columns: minmax(0, 1fr); }
+    .film-facts { padding: 16px; }
+    .film-cast { --fig-w: 136px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
+    .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  }
+}
