@@ -6,11 +6,12 @@ import type { Production, Season, Show } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { castOf, productionHref, STAGE_ORDER, stageIndex } from '@/studio/selectors';
 import { useShell } from '@/components/shell/context';
-import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { SectionHeadSkeleton } from '@/components/media';
 import { IconChevronLeft, IconPlay } from '@/components/ui/icons';
 import { LANGUAGE_LABEL, episodeCard, episodePicture, episodesOfSeason, figure, minutes, nameLang, nextAction, runtime, stageOf, stageWords, waitingProductions } from './model';
 import { Backdrop, BackdropSkeleton, Caption } from './Backdrop';
-import { EmptyLine, EpisodeTile, FigureCard, HeadLink, SectionHead, StatusWord } from './parts';
+import { CastCard, EmptyLine, EpisodeTile, StatusWord } from './parts';
 
 /** ONE EPISODE — the episode's title page (its lobby): the still at Home's banner proportions, the words under it (the
  *  episode and season, the title, the logline) with Continue — the next step, opened in the episode's production
@@ -52,7 +53,7 @@ export function EpisodeLobby({ show, season, p }: { show: Show; season?: Season;
       </section>
 
       <section className="shows-section" id="production" aria-labelledby="ep-steps-h">
-        <SectionHead id="ep-steps-h" title="Production" description="Each step opens in the episode’s workspace." end={<HeadLink href={work}>Open the workspace</HeadLink>} />
+        <SectionHead id="ep-steps-h" title="Production" description="Each step opens in the episode’s workspace." link={{ href: work, label: 'Open the workspace' }} />
         <ol className="ep-steps" role="list">
           {STAGE_ORDER.map((st, i) => {
             const state_ = done || i < at ? 'done' : i === at ? 'now' : 'next';
@@ -70,20 +71,20 @@ export function EpisodeLobby({ show, season, p }: { show: Show; season?: Season;
       </section>
 
       <section className="shows-section" aria-labelledby="ep-story-h">
-        <SectionHead id="ep-story-h" title="Story" end={<HeadLink href={`${work}?tab=story`}>Open the story</HeadLink>} />
+        <SectionHead id="ep-story-h" title="Story" link={{ href: `${work}?tab=story`, label: 'Open the story' }} />
         {p.synopsis.trim() ? <p className="t-prose content-para" dir="auto">{p.synopsis}</p>
           : <EmptyLine action={<Link className="btn btn-secondary btn-sm" href={`${work}?tab=story`}>Write the story</Link>}>{p.brief.text ? <>The brief: <span dir="auto">{p.brief.text}</span></> : 'The story is not written yet.'}</EmptyLine>}
       </section>
 
       <section className="shows-section" aria-labelledby="ep-cast-h">
-        <SectionHead id="ep-cast-h" title="Cast" count={cast.length} description="The show’s cast and anyone this episode adds." end={<HeadLink href={`${work}?tab=characters`}>Cast in the workspace</HeadLink>} />
+        <SectionHead id="ep-cast-h" title="Cast" count={cast.length} description="The show’s cast and anyone this episode adds." link={{ href: `${work}?tab=characters`, label: 'Cast in the workspace', short: 'Workspace' }} />
         {cast.length === 0 ? <EmptyLine action={<Link className="btn btn-secondary btn-sm" href={`${showHref}?edit=cast`}>Choose the show’s cast</Link>}>No characters are cast yet.</EmptyLine>
-          : <ul className="show-figures" role="list">{cast.map((f) => <li key={f.id}><FigureCard f={f} /></li>)}</ul>}
+          : <ul className="show-figures" role="list">{cast.map((f) => <li key={f.id}><CastCard f={f} /></li>)}</ul>}
       </section>
 
       {season && others.length > 0 && (
         <section className="shows-section" aria-labelledby="ep-more-h">
-          <SectionHead id="ep-more-h" title={`More from Season ${season.number}`} count={others.length} end={<HeadLink href={`${showHref}/seasons/${encodeURIComponent(season.id)}`}>The whole season</HeadLink>} />
+          <SectionHead id="ep-more-h" title={`More from Season ${season.number}`} count={others.length} link={{ href: `${showHref}/seasons/${encodeURIComponent(season.id)}`, label: 'The whole season', short: 'All' }} />
           <ul className="shows-grid" role="list">{others.map((e) => <li key={e.id}><EpisodeTile e={e} /></li>)}</ul>
         </section>
       )}
@@ -99,11 +100,11 @@ export function EpisodeSkeleton() {
       <div className="page-back"><Skeleton.Line width="10rem" /></div>
       <BackdropSkeleton />
       <div className="shows-section">
-        <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width="8rem" /></div><div className="t-body home-shelf-desc"><Skeleton.Line width="16rem" /></div></div></div>
+        <SectionHeadSkeleton titleWidth="8rem" description />
         <div className="ep-steps">{STAGE_ORDER.map((st) => <Skeleton.Block key={st} className="ep-step" width="100%" height="auto" radius="md" />)}</div>
       </div>
       <div className="shows-section">
-        <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width="5rem" /></div></div></div>
+        <SectionHeadSkeleton titleWidth="5rem" />
         <div className="t-prose ep-story-skeleton"><Skeleton.Line width="96%" /><Skeleton.Line width="88%" /><Skeleton.Line width="64%" /></div>
       </div>
     </SkeletonRegion>

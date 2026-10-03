@@ -7,12 +7,10 @@ import type { Season, Show } from '@/domain/types';
 import { ASPECTS, DIALECTS, DURATIONS, STYLES, type Aspect, type Dialect, type Language, type Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { artVars } from '@/studio/presentation';
 import { dialectLabel } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
 import { Button, Dialog, Field, Input, Segmented, Select, Textarea } from '@/components/ui/kit';
-import { Frame } from '@/components/media/Frame';
-import { IconCheck } from '@/components/ui/icons';
+import { FigureCard, MediaTile } from '@/components/media';
 import { ASPECT_LABEL, BIBLE_PARTS, LANGUAGE_LABEL, STYLE_LABEL, episodesOfSeason, figure, minutes, plate, seasonsOfShow, type BibleKey } from './model';
 
 /** THE SHOWS PAGES' DIALOGS — creating inside a show (New season, New episode) and editing it (details, cast, world,
@@ -189,20 +187,13 @@ export function CanonDialog({ show, kind, open, onClose }: { show: Show; kind: '
         <p className="t-body">{kind === 'cast' ? 'The studio has no characters yet.' : 'The studio has no locations yet.'} <Link className="home-link" href={kind === 'cast' ? '/characters/new' : '/locations/new'}>{kind === 'cast' ? 'New character' : 'New location'}</Link></p>
       ) : (
         <ul className="show-pick" data-kind={kind} role="list">
-          {items.map((it) => {
-            const on = ids.includes(it.id);
-            return (
-              <li key={it.id}>
-                <button type="button" className="show-pick-item" aria-pressed={on} onClick={() => toggle(it.id)}>
-                  <Frame asset={it.picture?.asset} src={it.picture?.src} ratio={kind === 'cast' ? '928/1664' : '16/9'} fit={kind === 'cast' ? 'contain' : 'cover'} alt="" art={artVars(it.picture?.asset)} title={it.name} titleLang={it.lang} titleState="noImage" decorative>
-                    {on && <span className="mtile-check" aria-hidden><IconCheck /></span>}
-                  </Frame>
-                  <span className="t-card name"><bdi lang={it.lang}>{it.name}</bdi></span>
-                  <span className="t-meta name"><bdi>{it.meta || ' '}</bdi></span>
-                </button>
-              </li>
-            );
-          })}
+          {items.map((it) => (
+            <li key={it.id}>
+              {kind === 'cast'
+                ? <FigureCard onSelect={() => toggle(it.id)} selected={ids.includes(it.id)} asset={it.picture?.asset} src={it.picture?.src} name={it.name} nameLang={it.lang} badge={it.meta ? <span className="t-meta name"><bdi>{it.meta}</bdi></span> : undefined} />
+                : <MediaTile onSelect={() => toggle(it.id)} selected={ids.includes(it.id)} asset={it.picture?.asset} src={it.picture?.src} title={it.name} titleLang={it.lang} meta={[it.meta]} />}
+            </li>
+          ))}
         </ul>
       )}
     </Dialog>

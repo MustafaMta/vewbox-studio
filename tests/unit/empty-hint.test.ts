@@ -16,8 +16,6 @@ import { KEYS, T, type Key } from '@/lib/copy';
  *  deletes its line (the test fails on a stale line, so the list only shrinks) — and any new duplicate fails. */
 
 const BASELINE: string[] = [
-  // /shows (P1a): the lead is the empty hint
-  'empty.shows.hint',
   // /shorts (P1b): the lead is the empty hint
   'empty.shorts.hint',
   // /music-videos (P1c): the lead is the empty hint

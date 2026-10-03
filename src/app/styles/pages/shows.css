@@ -1,7 +1,7 @@
 /* SHOWS PAGES — owned by P-Shows: /shows, a show, a season, an episode's lobby, and their dialogs
    (docs/design/PAGE-ENGINEERING-BRIEF.md; VISUAL-STANDARD-V5.1). Layout only: every colour, radius, duration and type
-   size is a token or a kit/type class; Home's classes (pages/home.css) draw the shared parts until the kit's SectionHead,
-   MediaCard and StartCard land. The skeletons use the same classes, so nothing moves when the content arrives. */
+   size is a token or a kit/type class; the cards and heads are the kit's (SectionHead, MediaTile, FigureCard, StartCard,
+   PanelCard). The skeletons use the same classes, so nothing moves when the content arrives. */
 @layer components {
   .shows { display: flex; flex-direction: column; min-inline-size: 0; }
 
@@ -25,18 +25,16 @@
   .shows-section .shows-grid { margin-block-start: 0; }
   .shows-grid > li { display: flex; min-inline-size: 0; }
   .shows-grid > li > * { flex: 1; min-inline-size: 0; }
+  .shows-grid > li > .start-card { align-self: flex-start; }
+  .shows-grid > div > .mtile { display: block; }   /* MediaTileSkeleton's root is a span (change request to DS) */
+  .shows-grid .status { vertical-align: top; }
 
-  /* the tile (§5.6): frame, then the words; one link */
-  .show-tile { display: flex; flex-direction: column; min-inline-size: 0; color: var(--text-1); text-decoration: none; border-radius: var(--r-md); }
-  .show-tile:focus-visible { outline-offset: 3px; }
-  .show-tile-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; margin-block-start: 12px; }
-  .show-tile-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .show-tile .status { margin-block-start: 6px; }
-  .show-tile-kind { margin-block-end: 2px; }
-  .show-tile-syn { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-block-size: 40px; margin-block-start: 4px; }
-  .show-tile-stage { display: flex; align-items: center; gap: 10px; min-block-size: 18px; margin-block-start: 10px; }
-  .show-tile-stage .status { margin: 0; }
-  .show-start { inline-size: 100%; aspect-ratio: 16 / 9; align-self: flex-start; }
+  /* the episode tile (the Shows experience's own, on the media tile's anatomy): still → 12 → words; one link */
+  .ep-tile { display: flex; flex-direction: column; min-inline-size: 0; color: var(--text-1); text-decoration: none; border-radius: var(--r-md); }
+  .ep-tile:focus-visible { outline-offset: 3px; }
+  .ep-tile-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; margin-block-start: 12px; }
+  .ep-tile-syn { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-block-size: 40px; margin-block-start: 4px; }
+  .ep-tile-stage { display: flex; align-items: center; gap: 10px; min-block-size: 18px; margin-block-start: 10px; }
 
   /* ------------------------------------------------------------------------------------------- sections */
   .shows-section { margin-block-start: var(--section-gap); }
@@ -65,7 +63,6 @@
 
   /* cast (whole figures) and world (plates) */
   .show-figures { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px var(--gutter); margin: 0; padding: 0; list-style: none; }
-  .show-figure-role { min-block-size: 18px; margin-block-start: 2px; }
   .show-plates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px var(--gutter); margin: 0; padding: 0; list-style: none; }
 
   /* the bible: four level-1 cards, two across */
@@ -75,11 +72,6 @@
   .show-bible-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding-inline-start: 18px; list-style: disc; }
   .show-bible-list > li::marker { color: var(--text-3); }
   .show-bible-none { margin: 0; color: var(--text-3); }
-
-  /* details: a definition grid in one card */
-  .show-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; padding: 20px; }
-  .show-details dd { margin: 4px 0 0; }
-  .show-details-v { color: var(--text-1); overflow-wrap: anywhere; }
 
   /* ------------------------------------------------------------------------------------ the empty catalogue */
   .shows-empty { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); margin-block-start: 24px; }
@@ -109,14 +101,8 @@
   .show-dialog-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .show-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 20px var(--gutter); margin: 0; padding: 4px; list-style: none; }
   .show-pick[data-kind='world'] { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-  .show-pick-item { display: flex; flex-direction: column; gap: 2px; inline-size: 100%; padding: 0; border: 0; border-radius: var(--r-md); background: transparent; color: var(--text-1); font: inherit; text-align: start; cursor: pointer; }
-  .show-pick-item > .frame, .show-pick-item > .tcard { margin-block-end: 10px; }
-  .show-pick-item[aria-pressed='true'] > :is(.frame, .tcard) { outline: 2px solid var(--text-1); outline-offset: 3px; }
-  .show-pick-item:focus-visible { outline-offset: 3px; }
 
-  /* ------------------------------------------------------------------------------ skeletons: line boxes held */
-  .shows-skeleton :is(.t-page, .t-section, .t-hero, .t-card, .t-meta, .t-body, .t-label, .t-lead, .page-back) { display: flex; align-items: center; min-block-size: 1lh; }
-  .shows-skeleton .show-tile-syn { flex-direction: column; align-items: stretch; justify-content: space-evenly; }
+  /* ------------------------------------------------------------------------------------------ skeletons */
   .shows-skeleton .ep-step { block-size: 112px; padding: 0; }
   .shows-skeleton .show-hero-frame > .sk { block-size: 100%; }
   .ep-story-skeleton { display: flex; flex-direction: column; gap: 12px; }
@@ -135,7 +121,6 @@
     .show-acts { grid-column: 1 / -1; justify-content: flex-start; }
     .shows-empty { grid-template-columns: minmax(0, 1fr); }
     .shows-empty-start { grid-column: auto; }
-    .show-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 639px) {
     .shows-page-acts { inline-size: 100%; }
@@ -151,7 +136,7 @@
     .show-figures > li { flex: none; inline-size: 136px; scroll-snap-align: start; }
     .show-plates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px var(--gutter); }
     .show-bible { grid-template-columns: minmax(0, 1fr); }
-    .show-bible-card, .show-details { padding: 16px; }
+    .show-bible-card { padding: 16px; }
     .shows-empty-start { aspect-ratio: auto; min-block-size: 320px; padding: 24px; }
     .shows-empty-steps { padding: 24px 20px; }
     .ep-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }

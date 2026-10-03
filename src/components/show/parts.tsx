@@ -3,35 +3,20 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { artVars } from '@/studio/presentation';
-import { Frame } from '@/components/media/Frame';
+import { FigureCard, Frame, MediaTile } from '@/components/media';
 import { StageMeter } from '@/components/media/StageMeter';
 import { MenuButton, MenuLink } from '@/components/ui/kit';
 import { IconChevronDown, IconChevronRight, IconPlus } from '@/components/ui/icons';
 import type { EpisodeCardData, FigureData, PlateData, ShowCardData } from './model';
 
-/** THE SHOWS PAGES' PARTS — the tiles and heads every Shows page composes.
- *
- *  TEMPORARY (until the Design System Engineer's SectionHead, MediaCard and StartCard land in the kit): the section
- *  head, the start card and the figure card draw with Home's classes (src/app/styles/pages/home.css), the approved
- *  reference, so these pages share Home's exact sizes without a second styling system. When the kit components merge,
- *  these wrappers become thin re-exports and then go. Tiles follow VISUAL-STANDARD-V5.1 §5.6: the frame (no box), then
- *  the name on one line and the meta under it; the whole tile is one link. */
+/** THE SHOWS PAGES' PARTS — thin compositions of the shared kit (SectionHead, MediaTile, FigureCard, StartCard in
+ *  src/components/ui/kit and src/components/media) with the Shows pages' data, plus the one tile that is the Shows
+ *  experience's own: the episode (its still, number, title, two lines of synopsis and the stage meter). */
 
-export function SectionHead({ id, title, count, description, end }: { id: string; title: ReactNode; count?: number | null; description?: ReactNode; end?: ReactNode }) {
-  return (
-    <div className="home-shelf-head">
-      <div className="home-shelf-title">
-        <h2 id={id} className="t-section shows-head-h">{title}{count != null && count > 0 && <span className="shows-count t-ro t-ro-md">{count}</span>}</h2>
-        {description && <p className="t-body home-shelf-desc">{description}</p>}
-      </div>
-      {end && <div className="home-shelf-end">{end}</div>}
-    </div>
-  );
-}
-
-/** One quiet link with a chevron at the end of a section head. */
-export function HeadLink({ href, children, scroll }: { href: string; children: ReactNode; scroll?: boolean }) {
-  return <Link className="home-link" href={href} scroll={scroll}>{children}<IconChevronRight aria-hidden /></Link>;
+/** The quiet link at the end of a section head (the kit's `.shead-link`) for links that open a dialog in place: it
+ *  keeps the scroll position. Pass it as SectionHead's `action`. */
+export function HeadLink({ href, children }: { href: string; children: ReactNode }) {
+  return <Link className="shead-link" href={href} scroll={false}>{children}<IconChevronRight aria-hidden /></Link>;
 }
 
 const toneClass = { done: 'status status-ok', waiting: 'status status-warn', current: 'status status-info', idle: 'status' } as const;
@@ -52,65 +37,32 @@ export function NewShowButton() {
   );
 }
 
-/** A show in the catalogue: 16:9 key art, the name, the facts, the status last. */
+/** A show in the catalogue: the kit's media tile — 16:9 key art, the name, the facts with the status last. */
 export function ShowTile({ c, priority }: { c: ShowCardData; priority?: boolean }) {
-  return (
-    <Link className="show-tile" href={c.href} title={c.title}>
-      <Frame asset={c.picture?.asset} src={c.picture?.src} ratio="16/9" fit="cover" alt="" art={artVars(c.picture?.asset)} title={c.title} titleLang={c.lang} titleState="noKeyArt" decorative priority={priority} />
-      <span className="show-tile-words">
-        <span className="t-card name"><bdi lang={c.lang}>{c.title}</bdi></span>
-        <span className="t-meta show-tile-meta">{c.meta || 'Show'}</span>
-        <StatusWord tone={c.status.tone}>{c.status.words}</StatusWord>
-      </span>
-    </Link>
-  );
+  return <MediaTile href={c.href} asset={c.picture?.asset} src={c.picture?.src} title={c.title} titleLang={c.lang} meta={c.meta} status={<StatusWord tone={c.status.tone}>{c.status.words}</StatusWord>} priority={priority} className="show-tile" />;
 }
 
-/** An episode: its 16:9 still, "Episode 3 · 5:00", the title, two lines of synopsis, the stage meter and its words. */
+/** A location: the kit's media tile with its 16:9 plate, the name, interior or exterior. */
+export function PlateTile({ p }: { p: PlateData }) {
+  return <MediaTile href={p.href} asset={p.picture?.asset} src={p.picture?.src} title={p.name} titleLang={p.lang} meta={[p.meta]} />;
+}
+
+/** A character: the kit's figure card, the role in its state row. */
+export function CastCard({ f }: { f: FigureData }) {
+  return <FigureCard href={f.href} asset={f.picture?.asset} src={f.picture?.src} name={f.name} nameLang={f.lang} badge={f.role ? <span className="t-meta name"><bdi>{f.role}</bdi></span> : undefined} />;
+}
+
+/** An episode (the Shows experience's own tile, on the media tile's anatomy): its 16:9 still, "Episode 3 · 5:00", the
+ *  title, two reserved lines of synopsis, the stage meter and its words. One link. */
 export function EpisodeTile({ e, priority }: { e: EpisodeCardData; priority?: boolean }) {
   return (
-    <Link className="show-tile ep-tile" href={e.href} title={e.title}>
+    <Link className="ep-tile" href={e.href} title={e.title}>
       <Frame asset={e.picture?.asset} src={e.picture?.src} ratio="16/9" fit="cover" alt="" art={artVars(e.picture?.asset)} title={e.title} titleLang={e.lang} titleState="notMade" number={e.number} decorative priority={priority} />
-      <span className="show-tile-words">
-        <span className="t-label show-tile-kind"><span className="num">Episode {e.number}</span>{e.runtime && <span className="count"> · {e.runtime}</span>}</span>
+      <span className="ep-tile-words">
+        <span className="t-label"><span className="num">Episode {e.number}</span>{e.runtime && <span className="count"> · {e.runtime}</span>}</span>
         <span className="t-card name"><bdi lang={e.lang}>{e.title}</bdi></span>
-        <span className="t-body show-tile-syn" dir="auto">{e.synopsis}</span>
-        <span className="show-tile-stage"><StageMeter segments={e.stage.segments} /><StatusWord tone={e.stage.tone}>{e.stage.words}</StatusWord></span>
-      </span>
-    </Link>
-  );
-}
-
-/** The last tile of a grid: start a new one, in the grid's own 16:9 shape (Home's start card). */
-export function StartTile({ href, title, line, scroll = false }: { href: string; title: string; line: string; scroll?: boolean }) {
-  return (
-    <Link className="home-start show-start" href={href} scroll={scroll}>
-      <span className="home-hero-corners" aria-hidden />
-      <span className="home-figure-plus" aria-hidden><IconPlus /></span>
-      <span className="home-start-words"><span className="home-tool-title">{title}</span><span className="home-tool-line">{line}</span></span>
-    </Link>
-  );
-}
-
-/** A character: the whole canonical figure on its own field, the name on the start edge, the role under it. */
-export function FigureCard({ f }: { f: FigureData }) {
-  return (
-    <Link className="home-figure" href={f.href} title={f.name}>
-      <Frame asset={f.picture?.asset} src={f.picture?.src} ratio="928/1664" fit="contain" alt="" art={artVars(f.picture?.asset)} title={f.name} titleLang={f.lang} titleState="noImage" decorative className="home-figure-frame" />
-      <span className="t-card name home-figure-name"><bdi lang={f.lang}>{f.name}</bdi></span>
-      <span className="t-meta name show-figure-role"><bdi>{f.role || ' '}</bdi></span>
-    </Link>
-  );
-}
-
-/** A location: its 16:9 plate, the name, interior or exterior. */
-export function PlateTile({ p }: { p: PlateData }) {
-  return (
-    <Link className="show-tile" href={p.href} title={p.name}>
-      <Frame asset={p.picture?.asset} src={p.picture?.src} ratio="16/9" fit="cover" alt="" art={artVars(p.picture?.asset)} title={p.name} titleLang={p.lang} titleState="noImage" decorative />
-      <span className="show-tile-words">
-        <span className="t-card name"><bdi lang={p.lang}>{p.name}</bdi></span>
-        <span className="t-meta show-tile-meta">{p.meta}</span>
+        <span className="t-body ep-tile-syn" dir="auto">{e.synopsis}</span>
+        <span className="ep-tile-stage"><StageMeter segments={e.stage.segments} /><StatusWord tone={e.stage.tone}>{e.stage.words}</StatusWord></span>
       </span>
     </Link>
   );

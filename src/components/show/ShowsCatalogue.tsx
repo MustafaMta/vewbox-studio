@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
 import { ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { MediaTileSkeleton } from '@/components/media';
 import { IconSearch } from '@/components/ui/icons';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
 import { NewShowButton, ShowTile } from './parts';
@@ -77,7 +78,7 @@ function EmptyShows() {
   return (
     <section className="shows-empty" aria-labelledby="shows-empty-h">
       <div className="shows-empty-start">
-        <span className="home-hero-corners" aria-hidden />
+        <span className="corners" aria-hidden />
         <div className="shows-empty-words">
           <ShapeGlyph shape="show" size={24} />
           <h2 id="shows-empty-h" className="t-section">Your first show</h2>
@@ -110,16 +111,7 @@ export function ShowsSkeleton() {
         <div className="shows-page-acts"><Skeleton.Block width={144} height={40} radius="pill" /></div>
       </div>
       <div className="shows-grid">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="show-tile">
-            <Skeleton.Media ratio="16/9" />
-            <span className="show-tile-words">
-              <span className="t-card"><Skeleton.Line width="60%" /></span>
-              <span className="t-meta"><Skeleton.Line width="40%" /></span>
-              <span className="t-meta"><Skeleton.Line width="30%" /></span>
-            </span>
-          </div>
-        ))}
+        {Array.from({ length: 6 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}
       </div>
     </SkeletonRegion>
   );

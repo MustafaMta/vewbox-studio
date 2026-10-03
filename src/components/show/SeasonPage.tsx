@@ -11,7 +11,8 @@ import { MenuButton, MenuItem, MenuSeparator, useConfirm } from '@/components/ui
 import { IconChevronLeft, IconDelete, IconEdit, IconPlus } from '@/components/ui/icons';
 import { episodeCard, episodesOfSeason, nameLang, plural, seasonsOfShow, timeOf, waitingProductions } from './model';
 import { EditSeasonDialog, NewEpisodeDialog } from './dialogs';
-import { EpisodeTile, StartTile } from './parts';
+import { StartCard } from '@/components/media';
+import { EpisodeTile } from './parts';
 import { useQueryParam } from './url';
 
 /** ONE SEASON — the season's title page: the other seasons as chips, the season's name and arc, its episodes as 16:9
@@ -66,7 +67,7 @@ export function SeasonPage({ show, season }: { show: Show; season: Season }) {
       <section className="shows-section shows-section-first" aria-label={`Season ${season.number} episodes`}>
         <ul className="shows-grid" role="list">
           {cards.map((e, i) => <li key={e.id}><EpisodeTile e={e} priority={i < 3} /></li>)}
-          <li><StartTile href={hrefWith('episode')} title="New episode" line={`Episode ${cards.length + 1} of Season ${season.number}`} /></li>
+          <li><StartCard onClick={() => setDialog('episode')} title="New episode" line={`Episode ${cards.length + 1} of Season ${season.number}`} /></li>
         </ul>
       </section>
       <NewEpisodeDialog show={show} seasonId={season.id} open={dialog === 'episode'} onClose={() => setDialog(null)} />

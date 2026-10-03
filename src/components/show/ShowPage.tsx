@@ -8,13 +8,13 @@ import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { useShell } from '@/components/shell/context';
 import { useToast } from '@/components/ui/toast';
-import { Frame } from '@/components/media/Frame';
-import { MenuButton, MenuItem, MenuSeparator, Segmented, Skeleton, SkeletonRegion, useConfirm } from '@/components/ui/kit';
+import { FigureCardSkeleton, Frame, SectionHeadSkeleton, StartCard } from '@/components/media';
+import { MenuButton, MenuItem, MenuSeparator, PanelCard, SectionHead, Segmented, Skeleton, SkeletonRegion, useConfirm } from '@/components/ui/kit';
 import { IconDelete, IconEdit, IconPlay, IconPlus, IconStory } from '@/components/ui/icons';
 import { BIBLE_PARTS, ASPECT_LABEL, LANGUAGE_LABEL, STYLE_LABEL, castOfShow, episodeCard, episodesOfSeason, minutes, nameLang, showPicture, showPoster, showView, timeOf, waitingProductions, worldOfShow } from './model';
 import { Backdrop, BackdropSkeleton, Caption } from './Backdrop';
 import { BibleDialog, CanonDialog, EditShowDialog, NewEpisodeDialog, NewSeasonDialog } from './dialogs';
-import { EmptyLine, EpisodeTile, FigureCard, HeadLink, PlateTile, SectionHead, StartTile } from './parts';
+import { CastCard, EmptyLine, EpisodeTile, HeadLink, PlateTile } from './parts';
 import { useQueryParam } from './url';
 import { dialectLabel } from '@/lib/format';
 
@@ -84,8 +84,8 @@ export function ShowPage({ show }: { show: Show }) {
       </section>
 
       <section className="shows-section" id="episodes" aria-labelledby="show-episodes-h">
-        <SectionHead id="show-episodes-h" title="Episodes" count={view.episodes.length}
-          end={season && <Link className="btn btn-secondary btn-sm" href={hrefWith(season.id, { new: 'season' })} scroll={false}><IconPlus aria-hidden />New season</Link>} />
+        <SectionHead id="show-episodes-h" title="Episodes" count={view.episodes.length || null}
+          action={season && <Link className="btn btn-secondary btn-sm" href={hrefWith(season.id, { new: 'season' })} scroll={false}><IconPlus aria-hidden />New season</Link>} />
         {season && (
           <div className="show-seasons">
             {view.seasons.length > 1
@@ -98,22 +98,25 @@ export function ShowPage({ show }: { show: Show }) {
         <ul className="shows-grid" role="list" aria-label={season ? `Season ${season.number} episodes` : 'Episodes'}>
           {episodes.map((e, i) => <li key={e.id}><EpisodeTile e={e} priority={i < 3} /></li>)}
           <li>{season
-            ? <StartTile href={hrefWith(season.id, { new: 'episode' })} title="New episode" line={`Episode ${episodes.length + 1} of Season ${season.number}`} />
-            : <StartTile href={hrefWith(null, { new: 'season' })} title="Season 1" line="Start the first season" />}</li>
+            ? <StartCard onClick={() => setDialog('episode', { season: season.id })} title="New episode" line={`Episode ${episodes.length + 1} of Season ${season.number}`} />
+            : <StartCard onClick={() => setDialog('season')} title="Season 1" line="Start the first season" />}</li>
         </ul>
       </section>
 
       <section className="shows-section" id="cast" aria-labelledby="show-cast-h">
-        <SectionHead id="show-cast-h" title="Cast" count={cast.length} description="Every episode uses their canonical look and voice."
-          end={<HeadLink href={hrefWith(seasonParam, { edit: 'cast' })} scroll={false}>{cast.length ? 'Change the cast' : 'Choose the cast'}</HeadLink>} />
-        {cast.length === 0 ? <EmptyLine action={<Link className="btn btn-secondary btn-sm" href={hrefWith(seasonParam, { edit: 'cast' })} scroll={false}>Choose the cast</Link>}>No characters belong to this show yet.</EmptyLine> : (
-          <ul className="show-figures" role="list">{cast.map((f) => <li key={f.id}><FigureCard f={f} /></li>)}</ul>
-        )}
+        {cast.length === 0 ? <>
+          <SectionHead id="show-cast-h" title="Cast" description="Every episode uses their canonical look and voice." />
+          <EmptyLine action={<Link className="btn btn-secondary btn-sm" href={hrefWith(seasonParam, { edit: 'cast' })} scroll={false}>Choose the cast</Link>}>No characters belong to this show yet.</EmptyLine>
+        </> : <>
+          <SectionHead id="show-cast-h" title="Cast" count={cast.length} description="Every episode uses their canonical look and voice."
+            action={<HeadLink href={hrefWith(seasonParam, { edit: 'cast' })}>Change the cast</HeadLink>} />
+          <ul className="show-figures" role="list">{cast.map((f) => <li key={f.id}><CastCard f={f} /></li>)}</ul>
+        </>}
       </section>
 
       <section className="shows-section" id="world" aria-labelledby="show-world-h">
-        <SectionHead id="show-world-h" title="World" count={world.length} description="The places every episode can film in."
-          end={<HeadLink href={hrefWith(seasonParam, { edit: 'world' })} scroll={false}>{world.length ? 'Change the world' : 'Choose places'}</HeadLink>} />
+        <SectionHead id="show-world-h" title="World" count={world.length || null} description="The places every episode can film in."
+          action={world.length > 0 && <HeadLink href={hrefWith(seasonParam, { edit: 'world' })}>Change the world</HeadLink>} />
         {world.length === 0 ? <EmptyLine action={<Link className="btn btn-secondary btn-sm" href={hrefWith(seasonParam, { edit: 'world' })} scroll={false}>Choose places</Link>}>No locations belong to this show yet.</EmptyLine> : (
           <ul className="show-plates" role="list">{world.map((p) => <li key={p.id}><PlateTile p={p} /></li>)}</ul>
         )}
@@ -121,7 +124,7 @@ export function ShowPage({ show }: { show: Show }) {
 
       <section className="shows-section" id="bible" aria-labelledby="show-bible-h">
         <SectionHead id="show-bible-h" title="Show bible" description="The facts every episode must respect."
-          end={<HeadLink href={hrefWith(seasonParam, { edit: 'bible' })} scroll={false}>Edit the bible</HeadLink>} />
+          action={<HeadLink href={hrefWith(seasonParam, { edit: 'bible' })}>Edit the bible</HeadLink>} />
         <div className="show-bible">
           {BIBLE_PARTS.map((p) => {
             const items = show.bible?.[p.key] ?? [];
@@ -137,17 +140,15 @@ export function ShowPage({ show }: { show: Show }) {
       </section>
 
       <section className="shows-section" aria-labelledby="show-details-h">
-        <SectionHead id="show-details-h" title="Details" end={<HeadLink href={hrefWith(seasonParam, { edit: 'details' })} scroll={false}>Edit</HeadLink>} />
-        <dl className="card show-details">
-          {[
-            ['Style', STYLE_LABEL[show.style] ?? show.style],
-            ['Language', `${LANGUAGE_LABEL[show.language] ?? show.language}${show.language === 'AR' && show.dialect ? ` · ${dialectLabel(show.dialect)}` : ''}`],
-            ['Picture shape', ASPECT_LABEL[show.aspect] ?? show.aspect],
-            ['Episode length', view.episodes.length ? `About ${minutes(Math.round(view.episodes.reduce((a, p) => a + p.targetSeconds, 0) / view.episodes.length))}` : 'Set per episode'],
-            ['Art direction', show.bible?.styleNotes || 'Not written yet'],
-            ['Created', dateWords(show.createdAt) ?? '—'],
-          ].map(([k, v]) => <div key={k}><dt className="t-label">{k}</dt><dd className="t-body show-details-v" dir="auto">{v}</dd></div>)}
-        </dl>
+        <SectionHead id="show-details-h" title="Details" action={<HeadLink href={hrefWith(seasonParam, { edit: 'details' })}>Edit</HeadLink>} />
+        <PanelCard columns={3} labelledBy="show-details-h" facts={[
+          { label: 'Style', value: STYLE_LABEL[show.style] ?? show.style },
+          { label: 'Language', value: LANGUAGE_LABEL[show.language] ?? show.language, sub: show.language === 'AR' && show.dialect ? dialectLabel(show.dialect) : undefined },
+          { label: 'Picture shape', value: ASPECT_LABEL[show.aspect] ?? show.aspect },
+          { label: 'Episode length', value: view.episodes.length ? `About ${minutes(Math.round(view.episodes.reduce((a, p) => a + p.targetSeconds, 0) / view.episodes.length))}` : 'Set per episode' },
+          { label: 'Art direction', value: <span dir="auto">{show.bible?.styleNotes || 'Not written yet'}</span> },
+          { label: 'Created', value: dateWords(show.createdAt) ?? '—' },
+        ]} />
       </section>
 
       <NewSeasonDialog show={show} open={dialog === 'season'} onClose={() => setDialog(null)} />
@@ -167,13 +168,13 @@ export function ShowSkeleton() {
     <SkeletonRegion label="Opening the show…" className="shows show-page shows-skeleton">
       <BackdropSkeleton />
       <div className="shows-section">
-        <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width="7rem" /></div></div></div>
-        <div className="show-seasons"><Skeleton.Block width={200} height={36} radius="md" /></div>
+        <SectionHeadSkeleton titleWidth="7rem" />
+        <div className="show-seasons"><Skeleton.Block width={200} height={36} radius="sm" /></div>
         <EpisodeGridSkeleton />
       </div>
       <div className="shows-section">
-        <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width="4rem" /></div><div className="t-body home-shelf-desc"><Skeleton.Line width="18rem" /></div></div></div>
-        <div className="show-figures">{Array.from({ length: 6 }, (_, i) => <div key={i} className="home-figure"><Skeleton.Media ratio="928/1664" className="home-figure-frame" /><span className="t-card home-figure-name"><Skeleton.Line width="60%" /></span><span className="t-meta show-figure-role"><Skeleton.Line width="40%" /></span></div>)}</div>
+        <SectionHeadSkeleton titleWidth="4rem" description />
+        <div className="show-figures">{Array.from({ length: 6 }, (_, i) => <div key={i}><FigureCardSkeleton /></div>)}</div>
       </div>
     </SkeletonRegion>
   );
@@ -183,13 +184,13 @@ export function EpisodeGridSkeleton({ n = 3 }: { n?: number }) {
   return (
     <div className="shows-grid">
       {Array.from({ length: n }, (_, i) => (
-        <div key={i} className="show-tile ep-tile">
+        <div key={i} className="ep-tile">
           <Skeleton.Media ratio="16/9" />
-          <span className="show-tile-words">
+          <span className="ep-tile-words">
             <span className="t-label"><Skeleton.Line width="30%" /></span>
             <span className="t-card"><Skeleton.Line width="60%" /></span>
-            <span className="t-body show-tile-syn"><Skeleton.Line width="92%" /><Skeleton.Line width="70%" /></span>
-            <span className="t-meta show-tile-stage"><Skeleton.Line width="40%" /></span>
+            <span className="t-body ep-tile-syn"><Skeleton.Line width="92%" /> <Skeleton.Line width="70%" /></span>
+            <span className="t-meta ep-tile-stage"><Skeleton.Line width="40%" /></span>
           </span>
         </div>
       ))}

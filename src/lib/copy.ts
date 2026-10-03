@@ -62,8 +62,6 @@ const COPY = {
   'btn.close': 'Close',
   'btn.open': 'Open',
   'btn.view': 'View',
-  'btn.addSeason': 'Add Season',
-  'btn.addEpisode': 'Add Episode',
   'btn.addShot': 'Add Shot',
   'btn.addScene': 'Add Scene',
   'btn.addBeat': 'Add beat',
@@ -148,7 +146,6 @@ const COPY = {
   'label.male': 'Male',
 
   // libraries
-  'lib.addShow': 'Add Show',
   'lib.addShort': 'Add Short',
   'lib.addMusicVideo': 'Add Music Video',
   'lib.addCharacter': 'Add Character',
@@ -175,7 +172,6 @@ const COPY = {
   'toast.emptied': 'The studio is empty.',
 
   // empty states
-  'empty.shows': 'No shows yet.',
   'empty.shows.hint': 'A show holds seasons and episodes that share a cast and a world.',
   'empty.shorts': 'No shorts yet.',
   'empty.shorts.hint': 'A short is one film, from idea to final cut.',
@@ -184,7 +180,6 @@ const COPY = {
   'empty.characters': 'No characters yet.',
   'empty.locations': 'No locations yet.',
   'empty.assets': 'The library is empty.',
-  'empty.seasons': 'No seasons yet.',
   'empty.shots': 'No shots yet.',
   'empty.shots.hint': 'Add a scene, then plan its shots.',
   'empty.scenes': 'No scenes yet.',
@@ -215,10 +210,7 @@ const COPY = {
   'tab.views': 'Views',
   'tab.lighting': 'Lighting & Variations',
   'tab.props': 'Props',
-  'meta.seasons': 'seasons',
-  'meta.season': 'season',
   'meta.episodes': 'episodes',
-  'meta.episode': 'episode',
   'meta.artist': 'Artist',
   'meta.noArtist': 'No performer yet',
   // home
@@ -229,9 +221,7 @@ const COPY = {
   'misc.pause': 'Pause',
   'misc.noArtwork': 'No artwork yet',
   'misc.details': 'Details',
-  'meta.progress': 'Progress',
   'meta.views': 'views',
-  'lib.castBy': 'No cast yet',
   'lib.searchCharacters': 'Search by name or role',
   'btn.addSection': 'Add section',
   'lib.sort': 'Sort',
@@ -260,7 +250,6 @@ const COPY = {
   'tab.episodes': 'Episodes',
   'tab.showCast': 'Cast',
   'lib.filterLanguage': 'Language',
-  'lib.filterGenre': 'Genre',
   'lib.sortName': 'Name',
   'lib.sortMostUsed': 'Most used',
   // ---- kit -----------------------------------------------------------------------------------------------------------
@@ -881,9 +870,7 @@ const COPY = {
   'app.name': 'Vewbox Studio',
 
   // home
-  'home.continue': 'Continue working',
   // the restored shell
-  'home.inProduction': 'In production',
 
   // the six areas and the studio organisation
   'nav.company': 'Studio Company',
@@ -1023,15 +1010,7 @@ const COPY = {
   'wizard.singer': 'Who sings',
   'wizard.createdSong': 'The song is saved with the project. Generate the recording from the Story tab once the project exists.',
   // show workspace
-  'show.selectSeason': 'Season',
-  'show.firstSeason': 'This show has no seasons yet. Add the first season, then its first episode.',
-  'show.noEpisodes': 'No episodes in this season yet.',
-  'show.settings.hint': 'The show’s details. Episodes inherit the look, language and aspect unless they set their own.',
-  'show.canonHint': 'Characters here belong to the show and appear in every episode’s cast.',
-  'show.worldHint': 'Locations here belong to the show and are offered to every episode.',
   'show.backTo': 'Back to',
-  'show.deleteShow': 'Delete show',
-  'show.delete.hint': 'This removes the show, its seasons and every episode. Characters and locations stay in the library.',
   // creation steps
   'step.song': 'Song',
   'step.look': 'Look & format',
@@ -1042,11 +1021,7 @@ const COPY = {
   'wizard.reviewHint': 'Everything below is saved with the project and can be changed later.',
   'wizard.concept': 'Treatment',
   'new.lead': 'Choose what to make. Each opens a short wizard: the idea, the look and format, the people and places, then one button.',
-  'show.overallProgress': 'Overall progress',
-  'show.styleFormat': 'Style & format',
   'show.world': 'World',
-  'show.episodeLength': 'Episode length',
-  'show.noWorld': 'No locations chosen yet.',
   // Auto Idea
   'auto.title': 'Auto Idea',
   'auto.lead': 'The studio proposes the concept, the title and premise, the cast and places, and the structure. You review and edit all of it before anything is created.',
@@ -1090,16 +1065,6 @@ const COPY = {
   'step.brief': 'Brief',
   'wizard.needSongWords': 'Describe the song or write some lyrics — or choose “Add it later”.',
   'wizard.needSongFile': 'Upload a track — or choose “Add it later”.',
-  'bible.title': 'World Bible',
-  'bible.hint': 'The durable facts of this world. The story engine reads them for every episode; the cast (locked looks, voices) and the places (plates, layouts) are linked from the library.',
-  'bible.rules': 'Rules of the world',
-  'bible.rules.hint': 'One per line: what is always true here (the rooftop faces the river; nobody owns a car).',
-  'bible.relationships': 'Relationships',
-  'bible.relationships.hint': 'One per line: who is what to whom.',
-  'bible.timeline': 'What has happened',
-  'bible.timeline.hint': 'One per line, in order: the events later episodes must respect.',
-  'bible.style': 'Art direction',
-  'bible.style.hint': 'Light, palette, recurring motifs.',
   'auto.generatedTitle': 'Proposal from the story engine',
   'auto.generatedBody': 'Written for you now; everything is editable before anything is created.',
   'auto.writing': 'Writing a proposal…',
@@ -1114,11 +1079,6 @@ const COPY = {
   'auto.episodeContext': 'The agents continue from the last episode’s ending and the show’s bible; the show’s language and the cast’s voices never change.',
   'auto.nextEpisodes': 'The season’s episodes',
   'season.manualHint': 'A title or a line about the season is enough; the agents develop it from the show’s continuity when its first episode is created.',
-  'bible.unresolved': 'Open storylines',
-  'bible.unresolved.hint': 'What the finished episodes left open; the next episode or season picks them up. The Continuity Writer adds to this after every cut.',
-  'show.allEpisodes': 'Every episode of the show, newest season first.',
-  'show.preview': 'Preview',
-  'show.preview.hint': 'The latest finished cut of an episode.',
   'new.character.hint': 'A person the studio keeps: one look and one voice across every production.',
   'new.location.hint': 'A place with its plates and views, reused across productions.',
   // ---- film ----------------------------------------------------------------------------------------------------------

@@ -107,7 +107,7 @@ export function nextAction(p: Production): { words: string; href: string } {
 // ------------------------------------------------------------------------------------------------ catalogue
 
 export interface ShowCardData {
-  id: string; href: string; title: string; lang?: 'ar'; meta: string; status: { words: string; tone: 'done' | 'waiting' | 'current' | 'idle' };
+  id: string; href: string; title: string; lang?: 'ar'; meta: string[]; status: { words: string; tone: 'done' | 'waiting' | 'current' | 'idle' };
   picture?: Pic; updated: number; genre: string; finished: boolean;
 }
 
@@ -122,8 +122,8 @@ export function showCards(s: S, waiting: ReadonlySet<string> = new Set()): ShowC
     const status: ShowCardData['status'] = eps.length === 0 ? { words: 'No episodes yet', tone: 'idle' }
       : finished ? { words: 'Finished', tone: 'done' }
         : eps.some((p) => waiting.has(p.id)) ? { words: 'Waiting for you', tone: 'waiting' }
-          : { words: `Episode ${next!.episodeNumber ?? 1} · ${stageWords(next!.stage)}`, tone: 'current' };
-    const meta = [seasons ? plural(seasons, 'season') : null, eps.length ? plural(eps.length, 'episode') : null, sh.genre.trim() || null].filter(Boolean).join(' · ');
+          : { words: stageWords(next!.stage), tone: 'current' };
+    const meta = [seasons ? plural(seasons, 'season') : null, eps.length ? plural(eps.length, 'episode') : null, sh.genre.trim() || null].filter((x): x is string => Boolean(x));
     const latest = Math.max(timeOf(sh.updatedAt), ...eps.map((p) => timeOf(p.updatedAt)));
     return { id: sh.id, href: `/shows/${encodeURIComponent(sh.id)}`, title: sh.title, lang: nameLang(sh.title), meta, status, picture: showPicture(s, sh), updated: latest, genre: sh.genre.trim(), finished };
   });
