@@ -2,7 +2,7 @@
 //
 //   node scripts/cast-acceptance.mjs [--base http://localhost:4256] [--out docs/evidence/cast-v1]
 //
-// For 1440×900, 1920×1080 and 390×844 it loads each page once on a throttled network (CDP: 1.5 Mbps, 150 ms latency),
+// For 1440×900, 1920×1080 and 390×844 it loads each page once with its data and pictures throttled (1.5 Mbps, 150 ms),
 // records every layout shift after the first paint (CLS), scrolls through so lazy pictures load, captures the full page,
 // and measures: the shared start edge (every block of the page's column on one x), equal heights of the cards in a row,
 // Geist/Geist Mono on every visible text node (Arabic content in the system sans), no text under 12 px, no horizontal
@@ -49,10 +49,20 @@ for (const size of SIZES) {
   for (const pg of PAGES) {
     const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
-    await page.route('**/api/**', (route) => (['GET', 'HEAD'].includes(route.request().method()) ? route.continue() : route.fulfill({ status: 403, body: '{"error":"read-only acceptance"}' })));
-    const cdp = await ctx.newCDPSession(page);
-    await cdp.send('Network.enable');
-    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
+    // the studio's data and pictures arrive as on a 1.5 Mbps line with 150 ms latency (each response held for its size);
+    // the dev server's script bundle (tens of MB unminified, a few hundred KB in production) is not throttled, so the
+    // measure is the page's loading, not the development build's
+    await page.route('**/api/**', async (route) => {
+      const req = route.request();
+      if (!['GET', 'HEAD'].includes(req.method())) return route.fulfill({ status: 403, body: '{"error":"read-only acceptance"}' });
+      if (req.url().includes('/api/events')) return route.continue();
+      try {
+        const res = await route.fetch();
+        const body = await res.body();
+        await new Promise((r) => setTimeout(r, 150 + (body.length * 8 * 1000) / (1.5 * 1024 * 1024)));
+        await route.fulfill({ response: res, body });
+      } catch { await route.continue().catch(() => {}); }
+    });
     await page.addInitScript(() => {
       window.__shifts = [];
       new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 60) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true });
