@@ -72,8 +72,6 @@ function heard(x: Float32Array, from: number, to: number, candidates: number[]):
   const l = candidates.map((hz) => ({ hz, a: level(x, hz, from, to) })).sort((p, q) => q.a - p.a);
   return { hz: l[0].hz, margin: l[0].a / Math.max(1e-9, l[1].a) };
 }
-const lum = (n: number) => 10 + 1.5 * n;
-
 beforeAll(() => {
   // a film: A (5 s), B a continuation (158 frames, its first 22 repeat A — 1320 Hz under them, 660 Hz after), C a cut
   // that speaks (880 Hz) with a recorded line (1000 Hz) for its failed speech check
