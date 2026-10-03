@@ -22,7 +22,7 @@ import { VoicePlayer } from './VoicePlayer';
 import { PACE_WORD, PITCH_WORD, VoiceTraitsDialog } from './EditDialogs';
 import { checkAudioDuration, checkAudioFile, measureAudio, type AudioVerdict } from './create/preflight';
 import { ConsentChoice } from './ConsentChoice';
-import { CastSection } from './parts';
+import { CardHead, CastSection } from './parts';
 
 /** THE ONE VOICE (docs/CONTRACTS-VOICE-IDENTITY-V2.md; v5 §8.8) — in two places on the profile:
  *
@@ -125,16 +125,13 @@ export function VoiceSection({ c }: { c: Character }) {
         {canChange && <CreateVoice c={c} />}
         {takes.length > 0 && (
           <div>
-            <h3 className="t-title char-card-title">Lines spoken <span className="pc-shead-count">{takes.length}</span></h3>
+            <CardHead title="Lines spoken" count={takes.length} />
             <p className="t-body char-card-line">Lines spoken to try the voice. Listen only: a voice is never built from them.</p>
             <ul className="vrow-list char-voice">{takes.map((sm) => <li key={sm.id}><VoicePlayer track={trackFor(sm)} name={sm.text ? `“${sm.text}”` : sm.label} detail={sm.source === 'SAMPLE' ? 'Sample' : 'Generated line'} unavailableText={sm.source === 'GENERATED' && !sm.assetId ? 'Not spoken yet: build the voice to hear it' : 'Recording unavailable'} /></li>)}</ul>
           </div>
         )}
         <div className="card char-card">
-          <div className="pc-shead">
-            <div className="pc-shead-title"><h3 className="t-title">How it should sound</h3></div>
-            <Button size="sm" variant="secondary" icon={<IconEdit />} disabled={vlock.locked} aria-describedby={vlock.locked ? 'voice-lock' : undefined} onClick={() => setTraits(true)}>Edit</Button>
-          </div>
+          <CardHead title="How it should sound" action={<Button size="sm" variant="secondary" icon={<IconEdit />} disabled={vlock.locked} aria-describedby={vlock.locked ? 'voice-lock' : undefined} onClick={() => setTraits(true)}>Edit</Button>} />
           <dl className="char-facts" data-flush>
             <div><dt className="t-label">Pitch</dt><dd>{PITCH_WORD[c.voice.pitch]}</dd></div>
             <div><dt className="t-label">Pace</dt><dd>{PACE_WORD[c.voice.pace]}</dd></div>

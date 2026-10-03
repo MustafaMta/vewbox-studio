@@ -10,7 +10,7 @@ import { IconGenerate } from '@/components/ui/icons';
 import { Frame } from '@/components/media/Frame';
 import { materialByTier, secondaryJobs } from './identity';
 import { SECONDARY_KINDS, secondaryPayload, type SecondaryKind } from './contract';
-import { CastSection } from './parts';
+import { CardHead, CastSection } from './parts';
 
 const GROUP: Array<{ key: 'portrait' | 'expressions' | 'outfits' | 'earlier'; title: string; kind?: SecondaryKind; draw?: string }> = [
   { key: 'portrait', title: 'Close-up portrait' },
@@ -40,10 +40,7 @@ export function SecondaryMaterial({ c, locked }: { c: Character; locked: boolean
             if (items.length === 0 && live.length === 0 && !(canRequest && g.kind)) return null;
             return (
               <div key={g.key}>
-                <div className="pc-shead">
-                  <div className="pc-shead-title"><h3 className="t-title">{g.title}{items.length > 0 && <span className="pc-shead-count"> {items.length}</span>}</h3></div>
-                  {live.length > 0 ? <StateWord tone="running">{live[0].job.progress?.message || 'Drawing'}</StateWord> : canRequest && g.kind && g.draw && <DrawSecondary c={c} kind={g.kind} label={g.draw} />}
-                </div>
+                <CardHead title={g.title} count={items.length || undefined} action={live.length > 0 ? <StateWord tone="running">{live[0].job.progress?.message || 'Drawing'}</StateWord> : canRequest && g.kind && g.draw ? <DrawSecondary c={c} kind={g.kind} label={g.draw} /> : undefined} />
                 {items.length > 0
                   ? <ul className="char-secondary" role="list">{items.map((a) => <li key={a.id}><Frame asset={a} ratio="1/1" fit="cover" alt={`${c.name}, ${g.title.toLowerCase()}`} art={artVars(a)} title={c.name} /></li>)}</ul>
                   : <p className="t-body char-card-line">None yet.</p>}

@@ -9,7 +9,8 @@ import { useShell } from '@/components/shell/context';
 import { Button, CatalogueBar, MenuButton, MenuLink, Skeleton, SkeletonRegion, useCatalogueParams, type Facet } from '@/components/ui/kit';
 import { IconChevronDown } from '@/components/ui/icons';
 import { identityStatus, voiceState } from './identity';
-import { CastSection, FigureCard, FigureCardSkeleton, PageHead, StartCard, figureOf, voiceTrackOf } from './parts';
+import { FigureCardSkeleton, StartCard } from '@/components/media';
+import { CastCard, CastSection, PageHead, figureOf, voiceTrackOf } from './parts';
 
 /** CHARACTERS — the casting directory (docs/DESIGN-SYSTEM-V5.md §8.7 on the v5.1 standard): one refined grid of the
  *  studio's cast, 5 across on desktop, 3 on a tablet, 2 on a phone. Each card is the ONE canonical front full-body
@@ -72,9 +73,9 @@ export function CastDirectory() {
       {all.length === 0 ? (
         <CastSection id="pc-first" title="Cast someone new" description="Three ways in. The studio drafts; you approve the figure.">
           <ul className="pc-calls" role="list">
-            <li><StartCard href="/characters/new?start=describe" shape="figure" title="Auto" line="Describe them in one line" /></li>
-            <li><StartCard href="/characters/new?start=sheet" shape="figure" title="Manual" line="Write a short brief" /></li>
-            <li><StartCard href="/characters/new?start=picture" shape="figure" title="From a picture" line="Upload a reference" /></li>
+            <li><StartCard href="/characters/new?start=describe" ratio="928/1664" title="Auto" line="Describe them in one line" /></li>
+            <li><StartCard href="/characters/new?start=sheet" ratio="928/1664" title="Manual" line="Write a short brief" /></li>
+            <li><StartCard href="/characters/new?start=picture" ratio="928/1664" title="From a picture" line="Upload a reference" /></li>
           </ul>
         </CastSection>
       ) : (
@@ -90,8 +91,8 @@ export function CastDirectory() {
             </div>
           ) : (
             <ul className="pc-grid" aria-label="The cast" role="list">
-              {shown.map((c, i) => <li key={c.id}><FigureCard c={c} asset={figureOf(state, c)} track={voiceTrackOf(state, c)} waiting={waiting.has(c.id)} priority={i < 10} /></li>)}
-              {!cat.q && <li><StartCard href="/characters/new" shape="figure" title="New character" line="Auto or manual" /></li>}
+              {shown.map((c, i) => <li key={c.id}><CastCard c={c} asset={figureOf(state, c)} track={voiceTrackOf(state, c)} waiting={waiting.has(c.id)} priority={i < 10} /></li>)}
+              {!cat.q && <li><StartCard href="/characters/new" ratio="928/1664" title="New character" line="Auto or manual" /></li>}
             </ul>
           )}
         </>

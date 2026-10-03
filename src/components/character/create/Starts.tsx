@@ -156,7 +156,7 @@ export function ManualStart({ value, onChange, onCreate, busy, drawDisabledReaso
           <Field label="Timbre" optional><Input value={value.timbre} onChange={(e) => set({ timbre: e.target.value })} placeholder="Gravelly, warm" maxLength={200} /></Field>
         </div>
       </details>
-      <Foot note={drawDisabledReason ?? 'Create keeps the brief; Create and draw also draws the figure.'} warn={Boolean(drawDisabledReason)} onCancel={onCancel}
+      <Foot note={drawDisabledReason ?? 'Drawing the figure takes about a minute.'} warn={Boolean(drawDisabledReason)} onCancel={onCancel}
         secondary={<Button variant="secondary" loading={busy} onClick={() => create(false)}>Create without drawing</Button>}
         primary={<Button type="submit" variant="primary" icon={<IconGenerate />} loading={busy} disabled={Boolean(drawDisabledReason)}>Create and draw</Button>} />
     </form>
@@ -250,7 +250,6 @@ export function FigurePreview({ name, role, header, sex, band, ageYears }: { nam
     <div className="pc-preview">
       <Frame ratio="928/1664" alt="" title={n || 'Unnamed'} titleLang={nameLang(n)} titleState="notDrawn" className="pc-preview-frame" decorative />
       <div className="pc-preview-words">
-        <span className="t-card pc-preview-name"><bdi lang={nameLang(n)}>{n || 'Unnamed'}</bdi></span>
         {role?.trim() && <span className="t-body pc-preview-note" dir="auto">{role.trim()}</span>}
         <span className="t-meta">{slate}</span>
       </div>

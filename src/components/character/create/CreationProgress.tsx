@@ -6,18 +6,16 @@ import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { T } from '@/lib/copy';
 import { Button, Status } from '@/components/ui/kit';
 import { JobProgress, RecoveryAction, useErrorCopy, type ProgressRow } from '@/components/ui/progress';
 import { IconEdit, IconOpen, IconRetry, IconVoice } from '@/components/ui/icons';
 import type { CreateStepName } from '../contract';
 import type { StepView } from './preflight';
-import type { Key } from '@/lib/copy';
 import { CharacterImage } from '../CharacterImage';
 import { ConsentChoice } from '../ConsentChoice';
 import { imageKindOf } from '../identity';
 
-const STEP_KEY: Record<CreateStepName, Key> = { design: 'cast.step.design', image: 'cast.step.image', voice: 'cast.step.voice' };
+const STEP: Record<CreateStepName, string> = { design: 'Writing the sheet', image: 'Drawing the figure', voice: 'Building the voice' };
 
 /** THE CREATION STEPPER — one row per real job of the CREATE_CHARACTER chain (design → image → voice), each with
  *  the worker's own phase and words; then the last word, which is the producer's: "awaiting your approval". A failed
@@ -34,7 +32,7 @@ export function CreationProgress({ parent, steps, characterId, referenceSrc, onC
   const active = !parent || isActiveStatus(parent.status) || steps.some((s) => s.state === 'current');
 
   const rows: ProgressRow[] = steps.map((s) => {
-    const label = T(STEP_KEY[s.step]);
+    const label = STEP[s.step];
     const stepText = s.progress?.step && s.progress.total ? ` · ${s.progress.step}/${s.progress.total}` : '';
     let detail: ReactNode = s.state === 'current' ? `${s.message ?? 'In progress'}${stepText}` : s.state === 'skipped' ? (s.step === 'voice' ? 'No voice yet — make one on the profile’s Voice tab.' : s.reason || 'skipped') : undefined;
     let action: ReactNode;

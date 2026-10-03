@@ -20,7 +20,8 @@ import { IdentityBlock } from './ImagePanel';
 import { VoiceSection, VoiceSummary } from './VoiceSection';
 import { SecondaryMaterial } from './SecondaryMaterial';
 import { DetailsDialog, LookDialog, STYLE_WORD, languageWords } from './EditDialogs';
-import { BackLink, CastSection, MediaCard, figureOf, nameLang, usable } from './parts';
+import { MediaCard, PosterCard } from '@/components/media';
+import { BackLink, CastSection, figureOf, nameLang, usable } from './parts';
 
 /** Old links named a tab or a section; the profile is one page, so they land on the matching section. */
 const LEGACY: Record<string, string> = { voice: 'voice', used: 'appears', usage: 'appears', productions: 'appears', appearance: 'figure', sides: 'figure', image: 'figure', profile: 'about', overview: 'about' };
@@ -142,16 +143,16 @@ function AppearsIn({ c }: { c: Character }) {
       {s.lock.reason === 'UNKNOWN' && <Notice tone="warn" title="History not on record">The video history of this character is not on record, so the figure and voice are kept as if filmed.</Notice>}
       {list.length + shows.length === 0 ? <p className="t-body pc-empty-line">{s.lock.reason === 'UNKNOWN' ? 'No video history on record.' : 'Not cast in a production yet.'}</p> : (
         <ul className="char-posters" role="list">
-          {shows.map((x) => <li key={x.id}><MediaCard href={`/shows/${x.id}`} asset={usableOr(assetById(state, x.posterAssetId ?? x.coverAssetId))} ratio="2/3" title={x.title} meta="Show" /></li>)}
+          {shows.map((x) => <li key={x.id}><PosterCard href={`/shows/${x.id}`} asset={usableOr(assetById(state, x.posterAssetId ?? x.coverAssetId))} title={x.title} meta="Show" /></li>)}
           {list.map(({ p, shots }) => (
-            <li key={p.id}><MediaCard href={productionHref(p)} asset={usableOr(posterOf(p, state.assets)?.asset)} ratio="2/3" title={p.title}
+            <li key={p.id}><PosterCard href={productionHref(p)} asset={usableOr(posterOf(p, state.assets)?.asset)} title={p.title}
               meta={`${kind(p)} · ${filmedIn.has(p.id) ? (shots.length === 1 ? 'in 1 shot' : `in ${shots.length} shots`) : 'cast, not filmed yet'}`} /></li>
           ))}
         </ul>
       )}
       {shotCount > 0 && (
         <>
-          <h3 className="t-title char-sub">Shots <span className="pc-shead-count">{shotCount}</span></h3>
+          <h3 className="t-title char-sub">Shots <span className="shead-count">{shotCount}</span></h3>
           <ul className="char-frames" role="list">
             {list.flatMap(({ p, shots }) => shots.map((sh) => (
               <li key={sh.id}><MediaCard href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={p.title} /></li>
