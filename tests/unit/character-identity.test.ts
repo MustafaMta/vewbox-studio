@@ -198,7 +198,8 @@ describe('the voice identity v2: origin, measured vs listened, design', () => {
   it('a design job’s result is read defensively; the description is written from the profile without a model', () => {
     expect(designResultOf({ result: { designId: 'd1', candidates: [{ index: 1, assetId: 'a1', cer: 0.05, duration: 9.2 }, { assetId: 'a2', passed: false }] } })).toEqual({ designId: 'd1', description: undefined, candidates: [{ index: 1, assetId: 'a1', seed: undefined, durationSeconds: 9.2, cer: 0.05, coverage: undefined, lufs: undefined, passed: undefined, reasons: undefined }, { index: 2, assetId: 'a2', seed: undefined, durationSeconds: undefined, cer: undefined, coverage: undefined, lufs: undefined, passed: false, reasons: undefined }] });
     expect(designResultOf({ result: { steps: [] } })).toBeNull();
-    expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English. Patient and wry.');
+    // personality text is never part of the description: it can name people, and the server refuses such a description
+    expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little, like Samir.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English.');
     expect(designedIraqiAllowed({ uiLanguage: 'en' })).toBe(false);
     expect(designedIraqiAllowed({ generation: { allowDesignedIraqi: true } })).toBe(true);
   });
