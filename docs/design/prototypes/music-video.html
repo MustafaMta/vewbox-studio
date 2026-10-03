@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frequencies · Music Videos · Vewbox Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wdth,wght@85..100,300..700&family=Markazi+Text:wght@400..700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="v5.css">
+<style>
+  /* MUSIC VIDEO — the song first: sleeve header with one play disc, lyrics straight after, then performers, the
+     sections, the videos as a separate 16:9 shelf, credits. No backdrop, no seasons, no poster wall. */
+  .wash { background: linear-gradient(180deg, oklch(0.25 0.045 62) 0, var(--page) 620px); }
+  .crumb { display: inline-flex; align-items: center; gap: 6px; padding-block: 28px 24px; font-size: 13px; color: var(--fg-muted); }
+  .shead-song { display: grid; gap: 32px; align-items: end; }
+  @media (min-width: 1024px) { .shead-song { grid-template-columns: 380px minmax(0, 1fr); gap: 48px; } }
+  .sleeve { aspect-ratio: 1; border-radius: var(--r-media); overflow: hidden; background: var(--media); box-shadow: 0 40px 80px -30px rgb(0 0 0 / 0.95); }
+  .sleeve img { inline-size: 100%; block-size: 100%; object-fit: cover; object-position: 82% 18%; transform: scale(1.0); }
+  .kindline { font-size: 14px; color: var(--carbon-11); margin-block-end: 6px; }
+  .shead-song h1 { margin-block: 4px 18px; }
+  .performers { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; color: var(--fg); }
+  .performers a { display: inline-flex; align-items: center; gap: 8px; }
+  .performers .face { --fs: 32px; }
+  .performers .face img { inline-size: 330%; inset-inline-start: -115%; inset-block-start: -14%; }
+  .song-slate { margin-block-start: 14px; }
+  .song-transport { display: flex; align-items: center; gap: 18px; margin-block-start: 28px; flex-wrap: wrap; }
+  .song-transport .transport { flex: 1; min-inline-size: 260px; }
+  .song-transport .seek { background: rgb(243 239 232 / 0.18); }
+
+  .lyr-wrap { display: grid; gap: 56px; margin-block-start: 72px; }
+  @media (min-width: 1280px) { .lyr-wrap { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 72px; } }
+  .lyrics { display: grid; gap: 4px; }
+  .lyrics .sec { font-size: 12.5px; color: var(--fg-faint); margin-block: 22px 6px; }
+  html[dir='rtl'] .lyrics .sec { font-size: 13px; }
+  .lyrics .sec:first-child { margin-block-start: 0; }
+  .ly { display: flex; align-items: center; gap: 14px; font: 400 26px/38px var(--font-title); letter-spacing: -0.01em; color: var(--fg-faint); }
+  .ly .face { --fs: 28px; flex: none; }
+  .ly .face img { inline-size: 330%; inset-inline-start: -115%; inset-block-start: -14%; }
+  .ly.past { color: var(--carbon-8); }
+  .ly.now { color: var(--fg); font-weight: 600; }
+  .ly:lang(ar) { font-family: var(--font-title-ar); font-weight: 500; font-size: 30px; line-height: 46px; letter-spacing: 0; }
+  .ly.now:lang(ar) { font-weight: 700; }
+  .ly.na { padding-inline-start: 42px; }
+
+  table.sections { inline-size: 100%; border-collapse: collapse; font-size: 14px; }
+  html[dir='rtl'] table.sections { font-size: 15px; }
+  .sections th { text-align: start; font-weight: 500; font-size: 12.5px; color: var(--fg-faint); padding-block: 0 10px; border-block-end: 1px solid var(--line); }
+  .sections td { padding-block: 12px; border-block-end: 1px solid var(--line-soft); color: var(--fg-body); vertical-align: middle; }
+  .sections td.n { inline-size: 36px; color: var(--fg-faint); font-family: var(--font-mono); font-size: 12.5px; }
+  .sections tr.now td { color: var(--fg); }
+  .sections tr.now td.n { color: var(--paper); }
+  .sections .who { display: inline-flex; align-items: center; gap: 8px; }
+  .sections .who .face { --fs: 22px; }
+  .sections .who .face img { inline-size: 330%; inset-inline-start: -115%; inset-block-start: -14%; }
+  .pips { display: inline-flex; gap: 2px; vertical-align: middle; margin-inline-end: 6px; }
+  .pips i { inline-size: 6px; block-size: 6px; border-radius: 1px; background: var(--line-strong); }
+  .pips i.d { background: var(--fg-muted); }
+  .sections td.t { text-align: end; font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-faint); direction: ltr; }
+  .totals { margin-block-start: 14px; font-size: 13px; color: var(--fg-faint); }
+
+  .perf { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 16px var(--gutter); }
+  @media (min-width: 640px) { .perf { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .perf .p { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: var(--r-md); background: var(--surface); }
+  .perf .face { --fs: 72px; }
+  .perf .face img { inline-size: 330%; inset-inline-start: -115%; inset-block-start: -14%; }
+  .perf .play { margin-inline-start: auto; }
+
+  .videos { --tile-w: 420px; }
+  .credits { display: grid; gap: 32px var(--gutter); grid-template-columns: 1fr; }
+  @media (min-width: 1024px) { .credits { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .credit dt { font-size: 13px; color: var(--fg-faint); margin-block-end: 6px; }
+  .credit dd { font: 500 24px/28px var(--font-title); letter-spacing: -0.014em; color: var(--fg); }
+  html[dir='rtl'] .credit dd { font-family: var(--font-title-ar); font-weight: 600; font-size: 25px; line-height: 36px; letter-spacing: 0; }
+  .credit .made { font: 400 13px/20px var(--font-ui); color: var(--fg-muted); margin-block-start: 4px; }
+  .rights { margin-block-start: 48px; font-size: 13px; color: var(--fg-faint); }
+
+  .nowbar .sl { inline-size: 48px; block-size: 48px; border-radius: var(--r-xs); overflow: hidden; flex: none; }
+  .nowbar .sl img { inline-size: 100%; block-size: 100%; object-fit: cover; object-position: 82% 18%; }
+  .nowbar .tt { min-inline-size: 0; }
+  .nowbar .tt b { display: block; font: 500 17px/20px var(--font-title); color: var(--fg); }
+  .nowbar .tt span { font-size: 12.5px; color: var(--fg-muted); }
+  .nowbar .transport { flex: 1; }
+  @media (max-width: 1023px) { .nowbar .transport .seek, .nowbar .transport .time, .nowbar .seg { display: none; } .nowbar .transport { flex: 0; margin-inline-start: auto; } }
+
+  @media (max-width: 639px) {
+    .wash { background: linear-gradient(180deg, oklch(0.25 0.045 62) 0, var(--page) 420px); }
+    .sleeve { max-inline-size: 320px; }
+    .ly { font-size: 21px; line-height: 30px; }
+    .ly:lang(ar) { font-size: 24px; line-height: 38px; }
+    .videos { --tile-w: 82%; }
+    .sections th.sh, .sections td.sh { display: none; }
+  }
+</style>
+</head>
+<body data-page="music" data-title-ar="Frequencies · الفيديوهات الموسيقية · استوديو فيوبوكس">
+<main id="main">
+  <div class="wash">
+    <div class="wrap">
+      <div class="annot" style="margin-block-start:16px" data-ar-html="<b>نموذج أولي · أغنية مؤقتة</b> — لا فيديوهات موسيقية في الاستوديو بعد. الأغنية وكلماتها وأقسامها مُختلَقة؛ الغلاف وإطارات الفيديو من مكتبة الاستوديو.">
+        <b>Prototype · placeholder song</b> — the studio has no music videos yet. The song, its lyrics and sections are invented; the sleeve and the video frames are the studio’s own pictures.
+      </div>
+      <a class="crumb" href="#"><i data-i="left" class="i-sm i-flip"></i><span data-ar="الفيديوهات الموسيقية">Music Videos</span></a>
+      <header class="shead-song">
+        <div class="sleeve"><img src="media/plate-workshop-master-b.jpg" alt="Sleeve: the portrait above Elias’s lamp" data-ar-alt="الغلاف: الصورة المعلّقة فوق مصباح إلياس"></div>
+        <div>
+          <div class="kindline" data-ar="فيديو موسيقي · أغنية منفردة">Music video · single</div>
+          <h1 class="t-marquee" lang="en">Frequencies</h1>
+          <div class="performers">
+            <a href="character.html"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span><span lang="en">Elias Moore</span></a>
+            <a href="character.html"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></a>
+            <span class="muted" data-ar="مع">featuring</span>
+            <a href="character.html"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><span lang="ar">أبو سلام</span></a>
+          </div>
+          <div class="slate slate-lg song-slate"><span class="ro ro-md">2026</span><span class="ro ro-md">3:42</span><span data-ar="8 أقسام">8 sections</span><span data-ar="فولك · بالاد">Folk ballad</span><span data-ar="الإنجليزية والعربية">English and Arabic</span><span class="state"><i class="dot"></i><span data-ar="اللوحة القصصية">Storyboard</span></span></div>
+          <div class="song-transport">
+            <button class="play play-lg" type="button" aria-label="Pause Frequencies" data-ar-label="أوقف الأغنية مؤقتًا"><i data-i="pause"></i></button>
+            <div class="seg" role="radiogroup" aria-label="Song or video" data-ar-label="الأغنية أو الفيديو"><button role="radio" aria-checked="true"><i data-i="wave" class="i-sm"></i><span data-ar="الأغنية">Song</span></button><button role="radio" aria-checked="false"><i data-i="film" class="i-sm"></i><span data-ar="الفيديو">Video</span></button></div>
+            <div class="transport" aria-label="Song position" data-ar-label="موضع الأغنية"><span class="time">1:12</span><div class="seek"><i style="inline-size:32%"></i><b style="inset-inline-start:32%"></b></div><span class="time">3:42</span></div>
+            <a class="btn btn-secondary" href="production.html"><span data-ar="تابع: اللوحة القصصية">Continue: Storyboard</span></a>
+            <button class="ibtn ibtn-solid" type="button" aria-label="More" data-ar-label="المزيد"><i data-i="more"></i></button>
+          </div>
+        </div>
+      </header>
+
+      <div class="lyr-wrap">
+        <section aria-labelledby="lyr-h">
+          <div class="shead"><h2 id="lyr-h" class="h2" data-ar="الكلمات">Lyrics</h2><span class="link" data-ar="متزامنة · انقر سطرًا للانتقال إليه">Synced · click a line to go there</span></div>
+          <div class="lyrics" role="listbox" aria-label="Lyrics" data-ar-label="الكلمات">
+            <div class="sec" data-ar="المقطع 1">Verse 1</div>
+            <div class="ly past" lang="en"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span>Every frequency remembers a name,</div>
+            <div class="ly past na" lang="en">every crackle is a door left open.</div>
+            <div class="sec" data-ar="اللازمة">Chorus</div>
+            <div class="ly now" lang="en" aria-current="true"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span>Turn the dial, turn the dial slow —</div>
+            <div class="ly na" lang="en">somewhere a ship is still calling home.</div>
+            <div class="sec" data-ar="الجسر">Bridge</div>
+            <div class="ly" lang="ar" dir="rtl"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span>يا بحر، رجّعلي الصوت</div>
+            <div class="ly na" lang="ar" dir="rtl">ولو مرّة، ولو من بعيد</div>
+          </div>
+        </section>
+        <section aria-labelledby="sec-h">
+          <div class="shead"><h2 id="sec-h" class="h2"><span data-ar="الأقسام">Sections</span><span class="count">8</span></h2></div>
+          <table class="sections">
+            <thead><tr><th>#</th><th data-ar="القسم">Section</th><th data-ar="المؤدي">Sung by</th><th class="sh" data-ar="اللقطات">Shots</th><th style="text-align:end" data-ar="الوقت">Time</th></tr></thead>
+            <tbody>
+              <tr><td class="n">1</td><td data-ar="المقدمة">Intro</td><td class="faint">—</td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i></span></td><td class="t">0:00</td></tr>
+              <tr><td class="n">2</td><td data-ar="المقطع 1">Verse 1</td><td><span class="who"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span><span lang="en">Elias</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i><i class="d"></i></span></td><td class="t">0:14</td></tr>
+              <tr class="now"><td class="n"><i data-i="wave" class="i-sm"></i></td><td data-ar="اللازمة">Chorus</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i></i><i></i></span></td><td class="t">0:58</td></tr>
+              <tr><td class="n">4</td><td data-ar="المقطع 2">Verse 2</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t">1:24</td></tr>
+              <tr><td class="n">5</td><td data-ar="اللازمة">Chorus</td><td data-ar="الاثنان">Both</td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t">2:02</td></tr>
+              <tr><td class="n">6</td><td data-ar="الجسر">Bridge</td><td><span class="who"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><span lang="ar">أبو سلام</span></span></td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t">2:28</td></tr>
+              <tr><td class="n">7</td><td data-ar="اللازمة">Chorus</td><td data-ar="الثلاثة">All three</td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t">2:58</td></tr>
+              <tr><td class="n">8</td><td data-ar="الخاتمة">Outro</td><td class="faint">—</td><td class="sh"><span class="pips"><i></i></span></td><td class="t">3:24</td></tr>
+            </tbody>
+          </table>
+          <div class="totals"><span data-ar="3:42 · 8 أقسام · 20 لقطة · الأغنية بالإصدار 2">3:42 · 8 sections · 20 shots · song version 2</span></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="section" aria-labelledby="perf-h" style="padding-block-start:80px">
+      <div class="shead"><h2 id="perf-h" class="h2"><span data-ar="المؤدّون">Performers</span><span class="count">3</span></h2></div>
+      <div class="perf">
+        <div class="p"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span><div><div class="t-card-sm" lang="en">Elias Moore</div><div class="small muted" data-ar="يغني قسمين من 8 · صوت مصمَّم">sings 2 of 8 sections · designed voice</div></div><button class="play play-sm play-art" type="button" aria-label="Hear Elias Moore’s voice"><i data-i="play"></i></button></div>
+        <div class="p"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><div><div class="t-card-sm" lang="en">Najm</div><div class="small muted" data-ar="يغني 4 أقسام من 8 · صوت مصمَّم">sings 4 of 8 sections · designed voice</div></div><button class="play play-sm play-art" type="button" aria-label="Hear Najm’s voice"><i data-i="play"></i></button></div>
+        <div class="p"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><div><div class="t-card-sm" lang="ar">أبو سلام</div><div class="small" style="color:var(--tungsten)" data-ar="يغني الجسر · يحتاج صوتًا قبل التسجيل">sings the bridge · needs a voice before recording</div></div></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="vid-h" style="padding-block-start:80px">
+      <div class="shead"><h2 id="vid-h" class="h2"><span data-ar="الفيديوهات">Videos</span><span class="count">3</span></h2><span class="link" data-ar="كل فيديو نسخة من الأغنية نفسها">Each video is one rendering of the same song</span></div>
+      <div class="rail videos">
+        <a class="tile" href="#"><div class="frame r-16x9"><img src="media/shot-1-3.jpg" alt=""><span class="on-art-chip pos-ts" data-ar="عرض اللوحة القصصية · ليس مونتاجًا">Storyboard reel · not a cut</span><span class="on-art-chip pos-be">3:42</span></div><div class="t-card-sm" data-ar="الفيديو الموسيقي">The music video</div><div class="sub" data-ar="16:9 · 12 من 20 إطارًا مرسومًا">16:9 · 12 of 20 frames drawn</div></a>
+        <a class="tile" href="#"><div class="tcard r-16x9"><span class="tc-state" data-ar="لم يُصنع بعد">Not made yet</span><span class="t-card-sm tc-name" data-ar="النسخة العمودية 9:16">Vertical cut 9:16</span></div><div class="t-card-sm" data-ar="النسخة العمودية">Vertical cut</div><div class="sub" data-ar="تُركَّب من المونتاج النهائي">assembled from the final cut</div></a>
+        <a class="tile" href="#"><div class="tcard r-16x9"><span class="tc-state" data-ar="لم يُصنع بعد">Not made yet</span><span class="t-card-sm tc-name" data-ar="فيديو الكلمات">Lyric video</span></div><div class="t-card-sm" data-ar="فيديو الكلمات">Lyric video</div><div class="sub" data-ar="الكلمات على الغلاف، بتوقيت الأغنية">the lyrics over the sleeve, on the song’s timing</div></a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="mcr-h" style="padding-block-start:80px">
+      <div class="shead"><h2 id="mcr-h" class="h2" data-ar="الشارة">Credits</h2><a class="link" href="studio.html"><span data-ar="في شركة الاستوديو">In the Studio Company</span><i data-i="right" class="i-sm i-flip"></i></a></div>
+      <dl class="credits">
+        <div class="credit"><dt data-ar="الكلمات">Words</dt><dd data-ar="تطوير القصة">Story Development</dd><div class="made" data-ar="كاتب السيناريو · الإصدار 2">Screenwriter · version 2</div></div>
+        <div class="credit"><dt data-ar="الموسيقى والغناء">Music and singing</dt><dd data-ar="الصوت والموسيقى">Sound &amp; Music</dd><div class="made" data-ar="مدير الموسيقى · أداء الغناء">Music Director · Singing Performance</div></div>
+        <div class="credit"><dt data-ar="اللوحة القصصية">Storyboard</dt><dd data-ar="ما قبل الإنتاج">Pre-Production</dd><div class="made" data-ar="20 لقطة مخطَّطة">20 planned shots</div></div>
+        <div class="credit"><dt data-ar="الإيقاع">Timing checked by</dt><dd data-ar="ضمان الجودة">Quality Assurance</dd><div class="made" data-ar="مفتش تزامن الصوت">Audio Synchronization Inspector</div></div>
+      </dl>
+      <p class="rights" data-ar="صُنعت في استوديو فيوبوكس · 2026">Made in Vewbox Studio · 2026</p>
+    </section>
+  </div>
+</main>
+
+<div class="nowbar" role="region" aria-label="Now playing" data-ar-label="يُشغَّل الآن">
+  <span class="sl"><img src="media/plate-workshop-master-b.jpg" alt=""></span>
+  <div class="tt"><b lang="en">Frequencies</b><span><span lang="en">Elias Moore, Najm</span> · <span data-ar="اللازمة">Chorus</span></span></div>
+  <div class="seg only-desk" role="radiogroup" aria-label="Song or video" data-ar-label="الأغنية أو الفيديو"><button role="radio" aria-checked="true"><span data-ar="الأغنية">Song</span></button><button role="radio" aria-checked="false"><span data-ar="الفيديو">Video</span></button></div>
+  <div class="transport"><button class="play play-sm" type="button" aria-label="Pause"><i data-i="pause"></i></button><span class="time">1:12</span><div class="seek"><i style="inline-size:32%"></i><b style="inset-inline-start:32%"></b></div><span class="time">3:42</span></div>
+  <button class="ibtn ibtn-sm" type="button" aria-label="Close the player" data-ar-label="أغلق المشغّل"><i data-i="close"></i></button>
+</div>
+<footer class="footer" style="padding-block-end:120px"><div class="wrap"><span data-ar="استوديو فيوبوكس">Vewbox Studio</span><span class="spacer"></span><a class="textlink" href="#"><span data-ar="المساعدة والاختصارات">Help &amp; shortcuts</span></a><span class="kbd">?</span></div></footer>
+<script src="v5.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UI face spike · Vewbox v5</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wdth,wght@85..100,300..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400..700&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&family=Instrument+Sans:wdth,wght@75..100,400..700&family=Newsreader:opsz,wght@6..72,400..700&family=Markazi+Text:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #0c0c0b; color: #f2eee6; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #262624; }
+  .cell { padding: 24px 32px; }
+  .tag { font: 500 11px/14px 'IBM Plex Mono'; color: #8c8984; margin-bottom: 14px; }
+  nav { display: flex; gap: 26px; align-items: center; font-size: 15px; color: #a9a59e; margin-bottom: 18px; }
+  nav b { color: #f2eee6; font-weight: 500; }
+  h1 { font: 500 44px/1 Newsreader; font-variation-settings: 'opsz' 72; letter-spacing: -0.02em; margin: 0 0 8px; }
+  [dir=rtl] h1 { font: 600 40px/1.4 'Markazi Text'; letter-spacing: 0; }
+  .slate { font-size: 13px; color: #a9a59e; margin-bottom: 14px; }
+  .btns { display: flex; gap: 10px; margin-bottom: 16px; }
+  .btn { height: 40px; padding: 0 18px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 500; }
+  .p { background: #f2eee6; color: #0c0c0b; } .s { background: #222221; color: #f2eee6; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; color: #d6d2ca; }
+  td { padding: 9px 0; border-top: 1px solid #222221; }
+  td.n { color: #8c8984; width: 56px; }
+  .lead { font-size: 15px; line-height: 24px; color: #d6d2ca; max-width: 52ch; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<script>
+const P = [
+  ['IBM Plex Sans (wdth 100) + Plex Sans Arabic + Plex Mono', "'IBM Plex Sans','IBM Plex Sans Arabic'", "'IBM Plex Mono'"],
+  ['IBM Plex Sans (wdth 92) + Plex Sans Arabic + Plex Mono', "'IBM Plex Sans','IBM Plex Sans Arabic'", "'IBM Plex Mono'", '92%'],
+  ['Inter + Plex Sans Arabic + Geist Mono', "'Inter','IBM Plex Sans Arabic'", "'Geist Mono'"],
+  ['Geist + Plex Sans Arabic + Geist Mono', "'Geist','IBM Plex Sans Arabic'", "'Geist Mono'"],
+  ['Instrument Sans + Plex Sans Arabic + Plex Mono', "'Instrument Sans','IBM Plex Sans Arabic'", "'IBM Plex Mono'"],
+];
+for (const [name, ui, mono, wd] of P) {
+  const r = document.createElement('div'); r.className = 'row';
+  const body = (ar) => `
+   <nav>${ar ? '<b>الرئيسية</b><span>المسلسلات</span><span>الأفلام القصيرة</span><span>الفيديوهات الموسيقية</span><span>الشخصيات</span><span>شركة الاستوديو</span>' : '<b>Home</b><span>Shows</span><span>Shorts</span><span>Music Videos</span><span>Characters</span><span>Studio Company</span>'}</nav>
+   <h1>${ar ? 'أبو سلام' : 'Elias Moore'}</h1>
+   <div class="slate">${ar ? 'شخصية · واقعي · العربية (بغدادية) · <span style="color:#74c69d">●</span> معتمدة · مقفلة في فيلم واحد' : 'Character · Cartoon · English · <span style="color:#74c69d">●</span> Approved · Locked in 1 film'}</div>
+   <div class="lead">${ar ? 'صاحب مقهى شعبي في شارع المتنبي ببغداد. هادئ ومتأمّل، وتظهر سخريته الجافة حين يحكي عن بغداد القديمة.' : 'Retired lighthouse keeper and radio repairman. Kind but stubborn, with a dry wit and a memory for every frequency he ever tuned.'}</div>
+   <div class="btns"><span class="btn p">${ar ? 'افتح في غرفة العرض' : 'Open in the Screening Room'}</span><span class="btn s">${ar ? 'تعديل' : 'Edit details'}</span></div>
+   <table><tr><td class="n" style="font-family:${mono}">1.3</td><td>${ar ? 'لقطة ثنائية · حركة يسار' : 'Two-shot · pan left'}</td><td style="font-family:${mono};color:#8c8984">00:00:14:08</td></tr>
+   <tr><td class="n" style="font-family:${mono}">2.3</td><td>${ar ? 'أربع لقطات · اخترت الرابعة' : '4 takes · take 4 chosen'}</td><td style="font-family:${mono};color:#8c8984">00:00:37:02</td></tr></table>`;
+  r.innerHTML = `<div class="cell" style="font-family:${ui};font-stretch:${wd||'100%'}"><div class="tag">${name}</div>${body(false)}</div><div class="cell" dir="rtl" lang="ar" style="font-family:${ui}"><div class="tag">${name}</div>${body(true)}</div>`;
+  document.body.append(r);
+}
+</script>
+</body>
+</html>

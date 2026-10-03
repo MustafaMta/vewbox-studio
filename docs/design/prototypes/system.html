@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system v5 · Vewbox Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wdth,wght@85..100,300..700&family=Markazi+Text:wght@400..700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="v5.css">
+<style>
+  /* THE SPECIMEN — every token and component of v5 in its states, on one sheet (the product's /kit replacement) */
+  .sp { display: grid; gap: 24px; }
+  .sp-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .sp-cap { font: 500 11px/16px var(--font-mono); color: var(--fg-faint); margin-block-start: 8px; }
+  html[dir='rtl'] .sp-cap { font-family: 'IBM Plex Sans Arabic'; font-size: 12px; }
+  .sw { display: grid; gap: 6px; inline-size: 120px; }
+  .sw i { display: block; block-size: 56px; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06); }
+  .sw b { font: 500 12px/16px var(--font-mono); color: var(--fg); } .sw span { font: 400 11px/14px var(--font-mono); color: var(--fg-faint); }
+  .typeline { display: grid; grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: baseline; padding-block: 18px; border-block-end: 1px solid var(--line-soft); }
+  .typeline .k { font: 500 11.5px/16px var(--font-mono); color: var(--fg-faint); }
+  .grid2 { display: grid; gap: 32px var(--gutter); grid-template-columns: minmax(0, 1fr); }
+  .grid2 > * { min-inline-size: 0; } .menu.static { min-inline-size: 0; }
+  @media (min-width: 1024px) { .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .panel-demo { padding: 24px; background: var(--surface); border-radius: var(--r-md); }
+  .space i { display: inline-block; block-size: 12px; background: var(--paper); vertical-align: middle; margin-inline-end: 10px; }
+  .drop { display: grid; place-items: center; text-align: center; gap: 8px; aspect-ratio: 928 / 1664; inline-size: 150px; border: 1.5px dashed var(--carbon-8); border-radius: var(--r-sm); color: var(--fg-muted); font-size: 13px; padding: 12px; }
+  .drop.audio { aspect-ratio: 4 / 1; inline-size: 320px; }
+  .drop.over { border-color: var(--paper); background: rgb(243 239 232 / 0.05); color: var(--fg); }
+  .mini-player { position: relative; inline-size: 360px; max-inline-size: 100%; border-radius: var(--r-md); overflow: hidden; background: #000; }
+  .mini-player img { inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+  .mini-player .bar { position: absolute; inset-inline: 0; inset-block-end: 0; padding: 30px 12px 10px; background: linear-gradient(0deg, rgb(0 0 0 / .85), rgb(0 0 0 / 0)); }
+  .fail { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; text-align: center; background: rgb(6 6 6 / 0.78); color: var(--fg); font-size: 14px; }
+  .dlg-demo { inline-size: 440px; max-inline-size: 100%; }
+  .dlg-demo h3 { margin-block-end: 8px; }
+  .dlg-demo .acts { display: flex; justify-content: flex-end; gap: 10px; margin-block-start: 24px; }
+  .drawer-demo { inline-size: 380px; max-inline-size: 100%; border-radius: var(--r-lg); padding: 22px; display: grid; gap: 18px; }
+  .drawer-demo .fs { display: grid; gap: 8px; }
+  .scrimdemo { position: relative; padding: 24px; background: #000; border-radius: var(--r-md); }
+  .skel-tile { inline-size: 180px; } .skel-tile .skel { aspect-ratio: 16 / 9; margin-block-end: 12px; } .skel-tile .skel-line { margin-block-end: 8px; }
+  .err-demo { display: grid; gap: 8px; max-inline-size: 560px; }
+  .err-demo details { font-size: 13px; color: var(--fg-muted); }
+  .err-demo pre { margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--carbon-1); font: 400 12px/18px var(--font-mono); color: var(--fg-faint); white-space: pre-wrap; word-break: break-all; direction: ltr; text-align: left; }
+  @media (max-width: 639px) { .typeline { grid-template-columns: 1fr; gap: 6px; } .mini-player { inline-size: 100%; } }
+</style>
+</head>
+<body data-page="" data-title-ar="نظام التصميم · استوديو فيوبوكس">
+<main id="main" class="wrap">
+  <header class="phead">
+    <h1 class="t-page" data-ar="نظام التصميم">Design system</h1>
+    <p class="lead" data-ar="فيوبوكس ٥ «عدسة الرؤية»: الرموز والمكوّنات بحالاتها. نظام واحد لكل الصفحات.">Vewbox v5 “Viewfinder”: the tokens and every component in its states. One system for every page.</p>
+  </header>
+
+  <!-- colour -->
+  <section class="section" style="padding-block-start:24px" aria-labelledby="c-h">
+    <div class="shead"><h2 id="c-h" class="h2" data-ar="اللون">Colour</h2><span class="link" data-ar="الكربون للمحيط، الورق للضوء، التنغستن لما ينتظرك فقط">Carbon for the surround, paper for light, tungsten only for what waits for you</span></div>
+    <div class="sp-row">
+      <div class="sw"><i style="background:#000"></i><b>carbon-0</b><span>#000000 theatre</span></div>
+      <div class="sw"><i style="background:#060606"></i><b>carbon-1</b><span>#060606 media</span></div>
+      <div class="sw"><i style="background:#0A0A09"></i><b>carbon-2</b><span>#0A0A09 page</span></div>
+      <div class="sw"><i style="background:#111110"></i><b>carbon-3</b><span>#111110 surface</span></div>
+      <div class="sw"><i style="background:#181817"></i><b>carbon-4</b><span>#181817 field</span></div>
+      <div class="sw"><i style="background:#20201E"></i><b>carbon-5</b><span>#20201E raised</span></div>
+      <div class="sw"><i style="background:#2A2A28"></i><b>carbon-6</b><span>#2A2A28 line</span></div>
+      <div class="sw"><i style="background:#3A3936"></i><b>carbon-7</b><span>#3A3936 line strong</span></div>
+      <div class="sw"><i style="background:#72706A"></i><b>carbon-8</b><span>#72706A control 3.6:1</span></div>
+      <div class="sw"><i style="background:#8F8B84"></i><b>carbon-9</b><span>#8F8B84 faint 5.8:1</span></div>
+      <div class="sw"><i style="background:#ADA9A1"></i><b>carbon-10</b><span>#ADA9A1 muted 8.5:1</span></div>
+      <div class="sw"><i style="background:#D8D4CC"></i><b>carbon-11</b><span>#D8D4CC body 13.4:1</span></div>
+      <div class="sw"><i style="background:#F3EFE8"></i><b>paper</b><span>#F3EFE8 light 17.3:1</span></div>
+      <div class="sw"><i style="background:#0B0B0B"></i><b>gray-canvas</b><span>#0B0B0B review canvas</span></div>
+      <div class="sw"><i style="background:#E3AA5B"></i><b>tungsten</b><span>#E3AA5B needs you 9.6:1</span></div>
+      <div class="sw"><i style="background:#7FCB9C"></i><b>ok</b><span>#7FCB9C 10.3:1</span></div>
+      <div class="sw"><i style="background:#F0826F"></i><b>bad</b><span>#F0826F 7.7:1</span></div>
+      <div class="sw"><i style="background:linear-gradient(180deg, oklch(0.23 0.045 258), #0A0A09)"></i><b>art wash</b><span>oklch(.22 ≤.05 H)</span></div>
+    </div>
+  </section>
+
+  <!-- type -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="t-h">
+    <div class="shead"><h2 id="t-h" class="h2" data-ar="الحروف">Type</h2><span class="link">Newsreader · Markazi Text · IBM Plex Sans · Plex Sans Arabic · Plex Mono</span></div>
+    <div class="typeline"><span class="k">t-marquee 108/100 · AR 96/120</span><span class="t-marquee" lang="en">The Static Sky</span><span class="t-marquee" lang="ar" dir="rtl">آخر رشفة</span></div>
+    <div class="typeline"><span class="k">t-hero 80/76 · AR 72/96</span><span class="t-hero" lang="en">Elias Moore</span><span class="t-hero" lang="ar" dir="rtl">أبو سلام</span></div>
+    <div class="typeline"><span class="k">t-page 64/62 · AR 60/80</span><span class="t-page" lang="en">Characters</span><span class="t-page" lang="ar" dir="rtl">الشخصيات</span></div>
+    <div class="typeline"><span class="k">t-card 21/26 · AR 23/32</span><span class="t-card" lang="en">Harbour Run</span><span class="t-card" lang="ar" dir="rtl">يوم السوق</span></div>
+    <div class="typeline"><span class="k">h2 20/28 · Plex 600</span><span class="h2" lang="en">Episodes</span><span class="h2" lang="ar" dir="rtl" style="font-size:20px;line-height:32px">الحلقات</span></div>
+    <div class="typeline"><span class="k">lead 19/30 · AR 20/34</span><span class="lead" lang="en">Series with seasons and episodes that share one cast.</span><span class="lead" lang="ar" dir="rtl" style="font-size:20px;line-height:34px">مواسم وحلقات تتشارك طاقمًا واحدًا.</span></div>
+    <div class="typeline"><span class="k">body 15/24 · AR 15/26</span><span lang="en">Drawn again because the first picture cut off her feet.</span><span lang="ar" dir="rtl">رُسمت من جديد لأن الصورة الأولى قطعت قدميها.</span></div>
+    <div class="typeline"><span class="k">readout · Plex Mono 12–15</span><span class="ro ro-lg">00:00:37:02 · 1.3 · take 2 · 0:56 · 1920×1080</span><span class="slate"><span data-ar="فيلم قصير">Short film</span><span class="ro ro-md">2026</span><span class="ro ro-md">0:56</span><span class="state ok"><i class="dot"></i><span data-ar="مكتمل">Finished</span></span></span></div>
+  </section>
+
+  <!-- space, shape -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="s-h">
+    <div class="shead"><h2 id="s-h" class="h2" data-ar="المسافات والأشكال">Space and shape</h2></div>
+    <div class="grid2">
+      <div class="space small muted" style="display:grid;gap:8px"><span><i style="inline-size:4px"></i>4</span><span><i style="inline-size:8px"></i>8</span><span><i style="inline-size:12px"></i>12</span><span><i style="inline-size:16px"></i>16</span><span><i style="inline-size:24px"></i>24 · gutter ≥ 640</span><span><i style="inline-size:32px"></i>32</span><span><i style="inline-size:48px"></i>48</span><span><i style="inline-size:64px"></i>64</span><span><i style="inline-size:96px"></i>96 · section ≥ 1280</span></div>
+      <div class="sp-row" style="align-items:flex-start">
+        <div><div class="frame r-16x9" style="inline-size:150px"><img src="media/shot-1-1.jpg" alt=""></div><div class="sp-cap">media · 2px</div></div>
+        <div><div class="frame r-2x3" style="inline-size:80px"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"></div><div class="sp-cap">poster 2:3</div></div>
+        <div><div class="frame r-1x1" style="inline-size:96px"><img src="media/plate-workshop-master-b.jpg" alt="" style="object-position:82% 18%"></div><div class="sp-cap">sleeve 1:1</div></div>
+        <div><div class="frame r-fig" style="inline-size:64px;background:#838488"><img src="media/char-elias.jpg" alt=""></div><div class="sp-cap">figure 928:1664</div></div>
+        <div><div class="frame r-239" style="inline-size:180px"><img src="media/plate-workshop-master.jpg" alt=""></div><div class="sp-cap">plate 2.39:1</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- buttons -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="b-h">
+    <div class="shead"><h2 id="b-h" class="h2" data-ar="الأزرار">Buttons</h2><span class="link" data-ar="ضوء واحد في كل منطقة">One light per region</span></div>
+    <div class="sp">
+      <div class="sp-row">
+        <button class="btn btn-primary btn-lg"><i data-i="play"></i><span data-ar="اعرضه">Screen it</span></button>
+        <button class="btn btn-primary"><span data-ar="اعتمد">Approve</span></button>
+        <button class="btn btn-primary" style="background:var(--paper-hi)"><span data-ar="اعتمد (تمرير)">Approve (hover)</span></button>
+        <button class="btn btn-primary" style="box-shadow:0 0 0 2px var(--paper),0 0 0 4px #000,0 0 0 6px var(--paper)"><span data-ar="اعتمد (تركيز)">Approve (focus)</span></button>
+        <button class="btn btn-primary" aria-busy="true"><span class="state live" style="color:var(--on-paper)"><i class="dot" style="background:var(--on-paper)"></i></span><span data-ar="جارٍ الاعتماد…">Approving…</span></button>
+        <button class="btn btn-primary"><i data-i="plus"></i><span data-ar="مسلسل جديد">New show</span><span class="split"></span><i data-i="down" class="i-sm"></i></button>
+      </div>
+      <div class="sp-row">
+        <button class="btn btn-secondary"><span data-ar="افتح الإنتاج">Open production</span></button>
+        <button class="btn btn-secondary btn-sm"><i data-i="edit" class="i-sm"></i><span data-ar="عدّل">Edit</span></button>
+        <button class="btn btn-quiet"><span data-ar="إلغاء">Cancel</span></button>
+        <button class="btn btn-secondary" aria-disabled="true"><i data-i="redo" class="i-sm"></i><span data-ar="ارسم من جديد">Redraw</span></button><span class="caption" data-ar="مغلق بعد التصوير — السبب يُكتب دائمًا">Closed after filming — the reason is always written</span>
+        <button class="btn btn-danger"><span data-ar="احذف الشخصية">Delete character</span></button>
+      </div>
+      <div class="sp-row">
+        <button class="ibtn ibtn-solid" aria-label="More"><i data-i="more"></i></button>
+        <button class="ibtn" aria-label="Search"><i data-i="search"></i></button>
+        <button class="play play-lg" aria-label="Play"><i data-i="play"></i></button>
+        <button class="play" aria-label="Pause"><i data-i="pause"></i></button>
+        <button class="play play-sm play-art" aria-label="Play"><i data-i="play"></i></button>
+        <a class="link-u" href="#" data-ar="رابط داخل النص">Link inside text</a>
+        <a class="textlink" href="#"><span data-ar="رابط هادئ">Quiet link</span><i data-i="right" class="i-sm i-flip"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- inputs -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="f-h">
+    <div class="shead"><h2 id="f-h" class="h2" data-ar="البحث والمرشّحات والحقول">Search, filters and fields</h2></div>
+    <div class="grid2">
+      <div class="sp">
+        <label class="search"><i data-i="search"></i><input type="search" placeholder="Search the studio" data-ar-ph="ابحث في الاستوديو"><span class="kbd">Ctrl K</span></label>
+        <div class="sp-row">
+          <button class="chip" aria-pressed="true"><span data-ar="الكل">All</span> <span class="n">6</span></button>
+          <button class="chip"><span data-ar="قيد الإنتاج">In production</span> <span class="n">3</span></button>
+          <button class="chip filter-on"><span data-ar="الأسلوب: كرتون">Style: Cartoon</span><span class="x"><i data-i="close" class="i-sm"></i></span></button>
+          <button class="chip"><i data-i="filter" class="i-sm"></i><span data-ar="المرشّحات">Filters</span></button>
+        </div>
+        <div class="sp-row">
+          <div class="seg" role="radiogroup"><button role="radio" aria-checked="true"><span data-ar="الأغنية">Song</span></button><button role="radio" aria-checked="false"><span data-ar="الفيديو">Video</span></button><button role="radio" aria-checked="false" aria-disabled="true"><span data-ar="عمودي (لا مونتاج بعد)">Vertical (no cut yet)</span></button></div>
+        </div>
+        <nav class="tabs"><a aria-selected="true" href="#"><span data-ar="الحلقات">Episodes</span><span class="n">14</span></a><a aria-selected="false" href="#"><span data-ar="الطاقم">Cast</span><span class="n">4</span></a><a aria-selected="false" href="#"><span data-ar="الإنتاج">Production</span><span class="needs">1</span></a></nav>
+      </div>
+      <div class="sp">
+        <div class="field"><label class="label" data-ar="الاسم">Name</label><input class="input" value="Hana Mori" lang="en"><span class="hint" data-ar="يظهر في الشارة وفي كل لقطة.">Shown in the credits and in every shot.</span></div>
+        <div class="field"><label class="label" data-ar="سطر الفكرة (تركيز)">Logline (focus)</label><input class="input focus" value="A courier races messages across a rain-soaked harbour city." lang="en"></div>
+        <div class="field invalid"><label class="label" data-ar="المدة">Length</label><input class="input" value="90 minutes" lang="en"><span class="err"><i data-i="alert" class="i-sm"></i><span data-ar="الفيلم القصير بين 30 ثانية و10 دقائق.">A short is between 30 seconds and 10 minutes.</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- media states -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="m-h">
+    <div class="shead"><h2 id="m-h" class="h2" data-ar="معاينات الصور: الحالات">Image previews: states</h2></div>
+    <div class="sp-row" style="align-items:flex-start;gap:24px">
+      <div style="inline-size:220px"><div class="frame r-16x9" style="--art-ph:oklch(0.24 0.045 258)"></div><div class="sp-cap" data-ar="قيد التحميل · لون الصورة الغالب">loading · the picture's own colour</div></div>
+      <div style="inline-size:220px"><div class="frame r-16x9"><img src="media/shot-1-4.jpg" alt=""><span class="on-art-chip pos-bs" style="font-family:var(--font-ui);font-size:12px"><span class="state live" style="color:var(--paper);font-size:12px"><i class="dot"></i></span><span data-ar="يُرسم الإطار 13 من 20">Drawing frame 13 of 20</span></span></div><div class="sp-cap" data-ar="يُرسم · الطور داخل الإطار">drawing · the phase inside the frame</div></div>
+      <div style="inline-size:220px"><div class="tcard r-16x9"><span class="tc-state" data-ar="لم يُرسم بعد">Not drawn yet</span><span class="t-card-sm tc-name" data-ar="الربّان">The Mariner</span></div><div class="sp-cap" data-ar="لا صورة · بطاقة عنوان">no picture · title card</div></div>
+      <div style="inline-size:120px"><div class="fposter"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"><div class="fp-t"><div class="t-card-sm" lang="en" style="font-size:16px;line-height:17px">The Static Sky</div></div></div><div class="sp-cap" data-ar="ملصق من إطار">frame poster</div></div>
+      <div style="inline-size:220px;position:relative"><div class="frame r-16x9"><img src="media/shot-2-2.jpg" alt="" style="opacity:.35"></div><div class="fail" style="border-radius:2px"><span data-ar="لم يُحمَّل هذا المقطع.">This clip didn’t load.</span><span class="row" style="justify-content:center"><button class="btn btn-secondary btn-sm"><span data-ar="حاول مجددًا">Try again</span></button></span></div><div class="sp-cap" data-ar="فشل · الصورة تبقى، ومعها إصلاح">failed · the poster stays, with a recovery</div></div>
+    </div>
+  </section>
+
+  <!-- upload -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="u-h">
+    <div class="shead"><h2 id="u-h" class="h2" data-ar="الرفع">Upload</h2><span class="link" data-ar="منطقة الإفلات هي الإطار نفسه، وزر التصفح موجود دائمًا">The drop target is the frame itself; Browse is always there</span></div>
+    <div class="sp-row" style="align-items:flex-start;gap:24px">
+      <div class="drop"><i data-i="upload"></i><span data-ar="أفلت صورة مرجعية">Drop a reference picture</span><button class="btn btn-secondary btn-sm"><span data-ar="تصفّح">Browse</span></button></div>
+      <div class="drop over"><i data-i="upload"></i><span data-ar="أفلِتها هنا">Drop it here</span></div>
+      <div><div class="drop audio"><span data-ar="أغنية · WAV أو MP3 · حتى 10 دقائق">A song · WAV or MP3 · up to 10 min</span><button class="btn btn-secondary btn-sm"><span data-ar="تصفّح">Browse</span></button></div><div class="field" style="margin-block-start:10px"><span class="err" role="alert"><i data-i="alert" class="i-sm"></i><span data-ar="هذا الملف فيديو وليس صوتًا. اختر ملفًا صوتيًا.">This file is a video, not audio. Choose an audio file.</span></span></div></div>
+    </div>
+  </section>
+
+  <!-- players -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="p-h">
+    <div class="shead"><h2 id="p-h" class="h2" data-ar="المشغّلات">Players</h2><span class="link" data-ar="التحكم يبقى من اليسار إلى اليمين في العربية">Transport stays left-to-right in Arabic</span></div>
+    <div class="grid2">
+      <div class="mini-player"><img src="media/cut-30.jpg" alt=""><div class="bar"><div class="transport"><button class="ibtn ibtn-sm" aria-label="Play"><i data-i="play"></i></button><span class="time">0:30 / 0:56</span><div class="seek"><i style="inline-size:53%"></i><b style="inset-inline-start:53%"></b></div><button class="ibtn ibtn-sm" aria-label="Captions"><i data-i="cc"></i></button><button class="ibtn ibtn-sm" aria-label="Full screen"><i data-i="full"></i></button></div></div></div>
+      <div class="panel-demo">
+        <div class="row" style="flex-wrap:nowrap"><button class="play" aria-label="Play"><i data-i="play"></i></button><div style="flex:1;min-inline-size:0"><div class="wave" data-bars="72" data-played="0.35" data-seed="11" aria-hidden="true"></div><div class="row" style="justify-content:space-between;margin-block-start:6px"><span class="small"><bdi lang="en">“The Mariner… it vanished in ’87.”</bdi></span><span class="ro">0:01 / 0:04</span></div></div></div>
+        <div class="sp-cap" data-ar="بكرة الصوت: المُشغَّل بلون الورق، والباقي بحد 3.6:1">voice reel: played in paper, unplayed at 3.6:1</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- overlays -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="o-h">
+    <div class="shead"><h2 id="o-h" class="h2" data-ar="القوائم والحوارات والأدراج والإشعارات">Menus, dialogs, drawers, notifications</h2></div>
+    <div class="grid2 grid3" style="align-items:start">
+      <div class="menu static" style="position:static;inline-size:100%">
+        <a class="mi hl" href="#"><i data-i="auto"></i><div><b data-ar="دع الاستوديو يقترح">Let the studio propose</b><span data-ar="سطر واحد يكفي. تراجع كل شيء قبل أن يُصنع.">One line is enough. You review everything before it is made.</span></div></a>
+        <a class="mi" href="#"><i data-i="pen"></i><div><b data-ar="اكتبه بنفسك">Write it yourself</b><span data-ar="عنوان أو سطر؛ ولكل شيء آخر قيمة افتراضية.">A title or a line; everything else has a default.</span></div></a>
+        <hr><a class="mi" href="#"><i data-i="upload"></i><div><b data-ar="من صورة">From a picture</b></div></a>
+      </div>
+      <div class="dialog dlg-demo" role="dialog" aria-labelledby="dd-h">
+        <h3 id="dd-h" class="h2" data-ar-html="أتحذف <bdi lang=&quot;en&quot;>Salam</bdi>؟">Delete Salam?</h3>
+        <p class="small muted" data-ar="تُحذف صورته المسودّة ومرجعه. لم يظهر في أي فيلم، فلا يتأثر شيء آخر.">His draft image and reference are deleted. He is in no film, so nothing else changes.</p>
+        <div class="acts"><button class="btn btn-quiet btn-sm"><span data-ar="إلغاء">Cancel</span></button><button class="btn btn-danger btn-sm"><span data-ar="احذف سلام">Delete Salam</span></button></div>
+      </div>
+      <div class="drawer drawer-demo" role="dialog" aria-label="Filters">
+        <div class="row-between"><span class="h3" data-ar="المرشّحات">Filters</span><button class="ibtn ibtn-sm" aria-label="Close"><i data-i="close" class="i-sm"></i></button></div>
+        <div class="fs"><span class="caption" data-ar="الهوية">Identity</span><div class="seg"><button aria-checked="true" role="radio"><span data-ar="الكل">All</span></button><button role="radio" aria-checked="false"><span data-ar="مسودة">Draft</span></button><button role="radio" aria-checked="false"><span data-ar="معتمد">Approved</span></button><button role="radio" aria-checked="false"><span data-ar="مقفل">Locked</span></button></div></div>
+        <div class="fs"><span class="caption" data-ar="الصوت">Voice</span><div class="seg"><button aria-checked="false" role="radio"><span data-ar="الكل">All</span></button><button role="radio" aria-checked="true"><span data-ar="له صوت">Has a voice</span></button><button role="radio" aria-checked="false"><span data-ar="بلا صوت">No voice</span></button></div></div>
+        <div class="row-between"><button class="btn btn-quiet btn-sm"><span data-ar="امسح الكل">Clear all</span></button><button class="btn btn-primary btn-sm"><span data-ar="أظهر 3 شخصيات">Show 3 characters</span></button></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-block-start:24px">
+      <div class="sp">
+        <div class="toast" role="status"><i data-i="check" class="i-sm" style="color:var(--ok)"></i><span data-ar-html="اعتُمدت <bdi lang=&quot;en&quot;>Hana Mori</bdi>.">Hana Mori is approved.</span><span class="spacer"></span><button class="btn btn-quiet btn-sm"><span data-ar="تراجع">Undo</span></button></div>
+        <div class="notice n-wait"><span class="nt" data-ar="قصة الحلقة 4 بانتظارك">The story of Episode 4 is waiting for you</span><span class="nd" data-ar="لن تبدأ اللوحة القصصية قبل اعتمادك.">Storyboarding starts after you approve it.</span></div>
+      </div>
+      <div class="notice n-bad err-demo">
+        <span class="nt" data-ar="توقف رسم صورة إلياس">Drawing Elias’s image stopped</span>
+        <span class="nd" data-ar="توقف محرك الصور بخطأ داخلي ثلاث مرات. الصورة المعتمدة السابقة باقية كما هي.">The image engine stopped with an internal error three times. The approved image is kept as it was.</span>
+        <div class="row" style="margin-block-start:6px"><button class="btn btn-secondary btn-sm"><span data-ar="حاول مجددًا">Try again</span></button><button class="btn btn-quiet btn-sm"><span data-ar="افتح غرفة المحركات">Open the engine room</span></button></div>
+        <details open><summary data-ar="التفاصيل">Details</summary><pre>PROVIDER · node 7 CLIPTextEncode · job-ff5aa09b0e · 3 Oct 00:45</pre></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- loading, empty, status -->
+  <section class="section" style="padding-block-start:72px" aria-labelledby="l-h">
+    <div class="shead"><h2 id="l-h" class="h2" data-ar="التحميل والفراغ والحالة">Loading, empty and status</h2></div>
+    <div class="grid2 grid3" style="align-items:start">
+      <div class="sp-row"><div class="skel-tile"><div class="skel"></div><div class="skel-line" style="inline-size:70%"></div><div class="skel-line" style="inline-size:45%"></div></div><span class="caption" data-ar="إطارات بنسبتها الحقيقية؛ يتوقف الوميض بعد ثانية">ratio-true frames; the shimmer stops after 1 s</span></div>
+      <div><div class="tcard r-1x1" style="inline-size:200px"><span class="tc-state" data-ar="لا أغنية بعد">No song yet</span><span class="t-card tc-name" data-ar="أغنيتك الأولى">Your first song</span></div><p class="small muted" style="margin-block:12px 10px;max-inline-size:34ch" data-ar="يبدأ الفيديو الموسيقي بأغنيته.">A music video starts with its song.</p><button class="btn btn-secondary btn-sm"><span data-ar="اكتب الأغنية">Write the song</span></button></div>
+      <div class="sp" style="gap:12px">
+        <span class="state idle"><i class="dot"></i><span data-ar="خامل">Idle</span></span>
+        <span class="state live"><i class="dot"></i><span data-ar="يعمل · يرسم الإطار 7 من 20">Running · drawing frame 7 of 20</span></span>
+        <span class="state wait"><i class="dot"></i><span data-ar="بانتظارك">Waiting for you</span></span>
+        <span class="state ok"><i class="dot"></i><span data-ar="معتمد">Approved</span></span>
+        <span class="state bad"><i class="dot"></i><span data-ar="رفضه ضمان الجودة">Refused by QA</span></span>
+        <span class="state lock"><i data-i="lock" class="i-sm"></i><span data-ar="مقفل · في فيلم واحد">Locked · in 1 film</span></span>
+        <span class="row"><span class="meter" aria-hidden="true"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i></span><span class="small muted" data-ar="اللوحة القصصية · 12 من 20">Storyboard · 12 of 20</span></span>
+        <div class="progress" style="inline-size:240px"><i style="inline-size:60%"></i></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="footer"><div class="wrap"><span data-ar="استوديو فيوبوكس · نظام التصميم ٥">Vewbox Studio · design system v5</span></div></footer>
+<script src="v5.js"></script>
+</body>
+</html>

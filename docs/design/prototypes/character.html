@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elias Moore · Characters · Vewbox Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wdth,wght@85..100,300..700&family=Markazi+Text:wght@400..700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="v5.css">
+<style>
+  /* CHARACTER — a standing figure you can hear. The canonical image is the page; the name, the voice and the two
+     states that matter (approval, identity lock) sit beside it. No tint around a picture under approval. */
+  .profile { display: grid; gap: 40px; padding-block-start: 32px; }
+  @media (min-width: 1024px) { .profile { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: start; } }
+  .figure { position: relative; }
+  @media (min-width: 1024px) { .figure { position: sticky; inset-block-start: calc(var(--bar-h) + 24px); } }
+  .figure .frame { aspect-ratio: 928 / 1664; max-block-size: calc(100vh - var(--bar-h) - 56px); margin-inline: 0; background: #838488; }
+  .figure .frame img { object-fit: contain; }
+  .figure .cap { display: flex; justify-content: space-between; gap: 12px; margin-block-start: 12px; font-size: 12.5px; color: var(--fg-faint); }
+  html[dir='rtl'] .figure .cap { font-size: 13px; }
+  .crumb { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-muted); margin-block-end: 28px; }
+  .profile h1 { margin-block: 10px 14px; }
+  .role { font: 400 24px/32px var(--font-title); font-style: italic; color: var(--fg-body); max-inline-size: 30ch; letter-spacing: -0.005em; }
+  html[dir='rtl'] .role { font-style: normal; }
+  .states { display: grid; gap: 1px; margin-block: 32px; background: var(--line-soft); border-radius: var(--r-md); overflow: hidden; }
+  @media (min-width: 640px) { .states { grid-template-columns: 1fr 1fr; } }
+  .states > div { background: var(--surface); padding: 16px 18px; }
+  .states .state { font-size: 14px; }
+  html[dir='rtl'] .states .state { font-size: 15px; }
+  .states p { font-size: 13.5px; line-height: 21px; color: var(--fg-muted); margin-block-start: 6px; }
+  html[dir='rtl'] .states p { font-size: 14px; line-height: 23px; }
+  .voice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; align-items: center; padding-block: 24px; border-block: 1px solid var(--line); }
+  .voice > * { min-inline-size: 0; }
+  .voice .wave { grid-column: 2; block-size: 40px; }
+  .voice .quote { grid-column: 2; font: italic 400 20px/28px var(--font-title); color: var(--fg); }
+  .voice .meta { grid-column: 2; font-size: 13px; color: var(--fg-muted); }
+  html[dir='rtl'] .voice .meta { font-size: 14px; }
+  .voice .play { grid-row: span 3; }
+  .acts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-block-start: 28px; }
+  .acts .why { font-size: 13px; color: var(--fg-faint); max-inline-size: 40ch; }
+  html[dir='rtl'] .acts .why { font-size: 14px; }
+  .anchor { position: sticky; inset-block-start: var(--bar-h); z-index: 20; background: rgb(10 10 9 / 0.97); margin-block-start: 48px; }
+  .block { padding-block-start: 48px; }
+  .block .k { font-size: 13px; color: var(--fg-faint); margin-block-end: 10px; }
+  html[dir='rtl'] .block .k { font-size: 14px; }
+  dl.look { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 14px 24px; margin-block-start: 28px; }
+  dl.look dt { font-size: 13px; color: var(--fg-faint); padding-block-start: 2px; }
+  html[dir='rtl'] dl.look dt { font-size: 14px; }
+  dl.look dd { font-size: 15px; line-height: 24px; color: var(--fg-body); }
+  .lines { display: grid; }
+  .lines li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding-block: 12px; border-block-end: 1px solid var(--line-soft); }
+  .lines q { font: italic 400 18px/26px var(--font-title); color: var(--fg); }
+  .lines .ro { color: var(--fg-faint); }
+  .vfacts { display: flex; flex-wrap: wrap; gap: 10px 32px; margin-block-start: 20px; }
+  .vfacts div { display: grid; } .vfacts dt { font-size: 12.5px; color: var(--fg-faint); } .vfacts dd { font-size: 15px; color: var(--fg); }
+  .appears { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 24px; align-items: start; }
+  .appears .strip .sf { --sf-w: 132px; }
+  @media (max-width: 1023px) {
+    .figure .frame { max-block-size: 72vh; }
+    .anchor { margin-block-start: 32px; }
+  }
+  @media (max-width: 639px) {
+    .profile { padding-block-start: 0; gap: 24px; }
+    .figure { margin-inline: calc(-1 * var(--margin)); }
+    .figure { background: #838488; }
+    .figure .frame { border-radius: 0; max-block-size: 64vh; inline-size: auto; block-size: 64vh; margin-inline: auto; }
+    .figure .frame img { object-fit: contain; }
+    .figure .cap { background: var(--page); padding-block-start: 12px; margin-block-start: 0; }
+    .figure .cap { padding-inline: var(--margin); }
+    .crumb { display: none; }
+    .role { font-size: 20px; line-height: 28px; }
+    dl.look { grid-template-columns: 1fr; gap: 2px; } dl.look dd { margin-block-end: 12px; }
+    .appears { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
+    .appears .strip .sf { --sf-w: 104px; }
+    .acts .btn { flex: 1; }
+  }
+</style>
+</head>
+<body data-page="characters" data-title-ar="Elias Moore · الشخصيات · استوديو فيوبوكس">
+<main id="main" class="wrap">
+  <div class="profile">
+    <div class="figure">
+      <div class="frame"><img src="media/char-elias.jpg" alt="Elias Moore, the canonical full-length image: navy wool cap, yellow raincoat with a green-checked lining, striped sweater, rubber boots" data-ar-alt="إلياس مور، الصورة المعتمدة بالطول الكامل: قبعة صوفية كحلية، معطف مطر أصفر، كنزة مخططة، حذاء مطاطي"></div>
+      <div class="cap"><span data-ar="الصورة المعتمدة · الإصدار 1">Canonical image · version 1</span><span class="ro tc">928 × 1664</span></div>
+    </div>
+
+    <div>
+      <a class="crumb" href="characters.html"><i data-i="left" class="i-sm i-flip"></i><span data-ar="الشخصيات">Characters</span></a>
+      <div class="slate slate-lg"><span data-ar="شخصية">Character</span><span data-ar="كرتون">Cartoon</span><span data-ar="الإنجليزية">English</span><span data-ar="72 عامًا">72 years old</span></div>
+      <h1 class="t-hero" lang="en">Elias Moore</h1>
+      <p class="role" lang="en">Retired lighthouse keeper and radio repairman.</p>
+
+      <div class="states">
+        <div><span class="state ok"><i class="dot"></i><span data-ar="معتمد">Approved</span></span><p data-ar="اعتمدتَ الإصدار 1 في 3 تشرين الأول، 01:42.">You approved version 1 on 3 Oct at 01:42.</p></div>
+        <div><span class="state lock"><i data-i="lock" class="i-sm"></i><span data-ar="الهوية مقفلة">Identity locked</span></span><p data-ar-html="ظهر في <span lang=&quot;en&quot;>The Static Sky</span>، فيبقى وجهه وصوته كما صُوِّرا. يمكن تعديل الاسم والوصف والملاحظات.">He has been filmed in <span lang="en">The Static Sky</span>, so his face and voice stay as filmed. Name, description and notes can still change.</p></div>
+      </div>
+
+      <div class="voice">
+        <button class="play" type="button" aria-label="Hear Elias Moore’s voice" data-ar-label="استمع إلى صوت إلياس مور"><i data-i="play"></i></button>
+        <div class="wave" data-bars="96" data-played="0" data-seed="7" aria-hidden="true"></div>
+        <div class="quote"><bdi lang="en"><q>Static’s just a story waiting to be told.</q></bdi></div>
+        <div class="meta"><span data-ar="صوت اصطناعي صمّمه الاستوديو — ليس شخصًا حقيقيًا">Studio-designed synthetic voice — not a real person</span> · <span class="ro">0:04</span></div>
+      </div>
+
+      <div class="acts">
+        <button class="btn btn-secondary" type="button"><i data-i="edit" class="i-sm"></i><span data-ar="عدّل التفاصيل">Edit details</span><i data-i="down" class="i-sm"></i></button>
+        <button class="btn btn-secondary" type="button" aria-disabled="true" aria-describedby="why"><i data-i="redo" class="i-sm"></i><span data-ar="ارسم من جديد">Redraw</span></button>
+        <button class="ibtn ibtn-solid" type="button" aria-label="More" data-ar-label="المزيد"><i data-i="more"></i></button>
+        <span class="why" id="why" data-ar="لا يمكن إعادة رسمه بعد التصوير. انسخه كشخصية مختلفة لتغيير شكله.">Redrawing is closed after filming. Duplicate him as a variant to change his look.</span>
+      </div>
+
+      <nav class="tabs anchor" aria-label="On this page" data-ar-label="في هذه الصفحة">
+        <a href="#about" aria-selected="true"><span data-ar="عنه">About</span></a>
+        <a href="#voice" aria-selected="false"><span data-ar="الصوت">Voice</span></a>
+        <a href="#appears" aria-selected="false"><span data-ar="يظهر في">Appears in</span><span class="n">1</span></a>
+        <a href="#notes" aria-selected="false"><span data-ar="ملاحظات">Notes</span></a>
+      </nav>
+
+      <section id="about" class="block">
+        <div class="k" data-ar="الشخصية">Personality</div>
+        <p class="prose" lang="en">Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into.</p>
+        <dl class="look">
+          <dt data-ar="البنية">Build</dt><dd lang="en">Portly but sturdy, broad shoulders, a slight stoop from years of bending over radios</dd>
+          <dt data-ar="الوجه">Face</dt><dd lang="en">Weathered, deep lines around the eyes; a faint scar from the left eyebrow to the cheekbone</dd>
+          <dt data-ar="الشعر">Hair</dt><dd lang="en">Thick silver-grey, short at the sides, combed back with a slight wave</dd>
+          <dt data-ar="العينان">Eyes</dt><dd lang="en">Warm hazel</dd>
+          <dt data-ar="الملابس">Wardrobe</dt><dd lang="en">Faded navy wool cap with a red button; yellow raincoat with a fur collar and a green-checked lining; striped navy-and-white sweater; grey flannel trousers; black rubber boots</dd>
+        </dl>
+      </section>
+
+      <section id="voice" class="block">
+        <div class="shead"><h2 class="h2" data-ar="الصوت">Voice</h2><span class="link" data-ar="اختير من ثلاثة أصوات مصمَّمة · 3 تشرين الأول">Chosen from three designed candidates · 3 Oct</span></div>
+        <dl class="vfacts">
+          <div><dt data-ar="الطبقة">Pitch</dt><dd data-ar="منخفضة">Low</dd></div>
+          <div><dt data-ar="الإيقاع">Pace</dt><dd data-ar="بطيء">Slow</dd></div>
+          <div><dt data-ar="الخامة">Timbre</dt><dd lang="en">Warm and resonant, with a faint wheeze</dd></div>
+        </dl>
+        <div class="k" style="margin-block:28px 4px" data-ar="سطوره في الأفلام">His lines on film</div>
+        <ol class="lines">
+          <li><button class="play play-sm play-art" type="button" aria-label="Play"><i data-i="play"></i></button><bdi lang="en"><q>Obsolescence. Always obsolescence.</q></bdi><span class="ro">1.2 · 0:04</span></li>
+          <li><button class="play play-sm play-art" type="button" aria-label="Play"><i data-i="play"></i></button><bdi lang="en"><q>Static’s just a story waiting to be told.</q></bdi><span class="ro">1.4 · 0:04</span></li>
+          <li><button class="play play-sm play-art" type="button" aria-label="Play"><i data-i="play"></i></button><bdi lang="en"><q>That’s… not possible.</q></bdi><span class="ro">2.2 · 0:03</span></li>
+          <li><button class="play play-sm play-art" type="button" aria-label="Play"><i data-i="play"></i></button><bdi lang="en"><q>She never left.</q></bdi><span class="ro">2.4 · 0:03</span></li>
+        </ol>
+      </section>
+
+      <section id="appears" class="block">
+        <div class="shead"><h2 class="h2"><span data-ar="يظهر في">Appears in</span><span class="count">1</span></h2></div>
+        <div class="appears">
+          <a href="short.html" class="fposter"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"><div class="fp-t"><div class="t-card-sm" lang="en">The Static Sky</div></div></a>
+          <div>
+            <div class="t-card" lang="en">The Static Sky</div>
+            <div class="small muted" style="margin-block:4px 14px" data-ar="فيلم قصير · البطل · 4 سطور · مشهدان">Short film · lead · 4 lines · both scenes</div>
+            <div class="strip"><span class="sf"><img src="media/shot-1-2.jpg" alt=""><span class="n">1.2</span></span><span class="sf"><img src="media/shot-1-4.jpg" alt=""><span class="n">1.4</span></span><span class="sf"><img src="media/shot-2-2.jpg" alt=""><span class="n">2.2</span></span><span class="sf"><img src="media/shot-2-4.jpg" alt=""><span class="n">2.4</span></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="notes" class="block">
+        <div class="k" data-ar="ملاحظات للكتّاب · لا تُستخدم في الرسم">Notes for the writers · never used to draw him</div>
+        <p class="prose" lang="en">Often punctuates sentences with a cough that sounds like a ship’s horn.</p>
+      </section>
+    </div>
+  </div>
+</main>
+<footer class="footer"><div class="wrap"><span data-ar="استوديو فيوبوكس">Vewbox Studio</span><span class="spacer"></span><a class="textlink" href="#"><span data-ar="المساعدة والاختصارات">Help &amp; shortcuts</span></a><span class="kbd">?</span></div></footer>
+<script src="v5.js"></script>
+</body>
+</html>
