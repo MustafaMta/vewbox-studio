@@ -1,7 +1,9 @@
 # Design system v5: Viewfinder
 
 Status: the visual identity, the design system and the page compositions for the complete redesign · written
-2026-10-03 · creative direction, UI/UX and design-system engineering (one point of view).
+2026-10-03 · creative direction, UI/UX and design-system engineering (one point of view) · **revised 2026-10-03 after
+the independent Design QA** (`docs/design/DESIGN-QA-PROTOTYPES-2026-10-03.md`): the three blockers and seventeen
+majors are fixed in this document and in the prototypes; the mapping is §14.
 Supersedes `docs/DESIGN-SYSTEM-V4.md` for identity, typography, colour, composition, navigation, page specs and the
 page work packages. v4 stays the reference for the engineering foundations kept in §11 (the CSS/i18n split, the kit's
 behaviour and accessibility, the players, the shell mechanics, RTL rules for media, the lint, captures and titles).
@@ -153,7 +155,7 @@ prototypes):
 - Gradients other than the four allowed: the hero **scrim** under text on art, the **art wash** behind a lobby hero
   (clamped colour from the art, §2.4), the **top scrim** under the transparent top bar on a hero, and the **frame
   poster** scrim (§5.9).
-- `backdrop-filter` anywhere except the theatre transport over video.
+- `backdrop-filter` anywhere except the theatre's fullscreen overlay transport.
 - Bordered cards, boxes inside boxes, KPI tiles, statistic cards, donut charts, zero counters, dashed empty boxes.
 - Violet anywhere in the product (the colour of every AI tool of 2024–26).
 - Uppercase or letter-spaced labels as hierarchy; small caps; positive tracking.
@@ -233,7 +235,12 @@ every `--iris-*`/`--violet-*` maps to `--paper` or `--fg-muted` so that nothing 
 | ink on paper (the primary button) | 17.28 | 4.5 |
 | `--fg` / body / muted over `--scrim` at 0.85 on pure-white art | 11.69 / 9.07 / 5.72 | 4.5 |
 | `--fg` on `--chip-on-art` over pure white | 10.23 | 4.5 |
-| Focus ring: paper inner on page / black outer on white art | 17.28 / 21.0 | 3 (2.4.13) |
+| Focus ring (§5.0): paper ring vs the ground it sits on / vs a paper-filled control across the 2 px ground gap / on art (paper between black bands) vs black | 17.28 / 17.28 / 18.32 | 3 (2.4.13) |
+| `--fg-disabled` #7E7B75 on the disabled fill / on page (was #5E5C57: 2.73 / 2.97) | 4.3 / 4.7 | exempt; ≥ 3 by rule |
+| Count on a selected (paper) chip, `rgb(10 10 9 / .72)` (was faint: 2.96) | 8.2 | 4.5 |
+| Interactive boundaries (chips, tags, keys, selected segment) in `--carbon-8` on page / field (was line-strong 1.72 / 1.54) | 3.61 / 3.24 | 3 (1.4.11) |
+| Menu description `--fg-muted` on the highlighted item (was faint: 4.00) | 5.9 | 4.5 |
+| Top bar over a hero, 13 px links at `--fg-body` over the 140 px top scrim, pixel-measured on the real art (median / 95th-percentile brightest), 1440 EN·AR, Home and Show (was 3.30 median at 1920) | ≥ 12.3 / ≥ 11.7 | 4.5 |
 
 ### 2.3 Where colour may appear
 
@@ -287,7 +294,12 @@ look stylised. Inter + Plex Arabic (v4) remains the fallback stack if the web fo
 - Arabic sizes are matched optically, not by a smaller fixed rule (study §4.4): display Arabic is 90–95 % of the Latin
   size with 1.25–1.38 line height; interface Arabic is +1 px with taller lines.
 - Wrapping: titles `text-wrap: balance`, prose `pretty`; hero titles clamp at 3 lines, tile titles at 2.
-- Measures: lead 64ch, prose 66ch, logline-as-note 34–44ch.
+- Measures: lead 64ch, prose 66ch, logline-as-note 34–44ch, synopsis in a row 58ch, any running paragraph ≤ 66ch.
+- **Floors (QA B3).** No product text under **12 px** (Latin) or **13 px** (Arabic script), chips on art included (12 px
+  on a 26 px chip; Arabic 13). Inside a workspace page's main content (production map, shot workspace, every
+  cutting-room tab) the floor is **13.5 px** (Arabic **14 px**), readouts included. The sizes 10, 11 and 11.5 px do not
+  exist in the kit. Prototype annotations are not product text. `measure.mjs` (§13.2) counts every visible text node
+  against these floors; the gate is zero.
 
 ### 3.3 Scale (px; Latin / Arabic; phone values below 640 px)
 
@@ -306,11 +318,11 @@ look stylised. Inter + Plex Arabic (v4) remains the fallback stack if the web fo
 | `.lead` | 19 / 30 | 17 / 27 | 17 / 27 | 20 / 34 | 18 / 30 | 18 / 30 | The one purpose line; hero loglines |
 | `.prose` | 16 / 27, 66ch | same | same | 17 / 30 | same | same | Personality, synopsis, script |
 | body | 15 / 24 | same | same | 15 / 26 | same | same | Everything else |
-| body (cutting room) | 13.5 / 20 | same | same | 14 / 22 | same | same | Workspace pages (compact density) |
+| body (cutting room) | 13.5 / 20 — the workspace floor: every caption, label, readout and chip in the workspace's main content is 13.5 | same | same | 14 / 22 (floor 14) | same | same | Workspace pages (compact density) |
 | `.small` | 13 / 20 | same | same | 14 / 22 | same | same | Meta lines, rows |
 | `.caption` (500) | 12 / 16 | same | same | 13 / 20 | same | same | Labels above values, hints |
 | `.slate` | 13 / 20 (tiles 12.5) | same | same | 14 / 22 | same | same | The metadata line (§3.4) |
-| `.ro` (mono) | 12 / 16; `.ro-md` 13 / 20; `.ro-lg` 15 / 20 | same | same | same (Latin digits) | same | same | Readouts |
+| `.ro` (mono) | 12 / 16; `.ro-md` 13 / 20; `.ro-lg` 15 / 20 | same | same | 13 / 20 (Western digits always, §9.4) | same | same | Readouts and identifiers |
 | lyric | 26 / 38 (active 600) | same | 21 / 30 | 30 / 46 | same | 24 / 38 | The lyric view |
 
 ### 3.4 The slate (kept from v4 §3.4)
@@ -322,7 +334,8 @@ Durations come from the cut, never the plan (audit 5: 1:01 vs 0:56).
 ### 3.5 Labels without capitals
 
 The premium references (A24, Apple TV, IMG, Linear) all use small uppercase labels; v5 does not, because Arabic has no
-case. The label register is: 12–13 px, weight 500, `--fg-faint`, sentence case; numbers inside a label in the mono.
+case. The label register is: 12–13 px (Arabic 13), weight 500, `--fg-faint`, sentence case; counts inside a label in
+the interface sans, readouts and identifiers in the mono (§9.4).
 
 ---
 
@@ -374,7 +387,23 @@ Tone first: page → surface → field → raised. Shadows only on overlays: `--
 ### 4.6 Density
 
 Comfortable in the lobby (controls 44, rows 48–56, body 15/24); compact in the cutting room (controls 34, rows 36–44,
-body 13.5/20; Arabic never below 13); coarse pointers ≥ 44. Minimum target 24 × 24 (WCAG 2.5.8).
+body 13.5/20; Arabic 14). Minimum target 24 × 24 on fine pointers (WCAG 2.5.8; standalone links get 24 px of height).
+**On coarse pointers every control is at least 44 × 44** (QA B3), as CSS in `kit.css`, not prose:
+
+```css
+@media (pointer: coarse) {
+  .btn-sm, .chip, .seg button, .seg a, .verpick, .menu .mi, .brand { min-block-size: 44px; }
+  .seg button, .seg a { min-inline-size: 44px; }
+  .ibtn, .ibtn-sm, .play-sm { min-inline-size: 44px; min-block-size: 44px; }
+  .textlink, .shead .link, .crumb, .reuse, .footer a, .paused-line a, .strip-needs, .credit dd a, .performers a, .rchip
+    { min-block-size: 44px; min-inline-size: 44px; display: inline-flex; align-items: center; }
+  .chip .x { inline-size: 32px; block-size: 32px; }
+}
+```
+
+Tabs are 44 px high on phones and wrap to two rows instead of scrolling (QA M17). Inline links inside running text are
+exempt (WCAG 2.5.8). Where a control must look smaller (a 36 px voice disc in a name row), a transparent `::after`
+extends its hit area to 44 px.
 
 ### 4.7 Motion (v4 §4.8 kept; additions)
 
@@ -389,14 +418,39 @@ Tokens: `--t-fast` 120 · `--t` 200 · `--t-slow` 320 · `--t-media` 480 ms; `--
 
 ## 5. Components
 
-Every component has: rest · hover · focus (2 px paper ring + 2 px black outer, on and off art) · active ·
-disabled-with-reason · loading · error where it applies. The specimen page `docs/design/prototypes/system.html`
-shows them in their states (render: `system-{en,ar}-{1440,390}.png`).
+Every component has: rest · hover · focus (§5.0) · active · disabled-with-reason · loading · error where it applies.
+The specimen page `docs/design/prototypes/system.html` shows them in their states (render:
+`system-{en,ar}-{1440,1920,834,390}.png`).
+
+### 5.0 Focus (QA B1)
+
+Focus is drawn with **`outline`, never `box-shadow`**, so that no state can suppress it: states (the selected
+segment, the chosen framing pick, the current pipeline pill, the selected outline row, the chosen take, a pressed
+chip) own `box-shadow`; focus owns `outline`.
+
+```css
+:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+/* controls on art, in players and in the theatre: black gap · paper ring · black band */
+:is(.ibtn-art, .play-art, .on-art-chip, .frame, .fposter, .tk .th, .rtakes .t, .strip .sf, .sstrip span):focus-visible,
+.on-art :focus-visible, .player :focus-visible, .ctl :focus-visible { outline-offset: 2px; box-shadow: 0 0 0 6px #000; }
+.tile:focus-visible, .fig:focus-visible, .scard:focus-visible { outline-offset: 4px; }
+.search:focus-within { outline: 2px solid var(--paper); outline-offset: 2px; }
+```
+
+Every focused control therefore reads as three rings: the control, a 2 px band of the ground, the 2 px paper ring.
+On a **paper-filled control** (the primary, the play discs, the selected chip, the selected company node) the dark
+gap separates paper from paper, so the ring is visible (ring vs gap 17.3:1). On art the ring sits between two black
+bands (ring vs black 18.3:1; black vs white art 21:1). Measured: every element reached by Tab on every prototype at
+1440, 834 and 390 in both languages has a ≥ 2 px solid ring at ≥ 3:1 against the ground and against the control
+(§13.2, `measurements.json`). Lint (DS): no component may set `outline: none` on a focusable element, and no
+`:focus-visible` rule may use `box-shadow` for the ring.
 
 ### 5.1 Navigation (shell)
 
-**Top bar** (64; phone 56; sticky; `rgb(10 10 9 / .97)` with a `--line-soft` bottom hairline; transparent with
-`--scrim-top` over a hero):
+**Top bar** (64; phone 56; sticky; `rgb(10 10 9 / .97)` with a `--line-soft` bottom hairline). Over a hero it is
+transparent above a **140 px top scrim** (`rgb(10 10 9)` at .90 → .78 at 46 % → 0), and its secondary links take
+`--fg-body` and the primary links `--carbon-11` (QA M9; measured ≥ 12.3:1 median and ≥ 11.7:1 against the 95th-percentile
+brightest pixel on the real Home and Show heroes):
 
 ```
 [⌜•⌟ Vewbox]   Home  Shows  Shorts  Music Videos  Characters  Studio Company      Locations  Production ④  Screening Room  Settings │ [⌕ Search the studio  Ctrl K]
@@ -429,15 +483,15 @@ shows them in their states (render: `system-{en,ar}-{1440,390}.png`).
 
 | Variant | Spec | Use |
 |---|---|---|
-| Primary | Pill 44 (sm 34, lg 52), paper fill, ink text, 14/15 px 500; hover white; focus ring | One per region |
+| Primary | Pill 44 (sm 34, lg 52; 44 on coarse pointers), paper fill, ink text, 14/15 px 500; hover white; focus: §5.0 (ground gap + paper ring) | One per region |
 | Split primary | Primary with a 1 px divider and a chevron that opens the Auto/Manual menu | *New show*, *New character* |
-| Secondary | `rgb(243 239 232 / .10)` fill, paper text; hover .16 | Everything that is not the one primary |
+| Secondary | `rgb(243 239 232 / .10)` fill, paper text; hover .20 | Everything that is not the one primary |
 | Quiet | Text only, muted; hover paper + .06 fill | Cancel, Download in lists |
 | Danger | Coral fill, ink text | Only the confirm inside a ConfirmDialog |
-| Disabled | `.05` fill, `--fg-disabled` text, `aria-disabled`, **reason written beside it** | e.g. *Redraw* on a locked character |
+| Disabled | `.05` fill, `--fg-disabled` (#7E7B75, 4.3:1) text, `aria-disabled`, **reason written beside it** | e.g. *Redraw* on a locked character |
 | Loading | Keeps width; running dot + "Approving…"; `aria-busy` | |
-| Icon button | 40 (sm 32) circle, muted; *solid* variant for More; *on-art* on `--chip-on-art` | |
-| Play disc | Paper circle 36 / 56 / 72 with a filled triangle; *on-art* variant | The music hero's primary; tiles; voice rows |
+| Icon button | 40 (sm 32; 44 on coarse pointers) circle, muted; *solid* variant for More; *on-art* on `--chip-on-art` | |
+| Play disc | Paper circle 36 / 56 / 72 with a filled triangle; *on-art* variant. **Never over a face** (QA M2): in a player it lives in the transport; a centre disc appears only while no transport is shown, over a poster frame chosen by `faceBox` | The music hero's primary; transports; voice rows |
 
 Generation actions are secondary unless the work is missing (audit 7): *New take* on a shot that has a selected take
 is secondary; *Draw the image* on a character with no image is the primary.
@@ -446,22 +500,29 @@ is secondary; *Draw the image* on a character with no image is the primary.
 
 | Hero | Page | Composition | Phone |
 |---|---|---|---|
-| **Marquee** | Home (Continue) | Full-bleed still from the cut (focal crop), top bar over it, bottom-start text: kicker line ("Continue · the final cut is ready"), slate, `.t-marquee` title, lead, primary verb + secondary; readout block at the bottom end | Separate portrait crop (4:5, `portraitFocal`) with text below the art |
+| **Marquee** | Home (Continue) | Full-bleed still from the cut (focal crop), top bar over it, bottom-start text: kicker line ("Continue · the final cut is ready"), slate, `.t-marquee` title, lead, primary verb + secondary; readout block at the bottom end | Separate portrait crop (4:5) at the frame's own `portraitFocal` with the subject in frame, text below the art |
 | **Backdrop + poster** | Show | Full-bleed key art 700 high; poster 2:3 (232 w) overlapping the hero bottom at the start; beside it slate, title, lead, *Continue Episode N: stage* (primary), *Watch Episode N*, More; tungsten strip when a decision waits; muted preview control at the top end | Portrait crop, no poster, text below, primary full width |
 | **Diptych** | Short | Wash from the art; crumb; slate; `.t-marquee` title; frame poster 3 cols beside the player 9 cols; the film strip under the player with scene labels; actions row with deliverable readout at the end | Player first (edge to edge), title, strip, actions |
 | **Sleeve** | Music video | Wash from the sleeve; sleeve 1:1 380 with contact shadow; kind line, song title `.t-marquee`, performers as 32 px faces + names, slate; transport row: 72 px paper play disc (the region's primary), Song | Video switch, seek, *Continue: stage*, More | Sleeve ≤ 320, then text, then the transport |
 | **Figure** | Character | The canonical figure at 928:1664 on its `--art-edge` field, sticky at ≥ 1024 (5 of 12 cols); no tint; text column beside | Figure full length on its field (≤ 64vh), never cropped |
-| **Theatre** | Screening Room | Black; the cut at native ratio, 2/3 width at ≥ 1280 with the review pane beside; transport always visible | Player edge to edge |
+| **Theatre** | Screening Room | Black; the cut at native ratio, 2/3 width at ≥ 1280 with the review pane beside; the transport **docked under the picture**, always visible, never over the frame or its captions | Player edge to edge, transport under it |
 
 Art direction in RTL: when the subject sits where the RTL text block goes, the hero uses its alternative frame
 (stored `rtlFrameAssetId`, **new**, chosen once by the producer or defaulting to the next frame whose focal point is
 on the opposite side). The prototype's Home uses shot 1.1 in Arabic for this reason.
 
+**Crops are computed from faces, never inherited** (QA M1, M3, §8 item 5). Every hero frame stores its own
+`focal` (landscape) and `portraitFocal` (phone, 4:5), and the RTL alternative frame stores its own pair; the
+backfill computes `portraitFocal` from the frame's `faceBox` (subject centred, face in the upper third) and never
+defaults to the landscape focal. A figure used as 16:9 key art keeps its whole `faceBox` inside the crop with
+≥ 8 % headroom (the prototype's Shows wall: `object-position: 50% 2%`); otherwise key art comes from plates or
+frames. The prototype's Arabic phone Home sets shot 1.1's portrait focal at 22 % x, with Najm in frame.
+
 ### 5.5 Tiles
 
 Anatomy: frame (ratio, 2 px) → 14 px → name (serif) with an optional *More* button **outside the art** → slate (status
 last). One link wraps frame and text; the menu is a sibling. Hover: picture scale 1.02, name underline. Focus: the
-two-colour ring around the frame. Loading: `--art-ph` frame + two text bars, shimmer ≤ 1 s. Selected (in pickers):
+ring of §5.0 at a 4 px offset around the tile. Loading: `--art-ph` frame + two text bars, shimmer ≤ 1 s. Selected (in pickers):
 2 px paper outline + check chip.
 
 | Tile | Ratio | Name | Slate |
@@ -469,7 +530,7 @@ two-colour ring around the frame. Loading: `--art-ph` frame + two text bars, shi
 | Key art (Show) | 16:9 | `.t-card` 25/30 | genre · language · seasons · episodes, status at the end of the second line |
 | Poster (Short) | 2:3 (frame poster when none) | `.t-card-sm` | runtime (from the cut) · status |
 | Sleeve (Music video) | 1:1 | `.t-card-sm` + performers 13 px | duration · sections · status; play disc on hover/focus/touch |
-| Figure (Character) | 928:1664 on `--art-edge` | `.t-card` 26/30, **name only** | only "Needs approval" (tungsten) when true; voice disc on hover/focus/touch |
+| Figure (Character) | 928:1664 on `--art-edge` | `.t-card` 26/30, **name only**; the 36 px voice disc (44 px hit area) **in the name row, never on the figure** (QA M7) | only "Needs approval" (tungsten) when true; the disc shows on hover, focus and always on touch |
 | Plate (Location) | 16:9 (2.39:1 in heroes) | `.t-card-sm` | lighting states · used in N productions |
 | Still (episode, cut) | 16:9 | label + `.t-card` | synopsis 2 lines; stage meter + words |
 | Decision card (Home) | 16:9 (figures contained on their field) | `.t-card-sm` | kind line in tungsten; one sentence; one secondary action |
@@ -481,7 +542,11 @@ two-colour ring around the frame. Loading: `--art-ph` frame + two text bars, shi
   mirrored in RTL, *See all*.
 - **Contact sheet** (new): mixed shapes at one height in one row (Home's *Pick up where you left off*).
 - **Film strip** (v4 kept, values): lobby 64 tall with scene labels under it, proportional widths from shot durations;
-  2 px current outline; mono shot numbers on a solid chip; always LTR.
+  2 px current outline; mono shot numbers (12 px, 13.5 in the workspace) on a solid chip; always LTR.
+- **Every strip on touch says that it scrolls** (QA M15, M17): a thin visible scrollbar (`scrollbar-width: thin`,
+  `--carbon-8`), a 40 px end fade made with a **mask** (not a painted gradient), snap, and, where the strip holds
+  decisions or the first screen's content, a position readout in the section head ("1 of 4 · swipe" with four dots;
+  Arabic "١ من ٤ · اسحب"). Tab rows never scroll on phones: they wrap to two rows at 44 px.
 
 ### 5.7 Faces
 
@@ -505,8 +570,9 @@ there is no image. Used in cast rows, performers, lyric lines, reference chips, 
   bottom start in the serif (muted). Episodes add a large faint number at the top end.
 - **Frame poster** (new; audit 1): a 2:3 focal crop of the production's chosen key frame (default: the last shot's
   selected take's opening frame; the producer can choose another), a bottom scrim, and the title in the serif at
-  the bottom start with a small readout line ("Frame poster · shot 2.4"). It is a presentation, stored as a
-  derivative image at display sizes; no model is involved.
+  the bottom start with a small label line ("Frame poster · shot 2.4", 12 px). It is a presentation, stored as a
+  derivative image at display sizes; no model is involved. It is listed as a downloadable deliverable only once B7 has
+  produced the file (QA M14); until then the prototypes mark it "proposal · B7".
 
 ### 5.10 Inputs, search, filters
 
@@ -516,10 +582,13 @@ there is no image. Used in cast rows, performers, lyric lines, reference chips, 
 - **Filters** (one deliberate step): status chips (All · In production · Waiting for you · Finished, with counts) and
   one *Filters* button that opens a panel (drawer on desktop, sheet on phone) of segmented facets; active facets show
   as removable chips. Filters appear only when there are more than six items (audit 13 and §3.2).
-- **Segmented** 36 in a `--field` track; selected = `--raised` + 1 px strong edge; disabled options carry their reason
-  ("Vertical (no cut yet)").
-- **Tabs** 52 high, 15 px 500 muted; selected paper with a 2 px paper underline; counts in the mono; sticky in
-  lobby detail pages; switching is instant.
+- **Segmented** 36 in a `--field` track (44 per option on coarse pointers); selected = `--raised` + 1 px `--carbon-8`
+  edge (3.3:1); focus is the outline ring over it (§5.0); disabled options carry their reason ("Vertical (no cut
+  yet)") in `--fg-disabled` 4.3:1.
+- **Tabs** 52 high (44 on phones, wrapping to two rows), 15 px 500 muted; selected paper with a 2 px paper underline;
+  counts in the mono (the sans in Arabic, §9.4); sticky in lobby detail pages; switching is instant.
+- **Chips, tags and keys** have `--carbon-8` boundaries (3.6:1); the count on a selected (paper) chip is
+  `rgb(10 10 9 / .72)` (8.2:1).
 
 ### 5.11 Upload
 
@@ -536,11 +605,17 @@ dot: "Drawing frame 13 of 20") · missing (title card) · composed (frame poster
 
 ### 5.13 Players
 
-- **Inline / diptych player** (lobby): black, 8 px radius, centre play disc 72, a bottom transport over a 0.82 scrim:
-  play, time "0:30 / 0:56" (mono), seek 4 px (paper on 25 % white, 13 px thumb), captions, volume, fullscreen.
-- **Theatre transport**: the only blur in the product (`rgb(0 0 0 / .55)` + 12 px blur; solid under
-  `prefers-reduced-transparency`), always visible while paused or focused; shot marks on the seek bar; note ticks in
-  tungsten; captions and audio language as a readout.
+- **Inline / diptych player** (lobby): black, 8 px radius, a bottom transport over a 0.82 scrim: the paper play disc
+  (36), time "0:30 / 0:56" (mono 12.5), seek 4 px (paper on 25 % white, 13 px thumb), captions, volume, fullscreen.
+  **No centre disc while the transport is visible** (QA M2); before the first play the transport is visible, so the
+  centre disc exists only for a player shown without a transport (a hero preview), over a face-safe poster frame.
+- **Captions clear the transport** (QA M6): soft captions sit at `inset-block-end: calc(var(--transport-h) + 16px)`
+  whenever an overlay transport is visible, and drop back only under the theatre's lights-down state; burned-in
+  captions are protected by docking the transport.
+- **Theatre transport**: **docked under the picture** on the black surround (play, ±5 s, time, seek with shot marks and
+  tungsten note ticks, captions with the language as a readout, volume, compare, fullscreen), always visible; nothing
+  is drawn over the frame except a note pin. In fullscreen the transport overlays the bottom on `rgb(0 0 0 / .55)` +
+  12 px blur (the only blur in the product; solid under `prefers-reduced-transparency`) and captions rise above it.
 - **Canvas player** (workspace): achromatic canvas, docked transport under the frame (frame back, play, frame forward,
   timecode `00:00:03:12 / 00:00:07:07`, audio, compare, J K L · ← → · I O hint).
 - **Now-playing bar** (music): 72 high, 12 px radius, `--raised` + float shadow, inset from the margins; sleeve 48,
@@ -572,14 +647,14 @@ credits list characters with their voice and appearance ("4 lines · designed vo
   motion) · waiting (tungsten) · done/approved (ok) · failed/refused (coral) · locked (lock icon, muted).
 - **Stage meter**: 6 segments 14 × 3 (done muted, current paper, waiting tungsten), `aria-hidden` beside the words.
 - **Progress bar**: 3 px paper on `--line`, only when the engine reports a real fraction; job progress mirrors in RTL.
-- **Needs badge**: tungsten pill 18 high with a mono count.
+- **Needs badge**: tungsten pill 20 high with a 12 px count in the interface sans (13 px, Arabic-Indic, in Arabic).
 - **Judgement words** (takes): *Selected* (paper pill with a check), *Good take* (ok soft), *Rejected · reason* (coral
   soft), *QA passed* (outlined). No stars.
 
 ### 5.17 Overlays and feedback
 
-- **Menu / popover**: `--raised`, 8 px radius, overlay shadow, 6 px padding; items 14/20 with a 12.5/18 faint
-  description (used for Auto/Manual: "Let the studio propose — one line is enough; you review everything before it is
+- **Menu / popover**: `--raised`, 8 px radius, overlay shadow, 6 px padding; items 14/20 (44 high on coarse pointers) with a
+  13/19 `--fg-muted` description (5.9:1 on the highlighted item) (used for Auto/Manual: "Let the studio propose — one line is enough; you review everything before it is
   made" / "Write it yourself — a title or a line; everything else has a default").
 - **Dialog**: 440 / 560 / 880; `--surface`, 12 px radius; title `h2`; Cancel (quiet) then the confirm; destructive
   confirm in coral and named ("Delete Salam"); one sentence of consequence and what is kept. Below 640 it is a bottom
@@ -727,10 +802,12 @@ kind · name · what happened last                           │ │ company 9 �
   finished but work in progress* → the marquee shows the in-progress production's latest frame with *Continue
   Storyboard*. *No decisions* → the Needs-you section is omitted. *Loading* → marquee frame in `--art-ph`, text bars.
   *Server down* → ServerBar; last-known content dimmed.
-- **Phone**: the marquee uses the portrait crop (4:5) with the title under the art; decisions become a rail (80 %
-  cards); the contact sheet scrolls; characters 2-up; start cards stacked. Bottom bar: Home current.
-- **RTL**: art-directed alternative frame (shot 1.1, subject on the left); the English logline keeps its language and
-  direction, aligned to the right edge; the decisions rail starts at the right.
+- **Phone**: the marquee uses the frame's own portrait crop (4:5) with the subject in frame and the title under the
+  art; decisions become a rail (80 % cards) whose section head says **"1 of 4 · swipe"** with four dots, with a thin
+  scrollbar and an end fade (QA M15); the contact sheet scrolls the same way; characters 2-up; start cards stacked.
+  Bottom bar: Home current.
+- **RTL**: art-directed alternative frame (shot 1.1, Najm on the left; its portrait focal at 22 % x on phones, QA M1);
+  the English logline is an English block: LTR and left-aligned (§9.2); the decisions rail starts at the right.
 - **Audit**: 1 (the film is the hero and plays in one click), 2 (a front door), 5 (one count: 4), 13 (title cards,
   no repetition), 15 (the work first).
 
@@ -807,7 +884,7 @@ start." + *Let the studio propose* / *Write it yourself*.
 ‹ Shorts
 Short film · 2026 · 0:56 · Cartoon · Sci-fi drama · English · ● Finished
 The Static Sky (t-marquee)
-[frame poster 2:3 · shot 2.4]  [player 16:9 at 0:30, centre play, transport]
+[frame poster 2:3 · shot 2.4 · proposal B7]  [player 16:9 at 0:30, transport with the paper play disc; no centre disc]
                                [1.1][1.2][1.3][1.4][2.1][2.2][2.3][2.4]   ← proportional strip
                                Scene 1 · The Broken Signal        Scene 2 · Static Echoes
 [ ▶ Watch in the Screening Room ] [ Open production ] (⋯)         1080p · MP4 · 56 MB · English subtitles  ↓ Download
@@ -910,7 +987,9 @@ Hana Mori   Salam   Elias Moore   Najm   أبو سلام      ← name only (ser
   "Waiting for your approval".
 - **Phone**: the figure full length on its field (≤ 64vh), never cropped; then the name and the voice; anchor nav as a
   chip row.
-- **RTL**: the figure on the right; English facts keep English with correct punctuation and start at the right edge.
+- **RTL**: the figure on the right; English content blocks (personality, role, notes, look values) are LTR,
+  left-aligned and isolated (§9.2); the look list, whose values are English, flips to LTR as a whole so each Arabic
+  label sits beside its value; the English role line keeps its italic (only Arabic is never italic).
 - **Audit**: 4 (no error rates or engine names), 8 (no pillars, no torso crops), 14, 15 ("lines", not "takes").
 
 ### 8.9 Studio Company `/studio` — prototype `studio.html` (real: departments, agents, skills, handoffs)
@@ -922,14 +1001,15 @@ Nine departments and thirty-five agents. Lines are drawn only where work is hand
 ┌ sunken stage ─────────────────────────────────────────────┐ ┌ inspector: the selected department ──────────────┐
 │        (You · approve the story)                           │ │ CA  Department 2 of 8 · Cast & World stage       │
 │                 ST Story Development                       │ │     Casting & Character Design                   │
-│ (You · approve the cut)       ╭─ CA ●tungsten  ⌒ pair       │ │ responsibility (one sentence)                    │
+│ (You · approve the cut)            CA ●tungsten               │ │ responsibility (one sentence)                    │
 │      PO ↘                ( Studio Orchestrator )   WB      │ │ Director and agents (each labelled "agent")      │
 │   QA 3↑          Executive Office · paused · 4 decisions   │ │ Verified skills (tags) · Tools (in words)        │
 │      8↑  VP ←13·1✕── SM ←1── PP ←3                         │ │ Current assignments (figures + tungsten words)   │
 │ 9 relations from the org model; dashed = no handoff yet    │ │ Recent work (times, past tense)                  │
 └────────────────────────────────────────────────────────────┘ │ Open the department ›                          │
-── Running now ── Nothing is running: the studio is paused. (rows when running: by what it makes · phase · time · Cancel)
+── Running now ── Nothing is running: the studio is paused. (rows only while something runs: what it makes · phase · time · Cancel)
 ── Recent handoffs ── 09:29 Post-Production → Executive Office · the cut, for approval · ● validated …  07:30 · ● refused · redone
+── On record · The Static Sky ── Video Production · 15 takes · median 3 min 6 s per take · local, no cost / Casting · 5 characters · 3 voices
 ```
 
 - **Signature**: the live company from the run record: the ring in pipeline order (clockwise from the top in both
@@ -939,12 +1019,17 @@ Nine departments and thirty-five agents. Lines are drawn only where work is hand
   tools (in words), verified skills, current assignments, recent activity, all from the database; *Open the
   department* leads to its page (v3/v4 department page kept, with telemetry behind Details).
 - **Premium**: one drawing on a sunken stage, typographic, no icons-on-discs-on-cards, no glow or particles; the
-  numbers are real handoffs.
+  numbers are real handoffs. Every label sits within 12 px of its node (≤ 150 px wide; the side labels 104 px, outside
+  the ring), so no label crosses an edge; the shared Cast & world stage is stated in the legend, not drawn as a bracket
+  (QA M10, M16).
+- **"Running now" holds only runs** (QA M10): while nothing runs it is one sentence (≤ 66ch). Totals from the record
+  are a separate section, "On record · <production>", after the handoffs.
 - **States**: nothing has run → the ring drawn once with dashed relations and "Nothing has run yet. A production
   passes through these departments in this order."; running → spokes from the Orchestrator to the working department
   and a "Running now" row with Cancel; a refusal → a coral ✕ count on its line and a coral row in Recent handoffs.
-- **Phone**: the spine: the Orchestrator card, then the departments in pipeline order with the relations as words
-  ("→ Video: 13, one refused"), then the inspector of the selected one, then the lists.
+- **Phone and tablet (< 1024)**: the spine: the Orchestrator card, then the departments in pipeline order with the
+  relations as words ("→ Video: 13, one refused"), then the inspector of the selected one, then the lists. The ring is
+  drawn only from 1024 px, where its labels fit inside the stage (QA M12: no overflow at 834).
 - **RTL**: the drawing is not mirrored (pipeline order runs like a clock); labels are Arabic; the inspector moves to
   the left.
 - **Audit**: 4 (no telemetry in the main view), 5 (4 decisions, the same count), 15 (the company is secondary in the
@@ -953,10 +1038,11 @@ Nine departments and thirty-five agents. Lines are drawn only where work is hand
 ### 8.10 Production workspace: the production map `/shorts/[id]/production` — prototype `production.html` (real)
 
 ```
-[workspace bar: ‹ · poster · The Static Sky / Short film · production workspace · (Map) ✓Story ✓Cast & World ✓Storyboard ✓Produce ✓Final cut · Saved · Screen it]
+[workspace bar: ‹ · poster · The Static Sky / Short film · production (one line, ellipsis) · (Map) ✓Story ✓Cast & World ✓Storyboard ✓Produce ✓Final cut · Saved · Screen it]
 ● The studio is paused. You can edit and choose; new takes wait until you resume it.        Resume in the Studio Company
 ┌ Outline (280) ────────────────┐ ● Finished: every shot has a selected take, and cut 3 was exported on 3 Oct at 09:33.
-│ ✓ Script · approved · 6 lines │ [Story ✓ The script][Scenes ✓ 2 scenes][Shots ✓ 8 shots][Takes ✓ 15 takes][Final cut ✓ Cut 3]
+│ ✓ Script · approved · 6 lines │ ─────────────────────────────────────────────────────────────────────────── (hairline)
+│                               │ ✓ Story: the approved script → 2 scenes → 8 shots → 15 takes, 8 selected → Final cut 3   (15 px, one line of links)
 │ ● 1 · The Broken Signal  4/4  │ ── Story ── logline (serif) · You approved the story 06:36 · three concepts, one chosen
 │   1.1 [▭] Wide · static     ● │ ── Breakdown review ── table: scene · shots · planned · opening frames · cast · ready
 │   …                           │    Total 8 · 61 s of 60 · 8/8 · 2/2 · Ready   [Produce every shot] (disabled: done)
@@ -968,12 +1054,14 @@ Nine departments and thirty-five agents. Lines are drawn only where work is hand
 ```
 
 - **Signature**: the hierarchy you move through: story → scenes → shots → takes → final cut, as the outline and as
-  the five-step flow, with the breakdown review as the gate before filming (LTX).
+  **one typographic line of links** under a hairline (QA M4: never a strip of five boxes with big numbers), with the
+  breakdown review as the gate before filming (LTX).
 - **No raw model parameters, job ids or logs** in this view; progress, review, cancellation and recovery are words.
 - **States**: in progress → the flow's current step outlined, the gate showing what is missing ("Opening frames 6/8 ·
   Hana Mori's image needs approval") and *Produce every shot* enabled only when ready; running → the shot cards show
   "◐ Filming · 1 min 40 s" with Cancel; failed → coral mark in the outline and a failure card on the shot.
-- **Phone**: one column; the outline becomes a shot switcher; the flow is 2 × 3.
+- **Phone**: one column; the outline becomes a shot switcher; the flow line wraps; the workspace bar keeps the title on
+  one line and grows rather than clipping; the paused line shortens to "Paused · new takes wait · Resume" (QA M11).
 - **RTL**: outline on the right; strips and timeline LTR.
 - **Audit**: 3, 4, 7 (no generation buttons on finished work; one gated *Produce every shot*), 15.
 
@@ -987,7 +1075,7 @@ Outline │ Take 4 · selected · passed the picture and speech checks          
         │   K  ▶  K   00:00:03:12 / 00:00:07:07   🔊  ◫      J K L · ← → · I O                         │ [ + New take ]  [ ⇤ Continue from shot 2.2 ]
         │ Queued — Preparing references — Filming — Checking     Nothing filming now · takes here took ~3 min │ G · waits in the queue while paused
         │ Takes 4 · one selected                                                     ◫ Compare two     │ ▾ Camera & framing (open)
-        │ [take 1][take 2][take 3][take 4 ✓]  QA passed · Use this take · Selected · Good take          │   Framing: [Wide][Medium][Two-shot ✓][Close-up] (drawn)
+        │ [take 1][take 2][take 3][take 4 ✓]  7.3 s · made in 2 min 59 s · QA passed · Use this take    │   Framing: [Wide][Medium][Two-shot ✓][Close-up] (drawn)
         │ Attempts · newest first                                                                     │   Camera: [Static][Push in][Truck right ✓][Tilt up] (drawn)
         │ 09:26 Take 4 · 2 min 50 s · passed · you selected it          Reuse settings                │   Length [5 s|7 s|10 s] · Into the shot [Cut|Continues]
         │ … 08:05 Cancelled · before it started · nothing was lost                                    │ ▾ Cast & references: (◯ Elias ●)(◯ Najm ●)(▭ Elias's Workshop · night)(+ From the cast)
@@ -999,6 +1087,9 @@ Outline │ Take 4 · selected · passed the picture and speech checks          
 
 - **Signature**: the shot is the session: one dominant preview, the takes under it side by side with one verb, the
   attempts as its history; the inspector in disclosure sections with the common ones open.
+- **Take cards** (QA M5): the readout under a take is the clip's **length** ("7.3 s"); the time it took to make is a
+  words line ("made in 7 min 11 s", 12.5 px muted). *Good take* and *Rejected* need B5 and *Draft / Final* needs B6;
+  until they exist the prototype marks them "proposal".
 - **Requirements met** (producer and AI-filmmaking study): prominent preview; character selection (named chips from
   the production's cast, with voice state); location selection (the scene's plate chip with its lighting); reference
   image selection (opening and ending frame slots, with exclusions stated in place); shot description (*What
@@ -1016,26 +1107,30 @@ Outline │ Take 4 · selected · passed the picture and speech checks          
   the takes as a rail, the attempts, then the inspector sections as an accordion.
 - **RTL**: outline on the right, inspector on the left; takes mirror (they are not time); transport, timecode and
   strip LTR; units translated ("7 ث").
-- **Audit**: 4, 6, 7 (picture-first, takes in one click, frames removable via the slot's × , Save never next to
-  Delete: Delete shot lives in the outline's row menu), 8 (references in their own shapes), 14 (13.5 px minimum).
+- **Audit**: 4, 6, 7 (picture-first, takes in one click, frames removable via the slot's × (32 px, 44 on touch), Save
+  never next to Delete: Delete shot lives in the outline's row menu), 8 (references in their own shapes), 14 (the
+  workspace floor, 13.5 px / Arabic 14 px for every text in the workspace's main content, is built and measured: §3.2,
+  §13.2).
 
 ### 8.12 Screening Room `/screening` — prototype `screening.html` (real: The Static Sky, cut 3)
 
 ```
 [black page; top bar on black]
 ┌ the cut, native ratio, 2/3 width ────────────────────────────┐ ┌ review pane (1/3) ───────────────────────┐
-│                                   (1)── pinned note: 00:00:51:04 │ │ Shots 8 · Notes 1 · Subtitles 2 · Export   │
-│                                   "The portrait should flicker…" │ │ 1.1 · take 1 · the only take   ● Approved  │
-│                                   [Send to shot 2.4] [Resolve]   │ │ 2.3 · take 4 of 4 (open):                  │
-│ ▶ ⏮ ⏭ 0:51 / 0:56 ━━━━━━━━━━━━━━━━━━━━━━━━━━━●┊  CC EN 🔊 ◫ ⛶  │ │   [1][2][3][4✓]  Use take 3 in this cut ·  │
+│   ┌ note 00:00:51:04 ┐          (1) pin on the portrait     │ │ Shots 8 · Notes 1 · Subtitles 2 · Export   │
+│   │ "The portrait…"  │  (the note opens away from the face)  │ │ 1.1 · take 1 · the only take   ● Approved  │
+│   └ [Send to shot 2.4] [Resolve]                              │ │ 2.3 · take 4 of 4 (open):                  │
+│                    She never left.   (burned-in, uncovered)   │ │   [1][2][3][4✓]  Use another take… ·        │
 └──────────────────────────────────────────────────────────────┘ │   Send back with a note                    │
+ ▶ ⏮ ⏭ 0:51 / 0:56 ━━━━━━━━━━━━━━━━━━━━━━━━━━━●┊  CC EN 🔊 ◫ ⛶     (docked under the picture)
 0:51 Add a note at 0:51…           C note · I O range · pin on the frame · [ ] prev / next shot │ ● Cut 3 approved · exported           │
 [1.1][1.2][1.3][1.4][2.1][2.2][2.3][2.4✓]                                                     └────────────────────────────────────────────┘
 Now screening
 The Static Sky (t-hero)  [Cut 3 of 3 ▾]              [↓ Download ▾] [Open production] [◫ Compare with cut 2]
-Short film · 0:56 · Cut 3 · 3 Oct, 09:29 · English and Arabic subtitles
+Short film · 0:56 · Cut 3 · 3 Oct, 09:29 · English subtitles, burned in
 Written by … · Storyboard … · Filmed by … · Characters … · Voices … · Cut by …     Logline (serif)
-── Deliverables ── The film · MP4 · 1080p · 56 s · English subtitles burned in · 56.3 MB · ↓ / Subtitles · SRT · VTT … / Poster
+── Deliverables ── The film · MP4 · 1080p · 56 s · English subtitles burned in · 56.3 MB · ↓ / Subtitles · SRT · VTT · English · Arabic · 4 files · ↓
+   (the poster appears here only once B7 has made the file)
 ```
 
 - **Signature**: lights down, the film first; review available beside it without dominating.
@@ -1045,8 +1140,14 @@ Written by … · Storyboard … · Filmed by … · Characters … · Voices �
   **Audio**: the volume and the A/B audio switch in Compare. **Subtitles**: CC with the language as a readout; the
   Subtitles tab lists tracks. **Export**: the Export tab and the Deliverables list.
 - **Notes** (Frame.io grammar): timecode (C), range (I/O), a pin on the frame, drawings (P), `[` `]` between shots,
-  *Send to shot* turning a note into a regeneration brief that pre-fills the shot's *What happens*. Notes need the
-  backend record B2 (§11.4); the prototype's note is annotated as an example.
+  *Send to shot* turning a note into a regeneration brief that pre-fills the shot's *What happens*. A note's card opens
+  on the side away from the frame's `faceBox`. Notes need the backend record B2 (§11.4); the prototype's note is
+  annotated as an example.
+- **The transport is docked under the picture** (QA M6): nothing covers the frame, so burned-in subtitles (the
+  export's English) and soft captions are always readable; in fullscreen the overlay transport raises captions by its
+  height.
+- **Honest facts** (QA M14): the slate and deliverables say only what the record holds: English subtitles burned in;
+  subtitle files in English and Arabic; no poster file until B7.
 - **States**: no cut → a black 16:9 frame "Nothing to screen yet. A cut appears here when Post-Production assembles
   it." + *Open Production*; several cuts → the picker; compare → two players linked, one transport, an audio switch.
 - **Phone**: the player edge to edge; transport always visible; the composer as one line; the review pane below; the
@@ -1089,9 +1190,19 @@ interface (+1 px, taller lines), Arabic never below 13 px, Arabic sizes matched 
   the outline and inspector panes, the anchor nav.
 - **Never mirrored**: pictures, faces, plates, the company drawing, play/pause/skip glyphs, clocks, transports, seek
   bars, waveforms, film strips, timelines, timecodes (`dir="ltr"` groups with translated labels).
-- **Content in the other script** keeps its own direction with correct punctuation: `unicode-bidi: plaintext` on every
-  element with `lang` different from the page, `<bdi lang="en">` around quotes and mixed runs, aligned to the page's
-  start edge. English titles keep Newsreader and its metrics inside the Arabic page.
+- **Content in the other script** (amended after QA ruling c / M8):
+  - **Runs and one-line items** (names, titles, headings, labels, table cells, list items, `b`, `dt`, `td`,
+    `span.block`): their own direction for correct punctuation (`unicode-bidi: plaintext`, `<bdi lang="en">` around
+    quotes and mixed runs), **aligned to the interface's start edge** like their siblings, so a name and the Arabic
+    status line under it align the same way.
+  - **Blocks that can run to two or more lines** (paragraphs, definition values, quotes, text areas, leads, loglines,
+    role lines, `.prose`, `.block`): **their own direction and their own alignment, isolated** —
+    `html[dir=rtl] :is(p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)[lang=en] { direction: ltr;
+    text-align: left; unicode-bidi: isolate }` and the mirror rule for Arabic blocks in the English interface. An English
+    paragraph in the Arabic interface reads as an English paragraph: LTR, left-aligned, ragged right.
+  - **A definition list whose values are in the other script** flips to the values' direction as a whole
+    (`dl.ltr-values`), with each label flush against its value.
+  - English titles keep Newsreader and its metrics inside the Arabic page; English italic stays italic.
 - **Content stays in its language**: a production without an Arabic title shows its English title (with `lang="en"`);
   the interface around it is Arabic. The studio translates content only when the producer asks.
 - **Art direction**: RTL heroes use the alternative frame when the subject would sit under the text (§5.4).
@@ -1102,18 +1213,28 @@ interface (+1 px, taller lines), Arabic never below 13 px, Arabic sizes matched 
 
 ### 9.4 Numerals (decision of 2026-10-03)
 
-Arabic-Indic digits (٠–٩) are a setting under Interface › Numerals, **on by default when the studio's dialect is
-Iraqi**. They apply to counts, dates, durations in slates and prose. **Western digits always** in timecodes, the
-transport, shot and take numbers on art (`.on-art-chip`), film strips, resolutions, ids, file data and keyboard keys.
-Implementation: a formatting function in `src/lib/format.ts` (owned by DS) with a `latinDigits` context for media
-components; the prototypes implement the rule in `v5.js` (`?digits=western` shows the other setting).
+**One rule, by the kind of number** (resolves QA B2; replaces the earlier wording here and in §3.3):
+
+| Kind | Examples | Digits | Face | Direction |
+|---|---|---|---|---|
+| **Readouts** | timecodes, clock times, durations written m:ss, frame rates, resolutions, file sizes, format names (MP4, H.264) | **Western, always** | Plex Mono | LTR, isolated |
+| **Identifiers** | shot, take, cut, version, scene, episode and season numbers; note numbers; row numbers in a track list | **Western, always** (the same id is written one way everywhere: "2.3" in the outline, the strip, the cards, the inspector and in Arabic prose) | Plex Mono | LTR, isolated |
+| **Counts and dates** | "4 decisions", "8 shots", "3 Oct", "7 min 11 s" written as words, "4 / 4" progress | Arabic-Indic in the Arabic interface when the Numerals setting is on (default for the Iraqi dialect); Western otherwise | the interface sans (Plex Sans Arabic) — **the mono never carries Arabic-Indic digits** | the paragraph's |
+
+Every compound numeric run (`W×H`, `a:b`, `n.n`, sizes) is wrapped in an LTR isolate, so "1344×768" can never
+render "768×1344". Implementation: `formatNumber(value, kind)` in `src/lib/format.ts` (owned by DS) with the kinds
+`count | date | duration-words | readout | identifier | file`; readouts and identifiers return an isolated `<span
+class="num-ltr">` (Plex Mono, `dir="ltr"`). The prototypes apply the same rule to text nodes in `v5.js`
+(`?digits=western` shows the setting off); `measure.mjs` checks that no mono text carries Arabic-Indic digits, that
+no shot id appears in Arabic-Indic digits and that no "×" compound sits outside an isolate (all zero).
 
 ---
 
 ## 10. Accessibility (WCAG 2.2 AA; AAA where noted)
 
-Kept from v4 §8.4 and research §5: focus ring 2 px paper + 2 px black (AAA 2.4.13), never obscured by sticky bars
-(`scroll-padding` from the bar sum), 24 px minimum targets (44 on touch), pointer alternatives for every drag (strip
+Kept from v4 §8.4 and research §5: the focus ring of §5.0 (outline, 2 px paper at a 2 px offset; on art between black
+bands; AAA 2.4.13), never suppressed by a state and never obscured by sticky bars
+(`scroll-padding` from the bar sum), 24 px minimum targets and 44 × 44 on coarse pointers (§4.6), the type floors of §3.2, pointer alternatives for every drag (strip
 reordering by menu, seek by click, panel collapse buttons), single-key shortcuts scoped to the focused player, one
 Help location, redundant entry avoided (creation inputs carried across methods), distinct page titles, captions on by
 default, the hero preview muted with a visible pause, no auto-advancing carousels, status messages through polite
@@ -1211,15 +1332,17 @@ B2  Notes record (cut_notes) and presentation additions (portraitFocal, rtlFrame
 1. `pnpm exec tsc --noEmit` and `pnpm exec vitest run` pass.
 2. `node scripts/v5-lint.mjs <owned paths>` passes (v4 rules + no violet, no serif on controls, no uppercase, every
    other-script string tagged with `lang`, no engine names in strings).
-3. Captures with `scripts/capture-evidence.mjs` at **1440, 1920, 834 and 390 × EN and AR**, fixtures *sample*,
+3. **Measurements** with `v5-measure.mjs` (§13.2) on the package's pages: zero overflow, zero text under the floors,
+   zero coarse-pointer targets under 44 px, zero focus failures, zero numerals violations, top bar ≥ 4.5:1 over heroes.
+4. Captures with `scripts/capture-evidence.mjs` at **1440, 1920, 834 and 390 × EN and AR**, fixtures *sample*,
    *empty* and *states*, compared side by side with the page's prototype render in `docs/evidence/redesign-proto/`.
    No horizontal overflow at any width (the capture fails if `scrollWidth > width`, as `render.mjs` does).
-4. axe-core: 0 serious or critical; a keyboard-only pass in EN and AR; 320 px reflow; 200 % zoom; one page under
+5. axe-core: 0 serious or critical; a keyboard-only pass in EN and AR; 320 px reflow; 200 % zoom; one page under
    reduced motion and under More contrast.
-5. Titles: `node scripts/v4-titles.mjs` distinct in EN and AR.
-6. Performance (audit 12): per-page data (no whole-studio snapshot on first paint), thumbnails at display size
+6. Titles: `node scripts/v4-titles.mjs` distinct in EN and AR.
+7. Performance (audit 12): per-page data (no whole-studio snapshot on first paint), thumbnails at display size
    (≤ 2× device pixels; figures ≤ 120 KB, stills ≤ 160 KB), route JS budget recorded before/after.
-7. The independent Design QA review signs off each page against its §8 spec and the prototype.
+8. The independent Design QA review signs off each page against its §8 spec and the prototype.
 
 ### 11.6 Backend follow-ups
 
@@ -1280,7 +1403,7 @@ and a dark, calm palette (now near-neutral rather than warm).
 | Production workspace (map) | `production.html` | real (The Static Sky) |
 | Shot workspace | `shot.html` | real (shot 2.3, its four takes and the cancelled attempt) |
 | Screening Room | `screening.html` | real (cut 3); the note is an annotated example (needs B2) |
-| Shared | `v5.css` (system), `ws.css` (workspace), `v5.js` (shell, icons, language and numerals), `render.mjs` | |
+| Shared | `v5.css` (system), `ws.css` (workspace), `v5.js` (shell, icons, language, numerals, the frozen `--vh`), `render.mjs` (renders), `measure.mjs` (the blocker measurements) | |
 | Type spikes | `spike/type-spike.html`, `spike/ui-spike.html` | the pairings compared |
 | Media | `media/*.jpg` | the studio's own canonical figures, workshop plates, shot frames, take posters and cut frames, re-encoded as JPEG from `var/library` (3 MB) |
 
@@ -1290,7 +1413,76 @@ from Google Fonts in the prototypes (the product self-hosts them).
 ### 13.2 Renders
 
 `node docs/design/prototypes/render.mjs` (headless Chromium through `@playwright/test`) writes
-`docs/evidence/redesign-proto/<page>-<lang>-<width>.png` for every page × {en, ar} × {1440, 390} (full page; fixed
-bars placed at the end of the document; touch emulated below 768) and fails loudly on horizontal overflow. The
-contrast table in §2.2 was measured with the script recorded in the session (WCAG relative luminance; alpha
-compositing for scrims and chips); DS-1 commits it as `scripts/v5-contrast.mjs`.
+`docs/evidence/redesign-proto/<page>-<lang>-<width>.png` for every page × {en, ar} × {1440, 1920, 834, 390} (full
+page; fixed bars placed at the end of the document; touch and a coarse pointer emulated below 1024). The prototypes size
+pictures by `var(--vh)`, frozen at load by `v5.js`, so a full-page capture keeps the device width (QA §7.1: the
+character renders at 390 had come out 1,189 px wide); the script checks both `scrollWidth` and the PNG's width and exits
+non-zero on either failure.
+
+`node docs/design/prototypes/measure.mjs` writes `docs/evidence/redesign-proto/measurements.json` for every page ×
+{en, ar} × {1440, 834, 390}: overflow; every visible text node against the floors (§3.2); every interactive element
+against 44 × 44 on coarse pointers; Arabic-Indic digits in mono text, shot ids in Arabic-Indic digits and "×" compounds
+outside an isolate; **every element reached by pressing Tab**, with its outline style and width and the ring's contrast
+against the ground and the control; and the top bar's text over a hero against the median and 95th-percentile pixels
+of the real art. Result at this revision: **72 page states, zero failures** (§14). The contrast table in §2.2 was
+measured with the same WCAG formula; DS-1 commits both scripts under `scripts/` (`v5-measure.mjs`,
+`v5-contrast.mjs`) and the acceptance gate (§11.5) runs them on the product.
+
+---
+
+## 14. QA response (2026-10-03)
+
+The independent review (`docs/design/DESIGN-QA-PROTOTYPES-2026-10-03.md`) approved the direction with required
+changes. Every blocker and major is fixed in this document **and** in the prototypes (`docs/design/prototypes/`, the
+system sheet `v5.css` first, then the pages), and the three blockers are checked by `measure.mjs` (§13.2) on every
+prototype in both languages at 1440, 834 and 390: **72 page states, zero failures** (`docs/evidence/redesign-proto/
+measurements.json`). All 96 renders (12 pages × EN/AR × 1440/1920/834/390) were regenerated; none overflows and every
+PNG is exactly the device width.
+
+### 14.1 Blockers
+
+| # | Finding | Fix (spec) | Fix (prototype) | Measured |
+|---|---|---|---|---|
+| B1 | Focus invisible on paper-filled controls; suppressed by selected states | §5.0: focus is an `outline` (2 px paper, 2 px offset) that no state can override; on art and in players a black gap and band (`box-shadow: 0 0 0 6px #000`); lint rule; §5.3, §5.10 per state | `v5.css` §2 (`:focus-visible`), `.search:focus-within`, `.input.focus`; specimens of focus on a primary, a selected segment, a selected chip, a play disc and an on-art button in `system.html` | every Tab stop on every page: ≥ 2 px solid ring, ≥ 3:1 vs ground and vs control (2,162 focus stops; the lowest ring-vs-ground ratio 14.24, on `--raised`; on art 18.3 vs black) |
+| B2 | Numerals and bidi contradictory; "768×1344"; Arabic-Indic in the mono; shot ids two ways | §9.4 rewritten as one table by the kind of number; §3.3 `.ro` row; `formatNumber(value, kind)` | `v5.js` numerals rewritten: readouts and identifiers Western, mono, wrapped in `.num-ltr` (LTR isolate); counts and dates Arabic-Indic in the sans; years as `.date`; counts as `.count`; "of N" phrasings that put one number two ways removed | Arabic-Indic digits in mono text: 0; shot ids in Arabic-Indic: 0; "×" outside an isolate: 0 |
+| B3 | Text at 10–11.5 px; workspace "13.5 px minimum" untrue; 30–36 px targets on touch | §3.2 floors (12 / Arabic 13; workspace 13.5 / Arabic 14); §3.3 workspace row; §4.6 the coarse-pointer CSS; §8.11 states what is built | every 10–11.5 px class raised (strip and take chips, frame-poster kicker, title-card state, badges, keys, chip counts, annotations, tab bar); `ws.css` workspace floor; `@media (pointer: coarse)` block in `v5.css` | text under the floors: 0 (workspace main content: 0 under 13.5 / 14); coarse-pointer targets under 44 × 44: 0 |
+
+### 14.2 Majors
+
+| # | Fix | Where |
+|---|---|---|
+| M1 | The Arabic phone hero uses its own portrait focal (Najm in frame); §5.4: crops computed from `faceBox`, never inherited | `home.html` RTL phone rule; §5.4, §8.1 |
+| M2 | No centre play disc while a transport is visible; the transport's play is the paper disc; §5.3, §5.13 | `short.html`; `v5.css` `.player` rules |
+| M3 | Figure key art keeps the whole face with ≥ 8 % headroom (`object-position: 50% 2%`); otherwise plates or frames | `shows.html`; §5.4 |
+| M4 | The five-box flow became one typographic line of links under a hairline | `production.html`; §8.10 |
+| M5 | Take cards read the clip's length (7.3 s); "made in 7 min 11 s" in words | `shot.html`; §8.11 |
+| M6 | The theatre transport is docked under the picture, so the burned-in subtitle is uncovered; soft captions rise above any overlay transport | `screening.html`; `v5.css`; §5.13, §8.12 |
+| M7 | The voice disc moved into the name row (36 px, 44 px hit area), off the figure | `characters.html`; §5.5 |
+| M8 | Other-script blocks are LTR/RTL, aligned to their own side and isolated; one-line runs keep the start edge; the look list flips as a whole; English italic kept | `v5.css` §2; `character.html` (`dl.ltr-values`); §9.2, §8.8 |
+| M9 | 140 px top scrim over heroes; secondary links at `--fg-body`, primary at `--carbon-11` | `v5.css` `.topbar--over`; §5.1, §2.2 — measured ≥ 12.3:1 median, ≥ 11.7:1 worst on the real Home and Show heroes |
+| M10 | "Running now" holds only runs (one sentence while paused, ≤ 66ch); totals moved to "On record · The Static Sky"; every label within 12 px of its node | `studio.html`; §8.9 |
+| M11 | The workspace bar keeps the title on one line and grows; the paused line shortens on phones | `ws.css`, `production.html`, `shot.html`; §8.10 |
+| M12 | The ring is drawn from 1024 px; below it the spine — no overflow at 834 | `studio.html`; §8.9 |
+| M13 | Selected-chip count 8.2:1; review-row rule scoped so the button label is not faint; menu descriptions `--fg-muted` (5.9:1) | `v5.css`, `screening.html`; §2.2, §5.10, §5.17 |
+| M14 | Only recorded facts: "English subtitles, burned in"; the subtitle files listed truthfully; the poster deliverable removed and the frame poster marked "proposal · B7"; *Good take* and *Draft / Final* marked "proposal · B5 / B6" | `home.html`, `short.html`, `screening.html`, `shot.html`; §5.9, §8.11, §8.12 |
+| M15 | The phone Needs-you rail says "1 of 4 · swipe" with dots, a thin scrollbar and an end fade | `home.html`, `v5.css` (`.rail-pos`, `.scrolls`); §5.6, §8.1 |
+| M16 | Tags and role pills with `--carbon-8` boundaries at 12.5 / 13 px; the pair bracket replaced by a legend line | `studio.html`, `v5.css`; §8.9 |
+| M17 | Tabs wrap to two 44 px rows on phones; every strip shows a thin scrollbar and an end fade on touch | `v5.css`; §5.6, §5.10 |
+
+### 14.3 The review's §8 ("what to change in the spec itself")
+
+1. §2.2 gains the failing pairs, their fixes and the on-art top bar measurement. 2. §3.2 floors; §8.11 states the
+built floor. 3. §4.6 coarse-pointer CSS. 4. §5.0, §5.3, §5.10 focus for every state and for paper-filled controls.
+5. §5.4 portrait and RTL focals, no landscape fallback. 6. §5.5 disc outside the art; §5.13 no centre disc while a
+transport is visible. 7. §9.2 one-line / multi-line rule; §9.4 + §3.3 one numerals rule. 8. §8.10 the flow as a line.
+9. §8.1 the rail indicator; §5.6 the strip affordance. 10. §8.12 captions clear the transport; §8.9 "Running now" only
+for runs.
+
+### 14.4 Minors taken in this revision
+
+Disabled text #7E7B75 (4.3:1); interactive boundaries in `--carbon-8`; the large episode numeral in `--line-strong`;
+episode synopsis 58ch; the waveform bar count follows the column width; the production record says "at 06:36";
+the *New episode* menu narrower and layered; the shot page's empty canvas at 390 removed; the screening note opens away
+from the face and "Use another take…" replaces a button that named an unselected take; the music wash L 0.22 over
+480 px; secondary hover .20; the marquee 860 px at ≥ 1800; bottom-bar labels 12 / 13 px; the Short's place plate at
+16:9; the frame-slot remove button 32 px (44 on touch).

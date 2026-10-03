@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="v5.css">
 <style>
   /* HOME — the lobby of the studio: what is showing, what waits for you, what you were doing, and the catalogue */
-  .marquee { position: relative; block-size: min(84vh, 780px); min-block-size: 560px; background: var(--media); overflow: hidden; }
+  .marquee { position: relative; block-size: min(calc(var(--vh, 1vh) * 84), 780px); min-block-size: 560px; background: var(--media); overflow: hidden; }
   .marquee > img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; object-position: 62% 40%; }
   .marquee::before { content: ''; position: absolute; inset: 0; z-index: 1; background: var(--scrim-b); }
   .marquee::after { content: ''; position: absolute; inset: 0; z-index: 1; background: var(--scrim-s); }
@@ -31,6 +31,7 @@
   .decisions { --cols: 1; }
   @media (min-width: 640px) { .decisions { --cols: 2; } }
   @media (min-width: 1280px) { .decisions { --cols: 4; } }
+  @media (min-width: 1800px) { .marquee { block-size: min(calc(var(--vh, 1vh) * 84), 860px); } }
   .dcard .frame { background: var(--bg, var(--field)); }
   .dcard .frame.fig img { object-fit: contain; }
   .dcard .kind { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--tungsten); margin-block-end: 6px; }
@@ -52,6 +53,7 @@
   .contact .what { font-size: 13px; line-height: 20px; color: var(--fg-faint); margin-block-start: 6px; }
   html[dir='rtl'] .contact .what { font-size: 14px; line-height: 22px; }
   .contact .kindl { font-size: 12.5px; color: var(--fg-faint); margin-block-end: 4px; }
+  html[dir='rtl'] .contact .kindl, html[dir='rtl'] .handoff span { font-size: 13px; }
   @media (max-width: 639px) { .contact .frame { block-size: 190px; } .contact .r-16x9 { inline-size: calc(190px * 16 / 9); } .contact .r-fig { inline-size: calc(190px * 928 / 1664); } .contact .r-239 { inline-size: calc(190px * 2.39); } }
 
   .studio-card { padding: 24px; background: var(--surface); border-radius: var(--r-md); align-self: start; }
@@ -64,7 +66,7 @@
   .studio-card dd { color: var(--fg-body); }
   .handoff { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding-block: 12px; border-block-start: 1px solid var(--line); font-size: 13.5px; }
   html[dir='rtl'] .handoff { font-size: 14px; }
-  .handoff .mono { grid-row: span 2; display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: 50%; background: var(--raised); font: 600 11px/1 var(--font-mono); color: var(--fg-muted); }
+  .handoff .mono { grid-row: span 2; display: grid; place-items: center; inline-size: 34px; block-size: 34px; border-radius: 50%; background: var(--raised); font: 600 12px/1 var(--font-mono); color: var(--fg-muted); }
   .handoff b { font-weight: 500; color: var(--fg); }
   .handoff span { color: var(--fg-faint); font-size: 12.5px; }
 
@@ -93,7 +95,7 @@
   @media (max-width: 639px) {
     .marquee { block-size: auto; min-block-size: 0; display: flex; flex-direction: column; }
     .marquee > img { position: relative; inline-size: 100%; block-size: auto; aspect-ratio: 4 / 5; object-position: 70% 50%; }
-    html[dir='rtl'] .marquee > img { object-position: 70% 50%; }
+    html[dir='rtl'] .marquee > img { object-position: 22% 50%; }   /* the RTL frame's own portrait focal (Najm), QA M1 */
     .marquee::before { inset-block-end: auto; block-size: calc(100vw * 5 / 4); background: linear-gradient(0deg, rgb(10 10 9 / 1) 0%, rgb(10 10 9 / 0.6) 22%, rgb(10 10 9 / 0) 45%); }
     .marquee::after { display: none; }
     .marquee .wrap { margin-block-start: -150px; padding-block-end: 8px; }
@@ -111,7 +113,7 @@
     <div class="wrap">
       <div class="kick"><span class="line" aria-hidden="true"></span><span data-ar="تابع · المونتاج النهائي جاهز">Continue · the final cut is ready</span></div>
       <div class="slate slate-lg on-art">
-        <span data-ar="فيلم قصير">Short film</span><span class="ro ro-md">2026</span><span class="ro ro-md">0:56</span><span data-ar="كرتون">Cartoon</span><span data-ar="الإنجليزية">English</span><span class="state ok" style="color:var(--carbon-11)"><i class="dot"></i><span data-ar="مكتمل ومُصدَّر">Finished · exported</span></span>
+        <span data-ar="فيلم قصير">Short film</span><span class="date ro-md">2026</span><span class="ro ro-md">0:56</span><span data-ar="كرتون">Cartoon</span><span data-ar="الإنجليزية">English</span><span class="state ok" style="color:var(--carbon-11)"><i class="dot"></i><span data-ar="مكتمل ومُصدَّر">Finished · exported</span></span>
       </div>
       <h1 id="feature-title" class="t-marquee" lang="en">The Static Sky</h1>
       <p class="lead" lang="en" dir="ltr">A retired librarian and a lighthouse keeper repair a broken radio, uncovering a decades-old distress call from the ship that vanished with Elias’s wife and Najm’s missing brother.</p>
@@ -120,7 +122,7 @@
         <a class="btn btn-secondary btn-lg" href="short.html"><span data-ar="صفحة الفيلم">Open the film</span></a>
       </div>
     </div>
-    <div class="credit small"><span data-ar="مشهدان · 8 لقطات · ترجمة إنجليزية وعربية">2 scenes · 8 shots · English and Arabic subtitles</span><span class="ro tc">Cut 3 · 1920×1080 · 00:00:56:00</span></div>
+    <div class="credit small"><span data-ar="مشهدان · 8 لقطات · ترجمة إنجليزية مدمجة">2 scenes · 8 shots · English subtitles, burned in</span><span class="ro tc">Cut 3 · 1920×1080 · 00:00:56:00</span></div>
   </section>
 
   <div class="wrap">
@@ -132,9 +134,10 @@
     <section class="section" aria-labelledby="needs-h" style="padding-block-start:40px">
       <div class="shead shead--needs">
         <h2 id="needs-h" class="h2"><span data-ar="بانتظار قرارك">Needs you</span><span class="count">4</span></h2>
+        <span class="rail-pos" aria-hidden="true"><span data-ar="1 من 4 · اسحب">1 of 4 · swipe</span><i class="on"></i><i></i><i></i><i></i></span>
         <a class="link" href="production.html"><span data-ar="كل القرارات في الإنتاج">All decisions in Production</span><i data-i="right" class="i-sm i-flip"></i></a>
       </div>
-      <div class="cards decisions">
+      <div class="cards decisions scrolls">
         <article class="tile dcard">
           <div class="frame r-16x9 fig" style="--bg:#839493"><img src="media/char-hana.jpg" alt="Hana Mori, canonical image, version 2"></div>
           <div class="kind"><i class="dot" style="background:var(--tungsten)"></i><span data-ar="صورة شخصية · الإصدار 2">Character image · version 2</span></div>
@@ -150,14 +153,14 @@
           <div class="acts"><a class="btn btn-secondary btn-sm" href="character.html"><span data-ar="راجِع واعتمد">Review and approve</span></a></div>
         </article>
         <article class="tile dcard">
-          <div class="frame r-16x9"><img src="media/shot-1-3.jpg" alt="Shot 1.3 of The Static Sky"><span class="on-art-chip pos-bs">1.3 · 2.3</span></div>
+          <div class="frame r-16x9"><img src="media/shot-1-3.jpg" alt="Shot 1.3 of The Static Sky"><span class="on-art-chip ro pos-bs">1.3 · 2.3</span></div>
           <div class="kind"><i class="dot" style="background:var(--tungsten)"></i><span data-ar="حوار · The Static Sky">Dialogue · The Static Sky</span></div>
           <h3 class="t-card-sm" data-ar="سطران للمراجعة">Two lines to hear again</h3>
           <p data-ar="علّمهما الفحص الإنجليزي القديم خطأً. استمع إليهما وأكّد أنهما سليمان.">Flagged by the old English check by mistake. Listen and confirm they are fine.</p>
           <div class="acts"><a class="btn btn-secondary btn-sm" href="production.html"><span data-ar="استمع">Listen</span></a></div>
         </article>
         <article class="tile dcard">
-          <div class="frame r-16x9"><img src="media/take-2-3-4.jpg" alt="Shot 2.3, take 4"><span class="on-art-chip pos-bs">15 takes</span></div>
+          <div class="frame r-16x9"><img src="media/take-2-3-4.jpg" alt="Shot 2.3, take 4"><span class="on-art-chip pos-bs" data-ar="15 مصوَّرة">15 takes</span></div>
           <div class="kind"><i class="dot" style="background:var(--tungsten)"></i><span data-ar="مراجعة الإنتاج · The Static Sky">Production review · The Static Sky</span></div>
           <h3 class="t-card-sm" data-ar="جولة التصوير الأولى">The first production pass</h3>
           <p data-ar="ثماني لقطات و15 لقطة مصوّرة تنتظر نظرتك منذ 3 تشرين الأول.">Eight shots and fifteen takes have waited for your look since 3 Oct.</p>
@@ -171,9 +174,9 @@
       <div class="recent-wrap">
         <div>
           <div class="shead"><h2 id="recent-h" class="h2" data-ar="تابع من حيث توقفت">Pick up where you left off</h2></div>
-          <div class="contact">
+          <div class="contact scrolls">
             <a class="tile" href="production.html">
-              <div class="frame r-16x9"><img src="media/shot-2-3.jpg" alt=""><span class="on-art-chip pos-be">0:56</span></div>
+              <div class="frame r-16x9"><img src="media/shot-2-3.jpg" alt=""><span class="on-art-chip ro pos-be">0:56</span></div>
               <div class="kindl" data-ar="فيلم قصير · المونتاج النهائي">Short · Final cut</div>
               <div class="t-card-sm" lang="en">The Static Sky</div>
               <div class="what" data-ar="صُدّرت النسخة 1080p · 3 تشرين الأول، 09:33">Exported 1080p · 3 Oct, 09:33</div>

@@ -16,6 +16,12 @@
   .main { background: var(--page); padding: 28px 40px 64px; min-inline-size: 0; }
   .lead-state { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--fg-body); }
   html[dir='rtl'] .lead-state { font-size: 16px; }
+  .flowline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-block: 20px 48px; padding-block-start: 14px; border-block-start: 1px solid var(--line); font-size: 15px; color: var(--fg-body); }
+  .flowline a { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; }
+  .flowline a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 4px; }
+  .flowline .i { color: var(--ok); }
+  .flowline .arr { color: var(--fg-faint); }
+  html[dir='rtl'] .flowline .arr { transform: scaleX(-1); display: inline-block; }
   .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin-block: 24px 48px; }
   .flow a { display: grid; gap: 4px; padding: 14px 16px; background: var(--surface); }
   .flow a:first-child { border-start-start-radius: var(--r-md); border-end-start-radius: var(--r-md); }
@@ -49,7 +55,7 @@
   .shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   .scard .th { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 2px; overflow: hidden; background: var(--gray-clip); }
   .scard .th img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-  .scard .th .n { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; padding: 3px 5px; border-radius: 2px; background: var(--chip-on-art); color: var(--paper); font: 500 11px/1 var(--font-mono); }
+  .scard .th .n { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; padding: 4px 6px; border-radius: 2px; background: var(--chip-on-art); color: var(--paper); font: 500 13.5px/1 var(--font-mono); }
   .scard b { display: block; margin-block-start: 10px; font-weight: 500; color: var(--fg); font-size: 13.5px; }
   .scard .s { display: block; font-size: 12.5px; color: var(--fg-muted); }
   html[dir='rtl'] .scard .s { font-size: 13px; }
@@ -58,7 +64,7 @@
   .assembly .tl { display: flex; gap: 1px; block-size: 56px; direction: ltr; }
   .assembly .tl span { position: relative; border-radius: 2px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--gray-edge); }
   .assembly .tl img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-  .assembly .tl b { position: absolute; inset-block-start: 3px; inset-inline-start: 4px; font: 500 10px/1 var(--font-mono); color: var(--paper); background: var(--chip-on-art); padding: 2px 3px; border-radius: 2px; }
+  .assembly .tl b { position: absolute; inset-block-start: 4px; inset-inline-start: 4px; font: 500 12px/1 var(--font-mono); color: var(--paper); background: var(--chip-on-art); padding: 3px 5px; border-radius: 2px; }
   .versions { display: grid; gap: 0; margin-block-start: 18px; }
   .versions li { display: grid; grid-template-columns: 90px 70px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding-block: 12px; border-block-start: 1px solid var(--line-soft); font-size: 13.5px; }
   .versions li b { font-weight: 500; color: var(--fg); }
@@ -80,7 +86,7 @@
   <div class="wsbar">
     <a class="ibtn ibtn-sm" href="short.html" aria-label="Back to the film’s page" data-ar-label="عودة إلى صفحة الفيلم"><i data-i="left" class="i-flip"></i></a>
     <span class="thumb"><img src="media/shot-2-4.jpg" alt=""></span>
-    <div class="ttl"><b lang="en">The Static Sky</b><span data-ar="فيلم قصير · مساحة الإنتاج">Short film · production workspace</span></div>
+    <div class="ttl"><b lang="en">The Static Sky</b><span data-ar="فيلم قصير · الإنتاج">Short film · production</span></div>
     <nav class="pipe" aria-label="Stages" data-ar-label="المراحل">
       <a href="#" aria-current="page"><span class="lbl" data-ar="الخريطة">Map</span></a><span class="sep"></span>
       <a href="#"><i data-i="check"></i><span class="lbl" data-ar="القصة">Story</span></a><span class="sep"></span>
@@ -92,19 +98,19 @@
     <span class="saved"><i data-i="check" class="i-sm"></i><span data-ar="محفوظ">Saved</span></span>
     <a class="btn btn-secondary btn-sm" href="screening.html"><i data-i="screen" class="i-sm"></i><span data-ar="اعرضه">Screen it</span></a>
   </div>
-  <div class="paused-line"><i class="dot"></i><span data-ar="الاستوديو متوقف مؤقتًا. يمكنك التحرير والاختيار؛ اللقطات الجديدة تنتظر حتى تستأنف.">The studio is paused. You can edit and choose; new takes wait until you resume it.</span><a href="studio.html" data-ar="استأنف في شركة الاستوديو">Resume in the Studio Company</a></div>
+  <div class="paused-line"><i class="dot"></i><span class="long" data-ar="الاستوديو متوقف مؤقتًا. يمكنك التحرير والاختيار؛ المصوَّرات الجديدة تنتظر حتى تستأنفه.">The studio is paused. You can edit and choose; new takes wait until you resume it.</span><span class="short" data-ar="متوقف مؤقتًا · المصوَّرات الجديدة تنتظر">Paused · new takes wait</span><a href="studio.html" data-ar="استأنف">Resume</a></div>
 
   <div class="room two">
     <aside class="panel outline-p" aria-label="Story, scenes and shots" data-ar-label="القصة والمشاهد واللقطات">
       <div class="panel-h"><span data-ar="المخطط">Outline</span><button class="ibtn" type="button" aria-label="Collapse the outline" data-ar-label="اطوِ المخطط"><i data-i="left" class="i-sm i-flip"></i></button></div>
       <div class="outline">
         <a class="ol-story" href="#"><i data-i="check" class="i-sm" style="color:var(--ok)"></i><span data-ar="السيناريو · معتمد · 6 سطور">Script · approved · 6 lines</span></a>
-        <div class="ol-scene"><span class="mark"></span><b data-ar-html="1 · <span lang=&quot;en&quot;>The Broken Signal</span>">1 · The Broken Signal</b><span class="ro">4/4</span></div>
+        <div class="ol-scene"><span class="mark"></span><b data-ar-html="1 · <span lang=&quot;en&quot;>The Broken Signal</span>">1 · The Broken Signal</b><span class="count">4/4</span></div>
         <a class="ol-shot" href="shot.html"><span class="no">1.1</span><span class="th"><img src="media/shot-1-1.jpg" alt=""></span><span><b data-ar="واسعة · ثابتة">Wide · static</b><span class="s" data-ar="نجم يدخل الورشة">Najm enters the workshop</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="shot.html"><span class="no">1.2</span><span class="th"><img src="media/shot-1-2.jpg" alt=""></span><span><b data-ar="قريبة متوسطة · تراجع">Med. close-up · pull back</b><span class="s" data-ar="إلياس يفحص المذياع">Elias examines the radio</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="shot.html"><span class="no">1.3</span><span class="th"><img src="media/shot-1-3.jpg" alt=""></span><span><b data-ar="ثنائية · حركة يسار">Two-shot · pan left</b><span class="s" data-ar="نجم يجرّب المذياع">Najm tries the radio</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="shot.html"><span class="no">1.4</span><span class="th"><img src="media/shot-1-4.jpg" alt=""></span><span><b data-ar="متوسطة واسعة · تتبّع يسار">Med. wide · truck left</b><span class="s" data-ar="المذياع يستجيب">The radio responds</span></span><span class="mark"></span></a>
-        <div class="ol-scene"><span class="mark"></span><b data-ar-html="2 · <span lang=&quot;en&quot;>Static Echoes</span>">2 · Static Echoes</b><span class="ro">4/4</span></div>
+        <div class="ol-scene"><span class="mark"></span><b data-ar-html="2 · <span lang=&quot;en&quot;>Static Echoes</span>">2 · Static Echoes</b><span class="count">4/4</span></div>
         <a class="ol-shot" href="shot.html"><span class="no">2.1</span><span class="th"><img src="media/shot-2-1.jpg" alt=""></span><span><b data-ar="متوسطة واسعة · إمالة لأعلى">Med. wide · tilt up</b><span class="s" data-ar="المذياع يعمل">The radio comes alive</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="shot.html"><span class="no">2.2</span><span class="th"><img src="media/shot-2-2.jpg" alt=""></span><span><b data-ar="قريبة · حركة يسار">Close-up · pan left</b><span class="s" data-ar="دهشة إلياس والصورة">Elias, stunned; the photo</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="shot.html"><span class="no">2.3</span><span class="th"><img src="media/shot-2-3.jpg" alt=""></span><span><b data-ar="ثنائية · تتبّع يمين">Two-shot · truck right</b><span class="s" data-ar="ردّ نجم ووميض الصورة">Najm reacts; the photo flickers</span></span><span class="mark"></span></a>
@@ -118,12 +124,12 @@
       <h1 id="map-h" class="sr" data-ar="خريطة الإنتاج">The production map</h1>
       <div class="lead-state"><span class="state ok"><i class="dot"></i></span><span data-ar="مكتمل: لكل لقطة مصوَّرة مختارة، وصُدِّر المونتاج 3 في 3 تشرين الأول، 09:33.">Finished: every shot has a selected take, and cut 3 was exported on 3 Oct at 09:33.</span></div>
 
-      <nav class="flow" aria-label="The production, from story to cut" data-ar-label="الإنتاج من القصة إلى المونتاج">
-        <a href="#story"><span class="k"><i data-i="check" class="i-sm"></i><span data-ar="القصة">Story</span></span><b data-ar="السيناريو">The script</b><span class="s" data-ar="معتمد 06:36">approved 06:36</span></a>
-        <a href="#scenes"><span class="k"><i data-i="check" class="i-sm"></i><span data-ar="المشاهد">Scenes</span></span><b data-ar="مشهدان">2 scenes</b><span class="s" data-ar="ليلًا · ورشة إلياس">night · Elias’s Workshop</span></a>
-        <a href="#scenes"><span class="k"><i data-i="check" class="i-sm"></i><span data-ar="اللقطات">Shots</span></span><b data-ar="8 لقطات">8 shots</b><span class="s" data-ar="61 ث مخططة · الهدف 60">61 s planned · target 60</span></a>
-        <a href="shot.html"><span class="k"><i data-i="check" class="i-sm"></i><span data-ar="المصوَّرات">Takes</span></span><b data-ar="15 مصوَّرة">15 takes</b><span class="s" data-ar="8 مختارة · نحو 3 د لكل واحدة">8 selected · about 3 min each</span></a>
-        <a href="#cut"><span class="k"><i data-i="check" class="i-sm"></i><span data-ar="المونتاج النهائي">Final cut</span></span><b data-ar="المونتاج 3">Cut 3</b><span class="s" data-ar="0:56 · صُدِّر 1080p">0:56 · exported 1080p</span></a>
+      <nav class="flowline" aria-label="The production, from story to cut" data-ar-label="الإنتاج من القصة إلى المونتاج">
+        <a href="#story"><i data-i="check" class="i-sm"></i><span data-ar="القصة: السيناريو المعتمد">Story: the approved script</span></a><span class="arr" aria-hidden="true">→</span>
+        <a href="#scenes"><span data-ar="مشهدان">2 scenes</span></a><span class="arr" aria-hidden="true">→</span>
+        <a href="#scenes"><span data-ar="8 لقطات">8 shots</span></a><span class="arr" aria-hidden="true">→</span>
+        <a href="shot.html"><span data-ar="15 مصوَّرة، 8 منها مختارة">15 takes, 8 selected</span></a><span class="arr" aria-hidden="true">→</span>
+        <a href="#cut"><span data-ar="المونتاج النهائي 3">Final cut 3</span></a>
       </nav>
 
       <section id="story" class="blk" aria-labelledby="st-h">

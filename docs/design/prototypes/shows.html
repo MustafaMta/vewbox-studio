@@ -32,7 +32,7 @@
   .wall { --cols: 1; row-gap: 48px; }
   @media (min-width: 640px) { .wall { --cols: 2; } }
   @media (min-width: 1280px) { .wall { --cols: 3; } }
-  .wall .frame .bg-portrait { object-position: 50% 16%; }
+  .wall .frame .bg-portrait { object-position: 50% 2%; }   /* faceBox inside the 16:9 crop with ≥ 8 % headroom */
   .wall .t-card { font-size: 25px; line-height: 30px; }
   html[dir='rtl'] .wall .t-card { font-size: 26px; line-height: 36px; }
   .wall .slate { font-size: 13px; color: var(--fg-muted); }
@@ -49,6 +49,7 @@
     .toolbar { margin-block: 40px 24px; }
     .toolbar .end { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--margin)); padding-inline: var(--margin); }
     .wall .line2 { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .toolbar .chips, .toolbar .end { scrollbar-width: thin; }
     .toolbar .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--margin)); padding-inline: var(--margin); }
   }
 </style>
@@ -109,7 +110,7 @@
       <div class="line2"><div class="slate"><span data-ar="دراما">Drama</span><span data-ar="العربية (بغدادية)">Arabic (Baghdadi)</span><span data-ar="موسم · 6 حلقات">1 season · 6 episodes</span></div><span class="state live"><i class="dot"></i><span data-ar="قيد الإنتاج">Producing</span></span></div>
     </a>
     <a class="tile" href="show.html">
-      <div class="frame r-16x9 frame-hover" style="background:#839493"><img class="bg-portrait" src="media/char-hana.jpg" alt="" style="object-position:50% 12%"></div>
+      <div class="frame r-16x9 frame-hover" style="background:#839493"><img class="bg-portrait" src="media/char-hana.jpg" alt=""></div>
       <div class="tt"><div class="t-card" lang="en">Harbour Run</div><span class="annot-tag" data-ar="مؤقت">placeholder</span></div>
       <div class="line2"><div class="slate"><span data-ar="مغامرة · أنمي">Adventure · Anime</span><span data-ar="الإنجليزية">English</span><span data-ar="موسم · 8 حلقات">1 season · 8 episodes</span></div><span class="state"><i class="dot"></i><span data-ar="اللوحة القصصية">Storyboard</span></span></div>
     </a>

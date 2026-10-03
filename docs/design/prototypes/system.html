@@ -11,13 +11,14 @@
   /* THE SPECIMEN — every token and component of v5 in its states, on one sheet (the product's /kit replacement) */
   .sp { display: grid; gap: 24px; }
   .sp-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
-  .sp-cap { font: 500 11px/16px var(--font-mono); color: var(--fg-faint); margin-block-start: 8px; }
+  .sp-cap { font: 500 12px/16px var(--font-mono); color: var(--fg-faint); margin-block-start: 8px; }
   html[dir='rtl'] .sp-cap { font-family: 'IBM Plex Sans Arabic'; font-size: 12px; }
   .sw { display: grid; gap: 6px; inline-size: 120px; }
   .sw i { display: block; block-size: 56px; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06); }
-  .sw b { font: 500 12px/16px var(--font-mono); color: var(--fg); } .sw span { font: 400 11px/14px var(--font-mono); color: var(--fg-faint); }
+  .sw b { font: 500 12px/16px var(--font-mono); color: var(--fg); } .sw span { font: 400 12px/16px var(--font-mono); color: var(--fg-faint); }
   .typeline { display: grid; grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: baseline; padding-block: 18px; border-block-end: 1px solid var(--line-soft); }
-  .typeline .k { font: 500 11.5px/16px var(--font-mono); color: var(--fg-faint); }
+  .typeline .k { font: 500 12px/16px var(--font-mono); color: var(--fg-faint); }
+  html[lang='ar'] .typeline .k, html[lang='ar'] .err-demo pre { font-size: 13px; line-height: 18px; }
   .grid2 { display: grid; gap: 32px var(--gutter); grid-template-columns: minmax(0, 1fr); }
   .grid2 > * { min-inline-size: 0; } .menu.static { min-inline-size: 0; }
   @media (min-width: 1024px) { .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -53,7 +54,7 @@
   <!-- colour -->
   <section class="section" style="padding-block-start:24px" aria-labelledby="c-h">
     <div class="shead"><h2 id="c-h" class="h2" data-ar="اللون">Colour</h2><span class="link" data-ar="الكربون للمحيط، الورق للضوء، التنغستن لما ينتظرك فقط">Carbon for the surround, paper for light, tungsten only for what waits for you</span></div>
-    <div class="sp-row">
+    <div class="sp-row" data-latin-digits>
       <div class="sw"><i style="background:#000"></i><b>carbon-0</b><span>#000000 theatre</span></div>
       <div class="sw"><i style="background:#060606"></i><b>carbon-1</b><span>#060606 media</span></div>
       <div class="sw"><i style="background:#0A0A09"></i><b>carbon-2</b><span>#0A0A09 page</span></div>
@@ -76,7 +77,7 @@
   </section>
 
   <!-- type -->
-  <section class="section" style="padding-block-start:72px" aria-labelledby="t-h">
+  <section class="section" style="padding-block-start:72px" aria-labelledby="t-h" data-latin-digits>
     <div class="shead"><h2 id="t-h" class="h2" data-ar="الحروف">Type</h2><span class="link">Newsreader · Markazi Text · IBM Plex Sans · Plex Sans Arabic · Plex Mono</span></div>
     <div class="typeline"><span class="k">t-marquee 108/100 · AR 96/120</span><span class="t-marquee" lang="en">The Static Sky</span><span class="t-marquee" lang="ar" dir="rtl">آخر رشفة</span></div>
     <div class="typeline"><span class="k">t-hero 80/76 · AR 72/96</span><span class="t-hero" lang="en">Elias Moore</span><span class="t-hero" lang="ar" dir="rtl">أبو سلام</span></div>
@@ -85,7 +86,7 @@
     <div class="typeline"><span class="k">h2 20/28 · Plex 600</span><span class="h2" lang="en">Episodes</span><span class="h2" lang="ar" dir="rtl" style="font-size:20px;line-height:32px">الحلقات</span></div>
     <div class="typeline"><span class="k">lead 19/30 · AR 20/34</span><span class="lead" lang="en">Series with seasons and episodes that share one cast.</span><span class="lead" lang="ar" dir="rtl" style="font-size:20px;line-height:34px">مواسم وحلقات تتشارك طاقمًا واحدًا.</span></div>
     <div class="typeline"><span class="k">body 15/24 · AR 15/26</span><span lang="en">Drawn again because the first picture cut off her feet.</span><span lang="ar" dir="rtl">رُسمت من جديد لأن الصورة الأولى قطعت قدميها.</span></div>
-    <div class="typeline"><span class="k">readout · Plex Mono 12–15</span><span class="ro ro-lg">00:00:37:02 · 1.3 · take 2 · 0:56 · 1920×1080</span><span class="slate"><span data-ar="فيلم قصير">Short film</span><span class="ro ro-md">2026</span><span class="ro ro-md">0:56</span><span class="state ok"><i class="dot"></i><span data-ar="مكتمل">Finished</span></span></span></div>
+    <div class="typeline"><span class="k">readout · Plex Mono 12–15</span><span class="ro ro-lg">00:00:37:02 · 1.3 · take 2 · 0:56 · 1920×1080</span><span class="slate"><span data-ar="فيلم قصير">Short film</span><span class="date ro-md">2026</span><span class="ro ro-md">0:56</span><span class="state ok"><i class="dot"></i><span data-ar="مكتمل">Finished</span></span></span></div>
   </section>
 
   <!-- space, shape -->
@@ -111,7 +112,7 @@
         <button class="btn btn-primary btn-lg"><i data-i="play"></i><span data-ar="اعرضه">Screen it</span></button>
         <button class="btn btn-primary"><span data-ar="اعتمد">Approve</span></button>
         <button class="btn btn-primary" style="background:var(--paper-hi)"><span data-ar="اعتمد (تمرير)">Approve (hover)</span></button>
-        <button class="btn btn-primary" style="box-shadow:0 0 0 2px var(--paper),0 0 0 4px #000,0 0 0 6px var(--paper)"><span data-ar="اعتمد (تركيز)">Approve (focus)</span></button>
+        <button class="btn btn-primary" style="outline:2px solid var(--paper);outline-offset:2px"><span data-ar="اعتمد (تركيز)">Approve (focus)</span></button>
         <button class="btn btn-primary" aria-busy="true"><span class="state live" style="color:var(--on-paper)"><i class="dot" style="background:var(--on-paper)"></i></span><span data-ar="جارٍ الاعتماد…">Approving…</span></button>
         <button class="btn btn-primary"><i data-i="plus"></i><span data-ar="مسلسل جديد">New show</span><span class="split"></span><i data-i="down" class="i-sm"></i></button>
       </div>
@@ -121,6 +122,16 @@
         <button class="btn btn-quiet"><span data-ar="إلغاء">Cancel</span></button>
         <button class="btn btn-secondary" aria-disabled="true"><i data-i="redo" class="i-sm"></i><span data-ar="ارسم من جديد">Redraw</span></button><span class="caption" data-ar="مغلق بعد التصوير — السبب يُكتب دائمًا">Closed after filming — the reason is always written</span>
         <button class="btn btn-danger"><span data-ar="احذف الشخصية">Delete character</span></button>
+      </div>
+      <div class="sp-row">
+        <span class="sp-cap" style="margin:0" data-ar="التركيز: حلقة ورقية 2 بكسل على بعد 2 بكسل — تُرى على كل سطح، ولا تُلغيها حالة الاختيار">Focus: a 2 px paper ring at a 2 px offset — visible on every surface, never suppressed by a selected state</span>
+      </div>
+      <div class="sp-row">
+        <div class="seg" role="radiogroup"><button role="radio" aria-checked="true" style="outline:2px solid var(--paper);outline-offset:2px"><span data-ar="مختار + تركيز">Selected + focus</span></button><button role="radio" aria-checked="false"><span data-ar="آخر">Other</span></button></div>
+        <button class="chip on" style="outline:2px solid var(--paper);outline-offset:2px"><span data-ar="الكل">All</span> <span class="n">6</span></button>
+        <button class="play" style="outline:2px solid var(--paper);outline-offset:2px" aria-label="Play"><i data-i="play"></i></button>
+        <span style="position:relative;display:inline-block;inline-size:180px"><span class="frame r-16x9" style="display:block"><img src="media/shot-1-1.jpg" alt=""></span><button class="ibtn ibtn-sm ibtn-art" style="position:absolute;inset-block-start:10px;inset-inline-end:10px;outline:2px solid var(--paper);outline-offset:0;box-shadow:0 0 0 4px #000" aria-label="More"><i data-i="more" class="i-sm"></i></button></span>
+        <span class="sp-cap" style="margin:0" data-ar="على الصور: ورقي 2 بكسل + أسود 2 بكسل">On art: paper 2 px + black 2 px</span>
       </div>
       <div class="sp-row">
         <button class="ibtn ibtn-solid" aria-label="More"><i data-i="more"></i></button>
@@ -240,7 +251,7 @@
         <span class="nt" data-ar="توقف رسم صورة إلياس">Drawing Elias’s image stopped</span>
         <span class="nd" data-ar="توقف محرك الصور بخطأ داخلي ثلاث مرات. الصورة المعتمدة السابقة باقية كما هي.">The image engine stopped with an internal error three times. The approved image is kept as it was.</span>
         <div class="row" style="margin-block-start:6px"><button class="btn btn-secondary btn-sm"><span data-ar="حاول مجددًا">Try again</span></button><button class="btn btn-quiet btn-sm"><span data-ar="افتح غرفة المحركات">Open the engine room</span></button></div>
-        <details open><summary data-ar="التفاصيل">Details</summary><pre>PROVIDER · node 7 CLIPTextEncode · job-ff5aa09b0e · 3 Oct 00:45</pre></details>
+        <details open><summary data-ar="التفاصيل">Details</summary><pre data-latin-digits>PROVIDER · node 7 CLIPTextEncode · job-ff5aa09b0e · 3 Oct 00:45</pre></details>
       </div>
     </div>
   </section>

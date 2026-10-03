@@ -40,7 +40,8 @@
   .eph { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-block: 40px 8px; position: relative; }
   .eph .seasons { display: flex; gap: 8px; }
   .eph .end { margin-inline-start: auto; display: flex; gap: 10px; align-items: center; position: relative; }
-  .eph .menu { inset-block-start: 52px; inset-inline-end: 0; inline-size: 360px; }
+  .eph .menu { inset-block-start: 52px; inset-inline-end: 0; inline-size: 340px; z-index: 5; }
+  .eph { margin-block-end: 24px; }
   .eps { display: grid; }
   .ep { display: grid; grid-template-columns: 64px 288px minmax(0, 1fr) 200px; gap: 28px; align-items: center; padding-block: 24px; border-block-end: 1px solid var(--line-soft); }
   .ep .no { font: 400 44px/1 var(--font-title); color: var(--fg-faint); letter-spacing: -0.02em; font-variant-numeric: lining-nums; }
@@ -49,7 +50,7 @@
   .ep .tcard .tc-num { font-size: 48px; }
   .ep .lbl { font-size: 12.5px; color: var(--fg-faint); margin-block-end: 4px; }
   html[dir='rtl'] .ep .lbl { font-size: 13px; }
-  .ep p { font-size: 14.5px; line-height: 23px; color: var(--fg-muted); margin-block-start: 6px; max-inline-size: 62ch; }
+  .ep p { font-size: 14.5px; line-height: 23px; color: var(--fg-muted); margin-block-start: 6px; max-inline-size: 58ch; }
   html[dir='rtl'] .ep p { font-size: 15px; line-height: 25px; }
   .ep .st { display: grid; gap: 8px; justify-items: end; text-align: end; }
   .ep .st .ro { color: var(--fg-faint); }
@@ -111,7 +112,7 @@
     <div class="head">
       <div class="poster" aria-hidden="true"><img src="media/shot-1-2.jpg" alt=""><div class="pt"><div class="t-card" lang="en">Lighthouse Hours</div></div></div>
       <div>
-        <div class="slate slate-lg"><span data-ar="مسلسل">Show</span><span class="ro ro-md">2026</span><span data-ar="موسمان · 14 حلقة">2 seasons · 14 episodes</span><span data-ar="دراما">Drama</span><span data-ar="الإنجليزية">English</span></div>
+        <div class="slate slate-lg"><span data-ar="مسلسل">Show</span><span class="date ro-md">2026</span><span data-ar="موسمان · 14 حلقة">2 seasons · 14 episodes</span><span data-ar="دراما">Drama</span><span data-ar="الإنجليزية">English</span></div>
         <h1 class="t-marquee" lang="en">Lighthouse Hours</h1>
         <p class="lead" data-ar="ليلة بعد ليلة، يُصلح إلياس ونجم أجهزة المذياع التي نسيها الميناء — وكل جهاز يحمل صوتًا من الماضي.">Night after night, Elias and Najm repair the radios the harbour forgot — and every set carries a voice from somewhere in the past.</p>
         <div class="acts">
@@ -162,13 +163,13 @@
         <span class="no" aria-hidden="true">01</span>
         <div class="frame"><img src="media/shot-1-1.jpg" alt=""><span class="on-art-chip pos-be">7:12</span></div>
         <div><div class="lbl" data-ar="الحلقة 1">Episode 1</div><div class="t-card" data-ar="الإشارة">The Signal</div><p data-ar="يحمل نجم إلى الورشة مذياعًا وجده على الشاطئ، ويرفض إلياس أن يقول ما الذي يعرفه عنه.">Najm brings in a radio he found on the beach, and Elias refuses to say what he knows about it.</p></div>
-        <div class="st"><span class="state ok"><i class="dot"></i><span data-ar="مكتملة">Finished</span></span><span class="ro" data-ar="7:12 · 18 لقطة">7:12 · 18 shots</span></div>
+        <div class="st"><span class="state ok"><i class="dot"></i><span data-ar="مكتملة">Finished</span></span><span><span class="ro">7:12</span> · <span data-ar="18 لقطة">18 shots</span></span></div>
       </li>
       <li class="ep">
         <span class="no" aria-hidden="true">02</span>
         <div class="frame"><img src="media/shot-2-1.jpg" alt=""><span class="on-art-chip pos-be">6:48</span></div>
         <div><div class="lbl" data-ar="الحلقة 2">Episode 2</div><div class="t-card" data-ar="تشويش">Static</div><p data-ar="يعمل المذياع لثوانٍ في منتصف الليل، ويلتقط أغنية لم تُبثّ منذ أربعين عامًا.">The set comes alive for a few seconds at midnight and picks up a song nobody has broadcast in forty years.</p></div>
-        <div class="st"><span class="state ok"><i class="dot"></i><span data-ar="مكتملة">Finished</span></span><span class="ro" data-ar="6:48 · 16 لقطة">6:48 · 16 shots</span></div>
+        <div class="st"><span class="state ok"><i class="dot"></i><span data-ar="مكتملة">Finished</span></span><span><span class="ro">6:48</span> · <span data-ar="16 لقطة">16 shots</span></span></div>
       </li>
       <li class="ep">
         <span class="no" aria-hidden="true">03</span>
