@@ -22,10 +22,14 @@ Conventions: times are ISO strings; ids are the studio's `nid()` ids; every refu
 shell's `src/components/shell/decisions.ts` re-exports it, so F4's `Shell.tsx` reads the same function; the server runs
 it in `src/server/studio/decisions.ts`).
 
+One decision per thing the producer decides (§6.7): a production's dialogue lines to hear again are ONE item with the
+lines inside.
+
 ```ts
-type DecisionKind = 'stage' | 'image' | 'line' | 'take' | 'pass' | 'character';
-interface DecisionSubject { productionId?; stage?; characterId?; shotId?; lineId?; takeId?; jobId? }
-interface Decision { kind: DecisionKind; id: string; title: string; titleAr?: string; subject: DecisionSubject; since: string | null; href: string }
+type DecisionKind = 'stage' | 'image' | 'lines' | 'take' | 'pass' | 'character';
+interface DecisionSubject { productionId?; stage?; characterId?; shotId?; takeId?; jobId?; lineIds?: string[]; jobIds?: string[] }
+interface DecisionLine { lineId; shotId; characterId; speaker?; speakerAr?; text; textAr?; jobId; audioAssetId; reason: 'NOT_HEARD' | 'DRIFTED' }
+interface Decision { kind: DecisionKind; id: string; title: string; titleAr?: string; subject: DecisionSubject; lines?: DecisionLine[]; since: string | null; href: string }
 interface Decisions { items: Decision[]; count: number; complete: boolean }   // complete=false while the pipeline is unknown
 decisionCounts(d): Record<DecisionKind, number>
 ```
@@ -34,22 +38,23 @@ decisionCounts(d): Record<DecisionKind, number>
 |---|---|---|---|---|---|
 | `stage` | a pipeline gate `AWAITING_APPROVAL` (STORY, EDIT) of an unfinished production | productionId, stage | the handoff's `at` | `/production#needs-you` | `stage:{production}:{stage}` |
 | `image` | a draft canonical image the producer can approve now (not locked, nothing redrawing) | characterId | `canonicalImage.generatedAt` | `/characters/{id}` | `image:{character}` |
-| `line` | a dialogue line to hear again: recorded by a `DIALOGUE_AUDIO` (or `GENERATE_TAKE`) job in `AWAITING_REVIEW`, whose recording's `provenance.check` is `null` (not heard back) or `ok: false` (drifted) | productionId, shotId, lineId, characterId, jobId | the job's finish | shot workspace `{productionHref}/shots/{shotId}` | `line:{job}:{line}` |
+| `lines` | ONE item per production: its dialogue lines to hear again — every line recorded by a `DIALOGUE_AUDIO` (or `GENERATE_TAKE`) job in `AWAITING_REVIEW` whose recording's `provenance.check` is absent/`null` (`NOT_HEARD`) or `ok: false` (`DRIFTED`). The page says "`lines.length` lines to hear". A dialogue job whose recordings were replaced since still keeps the item (with `lines: []`) until the job is settled | productionId, lineIds, jobIds (+ shotId when all lines are in one shot) | the oldest job's finish | one shot: its workspace `{productionHref}/shots/{shotId}`; several: the production map `{productionHref}/production` | `lines:{production}` |
 | `take` | a take with a REVIEW verdict (`GENERATE_TAKE` awaiting review with `result.takeUnverified`) | productionId, shotId, takeId, jobId | the job's finish | shot workspace | `take:{job}:{take}` |
 | `pass` | a production pass parked for review (`PRODUCE` awaiting review) | productionId, jobId | the job's finish | production map `{productionHref}/production` | `pass:{job}` |
 | `character` | a `CREATE_CHARACTER` run awaiting review — unless its draft image is already an `image` item, or the identity was approved or locked by use since (nothing left to decide) | characterId, jobId | the job's finish | `/characters/{id}` | `character:{job}` |
 
-`title` is the production's title (`song.title` for a music video), the character's name, or `Speaker: “line”`;
-`titleAr` when the record has Arabic. Items are in that order: gates, images, then the review jobs oldest first. A
-`DIALOGUE_AUDIO` job whose recordings were replaced since still counts once (`line:{job}`, on the production map), so
-nothing is lost.
+`title` is the production's title (`song.title` for a music video) or the character's name; `titleAr` when the record
+has Arabic. Items are in that order: gates, images, then the review jobs oldest first (a production's `lines` item
+sits where its oldest review job does).
 
 **Route** `GET /api/decisions` → `Decisions & { at: string }` (no-store). Server inputs: the authoritative state,
 `pipelinePositions()` of every production, `listJobs({ activeOnly: true, limit: 500 })` (active + AWAITING_REVIEW).
 The shell's inputs are its snapshot, `/api/studio/org/pipeline` and its job list (the newest 300, kept live by the
-event stream): the same records, so the count is identical. On the studio of 2026-10-03 the count is **5**: Hana Mori's
-image, Salam's image, two lines of The Static Sky to hear again, and its first production pass (the design's "4"
-counts the two lines as one; the selector counts lines, as asked).
+event stream): the same records, so the count is identical. On the studio of 2026-10-03 the count is **4**, as §6.7
+says: Hana Mori's image, Salam's image, The Static Sky's two lines to hear again (one item), its first production pass.
+
+Note for page engineers: today's `/production` page still counts only the stage gates in its own "Needs your decision"
+section; the redesigned page must read this selector (or `/api/decisions`) so its number is the shell's.
 
 Tests: `tests/unit/decisions.test.ts` (the real `result` shapes of the handlers, recordings with their `check`),
 `tests/unit/f4-decisions.test.ts` (unchanged, still passing).
@@ -99,7 +104,15 @@ POSTPROCESSING → FINISHING). `runPhaseLabel(jobType, phase)`: for a take GENER
 `runAfter`) and `PREPARING` (the claim); the worker appends on every change (`recordRunPhase`) and writes a studio event
 `kind: 'RUN_PHASE'` (`data: { phase, label, shotId, runId, attempt }`) — every job type, so every `GENERATE_TAKE` run has
 them. Readers: `AgentRunRow.phases` (the org routes already return runs), `runPhasesOf(jobId)` in
-`src/server/org/runs.ts` (newest attempt first). Activity feeds should filter `RUN_PHASE` out of the human list.
+`src/server/org/runs.ts` (newest attempt first).
+
+**Phase events never reach an activity list.** `RUN_PHASE` is a bookkeeping kind (`ACTIVITY_HIDDEN_KINDS`,
+`isActivityNoise(kind)` in `src/domain/phases.ts`). `listStudioEvents` — the one reader behind every activity list
+(`/api/studio/org`, `/api/studio/org/events`, a department's, a production's and an agent's route; nothing else reads
+the table) — leaves it out unless called with `includeBookkeeping: true` (the status row's use, with `jobId`). The
+browser store does not count a phase notice as activity, so no open page refetches on it. Tested in
+`tests/unit/activity-noise.test.ts`; checked on `vewbox_b2` (a phase event is kept, absent from the studio,
+production, department and agent lists, present for the status row).
 
 **Expectations** (`src/studio/selectors/expectations.ts`, pure over `Production`):
 ```ts
@@ -175,23 +188,39 @@ older picture; pages should still prefer `thumb.src` only when present. Made at 
 Removing an asset removes its thumbnail with it. Rules and maths: `src/server/media/thumbs.ts` (`THUMB_RULES`,
 `thumbSize`, `isFigureLike`, `portraitCrop`, `posterSize`).
 
-**Frame poster.** `Production.framePosterAssetId?: string` (`productions.frame_poster_asset_id`): a DERIVED IMAGE asset
-(tags `poster`, `frame-poster`; `provenance.kind: 'FRAME_POSTER'`, `from`, `shotId`, `takeId`, `sceneNumber`,
-`shotNumber`, `source`, `crop`, `focal`) — the production's best frame cropped 2:3 around the focal point, at most
-960×1440, no text: the page renders the title and the readout ("Frame poster · shot 2.1"). It is made only for a
-production with no key art (`posterAssetId`); key art always wins: `posterOf(p, assets)` → `{ asset, kind: 'KEY_ART' |
-'FRAME_POSTER' } | null`. The best frame (`bestFrameFor(p, assets)`, `src/studio/selectors/poster.ts`) is the selected
-take's poster frame of the first shot of the last scene — taken from the take's video at its native size — else the
-first opening frame. The producer's own choice of frame is not wired yet (set `framePosterAssetId` to another derived
-poster, or clear it and re-run the backfill after setting `portraitFocal` on the frame).
+**Frame poster** (docs/DESIGN-SYSTEM-V5.md §5.9, the design authority). `Production.framePosterAssetId?: string`
+(`productions.frame_poster_asset_id`): a DERIVED IMAGE asset (tags `poster`, `frame-poster`; `provenance`:
+`kind: 'FRAME_POSTER'`, `rule`, `chosenBy: 'DEFAULT' | 'PRODUCER'`, `frameKey`, `source`, `from`, `frameSeconds`,
+`shotId`, `takeId`, `sceneNumber`, `shotNumber`, `crop`, `focal`) — the production's key frame cropped 2:3 around the
+focal point, at most 960×1440, no text: the page renders the title, the scrim and the readout ("Frame poster ·
+shot 2.4", from `sceneNumber`/`shotNumber`). Made only for a production with no key art (`posterAssetId`); key art
+always wins: `posterOf(p, assets)` → `{ asset, kind: 'KEY_ART' | 'FRAME_POSTER' } | null`.
+
+The key frame — `keyFrameFor(p, assets, choice?)` → `KeyFrame | null` (`src/studio/selectors/poster.ts`):
+```ts
+interface KeyFrame { source: 'TAKE_OPENING_FRAME' | 'DRAWN_OPENING_FRAME'; shotId; sceneNumber?; shotNumber; takeId?; videoAssetId?; frameSeconds?; imageAssetId?; chosen: boolean; key: string }
+```
+- default (§5.9): **the last shot's selected take's opening frame** — the last shot in storyboard order (scenes by
+  number, shots by number), its selected take's video at `trimStartFrames / fps` (the first frame the cut shows, after a
+  continuation's head), at its native size. A selected take that is a bundled sample clip, rejected (status or rating)
+  or unavailable is not footage: that shot's drawn opening frame stands in, then the shots before it.
+- `choice: { shotId, takeId? }` is **the producer's own key frame**, the override §5.9 asks for. It is not persisted
+  yet: when the page adds the control, store the choice (proposed: `Production.keyFrame?: { shotId, takeId? }`, one
+  more nullable column) and pass it here; the backfill then writes `chosenBy: 'PRODUCER'` and never replaces such a
+  poster. A chosen take that cannot be used is never silently swapped for another.
+- `key` identifies the frame. The backfill keeps a default poster whose `provenance.frameKey` matches the current key,
+  and makes it again when the key changed (a new selected take, a re-plan, or the B7 v1 rule), removing the replaced
+  derived poster (its record and its own files; never an original).
 
 **Backfill** `scripts/presentation-backfill.ts` — prints the database first, **refuses `vewbox`** unless
 `--allow-vewbox`, `--expect-db <name>`, `--dry-run`, `--only presentation|thumbs|posters`, `--verbose`. Three
 idempotent passes (presentation → thumbs → posters); originals are read-only. On `vewbox_b2`: 57 thumbs made (11
-figures, 46 stills, largest 93 KB), 1 frame poster (512×768 from the native 1344×768 frame of shot 2.1); the second run
-made 0 and wrote nothing; every original's size and SHA-256 unchanged.
+figures, 46 stills, largest 93 KB); the frame poster under §5.9: 512×768, 50 KB, from the native 1344×768 opening frame
+of the selected take of shot 2.4 (replacing the B7 v1 poster of shot 2.1); the next run found it current and made,
+remade and wrote nothing; every original's size and SHA-256 unchanged.
 
-Tests: `tests/unit/thumbs.test.ts` (rules, crop maths, best frame, and two real ffmpeg encodes against the budgets).
+Tests: `tests/unit/thumbs.test.ts` (rules, crop maths, the §5.9 key frame with its fallbacks and the producer's
+choice, `deleteAsset` clearing `framePosterAssetId`, and two real ffmpeg encodes against the budgets).
 
 ---
 
@@ -208,4 +237,5 @@ Tests: `tests/unit/thumbs.test.ts` (rules, crop maths, best frame, and two real 
   `/api/notes/{id}/send-to-shot`, `GET /api/media/{id}?thumb=1`, `GET /api/studio` (+`notes`).
 - Shell: `src/components/shell/decisions.ts` (re-export), `palette.ts` (the new kinds), i18n keys
   `shell.palette.kind.review`, `shell.palette.decide.{line,take,pass}`.
-- Tests: `tests/unit/{take-rating,run-phases,cut-notes,cut-versions,decisions,thumbs}.test.ts`.
+- Tests: `tests/unit/{take-rating,run-phases,cut-notes,cut-versions,decisions,thumbs,activity-noise}.test.ts`.
+- B6 note: only `final` is recorded; no `draft` mapping until a draft path is measured on this machine (architect).

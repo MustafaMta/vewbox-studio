@@ -5,9 +5,10 @@
  *    1. presentation  IMAGE rows without `presentation` are measured (dominant, edge, lightBackdrop, faceBox);
  *    2. thumbs        IMAGE rows in the library without `thumb` get a JPEG beside the original (long side ≤ 960 px,
  *                     ≤ 120 KB for a figure, ≤ 160 KB for a still) and the row points at it;
- *    3. posters       a production with neither key art (`posterAssetId`) nor a frame poster gets one composed from
- *                     its best frame (src/studio/selectors/poster.ts): a 2:3 crop around the focal point, no text,
- *                     stored as a DERIVED asset and recorded as `framePosterAssetId`.
+ *    3. posters       a production without key art (`posterAssetId`) gets a frame poster composed from its key frame
+ *                     (docs/DESIGN-SYSTEM-V5.md §5.9: the last shot's selected take's opening frame; see
+ *                     src/studio/selectors/poster.ts): a 2:3 crop around the focal point, no text, a DERIVED asset
+ *                     recorded as `framePosterAssetId`; a default poster whose key frame changed is made again.
  *
  *    counts only: pnpm exec tsx --env-file=.env --env-file=.env.local scripts/presentation-backfill.ts --dry-run [--verbose]
  *    fill:        pnpm exec tsx --env-file=.env --env-file=.env.local scripts/presentation-backfill.ts [--expect-db <name>] [--only presentation|thumbs|posters] [--verbose]
@@ -47,7 +48,7 @@ const { presentationOfAsset, parseOklch, oklchToRgb8 } = await import('@/server/
 const { isFigureLike, makeFramePoster, makeThumbnail, thumbPathFor } = await import('@/server/media/thumbs');
 const { ffmpeg, tmpDir } = await import('@/server/media/ffmpeg');
 const { thumbSrc } = await import('@/server/studio/snapshot');
-const { bestFrameFor } = await import('@/studio/selectors/poster');
+const { keyFrameFor } = await import('@/studio/selectors/poster');
 const { commands, readState } = await import('@/server/studio/engine');
 const { nid } = await import('@/domain/ids');
 console.log(`library: ${libraryRoot()}`);
@@ -151,51 +152,58 @@ try {
   }
 
   // ---- pass 3: frame posters -------------------------------------------------------------------------------------------
+  // docs/DESIGN-SYSTEM-V5.md §5.9: a production without key art gets a 2:3 crop of its key frame (default: the last
+  // shot's selected take's opening frame; src/studio/selectors/poster.ts keyFrameFor). A default poster whose key frame
+  // has changed since (a new selected take, the rule of B7 v1) is made again and the old derived poster removed; a
+  // poster the producer chose (`provenance.chosenBy: 'PRODUCER'`) is never replaced. Same key: nothing happens.
   if (runs('posters')) {
     const { state } = await readState();
     const assetsById = new Map(state.assets.map((a) => [a.id, a]));
-    const candidates = state.productions.filter((p) => !(p.posterAssetId && assetsById.has(p.posterAssetId)) && !(p.framePosterAssetId && assetsById.has(p.framePosterAssetId)));
-    const results: Array<{ productionId: string; title: string; status: 'made' | 'would-make' | 'skipped' | 'failed'; detail: string }> = [];
-    for (const p of candidates) {
-      const best = bestFrameFor(p, state.assets);
-      if (!best) { results.push({ productionId: p.id, title: p.title, status: 'skipped', detail: 'no frame yet (no selected take with a poster frame, no opening frame)' }); continue; }
-      const frame = assetsById.get(best.assetId)!;
-      const row = (await db().select({ storage: A.storage, path: A.path, provenance: A.provenance }).from(A).where(eq(A.id, frame.id)))[0];
-      let file: string;
-      try { file = fileFor(row); } catch (e) { results.push({ productionId: p.id, title: p.title, status: 'failed', detail: (e as Error).message }); continue; }
-      if (!fs.existsSync(file)) { results.push({ productionId: p.id, title: p.title, status: 'failed', detail: `the frame's file is missing (${frame.id})` }); continue; }
-      const where = `shot ${best.sceneNumber ?? '?'}.${best.shotNumber}`;
-      if (dryRun) { results.push({ productionId: p.id, title: p.title, status: 'would-make', detail: `${best.source === 'TAKE_POSTER' ? 'the selected take’s poster frame' : 'the opening frame'} of ${where} (${frame.id})` }); continue; }
+    const results: Array<{ productionId: string; title: string; status: 'made' | 'remade' | 'would-make' | 'would-remake' | 'current' | 'kept' | 'skipped' | 'failed'; detail: string }> = [];
+    const fileOf = async (assetId: string) => { const r = (await db().select({ storage: A.storage, path: A.path, provenance: A.provenance }).from(A).where(eq(A.id, assetId)))[0]; if (!r) throw new Error(`asset ${assetId} has no row`); const file = fileFor(r); if (!fs.existsSync(file)) throw new Error(`the file of ${assetId} is missing`); return { file, pixFmt: (r.provenance?.probe as { pixFmt?: string } | undefined)?.pixFmt }; };
+    for (const p of state.productions) {
+      if (p.posterAssetId && assetsById.has(p.posterAssetId)) continue; // key art wins
+      const old = p.framePosterAssetId ? assetsById.get(p.framePosterAssetId) : undefined;
+      if (old && (old.provenance?.kind !== 'FRAME_POSTER' || old.provenance?.chosenBy === 'PRODUCER')) { results.push({ productionId: p.id, title: p.title, status: 'kept', detail: `${old.id}: the producer's choice (or not a composed poster)` }); continue; }
+      const key = keyFrameFor(p, state.assets);
+      if (!key) { results.push({ productionId: p.id, title: p.title, status: 'skipped', detail: 'no key frame yet (no selected take, no drawn opening frame)' }); continue; }
+      if (old && old.provenance?.frameKey === key.key) { results.push({ productionId: p.id, title: p.title, status: 'current', detail: `${old.id} (${key.key})` }); continue; }
+      const where = `shot ${key.sceneNumber ?? '?'}.${key.shotNumber}`;
+      const what = key.source === 'TAKE_OPENING_FRAME' ? `the opening frame of the selected take of ${where} (at ${key.frameSeconds} s)` : `the drawn opening frame of ${where}`;
+      if (dryRun) { results.push({ productionId: p.id, title: p.title, status: old ? 'would-remake' : 'would-make', detail: `${what}${old ? `; replaces ${old.id} (${String(old.provenance?.frameKey ?? 'made by the earlier rule')})` : ''}` }); continue; }
       try {
         const dir = await tmpDir('frame-poster');
         const out = path.join(dir, 'poster.jpg');
-        // a take's poster JPEG is 640 px wide: the same frame is taken from the take's video at its native size
-        let input = file, from = frame.id, size: { width?: number; height?: number; pixFmt?: string } = { width: frame.width, height: frame.height, pixFmt: (row.provenance?.probe as { pixFmt?: string } | undefined)?.pixFmt };
-        if (best.videoAssetId) {
-          const v = (await db().select({ storage: A.storage, path: A.path }).from(A).where(eq(A.id, best.videoAssetId)))[0];
-          const videoFile = v ? fileFor(v) : '';
-          if (videoFile && fs.existsSync(videoFile)) {
-            await ffmpeg(['-v', 'error', '-ss', String(best.frameSeconds ?? 0.5), '-i', videoFile, '-an', '-frames:v', '1', '-update', '1', path.join(dir, 'frame.png')], { timeoutMs: 120_000 });
-            input = path.join(dir, 'frame.png'); from = best.videoAssetId; size = {};
-          }
+        let input: string, from: string, size: { width?: number; height?: number; pixFmt?: string } = {};
+        if (key.source === 'TAKE_OPENING_FRAME') {
+          const v = await fileOf(key.videoAssetId!);
+          input = path.join(dir, 'frame.png'); from = key.videoAssetId!;
+          // the frame at its native size, exactly at the take's opening (after a continuation's head)
+          await ffmpeg(['-v', 'error', '-ss', key.frameSeconds!.toFixed(4), '-i', v.file, '-an', '-frames:v', '1', '-update', '1', input], { timeoutMs: 120_000 });
+        } else {
+          const img = await fileOf(key.imageAssetId!); const a = assetsById.get(key.imageAssetId!)!;
+          input = img.file; from = a.id; size = { width: a.width, height: a.height, pixFmt: img.pixFmt };
         }
-        const made = await makeFramePoster(input, out, { ...size, presentation: frame.presentation });
+        const presentation = key.imageAssetId ? assetsById.get(key.imageAssetId)?.presentation : undefined;
+        const made = await makeFramePoster(input, out, { ...size, presentation });
         const id = nid('gen');
         const stored = await adoptFile(id, out, { expectKind: 'IMAGE' });
         await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
-        const asset = assetFromStored(id, stored, { label: `${p.title} — frame poster (${where})`, tags: ['poster', 'frame-poster'], origin: 'DERIVED', provenance: { kind: 'FRAME_POSTER', from, posterFrameAssetId: frame.id, frameSeconds: from === best.videoAssetId ? best.frameSeconds : undefined, source: best.source, shotId: best.shotId, takeId: best.takeId, sceneNumber: best.sceneNumber, shotNumber: best.shotNumber, crop: made.crop, focal: made.focal } });
+        const asset = assetFromStored(id, stored, { label: `${p.title} — frame poster (${where})`, tags: ['poster', 'frame-poster'], origin: 'DERIVED', provenance: { kind: 'FRAME_POSTER', rule: 'DESIGN-SYSTEM-V5 §5.9', chosenBy: 'DEFAULT', frameKey: key.key, source: key.source, from, frameSeconds: key.frameSeconds, shotId: key.shotId, takeId: key.takeId, sceneNumber: key.sceneNumber, shotNumber: key.shotNumber, crop: made.crop, focal: made.focal } });
         // the poster keeps the frame's focal point as its own portrait focal, so a later crop of the poster agrees
         asset.presentation = { ...(asset.presentation ?? {}), portraitFocal: made.focal };
-        await commands([{ name: 'addAsset', args: [asset] }, { name: 'updateProduction', args: [p.id, { framePosterAssetId: id }] }], 'presentation-backfill');
-        results.push({ productionId: p.id, title: p.title, status: 'made', detail: `${id} ${made.width}×${made.height} ${(made.bytes / 1024).toFixed(0)} KB from ${from} (${best.source.toLowerCase().replace('_', ' ')} of ${where}), crop ${JSON.stringify(made.crop)}` });
+        await commands([{ name: 'addAsset', args: [asset] }, { name: 'updateProduction', args: [p.id, { framePosterAssetId: id }] }, ...(old ? [{ name: 'deleteAsset' as const, args: [old.id] as [string] }] : [])], 'presentation-backfill');
+        // the replaced poster was this script's own derivative: its files go with its record (never an original)
+        if (old) for (const rel of [old.provenance?.path, old.thumb?.path].filter((x): x is string => typeof x === 'string' && x.length > 0)) { try { fs.rmSync(resolveLibrary(rel)); } catch { /* already gone */ } }
+        results.push({ productionId: p.id, title: p.title, status: old ? 'remade' : 'made', detail: `${id} ${made.width}×${made.height} ${(made.bytes / 1024).toFixed(0)} KB from ${what} (${from}), crop ${JSON.stringify(made.crop)}${old ? `; replaced ${old.id}` : ''}` });
       } catch (e) { results.push({ productionId: p.id, title: p.title, status: 'failed', detail: firstLine(e) }); }
     }
+    const n = (s: string) => results.filter((r) => r.status === s).length;
     summary.posters = {
-      productions: state.productions.length, withKeyArt: state.productions.filter((p) => p.posterAssetId && assetsById.has(p.posterAssetId)).length, withFramePoster: state.productions.filter((p) => !p.posterAssetId && p.framePosterAssetId && assetsById.has(p.framePosterAssetId)).length,
-      candidates: candidates.length, ...(dryRun ? { wouldMake: results.filter((r) => r.status === 'would-make').length } : { made: results.filter((r) => r.status === 'made').length }), skipped: results.filter((r) => r.status === 'skipped').length, failed: results.filter((r) => r.status === 'failed').length,
+      productions: state.productions.length, withKeyArt: state.productions.filter((p) => p.posterAssetId && assetsById.has(p.posterAssetId)).length,
+      ...(dryRun ? { wouldMake: n('would-make'), wouldRemake: n('would-remake') } : { made: n('made'), remade: n('remade') }), current: n('current'), keptProducerChoice: n('kept'), skipped: n('skipped'), failed: n('failed'),
     };
     for (const r of results) console.log(`poster ${r.status}: ${r.productionId} “${r.title}” — ${r.detail}`);
   }
-
   console.log(JSON.stringify(summary, null, 2));
 } finally { await closeDb(); }

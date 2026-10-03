@@ -5,8 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { THUMB_RULES, backgroundFor, hasAlphaFormat, isFigureLike, jpegArgs, makeFramePoster, makeThumbnail, portraitCrop, posterSize, thumbBudget, thumbPathFor, thumbSize } from '@/server/media/thumbs';
-import { bestFrameFor, posterOf } from '@/studio/selectors/poster';
+import { keyFrameFor, posterOf } from '@/studio/selectors/poster';
+import type { Asset, Production, Shot, Take } from '@/domain/types';
 import { seed } from '@/domain/sample';
+import { deleteAsset, updateProduction } from '@/domain/actions';
 
 /** docs/CONTRACTS-REDESIGN-BACKEND.md B7: display-size thumbnails and the composed frame poster. The maths is pure;
  *  the two encodes run ffmpeg on a generated picture (as the presentation tests do). */
@@ -55,24 +57,47 @@ describe('the 2:3 crop around the focal point', () => {
   });
 });
 
-describe('the best frame of a production', () => {
-  it('the selected take’s poster of the first shot of the last scene, else the first opening frame', () => {
+describe('the key frame of a production (§5.9)', () => {
+  const video = (id: string, over: Partial<Asset> = {}): Asset => ({ id, kind: 'VIDEO', src: `/api/media/${id}`, label: id, tags: ['take'], sample: false, origin: 'GENERATED', fps: 24, durationSeconds: 7, createdAt: '2026-10-03T08:00:00.000Z', ...over });
+  const image = (id: string): Asset => ({ id, kind: 'IMAGE', src: `/api/media/${id}`, label: id, tags: [], sample: false, origin: 'DERIVED', width: 640, height: 366, createdAt: '2026-10-03T08:00:00.000Z' });
+  const take = (id: string, assetId: string, over: Partial<Take> = {}): Take => ({ id, label: id, assetId, createdAt: '2026-10-03T08:00:00.000Z', status: 'READY', provider: 'MINIMAX', fps: 24, thumbnailAssetId: `poster-${id}`, ...over });
+  const shot = (id: string, sceneId: string, number: number, takes: Take[], selected?: string, opening?: string): Shot => ({ id, sceneId, number, purpose: '', action: '', framing: 'WIDE', cameraMove: 'STATIC', durationSeconds: 7, characterIds: [], dialogue: [], transition: 'CUT', takes, selectedTakeId: selected, openingFrameAssetId: opening });
+  const scenes = [{ id: 'sc1', number: 1 }, { id: 'sc2', number: 2 }] as Production['scenes'];
+  // shots listed out of storyboard order on purpose: the rule reads scene and shot numbers
+  const p = { scenes, shots: [shot('s2-4', 'sc2', 4, [take('t-a', 'v-a', { trimStartFrames: 22 }), take('t-b', 'v-b')], 't-a', 'drawn-24'), shot('s1-1', 'sc1', 1, [take('t-c', 'v-c')], 't-c', 'drawn-11'), shot('s2-1', 'sc2', 1, [take('t-d', 'v-d')], 't-d')] };
+  const assets = [video('v-a'), video('v-b'), video('v-c'), video('v-d'), image('poster-t-a'), image('poster-t-b'), image('poster-t-c'), image('poster-t-d'), image('drawn-24'), image('drawn-11')];
+
+  it('default: the LAST shot’s selected take’s opening frame — the first frame the cut shows, after a continuation’s head', () => {
+    expect(keyFrameFor(p, assets)).toEqual({ source: 'TAKE_OPENING_FRAME', shotId: 's2-4', sceneNumber: 2, shotNumber: 4, takeId: 't-a', videoAssetId: 'v-a', frameSeconds: 0.9167, imageAssetId: 'poster-t-a', chosen: false, key: 'take:t-a:v-a@0.9167' });
+  });
+  it('a sample clip, a rejected or unavailable take is not footage: the shot’s drawn opening frame stands in; then earlier shots', () => {
+    const sample = { ...p, shots: p.shots.map((s) => (s.id === 's2-4' ? { ...s, takes: s.takes.map((t) => ({ ...t, provider: 'SAMPLE' as const })) } : s)) };
+    expect(keyFrameFor(sample, assets)).toMatchObject({ source: 'DRAWN_OPENING_FRAME', shotId: 's2-4', imageAssetId: 'drawn-24', key: 'drawn:s2-4:drawn-24' });
+    expect(keyFrameFor(p, assets.map((a) => (a.id === 'v-a' ? { ...a, unavailable: true } : a)))).toMatchObject({ source: 'DRAWN_OPENING_FRAME', shotId: 's2-4' });
+    const rated = { ...p, shots: p.shots.map((s) => (s.id === 's2-4' ? { ...s, takes: s.takes.map((t) => ({ ...t, rating: 'REJECTED' as const })), openingFrameAssetId: undefined } : s)) };
+    expect(keyFrameFor(rated, assets)).toMatchObject({ source: 'TAKE_OPENING_FRAME', shotId: 's2-1', takeId: 't-d', frameSeconds: 0 });
+    expect(keyFrameFor({ scenes: [], shots: [] }, assets)).toBeNull();
+  });
+  it('the producer’s choice overrides the default; a chosen take that cannot be used is never silently swapped', () => {
+    expect(keyFrameFor(p, assets, { shotId: 's1-1' })).toMatchObject({ shotId: 's1-1', takeId: 't-c', chosen: true });
+    expect(keyFrameFor(p, assets, { shotId: 's2-4', takeId: 't-b' })).toMatchObject({ takeId: 't-b', videoAssetId: 'v-b', frameSeconds: 0, chosen: true });
+    expect(keyFrameFor(p, assets.filter((a) => a.id !== 'v-b'), { shotId: 's2-4', takeId: 't-b' })).toMatchObject({ takeId: 't-a', chosen: false });
+  });
+  it('the sample studio: its last shot’s take is a bundled clip, so the drawn opening frame; key art wins over the frame poster', () => {
     const s = seed();
-    const ep = s.productions.find((p) => p.id === 's1e1')!;
-    const best = bestFrameFor(ep, s.assets)!;
-    const lastScene = [...ep.scenes].sort((a, b) => a.number - b.number).at(-1)!;
-    const first = ep.shots.filter((sh) => sh.sceneId === lastScene.id)[0];
-    const takeAsset = s.assets.find((a) => a.id === first.takes.find((t) => t.id === first.selectedTakeId)!.assetId)!;
-    if (takeAsset.poster?.startsWith('/api/media/')) expect(best).toMatchObject({ source: 'TAKE_POSTER', shotId: first.id, sceneNumber: lastScene.number, shotNumber: 1 });
-    else expect(best).toMatchObject({ source: 'OPENING_FRAME', assetId: ep.shots.find((sh) => sh.openingFrameAssetId)!.openingFrameAssetId, shotId: ep.shots.find((sh) => sh.openingFrameAssetId)!.id });
-    expect(bestFrameFor({ scenes: [], shots: [] }, s.assets)).toBeNull();
-    // key art wins over the frame poster; a production with neither has no poster
+    const ep = s.productions.find((x) => x.id === 's1e1')!;
+    expect(keyFrameFor(ep, s.assets)).toMatchObject({ source: 'DRAWN_OPENING_FRAME', shotId: 's1e1-7', sceneNumber: 2, shotNumber: 4, imageAssetId: 'frame-07-a' });
     expect(posterOf(ep, s.assets)?.kind).toBe('KEY_ART');
     expect(posterOf({ framePosterAssetId: ep.posterAssetId }, s.assets)?.kind).toBe('FRAME_POSTER');
     expect(posterOf({}, s.assets)).toBeNull();
   });
+  it('removing a frame poster’s asset clears the production’s pointer (deleteAsset)', () => {
+    const s = seed();
+    const withFrame = updateProduction(s, 'paper-boats', { framePosterAssetId: 'frame-15-a' });
+    expect(withFrame.productions.find((x) => x.id === 'paper-boats')!.framePosterAssetId).toBe('frame-15-a');
+    expect(deleteAsset(withFrame, 'frame-15-a').productions.find((x) => x.id === 'paper-boats')!.framePosterAssetId).toBeUndefined();
+  });
 });
-
 describe.runIf(hasFfmpeg)('encodes', () => {
   it('a thumbnail fits its budget at display size; a poster is 2:3 around the focal point; originals untouched', async () => {
     const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'vewbox-thumbs-'));
