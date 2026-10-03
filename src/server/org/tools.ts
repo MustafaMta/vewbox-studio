@@ -61,9 +61,6 @@ export function makeToolRunner(agent: AgentDef, runId: string, log: Logger): Too
   };
 }
 
-/** For code paths outside a job (tests, scripts): records nothing, enforces nothing. */
-export const unrecordedTool: ToolRunner = (_id, fn) => fn();
-
 /** `ctx.delegate(agentId, purpose, fn)` — run a specialist's step inside the current job as that agent: a child run
  *  under the job's run, a tool runner with THAT agent's allow-list, the outcome and failure class recorded, and one
  *  activity event. `purpose` is `'<step id>'` or `'<step id>: <detail>'`, and the step must be one the agent

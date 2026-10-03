@@ -64,7 +64,6 @@ const ProfileBase = z.object({
   language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(),
   canon: canon.optional(), notes: short(4000).optional(),
 });
-export const CharacterProfileSchema = ProfileBase.refine(noDialectOnEnglish.check, { message: noDialectOnEnglish.message, path: noDialectOnEnglish.path });
 
 export const VoiceProfileSchema = z.object({ pitch: z.enum(PITCHES), pace: z.enum(PACES), timbre: short(200).optional(), notes: short(400).optional() });
 const voicePatch = VoiceProfileSchema.partial().passthrough();

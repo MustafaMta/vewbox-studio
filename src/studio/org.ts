@@ -16,8 +16,6 @@ import type { AgentRunRow, AgentStat, ReliabilitySummary, StudioEventRow } from 
  *  Arabic fields, a planned role, a skill's status and evidence, a tool's contract. */
 
 export type { OrgAgent, OrgDepartment, OrgSkill, OrgTool, PlannedRole, StepDef };
-/** A delegated run carries its parent run and what the step did (v5). */
-export type OrgRun = AgentRunRow;
 export interface LiveJob { id: string; type: string; status: string; productionId?: string; shotId?: string; attempts: number; maxAttempts: number; progress?: { phase?: string; message?: string; percent?: number | null } | null; createdAt: string }
 export interface ProductionPosition { productionId: string; stages: Array<{ id: string; department: string; status: 'DONE' | 'AWAITING_APPROVAL' | 'REJECTED' | 'INVALID' | 'READY' | 'BLOCKED'; at: string | null; failed: string[] }> }
 export interface OrgResponse { version: number; departments: OrgDepartment[]; agents: OrgAgent[]; tools: OrgTool[]; skills: OrgSkill[]; pipeline: StageDef[]; stats: AgentStat[]; events: StudioEventRow[]; queue: { queued: number; running: number; failed24h: number; completed24h: number }; hours: number; handoffs: HandoffRow[]; approvals: ApprovalRow[]; positions: ProductionPosition[]; jobs: LiveJob[] }
@@ -60,14 +58,6 @@ export const useDepartment = (id: string) => useLive<DepartmentResponse>(`/api/s
 export const useAgent = (id: string) => useLive<AgentResponse>(`/api/studio/org/agents/${encodeURIComponent(id)}`);
 export const useReliability = (hours = 24 * 7) => useLive<ReliabilitySummary>(`/api/studio/org/reliability?hours=${hours}`);
 export const useProductionPipeline = (id: string | null) => useLive<ProductionPipelineResponse>(id ? `/api/studio/org/productions/${encodeURIComponent(id)}` : null);
-export const useEvents = (q: { department?: string; agent?: string; production?: string; limit?: number }) => {
-  const sp = new URLSearchParams();
-  if (q.department) sp.set('department', q.department);
-  if (q.agent) sp.set('agent', q.agent);
-  if (q.production) sp.set('production', q.production);
-  if (q.limit) sp.set('limit', String(q.limit));
-  return useLive<{ events: StudioEventRow[] }>(`/api/studio/org/events?${sp}`);
-};
 
 export async function approveStage(productionId: string, body: { stage: string; decision: 'APPROVED' | 'REJECTED' | 'CHANGES'; note?: string; by?: string }): Promise<{ approvalId: string }> {
   const r = await fetch(`/api/studio/org/productions/${encodeURIComponent(productionId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -89,8 +79,6 @@ export const stepName = (s: StepDef, lang: Lang) => loc(lang, s.name, s.nameAr);
 
 /** R1: the delegated steps an agent performs inside other agents' jobs. */
 export const stepsOf = (a: Pick<AgentDef, 'steps'>): StepDef[] => a.steps ?? [];
-/** R1: an agent is on the pages because code executes it — it owns job types, a payload route, or a delegated step. */
-export const hasExecutionPath = (a: OrgAgent) => a.jobTypes.length > 0 || (a.payloadRoutes?.length ?? 0) > 0 || stepsOf(a).length > 0;
 /** The agent that runs a job type, from the agents' own declarations. */
 export const agentForJobType = <A extends Pick<AgentDef, 'jobTypes'>>(agents: A[], type: string): A | undefined => agents.find((a) => (a.jobTypes as string[]).includes(type));
 

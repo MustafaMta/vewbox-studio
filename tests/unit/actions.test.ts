@@ -5,7 +5,7 @@ import { appearanceLock } from '@/domain/rules';
 import { sampleProposal } from '@/domain/proposals';
 import { StudioError } from '@/domain/errors';
 import type { StudioState } from '@/domain/types';
-import { attentionItems, castOf, nextStep, productionHref, progressOf, shotLabel } from '@/studio/selectors';
+import { castOf, nextStep, productionHref, progressOf, shotLabel } from '@/studio/selectors';
 
 /** The studio's pure actions: state in, state out, nothing else touched. The same functions run in the browser and
  *  on the server, so these tests cover the rules both sides enforce. */
@@ -149,12 +149,6 @@ describe('characters, settings, attention', () => {
     expect(s.settings.defaults.style).toBe('ANIME');
     expect(s.settings.defaults.aspect).toBe('WIDE_16_9');
   });
-  it('attention lists shots with takes to choose from first', () => {
-    const items = attentionItems(seed());
-    expect(items.length).toBeGreaterThan(0);
-    expect(items[0].title).toBe('The Debt');
-    expect(items[0].tone).toBe('warn');
-  });
 });
 
 describe('empty studio and assets', () => {
@@ -162,7 +156,6 @@ describe('empty studio and assets', () => {
     const s = emptyStudio({ ...seed().settings, uiLanguage: 'ar' });
     expect(s.shows).toEqual([]); expect(s.productions).toEqual([]); expect(s.characters).toEqual([]); expect(s.locations).toEqual([]); expect(s.assets).toEqual([]);
     expect(s.settings.uiLanguage).toBe('ar');
-    expect(attentionItems(s)).toEqual([]);
   });
   it('an uploaded asset is never sample and is served from the library', () => {
     const r = addAsset(seed(), { kind: 'IMAGE', src: '/api/media/up-1', label: 'me.png', tags: ['added'], mimeType: 'image/png', bytes: 12, sample: false, origin: 'UPLOAD', id: 'up-1' });

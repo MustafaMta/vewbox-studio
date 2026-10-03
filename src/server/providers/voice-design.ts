@@ -18,7 +18,6 @@ import { log } from '../log';
  *    PROVIDER        any other failure, or an answer that does not match the contract (sha256, shape, sizes) */
 
 export const DESIGN_MAX_CANDIDATES = 3;
-export const DESIGN_LABEL = 'Studio-designed synthetic voice — not a real person';
 
 const finiteOrNull = z.number().finite().nullable();
 

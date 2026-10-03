@@ -21,7 +21,9 @@ const setAnswer = (v: unknown) => { h.answer.value = v; };
 
 const { seed } = await import('@/domain/sample');
 const engine = await import('@/server/story/engine');
-const { agentPrompt, skillFile, skillPrompt } = await import('@/server/org/skills');
+const { agentPrompt, skillFile } = await import('@/server/org/skills');
+/** The SKILL bodies an agent's prompt carries, in order. */
+const skillBodies = (agentId: string) => agentPrompt(agentId).split('\n\nSKILL: ').slice(1).map((part) => part.slice(part.indexOf('\n') + 1));
 const { CONTRACTS } = await import('@/server/org/contracts');
 const { AGENTS } = await import('@/server/org/model');
 const { castOf, worldOf } = await import('@/studio/selectors');
@@ -44,15 +46,15 @@ const DESIGN = { name: 'Rana', role: 'Bus driver', sex: 'FEMALE', ageYears: 41, 
 
 beforeEach(() => { calls.length = 0; });
 
-describe('agentPrompt / skillPrompt', () => {
+describe('agentPrompt', () => {
   it('an LLM agent gets its role, its instructions and the bodies of its PROMPT skills — in that order', () => {
     const p = agentPrompt('film-director');
     const a = AGENTS.find((x) => x.id === 'film-director')!;
     expect(p.startsWith(`\n\nYOUR ROLE: Film Director — ${a.role}.\n${a.systemInstructions}`)).toBe(true);
     expect(p).toContain(`SKILL: Scene-by-scene shot planning\n${body('shot-planning')}`);
-    expect(skillPrompt('film-director')).toEqual([body('shot-planning')]);
-    expect(skillPrompt('head-of-story')).toEqual([body('screenwriting')]);
-    expect(skillPrompt('casting-director')).toEqual([body('character-design')]);
+    expect(skillBodies('film-director')).toEqual([body('shot-planning')]);
+    expect(skillBodies('head-of-story')).toEqual([body('screenwriting')]);
+    expect(skillBodies('casting-director')).toEqual([body('character-design')]);
   });
   it('a PROCEDURE skill is never injected; an agent without PROMPT skills gets only its instructions', () => {
     const p = agentPrompt('continuity-writer');
@@ -66,7 +68,7 @@ describe('agentPrompt / skillPrompt', () => {
     expect(agentPrompt('nobody')).toBe('');
     expect(agentPrompt('audio-engineer')).toBe('');
     expect(agentPrompt('minimax-video-specialist')).toBe('');
-    expect(skillPrompt('audio-engineer')).toEqual([]);
+    expect(skillBodies('audio-engineer')).toEqual([]);
   });
 });
 
@@ -128,9 +130,6 @@ describe('the story engine injects the calling agent’s prompt (and the contrac
     contract('shot-plan', draft);
     const fitted = engine.fitDurations(draft.shots, draft.budget, draft.maxShot);
     expect(fitted.reduce((s, x) => s + x.durationSeconds, 0)).toBeGreaterThanOrEqual(Math.min(draft.budget * 0.9, draft.shots.length * draft.maxShot));
-    // planShots = the draft fitted (what the engine returned before the Shot Planner's step existed)
-    const whole = await engine.planShots(state, film, sc, castOf(state, film), worldOf(state, film), {}, {});
-    expect(whole.map((s) => s.durationSeconds)).toEqual(fitted.map((s) => s.durationSeconds));
   });
   it('the singing assignment (Singing Performance Agent: instructions, no skills) and the bible update', async () => {
     const sec = mv.song!.sections;

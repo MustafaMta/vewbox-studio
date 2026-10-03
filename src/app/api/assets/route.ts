@@ -18,8 +18,9 @@ const REFERENCE_PICTURE_MAX_BYTES = 25 * 1024 * 1024;
  *  file.
  *
  *  `purpose: 'character-reference'` (contract §1.2): the picture is a character reference. It must be an image, and
- *  it is measured on the CPU (size, sharpness; faces only when a detector exists — none is installed, so `faces`
- *  stays undefined and the reasons say "face detection not available") before anything is generated from it. The
+ *  it is measured on the CPU (size, sharpness; no face detector runs at upload, so `faces` stays undefined and the
+ *  reasons say "face detection not available" — the face is found when the image is drawn, by the MediaPipe graph in
+ *  ComfyUI) before anything is generated from it. The
  *  measurement is stored on the asset (`provenance.validation`, which the CREATE_CHARACTER orchestrator and
  *  `setPendingReference` carry on) and returned as `{ asset, validation }`. An unusable picture is still stored —
  *  the page shows the reasons and removes it — but nothing will draw from it. */

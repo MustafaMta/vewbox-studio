@@ -106,34 +106,6 @@ export function MiniPlayer({ track, show }: { track: Track; show: boolean }) {
   );
 }
 
-/** A VOICE PREVIEW — the character's portrait, the voice's name, language and dialect, where it came from, and a
- *  compact transport: play/pause, seek, elapsed/total, replay. Volume lives behind one button so a row stays calm. */
-export function VoicePreview({ track, name, detail, source, portraitSrc, selected, action, unavailableText }: { track: Track | null; name: string; detail?: string; source: 'SAMPLE' | 'UPLOADED' | 'GENERATED'; portraitSrc?: string; selected?: boolean; action?: ReactNode; unavailableText?: string }) {
-  const T = useT();
-  const p = usePlayer();
-  const st = useTrackState(track);
-  const badge = source === 'SAMPLE' ? <span className="badge">{T('voice.source.SAMPLE')}</span> : source === 'UPLOADED' ? <span className="badge badge-info">{T('voice.source.UPLOADED')}</span> : <span className="badge badge-accent">{T('voice.source.GENERATED')}</span>;
-  return (
-    <div className={cls('flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors', selected ? 'border-primary bg-primary/[0.06]' : 'border-line bg-raised', st.playing && 'border-violet-500/60')} role="group" aria-label={`${T('tab.voice')}: ${name}`}>
-      {portraitSrc !== undefined && <div className="size-11 flex-none overflow-hidden rounded-full bg-media">{portraitSrc ? <img src={portraitSrc} alt="" className="h-full w-full object-cover object-top" /> : null}</div>}
-      <div className="min-w-0 flex-1 basis-40">
-        <p className="flex flex-wrap items-center gap-2"><span className="truncate text-[14px] font-semibold text-fg" dir="auto">{name}</span>{badge}</p>
-        {detail && <p className="mt-0.5 truncate text-[12px] text-faint">{detail}</p>}
-      </div>
-      {track ? (
-        <div className="flex min-w-0 flex-[2] basis-64 items-center gap-2">
-          <TrackButton track={track} size="sm" labelPlay={`${T('misc.play')} ${name}`} labelPause={`${T('misc.pause')} ${name}`} />
-          <SeekBar track={track} className="min-w-0 flex-1" label={`${T('misc.seek')} ${name}`} />
-          <button type="button" className="btn btn-subtle btn-sm btn-icon" aria-label={`${T('player.replay')} ${name}`} onClick={() => p.replay(track)}><IconReplay /></button>
-          <SharedVolume popover />
-        </div>
-      ) : <p className="flex-[2] basis-64 text-[12.5px] text-faint">{unavailableText}</p>}
-      {action}
-      {track && (st.error || st.notice) && <div className="basis-full"><PlayerNotice track={track} /></div>}
-    </div>
-  );
-}
-
 /** A one-line player for a file (a song upload, an audio asset) through the shared source. */
 export function AudioPlayer({ src, title, duration, className = '' }: { src: string; title?: string; duration?: number; className?: string }) {
   const T = useT();

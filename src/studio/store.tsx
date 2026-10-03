@@ -230,4 +230,3 @@ export function useJobsFor(where: { productionId?: string; shotId?: string; char
   return useMemo(() => jobs.filter((j) => (!where.productionId || j.productionId === where.productionId) && (!where.shotId || j.shotId === where.shotId) && (!where.characterId || j.characterId === where.characterId) && (!where.locationId || j.locationId === where.locationId) && (!where.type || j.type === where.type)).sort((a, b) => Number(isActiveStatus(b.status)) - Number(isActiveStatus(a.status)) || b.createdAt.localeCompare(a.createdAt)), [jobs, where.productionId, where.shotId, where.characterId, where.locationId, where.type]);
 }
 
-export const activeJob = (jobs: Job[]): Job | undefined => jobs.find((j) => isActiveStatus(j.status));

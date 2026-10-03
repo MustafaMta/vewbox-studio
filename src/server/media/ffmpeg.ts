@@ -1,14 +1,11 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { execFile, spawn } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { StudioError } from '@/domain/errors';
 import type { QaCheck, QaReport } from '@/domain/types';
 import { ffprobe, type Probe } from '../media';
 import { log } from '../log';
-
-const execFileP = promisify(execFile);
 
 /** FFMPEG — every media transformation the studio performs, as explicit argument lists (never a shell string):
  *  thumbnails, review proxies, loudness measurement, the quality checks on a generated take, assembly and export. */
@@ -32,12 +29,6 @@ export async function ffmpeg(args: string[], opts: { timeoutMs?: number; cwd?: s
 export async function thumbnail(video: string, out: string, opts: { at?: number; width?: number } = {}): Promise<string> {
   const at = opts.at ?? 0.5;
   await ffmpeg(['-ss', String(at), '-i', video, '-frames:v', '1', '-vf', `scale=${opts.width ?? 640}:-2`, '-q:v', '3', out], { timeoutMs: 120_000 });
-  return out;
-}
-
-/** A small H.264 proxy for review in the browser (the original stays the master). */
-export async function proxy(video: string, out: string, opts: { height?: number } = {}): Promise<string> {
-  await ffmpeg(['-i', video, '-vf', `scale=-2:${opts.height ?? 540}`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '128k', out], { timeoutMs: 20 * 60_000 });
   return out;
 }
 
@@ -168,14 +159,3 @@ export function speechAudioArgs(video: string, wav: string, fromSeconds = 0): st
   return ['-y', '-v', 'error', ...(fromSeconds > 0 ? ['-ss', fromSeconds.toFixed(6)] : []), '-i', video, '-vn', '-ac', '1', '-ar', '16000', wav];
 }
 
-/** The audio of a clip's last `seconds`, mono 48 kHz. */
-export async function audioTail(video: string, out: string, seconds: number): Promise<string> {
-  const p = await ffprobe(video);
-  const start = Math.max(0, (p.durationSeconds ?? seconds) - seconds);
-  await ffmpeg(['-y', '-v', 'error', '-ss', start.toFixed(6), '-i', video, '-vn', '-ac', '1', '-ar', '48000', '-c:a', 'pcm_s16le', out]);
-  return out;
-}
-
-export async function fileExists(p: string): Promise<boolean> { try { await fsp.access(p); return true; } catch { return false; } }
-
-export async function ffmpegVersion(): Promise<string> { try { const { stdout } = await execFileP('ffmpeg', ['-version']); return stdout.split('\n')[0]; } catch { return 'unavailable'; } }

@@ -3,8 +3,8 @@ import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { log } from '../log';
 
-/** MINIMAX — the hosted side of the studio. Video (H3 on the v2 API; the legacy v1 Hailuo path kept behind the
- *  same interface), music, speech and voice cloning. Every call carries the request id into the logs; errors map
+/** MINIMAX — the hosted side of the studio. Video (H3 on the v2 API, `/v2/video_generation` only), music, speech
+ *  and voice cloning. Every call carries the request id into the logs; errors map
  *  MiniMax's status codes to retryable / terminal, and nothing here ever falls back to another provider. */
 
 export type MinimaxVideoStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';

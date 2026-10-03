@@ -269,12 +269,3 @@ export function seed(): StudioState {
   return structuredClone({ version: STATE_VERSION, shows: SHOWS, seasons: SEASONS, productions: PRODUCTIONS, characters: withRecordedUsage(CHARACTERS, PRODUCTIONS), locations: LOCATIONS, assets: ASSETS, settings: DEFAULT_SETTINGS });
 }
 
-/** Example ideas the Auto Idea path offers. They are written examples, not the result of any research. */
-export const EXAMPLE_IDEAS: Array<{ title: string; logline: string; genre: string; kinds: Array<'SHOW' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'> }> = [
-  { title: 'The Waiting Room', logline: 'Six strangers, one appointment, and a receptionist who has decided none of them exist.', genre: 'Comedy', kinds: ['SHOW', 'SHORT'] },
-  { title: 'Bread at Four', logline: 'A baker who wakes the street each dawn discovers the street has been waking her.', genre: 'Drama', kinds: ['SHORT', 'EPISODE'] },
-  { title: 'Small Wars', logline: 'Two neighbours fight a decade-long feud through the placement of flowerpots.', genre: 'Comedy', kinds: ['SHOW', 'EPISODE'] },
-  { title: 'Late Bus', logline: 'A night bus that only stops where someone needs to be forgiven.', genre: 'Fantasy', kinds: ['SHORT', 'SHOW'] },
-  { title: 'Salt', logline: 'A song for the sea from someone who has never seen it.', genre: 'Ballad', kinds: ['MUSIC_VIDEO'] },
-  { title: 'Rooftop Radio', logline: 'An up-tempo track about a city that talks to itself across the roofs at night.', genre: 'Pop', kinds: ['MUSIC_VIDEO'] },
-];

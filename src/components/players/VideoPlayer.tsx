@@ -19,11 +19,6 @@ export interface PlayerHandle { play: () => void; pause: () => void; seek: (t: n
 type SyncEvent = { type: 'play' | 'pause' | 'seek'; time: number; from: string };
 export interface SyncBus { on: (fn: (e: SyncEvent) => void) => () => void; emit: (e: SyncEvent) => void }
 
-export function createSyncBus(): SyncBus {
-  const subs = new Set<(e: SyncEvent) => void>();
-  return { on: (fn) => { subs.add(fn); return () => subs.delete(fn); }, emit: (e) => { for (const s of subs) s(e); } };
-}
-
 const fmt = (t: number) => { if (!Number.isFinite(t) || t < 0) t = 0; const m = Math.floor(t / 60); const s = t - m * 60; return `${m}:${s.toFixed(1).padStart(4, '0')}`; };
 
 export interface CaptionTrack { src: string; label: string; lang: string }

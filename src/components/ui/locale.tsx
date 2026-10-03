@@ -21,8 +21,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={locale}>{children}</Ctx.Provider>;
 }
 
-export function useLocale(): Locale { return useContext(Ctx); }
-
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 const pluralCache: Partial<Record<Locale, Intl.PluralRules>> = {};
 /** Plural forms live in one string separated by `|`: English `one|other`, Arabic `zero|one|two|few|many|other`

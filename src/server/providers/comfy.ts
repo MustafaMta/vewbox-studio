@@ -72,9 +72,6 @@ export async function free(): Promise<void> {
   await postJson('/free', { unload_models: true, free_memory: true });
 }
 
-/** Global interrupt: stops WHATEVER is running. Kept for operators; jobs use `cancelPrompt(id)`. */
-export async function interrupt(): Promise<void> { await http('/interrupt', { method: 'POST' }); }
-
 /** Cancel one prompt, pending or running, and nothing else. True when ComfyUI had something to cancel. */
 export async function cancelPrompt(promptId: string): Promise<boolean> {
   try {
@@ -88,9 +85,6 @@ export async function cancelPrompt(promptId: string): Promise<boolean> {
     return true;
   }
 }
-
-/** Remove a finished prompt from ComfyUI's in-memory history once its outputs are in the library. */
-export async function forget(promptId: string): Promise<void> { await postJson('/history', { delete: [promptId] }); }
 
 /** Put a local file into ComfyUI's input folder (name derived from content so repeats are cheap). */
 export async function uploadInput(file: string, opts: { ext?: string; subfolder?: string } = {}): Promise<string> {
@@ -405,10 +399,6 @@ export async function view(f: ComfyOutputFile): Promise<Buffer> {
 export function firstOutput(outputs: ComfyRunResult['outputs'], kind: 'images' | 'audio' | 'video' | 'gifs'): ComfyOutputFile | undefined {
   for (const node of Object.values(outputs)) { const xs = node[kind]; if (xs && xs.length) return xs[0]; }
   return undefined;
-}
-
-export function allOutputs(outputs: ComfyRunResult['outputs'], kind: 'images' | 'audio' | 'video' | 'gifs'): ComfyOutputFile[] {
-  return Object.values(outputs).flatMap((n) => n[kind] ?? []);
 }
 
 /** The text a PreviewAny node produced (the face boxes of `faceCheck`, a VLM answer), or undefined. */

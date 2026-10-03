@@ -18,7 +18,7 @@ import { RetryControl } from '@/components/ui/jobs';
 import { IconCheck, IconGenerate, IconShield, IconVoice } from '@/components/ui/icons';
 import type { Track } from '@/components/players/PlayerProvider';
 import { dialectLabel, fmtSeconds } from '@/lib/format';
-import { designResultOf, designedIraqiAllowed, listeningReady, recordVoiceListening, startVoiceBuild, startVoiceBuildV2, startVoiceDesign, voiceDescriptionOf, voiceDesignReady, voiceExtras, type ConsentStatement, type VoiceReferenceRefusal } from './contract';
+import { designResultOf, designedIraqiAllowed, recordVoiceListening, startVoiceBuild, startVoiceBuildV2, startVoiceDesign, voiceDescriptionOf, voiceExtras, type ConsentStatement, type VoiceReferenceRefusal } from './contract';
 import { voiceListened, voiceMeasures, voiceOrigin, voiceState } from './identity';
 import { VoicePlayer } from './VoicePlayer';
 import { VoiceTraitsDialog } from './EditDialogs';
@@ -136,7 +136,6 @@ function Evaluation({ c }: { c: Character }) {
   const [natural, setNatural] = useState<string>('');
   const [authentic, setAuthentic] = useState<string>('');
   const [note, setNote] = useState('');
-  const ready = listeningReady();
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     if (!natural || (iraqi && !authentic)) return;
@@ -158,8 +157,7 @@ function Evaluation({ c }: { c: Character }) {
             ? <>{T('cast.voice.natural').replace('{n}', String(heard.last.natural))}{heard.dialect === 'APPROVED' ? ` · ${T('cast.voice.iraqiYes')}` : heard.dialect === 'REJECTED' ? ` · ${T('cast.voice.iraqiNo')}` : ''}</>
             : T('cast.voice.notListened')}
         </p>
-        {!open && <Button size="sm" variant="quiet" icon={<IconCheck />} disabled={!ready} aria-describedby={!ready ? 'listen-why' : undefined} onClick={() => setOpen(true)}>{T('cast.voice.iListened')}</Button>}
-        {!ready && <span id="listen-why" className="basis-full text-xs text-faint">{T('cast.voice.v2Pending')}</span>}
+        {!open && <Button size="sm" variant="quiet" icon={<IconCheck />} onClick={() => setOpen(true)}>{T('cast.voice.iListened')}</Button>}
       </div>
       {accentPending && <p className="text-warn">{iraqi ? T('cast.voice.iraqiPending') : T('cast.voice.accentPending')}</p>}
       {open && (
@@ -197,31 +195,29 @@ function PreviewLine({ c }: { c: Character }) {
 
 type Method = 'AUTOMATIC' | 'DESIGN' | 'RECORDING';
 
-/** Create or replace the voice: Automatic, Design a voice, or a Recording — each available or saying why not. */
+/** Create or replace the voice: Automatic, Design a voice, or a Recording. */
 function CreateVoice({ c, open }: { c: Character; open: boolean }) {
   const T = useT();
   const { state } = useStudio();
   const identity = c.voice.identity;
   const iraqi = c.dialect === 'IRAQI_BAGHDADI';
   const uploads = c.voice.samples.filter((s) => s.source === 'UPLOADED');
-  const v2 = voiceDesignReady();
   const experiment = designedIraqiAllowed(state.settings);
-  const [method, setMethod] = useState<Method>(v2 && !iraqi ? 'AUTOMATIC' : 'RECORDING');
-  const pending = T('cast.voice.v2Pending');
-  const methods: Array<{ value: Method; label: string; hint: string; disabled: boolean }> = [
-    { value: 'AUTOMATIC', label: T('cast.voice.m.automatic'), hint: !v2 ? pending : iraqi && !uploads.length && !experiment ? T('cast.voice.iraqiNeedsRecording') : T('cast.voice.m.automatic.hint'), disabled: !v2 },
-    { value: 'DESIGN', label: T('cast.voice.m.design'), hint: !v2 ? pending : T('cast.voice.m.design.hint'), disabled: !v2 },
-    { value: 'RECORDING', label: T('cast.voice.m.recording'), hint: T('cast.voice.m.recording.hint'), disabled: false },
+  const [method, setMethod] = useState<Method>(iraqi ? 'RECORDING' : 'AUTOMATIC');
+  const methods: Array<{ value: Method; label: string; hint: string }> = [
+    { value: 'AUTOMATIC', label: T('cast.voice.m.automatic'), hint: iraqi && !uploads.length && !experiment ? T('cast.voice.iraqiNeedsRecording') : T('cast.voice.m.automatic.hint') },
+    { value: 'DESIGN', label: T('cast.voice.m.design'), hint: T('cast.voice.m.design.hint') },
+    { value: 'RECORDING', label: T('cast.voice.m.recording'), hint: T('cast.voice.m.recording.hint') },
   ];
   return (
     <Details summary={identity ? T('cast.voice.replace') : T('cast.voice.create')} open={open} className="mt-6">
       <div className="space-y-6">
         <div role="radiogroup" aria-label={T('cast.voice.how')} className="grid gap-2 md:grid-cols-3 md:gap-3">
           {methods.map((m) => (
-            <label key={m.value} data-selected={method === m.value || undefined} aria-disabled={m.disabled || undefined} className="tile-choice min-h-16 gap-1 px-4 py-3">
-              <input type="radio" name={`voice-method-${c.id}`} value={m.value} checked={method === m.value} disabled={m.disabled} onChange={() => setMethod(m.value)} className="sr-only" />
-              <span className="flex items-center gap-3"><span className={cls('min-w-0 flex-1 text-[15px] font-semibold leading-5', m.disabled ? 'text-disabled' : 'text-fg')}>{m.label}</span><span aria-hidden className="radio-mark" /></span>
-              <span className={cls('text-[13px] leading-5', m.disabled ? 'text-faint' : 'text-muted')}>{m.hint}</span>
+            <label key={m.value} data-selected={method === m.value || undefined} className="tile-choice min-h-16 gap-1 px-4 py-3">
+              <input type="radio" name={`voice-method-${c.id}`} value={m.value} checked={method === m.value} onChange={() => setMethod(m.value)} className="sr-only" />
+              <span className="flex items-center gap-3"><span className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-fg">{m.label}</span><span aria-hidden className="radio-mark" /></span>
+              <span className="text-[13px] leading-5 text-muted">{m.hint}</span>
             </label>
           ))}
         </div>

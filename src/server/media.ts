@@ -156,12 +156,6 @@ export async function removeFile(rel: string): Promise<void> {
   try { await fsp.rm(resolveLibrary(rel), { force: true }); } catch (e) { log.warn({ rel, err: (e as Error).message }, 'could not remove library file'); }
 }
 
-export async function freeSpace(dir = libraryRoot()): Promise<{ freeBytes: number; totalBytes: number }> {
-  await fsp.mkdir(dir, { recursive: true });
-  const st = await fsp.statfs(dir);
-  return { freeBytes: Number(st.bavail) * Number(st.bsize), totalBytes: Number(st.blocks) * Number(st.bsize) };
-}
-
 /** The asset record fields the server fills for a stored file. `tier` (character/location imagery only): SECONDARY
  *  for optional material, RAW for intermediate output; CANONICAL is set by `setIdentityView`, not here. */
 export function assetFromStored(id: string, stored: StoredFile, meta: { label: string; tags: string[]; origin: Asset['origin']; jobId?: string; provenance?: Record<string, unknown>; poster?: string; tier?: Exclude<AssetTier, 'CANONICAL'> }): Omit<Asset, 'createdAt'> {

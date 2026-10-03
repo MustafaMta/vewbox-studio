@@ -262,18 +262,6 @@ export function faceCropRect(box: PxRect, image: { width: number; height: number
 
 export const FACE_CROP_OUTPUT = 'save_face';
 
-/** Cut the face rectangle out of a picture and scale it (lanczos) to `size`² — image 2 of the reference redraw. */
-export function qwenFaceCrop(i: { image: string; rect: PxRect; size?: number; filenamePrefix?: string }): Graph {
-  const size = Math.max(64, Math.round((i.size ?? 1024) / 16) * 16);
-  const r = { x: Math.max(0, Math.round(i.rect.x)), y: Math.max(0, Math.round(i.rect.y)), width: Math.max(16, Math.round(i.rect.width)), height: Math.max(16, Math.round(i.rect.height)) };
-  return {
-    img: { class_type: 'LoadImage', inputs: { image: i.image } },
-    crop: { class_type: 'ImageCrop', inputs: { image: ['img', 0], width: r.width, height: r.height, x: r.x, y: r.y } },
-    up: { class_type: 'ImageScale', inputs: { image: ['crop', 0], upscale_method: 'lanczos', width: size, height: size, crop: 'center' } },
-    [FACE_CROP_OUTPUT]: { class_type: 'SaveImage', inputs: { images: ['up', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/face' } },
-  };
-}
-
 // ---------------------------------------------------------------- vision-language model (Qwen3.5-4B, ComfyUI)
 
 /** PreviewAny node id that carries the generated text for an item (`textOutput(run.outputs, vlmOutput(key))`). */

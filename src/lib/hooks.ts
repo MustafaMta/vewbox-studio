@@ -62,9 +62,3 @@ export function useDraft<T>(source: T) {
   return { draft, setDraft, patch, dirty, reset };
 }
 
-/** Small screens get the same layout, stacked; this says which we are on. */
-export function useNarrow(px = 1024) {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => { const mq = window.matchMedia(`(max-width: ${px - 1}px)`); const on = () => setNarrow(mq.matches); on(); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); }, [px]);
-  return narrow;
-}

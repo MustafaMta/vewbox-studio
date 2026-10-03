@@ -79,13 +79,6 @@ export async function findActive(type: JobType, where: Partial<Pick<Job, 'produc
   return rows[0] ? rowToJob(rows[0]) : undefined;
 }
 
-/** Every child an orchestrator queued, newest first (active and finished alike), so a restarted run can adopt the
- *  ones still working and read the results of the ones that finished. */
-export async function listChildren(parentId: string): Promise<Job[]> {
-  const rows = await db().select().from(schema.jobs).where(eq(schema.jobs.parentId, parentId)).orderBy(desc(schema.jobs.createdAt)).limit(200);
-  return rows.map(rowToJob);
-}
-
 export async function getJob(id: string): Promise<Job | undefined> {
   const rows = await db().select().from(schema.jobs).where(eq(schema.jobs.id, id));
   return rows[0] ? rowToJob(rows[0]) : undefined;
@@ -259,10 +252,6 @@ export async function clearJobs(): Promise<{ removed: number; running: number }>
     const gone = await tx.delete(schema.jobs).returning({ id: schema.jobs.id });
     return { removed: gone.length, running: running.length };
   });
-}
-
-export async function setProviderTask(id: string, providerTaskId: string) {
-  await db().update(schema.jobs).set({ providerTaskId, updatedAt: new Date().toISOString() }).where(eq(schema.jobs.id, id));
 }
 
 /** Queue depth and recent outcomes, for the activity page and health. */

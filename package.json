@@ -12,7 +12,6 @@
     "worker": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local src/worker/index.ts",
     "worker:dev": "tsx watch src/worker/index.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "next lint",
     "test": "vitest run",
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:worker": "vitest run --config vitest.worker.config.ts",
@@ -20,7 +19,6 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/server/db/cli.ts migrate",
     "db:studio": "drizzle-kit studio",
-    "shots": "tsx tools/shots.ts",
     "sample-media": "node tools/sample-media.mjs"
   },
   "pnpm": {
@@ -42,7 +40,6 @@
     "@playwright/test": "^1.50.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",
-    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^0.31.11",

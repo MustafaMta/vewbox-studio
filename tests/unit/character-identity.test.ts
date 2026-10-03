@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, CanonicalImage, Character, Production } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
-import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf, materialByTier, primaryImage, statusWords, usageGroups, voiceListened, voiceMeasures, voiceOrigin, voiceState, voiceTrackSource } from '@/components/character/identity';
+import { primaryImageOf } from '@/domain/identity';
+import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf, materialByTier, statusWords, usageGroups, voiceListened, voiceMeasures, voiceOrigin, voiceState, voiceTrackSource } from '@/components/character/identity';
 import { designResultOf, designedIraqiAllowed, jobSecondary, secondaryPayload, voiceDescriptionOf, voiceExtras } from '@/components/character/contract';
 import { ageBandOf, sheetAge, sheetPayload, sheetStepProblem, EMPTY_SHEET } from '@/components/character/sheetModel';
 import { primaryImageSrc } from '@/studio/selectors';
@@ -71,9 +72,9 @@ describe('the identity status, said once', () => {
 describe('the primary image', () => {
   const assets = [asset('img-2', { tier: 'CANONICAL' }), asset('old')];
   it('is the canonical image, else the older portrait, else nothing — the same answer as the shared selector', () => {
-    expect(primaryImage(character({ canonicalImage: image(), portraitAssetId: 'old' }), assets)).toMatchObject({ kind: 'CANONICAL', asset: { id: 'img-2' } });
-    expect(primaryImage(character({ portraitAssetId: 'old' }), assets)).toMatchObject({ kind: 'PORTRAIT', asset: { id: 'old' } });
-    expect(primaryImage(character(), assets)).toEqual({ kind: 'NONE' });
+    expect([primaryImageOf(character({ canonicalImage: image(), portraitAssetId: 'old' })), imageKindOf(character({ canonicalImage: image(), portraitAssetId: 'old' }))]).toEqual(['img-2', 'CANONICAL']);
+    expect([primaryImageOf(character({ portraitAssetId: 'old' })), imageKindOf(character({ portraitAssetId: 'old' }))]).toEqual(['old', 'PORTRAIT']);
+    expect(primaryImageOf(character())).toBeUndefined();
     expect(imageKindOf(character())).toBe('NONE');
     const state = { assets } as unknown as StudioState;
     expect(primaryImageSrc(state, character({ canonicalImage: image(), portraitAssetId: 'old' }))).toBe('/api/media/img-2');

@@ -1540,7 +1540,6 @@ const D = {
   'cast.voice.listenSaved': ['Listening recorded', 'سُجّل الاستماع'],
   'cast.voice.accentPending': ['The Arabic accent has not been verified by a listener yet.', 'لم يتحقق مستمع من اللكنة العربية بعد.'],
   'cast.voice.iraqiPending': ['The Iraqi dialect has not been verified by a listener yet.', 'لم يتحقق مستمع من اللهجة العراقية بعد.'],
-  'cast.voice.v2Pending': ['Arrives with the voice-identity update of the studio server.', 'يتاح مع تحديث هوية الصوت في خادم الاستوديو.'],
   'cast.voice.m.automatic': ['Automatic', 'تلقائي'],
   'cast.voice.m.automatic.hint': ['One action: the studio makes the voice from the profile.', 'خطوة واحدة: يصنع الاستوديو الصوت من الملف.'],
   'cast.voice.m.design': ['Design a voice', 'صمّم صوتاً'],
