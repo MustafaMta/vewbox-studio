@@ -34,17 +34,17 @@ export function StatusStrip({ href, children, className = '' }: { href: string; 
  *  pickers, cast rows). `videos` is how many videos the locked identity appeared in, when that is known. */
 export type Identity = 'draft' | 'approved' | 'locked' | 'none';
 export function IdentityState({ state, videos, className = '' }: { state: Identity; videos?: number; className?: string }) {
-  if (state === 'draft') return <StateWord tone="waiting" className={className}>{T('kit.identity.draft')}</StateWord>;
-  if (state === 'approved') return <StateWord tone="done" className={className}>{T('kit.identity.approved')}</StateWord>;
+  if (state === 'draft') return <StateWord tone="waiting" className={className}>Draft — awaiting your approval</StateWord>;
+  if (state === 'approved') return <StateWord tone="done" className={className}>Approved</StateWord>;
   if (state === 'locked') {
     return (
       <span className={cls('state-word identity-locked', className)} data-tone="idle">
         <IconShield aria-hidden className="identity-shield" />
-        {videos && videos > 0 ? T.p('kit.identity.lockedIn', videos) : T('kit.identity.locked')}
+        {videos && videos > 0 ? T.p('kit.identity.lockedIn', videos) : 'Locked'}
       </span>
     );
   }
-  return <StateWord tone="idle" className={className}>{T('kit.identity.none')}</StateWord>;
+  return <StateWord tone="idle" className={className}>No image yet</StateWord>;
 }
 
 /** A production's stage in words (§5.10), then the pipeline's sub-state when it is true: "Storyboard · Waiting for
@@ -57,9 +57,9 @@ export function StageWord({ stage, sub, tone, className = '' }: { stage: Stage; 
 /** The pipeline's sub-states in words, for StageWord's `sub`. */
 export function useStageSub() {
   return {
-    waiting: T('kit.sub.waiting'),
-    running: (what?: string) => (what ? `${T('kit.state.running')} · ${what}` : T('kit.state.running')),
-    refused: T('kit.sub.refused'),
+    waiting: 'Waiting for you',
+    running: (what?: string) => (what ? `${'Running'} · ${what}` : 'Running'),
+    refused: 'Refused by the quality check',
   };
 }
 
@@ -70,7 +70,7 @@ export function FilterChip({ children, onRemove, className = '' }: { children: R
   return (
     <span className={cls('filter-chip', className)}>
       <span className="min-w-0 truncate">{children}</span>
-      <button type="button" className="filter-chip-x" onClick={onRemove} aria-label={label ? T.f('kit.filter.remove', { label }) : T('btn.remove')}><IconClose aria-hidden /></button>
+      <button type="button" className="filter-chip-x" onClick={onRemove} aria-label={label ? `Remove the filter ${label}` : 'Remove'}><IconClose aria-hidden /></button>
     </span>
   );
 }
@@ -98,5 +98,5 @@ export function Status({ tone = 'neutral', children, live, title, className = ''
 }
 /** The one word on every bundled picture, clip and sound: this is sample content. */
 export function SampleMark({ className = '' }: { className?: string }) {
-  return <span className={cls('mark', className)}>{T('label.sample')}</span>;
+  return <span className={cls('mark', className)}>Sample</span>;
 }

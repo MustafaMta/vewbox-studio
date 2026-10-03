@@ -10,6 +10,7 @@
  *    kit/Overlay       Dialog, Drawer, Sheet, ConfirmDialog, useConfirm, useAsk, Popover, MenuButton (= Dropdown),
  *                      MenuItem, MenuLink, MenuSeparator, Menu (the … menu)
  *    kit/Tooltip       Tooltip
+ *    kit/Filters       SearchField, FilterChips, FiltersButton, FiltersDrawer, FiltersControl
  *    kit/Field         Field, Input, Textarea, Select, Checkbox, Toggle, ErrorSummary, SettingsSummary, ChipInput,
  *                      ShapedDropzone, FormFooter, SaveWord · v3: Dropzone
  *    kit/Choice        Segmented, ChoiceTiles · v3: ChoiceCards
@@ -17,7 +18,7 @@
  *    kit/Cards         SectionHead, ToolCard (= ActionCard), PanelCard, ShapeGlyph
  *    kit/Shelf         Shelf, useShelfScroll
  *    kit/Loading       Skeleton (.Line .Text .Block .Media .Tile), SkeletonRegion, Progress, JobRunning, JobDot
- *    kit/States        PageEmpty, SectionEmpty, LoadingFrame, TextBars, LoadingLine, ErrorNotice, PartialLine,
+ *    kit/States        EmptyState, ErrorState, Notice, ErrorNotice · PageEmpty, SectionEmpty, LoadingFrame, TextBars, LoadingLine, ErrorNotice, PartialLine,
  *                      SampleBadge, Notice
  *    kit/ApprovalCard  ApprovalCard, InlineNote
  *    kit/PageHeader    PageHeader, Section, FactList, CastStack
@@ -41,6 +42,7 @@ export * from './kit/Loading';
 export * from './kit/Cards';
 export * from './kit/Shelf';
 export * from './kit/Tooltip';
+export * from './kit/Filters';
 export * from './kit/ApprovalCard';
 export * from './kit/PageHeader';
 export * from './kit/CompactHeader';

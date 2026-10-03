@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Presentation } from '@/domain/presentation';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay, IconSound } from '@/components/ui/icons';
 import { dimsLight, objectPosition } from '@/components/media/art';
@@ -50,9 +49,9 @@ export function PreviewPlayer({ src, still, alt, focal, presentation, delay = 20
       {live && (
         <div className="preview-controls">
           <button type="button" className="btn btn-sm preview-btn" onClick={() => setState(state === 'playing' ? 'paused' : 'playing')}>
-            {state === 'playing' ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}{state === 'playing' ? T('media.hero.pausePreview') : T('media.hero.playPreview')}
+            {state === 'playing' ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}{state === 'playing' ? 'Pause preview' : 'Play preview'}
           </button>
-          {onWatchWithSound && <button type="button" className="btn btn-sm preview-btn" onClick={() => { setState('done'); onWatchWithSound(); }}><IconSound aria-hidden />{T('media.hero.watchWithSound')}</button>}
+          {onWatchWithSound && <button type="button" className="btn btn-sm preview-btn" onClick={() => { setState('done'); onWatchWithSound(); }}><IconSound aria-hidden />Watch with sound</button>}
         </div>
       )}
     </div>

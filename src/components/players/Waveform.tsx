@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import { cls } from '@/components/ui/kit';
+import { cls } from '@/components/ui/kit/cls';
 import { fmtClock } from './time';
 
 /** THE WAVEFORM (docs/DESIGN-SYSTEM-V4.md §2.6, §5.13; kept and corrected) — drawn from the file itself: the audio is
@@ -41,17 +41,17 @@ export async function peaksFor(src: string, buckets: number): Promise<Float32Arr
   } finally { void ctx.close(); }
 }
 
-/** Bars for a viewBox of (3n − 1) × 100: 2-unit bars, 1-unit gaps, centred, at least 6 % tall. */
-export function barsOf(peaks: ArrayLike<number>): Array<{ x: number; y: number; h: number }> {
-  return Array.from({ length: peaks.length }, (_, i) => { const h = Math.max(6, Math.min(1, peaks[i]) * 96); return { x: i * 3, y: (100 - h) / 2, h }; });
+/** Bars for a viewBox of (pitch·n − gap) × 100: 2-unit bars, (pitch − 2)-unit gaps, centred, at least 6 % tall. */
+export function barsOf(peaks: ArrayLike<number>, pitch = 3): Array<{ x: number; y: number; h: number }> {
+  return Array.from({ length: peaks.length }, (_, i) => { const h = Math.max(6, Math.min(1, peaks[i]) * 96); return { x: i * pitch, y: (100 - h) / 2, h }; });
 }
 
-export function Waveform({ src, progress, onSeek, height = 56, buckets, className = '', label, unavailableText, duration, sections, showLabel = true }: { src: string; progress: number; onSeek?: (fraction: number) => void; height?: number; buckets?: number; className?: string; label: string; unavailableText: string; duration?: number; sections?: Array<{ at: number; label: string }>; showLabel?: boolean }) {
+export function Waveform({ src, progress, onSeek, height = 56, buckets, pitch = 3, className = '', label, unavailableText, duration, sections, showLabel = true }: { src: string; progress: number; onSeek?: (fraction: number) => void; height?: number; buckets?: number; /** bar + gap in units of a 2-unit bar: 3 (1 gap) or 4 (2 px bars, 2 px gaps, the audio row) */ pitch?: 3 | 4; className?: string; label: string; unavailableText: string; duration?: number; sections?: Array<{ at: number; label: string }>; showLabel?: boolean }) {
   const id = useId();
   const [n, setN] = useState(buckets ?? 120);
   const [peaks, setPeaks] = useState<Float32Array | null>(null);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { if (buckets) setN(buckets); else { try { setN(window.matchMedia('(max-width: 639px)').matches ? 64 : 120); } catch { setN(120); } } }, [buckets]);
+  useEffect(() => { if (buckets) setN(buckets); else { try { setN(window.matchMedia('(max-width: 639px)').matches ? (pitch === 4 ? 40 : 64) : (pitch === 4 ? 80 : 120)); } catch { setN(120); } } }, [buckets, pitch]);
   useEffect(() => {
     let alive = true;
     setPeaks(null); setFailed(false);
@@ -61,8 +61,8 @@ export function Waveform({ src, progress, onSeek, height = 56, buckets, classNam
 
   const p = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
   if (failed) return <p className={cls('wave-failed caption', className)}>{unavailableText}</p>;
-  const W = n * 3 - 1;
-  const bars = peaks ? barsOf(peaks) : [];
+  const W = n * pitch - (pitch - 2);
+  const bars = peaks ? barsOf(peaks, pitch) : [];
   const rects = bars.map((b, i) => <rect key={i} x={b.x} y={b.y} width={2} height={b.h} rx={1} />);
   const stepBy = duration ? Math.min(1, 1 / duration) : 0.02;
   const onKey = (e: React.KeyboardEvent) => {
@@ -76,7 +76,7 @@ export function Waveform({ src, progress, onSeek, height = 56, buckets, classNam
   return (
     <div className={cls('wave', className)} dir="ltr" data-ready={peaks ? '' : undefined}>
       {sections && sections.length > 0 && (
-        <div className="wave-sections" aria-hidden>{sections.map((s, i) => <span key={i} className="wave-section" style={{ insetInlineStart: `${Math.min(1, Math.max(0, s.at)) * 100}%` }}><span className="wave-section-label caption">{s.label}</span></span>)}</div>
+        <div className="wave-sections" aria-hidden>{sections.map((s, i) => <span key={i} className="wave-section" style={{ insetInlineStart: `${Math.min(1, Math.max(0, s.at)) * 100}%` }}><span className="wave-section-label">{s.label}</span></span>)}</div>
       )}
       <div className="wave-body" style={{ blockSize: height }}>
         <svg className="wave-svg" viewBox={`0 0 ${W} 100`} preserveAspectRatio="none" aria-hidden focusable="false">
@@ -90,7 +90,7 @@ export function Waveform({ src, progress, onSeek, height = 56, buckets, classNam
           onClick={(e) => { if (!onSeek) return; const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))); }}
           onKeyDown={onKey} />
       </div>
-      {showLabel && <p className="wave-label caption">{label}</p>}
+      {showLabel && <p className="wave-label">{label}</p>}
     </div>
   );
 }
