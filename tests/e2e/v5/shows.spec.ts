@@ -72,6 +72,7 @@ test('filters appear with more than six shows; search and status narrow the wall
   await expect(page.getByRole('button', { name: /^In production/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.shows-grid .mtile')).toHaveCount(1);
   await page.getByRole('button', { name: /^Finished/ }).click();
+  await expect(page.getByRole('button', { name: /^In production/ })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByText('No show matches this filter.')).toBeVisible();
   await page.getByRole('button', { name: 'Clear the filters' }).click();
   await expect(page.locator('.shows-grid .mtile')).toHaveCount(7);
@@ -177,6 +178,7 @@ test('an old workspace link (?tab=) goes to the episode’s production workspace
 test('a show that is not in the studio says so and leads back', async ({ page }) => {
   await open(page, '/shows/no-such-show');
   await expect(page.getByRole('heading', { level: 1, name: 'This show isn’t in the studio' })).toBeVisible();
+  await expect(page.locator('main [role="alert"]')).toContainText('older studio');
   await expect(page.getByRole('link', { name: 'Back to Shows' })).toHaveAttribute('href', '/shows');
 });
 

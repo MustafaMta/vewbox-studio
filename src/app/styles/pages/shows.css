@@ -15,9 +15,7 @@
 
   /* ------------------------------------------------------------------------------------------ filters */
   .shows-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-block-start: 24px; }
-  .shows-search { position: relative; display: block; flex: 0 1 320px; min-inline-size: 0; }
-  .shows-search > svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; translate: 0 -50%; inline-size: 16px; block-size: 16px; color: var(--text-3); pointer-events: none; }
-  .shows-search .input { padding-inline-start: 36px; }
+  .shows-search { flex: 0 1 320px; min-inline-size: 0; }
   .shows-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
   /* --------------------------------------------------------------------- grids: 3 · 2 · 1 columns of 16:9 */
@@ -38,8 +36,6 @@
   /* ------------------------------------------------------------------------------------------- sections */
   .shows-section { margin-block-start: var(--section-gap); }
   .shows-section-first { margin-block-start: 32px; }
-  .show-empty-line { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-  .show-empty-line > p { margin: 0; max-inline-size: var(--measure); }
 
   /* ---------------------------------------------------------------- the backdrop (Home's banner) and caption */
   .show-hero { display: flex; flex-direction: column; }
@@ -89,8 +85,6 @@
   .ep-steps > li { display: flex; min-inline-size: 0; }
   .ep-step { display: flex; flex: 1; flex-direction: column; gap: 4px; min-inline-size: 0; min-block-size: 112px; padding: 16px; color: var(--text-1); text-decoration: none; }
   .ep-step .status { margin-block-start: auto; }
-  .shows-missing { align-items: flex-start; gap: 12px; margin-block-start: 24px; }
-  .shows-missing > * { margin: 0; }
 
   /* ------------------------------------------------------------------------------------------------ dialogs */
   .show-dialog { display: flex; flex-direction: column; gap: 20px; }

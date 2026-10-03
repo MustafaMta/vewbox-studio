@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
-import { ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { EmptyState, FilterChips, SearchField, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { MediaTileSkeleton } from '@/components/media';
-import { IconSearch } from '@/components/ui/icons';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
 import { NewShowButton, ShowTile } from './parts';
 
@@ -42,26 +41,15 @@ export function ShowsCatalogue() {
       {cards.length === 0 ? <EmptyShows /> : (
         <>
           {filters && (
-            <div className="shows-filters" role="search">
-              <label className="shows-search">
-                <IconSearch aria-hidden />
-                <span className="sr-only">Search shows</span>
-                <input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search shows" dir="auto" />
-              </label>
-              <div className="shows-chips" role="group" aria-label="Show status">
-                {FILTERS.map((x) => (
-                  <button key={x.id} type="button" className="chip" aria-pressed={f === x.id} onClick={() => setF(x.id)}>
-                    {x.label}<span className="count">{counts[x.id]}</span>
-                  </button>
-                ))}
-              </div>
+            <div className="shows-filters">
+              <SearchField value={q} onChange={setQ} label="Search shows" className="shows-search" />
+              <FilterChips label="Show status" value={f === 'all' ? [] : [f]} onChange={(v) => setF((v[0] as ShowFilter | undefined) ?? 'all')}
+                options={FILTERS.filter((x) => x.id !== 'all').map((x) => ({ value: x.id, label: x.label, count: counts[x.id] }))} />
             </div>
-          )}
-          {shown.length === 0 ? (
-            <div className="show-empty-line">
-              <p className="t-body">No show matches {q.trim() ? `“${q.trim()}”` : 'this filter'}.</p>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setF('all'); }}>Clear the filters</button>
-            </div>
+          )}          {shown.length === 0 ? (
+            <EmptyState action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setF('all'); }}>Clear the filters</button>}>
+              No show matches {q.trim() ? `“${q.trim()}”` : 'this filter'}.
+            </EmptyState>
           ) : (
             <ul className="shows-grid" role="list" aria-label="Shows">
               {shown.map((c, i) => <li key={c.id}><ShowTile c={c} priority={i < 3} /></li>)}

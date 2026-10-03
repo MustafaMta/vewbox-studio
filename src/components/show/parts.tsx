@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { artVars } from '@/studio/presentation';
 import { FigureCard, Frame, MediaTile } from '@/components/media';
 import { StageMeter } from '@/components/media/StageMeter';
-import { MenuButton, MenuLink } from '@/components/ui/kit';
+import { EmptyState, MenuButton, MenuLink } from '@/components/ui/kit';
 import { IconChevronDown, IconChevronRight, IconPlus } from '@/components/ui/icons';
 import type { EpisodeCardData, FigureData, PlateData, ShowCardData } from './model';
 
@@ -70,5 +70,5 @@ export function EpisodeTile({ e, priority }: { e: EpisodeCardData; priority?: bo
 
 /** One sentence and one action, in place of a section's content (§5.23). */
 export function EmptyLine({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return <div className="show-empty-line"><p className="t-body">{children}</p>{action}</div>;
+  return <EmptyState action={action}>{children}</EmptyState>;
 }
