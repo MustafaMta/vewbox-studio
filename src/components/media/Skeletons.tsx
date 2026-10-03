@@ -42,7 +42,7 @@ export function ToolCardSkeleton({ className }: { className?: string }) {
 /** The featured card: the chip, the title, two lines, the button, and `thumbs` squares (0–4). */
 export function FeaturedCardSkeleton({ thumbs = 4, className }: { thumbs?: 0 | 1 | 2 | 3 | 4; className?: string }) {
   return (
-    <span aria-hidden className={cls('card feat-card', className)}>
+    <span aria-hidden className={cls('card feat-card feat-card-sk', className)}>
       <span className="feat-words">
         <Skeleton.Block width={72} height={22} radius="pill" />
         <span className="feat-title"><Skeleton.Line size="title" width="62%" /></span>

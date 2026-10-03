@@ -12,7 +12,14 @@
  *    data-cutting-density     "comfortable"; absent = the cutting room's compact default
  *    data-previews="off"      hero previews off
  *    data-keys="off"          single-key shortcuts off
- *    data-sidebar             "expanded" or "collapsed": the stored choice (`vb.sidebar`), else expanded at ≥ 1280 */
+ *    data-sidebar             "expanded" or "collapsed": the stored choice (`vb.sidebar`), else expanded at ≥ 1280 —
+ *                             except on a cutting-room route (a production's workspace, a shot: CUTTING_ROUTE), where it
+ *                             starts collapsed, so a cold load never paints the expanded sidebar first */
+/** The cutting room's routes (a production's workspace and a shot): the sidebar starts collapsed there by default.
+ *  The shell (src/components/shell/Shell.tsx) applies the same rule after hydration. */
+export const CUTTING_ROUTE = /^\/(?:shorts\/[^/]+|music-videos\/[^/]+|shows\/[^/]+\/seasons\/[^/]+\/episodes\/[^/]+)\/(?:production|shots\/[^/]+)\/?$/;
+export const isCuttingRoute = (pathname: string | null | undefined) => CUTTING_ROUTE.test(pathname ?? '');
+
 export const BOOT = [
   'try{',
   "var h=document.documentElement,u={},s=null;",
@@ -24,6 +31,7 @@ export const BOOT = [
   "if(u.density==='comfortable'){h.setAttribute('data-cutting-density','comfortable')}",
   "if(u.previews===false){h.setAttribute('data-previews','off')}",
   "if(u.keys===false){h.setAttribute('data-keys','off')}",
-  "h.setAttribute('data-sidebar',s==='expanded'||s==='collapsed'?s:(window.matchMedia&&window.matchMedia('(min-width: 1280px)').matches?'expanded':'collapsed'))",
+  "var c=false;try{c=new RegExp(" + JSON.stringify(CUTTING_ROUTE.source) + ").test(window.location.pathname)}catch(e){}",
+  "h.setAttribute('data-sidebar',s==='expanded'||s==='collapsed'?s:(!c&&window.matchMedia&&window.matchMedia('(min-width: 1280px)').matches?'expanded':'collapsed'))",
   '}catch(e){}',
 ].join('');

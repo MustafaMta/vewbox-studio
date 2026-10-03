@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { fmtClock } from '@/components/players/time';
@@ -29,8 +28,8 @@ export function DualScaleStrip({ duration, start, length, onStart, segments = []
   return (
     <div className={cls('dstrip', className)} dir="ltr">
       <div className="dstrip-over">
-        <button type="button" className="ebtn ebtn-icon" aria-label={T('media.dual.earlier')} disabled={start <= 0} onClick={() => onStart(clamp(start - len))}><IconChevronLeft aria-hidden /></button>
-        <div ref={bar} className="dstrip-bar" role="group" aria-label={T('media.dual.label')}
+        <button type="button" className="ebtn ebtn-icon" aria-label={'Show an earlier part'} disabled={start <= 0} onClick={() => onStart(clamp(start - len))}><IconChevronLeft aria-hidden /></button>
+        <div ref={bar} className="dstrip-bar" role="group" aria-label={'The whole programme'}
           onPointerDown={(e) => { if ((e.target as HTMLElement).closest('.dstrip-window')) return; onStart(clamp(toTime(e.clientX) - len / 2)); }}>
           {segments.map((s) => (
             <span key={s.id} className="dstrip-seg" style={{ insetInlineStart: `${pct(s.from)}%`, inlineSize: `${pct(s.to - s.from)}%` }} aria-hidden>
@@ -38,13 +37,13 @@ export function DualScaleStrip({ duration, start, length, onStart, segments = []
               {s.src && <img src={s.src} alt="" loading="lazy" />}
             </span>
           ))}
-          <div className="dstrip-window" role="slider" tabIndex={0} aria-label={T('media.dual.window')} aria-valuemin={0} aria-valuemax={Math.max(0, Math.round(duration - len))} aria-valuenow={Math.round(start)}
+          <div className="dstrip-window" role="slider" tabIndex={0} aria-label={'Part shown below'} aria-valuemin={0} aria-valuemax={Math.max(0, Math.round(duration - len))} aria-valuenow={Math.round(start)}
             aria-valuetext={`${fmtClock(start)}–${fmtClock(start + len)}`} style={{ insetInlineStart: `${pct(start)}%`, inlineSize: `${pct(len)}%` }} onKeyDown={onKey}
             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, s: start }; }}
             onPointerMove={(e) => { const d = drag.current; if (!d || !bar.current) return; const dt = ((e.clientX - d.x) / bar.current.getBoundingClientRect().width) * duration; onStart(clamp(d.s + dt)); }}
             onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} />
         </div>
-        <button type="button" className="ebtn ebtn-icon" aria-label={T('media.dual.later')} disabled={start >= duration - len} onClick={() => onStart(clamp(start + len))}><IconChevronRight aria-hidden /></button>
+        <button type="button" className="ebtn ebtn-icon" aria-label={'Show a later part'} disabled={start >= duration - len} onClick={() => onStart(clamp(start + len))}><IconChevronRight aria-hidden /></button>
       </div>
       <div className="dstrip-detail">{children}</div>
     </div>

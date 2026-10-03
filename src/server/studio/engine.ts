@@ -7,6 +7,7 @@ import { db, schema, sql } from '../db/client';
 import { loadSnapshot } from './snapshot';
 import { persistState } from './persist';
 import { log } from '../log';
+import { assertLeaseHeld } from '../jobs/fence';
 
 /** THE COMMAND ENGINE — apply a batch of commands to the authoritative state under one lock, in one transaction,
  *  and tell every listener the studio changed. The browser runs the same commands optimistically; the hash it gets
@@ -22,6 +23,8 @@ export async function applyCommands(commands: Command[], origin = 'server'): Pro
   const t0 = Date.now();
   const out = await db().transaction(async (tx) => {
     await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${LOCK_KEY}))`);
+    // a worker's commands are fenced on its lease, in this transaction (src/server/jobs/fence.ts, audit C1)
+    await assertLeaseHeld(tx, `commands ${commands.map((c) => c.name).join(', ')}`);
     const snap = await loadSnapshot(tx);
     let state: StudioState = snap.state;
     const results: unknown[] = [];

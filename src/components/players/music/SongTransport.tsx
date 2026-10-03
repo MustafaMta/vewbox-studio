@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay } from '@/components/ui/icons';
 import { SharedVolume } from '../Controls';
@@ -25,7 +24,7 @@ export type SongMode = 'song' | 'video';
 
 export function SongVideoSwitch({ value, onChange, videoDisabledReason, className }: { value: SongMode; onChange: (m: SongMode) => void; videoDisabledReason?: ReactNode; className?: string }) {
   const id = useId();
-  const opts: Array<{ v: SongMode; label: string; disabled?: boolean }> = [{ v: 'song', label: T('media.mode.song') }, { v: 'video', label: T('media.mode.video'), disabled: Boolean(videoDisabledReason) }];
+  const opts: Array<{ v: SongMode; label: string; disabled?: boolean }> = [{ v: 'song', label: 'Song' }, { v: 'video', label: 'Video', disabled: Boolean(videoDisabledReason) }];
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const enabled = opts.filter((o) => !o.disabled);
     const i = enabled.findIndex((o) => o.v === value);
@@ -38,7 +37,7 @@ export function SongVideoSwitch({ value, onChange, videoDisabledReason, classNam
   };
   return (
     <span className={cls('smode', className)}>
-      <span role="radiogroup" aria-label={T('media.mode.label')} className="seg smode-seg" onKeyDown={onKey}>
+      <span role="radiogroup" aria-label={'Song or video'} className="seg smode-seg" onKeyDown={onKey}>
         {opts.map((o) => (
           <button key={o.v} type="button" role="radio" data-v={o.v} aria-checked={value === o.v} tabIndex={value === o.v ? 0 : -1} disabled={o.disabled}
             aria-describedby={o.disabled ? `${id}-why` : undefined} onClick={() => onChange(o.v)}>{o.label}</button>
@@ -54,20 +53,20 @@ export function SongTransport({ track, title, mode, onMode, videoDisabledReason,
   const st = useTrackState(track);
   const ctl: MediaController | null = controller ?? (track ? { playing: st.playing, time: st.time, duration: st.duration, toggle: () => p.toggle(track), seek: (t) => { if (st.mine) p.seek(t); else p.play(track, t); } } : null);
   return (
-    <div className={cls('stransport', className)} dir="ltr" role="group" aria-label={T('media.player.transport')} data-mode={mode}>
+    <div className={cls('stransport', className)} dir="ltr" role="group" aria-label={'Playback controls'} data-mode={mode}>
       <div className="stransport-lead">
         {controller ? (
-          <button type="button" className="pdisc" data-size={56} data-tone="ivory" aria-label={controller.playing ? T.f('media.pause', { title }) : T.f('media.play', { title })} onClick={controller.toggle}>
+          <button type="button" className="pdisc" data-size={56} data-tone="ivory" aria-label={controller.playing ? `Pause ${title}` : `Play ${title}`} onClick={controller.toggle}>
             {controller.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden className="pdisc-play" />}
           </button>
-        ) : track ? <PlayDisc track={track} size={56} tone="ivory" labelPlay={T.f('media.play', { title })} labelPause={T.f('media.pause', { title })} />
-          : <button type="button" className="pdisc" data-size={56} data-tone="ivory" disabled aria-label={T.f('media.play', { title })}><IconPlay aria-hidden className="pdisc-play" /></button>}
+        ) : track ? <PlayDisc track={track} size={56} tone="ivory" labelPlay={`Play ${title}`} labelPause={`Pause ${title}`} />
+          : <button type="button" className="pdisc" data-size={56} data-tone="ivory" disabled aria-label={`Play ${title}`}><IconPlay aria-hidden className="pdisc-play" /></button>}
         {mode && onMode && <SongVideoSwitch value={mode} onChange={onMode} videoDisabledReason={videoDisabledReason} />}
       </div>
       {ctl ? (
         <div className="stransport-seek">
           <span className="mono stransport-t">{fmtClock(ctl.time)}</span>
-          <SeekBar time={ctl.time} duration={ctl.duration} step={0.1} onSeek={ctl.seek} label={T('misc.seek')} tone="quiet" />
+          <SeekBar time={ctl.time} duration={ctl.duration} step={0.1} onSeek={ctl.seek} label={'Seek'} tone="quiet" />
           <span className="mono stransport-t">{fmtClock(ctl.duration)}</span>
           {!controller && <SharedVolume popover />}
         </div>

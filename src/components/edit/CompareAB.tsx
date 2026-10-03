@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback } from '@/components/players/coordinator';
@@ -61,25 +60,25 @@ export function CompareAB({ a, b, onChoose, fps, aspect = '16/9', className }: {
           onLoadedMetadata={(e) => { const d0 = e.currentTarget.duration || 0; setDuration((d) => Math.max(d, d0)); }} onEnded={() => setPlaying(false)} />
       </div>
       <figcaption className="cmp-cap">
-        <span className="cmp-label"><span className="tc">{s}</span> · <span dir="auto">{src.label}</span>{src.chosen && <span className="cmp-chosen"> ({T('media.compare.chosen')})</span>}</span>
-        {onChoose && <button type="button" className={cls('btn btn-sm', src.chosen ? 'btn-quiet' : 'btn-secondary')} disabled={src.chosen} onClick={() => onChoose(s)}>{T.f('media.compare.choose', { x: s })}</button>}
+        <span className="cmp-label"><span className="tc">{s}</span> · <span dir="auto">{src.label}</span>{src.chosen && <span className="cmp-chosen"> ({'chosen'})</span>}</span>
+        {onChoose && <button type="button" className={cls('btn btn-sm', src.chosen ? 'btn-quiet' : 'btn-secondary')} disabled={src.chosen} onClick={() => onChoose(s)}>{`Choose ${s}`}</button>}
       </figcaption>
     </figure>
   );
   return (
-    <div className={cls('cmp', className)} data-layout={wide ? 'side' : 'one'} tabIndex={0} role="group" aria-label={T.f('media.compare.label', { a: a.label, b: b.label })} onKeyDown={keys}>
+    <div className={cls('cmp', className)} data-layout={wide ? 'side' : 'one'} tabIndex={0} role="group" aria-label={`Compare ${a.label} and ${b.label}`} onKeyDown={keys}>
       <div className="cmp-panes">{pane('A', a, va)}{pane('B', b, vb)}</div>
-      <div className="cmp-bar" dir="ltr" role="group" aria-label={T('media.player.transport')}>
-        <SeekBar time={time} duration={duration} step={f} onSeek={seek} label={T('misc.seek')} tone="edit" />
+      <div className="cmp-bar" dir="ltr" role="group" aria-label={'Playback controls'}>
+        <SeekBar time={time} duration={duration} step={f} onSeek={seek} label={'Seek'} tone="edit" />
         <div className="cplayer-row">
           <div className="cplayer-group">
-            <button type="button" className="ebtn ebtn-icon" aria-label={T('player.prevFrame')} onClick={() => step(-1)}><IconPrevFrame aria-hidden /></button>
-            <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={playing ? T('misc.pause') : T('misc.play')} onClick={toggle}>{playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
-            <button type="button" className="ebtn ebtn-icon" aria-label={T('player.nextFrame')} onClick={() => step(1)}><IconNextFrame aria-hidden /></button>
+            <button type="button" className="ebtn ebtn-icon" aria-label={'Previous frame'} onClick={() => step(-1)}><IconPrevFrame aria-hidden /></button>
+            <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={playing ? 'Pause' : 'Play'} onClick={toggle}>{playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
+            <button type="button" className="ebtn ebtn-icon" aria-label={'Next frame'} onClick={() => step(1)}><IconNextFrame aria-hidden /></button>
           </div>
           <span className="tc cplayer-tc">{timecode(time, fps ?? 24)}</span>
           <span className="prow-spacer" />
-          <span role="radiogroup" aria-label={wide ? T.f('media.compare.heard', { x: side }) : T('media.compare.show')} className="seg cmp-switch">
+          <span role="radiogroup" aria-label={wide ? `Sound from ${side}` : 'Show'} className="seg cmp-switch">
             {(['A', 'B'] as const).map((s) => <button key={s} type="button" role="radio" aria-checked={side === s} tabIndex={side === s ? 0 : -1} onClick={() => show(s)}
               onKeyDown={(e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); const o = s === 'A' ? 'B' : 'A'; show(o); (e.currentTarget.parentElement?.querySelector(`[data-s="${o}"]`) as HTMLElement | null)?.focus(); } }} data-s={s}>
               <span className="tc">{s}</span><span className="sr-only"> · {s === 'A' ? a.label : b.label}</span><kbd className="kbd cmp-key" aria-hidden>{s === 'A' ? 1 : 2}</kbd>

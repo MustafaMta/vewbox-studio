@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { T } from '@/lib/copy';
 import { IconChevronRight } from './icons';
 
 /** NAVIGATION — the studio's navigation lives in the shell since v4 (src/components/shell: the Sidebar, the NavRail,
@@ -12,7 +11,7 @@ export type { NavItem, NavGroup } from '@/components/shell/nav-model';
 
 export function Crumbs({ items }: { items: Array<{ href?: string; label: string }> }) {
   return (
-    <nav aria-label={T('v3.breadcrumb')} className="mb-2 text-sm text-muted">
+    <nav aria-label={'Breadcrumb'} className="mb-2 text-sm text-muted">
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((c, i) => (
           <li key={i} className="flex min-w-0 items-center gap-1">

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { Slate } from '../Slate';
 
@@ -44,7 +43,7 @@ function Lead({ children, lang, onArt }: { children: ReactNode; lang?: string; o
   return (
     <div className="mhero-leadwrap">
       <p ref={ref} className={cls('lead mhero-lead', onArt && 'mhero-on-art-body')} data-open={open || undefined} dir="auto" lang={lang}>{children}</p>
-      {(over || open) && <button type="button" className="mhero-more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? T('media.hero.less') : T('media.hero.more')}</button>}
+      {(over || open) && <button type="button" className="mhero-more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Less' : 'More'}</button>}
     </div>
   );
 }
