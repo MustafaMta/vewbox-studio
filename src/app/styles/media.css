@@ -66,3 +66,9 @@
   .stack-face + .stack-face { margin-inline-start: -0.5rem; }
   .stack-face img { inline-size: 100%; block-size: 100%; object-fit: cover; }
 }
+
+/* F1 → F3 handover (outside the layer, so it outranks tokens.css). tokens.css paints the art wash as .hero::before
+   (§2.1), running --wash-end (420 px) down from the hero's top — over whatever follows a hero shorter than that,
+   because .hero is a positioned, isolated layer. The legacy banner header (ui/cinema.tsx Hero, with its own
+   backdrop) takes no wash; F3's heroes replace it, and this rule goes with it. */
+.hero:has(> .hero-backdrop)::before { content: none; }
