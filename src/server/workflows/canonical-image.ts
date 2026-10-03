@@ -29,6 +29,26 @@ export function sentences(parts: Array<string | undefined | null | false>): stri
  *  and Chinese; an Arabic identity line reached the model verbatim in wave 2. */
 export const hasNonLatinLetters = (s: string) => /(?=\p{L})\P{Script=Latin}/u.test(s);
 
+const CYRILLIC_TO_LATIN: Record<string, string> = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
+const GREEK_TO_LATIN: Record<string, string> = { α: 'a', β: 'b', ε: 'e', η: 'h', ι: 'i', κ: 'k', μ: 'm', ν: 'n', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x' };
+
+/** Repair an English field the design model wrote with stray letters from another alphabet (found 2026-10-03:
+ *  "deshdaша" — a garment word with two Cyrillic letters — made the whole wardrobe vanish from the identity line).
+ *  A word that is Latin with Cyrillic/Greek letters mixed in is transliterated letter by letter; a word wholly in
+ *  another script (Arabic, CJK…) cannot be repaired here and is dropped AND reported — never the whole field. */
+export function latinizeField(text: string): { text: string; dropped: string[] } {
+  const dropped: string[] = [];
+  const words = text.split(/(\s+)/).map((w) => {
+    if (!hasNonLatinLetters(w)) return w;
+    const mixed = /\p{Script=Latin}/u.test(w);
+    const onlyCyrGreek = !/(?=\p{L})[^\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]/u.test(w);
+    if (mixed && onlyCyrGreek) return [...w].map((ch) => { const lo = ch.toLowerCase(); const t = CYRILLIC_TO_LATIN[lo] ?? GREEK_TO_LATIN[lo]; return t === undefined ? ch : ch === lo ? t : t.charAt(0).toUpperCase() + t.slice(1); }).join('');
+    dropped.push(w);
+    return '';
+  });
+  return { text: words.join('').replace(/\s{2,}/g, ' ').replace(/\s+([,;.])/g, '$1').trim(), dropped };
+}
+
 // ----------------------------------------------------------------------------------------------- per style
 
 /** The first words of every canonical prompt (the medium before anything else), the medium as a noun phrase for the
@@ -103,9 +123,11 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   if (stored) nonLatin.push(stored);
   const parts: string[] = [];
   const push = (s?: string | false | null) => {
-    const v = squash(s || '').replace(/[.;]+$/, '');
+    let v = squash(s || '').replace(/[.;]+$/, '');
     if (!v) return;
-    if (hasNonLatinLetters(v)) { nonLatin.push(v); return; }
+    // a word with stray letters of another alphabet is repaired ("deshdaша" → "deshdasha", D12); a field with a word
+    // wholly in another script is reported whole (a dropped word would leave a stub like "hair" with nothing to draw)
+    if (hasNonLatinLetters(v)) { const fixed = latinizeField(v); if (fixed.dropped.length) { nonLatin.push(v); return; } v = fixed.text; }
     if (!parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v);
   };
   push(c.build && `${c.build} build`);

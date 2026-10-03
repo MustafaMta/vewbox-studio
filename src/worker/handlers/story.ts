@@ -8,6 +8,7 @@ import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { nonHumanSpecies } from '@/domain/identity';
+import { latinizeField } from '@/server/workflows/canonical-image';
 import { performanceFor, shotWindows } from '@/domain/timeline';
 import { command, commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -83,11 +84,14 @@ export const designCharacter: Handler = async (ctx) => {
   await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${name ?? 'a character'}` });
   const d = await ctx.tool('story.structured_answer', () => design(state, { brief, name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design', input: { task: 'character-design', productionId: p?.id, showId: show?.id } });
   await ctx.checkpoint();
-  // the producer's fields win over the model's; the voice profile too
+  // the producer's fields win over the model's; the voice profile too. The model's English look fields are repaired
+  // when it slipped letters of another alphabet into a word ("deshdaша" → "deshdasha", D12) — the producer's own
+  // words are never touched
+  const en = (s: string | undefined) => { if (!s) return s; const r = latinizeField(s); return r.dropped.length ? s : r.text; };
   const input: CharacterInput = {
     name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, style, sex: given.sex ?? d.sex, species: nonHumanSpecies(given.species ?? d.species), ageYears: given.ageYears ?? d.ageYears,
-    build: given.build || d.build, face: given.face || d.face, hair: given.hair || d.hair, skin: given.skin || d.skin, eyes: given.eyes || d.eyes, wardrobe: given.wardrobe || d.wardrobe, personality: given.personality || d.personality,
-    distinguishing: given.distinguishing?.length ? given.distinguishing : d.distinguishing, language, dialect, canon: given.canon,
+    build: given.build || en(d.build) || '', face: given.face || en(d.face) || '', hair: given.hair || en(d.hair) || '', skin: given.skin || en(d.skin) || '', eyes: given.eyes || en(d.eyes) || '', wardrobe: given.wardrobe || en(d.wardrobe) || '', personality: given.personality || d.personality,
+    distinguishing: given.distinguishing?.length ? given.distinguishing : (d.distinguishing ?? []).map((x) => en(x) ?? x), language, dialect, canon: given.canon,
     notes: given.notes ?? (line ? `Designed by Casting from the brief: “${line.slice(0, 200)}”` : 'Designed by Casting from the written profile.'),
     voice: { pitch: given.voice?.pitch ?? d.voice?.pitch ?? 'MID', pace: given.voice?.pace ?? d.voice?.pace ?? 'MEASURED', timbre: given.voice?.timbre ?? d.voice?.timbre ?? '', notes: given.voice?.notes ?? d.voice?.notes ?? '' },
   };
