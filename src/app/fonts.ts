@@ -1,21 +1,40 @@
-import localFont from 'next/font/local';
+import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Markazi_Text, Newsreader } from 'next/font/google';
 
-/** THE INTERFACE FACES — owned by F1 (docs/DESIGN-SYSTEM-V4.md §3.1, §8.3); moved out of src/app/layout.tsx by F0.
- *  Fonts ship with the application (src/app/fonts, SIL Open Font License, licences beside the files) and are served
- *  from this origin: the studio makes no request to a font service, so it works on a closed network and contacts
- *  nothing outside itself. Inter variable (`opsz` 14–32, `wght` 100–900) for Latin, IBM Plex Sans Arabic 400–700 for
- *  Arabic. The title voice is a token over these two faces (`--font-title`, §3.2); a new face is the title spike's
- *  decision, not this file's. */
-export const inter = localFont({ src: './fonts/InterVariable.woff2', weight: '100 900', display: 'swap', variable: '--font-inter', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] });
-export const plexArabic = localFont({
-  src: [
-    { path: './fonts/IBMPlexSansArabic-Regular.ttf', weight: '400' },
-    { path: './fonts/IBMPlexSansArabic-Medium.ttf', weight: '500' },
-    { path: './fonts/IBMPlexSansArabic-SemiBold.ttf', weight: '600' },
-    { path: './fonts/IBMPlexSansArabic-Bold.ttf', weight: '700' },
-  ],
-  display: 'swap', variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'],
+/** THE FACES — owned by DS (docs/DESIGN-SYSTEM-V5.md §3.1; §11.2 DS-1). Three voices in five families, all SIL Open
+ *  Font License, through `next/font/google`: the files are downloaded once when the app is built (or first compiled
+ *  in development) and served from this origin with the app's own assets, so the studio makes no request to a font
+ *  service at runtime and works on a closed network. The Google-distributed builds are used as they are: IBM Plex's
+ *  Reserved Font Name forbids renaming or subsetting it ourselves (§3.1 licence notes).
+ *
+ *    title      Newsreader (opsz 6–72, wght 200–800, italic) · Markazi Text (wght 400–700, Arabic + Latin)
+ *    interface  IBM Plex Sans (wdth 75–100, wght 100–700) · IBM Plex Sans Arabic (400 · 500 · 600 · 700)
+ *    readout    IBM Plex Mono (400 · 500) — Western digits only; Arabic-Indic digits never meet it (§9.4)
+ *
+ *  Each face declares a CSS variable on <html> (`fontVariables`); the stacks are tokens (styles/tokens.css:
+ *  --font-ui, --font-ui-ar, --font-title, --font-title-ar, --font-mono). The weights are the ones §3.2 uses: titles
+ *  500 (Latin) / 600 (Arabic), interface 400 / 500 / 600 (700 for the rare bold), readouts 400 / 500. Inter is gone
+ *  (v4's face; audit 14). The fallbacks are system faces of the same kind, so a missing download degrades to a
+ *  readable page, never to invisible text (`display: swap`). */
+export const newsreader = Newsreader({
+  subsets: ['latin', 'latin-ext'], style: ['normal', 'italic'], axes: ['opsz'], display: 'swap',
+  variable: '--font-newsreader', fallback: ['Georgia', 'Times New Roman', 'serif'],
+});
+export const markazi = Markazi_Text({
+  subsets: ['arabic', 'latin'], display: 'swap',
+  variable: '--font-markazi', fallback: ['Noto Naskh Arabic', 'Times New Roman', 'serif'],
+});
+export const plexSans = IBM_Plex_Sans({
+  subsets: ['latin', 'latin-ext'], axes: ['wdth'], display: 'swap',
+  variable: '--font-plex-sans', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'],
+});
+export const plexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic', 'latin'], weight: ['400', '500', '600', '700'], display: 'swap',
+  variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'],
+});
+export const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'], weight: ['400', '500'], display: 'swap',
+  variable: '--font-plex-mono', fallback: ['ui-monospace', 'Cascadia Mono', 'Consolas', 'monospace'],
 });
 
-/** The class names that declare `--font-inter` and `--font-plex-arabic` on <html>. */
-export const fontVariables = `${inter.variable} ${plexArabic.variable}`;
+/** The class names that declare the five `--font-*` variables on <html>. */
+export const fontVariables = [newsreader, markazi, plexSans, plexArabic, plexMono].map((f) => f.variable).join(' ');
