@@ -252,7 +252,7 @@
   .chead .btn { max-inline-size: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* a phone keeps back, the thumbnail, the title, the primary and More; the status and SaveState wait for room */
   @media (max-width: 767px) { .chead-save { display: none; } }
-  @media (max-width: 639px) { .chead-status { display: none; } .chead { gap: var(--space-2); } }
+  @media (max-width: 639px) { .chead-status { display: none; } .chead { gap: var(--space-2); } .chead .btn:not(.btn-icon) { max-inline-size: 40%; } }
 
   /* ---- the heroes (§5.3) ------------------------------------------------------------------------------------- */
   .mhero { position: relative; min-inline-size: 0; }
@@ -452,6 +452,3 @@
 /* The legacy banner header (ui/cinema.tsx Hero, with its own backdrop) takes no wash; it goes with that header (Q1). */
 .hero:has(> .hero-backdrop)::before { content: none; }
 
-/* While the compact header is shown, sticky bars grow by it (§5.2; WCAG 2.4.11): read by the root's scroll padding. */
-html:has(.chead[data-shown]) { --sticky-extra: var(--compact-h); }
-html:has(.chead[data-shown][data-tabs-below]) { --sticky-extra: calc(var(--compact-h) + var(--tabs-h)); }

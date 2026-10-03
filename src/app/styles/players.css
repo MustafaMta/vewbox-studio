@@ -197,7 +197,10 @@
   @media (max-width: 639px) {
     .sections .sections-shots { display: none; }
     .sections-shots-inline { display: flex; margin-block-start: 2px; }
+    .sections .sections-n { inline-size: 32px; }
   }
+  /* a narrow phone keeps the singer's face; the name stays for assistive technology */
+  @media (max-width: 479px) { .sections-singer-name { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 
   /* ---- the lyric view (§5.13) -------------------------------------------------------------------------------- */
   .lyrics { position: relative; }
@@ -255,7 +258,3 @@
   .vplaceholder-hint { margin: 0; max-inline-size: 24rem; font-size: 13px; line-height: 20px; color: var(--fg-muted); }
 }
 
-/* While the fixed player bar is shown, the bottom bars grow by it (§5.12; WCAG 2.4.11): the root's scroll padding
-   (tokens.css) keeps the focused element above it, and toasts sit over it. No script writes to :root. Unlayered,
-   because tokens.css declares --bottom-bars on :root outside any layer. */
-html:has(.playerbar[data-placement='fixed']) { --bottom-bars: 76px; }

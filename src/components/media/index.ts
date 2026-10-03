@@ -8,6 +8,6 @@ export { KeyArtTile, PosterTile, SleeveTile, FigureTile, PlateTile, StillCard, T
 export { Rail } from './Rail';
 export { EpisodeCard, EpisodeRow, SeasonPicker, type EpisodeData, type SeasonOption } from './Episodes';
 export { CastGrid, CastRow, type CastMember } from './CastRow';
-export { CompactHeader } from './CompactHeader';
+export { CompactHeader, CompactThumb, type ThumbShape } from './CompactHeader';
 export { BackdropHero, DiptychHero, SleeveHero, FigureHero, PlateHero, TheatreHero, HeroText } from './hero';
 export { artStyle, objectPosition, focalOf, faceBoxOf, faceCrop, initials, RATIO_VALUE, type Picture, type FrameRatio } from './art';

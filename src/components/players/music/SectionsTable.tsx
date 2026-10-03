@@ -61,7 +61,7 @@ export function SectionsTable({ rows, time, onPlayFrom, version, duration, class
                 {r.name}
                 <span className="sections-shots-inline"><Pips done={r.shotsDone} total={r.shotsTotal} /></span>
               </th>
-              <td>{r.singer ? <span className="sections-singer"><FaceCircle name={r.singer.name} asset={r.singer.asset} src={r.singer.src} size={24} decorative ring={now ? 'speaking' : undefined} /><span dir="auto" lang={r.singer.lang}>{r.singer.name}</span></span> : <span className="sections-none"><span aria-hidden>—</span><span className="sr-only">{T('media.lyrics.noSinger')}</span></span>}</td>
+              <td>{r.singer ? <span className="sections-singer"><FaceCircle name={r.singer.name} asset={r.singer.asset} src={r.singer.src} size={24} decorative ring={now ? 'speaking' : undefined} /><span className="sections-singer-name" dir="auto" lang={r.singer.lang}>{r.singer.name}</span></span> : <span className="sections-none"><span aria-hidden>—</span><span className="sr-only">{T('media.lyrics.noSinger')}</span></span>}</td>
               <td className="sections-shots"><Pips done={r.shotsDone} total={r.shotsTotal} /></td>
               <td className="sections-time"><span className="mono" dir="ltr">{fmtClock(r.from)}–{fmtClock(r.to)}</span></td>
             </tr>

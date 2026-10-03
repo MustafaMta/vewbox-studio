@@ -196,7 +196,7 @@ export function MediaSection() {
 
       <Block title={T('media.spec.compact')}>
         <div data-room="cutting" className="spec-compact">
-          <CompactHeader mode="cutting" back={{ href: '#media', label: T.f('media.hero.back', { area: T('nav.shorts') }) }} thumb={{ src: SHORTS[0].poster, shape: 'poster' }} title={L(SHORTS[0].title)} titleLang={lang}
+          <CompactHeader mode="cutting" contained back={{ href: '#media', label: T.f('media.hero.back', { area: T('nav.shorts') }) }} thumb={{ src: SHORTS[0].poster, shape: 'poster' }} title={L(SHORTS[0].title)} titleLang={lang}
             status={<Word tone="info" live>{T('media.spec.st.producing')}</Word>} saveState={T('media.spec.saved')} primary={<Button variant="primary" size="sm">{T('media.spec.a.continue')}</Button>} more={more(L(SHORTS[0].title))} />
         </div>
       </Block>

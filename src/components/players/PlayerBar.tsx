@@ -8,21 +8,25 @@ import { SharedVolume } from './Controls';
 import { PlayDisc } from './PlayDisc';
 import { SeekBar, TimeReadout } from './PlayerCore';
 import { usePlayer, useTrackState, type Track } from './PlayerProvider';
+import { useRootVarContribution } from './rootVars';
 
 /** THE PLAYER BAR (docs/DESIGN-SYSTEM-V4.md §5.12; replaces MiniPlayer) — the compact player, fixed at the bottom,
  *  64 px, radius 16, `--raised-2` with the float shadow, inset 12 px from the content edges so it never covers the
  *  sidebar or the rail. Anatomy: a 40 px thumbnail in the content's shape · title and subtitle · play (40) · seek ·
- *  time · [music] Song | Video · close. While it is shown it sets `--bottom-bars: 76px` (players.css: an `html:has()`
- *  rule, so no script writes to :root), and the root's scroll padding keeps toasts and the focused element above it
- *  (WCAG 2.4.11). It plays the studio's one audio source; close stops it. */
+ *  time · [music] Song | Video · close. While it is shown (fixed) it contributes 76 px to `--bottom-bars` on <html>
+ *  (the §2.1 sum of contributions, through the kit's useRootVarContribution — players/rootVars.ts until the merge), so
+ *  the root's scroll padding keeps toasts and the focused element above it (WCAG 2.4.11). It plays the studio's one
+ *  audio source; close stops it. */
 
 export function PlayerBar({ track, show = true, persistent, placement = 'fixed', shape = 'square', mode, onClose, className }: { track: Track; show?: boolean; /** shown even before this track is loaded (play starts it) */ persistent?: boolean; /** `inline`: drawn in the flow (the specimen page) */ placement?: 'fixed' | 'inline'; shape?: 'square' | 'poster' | 'wide' | 'figure'; mode?: ReactNode; onClose?: () => void; className?: string }) {
   const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
-  if (!show || (!st.mine && !persistent)) return null;
+  const visible = show && (st.mine || Boolean(persistent));
+  useRootVarContribution('--bottom-bars', 76, visible && placement === 'fixed');
+  if (!visible) return null;
   return (
-    <div className={cls('playerbar', className)} role="region" aria-label={T('media.bar.label')} data-shape={shape} data-placement={placement} style={placement === 'fixed' ? ({ '--bottom-bars': '76px' } as React.CSSProperties) : undefined}>
+    <div className={cls('playerbar', className)} role="region" aria-label={T('media.bar.label')} data-shape={shape} data-placement={placement}>
       <span className="playerbar-thumb" aria-hidden>{track.artworkSrc ? <img src={track.artworkSrc} alt="" /> : null}</span>
       <span className="playerbar-text">
         <span className="playerbar-title" dir="auto">{track.title}</span>
