@@ -1,0 +1,100 @@
+[
+  {
+    "arm": "najm-full-cartoon",
+    "seed": 11,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-s11.png"
+  },
+  {
+    "arm": "najm-full-cartoon",
+    "seed": 12,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-s12.png"
+  },
+  {
+    "arm": "najm-full-cartoon",
+    "seed": 13,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-s13.png"
+  },
+  {
+    "arm": "najm-full-cartoon",
+    "seed": 14,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-s14.png"
+  },
+  {
+    "arm": "najm-full-cartoon-noface",
+    "seed": 11,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-noface-s11.png"
+  },
+  {
+    "arm": "najm-full-cartoon-noface",
+    "seed": 12,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-cartoon-noface-s12.png"
+  },
+  {
+    "arm": "najm-bust-cartoon",
+    "seed": 11,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-bust-cartoon-s11.png"
+  },
+  {
+    "arm": "najm-bust-cartoon",
+    "seed": 12,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-bust-cartoon-s12.png"
+  },
+  {
+    "arm": "najm-full-realistic",
+    "seed": 11,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-realistic-s11.png"
+  },
+  {
+    "arm": "najm-full-realistic",
+    "seed": 12,
+    "framingOk": true,
+    "reasons": [],
+    "file": "najm-full-realistic-s12.png"
+  },
+  {
+    "arm": "hana-anime-to-cartoon",
+    "seed": 11,
+    "framingOk": true,
+    "reasons": [],
+    "file": "hana-anime-to-cartoon-s11.png"
+  },
+  {
+    "arm": "hana-anime-to-cartoon",
+    "seed": 12,
+    "framingOk": true,
+    "reasons": [],
+    "file": "hana-anime-to-cartoon-s12.png"
+  },
+  {
+    "arm": "hana-anime-to-cartoon",
+    "seed": 13,
+    "framingOk": true,
+    "reasons": [],
+    "file": "hana-anime-to-cartoon-s13.png"
+  },
+  {
+    "arm": "hana-anime-to-cartoon",
+    "seed": 14,
+    "framingOk": true,
+    "reasons": [],
+    "file": "hana-anime-to-cartoon-s14.png"
+  }
+]

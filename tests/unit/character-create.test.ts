@@ -107,7 +107,9 @@ describe('the voice of a Describe start (finding 15)', () => {
   it('offers only what can produce a voice: no voice yet, or a recording added now — never a "studio voice" with no bank behind it', () => {
     expect(DESCRIBE_VOICE_MODES).toEqual(['NONE', 'RECORDING']);
     expect(KEYS).not.toContain('char.create.voiceAuto');
-    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/no bank of voices/);
+    // D9: the hint points to the profile's two real ways (designed from the description, or a permitted recording)
+    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/design a synthetic voice/);
+    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/recording you have permission to use/);
     expect(t('ar', 'char.create.voiceRecording')).toMatch(/[؀-ۿ]/);
   });
   it('asks CREATE_CHARACTER for an AUTOMATIC voice only when a recording travels with the request', () => {

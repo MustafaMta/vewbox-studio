@@ -343,7 +343,9 @@ export function qwenReferenceCanonical(i: { upload: string; face?: string; faceR
 /** The medium as klein reads it: the same nouns without the negations ("not a photograph"): klein has no negative
  *  prompt and reads words literally (docs/research/FLUX-VS-QWEN.md §5). */
 export const KLEIN_MEDIUM: Record<Style, string> = {
-  CARTOON: 'a stylized 3D animated feature-film character (CG render)',
+  // D18: "a stylized 3D animated feature-film character (CG render)" alone left a full-body photo a photograph (2/2);
+  // with the traits spelled out (as ANIME's are) the same upload came out stylized CG (2/2, docs/ACCEPTANCE-LOG.md)
+  CARTOON: 'a stylized 3D animated feature-film character, a CG render from an animated movie: appealing stylized proportions with a slightly larger head and eyes, simplified smooth shapes, smooth stylized skin, soft subsurface CG shading',
   ANIME: 'a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours)',
   REALISTIC: 'a photorealistic full-length studio photograph of a real person',
 };
@@ -355,9 +357,14 @@ export const KLEIN_FRAMING = CANONICAL_FRAMING.replace(/, no props, no text$/, '
  *  people who wear none (8/8 in the A/B) — then the identity line written from the picture's description (which names
  *  glasses or facial hair only when the picture shows them), the style's character and visual direction. */
 export function kleinReferencePrompt(i: { style: Style; identityLine: string; faceImage?: boolean; character?: string; visual?: string }): string {
+  // a stylized redraw asks for a new rendering of the same person: "exactly as in the picture" made klein copy a
+  // full-body photo pixel for pixel, photographic skin included (D18)
+  const stylized = i.style !== 'REALISTIC';
   return sentences([
-    `Redraw the person in image 1${i.faceImage ? ', with the face exactly as in image 2,' : ''} as ${KLEIN_MEDIUM[i.style]}: ${KLEIN_FRAMING}`,
-    'Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
+    `Redraw the person in image 1${i.faceImage ? (stylized ? ', with the face as in image 2,' : ', with the face exactly as in image 2,') : ''} as ${KLEIN_MEDIUM[i.style]}: ${KLEIN_FRAMING}`,
+    stylized
+      ? 'Change the rendering completely into this style, keeping the person recognisable: the same age, skin tone, hair and every visible garment and colour as in the picture; complete what the picture does not show from the description'
+      : 'Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
     i.identityLine, i.character, i.visual,
   ]);
 }

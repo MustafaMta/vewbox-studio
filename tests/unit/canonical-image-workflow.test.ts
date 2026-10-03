@@ -126,7 +126,11 @@ describe('Image Reference on FLUX.2 [klein] 4B (docs/research/FLUX-VS-QWEN.md §
   it('the prompt names only what the person has: medium first, no negations, no generic glasses/facial-hair list', () => {
     for (const style of ['CARTOON', 'ANIME', 'REALISTIC'] as const) {
       const p = kleinReferencePrompt({ style, identityLine: 'Identity: a woman aged about 35-45; long black hair; wearing green cardigan.', faceImage: true });
-      expect(p.startsWith(`Redraw the person in image 1, with the face exactly as in image 2, as ${KLEIN_MEDIUM[style]}:`)).toBe(true);
+      const face = style === 'REALISTIC' ? 'with the face exactly as in image 2' : 'with the face as in image 2';
+      expect(p.startsWith(`Redraw the person in image 1, ${face}, as ${KLEIN_MEDIUM[style]}:`)).toBe(true);
+      // D18: a stylized redraw asks for a new rendering; only a realistic one asks for the picture exactly
+      if (style === 'REALISTIC') expect(p).toContain('exactly as in the picture');
+      else { expect(p).toContain('Change the rendering completely into this style'); expect(p).not.toContain('exactly'); }
       expect(p).not.toMatch(/glasses|facial hair/i); // the A/B: the shipping list made klein draw glasses on 8/8
       expect(p).not.toMatch(/\bnot a\b|\bno props\b|\bno text\b/);
       expect(p).toContain('the whole figure from the top of the head to the soles of the feet');

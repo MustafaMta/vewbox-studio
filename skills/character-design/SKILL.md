@@ -4,7 +4,7 @@ description: Designing an original character that can be drawn and voiced, and h
 license: Proprietary to this studio
 allowed-tools: story.structured_answer image.generate image.edit_with_references image.describe_reference
 metadata:
-  version: "2.3.0"
+  version: "2.3.1"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
   models: "qwen3:14b, Qwen-Image-2512, FLUX.2-klein-4B, Qwen-Image-Edit-2511, Qwen3.5-4B"
@@ -29,7 +29,8 @@ metadata:
   under an ankle-length dishdasha show only at the ankles). Without the length, a dishdasha was drawn tunic-length.
 - For a detail worn on one side of the body, say which side as the character's own ("a watch on his own left
   wrist"). The image model places such details on the correct side only about two times in three, so prefer details
-  that read from any side unless the side matters to the story.
+  that read from any side unless the side matters to the story. Never give a side to something centred or paired —
+  glasses, a hat, a necklace, a beard, a pair of shoes ("glasses perched on his own left nose" was written once).
 - Describe the look, not the name: the picture is drawn from these words alone.
 - Keep every field the producer already wrote exactly; fill only what is missing.
 - Do not repeat the look or the name of a character the studio already has.
