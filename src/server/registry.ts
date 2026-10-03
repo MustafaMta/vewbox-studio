@@ -4,7 +4,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, kleinReferenceCanonical, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -31,6 +31,8 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2) and its optional secondary material
     { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
     { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
+    { name: 'flux2-klein.canonical-reference', graph: kleinReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
+    // the rollback of the Image Reference redraw for one release (CANONICAL_REFERENCE_ENGINE=qwen)
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },

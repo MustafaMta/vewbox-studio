@@ -335,6 +335,68 @@ export function qwenReferenceCanonical(i: { upload: string; face?: string; faceR
   return g;
 }
 
+// ------------------------------------------------------------- Image Reference with FLUX.2 [klein] 4B (default)
+
+/** The medium as klein reads it: the same nouns without the negations ("not a photograph"): klein has no negative
+ *  prompt and reads words literally (docs/research/FLUX-VS-QWEN.md §5). */
+export const KLEIN_MEDIUM: Record<Style, string> = {
+  CARTOON: 'a stylized 3D animated feature-film character (CG render)',
+  ANIME: 'a 2D anime character (cel-shaded illustration with clean line art and flat colours)',
+  REALISTIC: 'a photorealistic full-length studio photograph of a real person',
+};
+/** CANONICAL_FRAMING without "no props, no text". */
+export const KLEIN_FRAMING = CANONICAL_FRAMING.replace(/, no props, no text$/, '');
+
+/** Image Reference on klein: redraw the person in image 1 (and image 2, its face) in the production's medium, whole
+ *  figure. Names only what every picture has — the shipping "…facial hair, glasses…" list made klein draw glasses on
+ *  people who wear none (8/8 in the A/B) — then the identity line written from the picture's description (which names
+ *  glasses or facial hair only when the picture shows them), the style's character and visual direction. */
+export function kleinReferencePrompt(i: { style: Style; identityLine: string; faceImage?: boolean; character?: string; visual?: string }): string {
+  return sentences([
+    `Redraw the person in image 1${i.faceImage ? ', with the face exactly as in image 2,' : ''} as ${KLEIN_MEDIUM[i.style]}: ${KLEIN_FRAMING}`,
+    'Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
+    i.identityLine, i.character, i.visual,
+  ]);
+}
+
+/** FLUX.2 [klein] 4B distilled in core ComfyUI 0.38 (the Comfy-Org klein edit template's wiring): Qwen3-4B
+ *  (`CLIPLoader type flux2`) → CLIPTextEncode; the upload (≈1 MP) → VAEEncode → ReferenceLatent on the conditioning,
+ *  then, with `faceRect`, its face cut in the graph (1024²) chained after it; a zeroed negative (cfg 1); Flux2Scheduler
+ *  4 steps, EmptyFlux2LatentImage in the canonical frame, euler, CFGGuider, SamplerCustomAdvanced. ~3.7 s on the 5090,
+ *  card ≈ 22 GB (FLUX-VS-QWEN.md §5). */
+export function kleinReferenceCanonical(i: { upload: string; faceRect?: PxRect; prompt: string; seed?: number; filenamePrefix?: string }): Graph {
+  const W = CANONICAL_FRAME.width, H = CANONICAL_FRAME.height;
+  const g: Graph = {
+    unet: { class_type: 'UNETLoader', inputs: { unet_name: MODELS.kleinDit, weight_dtype: 'default' }, _meta: { title: 'FLUX.2 klein 4B' } },
+    clip: { class_type: 'CLIPLoader', inputs: { clip_name: MODELS.kleinTe, type: 'flux2', device: 'default' } },
+    vae: { class_type: 'VAELoader', inputs: { vae_name: MODELS.kleinVae } },
+    pos: { class_type: 'CLIPTextEncode', inputs: { clip: ['clip', 0], text: i.prompt } },
+    neg: { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['pos', 0] } },
+    img1: { class_type: 'LoadImage', inputs: { image: i.upload } },
+    img1s: { class_type: 'ImageScaleToTotalPixels', inputs: { image: ['img1', 0], upscale_method: 'lanczos', megapixels: 1.0, resolution_steps: 16 } },
+    img1e: { class_type: 'VAEEncode', inputs: { pixels: ['img1s', 0], vae: ['vae', 0] } },
+    ref1: { class_type: 'ReferenceLatent', inputs: { conditioning: ['pos', 0], latent: ['img1e', 0] } },
+  };
+  let positive: [string, number] = ['ref1', 0];
+  if (i.faceRect) {
+    const r = i.faceRect;
+    g.facecrop = { class_type: 'ImageCrop', inputs: { image: ['img1', 0], width: Math.max(16, Math.round(r.width)), height: Math.max(16, Math.round(r.height)), x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)) } };
+    g.img2s = { class_type: 'ImageScale', inputs: { image: ['facecrop', 0], upscale_method: 'lanczos', width: 1024, height: 1024, crop: 'center' } };
+    g.img2e = { class_type: 'VAEEncode', inputs: { pixels: ['img2s', 0], vae: ['vae', 0] } };
+    g.ref2 = { class_type: 'ReferenceLatent', inputs: { conditioning: positive, latent: ['img2e', 0] } };
+    positive = ['ref2', 0];
+  }
+  g.sigmas = { class_type: 'Flux2Scheduler', inputs: { steps: 4, width: W, height: H } };
+  g.latent = { class_type: 'EmptyFlux2LatentImage', inputs: { width: W, height: H, batch_size: 1 } };
+  g.noise = { class_type: 'RandomNoise', inputs: { noise_seed: seed32(i.seed) } };
+  g.sampler = { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } };
+  g.guider = { class_type: 'CFGGuider', inputs: { model: ['unet', 0], positive, negative: ['neg', 0], cfg: 1 } };
+  g.sample = { class_type: 'SamplerCustomAdvanced', inputs: { noise: ['noise', 0], guider: ['guider', 0], sampler: ['sampler', 0], sigmas: ['sigmas', 0], latent_image: ['latent', 0] } };
+  g.decode = { class_type: 'VAEDecode', inputs: { samples: ['sample', 0], vae: ['vae', 0] } };
+  g[CANONICAL_OUTPUT] = { class_type: 'SaveImage', inputs: { images: ['decode', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/canonical-klein' } };
+  return g;
+}
+
 // ------------------------------------------------------------------------------- face crop of an upload
 
 export interface PxRect { x: number; y: number; width: number; height: number }
@@ -487,10 +549,16 @@ export function identityLineFromDescription(d: CharacterDescription, opts: { sty
     if (low.has(key) || [...low].some((l) => l.startsWith(`${key}.`))) { lowConfidence.push(key); return; }
     parts.push(fmt(v));
   };
-  const sex = /^f/i.test(d.sex ?? '') ? 'woman' : /^m/i.test(d.sex ?? '') ? 'man' : 'person';
-  const age = d.ageRange && !NOT_VISIBLE.test(d.ageRange) && !low.has('ageRange') ? ` aged about ${d.ageRange.replace(/\s*years?( old)?/i, '')}` : '';
+  // the age as the picture shows it, in the words a prompt needs: a child or a teenager is said so ("a teenage boy aged
+  // about 10-19", "a girl" — never "a woman aged about child"), an adult by the range
+  const female = /^f/i.test(d.sex ?? ''), male = /^m/i.test(d.sex ?? '');
+  const ageText = d.ageRange && !NOT_VISIBLE.test(d.ageRange) && !low.has('ageRange') ? squash(d.ageRange.replace(/\s*years?( old)?/i, '')) : '';
+  const ages = (ageText.match(/\d{1,3}/g) ?? []).map(Number);
+  const oldest = ages.length ? Math.max(...ages) : /child|kid|toddler|baby/i.test(ageText) ? 10 : /teen|adolescent/i.test(ageText) ? 16 : undefined;
+  const noun = oldest !== undefined && oldest <= 12 ? (female ? 'girl' : male ? 'boy' : 'child') : oldest !== undefined && oldest <= 19 ? (female ? 'teenage girl' : male ? 'teenage boy' : 'teenager') : (female ? 'woman' : male ? 'man' : 'person');
+  const age = ages.length ? ` aged about ${ageText}` : '';
   if (d.ageRange && low.has('ageRange')) lowConfidence.push('ageRange');
-  parts.push(`${opts.style ? `${STYLE_MEDIUM[opts.style].identity}, ` : ''}a ${sex}${age}`);
+  parts.push(`${opts.style ? `${STYLE_MEDIUM[opts.style].identity}, ` : ''}a ${noun}${age}`);
   add('build', d.build, (s) => `${s} build`);
   add('faceShape', d.faceShape, (s) => `${s} face`);
   const hair = [d.hair.length, d.hair.texture, d.hair.colour].filter((x) => x && !NOT_VISIBLE.test(x)).join(' ');
@@ -499,12 +567,15 @@ export function identityLineFromDescription(d: CharacterDescription, opts: { sty
   add('skinTone', d.skinTone, (s) => `${s} skin`);
   // a moustache the picture shows without a beard is said to be only that (D13)
   if (d.facialHair && !/^(none|no)\b/i.test(d.facialHair)) add('facialHair', d.facialHair, (s) => facialHairStatement([s]) ?? s);
-  else if (d.facialHair) parts.push('no facial hair');
+  else if (d.facialHair && !female) parts.push('no facial hair');
   if (d.glasses && !/^(none|no)\b/i.test(d.glasses)) add('glasses', d.glasses, (s) => (/glass|spectacle/i.test(s) ? s : `glasses (${s})`));
   for (const m of d.marks) add('marks', m);
   const clothes = d.clothing.map((c) => squash([c.colour, c.pattern && !/^(none|plain|solid)$/i.test(c.pattern) ? c.pattern : '', c.item].filter(Boolean).join(' ')));
   if (clothes.length) add('clothing', `wearing ${clothes.join(', ')}`);
-  if (d.accessories.length) add('accessories', `accessories: ${d.accessories.join(', ')}`);
+  // an accessory entry is a thing worn, not a field's answer: "glasses none" / "none" are dropped (a model that reads
+  // words literally would draw them), and glasses are said once, by their own field
+  const accessories = d.accessories.map((a) => squash(a.replace(/\b(none|both|n\/a)\b/gi, ''))).filter((a) => a && !/^(no|none)$/i.test(a) && !(d.glasses && /\b(glasses|spectacles)\b/i.test(a)));
+  if (accessories.length) add('accessories', `accessories: ${accessories.join(', ')}`);
   add('footwear', d.footwear);
   const notVisible = [...new Set([...d.notVisible, ...(d.footwear && NOT_VISIBLE.test(d.footwear) ? ['footwear'] : [])])];
   return { line: `Identity: ${parts.join('; ')}.`, lowConfidence: [...new Set(lowConfidence)], notVisible };

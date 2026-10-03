@@ -7,7 +7,7 @@ metadata:
   version: "2.3.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
-  models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
+  models: "qwen3:14b, Qwen-Image-2512, FLUX.2-klein-4B, Qwen-Image-Edit-2511, Qwen3.5-4B"
 ---
 
 # Character design and the canonical image
@@ -60,7 +60,9 @@ metadata:
 4. From a picture (Image Reference): the picture is validated, then read once — before the design when a character
    is created from it — its face box and a description by the vision model, from which the design learns the
    apparent age and sex and the identity line is written (low-confidence details are left out and shown); the
-   picture (and its face crop) is then redrawn into the production's style by Qwen-Image-Edit-2511.
+   picture (and its face crop) is then redrawn into the production's style by FLUX.2 [klein] 4B, whose prompt names only
+   what the person has (klein reads words literally: a generic "keep the glasses" drew glasses on people without them);
+   Qwen-Image-Edit-2511 is the rollback for one release.
 5. The whole figure must be in the frame (checked on the CPU); a picture that fails is redrawn once, then left for
    the producer with the reason.
 6. The image is a draft until the producer approves it; it is then the character's identity and the primary picture
