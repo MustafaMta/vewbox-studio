@@ -1,54 +1,53 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
+import type { ToolRunner } from '@/server/org/tools';
 import { step } from './step';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, Character, CharacterRef, Location, LocationRef, PendingReference, Production, Shot } from '@/domain/types';
-import type { CharacterRefRole, TimeOfDay } from '@/domain/vocabulary';
+import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot, WorldRead } from '@/domain/types';
+import { overlayWorld } from '@/domain/world';
+import { worldOfProduction } from '@/server/world';
+import type { TimeOfDay } from '@/domain/vocabulary';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, ffprobe, fileFor } from '@/server/media';
+import { adoptFile, assetFile, assetFromStored, ffprobe } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/server/media/image-check';
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
 import * as comfy from '@/server/providers/comfy';
 import {
-  CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SHEET_OUTPUTS, SHEET_TILES, VIEW_SEED_OFFSET,
-  canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLine as buildIdentityLine, identityLineFromDescription, identitySeedFor,
-  negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenIdentitySheet, qwenReferenceCanonical, qwenTextToImage,
-  qwenView, referenceCanonicalPrompt, referenceReadGraph, sheetPrompt, viewPrompt, vlmOutput, type CharacterDescription, type PxRect, type ViewRole,
+  CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
+  canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
+  kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
+  referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
 import { continuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
 import { canChangeAppearance } from '@/domain/rules';
-import { primaryImageOf } from '@/domain/identity';
+import { primaryImageOf, usableImage } from '@/domain/identity';
 import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff } from '@/server/org/runs';
 
 /** PICTURES — the canonical character image, optional secondary character material, location plates and views,
  *  storyboard frames. All drawn by Qwen-Image (text to image) and Qwen-Image-Edit (multi-reference editing) in ComfyUI
  *  on the local GPU, under the GPU lease. Every picture becomes a library asset with its prompt, references, seed and
- *  workflow version.
+ *  workflow version. A bundled sample or an SVG placeholder is never a reference (`usableImage`).
  *
  *  Character identity (docs/CONTRACTS-IDENTITY-PACK.md v2): one character = ONE canonical front full-body image,
  *  drawn by CHARACTER_APPEARANCE — from the English identity line (style first; Qwen-Image-2512 in quality mode), or
  *  from the producer's uploaded picture, which is read first (MediaPipe face box, a Qwen3.5-4B description that writes
- *  the identity line) and redrawn into the production's style (Qwen-Image-Edit-2511). A picture whose figure is not
+ *  the identity line) and redrawn into the production's style (FLUX.2 [klein] 4B; Qwen-Image-Edit-2511 as the
+ *  rollback, `referenceEngine`). A picture whose figure is not
  *  whole in the frame is redrawn once (the first becomes RAW), then left for the producer with the reason. The image is
  *  a DRAFT until the producer approves it; it is the primary image everywhere, including the reference of every shot.
- *  Evidence and the A/B behind every choice: docs/evidence/image-v2/REPORT.md. */
+ *  CHARACTER_REFS draws optional SECONDARY material on request, one pass from that image. Evidence and the A/B behind
+ *  every choice: docs/evidence/image-v2/REPORT.md. */
 
 const IMAGE_VRAM_MB = 24000;
-const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
-// bundled sample pictures are placeholders for the UI, never references for generation
-const usable = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
-
-/** The pure identity helpers, exported here for the handlers' callers and tests (they live in workflows/identity). */
-export { buildIdentityLine as identityLine, identitySeedFor };
 
 async function requireComfy() {
   const h = await comfy.health();
@@ -59,19 +58,15 @@ async function requireComfy() {
   if (!models.some((m) => m.includes('qwen_image'))) throw new StudioError('NOT_CONFIGURED', 'Qwen-Image weights are not downloaded yet (see docker/models).');
 }
 
-/** Is the fal Multiple-Angles LoRA visible to ComfyUI? (Optional: the views are drawn with prose otherwise.) */
-async function hasAngleLora(): Promise<boolean> {
-  const loras = await comfy.listModels('loras').catch(() => [] as string[]);
-  return loras.includes(MODELS.qwenMultiAngleLora);
-}
-
 interface Drawn { id: string; file: string; prompt: string; references: string[]; workflowVersion: string; ms: number; width?: number; height?: number }
 
 type ImageTool = 'image.generate' | 'image.edit_with_references' | 'image.describe_reference';
 
-/** Run one graph under the GPU lease as a recorded tool call. */
-async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool }): Promise<comfy.ComfyRunResult> {
-  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => ctx.tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
+/** Run one graph under the GPU lease as a recorded tool call (through `runner`, a delegated step's tool runner, when
+ *  another agent's step runs it). */
+async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool; runner?: ToolRunner }): Promise<comfy.ComfyRunResult> {
+  const tool = opts.runner ?? ctx.tool;
+  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
 }
 
 /** Fetch one ComfyUI output file into a temporary folder (the caller removes `dir`). */
@@ -102,7 +97,7 @@ async function adoptOutput(ctx: HandlerContext, out: comfy.ComfyOutputFile, run:
 /** Run one image workflow (text to image, or an edit from up to three references) and bring the result into the
  *  library as an asset. */
 async function draw(ctx: HandlerContext, opts: { prompt: string; negative?: string; references?: Asset[]; width: number; height: number; label: string; tags: string[]; seed?: number; quality?: boolean; provenance?: Record<string, unknown> }): Promise<Drawn> {
-  const refs = (opts.references ?? []).filter(usable).slice(0, 3);
+  const refs = (opts.references ?? []).filter(usableImage).slice(0, 3);
   const graph = refs.length
     ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed: opts.seed, quality: opts.quality })
     : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed: opts.seed });
@@ -121,11 +116,10 @@ const NEG = 'text, watermark, logo, signature, blurry, deformed hands, extra fin
 
 // ------------------------------------------------------------------------------------------- character appearance
 
-const identityLineOf = (c: Character) => buildIdentityLine(c);
 const identitySeedOf = (c: Character) => identitySeedFor(c);
-const roleLabel = (r: string) => r.toLowerCase().replace(/_/g, ' ');
-/** The identity line a character is drawn and described with: its canonical image's, else the derived one. */
-const drawnLineOf = (c: Character) => c.canonicalImage?.identityLine || identityLineOf(c);
+/** The identity line a character is drawn and described with (shot frames, secondary material): the one recorded
+ *  with its canonical image, else the canonical builder's line for the record (style first, age, the look). */
+const drawnLineOf = (c: Character) => c.canonicalImage?.identityLine || canonicalIdentityLine(c, { style: c.style }).line;
 
 // ----------------------------------------------------------------------------- the look from a reference picture
 
@@ -184,41 +178,82 @@ export function textLook(c: Character): { line: string; nonLatin: string[] } {
  *  endpoint) is trusted; without one the file is measured here on the CPU. */
 export async function requireUsableReference(c: Character, pending: Asset | undefined): Promise<ReferenceValidation | undefined> {
   if (!c.pendingReference) return undefined;
-  if (!usable(pending)) throw missingReference(`${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
+  if (!usableImage(pending)) throw missingReference(`${c.name}: the reference picture is missing or is not a usable image; upload a clear picture of the face.`, { characterId: c.id, assetId: c.pendingReference.assetId });
   const stored = (c.pendingReference as PendingReference & { validation?: ReferenceValidation }).validation;
-  const v = stored ?? await validateReferenceImage(assetFile(pending!));
-  if (!v.ok) throw missingReference(`${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending!.id, validation: v });
+  const v = stored ?? await validateReferenceImage(assetFile(pending));
+  if (!v.ok) throw missingReference(`${c.name}: the reference picture cannot be used — ${v.reasons.join('; ')}.`, { characterId: c.id, assetId: pending.id, validation: v });
   return v;
 }
 
-interface ReferenceRead { upload: string; faceRect?: PxRect; faces: number; description?: CharacterDescription; notes: string[]; describedBy?: string }
+/** One reading of a reference picture, as stored on the picture's asset (`provenance.reading`). */
+interface StoredReading { boxes: FaceBoxPx[]; description: CharacterDescription; describedBy: string; vlm: string; at: string }
+const storedReading = (a: Asset): StoredReading | undefined => {
+  const r = a.provenance?.reading as Partial<StoredReading> | undefined;
+  return r && r.vlm === MODELS.vlm && Array.isArray(r.boxes) && r.description && typeof r.description === 'object' && Array.isArray(r.description.clothing) ? r as StoredReading : undefined;
+};
 
-/** Read the producer's picture in ComfyUI before drawing from it: the face box (one face → a chin-safe crop given to
- *  the redraw as image 2) and, when Qwen3.5-4B is installed, the description the identity line is written from. */
-async function readReference(ctx: HandlerContext, c: Character, pending: Asset): Promise<ReferenceRead> {
-  const file = assetFile(pending);
-  const upload = await comfy.uploadInput(file);
+export interface PictureReading { upload: string; boxes: FaceBoxPx[]; description?: CharacterDescription; describedBy?: string; notes: string[]; reused: boolean }
+
+/** Read the producer's picture in ComfyUI: the MediaPipe face boxes and, when Qwen3.5-4B is installed, the
+ *  description the identity line (and, in the creation chain, the design — D15) is written from. A reading with a
+ *  description is stored on the picture's asset and reused by the next read of the same picture, so the design and
+ *  the drawing work from ONE reading (and the vision model runs once). `describeOnly`: without the vision model
+ *  nothing is run (the caller only wants the description). `runner`: a delegated step's tool runner. */
+export async function readReferencePicture(ctx: HandlerContext, picture: Asset, opts: { label: string; runner?: ToolRunner; describeOnly?: boolean }): Promise<PictureReading> {
+  const upload = await comfy.uploadInput(assetFile(picture));
   const describe = (await comfy.listModels('text_encoders').catch(() => [] as string[])).includes(MODELS.vlm);
-  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { label: `${c.name} — reading the reference picture`, tool: 'image.describe_reference' });
+  const stored = storedReading(picture);
+  if (stored) return { upload, boxes: stored.boxes, description: stored.description, describedBy: stored.describedBy, notes: [`the picture was already read (${stored.describedBy}); that one reading is used`], reused: true };
+  if (!describe && opts.describeOnly) return { upload, boxes: [], notes: ['the vision model (Qwen3.5-4B) is not installed: the picture cannot be described'], reused: false };
+  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { label: opts.label, tool: 'image.describe_reference', runner: opts.runner });
   const notes: string[] = [];
   const boxes = parseFaceBoxes(comfy.textOutput(run.outputs, REFERENCE_FACE_OUTPUTS.bboxes));
-  let faceRect: PxRect | undefined;
-  if (boxes.length === 1) {
-    const p = await ffprobe(file);
-    const size = { width: Number(p.width) || pending.width || 0, height: Number(p.height) || pending.height || 0 };
-    if (size.width && size.height) faceRect = faceCropRect(boxes[0], size);
-  } else notes.push(boxes.length ? `${boxes.length} faces found: the redraw gets no separate face crop` : 'no face found by the detector: the redraw gets no separate face crop');
   let description: CharacterDescription | undefined;
   if (!describe) notes.push('the vision model (Qwen3.5-4B) is not installed: the look is taken from the picture alone');
   else {
     const text = comfy.textOutput(run.outputs, vlmOutput(REFERENCE_DESCRIBE_KEY)) ?? '';
     try { description = parseCharacterDescription(text); } catch (e) { notes.push(`the description could not be read (${(e as Error).message}): the look is taken from the picture alone`); }
   }
-  return { upload, faceRect, faces: boxes.length, description, notes, describedBy: description ? 'Qwen3.5-4B' : undefined };
+  if (description) {
+    const fresh = (await readState()).state.assets.find((a) => a.id === picture.id) ?? picture;
+    const reading: StoredReading = { boxes, description, describedBy: 'Qwen3.5-4B', vlm: MODELS.vlm, at: new Date().toISOString() };
+    await command('updateAsset', [picture.id, { provenance: { ...(fresh.provenance ?? {}), reading } }], 'worker');
+  }
+  return { upload, boxes, description, describedBy: description ? 'Qwen3.5-4B' : undefined, notes, reused: false };
 }
 
-const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REFERENCE: 'Qwen-Image-Edit-2511 (24 steps, cfg 4)' } as const;
+interface ReferenceRead { upload: string; faceRect?: PxRect; faces: number; description?: CharacterDescription; notes: string[]; describedBy?: string }
+
+/** Read the producer's picture before drawing from it: the face box (one face → a chin-safe crop given to the redraw
+ *  as image 2) and the description the identity line is written from. */
+async function readReference(ctx: HandlerContext, c: Character, pending: Asset): Promise<ReferenceRead> {
+  const read = await readReferencePicture(ctx, pending, { label: `${c.name} — reading the reference picture` });
+  const notes = [...read.notes];
+  let faceRect: PxRect | undefined;
+  if (read.boxes.length === 1) {
+    const p = await ffprobe(assetFile(pending));
+    const size = { width: Number(p.width) || pending.width || 0, height: Number(p.height) || pending.height || 0 };
+    if (size.width && size.height) faceRect = faceCropRect(read.boxes[0], size);
+  } else notes.unshift(read.boxes.length ? `${read.boxes.length} faces found: the redraw gets no separate face crop` : 'no face found by the detector: the redraw gets no separate face crop');
+  return { upload: read.upload, faceRect, faces: read.boxes.length, description: read.description, notes, describedBy: read.describedBy };
+}
+
+const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REFERENCE_KLEIN: 'FLUX.2 [klein] 4B (4 steps, cfg 1)', REFERENCE_QWEN: 'Qwen-Image-Edit-2511 (24 steps, cfg 4)' } as const;
 const FRAMING_OK = 'full body in frame: head and feet inside the picture with margin';
+const KLEIN_NODES = ['ReferenceLatent', 'Flux2Scheduler', 'EmptyFlux2LatentImage', 'CFGGuider', 'SamplerCustomAdvanced', 'ConditioningZeroOut'];
+
+/** Which engine redraws the producer's picture: FLUX.2 [klein] 4B (the default since the A/B and its confirmation:
+ *  a whole figure 24/24 against Edit-2511's 17/24, docs/research/FLUX-VS-QWEN.md, docs/evidence/flux-vs-qwen/
+ *  confirmation) or Qwen-Image-Edit-2511 — kept for one release as the rollback (`CANONICAL_REFERENCE_ENGINE=qwen`), and
+ *  used when klein's weights or nodes are not in ComfyUI, with the reason. */
+export async function referenceEngine(): Promise<{ engine: 'KLEIN' | 'QWEN'; note?: string }> {
+  if ((process.env.CANONICAL_REFERENCE_ENGINE ?? '').toLowerCase() === 'qwen') return { engine: 'QWEN', note: 'CANONICAL_REFERENCE_ENGINE=qwen: the picture is redrawn by Qwen-Image-Edit-2511' };
+  const [dit, te, vae] = await Promise.all(['diffusion_models', 'text_encoders', 'vae'].map((f) => comfy.listModels(f).catch(() => [] as string[])));
+  const missing = [...(dit.includes(MODELS.kleinDit) ? [] : [MODELS.kleinDit]), ...(te.includes(MODELS.kleinTe) ? [] : [MODELS.kleinTe]), ...(vae.includes(MODELS.kleinVae) ? [] : [MODELS.kleinVae])];
+  const nodes = missing.length ? [] : (await comfy.hasNodes(KLEIN_NODES).catch(() => ({ missing: KLEIN_NODES }))).missing;
+  if (missing.length || nodes.length) return { engine: 'QWEN', note: `FLUX.2 [klein] 4B is not available in ComfyUI (missing ${[...missing, ...nodes].join(', ')}): the picture is redrawn by Qwen-Image-Edit-2511` };
+  return { engine: 'KLEIN' };
+}
 
 /** The framing check of a drawn picture: the whole figure, head to feet, with margin (src/server/media/figure-check.ts;
  *  in the A/B it passed all 36 canonical pictures and failed all 12 deliberately cropped ones). */
@@ -246,10 +281,12 @@ export const characterAppearance: Handler = async (ctx) => {
   const read = pending ? await readReference(ctx, c, pending) : undefined;
   const look = read ? referenceLook(c, read.description) : { ...textLook(c), from: 'DESCRIPTION' as const, lowConfidence: [] as string[], notVisible: [] as string[] };
   if (!read && look.nonLatin.length && !/;/.test(look.line)) throw new StudioError('INVALID', `${c.name}: the look is written only in a script the image model does not read (${look.nonLatin.slice(0, 3).join('; ')}); write the appearance in English, or describe the character so it is designed.`, { characterId: c.id, nonLatin: look.nonLatin, failureClass: 'INVALID_INPUT' });
-  const notes = [...(read?.notes ?? []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
+  const redraw = read ? await referenceEngine() : undefined;
+  const klein = redraw?.engine === 'KLEIN';
+  const notes = [...(read?.notes ?? []), ...(redraw?.note ? [redraw.note] : []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
   if (notes.length) await ctx.event('warn', `${c.name}: ${notes.join(' — ')}`, { characterId: c.id, notes });
-  const engine = read ? CANONICAL_ENGINE.REFERENCE : CANONICAL_ENGINE.DESCRIPTION;
-  const model = read ? 'Qwen-Image-Edit-2511' : 'Qwen-Image-2512';
+  const engine = !read ? CANONICAL_ENGINE.DESCRIPTION : klein ? CANONICAL_ENGINE.REFERENCE_KLEIN : CANONICAL_ENGINE.REFERENCE_QWEN;
+  const model = !read ? 'Qwen-Image-2512' : klein ? 'FLUX.2-klein-4B' : 'Qwen-Image-Edit-2511';
   const references = pending ? [pending.id] : [];
 
   // draw; a picture whose figure is not whole in the frame is redrawn once (it stays in the library as RAW). From a
@@ -260,10 +297,12 @@ export const characterAppearance: Handler = async (ctx) => {
   for (let attempt = 0; attempt < 2 && !drawn; attempt++) {
     usedSeed = (seed + attempt) % 2 ** 31;
     const faceRect = attempt === 0 ? read?.faceRect : undefined;
-    const prompt = read
-      ? referenceCanonicalPrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual })
-      : canonicalPrompt({ style, identityLine: look.line, character: d.character, visual: d.visual, avoid: d.avoid });
-    const graph = read ? qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed }) : qwenCanonicalImage({ prompt, negative, seed: usedSeed });
+    const prompt = !read ? canonicalPrompt({ style, identityLine: look.line, character: d.character, visual: d.visual, avoid: d.avoid })
+      : klein ? kleinReferencePrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual })
+      : referenceCanonicalPrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual });
+    const graph = !read ? qwenCanonicalImage({ prompt, negative, seed: usedSeed })
+      : klein ? kleinReferenceCanonical({ upload: read.upload, faceRect, prompt, seed: usedSeed })
+      : qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed });
     await ctx.progress('GENERATING', { phase: 'drawing', message: attempt ? `Drawing ${c.name} again (the first picture was not whole in the frame)` : `Drawing ${c.name}`, percent: null });
     const t0 = Date.now();
     const run = await runGraph(ctx, graph, { label: `${c.name} — canonical image`, tool: read ? 'image.edit_with_references' : 'image.generate' });
@@ -273,7 +312,7 @@ export const characterAppearance: Handler = async (ctx) => {
     try {
       framing = await framingOf(tmp.file);
       const keep = framing.ok || attempt === 1;
-      const a = await adoptFetched(ctx, tmp.file, run, { label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
+      const a = await adoptFetched(ctx, tmp.file, run, { label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative: klein ? undefined : negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
       await recordMetric('image.generation_ms', a.ms, 'ms', { model, refs: references.length, canonical: 1 }, ctx.job.id);
       if (keep) drawn = a;
       else {
@@ -291,103 +330,77 @@ export const characterAppearance: Handler = async (ctx) => {
   return { canonicalAssetId: drawn!.id, version: fresh?.canonicalImage?.version, status: fresh?.canonicalImage?.status ?? 'DRAFT', ms: drawn!.ms, workflowVersion: drawn!.workflowVersion, seed: usedSeed, identityLine: look.line, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', engine, check, rejected, message: `${c.name}: canonical image drawn — awaiting your approval` };
 };
 
-/** The default pack: the four sheet tiles, then the derived views. FACE is the sheet's face crop. */
-const REF_VIEWS: CharacterRefRole[] = ['FRONT', 'THREE_QUARTER', 'SIDE', 'BACK', 'FULL_BODY', 'EXPRESSION'];
-const isTile = (r: string): r is (typeof SHEET_TILES)[number] => (SHEET_TILES as readonly string[]).includes(r);
+// ------------------------------------------------------------------------------------------- secondary material
 
+/** Seed offsets from the identity seed, per kind: each kind is reproducible and distinct from the canonical image's
+ *  seed; a redraw of a kind moves its previous seed on by one. */
+const SECONDARY_SEED_OFFSET: Record<SecondaryMaterialKind, number> = { EXPRESSION: 17, OUTFIT: 19, PORTRAIT: 23 };
+const SECONDARY_LABEL: Record<SecondaryMaterialKind, string> = { EXPRESSION: 'expression sheet', OUTFIT: 'outfit', PORTRAIT: 'close-up portrait' };
+
+/** CHARACTER_REFS — optional SECONDARY material on request (contract v2 §1), never part of creation and never the
+ *  identity: one Qwen-Image-Edit-2511 pass (quality mode) per requested kind — an expression sheet, the outfit, a
+ *  close-up portrait — with the character's primary image as the only reference (the canonical image, else a legacy
+ *  portrait) and its identity line. An expression sheet or an outfit replaces the previous one of its kind in the
+ *  character's refs (the earlier picture stays in the library); a close-up portrait becomes the portrait shown in the
+ *  secondary material, so it is drawn only beside a canonical image (it can never stand in for the primary image).
+ *  No other view is drawn. */
 export const characterRefs: Handler = async (ctx) => {
-  const { characterId, roles } = ctx.job.payload as { characterId: string; roles?: CharacterRefRole[] };
+  const { characterId, roles } = ctx.job.payload as { characterId: string; roles?: string[] };
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`);
-  // SECONDARY material (contract v2): drawn on request from the character's primary image (the canonical image, else
-  // a legacy portrait); never part of creation, never the identity
-  const portrait = state.assets.find((a) => a.id === primaryImageOf(c));
-  if (!usable(portrait)) throw new StudioError('INVALID', 'Draw the character’s image first; secondary material is made from it.');
+  const asked = [...new Set(roles ?? [])];
+  const other = asked.filter((r) => !isSecondaryMaterialKind(r));
+  if (!asked.length || other.length) throw new StudioError('INVALID', `Secondary material is ${SECONDARY_MATERIAL.map((k) => SECONDARY_LABEL[k]).join(', ')} (${SECONDARY_MATERIAL.join(', ')})${other.length ? `; ${other.join(', ')} is not drawn — one canonical image per character, no extra views` : ': name the kind to draw'}.`, { characterId: c.id, roles: asked, failureClass: 'INVALID_INPUT' });
+  const kinds = asked as SecondaryMaterialKind[];
+  if (kinds.includes('PORTRAIT') && !c.canonicalImage) throw new StudioError('INVALID', `${c.name}: a close-up portrait is drawn beside the canonical image, never in place of it; draw the character’s canonical image first.`, { characterId: c.id, failureClass: 'INVALID_INPUT' });
+  const primary = state.assets.find((a) => a.id === primaryImageOf(c));
+  if (!usableImage(primary)) throw missingReference(`${c.name}: draw the character’s image first; secondary material is made from it.`, { characterId: c.id });
   await requireComfy();
-  const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
-  const wanted = (roles?.length ? roles : REF_VIEWS).filter((r) => r !== 'FACE');
-  const partial = Boolean(roles?.length);
   const line = drawnLineOf(c);
   const seed = identitySeedOf(c);
-  const direction = styleDirection(c.style);
-  const angleLora = await hasAngleLora();
-  // a partial redraw of derived views can reuse the existing sheet, face crop and FRONT tile when all three exist
-  const prevFront = c.refs.find((r) => r.role === 'FRONT'); const prevFace = c.refs.find((r) => r.role === 'FACE');
-  let front = byId(prevFront?.assetId), face = byId(prevFace?.assetId), sheet = byId(prevFront?.references?.[0]);
-  const needSheet = !partial || wanted.some(isTile) || !usable(front) || !usable(face) || !usable(sheet);
-  const derived = wanted.filter((r) => !isTile(r)) as ViewRole[];
-  const total = (needSheet ? 1 : 0) + derived.length;
-  const refs: CharacterRef[] = [];
-  const loras = (quality: boolean, angle: boolean) => [...(quality ? [] : [MODELS.qwenEditLightning]), ...(angle ? [MODELS.qwenMultiAngleLora] : [])];
-  let step = 0;
-
-  if (needSheet) {
-    step++;
-    await ctx.progress('GENERATING', { phase: 'drawing', message: `${c.name}: identity sheet (front, three-quarter, side, back in one pass)`, step, total });
-    const prompt = sheetPrompt({ identityLine: line, direction: `${direction.visual}. ${direction.avoid}` });
-    const graph = qwenIdentitySheet({ portrait: await comfy.uploadInput(assetFile(portrait!)), prompt, negative: NEG, seed, quality: true });
+  const negative = negativeFor(c.style);
+  const visual = styleDirection(c.style).visual;
+  const upload = await comfy.uploadInput(assetFile(primary));
+  const previousSeed = (kind: SecondaryMaterialKind): number | undefined => {
+    if (kind !== 'PORTRAIT') return c.refs.find((r) => r.role === kind)?.seed;
+    const p = c.portraitAssetId ? state.assets.find((a) => a.id === c.portraitAssetId) : undefined;
+    return p?.provenance?.view === 'PORTRAIT' && typeof p.provenance.seed === 'number' ? p.provenance.seed : undefined;
+  };
+  const drawn: Array<{ kind: SecondaryMaterialKind; assetId: string; seed: number; ms: number }> = [];
+  for (const [n, kind] of kinds.entries()) {
+    await ctx.progress('GENERATING', { phase: 'drawing', message: `${c.name}: ${SECONDARY_LABEL[kind]} from the character’s image`, step: n + 1, total: kinds.length, percent: null });
+    const prev = previousSeed(kind);
+    const kindSeed = (typeof prev === 'number' ? prev + 1 : seed + SECONDARY_SEED_OFFSET[kind]) % 2 ** 31;
+    const prompt = secondaryPrompt({ kind, style: c.style, identityLine: line, visual });
+    // the close-up is drawn from the head and shoulders of the canonical image (from the whole figure Edit-2511 drew
+    // the whole figure again, docs/evidence/image-v2/d13)
+    const crop = kind === 'PORTRAIT' ? portraitCrop({ width: primary.width || CANONICAL_FRAME.width, height: primary.height || CANONICAL_FRAME.height }, (primary.provenance?.framing as { box?: { x: number; y: number; w: number; h: number } | null } | undefined)?.box) : undefined;
     const t0 = Date.now();
-    const run = await runGraph(ctx, graph, { label: `${c.name} — identity sheet`, tool: 'image.edit_with_references' });
-    const outOf = (node: string) => { const o = run.outputs[node]?.images?.[0]; if (!o) throw new StudioError('PROVIDER', `ComfyUI returned no image for ${node}.`); return o; };
+    const run = await runGraph(ctx, qwenSecondary({ canonical: upload, kind, prompt, negative, seed: kindSeed, crop }), { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tool: 'image.edit_with_references' });
+    const out = comfy.firstOutput(run.outputs, 'images');
+    if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
     const ms = Date.now() - t0;
-    await recordMetric('image.generation_ms', ms, 'ms', { model: 'Qwen-Image-Edit-2511', refs: 2, quality: 1, sheet: 1 }, ctx.job.id);
-    const base = { prompt, negative: NEG, seed, model: 'Qwen-Image-Edit-2511', ms, tier: 'SECONDARY' as const };
-    const sheetDrawn = await adoptOutput(ctx, outOf(SHEET_OUTPUTS.sheet), run, { ...base, label: `${c.name} — identity sheet`, tags: ['character', 'sheet'], references: [portrait!.id], loras: loras(true, false), provenance: { characterId: c.id, view: 'SHEET', identityLine: line, identitySeed: seed, quality: true } });
-    const faceDrawn = await adoptOutput(ctx, outOf(SHEET_OUTPUTS.face), run, { ...base, label: `${c.name} — face crop`, tags: ['character', 'reference', 'face'], references: [portrait!.id], loras: [], provenance: { characterId: c.id, view: 'FACE', cutFrom: portrait!.id, identityLine: line, identitySeed: seed } });
-    refs.push({ id: `ref-${faceDrawn.id}`, role: 'FACE', assetId: faceDrawn.id, view: 'FACE', references: [portrait!.id], seed });
-    const tiles: string[] = [];
-    for (const role of SHEET_TILES) {
-      const tile = await adoptOutput(ctx, outOf(SHEET_OUTPUTS[role]), run, { ...base, label: `${c.name} — ${roleLabel(role)}`, tags: ['character', 'reference'], references: [sheetDrawn.id], loras: loras(true, false), provenance: { characterId: c.id, view: 'SHEET_TILE', role, cutFrom: sheetDrawn.id, identityLine: line, identitySeed: seed } });
-      refs.push({ id: `ref-${tile.id}`, role, assetId: tile.id, view: 'SHEET_TILE', references: [sheetDrawn.id, portrait!.id, faceDrawn.id], seed });
-      tiles.push(tile.id);
-    }
-    const fresh = (await readState()).state.assets;
-    sheet = fresh.find((a) => a.id === sheetDrawn.id); face = fresh.find((a) => a.id === faceDrawn.id); front = fresh.find((a) => a.id === tiles[0]);
-    await ctx.activity('CHARACTER_SHEET', `${c.name}: identity sheet drawn in one quality pass from the character's image (${portrait!.id}) and its face crop (${faceDrawn.id}), seed ${seed}; cut into front, three-quarter, side and back tiles`, { characterId: c.id, sheetAssetId: sheetDrawn.id, faceAssetId: faceDrawn.id, tiles, references: [portrait!.id, faceDrawn.id], seed, ms, engineMs: run.engineMs });
+    await recordMetric('image.generation_ms', ms, 'ms', { model: 'Qwen-Image-Edit-2511', refs: 1, quality: 1, secondary: 1 }, ctx.job.id);
+    const d = await adoptOutput(ctx, out, run, { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tags: ['character', 'secondary', kind.toLowerCase()], prompt, negative, references: [primary.id], seed: kindSeed, model: 'Qwen-Image-Edit-2511', loras: [], provenance: { characterId: c.id, view: kind, identityLine: line, identitySeed: seed, quality: true, ...(crop ? { cropOfReference: crop } : {}) }, ms, tier: 'SECONDARY' });
+    drawn.push({ kind, assetId: d.id, seed: kindSeed, ms });
+    await ctx.activity('CHARACTER_SECONDARY', `${c.name}: ${SECONDARY_LABEL[kind]} drawn in one pass from the character’s image (${primary.id}), seed ${kindSeed} — secondary material, not the identity`, { characterId: c.id, assetId: d.id, kind, references: [primary.id], seed: kindSeed, ms, engineMs: run.engineMs });
     await ctx.checkpoint();
   }
 
-  if (derived.length) {
-    if (!usable(front) || !usable(face) || !usable(sheet)) throw new StudioError('PROVIDER', 'The identity sheet did not produce the FRONT tile, face crop and sheet needed for the derived views.');
-    const references = [front!, face!, sheet!];
-    const uploaded = await Promise.all(references.map((a) => comfy.uploadInput(assetFile(a))));
-    for (const role of derived) {
-      step++;
-      await ctx.progress('GENERATING', { phase: 'drawing', message: `${c.name}: ${roleLabel(role)} view from the front tile, face crop and sheet`, step, total });
-      const prev = c.refs.find((r) => r.role === role);
-      // a redraw of one view bumps its previous seed; a fresh pack uses the identity seed plus the view's offset
-      const viewSeed = partial && typeof prev?.seed === 'number' ? prev.seed + 1 : seed + VIEW_SEED_OFFSET[role];
-      const prompt = viewPrompt({ view: role, identityLine: line, direction: `${direction.visual}. ${direction.avoid}`, angleLora });
-      const graph = qwenView({ references: uploaded, view: role, prompt, negative: NEG, seed: viewSeed, angleLora });
-      const t0 = Date.now();
-      const run = await runGraph(ctx, graph, { label: `${c.name} — ${roleLabel(role)}`, tool: 'image.edit_with_references' });
-      const out = comfy.firstOutput(run.outputs, 'images');
-      if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
-      const ms = Date.now() - t0;
-      await recordMetric('image.generation_ms', ms, 'ms', { model: 'Qwen-Image-Edit-2511', refs: 3, angleLora: angleLora ? 1 : 0 }, ctx.job.id);
-      const d = await adoptOutput(ctx, out, run, { label: `${c.name} — ${roleLabel(role)}`, tags: ['character', 'reference'], prompt, negative: NEG, references: references.map((a) => a.id), seed: viewSeed, model: 'Qwen-Image-Edit-2511', loras: loras(false, angleLora), provenance: { characterId: c.id, view: role, identityLine: line, identitySeed: seed, angleLora }, ms, tier: 'SECONDARY' });
-      refs.push({ id: `ref-${d.id}`, role, assetId: d.id, view: role, references: references.map((a) => a.id), seed: viewSeed });
-      await ctx.activity('CHARACTER_SHEET', `${c.name}: ${roleLabel(role)} drawn from the front tile (${front!.id}), face crop (${face!.id}) and sheet (${sheet!.id}), seed ${viewSeed}${angleLora ? ', Multiple-Angles LoRA' : ''}`, { characterId: c.id, assetId: d.id, view: role, references: references.map((a) => a.id), seed: viewSeed, angleLora, ms, engineMs: run.engineMs });
-      await ctx.checkpoint();
-    }
-  }
-
-  // a full pack replaces the refs list (the previous tiles and views stay in the library as assets); a partial
-  // redraw replaces only the roles drawn
-  if (partial) await command('addCharacterRefs', [c.id, refs], 'worker');
-  else await command('updateCharacter', [c.id, { refs }], 'worker');
-  // secondary material handed on with the character's primary image to every production the character is in
-  const fresh = (await readState()).state.characters.find((x) => x.id === c.id)!;
-  const got = new Set(fresh.refs.map((r) => r.role));
-  const missing = wanted.filter((v) => !got.has(v));
-  const sheetId = fresh.refs.find((r) => r.role === 'FRONT')?.references?.[0];
-  const primary = primaryImageOf(fresh);
+  // recorded on the character from its current record: the drawn kinds replace their previous pictures only
+  const now = (await readState()).state.characters.find((x) => x.id === c.id);
+  if (!now) throw new StudioError('NOT_FOUND', `Character ${c.id} no longer exists.`);
+  const refs: CharacterRef[] = drawn.filter((x) => x.kind !== 'PORTRAIT').map((x) => ({ id: `ref-${x.assetId}`, role: x.kind as Exclude<SecondaryMaterialKind, 'PORTRAIT'>, assetId: x.assetId, view: x.kind, references: [primary.id], seed: x.seed }));
+  const replaced = new Set<string>(refs.map((r) => r.role));
+  const portrait = drawn.find((x) => x.kind === 'PORTRAIT');
+  await command('updateCharacter', [c.id, { ...(refs.length ? { refs: [...now.refs.filter((r) => !replaced.has(r.role)), ...refs] } : {}), ...(portrait ? { portraitAssetId: portrait.assetId } : {}) }], 'worker');
+  // handed on with the character's primary image to every production the character is in
   for (const p of (await readState()).state.productions.filter((x) => x.castIds.includes(c.id))) {
-    await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'CASTING', receiverDepartment: 'PREPRODUCTION', artifactIds: [...(primary ? [primary] : []), ...(sheetId ? [sheetId] : []), ...refs.map((r) => r.assetId)], outputVersions: { character: c.id, refs: fresh.refs.length, identitySeed: seed, model: 'Qwen-Image-Edit-2511', loras: loras(false, angleLora).join(',') }, validation: { ok: missing.length === 0, checks: [{ name: 'primary-image-present', ok: Boolean(primary) }, { name: 'identity-sheet-present', ok: Boolean(sheetId), detail: sheetId }, { name: 'reference-views-complete', ok: missing.length === 0, detail: missing.length ? `missing ${missing.join(', ')}` : `${wanted.length} views` }, { name: 'references-recorded', ok: refs.every((r) => Array.isArray(r.references) && typeof r.seed === 'number'), detail: `identity line: ${line.slice(0, 120)}` }] }, jobId: ctx.job.id });
+    await recordHandoff({ productionId: p.id, stage: 'CAST_WORLD', producerDepartment: 'CASTING', receiverDepartment: 'PREPRODUCTION', artifactIds: [primary.id, ...drawn.map((x) => x.assetId)], outputVersions: { character: c.id, secondary: drawn.map((x) => x.kind).join(','), identitySeed: seed, model: 'Qwen-Image-Edit-2511' }, validation: { ok: drawn.length === kinds.length, checks: [{ name: 'primary-image-present', ok: true, detail: primary.id }, { name: 'secondary-material-drawn', ok: drawn.length === kinds.length, detail: kinds.join(', ') }, { name: 'references-recorded', ok: true, detail: `one reference (${primary.id}); identity line: ${line.slice(0, 120)}` }] }, jobId: ctx.job.id });
   }
-  return { refs: refs.length, sheetAssetId: sheetId, identitySeed: seed, angleLora };
+  return { assetId: drawn.at(-1)?.assetId, secondary: drawn.map(({ kind, assetId, seed: s }) => ({ kind, assetId, seed: s })), references: [primary.id], identitySeed: seed, identityLine: line, message: `${c.name}: ${drawn.map((x) => SECONDARY_LABEL[x.kind]).join(', ')} drawn — secondary material` };
 };
 
 // ---------------------------------------------------------------------------------------------------- locations
@@ -401,7 +414,7 @@ export const locationPlates: Handler = async (ctx) => {
   const refs: LocationRef[] = [];
   // a bundled sample plate is a placeholder, not a master to build views from
   const existingMaster = force ? undefined : state.assets.find((a) => a.id === l.masterAssetId && !a.sample);
-  let master: Asset | undefined = usable(existingMaster) ? existingMaster : undefined;
+  let master: Asset | undefined = usableImage(existingMaster) ? existingMaster : undefined;
   const primaryTod = (timesOfDay?.[0] ?? l.lighting[0] ?? 'MORNING') as TimeOfDay;
   if (!master) {
     await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: master plate`, step: 1, total: 3 + (timesOfDay?.length ?? 1) });
@@ -438,28 +451,57 @@ export const locationPlates: Handler = async (ctx) => {
 
 // -------------------------------------------------------------------------------------------------- shot frames
 
-export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnType<typeof readState>>['state'], p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string> {
+type State = Awaited<ReturnType<typeof readState>>['state'];
+
+/** The references of a storyboard frame, from the studio state with the production's World Bible laid over it
+ *  (`overlayWorld`): the place by the plate `choosePlate` picked (`read.location` — an established frame at the scene's
+ *  time of day, else the drawn plate for that time, an established frame of another time, the master), else (no bible
+ *  read) the location's own plate for the time of day or its master; then up to two characters by their primary image
+ *  (the pinned canonical image in the overlay, else a legacy portrait); a lone character's legacy face crop as the
+ *  third picture. Pure. */
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; notes: string[]; people: Character[]; plate?: { assetId: string; why: string } } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
-  const cast = castOf(state, p); const world = worldOf(state, p);
-  const loc = world.find((l) => l.id === scene?.locationId);
+  const cast = castOf(state, p);
+  const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
-  // references: the location plate for this time of day (or the master) first, then up to two characters — each by
-  // its primary image (the canonical front full-body image, else a legacy portrait); a lone character with a legacy
-  // face crop also gets it as the third picture
-  const plate = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
+  const own = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
+  const plate = read?.location && read.location.locationId === loc?.id ? { assetId: read.location.assetId, why: read.location.why } : (own?.assetId ?? loc?.masterAssetId) ? { assetId: (own?.assetId ?? loc?.masterAssetId)!, why: own?.role === 'STATE' ? 'the location’s plate for this time of day (no World Bible read)' : 'the location’s master plate (no World Bible read)' } : undefined;
   const refs: Asset[] = [];
   const notes: string[] = [];
-  const plateAsset = byId(plate?.assetId ?? loc?.masterAssetId);
-  if (usable(plateAsset)) { refs.push(plateAsset!); notes.push(`image ${refs.length} is the exact place (keep its architecture, layout and props)`); }
+  const plateAsset = byId(plate?.assetId);
+  if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(`image ${refs.length} is the exact place (keep its architecture, layout and props)`); }
   const people = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
   for (const c of people.slice(0, 2)) {
     const a = byId(primaryImageOf(c));
-    if (usable(a)) { refs.push(a!); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
+    if (usableImage(a)) { refs.push(a); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
   }
   if (people.length === 1 && refs.length < 3) {
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
-    if (usable(faceCrop) && !refs.includes(faceCrop!)) { refs.push(faceCrop!); notes.push(`image ${refs.length} is the same person's face, close up`); }
+    if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); notes.push(`image ${refs.length} is the same person's face, close up`); }
   }
+  return { refs, notes, people, plate: usableImage(plateAsset) ? plate : undefined };
+}
+
+/** The production's World Bible revision (pinned, else the latest) laid over the studio for this shot — the plate
+ *  and the pinned canonical images a take of it is filmed against (take.ts reads the same overlay). Without a bible
+ *  (the database unreachable) the location's own plates are used, and the event says so. */
+async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ state: State; read?: WorldRead }> {
+  try {
+    const view = await worldOfProduction(state, p, { jobId: ctx.job.id });
+    return overlayWorld(state, view.revision.bible, p, sh, { id: view.revision.id, number: view.revision.number, pinned: view.pinned });
+  } catch (e) {
+    await ctx.event('warn', `shot ${sh.number}: the World Bible could not be read (${(e as Error).message}); the location’s own plates are used`, { shotId: sh.id });
+    return { state };
+  }
+}
+
+export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string> {
+  const world = await frameWorld(ctx, studio, p, sh);
+  const state = world.state;
+  const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
+  const cast = castOf(state, p);
+  const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
+  const { refs, notes, people, plate } = frameReferences(state, p, sh, world.read);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
@@ -469,7 +511,7 @@ export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnTy
   const own = continuityLine(sh, cast);
   const carried = relation === 'CUT' && previous && !opts.ending ? continuityLine(previous, cast) : '';
   const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
-  const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id) } });
+  const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: r.id } : { openingFrameAssetId: r.id }], 'worker');
   return r.id;
 }
@@ -493,6 +535,3 @@ export const shotFrames: Handler = async (ctx) => {
   if (without === 0) await recordHandoff({ productionId: p.id, stage: 'STORYBOARD', producerDepartment: 'PREPRODUCTION', receiverDepartment: 'VIDEO', artifactIds: fresh.shots.map((x) => x.openingFrameAssetId!).filter(Boolean), outputVersions: { shots: fresh.shots.length }, validation: { ok: true, checks: [{ name: 'every-shot-has-opening-frame', ok: true, detail: `${fresh.shots.length} shots` }] }, jobId: ctx.job.id });
   return { openingFrameAssetId: opening, endingFrameAssetId: endingId };
 };
-
-export { requireComfy as requireImageEngine, usable as usableImage };
-export type { Location };

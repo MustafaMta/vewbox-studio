@@ -19,6 +19,8 @@ const fake = vi.hoisted(() => ({
   framing: [] as Array<'ok' | 'head-cut'>,
   text: {} as Record<string, string>,
   textEncoders: ['qwen_2.5_vl_7b_fp8_scaled.safetensors', 'qwen3.5_4b_bf16.safetensors'],
+  /** FLUX.2 [klein] 4B visible to ComfyUI (the Image Reference default; without it the redraw falls back to Edit-2511) */
+  klein: false,
   events: [] as Array<{ level: string; message: string }>,
   tools: [] as string[],
 }));
@@ -29,7 +31,7 @@ vi.mock('@/server/studio/engine', async () => {
   return { readState: async () => ({ state: fake.state, version: 1, hash: 'h' }), command: apply, commands: async (list: Array<{ name: CommandName; args: unknown[] }>) => { const out: unknown[] = []; for (const c of list) out.push(await apply(c.name, c.args)); return out; } };
 });
 vi.mock('@/server/media', () => ({
-  fileFor: (a: { path: string }) => `/lib/${a.path}`,
+  assetFile: (a: { provenance?: Record<string, unknown> }) => `/lib/${String(a.provenance?.path ?? '')}`,
   ffprobe: async () => ({ width: 1024, height: 1280 }),
   adoptFile: async (_id: string, file: string) => ({ absPath: file, probe: { width: 928, height: 1664 } }),
   assetFromStored: (id: string, _stored: unknown, meta: { label: string; tags: string[]; origin: string; jobId?: string; provenance?: Record<string, unknown>; tier?: string }) => ({ id, kind: 'IMAGE', src: `/api/media/${id}`, label: meta.label, tags: meta.tags, origin: meta.origin, sample: false, mimeType: 'image/png', width: 928, height: 1664, jobId: meta.jobId, provenance: { ...(meta.provenance ?? {}), path: `images/${id}.png` }, ...(meta.tier ? { tier: meta.tier } : {}) }),
@@ -46,7 +48,7 @@ vi.mock('@/server/media/image-check', () => {
 vi.mock('@/server/providers/comfy', () => ({
   health: async () => ({ ok: true }),
   hasNodes: async () => ({ missing: [] }),
-  listModels: async (folder: string) => (folder === 'diffusion_models' ? ['qwen_image_2512_fp8_e4m3fn.safetensors'] : folder === 'text_encoders' ? fake.textEncoders : []),
+  listModels: async (folder: string) => (folder === 'diffusion_models' ? ['qwen_image_2512_fp8_e4m3fn.safetensors', ...(fake.klein ? ['flux-2-klein-4b.safetensors'] : [])] : folder === 'text_encoders' ? [...fake.textEncoders, ...(fake.klein ? ['qwen_3_4b.safetensors'] : [])] : folder === 'vae' && fake.klein ? ['flux2-vae.safetensors'] : []),
   uploadInput: async (file: string) => `vb-${path.basename(file)}`,
   run: async (graph: Graph) => {
     fake.runs.push({ tool: fake.tools.at(-1) ?? '?', graph });
@@ -85,6 +87,7 @@ beforeEach(() => {
   fake.state = { ...fake.state, characters: fake.state.characters.map((c) => (c.id === 'nour' ? { ...c, usage: { known: true, videos: [] }, canonicalImage: undefined } : c)) };
   fake.runs = []; fake.framing = []; fake.text = {}; fake.events = []; fake.tools = [];
   fake.textEncoders = ['qwen_2.5_vl_7b_fp8_scaled.safetensors', 'qwen3.5_4b_bf16.safetensors'];
+  fake.klein = false; delete process.env.CANONICAL_REFERENCE_ENGINE;
 });
 
 describe('CHARACTER_APPEARANCE: the canonical image from text', () => {
@@ -99,11 +102,11 @@ describe('CHARACTER_APPEARANCE: the canonical image from text', () => {
     expect(g['8'].inputs).toMatchObject({ width: 928, height: 1664 });
     expect(g['9'].inputs.seed).toBe(identitySeedFor(c));
     const prompt = String(g['6'].inputs.text);
-    expect(prompt).toMatch(/^(3D animated feature-film character design|2D anime character design|Photorealistic full-length studio photograph)/);
+    expect(prompt).toMatch(/^(3D animated feature-film character design|Japanese anime character design|Photorealistic full-length studio photograph)/);
     expect(prompt).toContain('the whole figure from the top of the head to the soles of the feet');
     const img = fake.state.characters.find((x) => x.id === c.id)!.canonicalImage!;
     expect(img).toMatchObject({ status: 'DRAFT', version: 1, jobId: 'job-ap', seed: identitySeedFor(c), check: { ok: true } });
-    expect(img.identityLine).toMatch(/^Identity: (stylized 3D animated character|2D anime character|photorealistic real person), /);
+    expect(img.identityLine).toMatch(/^Identity: (stylized 3D animated character|Japanese anime character|photorealistic real person), /);
     expect(img.engine).toMatch(/Qwen-Image-2512/);
     expect(asset(img.assetId).tier).toBe('CANONICAL');
     expect(r).toMatchObject({ canonicalAssetId: img.assetId, status: 'DRAFT', version: 1, lookFrom: 'DESCRIPTION', message: expect.stringMatching(/awaiting your approval/) });
@@ -161,9 +164,56 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
     const c = fake.state.characters.find((x) => x.id === 'nour')!;
     expect(c.pendingReference).toBeUndefined(); // consumed by setCanonicalImage
     expect(c.canonicalImage).toMatchObject({ referenceAssetId: 'up-face', status: 'DRAFT' });
-    expect(c.canonicalImage!.identityLine).toMatch(/a woman aged about 40-50; medium build; long black hair; brown eyes; no facial hair; wearing white lab coat/);
+    expect(c.canonicalImage!.identityLine).toMatch(/a woman aged about 40-50; medium build; long black hair; brown eyes; wearing white lab coat/);
     expect(c.canonicalImage!.engine).toMatch(/Qwen-Image-Edit-2511/);
     expect(r).toMatchObject({ lookFrom: 'REFERENCE' });
+  });
+  it('one reading per picture (D15): the reading stored on the picture — by this draw or by the creation chain before the design — is used, not run again', async () => {
+    upload();
+    fake.text = {
+      bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408, "score": 0.96}]]',
+      vlm_describe: '{"ageRange": "60-70", "sex": "male", "facialHair": "thick grey moustache", "clothing": [{"item": "dishdasha", "colour": "grey"}], "confidence": {}}',
+    };
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.describe_reference', 'image.edit_with_references']);
+    expect(asset('up-face').provenance).toMatchObject({ reading: { describedBy: 'Qwen3.5-4B', description: { ageRange: '60-70' } } });
+    const first = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.identityLine;
+    // the same picture again (a redraw from it): the stored reading is used — no vision run, the same identity line
+    fake.state = setPendingReference(fake.state, 'nour', 'up-face', { ok: true, width: 1024, height: 1280, faces: 1, reasons: [] });
+    fake.runs = []; fake.text = {};
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.edit_with_references']);
+    expect(fake.runs[0].graph.facecrop).toBeDefined(); // the stored face box still gives the face crop
+    const img = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!;
+    expect(img.identityLine).toBe(first);
+    expect(img.check!.notes!.join(' ')).toMatch(/already read/);
+  });
+  it('with FLUX.2 [klein] 4B in ComfyUI the picture is redrawn by klein (its own prompt, no negative); the retry leaves the face out; CANONICAL_REFERENCE_ENGINE=qwen rolls back', async () => {
+    upload();
+    fake.klein = true;
+    fake.text = { bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408}]]', vlm_describe: '{"sex": "male", "ageRange": "25-35", "glasses": "none", "facialHair": "none", "clothing": [{"item": "shirt", "colour": "blue"}]}' };
+    fake.framing = ['head-cut', 'ok'];
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.describe_reference', 'image.edit_with_references', 'image.edit_with_references']);
+    const [first, retry] = [fake.runs[1].graph, fake.runs[2].graph];
+    expect(first.unet.inputs.unet_name).toBe('flux-2-klein-4b.safetensors');
+    expect(first.guider.inputs).toMatchObject({ cfg: 1, positive: ['ref2', 0] });
+    const prompt = String(first.pos.inputs.text);
+    expect(prompt).toMatch(/^Redraw the person in image 1, with the face exactly as in image 2, as /);
+    expect(prompt).not.toMatch(/glasses/i); // the person wears none: klein is never told the word
+    expect(retry.ref2).toBeUndefined();
+    expect(String(retry.pos.inputs.text)).not.toContain('image 2');
+    const img = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!;
+    expect(img.engine).toBe('FLUX.2 [klein] 4B (4 steps, cfg 1)');
+    expect(asset(img.assetId).provenance).toMatchObject({ model: 'FLUX.2-klein-4B', faceCropGiven: false });
+    expect(asset(img.assetId).provenance!.negative).toBeUndefined();
+    // the rollback switch
+    process.env.CANONICAL_REFERENCE_ENGINE = 'qwen';
+    fake.state = setPendingReference(fake.state, 'nour', 'up-face', { ok: true, width: 1024, height: 1280, faces: 1, reasons: [] });
+    fake.runs = []; fake.framing = [];
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.at(-1)!.graph['1'].inputs.unet_name).toBe('qwen_image_edit_2511_fp8mixed.safetensors');
+    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.check!.notes!.join(' ')).toMatch(/CANONICAL_REFERENCE_ENGINE=qwen/);
   });
   it('a redraw after a framing failure leaves the face crop out (it pulled the shot in to three-quarter length)', async () => {
     upload();
@@ -191,16 +241,75 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
   });
 });
 
-describe('CHARACTER_REFS: secondary material only', () => {
-  it('is drawn from the canonical image and stored as SECONDARY', async () => {
+describe('CHARACTER_REFS: secondary material only, one pass per kind from the canonical image', () => {
+  const drawCanonical = async () => {
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
-    const canonical = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.assetId;
-    fake.runs = [];
-    await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['FULL_BODY'] }));
-    expect(fake.runs[0].graph.img1.inputs.image).toBe(`vb-${canonical}.png`);
-    const made = fake.state.assets.filter((a) => a.jobId === 'job-ap' && a.id !== canonical && a.tier !== 'RAW');
-    expect(made.length).toBeGreaterThan(0);
-    expect(made.every((a) => a.tier === 'SECONDARY')).toBe(true);
-    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.assetId).toBe(canonical); // never the identity
+    const c = fake.state.characters.find((x) => x.id === 'nour')!;
+    fake.runs = []; fake.tools = [];
+    return { canonical: c.canonicalImage!.assetId, before: new Set(fake.state.assets.map((a) => a.id)), line: c.canonicalImage!.identityLine! };
+  };
+  const madeSince = (before: Set<string>) => fake.state.assets.filter((a) => !before.has(a.id));
+
+  it('an expression sheet is ONE Edit-2511 run with the canonical image as its only reference, stored as SECONDARY', async () => {
+    const { canonical, before, line } = await drawCanonical();
+    const r = await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['EXPRESSION'] })) as Record<string, unknown>;
+    expect(fake.runs).toHaveLength(1); // no sheet first, no views
+    expect(fake.runs[0].tool).toBe('image.edit_with_references');
+    const g = fake.runs[0].graph;
+    expect(Object.values(g).filter((n) => n.class_type === 'LoadImage').map((n) => n.inputs.image)).toEqual([`vb-${canonical}.png`]);
+    expect(g['1'].inputs.unet_name).toBe('qwen_image_edit_2511_fp8mixed.safetensors');
+    expect(g['4']).toBeUndefined(); // quality mode
+    expect(String(g['6'].inputs.prompt)).toMatch(/^An expression sheet: .*image 1/);
+    expect(String(g['6'].inputs.prompt)).toContain(line.replace(/\.$/, '')); // the identity line recorded with the canonical image
+    expect(Object.values(g).some((n) => /lora/i.test(String(n.inputs.lora_name ?? '')))).toBe(false);
+    const made = madeSince(before);
+    expect(made).toHaveLength(1);
+    expect(made[0]).toMatchObject({ tier: 'SECONDARY', provenance: { view: 'EXPRESSION', references: [canonical], model: 'Qwen-Image-Edit-2511' } });
+    const c = fake.state.characters.find((x) => x.id === 'nour')!;
+    expect(c.refs.filter((x) => x.role === 'EXPRESSION').map((x) => x.assetId)).toEqual([made[0].id]);
+    expect(c.canonicalImage!.assetId).toBe(canonical); // never the identity
+    expect(r).toMatchObject({ assetId: made[0].id, references: [canonical], secondary: [{ kind: 'EXPRESSION', assetId: made[0].id }] });
+  });
+  it('a redraw of a kind replaces only that kind (the earlier picture stays in the library) with the next seed; the outfit is its own kind', async () => {
+    const { before } = await drawCanonical();
+    await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['EXPRESSION'] }));
+    await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['OUTFIT'] }));
+    await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['EXPRESSION'] }));
+    expect(fake.runs).toHaveLength(3);
+    const seeds = fake.runs.map((x) => x.graph['9'].inputs.seed as number);
+    expect(seeds[2]).toBe(seeds[0] + 1);
+    expect(fake.runs[1].graph['8'].inputs).toMatchObject({ width: 928, height: 1664 }); // the outfit: the whole figure
+    const made = madeSince(before);
+    expect(made).toHaveLength(3);
+    const c = fake.state.characters.find((x) => x.id === 'nour')!;
+    expect(c.refs.filter((x) => x.role === 'EXPRESSION').map((x) => x.assetId)).toEqual([made[2].id]);
+    expect(c.refs.filter((x) => x.role === 'OUTFIT').map((x) => x.assetId)).toEqual([made[1].id]);
+    expect(fake.state.assets.some((a) => a.id === made[0].id)).toBe(true);
+  });
+  it('a close-up portrait is the secondary portrait beside the canonical image, never the primary image', async () => {
+    const { canonical, before } = await drawCanonical();
+    await characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['PORTRAIT'] }));
+    const [portrait] = madeSince(before);
+    expect(portrait).toMatchObject({ tier: 'SECONDARY', provenance: { view: 'PORTRAIT' } });
+    expect(fake.runs[0].graph['8'].inputs).toMatchObject({ width: 1024, height: 1280 });
+    // drawn from the head and shoulders of the canonical image (its recorded figure box), not from the whole figure
+    expect(fake.runs[0].graph.img1c.class_type).toBe('ImageCrop');
+    expect(fake.runs[0].graph.img1c.inputs).toMatchObject({ image: ['img1', 0] });
+    expect(portrait.provenance!.cropOfReference).toBeTruthy();
+    const c = fake.state.characters.find((x) => x.id === 'nour')!;
+    expect(c.portraitAssetId).toBe(portrait.id);
+    expect(c.canonicalImage!.assetId).toBe(canonical);
+  });
+  it('views, the old pack and an empty request are refused before anything is drawn; a portrait needs a canonical image', async () => {
+    // before the canonical image: a close-up portrait could only replace the (legacy) primary image — refused; the
+    // bundled sample portrait is no reference for anything
+    expect(fake.state.characters.find((x) => x.id === 'nour')!.portraitAssetId).toBeTruthy();
+    await expect(characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['PORTRAIT'] }))).rejects.toMatchObject({ code: 'INVALID', failureClass: 'INVALID_INPUT' });
+    await expect(characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', roles: ['EXPRESSION'] }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE' });
+    await drawCanonical();
+    for (const roles of [['FULL_BODY'], ['FRONT', 'SIDE', 'BACK'], ['EXPRESSION', 'FACE'], [], undefined]) {
+      await expect(characterRefs(ctx('CHARACTER_REFS', { characterId: 'nour', ...(roles ? { roles } : {}) }))).rejects.toMatchObject({ code: 'INVALID', failureClass: 'INVALID_INPUT' });
+    }
+    expect(fake.runs).toHaveLength(0);
   });
 });

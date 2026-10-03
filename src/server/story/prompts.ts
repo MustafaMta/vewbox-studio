@@ -265,23 +265,6 @@ export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Loc
   return `${d.visual}. ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
-/** Prompt for a character's portrait / reference view. */
-export function characterPrompt(c: Character, view: 'PORTRAIT' | 'FRONT' | 'THREE_QUARTER' | 'SIDE' | 'BACK' | 'FULL_BODY' | 'EXPRESSION' | 'OUTFIT' | 'FACE'): string {
-  const d = styleDirection(c.style);
-  const views: Record<typeof view, string> = {
-    PORTRAIT: 'head-and-shoulders portrait, facing camera, neutral calm expression, soft even studio light, plain neutral background',
-    FACE: 'tight face close-up, facing camera, neutral expression, soft even light, plain neutral background',
-    FRONT: 'full front view, standing, arms relaxed, facing camera, neutral expression, even light, plain neutral background, character reference sheet',
-    THREE_QUARTER: 'three-quarter view turned 45 degrees to the left, standing, neutral expression, even light, plain neutral background, character reference sheet',
-    SIDE: 'exact profile side view facing left, standing, neutral expression, even light, plain neutral background, character reference sheet',
-    BACK: 'back view, standing, even light, plain neutral background, character reference sheet',
-    FULL_BODY: 'full-body front view head to toe, standing, shoes visible, even light, plain neutral background, character reference sheet',
-    EXPRESSION: 'expression sheet: the same face four times in a 2x2 grid showing joy, worry, anger and surprise, even light, plain neutral background',
-    OUTFIT: 'full-body view showing the complete wardrobe in detail, even light, plain neutral background, costume reference',
-  };
-  return `${d.visual}. ${d.character} A ${describeCharacter(c)}. ${views[view]}. ${d.avoid}`.replace(/\s+/g, ' ');
-}
-
 /** Plates describe an unoccupied place in positive terms. Negations ("no people") are unreliable for a diffusion
  *  model, and with the Lightning LoRAs (cfg 1) the negative prompt has no effect at all; the first rooftop plates
  *  came back with a child standing in them because the visual direction itself mentions "characters". */

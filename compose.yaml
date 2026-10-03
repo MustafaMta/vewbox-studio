@@ -250,7 +250,7 @@ services:
       HF_HUB_DISABLE_XET: ${HF_HUB_DISABLE_XET:-1}
     volumes:
       - models:/models
-    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design}"]
+    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design,images-flux2-klein}"]
 
 volumes:
   pgdata:

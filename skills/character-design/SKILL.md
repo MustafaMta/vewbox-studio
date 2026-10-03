@@ -4,10 +4,10 @@ description: Designing an original character that can be drawn and voiced, and h
 license: Proprietary to this studio
 allowed-tools: story.structured_answer image.generate image.edit_with_references image.describe_reference
 metadata:
-  version: "2.1.0"
+  version: "2.3.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
-  models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
+  models: "qwen3:14b, Qwen-Image-2512, FLUX.2-klein-4B, Qwen-Image-Edit-2511, Qwen3.5-4B"
 ---
 
 # Character design and the canonical image
@@ -21,6 +21,12 @@ metadata:
 - Make every appearance field concrete enough to draw from without guessing, and write it in English (the image
   model reads English): build, face, hair, skin, eyes, and a complete default outfit as the wardrobe — every garment
   with its colour, and the footwear. Give one distinguishing detail that survives every shot.
+- State facial hair exactly and completely, because the image model completes what is left open: "a thick grey
+  moustache only, clean-shaven chin and cheeks", "a full grey beard and moustache", "clean-shaven". A moustache written
+  alone was drawn as a full beard.
+- Give a culturally specific garment its cut and length in the same words — "an ankle-length grey dishdasha", "a
+  knee-length kurta", "a floor-length black abaya" — and do not list a garment it hides as if it were seen (trousers
+  under an ankle-length dishdasha show only at the ankles). Without the length, a dishdasha was drawn tunic-length.
 - For a detail worn on one side of the body, say which side as the character's own ("a watch on his own left
   wrist"). The image model places such details on the correct side only about two times in three, so prefer details
   that read from any side unless the side matters to the story.
@@ -29,7 +35,11 @@ metadata:
 - Do not repeat the look or the name of a character the studio already has.
 - Give the character a personality and a speaking voice (pitch, pace, timbre): voice casting starts from it.
 - When the look comes from the producer's reference picture, which you cannot see, design only who the character is
-  (role, personality, sex and age, voice) and leave every look field to the picture: invent nothing visible.
+  (role, personality, sex and age, voice) and leave every look field to the picture: invent nothing visible. The
+  picture is read first, and the brief says what the vision model saw (apparent age, sex, what is visibly worn): the
+  sex and age are those, and the role, personality and voice must suit that person — never "young" for someone who
+  looks sixty, never a role the visible clothing rules out. With no role given, choose a plain, everyday role that
+  fits the person in the picture; anything that still contradicts it is left for the producer.
 
 ## How the character is then drawn
 
@@ -38,14 +48,21 @@ metadata:
    (portrait close-ups, expressions and outfits are optional secondary material, made on request).
 2. The identity line is English and starts with the style, then age and sex, build, face, hair, eyes, skin, every
    garment with its colour, accessories with their side, footwear. Pieces in another script are left out and
-   reported, never sent to the image model.
+   reported, never sent to the image model. The line states facial hair unambiguously (a moustache without a beard
+   becomes "facial hair: … moustache only; the chin, jaw and cheeks are shaved smooth") and gives a robe of the
+   dishdasha family or an abaya its cut when the design left it out ("ankle-length …, a loose robe reaching down to the
+   ankles", trousers worn under it). On the GPU the cut wording lengthened a dishdasha from mid-thigh to mid-calf; the
+   model still drew a full beard on an old man with a "moustache only" (docs/evidence/image-v2/d13).
 3. From text (Auto, Manual): the prompt starts with the medium ("3D animated feature-film character design, stylized
-   CG render, not a photograph" / "2D anime character design, cel-shaded … not 3D" / "Photorealistic full-length
+   CG render, not a photograph" / "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes … cel shading … not 3D" / "Photorealistic full-length
    studio photograph"), then the framing, the identity line and the production direction; Qwen-Image-2512 in quality
    mode (30 steps, cfg 4), 928×1664.
-4. From a picture (Image Reference): the picture is validated, then read — its face box and a description by the
-   vision model, from which the identity line is written (low-confidence details are left out and shown); the
-   picture (and its face crop) is then redrawn into the production's style by Qwen-Image-Edit-2511.
+4. From a picture (Image Reference): the picture is validated, then read once — before the design when a character
+   is created from it — its face box and a description by the vision model, from which the design learns the
+   apparent age and sex and the identity line is written (low-confidence details are left out and shown); the
+   picture (and its face crop) is then redrawn into the production's style by FLUX.2 [klein] 4B, whose prompt names only
+   what the person has (klein reads words literally: a generic "keep the glasses" drew glasses on people without them);
+   Qwen-Image-Edit-2511 is the rollback for one release.
 5. The whole figure must be in the frame (checked on the CPU); a picture that fails is redrawn once, then left for
    the producer with the reason.
 6. The image is a draft until the producer approves it; it is then the character's identity and the primary picture

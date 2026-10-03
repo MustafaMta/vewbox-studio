@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FACE_BOX, FACE_CHECK_OUTPUTS, MODELS, SHEET_OUTPUTS, SHEET_TILES, VIEW_SPEC, faceCheck, qwenEdit, qwenIdentitySheet, qwenView, workflowVersion, type Graph } from '@/server/workflows';
+import { FACE_CHECK_OUTPUTS, MODELS, SECONDARY_MATERIAL, SECONDARY_SPEC, faceCheck, isSecondaryMaterialKind, portraitCrop, qwenEdit, qwenSecondary, secondaryPrompt, workflowVersion, type Graph } from '@/server/workflows';
 
 const inputs = (g: Graph, id: string) => g[id].inputs as Record<string, unknown>;
 const nodesOf = (g: Graph, cls: string) => Object.entries(g).filter(([, n]) => n.class_type === cls).map(([id]) => id);
@@ -9,7 +9,6 @@ const expectWired = (g: Graph) => {
     if (Array.isArray(v) && v.length === 2 && typeof v[1] === 'number') expect(g[v[0] as string], `${id}.${k} → ${v[0]}`).toBeDefined();
   }
 };
-const ANGLE_TOKEN = /^(front view|front-right quarter view|right side view|back-right quarter view|back view|back-left quarter view|left side view|front-left quarter view) (low-angle shot|eye-level shot|elevated shot|high-angle shot) (close-up|medium shot|wide shot)$/;
 
 describe('qwenEdit', () => {
   it('keeps the draft shape (Lightning, 4 steps, cfg 1) and its version hash when nothing new is asked', () => {
@@ -30,13 +29,7 @@ describe('qwenEdit', () => {
     expect(inputs(g, '9')).toMatchObject({ steps: 24, cfg: 4.0 });
     expect(g['8'].class_type).toBe('EmptySD3LatentImage');
     expect(workflowVersion(g)).not.toBe(workflowVersion(qwenEdit({ prompt: 'x', references: ['a.png', 'b.png'], width: 1024, height: 1280 })));
-    expectWired(g);
-  });
-  it('chains extra LoRAs after Lightning in order, clamped to the node range', () => {
-    const g = qwenEdit({ prompt: 'x', references: ['a.png'], extraLoras: [{ name: MODELS.qwenMultiAngleLora, strength: 0.9 }, { name: 'other.safetensors', strength: 1000 }] });
-    expect(inputs(g, 'lora1')).toMatchObject({ model: ['4', 0], lora_name: MODELS.qwenMultiAngleLora, strength_model: 0.9 });
-    expect(inputs(g, 'lora2')).toMatchObject({ model: ['lora1', 0], strength_model: 100 });
-    expect(inputs(g, '5').model).toEqual(['lora2', 0]);
+    expect(nodesOf(g, 'LoraLoaderModelOnly')).toEqual([]);
     expectWired(g);
   });
   it('wires the references in order into both encoders and refuses 0 or 4', () => {
@@ -49,97 +42,67 @@ describe('qwenEdit', () => {
   });
 });
 
-describe('qwenIdentitySheet', () => {
-  it('draws the four views in one quality pass from the portrait and a face crop cut in the graph', () => {
-    const g = qwenIdentitySheet({ portrait: 'p.png', prompt: 'sheet', seed: 42 });
-    expect(g['4']).toBeUndefined(); // quality by default: no Lightning
-    expect(inputs(g, '9')).toMatchObject({ steps: 24, cfg: 4.0, seed: 42, denoise: 1.0 });
-    expect(inputs(g, '8')).toMatchObject({ width: 1664, height: 1216, batch_size: 1 });
-    expect(inputs(g, '6')).toMatchObject({ prompt: 'sheet', image1: ['img1s', 0], image2: ['face', 0] });
-    expect(inputs(g, '7')).toMatchObject({ image1: ['img1s', 0], image2: ['face', 0] });
-    // the face crop: normalise to 1024×1280, cut the default box, upscale to 1024²
-    expect(inputs(g, 'norm')).toMatchObject({ width: 1024, height: 1280, crop: 'center', upscale_method: 'lanczos' });
-    expect(inputs(g, 'facecrop')).toEqual({ image: ['norm', 0], width: Math.round(DEFAULT_FACE_BOX.w * 1024), height: Math.round(DEFAULT_FACE_BOX.h * 1280), x: Math.round(DEFAULT_FACE_BOX.x * 1024), y: 0 });
-    expect(inputs(g, 'face')).toMatchObject({ width: 1024, height: 1024, crop: 'disabled' });
-    expectWired(g);
-  });
-  it('cuts equal tiles left to right and saves six files under known node ids', () => {
-    const g = qwenIdentitySheet({ portrait: 'p.png', prompt: 'sheet' });
-    const tile = 1664 / 4;
-    SHEET_TILES.forEach((role, k) => {
-      const crop = inputs(g, `crop_${role.toLowerCase()}`);
-      expect(crop).toEqual({ image: ['10', 0], width: tile, height: 1216, x: k * tile, y: 0 });
-      expect(inputs(g, SHEET_OUTPUTS[role]).images).toEqual([`crop_${role.toLowerCase()}`, 0]);
-    });
-    expect(inputs(g, SHEET_OUTPUTS.sheet).images).toEqual(['10', 0]);
-    expect(inputs(g, SHEET_OUTPUTS.face).images).toEqual(['face', 0]);
-    expect(nodesOf(g, 'SaveImage')).toHaveLength(6);
-    expect(new Set(nodesOf(g, 'SaveImage').map((id) => inputs(g, id).filename_prefix)).size).toBe(6);
-  });
-  it('uses an uploaded face crop as image2 when given, and can run as a draft', () => {
-    const g = qwenIdentitySheet({ portrait: 'p.png', faceCrop: 'f.png', prompt: 'sheet', quality: false });
-    expect(inputs(g, 'img2').image).toBe('f.png');
-    expect(inputs(g, 'face')).toMatchObject({ image: ['img2', 0], width: 1024, height: 1024, crop: 'center' });
-    expect(g['norm']).toBeUndefined(); expect(g['facecrop']).toBeUndefined();
-    expect(inputs(g, '4').lora_name).toBe(MODELS.qwenEditLightning);
-    expect(inputs(g, '9')).toMatchObject({ steps: 4, cfg: 1.0 });
-    expectWired(g);
-  });
-  it('keeps a custom face box inside the frame', () => {
-    const g = qwenIdentitySheet({ portrait: 'p.png', prompt: 's', faceBox: { x: 0.9, y: 0.9, w: 0.5, h: 0.5 } });
-    const c = inputs(g, 'facecrop') as { x: number; y: number; width: number; height: number };
-    expect(c.x + c.width).toBeLessThanOrEqual(1024);
-    expect(c.y + c.height).toBeLessThanOrEqual(1280);
-    expect(c.width).toBeGreaterThanOrEqual(16); expect(c.height).toBeGreaterThanOrEqual(16);
-  });
-});
-
-describe('qwenView', () => {
-  it('needs exactly the three references in the fixed order and sizes the output per view', () => {
-    const g = qwenView({ references: ['front.png', 'face.png', 'sheet.png'], view: 'FULL_BODY', prompt: 'v', seed: 5 });
-    expect(inputs(g, 'img1').image).toBe('front.png');
-    expect(inputs(g, 'img2').image).toBe('face.png');
-    expect(inputs(g, 'img3').image).toBe('sheet.png');
-    expect(inputs(g, '6')).toMatchObject({ image1: ['img1s', 0], image2: ['img2s', 0], image3: ['img3s', 0], prompt: 'v' });
-    expect(inputs(g, '8')).toMatchObject({ width: 832, height: 1472 });
-    expect(inputs(g, '9').seed).toBe(5);
-    expect(inputs(g, '11').filename_prefix).toBe('vewbox/view-fullbody');
-    expect(() => qwenView({ references: ['a.png'], view: 'FULL_BODY', prompt: 'v' })).toThrow();
-    expect(() => qwenView({ references: ['a', 'b', 'c', 'd'], view: 'FULL_BODY', prompt: 'v' })).toThrow();
-    expectWired(g);
-  });
-  it('adds the Multiple-Angles LoRA only when asked, after Lightning', () => {
-    const plain = qwenView({ references: ['a', 'b', 'c'], view: 'SIDE', prompt: 'v' });
-    expect(plain['lora1']).toBeUndefined();
-    const g = qwenView({ references: ['a', 'b', 'c'], view: 'SIDE', prompt: 'v', angleLora: true });
-    expect(inputs(g, 'lora1')).toMatchObject({ model: ['4', 0], lora_name: MODELS.qwenMultiAngleLora, strength_model: 1.0 });
-    expect(inputs(g, '5').model).toEqual(['lora1', 0]);
-    expectWired(g);
-  });
-  it('maps every view to a README camera descriptor (except the expression grid) and a 16-multiple size', () => {
-    for (const [view, spec] of Object.entries(VIEW_SPEC)) {
-      expect(spec.width % 16, view).toBe(0); expect(spec.height % 16, view).toBe(0);
-      if (view === 'EXPRESSION') expect(spec.angle).toBeUndefined();
-      else expect(spec.angle, view).toMatch(ANGLE_TOKEN);
+describe('secondary material (contract v2: one pass from the canonical image, on request)', () => {
+  it('draws each kind from the canonical image alone, in quality mode, at its own size', () => {
+    for (const kind of SECONDARY_MATERIAL) {
+      const g = qwenSecondary({ canonical: 'canon.png', kind, prompt: 'p', negative: 'n', seed: 5 });
+      expect(nodesOf(g, 'LoadImage')).toEqual(['img1']);
+      expect(inputs(g, 'img1').image).toBe('canon.png');
+      expect(inputs(g, '6')).toMatchObject({ prompt: 'p', image1: ['img1s', 0] });
+      expect(inputs(g, '6').image2).toBeUndefined();
+      expect(g['4']).toBeUndefined(); // no Lightning: the negative (the style's "not this medium") takes effect
+      expect(inputs(g, '9')).toMatchObject({ steps: 24, cfg: 4.0, seed: 5 });
+      expect(inputs(g, '8')).toMatchObject({ width: SECONDARY_SPEC[kind].width, height: SECONDARY_SPEC[kind].height });
+      expect(SECONDARY_SPEC[kind].width % 16).toBe(0); expect(SECONDARY_SPEC[kind].height % 16).toBe(0);
+      expect(inputs(g, '11').filename_prefix).toBe(`vewbox/secondary-${kind.toLowerCase()}`);
+      expect(nodesOf(g, 'SaveImage')).toHaveLength(1);
+      expectWired(g);
     }
-    expect(VIEW_SPEC.THREE_QUARTER.angle).toBe('front-left quarter view eye-level shot medium shot');
-    expect(VIEW_SPEC.SIDE.angle).toBe('left side view eye-level shot medium shot');
-    expect(VIEW_SPEC.FULL_BODY.angle).toBe('front view eye-level shot wide shot');
+    // one structure for every kind: one registry template versions them all
+    expect(new Set(SECONDARY_MATERIAL.map((kind) => workflowVersion(qwenSecondary({ canonical: 'a.png', kind, prompt: '' })))).size).toBe(1);
+  });
+  it('knows exactly three kinds: no views, no sheet', () => {
+    expect([...SECONDARY_MATERIAL]).toEqual(['EXPRESSION', 'OUTFIT', 'PORTRAIT']);
+    for (const k of ['EXPRESSION', 'OUTFIT', 'PORTRAIT']) expect(isSecondaryMaterialKind(k)).toBe(true);
+    for (const k of ['FRONT', 'SIDE', 'BACK', 'THREE_QUARTER', 'FACE', 'FULL_BODY', 'SHEET', '']) expect(isSecondaryMaterialKind(k)).toBe(false);
+    expect(() => qwenSecondary({ canonical: 'a.png', kind: 'SIDE' as never, prompt: '' })).toThrow();
+  });
+  it('the prompt says what the kind shows, keeps the person of image 1 in the production’s medium, then the identity line', () => {
+    const p = secondaryPrompt({ kind: 'EXPRESSION', style: 'CARTOON', identityLine: 'Identity: stylized 3D animated character, a man of about 62.', visual: 'VISUAL' });
+    expect(p.startsWith('An expression sheet: the same head-and-shoulders face four times in a 2x2 grid')).toBe(true);
+    expect(p).toContain('of the same person as in image 1, drawn as a stylized 3D animated feature-film character');
+    expect(p).toContain('facial hair, glasses and every garment');
+    expect(p.indexOf('Identity: stylized 3D animated character')).toBeGreaterThan(p.indexOf('image 1'));
+    expect(p.indexOf('VISUAL.')).toBeGreaterThan(p.indexOf('Identity'));
+    expect(p).toMatch(/no text, no labels, no props\.$/);
+    expect(secondaryPrompt({ kind: 'OUTFIT', style: 'ANIME', identityLine: '' })).toContain('every garment, accessory and the footwear');
+  });
+  it('the close-up portrait: from the head-and-shoulders crop of the canonical image, without the garments (GPU check: else a whole figure)', () => {
+    const line = 'Identity: photorealistic real person, a man of about 62; wearing an ankle-length grey dishdasha; leather slippers.';
+    const p = secondaryPrompt({ kind: 'PORTRAIT', style: 'REALISTIC', identityLine: line });
+    expect(p).toMatch(/^A tight head-and-shoulders close-up portrait: the frame shows only the head, the neck and the top of the shoulders/);
+    expect(p).not.toContain('dishdasha'); expect(p).not.toContain('slippers'); expect(p).not.toContain('every garment');
+    const crop = portraitCrop({ width: 928, height: 1664 }, { x: 0.21910112359550563, y: 0.0328125, w: 0.5842696629213483, h: 0.9453125 });
+    expect(crop).toEqual({ x: 215, y: 5, width: 519, height: 649 }); // the A3 canonical image, as drawn on the GPU
+    expect(crop.width / crop.height).toBeCloseTo(0.8, 2);
+    expect(portraitCrop({ width: 928, height: 1664 })).toMatchObject({ y: 0, height: Math.floor(0.4 * 1664) }); // no recorded box: the top 40 %
+    const g = qwenSecondary({ canonical: 'canon.png', kind: 'PORTRAIT', prompt: p, seed: 1, crop });
+    expect(inputs(g, 'img1c')).toEqual({ image: ['img1', 0], x: 215, y: 5, width: 519, height: 649 });
+    expect(inputs(g, 'img1s').image).toEqual(['img1c', 0]);
+    expectWired(g);
+    expect(qwenSecondary({ canonical: 'canon.png', kind: 'EXPRESSION', prompt: '' }).img1c).toBeUndefined();
   });
 });
 
 describe('faceCheck', () => {
-  it('loads the MediaPipe detector and returns the boxes as text; the mask is optional', () => {
+  it('loads the MediaPipe detector and returns the boxes as text (no mask)', () => {
     const g = faceCheck({ image: 'u.png' });
     expect(inputs(g, 'det').model_name).toBe(MODELS.mediapipeFace);
     expect(inputs(g, 'lm')).toEqual({ face_detection_model: ['det', 0], image: ['img', 0], detector_variant: 'both', num_faces: 5, min_confidence: 0.5, missing_frame_fallback: 'empty' });
     expect(g[FACE_CHECK_OUTPUTS.bboxes]).toMatchObject({ class_type: 'PreviewAny', inputs: { source: ['lm', 1] } });
-    expect(g[FACE_CHECK_OUTPUTS.mask]).toBeUndefined();
+    expect(nodesOf(g, 'SaveImage')).toEqual([]);
+    expect(Object.keys(FACE_CHECK_OUTPUTS)).toEqual(['bboxes']);
     expectWired(g);
-    const m = faceCheck({ image: 'u.png', mask: true, numFaces: 99, minConfidence: 2 });
-    expect(inputs(m, 'lm')).toMatchObject({ num_faces: 16, min_confidence: 1 });
-    expect(inputs(m, 'mask')).toEqual({ face_landmarks: ['lm', 0], regions: 'all' });
-    expect(inputs(m, FACE_CHECK_OUTPUTS.mask).images).toEqual(['m2i', 0]);
-    expectWired(m);
+    expect(inputs(faceCheck({ image: 'u.png', numFaces: 99, minConfidence: 2 }), 'lm')).toMatchObject({ num_faces: 16, min_confidence: 1 });
   });
 });

@@ -14,7 +14,20 @@ const fake = vi.hoisted(() => ({
   outcomes: {} as Partial<Record<JobType, { status: 'COMPLETED' | 'FAILED' | 'GENERATING'; result?: Record<string, unknown>; error?: { code: string; message: string; details?: Record<string, unknown> }; effect?: (payload: Record<string, unknown>) => void }>>,
   retried: [] as string[],
   events: [] as Array<{ level: string; message: string }>,
+  /** the vision model's answer for the picture read before the design (D15); no Qwen3.5-4B by default */
+  comfy: { textEncoders: [] as string[], describe: '', runs: [] as Array<{ graph: Record<string, { class_type: string }>; at: number }> },
+  order: [] as string[],
 }));
+vi.mock('@/server/providers/comfy', () => ({
+  uploadInput: async (file: string) => `vb-${file.split('/').pop()}`,
+  listModels: async (folder: string) => (folder === 'text_encoders' ? fake.comfy.textEncoders : []),
+  run: async (graph: Record<string, { class_type: string }>) => {
+    fake.comfy.runs.push({ graph, at: fake.enqueued.length }); fake.order.push('read');
+    return { promptId: 'p', outputs: { bboxes: { text: ['[[{"x": 300, "y": 200, "width": 300, "height": 380}]]'] }, vlm_describe: { text: [fake.comfy.describe] } }, ms: 1, engineMs: 1, workflowVersion: 'v' };
+  },
+  textOutput: (outputs: Record<string, { text?: string[] }>, id: string) => outputs[id]?.text?.join('\n'),
+}));
+vi.mock('@/server/media', async (orig) => ({ ...(await orig<typeof import('@/server/media')>()), assetFile: (a: { id?: string; provenance?: Record<string, unknown> }) => `/lib/${String(a.provenance?.path ?? `images/${a.id}.png`)}` }));
 
 vi.mock('@/server/studio/engine', async () => {
   const { runCommand } = await import('@/domain/commands');
@@ -27,7 +40,7 @@ vi.mock('@/server/jobs/queue', () => ({
   enqueue: async (input: { type: JobType; payload: Record<string, unknown>; idempotencyKey?: string; parentId?: string }) => {
     const existing = input.idempotencyKey ? [...fake.jobs.values()].find((j) => j.key === input.idempotencyKey) : undefined;
     if (existing) return { job: existing, created: false };
-    fake.enqueued.push({ type: input.type, key: input.idempotencyKey, parentId: input.parentId, payload: input.payload });
+    fake.enqueued.push({ type: input.type, key: input.idempotencyKey, parentId: input.parentId, payload: input.payload }); fake.order.push(input.type);
     const o = fake.outcomes[input.type] ?? { status: 'COMPLETED' as const, result: {} };
     const id = `${input.type.toLowerCase()}-${fake.jobs.size + 1}`;
     const job: Job & { key?: string } = { id, type: input.type, status: 'QUEUED', priority: 0, payload: input.payload, attempts: 0, maxAttempts: 1, cancelRequested: false, parentId: input.parentId, characterId: input.payload.characterId as string | undefined, createdAt: 'x', updatedAt: 'x', key: input.idempotencyKey };
@@ -50,6 +63,7 @@ import { CHAIN_TIMING, createCharacter as handler } from '@/worker/handlers/char
 import type { HandlerContext } from '@/worker/handlers';
 import type { CreateCharacterResult } from '@/domain/jobs';
 import { REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
+import { REFERENCE_SEEN_PREFIX, parseReferenceSeen } from '@/server/story/engine';
 
 const createCharacter = (ctx: HandlerContext) => handler(ctx) as unknown as Promise<CreateCharacterResult & { awaitingReview?: boolean }>;
 
@@ -64,7 +78,7 @@ const sheet = { name: 'Rafid', role: 'Night bus driver', sex: 'MALE', ageYears: 
 const drawPortrait = (payload: Record<string, unknown>) => { const c = fake.state.characters.find((x) => x.id === payload.characterId)!; fake.state = addAsset(fake.state, { id: `gen-canonical-${c.id}`, kind: 'IMAGE', src: '/api/media/p', label: 'canonical image', tags: [], sample: false, origin: 'GENERATED', width: 928, height: 1664 }).state; fake.state = setCanonicalImage(fake.state, c.id, { assetId: `gen-canonical-${c.id}`, seed: 1, referenceAssetId: c.pendingReference?.assetId, identityLine: 'Identity: x.', check: { ok: true, notes: ['full body in frame'] } }); };
 const DRAWN = 'canonical image drawn — awaiting your approval';
 
-beforeEach(() => { fake.state = seed(); fake.jobs.clear(); fake.enqueued = []; fake.events = []; fake.retried = []; fake.outcomes = { CHARACTER_APPEARANCE: { status: 'COMPLETED', result: {}, effect: drawPortrait }, CHARACTER_REFS: { status: 'COMPLETED', result: { refs: 5 } } }; });
+beforeEach(() => { fake.state = seed(); fake.jobs.clear(); fake.enqueued = []; fake.events = []; fake.retried = []; fake.order = []; fake.comfy = { textEncoders: [], describe: '', runs: [] }; fake.outcomes = { CHARACTER_APPEARANCE: { status: 'COMPLETED', result: {}, effect: drawPortrait }, CHARACTER_REFS: { status: 'COMPLETED', result: { refs: 5 } } }; });
 
 describe('CREATE_CHARACTER', () => {
   it('MANUAL with a complete sheet: the record and its seat are written in one batch; the canonical image runs as a keyed child (no sheet: contract v2); the voice is skipped with the reason; the result awaits approval', async () => {
@@ -151,6 +165,35 @@ describe('CREATE_CHARACTER', () => {
     const rana = fake.state.characters.find((c) => c.name === 'Rana')!;
     expect(rana).toMatchObject({ hair: '', face: '', wardrobe: '', skin: '', eyes: '', build: '' }); // nothing invented
     expect(r!.steps[0]).toMatchObject({ step: 'design', status: 'skipped', reason: expect.stringMatching(/look follows the picture/) });
+  });
+  it('D15 — REFERENCE with no role: the picture is read BEFORE the design, and the design brief carries its apparent age, sex and what is worn; the reading is stored for the image step', async () => {
+    fake.state = addAsset(fake.state, { id: 'up-man', kind: 'IMAGE', src: '/api/media/up-man', label: 'man', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { path: 'images/up-man.png', validation: { ok: true, width: 1024, height: 1280, reasons: [] } } }).state;
+    fake.comfy.textEncoders = ['qwen3.5_4b_bf16.safetensors'];
+    fake.comfy.describe = '{"ageRange": "60-70", "sex": "male", "hair": {"colour": "grey", "length": "long"}, "facialHair": "full grey beard and mustache", "glasses": "thin metal frame", "clothing": [{"item": "cardigan", "colour": "brown"}, {"item": "tunic", "colour": "grey"}], "footwear": "brown leather shoes", "accessories": [], "notVisible": [], "confidence": {}}';
+    fake.outcomes.DESIGN_CHARACTER = { status: 'COMPLETED', result: { characterId: 'nour' } };
+    const r = await createCharacter(ctxFor({ mode: 'REFERENCE', profile: { name: 'Salam', style: 'CARTOON', language: 'EN' }, referenceAssetId: 'up-man' }));
+    // read first (the vision model ran once, before anything was queued), then the design
+    expect(fake.order.slice(0, 2)).toEqual(['read', 'DESIGN_CHARACTER']);
+    expect(fake.comfy.runs).toHaveLength(1);
+    expect(Object.values(fake.comfy.runs[0].graph).map((n) => n.class_type)).toEqual(expect.arrayContaining(['MediaPipeFaceLandmarker', 'TextGenerate']));
+    const brief = String(fake.enqueued[0].payload.brief);
+    expect(brief.startsWith(`${REFERENCE_LOOK_BRIEF}\n${REFERENCE_SEEN_PREFIX}`)).toBe(true);
+    const { facts } = parseReferenceSeen(brief);
+    expect(facts).toEqual({ apparentAge: '60-70', sex: 'male', visible: ['long grey hair', 'full grey beard and mustache', 'glasses (thin metal frame)', 'brown cardigan', 'grey tunic', 'brown leather shoes'] });
+    expect(brief.length).toBeLessThanOrEqual(2000);
+    // the reading is on the picture: CHARACTER_APPEARANCE reuses it instead of running the vision model again
+    const reading = fake.state.assets.find((a) => a.id === 'up-man')!.provenance!.reading as { description: { ageRange: string }; boxes: unknown[] };
+    expect(reading).toMatchObject({ description: { ageRange: '60-70' }, boxes: [{ x: 300, y: 200, width: 300, height: 380 }] });
+    expect(fake.state.assets.find((a) => a.id === 'up-man')!.provenance!.validation).toBeTruthy(); // the upload's own record kept
+    expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:done', 'appearance:done', 'voice:skipped']);
+  });
+  it('D15 — without the vision model (or with ComfyUI down) the design still runs, from the producer’s words, with the reason in the events', async () => {
+    fake.state = addAsset(fake.state, { id: 'up-man', kind: 'IMAGE', src: '/api/media/up-man', label: 'man', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { path: 'images/up-man.png', validation: { ok: true, width: 1024, height: 1280, reasons: [] } } }).state;
+    fake.outcomes.DESIGN_CHARACTER = { status: 'COMPLETED', result: { characterId: 'nour' } };
+    await createCharacter(ctxFor({ mode: 'REFERENCE', brief: 'A café owner.', profile: { name: 'Salam', style: 'CARTOON', language: 'EN' }, referenceAssetId: 'up-man' }));
+    expect(fake.comfy.runs).toHaveLength(0); // nothing to describe with: no GPU run for the design
+    expect(String(fake.enqueued[0].payload.brief)).toBe(`${REFERENCE_LOOK_BRIEF}\nA café owner.`);
+    expect(fake.events.some((e) => e.level === 'warn' && /not described before the design.*vision model/.test(e.message))).toBe(true);
   });
   it('a failed image keeps the record and reports the step; the job awaits review (partial success, never fabricated)', async () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'ComfyUI is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };

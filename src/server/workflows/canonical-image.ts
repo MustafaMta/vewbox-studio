@@ -1,7 +1,7 @@
 import type { Character } from '@/domain/types';
 import type { Style } from '@/domain/vocabulary';
 import { MODELS, seed32, type Graph } from './index';
-import { editModel, faceCheck, FACE_CHECK_OUTPUTS } from './qwen-image';
+import { editModel, faceCheck, FACE_CHECK_OUTPUTS, SECONDARY_SPEC, type SecondaryMaterialKind } from './qwen-image';
 
 /** THE CANONICAL CHARACTER IMAGE — one front full-body figure per character (docs/CONTRACTS-IDENTITY-PACK.md v2),
  *  drawn with the installed Qwen stack: Qwen-Image-2512 from the English identity line (Auto, Manual), or
@@ -61,10 +61,13 @@ export const STYLE_MEDIUM: Record<Style, { lead: string; noun: string; identity:
     identity: 'stylized 3D animated character',
     negative: 'photograph, photorealistic, live-action, real person, realistic skin pores',
   },
+  // "Japanese anime" named with what makes it anime (D10, docs/evidence/flux-vs-qwen/anime): with "2D anime …" alone
+  // Qwen drew the courier as a western comic (2/2 → 0/2 with this wording) and klein redrew photos as a western flat
+  // cartoon (4/4 → 1/4)
   ANIME: {
-    lead: '2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D:',
-    noun: 'a 2D anime character (cel-shaded illustration with clean line art and flat colours, not 3D)',
-    identity: '2D anime character',
+    lead: 'Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D:',
+    noun: 'a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not 3D)',
+    identity: 'Japanese anime character',
     negative: 'photograph, photorealistic, 3D render, CG, realistic skin texture, real person',
   },
   REALISTIC: {
@@ -105,10 +108,76 @@ export function whoPhrase(c: Partial<Pick<Character, 'ageYears' | 'sex' | 'speci
   return known ? `a ${noun} of about ${Math.round(age)}` : `a ${noun}`;
 }
 
+// ------------------------------------------------------------------- details stated unambiguously (D13)
+
+const MOUSTACHE = /\b(mo?ustach(?:e|es|ioed)|mustachio(?:ed)?)\b/i;
+const BEARD = /\b(beard(?:ed|s)?|goatee|stubble|sideburns?|whiskers|chin ?strap)\b/i;
+const NO_BEARD = /\b(?:no|without|never)\s+(?:a\s+|any\s+)?(?:beard|stubble|goatee)\b|\bbeardless\b|\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b/gi;
+const CLEAN_SHAVEN = /\bclean[- ]shaven\b/i;
+const ALREADY_EXPLICIT = /\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b|\bno beard\b|\bno (?:beard,? )?(?:and )?no mo?ustache\b|\bshaved smooth\b/i;
+
+/** The facial hair stated so it cannot be read two ways (D13: a "thick, gray mustache" was drawn as a full beard in 2
+ *  of 2 realistic draws): a moustache without a beard → "facial hair: <the moustache> only, clean-shaven chin, jaw and
+ *  cheeks, no beard"; clean-shaven → "clean-shaven: no beard, no moustache". A beard, a text that already says it,
+ *  or nothing about facial hair → undefined (nothing is invented). */
+export function facialHairStatement(texts: Array<string | undefined | null>): string | undefined {
+  const all = texts.filter(Boolean).join('; ');
+  if (!all || ALREADY_EXPLICIT.test(all)) return undefined;
+  const beard = BEARD.test(all.replace(NO_BEARD, ' '));
+  const moustache = MOUSTACHE.test(all);
+  if (moustache && !beard) {
+    const clause = all.split(/[;.]/).find((s) => MOUSTACHE.test(s)) ?? '';
+    const m = /((?:[\w'-]+,?\s+){0,4})(mo?ustach(?:e|es|ioed)|mustachio(?:ed)?)/i.exec(clause);
+    const words = (m ? squash(`${m[1]}${m[2]}`) : 'moustache').split(' ');
+    // the moustache's own words only: what follows the last connecting word ("with a neat black moustache" → "neat black moustache")
+    const stop = words.reduce((at, w, k) => (/^(with|from|and|has|wears|wearing|of|in|on|under|over|by|a|an|the|his|her|their)$/i.test(w.replace(/,$/, '')) ? k : at), -1);
+    const phrase = words.slice(stop + 1).join(' ');
+    return `facial hair: ${phrase} only; the chin, jaw and cheeks are shaved smooth`;
+  }
+  if (CLEAN_SHAVEN.test(all) && !moustache && !beard) return 'clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth';
+  return undefined;
+}
+
+/** Robes whose cut a model does not know by name (Arabic and North African garments). */
+const ROBE = /\b(dishdashas?|dishdash|deshdashas?|dishdasheh|thobes?|thawbs?|thoub|kanduras?|kandouras?|kandooras?|jalabiyas?|jallabiyas?|jellabiyas?|galabeyas?|galabiyas?|gallabiyas?|jilbabs?|djellabas?|abayas?)\b/i;
+const ANKLE = /\b(?:ankle|floor)[- ]?(?:length|long)\b|\bto the (?:ankles|floor)\b|\breach(?:es|ing)? (?:down )?to the (?:ankles|floor)\b/i;
+const OTHER_LENGTH = /\b(?:knee|calf|mid-calf|thigh|hip|waist)[- ]?(?:length|long)?\b|\b(?:short|cropped)\b/i;
+const TROUSERS = /\b(trousers|pants|slacks|jeans|sirwal)\b/i;
+
+/** A culturally specific garment's cut stated in the same words (D13: an Iraqi dishdasha was drawn tunic-length, over
+ *  visible patterned trousers): a robe of the dishdasha family or an abaya with no length given becomes "ankle-length
+ *  <robe> (…reaching down to the ankles)", and trousers listed with an ankle-length robe are said to be worn under
+ *  it. A length the text gives is kept; every other word is kept exactly. Idempotent. */
+export function garmentCut(wardrobe: string): string {
+  let over: 'robe' | 'cloak' | undefined;
+  const clauses = wardrobe.split(/\s*;\s*/).map((cl) => {
+    const m = ROBE.exec(cl);
+    if (!m) return cl;
+    const kind = /abaya/i.test(m[1]) ? 'cloak' : 'robe';
+    if (ANKLE.test(cl)) { over = kind; return cl; }
+    if (OTHER_LENGTH.test(cl)) return cl;
+    over = kind;
+    return `${cl.slice(0, m.index)}ankle-length ${m[1]} (a loose ${kind} reaching down to the ankles)${cl.slice(m.index + m[1].length)}`;
+  });
+  if (over && TROUSERS.test(wardrobe) && !/\bunder the (?:robe|cloak|dishdasha|thobe|abaya)\b/i.test(wardrobe)) clauses.push(`the trousers are worn under the ${over} and show only at the ankles`);
+  return clauses.join('; ');
+}
+
+/** One look field as a piece of the line: its own inner semicolons become commas (the line's pieces are separated by
+ *  "; "), a short value takes its noun after it ("dark brown eyes"), a value that already names it stays as written,
+ *  and a long one is labelled ("eyes: dark brown, sharp but kind, …") — never "…that never fades eyes". */
+export function lookPiece(value: string | undefined, noun: string): string {
+  const v = squash(value).replace(/\s*;\s*/g, ', ').replace(/[.,;]+$/, '');
+  if (!v) return '';
+  if (new RegExp(`\\b${noun}\\b`, 'i').test(v)) return v;
+  return !/,/.test(v) && v.split(/\s+/).length <= 4 ? `${v} ${noun}` : `${noun}: ${v}`;
+}
+
 /** The English identity line (contract §2.1: style first, then age, build, face, hair, skin, every garment with its
  *  colour, accessories with their side of the body, footwear). A stored English line wins (with the style and, when
  *  it has none, the age added); a stored line in another script is reported in `nonLatin` and the line is derived from
- *  the fields, whose non-Latin pieces are reported too. Deterministic and de-duplicated. */
+ *  the fields, whose non-Latin pieces are reported too. Facial hair and a culturally specific garment's cut are stated
+ *  unambiguously (D13: `facialHairStatement`, `garmentCut`). Deterministic and de-duplicated. */
 export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style } = {}): CanonicalIdentityLine {
   const nonLatin: string[] = [];
   const who = whoPhrase(c);
@@ -116,32 +185,48 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   const stored = squash(c.canon?.identityLine).replace(/^identity:\s*/i, '').replace(/[.;]+$/, '');
   if (stored && !hasNonLatinLetters(stored)) {
     const statesAge = AGE_WORDS.test(stored);
-    const body = statesAge || who === 'a person' ? stored : `${who}; ${stored}`;
+    const facial = facialHairStatement([stored]);
+    const clear = `${garmentCut(stored)}${facial ? `; ${facial}` : ''}`;
+    const body = statesAge || who === 'a person' ? clear : `${who}; ${clear}`;
     const styled = opts.style && body.toLowerCase().includes(STYLE_MEDIUM[opts.style].identity.toLowerCase()) ? body : `${lead}${body}`;
     return { line: `Identity: ${styled}.`, nonLatin, hasAge: statesAge || /\d/.test(who) };
   }
   if (stored) nonLatin.push(stored);
   const parts: string[] = [];
-  const push = (s?: string | false | null) => {
-    let v = squash(s || '').replace(/[.;]+$/, '');
-    if (!v) return;
+  /** the Latin text of a piece ('' when it is reported as non-Latin) */
+  const latin = (s?: string | false | null): string => {
+    const v = squash(s || '').replace(/[.;]+$/, '');
+    if (!v || !hasNonLatinLetters(v)) return v;
     // a word with stray letters of another alphabet is repaired ("deshdaша" → "deshdasha", D12); a field with a word
     // wholly in another script is reported whole (a dropped word would leave a stub like "hair" with nothing to draw)
-    if (hasNonLatinLetters(v)) { const fixed = latinizeField(v); if (fixed.dropped.length) { nonLatin.push(v); return; } v = fixed.text; }
-    if (!parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v);
+    const fixed = latinizeField(v);
+    if (fixed.dropped.length) { nonLatin.push(v); return ''; }
+    return fixed.text;
   };
-  push(c.build && `${c.build} build`);
-  push(c.face && `${c.face} face`);
-  push(c.hair && `${c.hair} hair`);
-  push(c.eyes && `${c.eyes} eyes`);
-  push(c.skin && c.skin !== '—' && `${c.skin} skin`);
-  push(c.wardrobe && `wearing ${c.wardrobe}`);
-  for (const d of (c.distinguishing ?? []).slice(0, 8)) push(d);
+  const push = (v: string) => { if (v && !parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v); };
+  const build = latin(c.build && lookPiece(c.build, 'build'));
+  const face = latin(c.face && lookPiece(c.face, 'face'));
+  const hair = latin(c.hair && lookPiece(c.hair, 'hair'));
+  const eyes = latin(c.eyes && lookPiece(c.eyes, 'eyes'));
+  const skin = latin(c.skin && c.skin !== '—' && lookPiece(c.skin, 'skin'));
+  const wardrobe = latin(c.wardrobe && `wearing ${c.wardrobe}`);
+  const distinguishing = (c.distinguishing ?? []).slice(0, 8).map((d) => latin(d));
   const acc = (c.canon?.accessories ?? []).map((a) => squash(a)).filter(Boolean);
   nonLatin.push(...acc.filter(hasNonLatinLetters));
   const accLatin = acc.filter((a) => !hasNonLatinLetters(a));
+  const restrictions = (c.canon?.visualRestrictions ?? []).slice(0, 4).map((r) => latin(r && r.charAt(0).toLowerCase() + r.slice(1)));
+  // the facial hair is found in the fields as written (their own clauses), Latin words only
+  const quiet = (s?: string) => (s && hasNonLatinLetters(s) ? latinizeField(s).text : s ?? '');
+  push(build);
+  push(face);
+  push(facialHairStatement([quiet(c.face), quiet(c.hair), ...distinguishing, ...restrictions]) ?? '');
+  push(hair);
+  push(eyes);
+  push(skin);
+  push(wardrobe && garmentCut(wardrobe));
+  for (const d of distinguishing) push(d);
   if (accLatin.length) push(`accessories: ${accLatin.join(', ')}`);
-  for (const r of (c.canon?.visualRestrictions ?? []).slice(0, 4)) push(r && r.charAt(0).toLowerCase() + r.slice(1));
+  for (const r of restrictions) push(r);
   if (!parts.length && who === 'a person') return { line: '', nonLatin, hasAge: false };
   return { line: `Identity: ${lead}${[who, ...parts].join('; ')}.`, nonLatin, hasAge: /\d/.test(who) };
 }
@@ -170,6 +255,35 @@ export function referenceCanonicalPrompt(i: { style: Style; identityLine: string
     `Redraw the person in image 1${i.faceImage ? ', with the face exactly as in image 2,' : ''} as ${STYLE_MEDIUM[i.style].noun}: ${CANONICAL_FRAMING}`,
     'Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
     i.identityLine, i.character, i.visual,
+  ]);
+}
+
+/** The head-and-shoulders part of a canonical image for the close-up portrait, 4:5: from the figure's box the framing
+ *  check recorded (fractions of the picture) — the top 36 % of the figure with a margin above the head — else the top
+ *  40 % of the picture. In pixels of the picture. */
+export function portraitCrop(size: { width: number; height: number }, box?: { x: number; y: number; w: number; h: number } | null): PxRect {
+  const W = size.width, H = size.height;
+  const top = box ? Math.max(0, (box.y - 0.03) * H) : 0;
+  const height = Math.min(H - top, box ? box.h * H * 0.36 + 0.05 * H : 0.4 * H);
+  const width = Math.min(W, height * 0.8);
+  const cx = box ? (box.x + box.w / 2) * W : W / 2;
+  const x = Math.max(0, Math.min(W - width, cx - width / 2));
+  return { x: Math.round(x), y: Math.round(top), width: Math.floor(width), height: Math.floor(height) };
+}
+
+/** Secondary material (contract v2 §1, on request only): what the kind shows, of the person in image 1 (the canonical
+ *  image) in the production's medium, everything that makes them who they are kept as in image 1, the identity line,
+ *  the visual direction, a plain background. */
+export function secondaryPrompt(i: { kind: SecondaryMaterialKind; style: Style; identityLine: string; visual?: string }): string {
+  // a close-up keeps only the head: the whole identity line (garments, footwear) made Edit-2511 redraw the whole
+  // figure even from a head-and-shoulders crop (GPU check 2026-10-03, docs/evidence/image-v2/d13)
+  const closeUp = i.kind === 'PORTRAIT';
+  return sentences([
+    `${SECONDARY_SPEC[i.kind].prose}, of the same person as in image 1, drawn as ${STYLE_MEDIUM[i.style].noun}`,
+    closeUp ? 'Keep the face, age, skin tone, hair and anything worn on the head or face exactly as in image 1' : 'Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1',
+    closeUp ? '' : i.identityLine,
+    i.visual,
+    'Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props',
   ]);
 }
 
@@ -221,6 +335,68 @@ export function qwenReferenceCanonical(i: { upload: string; face?: string; faceR
   g['9'] = { class_type: 'KSampler', inputs: { model, positive: ['6', 0], negative: ['7', 0], latent_image: ['8', 0], seed: seed32(i.seed), steps: quality ? 24 : 4, cfg: quality ? 4.0 : 1.0, sampler_name: 'euler', scheduler: 'simple', denoise: 1.0 } };
   g['10'] = { class_type: 'VAEDecode', inputs: { samples: ['9', 0], vae: ['3', 0] } };
   g[CANONICAL_OUTPUT] = { class_type: 'SaveImage', inputs: { images: ['10', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/canonical-ref' } };
+  return g;
+}
+
+// ------------------------------------------------------------- Image Reference with FLUX.2 [klein] 4B (default)
+
+/** The medium as klein reads it: the same nouns without the negations ("not a photograph"): klein has no negative
+ *  prompt and reads words literally (docs/research/FLUX-VS-QWEN.md §5). */
+export const KLEIN_MEDIUM: Record<Style, string> = {
+  CARTOON: 'a stylized 3D animated feature-film character (CG render)',
+  ANIME: 'a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours)',
+  REALISTIC: 'a photorealistic full-length studio photograph of a real person',
+};
+/** CANONICAL_FRAMING without "no props, no text". */
+export const KLEIN_FRAMING = CANONICAL_FRAMING.replace(/, no props, no text$/, '');
+
+/** Image Reference on klein: redraw the person in image 1 (and image 2, its face) in the production's medium, whole
+ *  figure. Names only what every picture has — the shipping "…facial hair, glasses…" list made klein draw glasses on
+ *  people who wear none (8/8 in the A/B) — then the identity line written from the picture's description (which names
+ *  glasses or facial hair only when the picture shows them), the style's character and visual direction. */
+export function kleinReferencePrompt(i: { style: Style; identityLine: string; faceImage?: boolean; character?: string; visual?: string }): string {
+  return sentences([
+    `Redraw the person in image 1${i.faceImage ? ', with the face exactly as in image 2,' : ''} as ${KLEIN_MEDIUM[i.style]}: ${KLEIN_FRAMING}`,
+    'Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
+    i.identityLine, i.character, i.visual,
+  ]);
+}
+
+/** FLUX.2 [klein] 4B distilled in core ComfyUI 0.38 (the Comfy-Org klein edit template's wiring): Qwen3-4B
+ *  (`CLIPLoader type flux2`) → CLIPTextEncode; the upload (≈1 MP) → VAEEncode → ReferenceLatent on the conditioning,
+ *  then, with `faceRect`, its face cut in the graph (1024²) chained after it; a zeroed negative (cfg 1); Flux2Scheduler
+ *  4 steps, EmptyFlux2LatentImage in the canonical frame, euler, CFGGuider, SamplerCustomAdvanced. ~3.7 s on the 5090,
+ *  card ≈ 22 GB (FLUX-VS-QWEN.md §5). */
+export function kleinReferenceCanonical(i: { upload: string; faceRect?: PxRect; prompt: string; seed?: number; filenamePrefix?: string }): Graph {
+  const W = CANONICAL_FRAME.width, H = CANONICAL_FRAME.height;
+  const g: Graph = {
+    unet: { class_type: 'UNETLoader', inputs: { unet_name: MODELS.kleinDit, weight_dtype: 'default' }, _meta: { title: 'FLUX.2 klein 4B' } },
+    clip: { class_type: 'CLIPLoader', inputs: { clip_name: MODELS.kleinTe, type: 'flux2', device: 'default' } },
+    vae: { class_type: 'VAELoader', inputs: { vae_name: MODELS.kleinVae } },
+    pos: { class_type: 'CLIPTextEncode', inputs: { clip: ['clip', 0], text: i.prompt } },
+    neg: { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['pos', 0] } },
+    img1: { class_type: 'LoadImage', inputs: { image: i.upload } },
+    img1s: { class_type: 'ImageScaleToTotalPixels', inputs: { image: ['img1', 0], upscale_method: 'lanczos', megapixels: 1.0, resolution_steps: 16 } },
+    img1e: { class_type: 'VAEEncode', inputs: { pixels: ['img1s', 0], vae: ['vae', 0] } },
+    ref1: { class_type: 'ReferenceLatent', inputs: { conditioning: ['pos', 0], latent: ['img1e', 0] } },
+  };
+  let positive: [string, number] = ['ref1', 0];
+  if (i.faceRect) {
+    const r = i.faceRect;
+    g.facecrop = { class_type: 'ImageCrop', inputs: { image: ['img1', 0], width: Math.max(16, Math.round(r.width)), height: Math.max(16, Math.round(r.height)), x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)) } };
+    g.img2s = { class_type: 'ImageScale', inputs: { image: ['facecrop', 0], upscale_method: 'lanczos', width: 1024, height: 1024, crop: 'center' } };
+    g.img2e = { class_type: 'VAEEncode', inputs: { pixels: ['img2s', 0], vae: ['vae', 0] } };
+    g.ref2 = { class_type: 'ReferenceLatent', inputs: { conditioning: positive, latent: ['img2e', 0] } };
+    positive = ['ref2', 0];
+  }
+  g.sigmas = { class_type: 'Flux2Scheduler', inputs: { steps: 4, width: W, height: H } };
+  g.latent = { class_type: 'EmptyFlux2LatentImage', inputs: { width: W, height: H, batch_size: 1 } };
+  g.noise = { class_type: 'RandomNoise', inputs: { noise_seed: seed32(i.seed) } };
+  g.sampler = { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } };
+  g.guider = { class_type: 'CFGGuider', inputs: { model: ['unet', 0], positive, negative: ['neg', 0], cfg: 1 } };
+  g.sample = { class_type: 'SamplerCustomAdvanced', inputs: { noise: ['noise', 0], guider: ['guider', 0], sampler: ['sampler', 0], sigmas: ['sigmas', 0], latent_image: ['latent', 0] } };
+  g.decode = { class_type: 'VAEDecode', inputs: { samples: ['sample', 0], vae: ['vae', 0] } };
+  g[CANONICAL_OUTPUT] = { class_type: 'SaveImage', inputs: { images: ['decode', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/canonical-klein' } };
   return g;
 }
 
@@ -376,26 +552,58 @@ export function identityLineFromDescription(d: CharacterDescription, opts: { sty
     if (low.has(key) || [...low].some((l) => l.startsWith(`${key}.`))) { lowConfidence.push(key); return; }
     parts.push(fmt(v));
   };
-  const sex = /^f/i.test(d.sex ?? '') ? 'woman' : /^m/i.test(d.sex ?? '') ? 'man' : 'person';
-  const age = d.ageRange && !NOT_VISIBLE.test(d.ageRange) && !low.has('ageRange') ? ` aged about ${d.ageRange.replace(/\s*years?( old)?/i, '')}` : '';
+  // the age as the picture shows it, in the words a prompt needs: a child or a teenager is said so ("a teenage boy aged
+  // about 10-19", "a girl" — never "a woman aged about child"), an adult by the range
+  const female = /^f/i.test(d.sex ?? ''), male = /^m/i.test(d.sex ?? '');
+  const ageText = d.ageRange && !NOT_VISIBLE.test(d.ageRange) && !low.has('ageRange') ? squash(d.ageRange.replace(/\s*years?( old)?/i, '')) : '';
+  const ages = (ageText.match(/\d{1,3}/g) ?? []).map(Number);
+  const oldest = ages.length ? Math.max(...ages) : /child|kid|toddler|baby/i.test(ageText) ? 10 : /teen|adolescent/i.test(ageText) ? 16 : undefined;
+  const noun = oldest !== undefined && oldest <= 12 ? (female ? 'girl' : male ? 'boy' : 'child') : oldest !== undefined && oldest <= 19 ? (female ? 'teenage girl' : male ? 'teenage boy' : 'teenager') : (female ? 'woman' : male ? 'man' : 'person');
+  const age = ages.length ? ` aged about ${ageText}` : '';
   if (d.ageRange && low.has('ageRange')) lowConfidence.push('ageRange');
-  parts.push(`${opts.style ? `${STYLE_MEDIUM[opts.style].identity}, ` : ''}a ${sex}${age}`);
+  parts.push(`${opts.style ? `${STYLE_MEDIUM[opts.style].identity}, ` : ''}a ${noun}${age}`);
   add('build', d.build, (s) => `${s} build`);
   add('faceShape', d.faceShape, (s) => `${s} face`);
   const hair = [d.hair.length, d.hair.texture, d.hair.colour].filter((x) => x && !NOT_VISIBLE.test(x)).join(' ');
   add('hair', hair ? `${hair} hair${d.hair.style && !NOT_VISIBLE.test(d.hair.style) ? `, ${d.hair.style}` : ''}` : d.hair.style);
   add('eyes', d.eyes, (s) => `${s} eyes`);
   add('skinTone', d.skinTone, (s) => `${s} skin`);
-  if (d.facialHair && !/^(none|no)\b/i.test(d.facialHair)) add('facialHair', d.facialHair);
-  else if (d.facialHair) parts.push('no facial hair');
+  // a moustache the picture shows without a beard is said to be only that (D13)
+  if (d.facialHair && !/^(none|no)\b/i.test(d.facialHair)) add('facialHair', d.facialHair, (s) => facialHairStatement([s]) ?? s);
+  else if (d.facialHair && !female) parts.push('no facial hair');
   if (d.glasses && !/^(none|no)\b/i.test(d.glasses)) add('glasses', d.glasses, (s) => (/glass|spectacle/i.test(s) ? s : `glasses (${s})`));
   for (const m of d.marks) add('marks', m);
   const clothes = d.clothing.map((c) => squash([c.colour, c.pattern && !/^(none|plain|solid)$/i.test(c.pattern) ? c.pattern : '', c.item].filter(Boolean).join(' ')));
   if (clothes.length) add('clothing', `wearing ${clothes.join(', ')}`);
-  if (d.accessories.length) add('accessories', `accessories: ${d.accessories.join(', ')}`);
+  // an accessory entry is a thing worn, not a field's answer: "glasses none" / "none" are dropped (a model that reads
+  // words literally would draw them), and glasses are said once, by their own field
+  const accessories = d.accessories.map((a) => squash(a.replace(/\b(none|both|n\/a)\b/gi, ''))).filter((a) => a && !/^(no|none)$/i.test(a) && !(d.glasses && /\b(glasses|spectacles)\b/i.test(a)));
+  if (accessories.length) add('accessories', `accessories: ${accessories.join(', ')}`);
   add('footwear', d.footwear);
   const notVisible = [...new Set([...d.notVisible, ...(d.footwear && NOT_VISIBLE.test(d.footwear) ? ['footwear'] : [])])];
   return { line: `Identity: ${parts.join('; ')}.`, lowConfidence: [...new Set(lowConfidence)], notVisible };
+}
+
+/** What the text-only design step may know of a reference picture it cannot see (D15): the apparent age and sex and
+ *  what is visibly worn or carried — low-confidence and not-visible fields left out, short phrases only — so the
+ *  designed role, age and voice never contradict the picture. */
+export interface PictureFacts { apparentAge?: string; sex?: 'male' | 'female'; visible: string[] }
+
+export function pictureFacts(d: CharacterDescription): PictureFacts {
+  const low = new Set(Object.entries(d.confidence).filter(([, v]) => v === 'low').map(([k]) => k));
+  const sure = (key: string, v: string | undefined): v is string => Boolean(v) && !NOT_VISIBLE.test(v!) && !low.has(key) && ![...low].some((l) => l.startsWith(`${key}.`));
+  const none = (v: string) => /^(none|no)\b/i.test(v);
+  const visible: string[] = [];
+  const add = (v: string) => { const s = squash(v).slice(0, 60); if (s && !visible.some((x) => x.toLowerCase() === s.toLowerCase())) visible.push(s); };
+  const hair = [d.hair.length, d.hair.colour].filter((x) => x && !NOT_VISIBLE.test(x)).join(' ');
+  if (hair && !low.has('hair') && ![...low].some((l) => l.startsWith('hair.'))) add(`${hair} hair`);
+  if (sure('facialHair', d.facialHair)) add(none(d.facialHair) ? 'no facial hair' : d.facialHair);
+  if (sure('glasses', d.glasses) && !none(d.glasses)) add(/glass|spectacle/i.test(d.glasses) ? d.glasses : `glasses (${d.glasses})`);
+  if (!low.has('clothing')) for (const c of d.clothing) add([c.colour, c.item].filter(Boolean).join(' '));
+  if (sure('footwear', d.footwear)) add(d.footwear);
+  if (!low.has('accessories')) for (const a of d.accessories) add(a);
+  const sex = low.has('sex') ? undefined : /^f/i.test(d.sex ?? '') ? 'female' as const : /^m/i.test(d.sex ?? '') ? 'male' as const : undefined;
+  return { ...(sure('ageRange', d.ageRange) ? { apparentAge: d.ageRange.replace(/\s*years?( old)?/i, '').slice(0, 20) } : {}), ...(sex ? { sex } : {}), visible: visible.slice(0, 10) };
 }
 
 // --------------------------------------------------------------------------------------- style judgement

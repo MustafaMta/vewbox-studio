@@ -4,9 +4,9 @@ description: Keeping characters and places the same across shots, scenes and epi
 license: Proprietary to this studio; references-on-every-shot after lumosai8/MinimaxStoryBuilder (MIT)
 allowed-tools: image.generate image.edit_with_references
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   kind: "PROCEDURE"
-  source: docs/CHARACTER-CONTINUITY.md, docs/CONTRACTS-IDENTITY-PACK.md v2, src/domain/identity.ts (primaryImageOf), src/domain/rules.ts (canChangeAppearance), src/worker/handlers/images.ts, src/worker/handlers/take.ts, src/server/story/engine.ts (establishedAt)
+  source: docs/CHARACTER-CONTINUITY.md, docs/CONTRACTS-IDENTITY-PACK.md v2, src/domain/identity.ts (primaryImageOf), src/domain/rules.ts (canChangeAppearance), src/worker/handlers/images.ts (characterRefs, drawShotFrame), src/server/production/shot-pack.ts, src/worker/handlers/take.ts, src/server/story/engine.ts (establishedAt)
   models: Qwen-Image-2512, Qwen-Image-Edit-2511, MiniMax-H3
 ---
 
@@ -32,8 +32,9 @@ metadata:
   description) before anything is drawn from it.
 - **Appearance lock.** A character who has appeared in any generated video cannot have the image regenerated or
   replaced (`APPEARANCE_LOCKED`, HTTP 423); name, description, personality and notes stay editable.
-- **Secondary material** (portrait close-up, expressions, outfits, a turnaround sheet) is drawn only on request, from
-  the canonical image, and never replaces it.
+- **Secondary material** (an expression sheet, the outfit, a close-up portrait) is drawn only on request, each in one
+  pass with the canonical image as its only reference, stored as SECONDARY; it never replaces the canonical image and
+  is never an identity reference. No other view (side, back, turnaround) is drawn.
 - A shot's opening frame is drawn from the plate and the canonical images of up to two characters; the take then
   starts on that frame (fl2va). Without a drawn frame the take is conditioned on each character's canonical image as a
   reference picture (ref2va), handed over by the Character Continuity Agent. Every take a character appears in is
@@ -47,7 +48,10 @@ metadata:
   architecture and fixed props; only light, weather, time and movable things change, and the shots say how.
   The planner receives what was established there.
 - Storyboard frames are drawn from the plate (image 1) and the characters' canonical images (following images), with
-  each character's identity line in the guidance.
+  each character's identity line in the guidance. Like a take, a frame reads the production's World Bible revision
+  (pinned, else the latest): the plate is the one `choosePlate` picks — an established frame at the scene's time of
+  day, else the drawn plate for that time, an established frame of another time, the master — and each character is
+  its pinned canonical image.
 
 ## Bibles
 

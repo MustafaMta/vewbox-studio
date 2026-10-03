@@ -101,9 +101,9 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 8)', () => {
+describe('the studio organisation (ORG_VERSION 9)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
-    expect(ORG_VERSION).toBe(8);
+    expect(ORG_VERSION).toBe(9);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);

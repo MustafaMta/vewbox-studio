@@ -4,7 +4,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, faceCheck, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenIdentitySheet, qwenReferenceCanonical, qwenTextToImage, qwenView, referenceReadGraph, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, kleinReferenceCanonical, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -28,16 +28,15 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
   return [
     { name: 'qwen-image.t2i', graph: qwenTextToImage({ prompt: '', width: 1024, height: 1024 }) },
     { name: 'qwen-image.edit', graph: qwenEdit({ prompt: '', references: ['a.png', 'b.png', 'c.png'] }) },
-    { name: 'qwen-image.edit-quality', graph: qwenEdit({ prompt: '', references: ['a.png', 'b.png', 'c.png'], quality: true, extraLoras: [{ name: MODELS.qwenMultiAngleLora, strength: 1.0 }] }) },
-    { name: 'qwen-image.identity-sheet', graph: qwenIdentitySheet({ portrait: 'a.png', prompt: '' }) },
-    { name: 'qwen-image.identity-sheet-from-face', graph: qwenIdentitySheet({ portrait: 'a.png', faceCrop: 'b.png', prompt: '', quality: false }) },
-    { name: 'qwen-image.view', graph: qwenView({ references: ['a.png', 'b.png', 'c.png'], view: 'FULL_BODY', prompt: '', angleLora: true }) },
-    { name: 'qwen-image.face-check', graph: faceCheck({ image: 'a.png', mask: true }) },
-    // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2)
+    // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2) and its optional secondary material
     { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
     { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
+    { name: 'flux2-klein.canonical-reference', graph: kleinReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
+    // the rollback of the Image Reference redraw for one release (CANONICAL_REFERENCE_ENGINE=qwen)
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
+    { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },
+    { name: 'qwen-image.secondary-portrait', graph: qwenSecondary({ canonical: 'a.png', kind: 'PORTRAIT', prompt: '', crop: { x: 0, y: 0, width: 512, height: 640 } }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
     // a reference shot with its opening frame anchored at 0 and the recorded line at frame 0 (CUT / STORY_TRANSITION)

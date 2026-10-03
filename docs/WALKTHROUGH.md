@@ -91,15 +91,19 @@ up; each has its own play button. The seek bar shows the song's length before th
 
 ![Characters](screenshots/characters-1440.png)
 
-Portraits with the name, *role · style* and badges for the show and the voice. Every library has the same toolbar
+Canonical images with the name, *role · style* and badges for the show and the voice. Every library has the same toolbar
 in the same place: search, a style filter, its own filter (voice here; stage for shorts; interior/exterior for
 locations) and the sort.
 
 ![Character — Appearance](screenshots/character-appearance-1440.png)
 
-A character has **Appearance · Voice · Profile · Used In**: reference views from every side (upload your own, or
-have them drawn — a job whose progress shows on the button and in Activity), a voice built from a chosen recording
-and previewed with a transcription check, the profile as facts, and every production they appear in.
+*(The screenshots in this section predate the identity contract v2.)* A character is one profile page built around
+its **canonical image** — one front full-body picture, a draft until you approve it — then the name, description,
+personality and language, the voice identity with a real player, the lock status shown once, the productions the
+character is used in, and the notes. Actions stay quiet: Approve while it is a draft, Redraw while the character is
+unused, Edit details. **Secondary material** (an expression sheet, the outfit, an older close-up portrait) sits in a
+collapsed section at the end: drawn only when you ask, each in one pass from the canonical image, and never the
+identity. No side, back or turnaround views are drawn.
 
 <img src="screenshots/character-voice-1440.png" width="420" alt="Character voice"> <img src="screenshots/character-used-1440.png" width="420" alt="Character used in">
 
@@ -181,18 +185,20 @@ new and optional. Manual Brief needs only a title or a short description.
 
 ![Characters](screenshots/state-characters-1440.png)
 
-Each card shows the portrait, name, role, style, where the character belongs, whether they have been in a video
+Each card shows the canonical image (a legacy portrait for a character drawn before it), name, role, style, where the character belongs, whether they have been in a video
 (*Used in videos*, *Unused*, *Usage unknown*) and a voice play button. Filters cover style, production and usage.
 
 ![A used character](screenshots/state-character-locked-1440.png)
 
-A character who has been in a video keeps their appearance. The notice lists the takes, and Regenerate and the
-reference upload are disabled. The edit form shows the look fields read-only; the voice and the profile still edit.
-An unknown history counts as used. See [CHARACTER-CONTINUITY.md](CHARACTER-CONTINUITY.md).
+A character who has been in a video keeps their appearance: the lock status reads "Locked: used in N videos", and
+Redraw, Approve, the reference picture and the secondary-material requests are gone. The look is read-only; the
+name, personality and notes still edit, and the voice follows its own rule. An unknown history counts as used. See
+[CHARACTER-CONTINUITY.md](CHARACTER-CONTINUITY.md).
 
 <img src="screenshots/state-character-pending-ref-1440.png" width="420" alt="Unused character with a pending reference"> <img src="screenshots/state-character-used-in-1440.png" width="420" alt="Used In">
 
-An unused character takes a reference picture, shown beside the appearance it would produce. It can be replaced or
-removed and is kept across reloads. Used In lists the actual takes, separate from casting alone.
+An unused character can be redrawn from a reference picture: the picture is checked, read (face box and a
+description by a vision model) and redrawn into the production's style as a new draft version; the previous image is
+kept in the library. The productions section lists the actual takes, separate from casting alone.
 
 <img src="screenshots/state-character-voice-playing-1440.png" width="420" alt="Voice"> <img src="screenshots/state-ar-character-locked-1440.png" width="420" alt="Arabic">

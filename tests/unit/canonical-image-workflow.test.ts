@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
-  faceCropRect, firstJsonObject, hasNonLatinLetters, identityLineFromDescription, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
+  CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, KLEIN_MEDIUM, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
+  kleinReferenceCanonical, kleinReferencePrompt,
+  faceCropRect, facialHairStatement, firstJsonObject, garmentCut, hasNonLatinLetters, identityLineFromDescription, lookPiece, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
   qwenCanonicalImage, qwenReferenceCanonical, qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, sentences, vlmOutput, whoPhrase, workflowVersion, type Graph,
 } from '@/server/workflows';
 
@@ -38,12 +39,100 @@ describe('the English identity line (style first, age, Latin script only)', () =
     expect(r.line).toContain('a man of about 70');
   });
   it('keeps a stored English line, adding the style and, when it has none, the age', () => {
-    expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'Identity: short grey hair; full white beard.' } }, { style: 'ANIME' }).line).toBe('Identity: 2D anime character, a man of about 70; short grey hair; full white beard.');
+    expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'Identity: short grey hair; full white beard.' } }, { style: 'ANIME' }).line).toBe('Identity: Japanese anime character, a man of about 70; short grey hair; full white beard.');
     expect(canonicalIdentityLine({ ...kiteMaker, canon: { identityLine: 'an elderly man, about 70 years old, white beard' } }).line).toBe('Identity: an elderly man, about 70 years old, white beard.');
   });
   it('detects non-Latin letters but not punctuation or accents', () => {
     expect(hasNonLatinLetters('café, 85 mm — “quoted”')).toBe(false);
     expect(hasNonLatinLetters('hair: أسود')).toBe(true);
+  });
+});
+
+describe('D13: facial hair and a garment’s cut are stated so they cannot be read two ways', () => {
+  // the A3 record (أبو سلام, char-bc112248bf) as the design wrote it: the moustache was drawn as a full beard (2/2) and
+  // the dishdasha tunic-length over visible patterned trousers
+  const a3 = { sex: 'MALE' as const, ageYears: 62, build: 'robust but slightly stooped, with broad shoulders and a gentle posture', face: 'long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold', hair: 'thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping', skin: 'deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure', eyes: 'dark brown, sharp but kind, with a faint glint of curiosity that never fades', distinguishing: ['old-fashioned metal-rimmed glasses perched on his own left nose'], wardrobe: 'shimmering grayish-blue cotton deshdaша with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges' };
+
+  it('the A3 line: "moustache only, clean-shaven chin", an ankle-length dishdasha over the trousers, labelled long fields', () => {
+    const { line, nonLatin } = canonicalIdentityLine(a3, { style: 'REALISTIC' });
+    expect(nonLatin).toEqual([]);
+    expect(line).toContain('; facial hair: thick, gray mustache only; the chin, jaw and cheeks are shaved smooth; ');
+    expect(line.indexOf('facial hair:')).toBeGreaterThan(line.indexOf('weathered face')); // stated right after the face
+    expect(line).toContain('wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem');
+    expect(line).toContain('; the trousers are worn under the robe and show only at the ankles');
+    expect(line).toContain('; build: robust but slightly stooped, with broad shoulders and a gentle posture; ');
+    expect(line).toContain('; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; ');
+    // the old builder appended the noun after a long phrase and kept the field's own semicolons
+    for (const bad of ['posture build', 'untold face', 'never fades eyes', 'exposure skin', 'smiling; thick']) expect(line).not.toContain(bad);
+  });
+  it('facial hair: a moustache alone is "only", clean-shaven is said, a beard or an explicit text adds nothing', () => {
+    expect(facialHairStatement(['a round face with a neat black moustache'])).toBe('facial hair: neat black moustache only; the chin, jaw and cheeks are shaved smooth');
+    expect(facialHairStatement(['thick grey mustache'])).toBe('facial hair: thick grey mustache only; the chin, jaw and cheeks are shaved smooth');
+    expect(facialHairStatement(['clean-shaven, square jaw'])).toBe('clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth');
+    for (const t of ['full grey beard and mustache', 'stubble and a moustache', 'a goatee', 'thick moustache, no beard', 'moustache only, clean-shaven chin', 'short grey hair', '']) expect(facialHairStatement([t]), t).toBeUndefined();
+    // the line never says it twice: a stored line that already states it is kept as written
+    const stored = canonicalIdentityLine({ ...kiteMaker, distinguishing: [], canon: { identityLine: 'Identity: a man of about 70; grey moustache only, clean-shaven chin; white thobe' } }).line;
+    expect(stored.match(/clean-shaven/g)).toHaveLength(1);
+    expect(stored).toContain('white ankle-length thobe (a loose robe reaching down to the ankles)');
+  });
+  it('a robe of the dishdasha family or an abaya gets its cut; a length the design gives is kept; idempotent', () => {
+    expect(garmentCut('a white thobe and brown sandals')).toBe('a white ankle-length thobe (a loose robe reaching down to the ankles) and brown sandals');
+    expect(garmentCut('a black abaya; black trousers')).toBe('a black ankle-length abaya (a loose cloak reaching down to the ankles); black trousers; the trousers are worn under the cloak and show only at the ankles');
+    expect(garmentCut('a knee-length kurta over white trousers')).toBe('a knee-length kurta over white trousers');
+    expect(garmentCut('a short grey dishdasha')).toBe('a short grey dishdasha');
+    expect(garmentCut('a floor-length white jalabiya')).toBe('a floor-length white jalabiya');
+    expect(garmentCut('a navy suit, white shirt')).toBe('a navy suit, white shirt');
+    const once = garmentCut(a3.wardrobe.replace('deshdaша', 'deshdasha'));
+    expect(garmentCut(once)).toBe(once);
+  });
+  it('a look field: short → "<value> <noun>", already named → as written, long → "<noun>: …"', () => {
+    expect(lookPiece('dark brown', 'eyes')).toBe('dark brown eyes');
+    expect(lookPiece('long face', 'face')).toBe('long face'); // the old builder wrote "long face face"
+    expect(lookPiece('dark brown, sharp but kind', 'eyes')).toBe('eyes: dark brown, sharp but kind');
+    expect(lookPiece('round; freckled', 'face')).toBe('face: round, freckled');
+    expect(lookPiece('', 'hair')).toBe('');
+  });
+  it('the description of a picture says a moustache without a beard is only that', () => {
+    const d = parseCharacterDescription('{"sex": "male", "ageRange": "55-65", "facialHair": "thick grey mustache", "clothing": []}');
+    expect(identityLineFromDescription(d).line).toContain('facial hair: thick grey mustache only; the chin, jaw and cheeks are shaved smooth');
+    expect(identityLineFromDescription(parseCharacterDescription('{"facialHair": "full grey beard and mustache"}')).line).toContain('; full grey beard and mustache');
+  });
+});
+
+describe('Image Reference on FLUX.2 [klein] 4B (docs/research/FLUX-VS-QWEN.md §6)', () => {
+  it('the graph: klein distilled, 4 steps, cfg 1, zeroed negative, the canonical frame, the upload then its face chained as reference latents', () => {
+    const g = kleinReferenceCanonical({ upload: 'up.png', faceRect: { x: 300, y: 200, width: 400, height: 400 }, prompt: 'P', seed: 7 });
+    linked(g);
+    expect(g.unet.inputs).toMatchObject({ unet_name: MODELS.kleinDit });
+    expect(g.clip.inputs).toMatchObject({ clip_name: MODELS.kleinTe, type: 'flux2' });
+    expect(g.vae.inputs).toMatchObject({ vae_name: MODELS.kleinVae });
+    expect(g.neg.class_type).toBe('ConditioningZeroOut');
+    expect(Object.values(g).filter((n) => n.class_type === 'CLIPTextEncode').map((n) => n.inputs.text)).toEqual(['P']); // no negative text
+    expect(g.sigmas.inputs).toEqual({ steps: 4, width: CANONICAL_FRAME.width, height: CANONICAL_FRAME.height });
+    expect(g.latent.inputs).toMatchObject({ width: 928, height: 1664 });
+    expect(g.guider.inputs).toMatchObject({ cfg: 1, positive: ['ref2', 0], negative: ['neg', 0] });
+    expect(g.ref1.inputs).toMatchObject({ conditioning: ['pos', 0], latent: ['img1e', 0] });
+    expect(g.ref2.inputs).toMatchObject({ conditioning: ['ref1', 0], latent: ['img2e', 0] });
+    expect(g.facecrop.inputs).toMatchObject({ image: ['img1', 0], x: 300, y: 200, width: 400, height: 400 });
+    expect(g.noise.inputs.noise_seed).toBe(7);
+    expect(g[CANONICAL_OUTPUT].class_type).toBe('SaveImage');
+    // without the face crop (the retry) the upload alone conditions it
+    const plain = kleinReferenceCanonical({ upload: 'up.png', prompt: 'P', seed: 8 });
+    linked(plain);
+    expect(plain.ref2).toBeUndefined();
+    expect(plain.guider.inputs.positive).toEqual(['ref1', 0]);
+    expect(classes(plain)).not.toContain('KSampler');
+  });
+  it('the prompt names only what the person has: medium first, no negations, no generic glasses/facial-hair list', () => {
+    for (const style of ['CARTOON', 'ANIME', 'REALISTIC'] as const) {
+      const p = kleinReferencePrompt({ style, identityLine: 'Identity: a woman aged about 35-45; long black hair; wearing green cardigan.', faceImage: true });
+      expect(p.startsWith(`Redraw the person in image 1, with the face exactly as in image 2, as ${KLEIN_MEDIUM[style]}:`)).toBe(true);
+      expect(p).not.toMatch(/glasses|facial hair/i); // the A/B: the shipping list made klein draw glasses on 8/8
+      expect(p).not.toMatch(/\bnot a\b|\bno props\b|\bno text\b/);
+      expect(p).toContain('the whole figure from the top of the head to the soles of the feet');
+    }
+    expect(kleinReferencePrompt({ style: 'REALISTIC', identityLine: 'Identity: a man aged about 60-70; glasses (thin metal frame).' })).toContain('glasses (thin metal frame)');
+    expect(kleinReferencePrompt({ style: 'CARTOON', identityLine: '' })).not.toContain('image 2');
   });
 });
 
@@ -66,7 +155,7 @@ describe('the canonical prompt: medium first, one whole figure', () => {
   });
   it('redraws an upload into the production medium, face from image 2 when there is one', () => {
     const p = referenceCanonicalPrompt({ style: 'ANIME', identityLine: 'Identity: z.', faceImage: true });
-    expect(p).toContain('Redraw the person in image 1, with the face exactly as in image 2, as a 2D anime character');
+    expect(p).toContain('Redraw the person in image 1, with the face exactly as in image 2, as a Japanese anime character');
     expect(p).toContain('one character, full-body front view');
     expect(p).toContain('Identity: z.');
     expect(referenceCanonicalPrompt({ style: 'REALISTIC', identityLine: '' })).not.toContain('image 2');
@@ -153,12 +242,25 @@ describe('the description of an uploaded picture', () => {
     expect(line.startsWith('Identity: stylized 3D animated character, a woman aged about 40-50; ')).toBe(true);
     expect(line).toContain('wearing white lab coat, burgundy blouse');
     expect(line).toContain('rectangular black glasses');
-    expect(line).toContain('no facial hair');
+    expect(line).not.toContain('facial hair'); // said of a man only: a literal reader (klein) must not read the words for her
+    expect(identityLineFromDescription(parseCharacterDescription('{"sex": "male", "facialHair": "none"}')).line).toContain('no facial hair');
     expect(line).not.toContain('mole');
     expect(line).not.toContain('not visible');
     expect(lowConfidence).toEqual(['marks']);
     expect(notVisible).toEqual(expect.arrayContaining(['shoes', 'footwear']));
     expect(() => parseCharacterDescription('no json here')).toThrow();
+  });
+  it('a child or a teenager is said so, and an accessory entry that is a field’s answer ("glasses none") is dropped (confirmation reads, 2026-10-03)', () => {
+    const line = (json: string) => identityLineFromDescription(parseCharacterDescription(json), { style: 'ANIME' }).line;
+    expect(line('{"sex": "male", "ageRange": "10-19"}')).toBe('Identity: Japanese anime character, a teenage boy aged about 10-19.');
+    expect(line('{"sex": "female", "ageRange": "child"}')).toBe('Identity: Japanese anime character, a girl.');
+    expect(line('{"sex": "female", "ageRange": "6-9"}')).toContain('a girl aged about 6-9');
+    expect(line('{"sex": "male", "ageRange": "60-70"}')).toContain('a man aged about 60-70');
+    const a = line('{"sex": "female", "glasses": "red frames", "accessories": [{"item": "glasses", "side": "none"}, {"item": "earring", "side": "left"}, "none"]}');
+    expect(a).toContain('glasses (red frames)');
+    expect(a).toContain('accessories: earring left');
+    expect(a).not.toMatch(/none|glasses none/);
+    expect(a.match(/glasses/g)).toHaveLength(1);
   });
   it('tolerates strings where objects were asked for, and a <think> block', () => {
     const d = parseCharacterDescription('<think>let me see</think>{"hair": "short brown", "eyes": "green", "clothing": ["red scarf"], "accessories": "watch, ring"}');

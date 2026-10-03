@@ -28,7 +28,8 @@ generation is added only if it becomes strictly required later.
 2. **Canonical image**: one front full-body figure — standing, relaxed neutral pose, head to feet in frame with margin,
    plain neutral background, even light, in the production direction (Cartoon / Anime / Realistic). Auto/Manual: from
    the identity line. Image Reference: the uploaded picture guides the look; the identity line is written from a
-   description of the picture (never invented).
+   description of the picture (never invented). Engines: Qwen-Image-2512 from text; FLUX.2 [klein] 4B from a picture
+   (Qwen-Image-Edit-2511 as the rollback for one release) — docs/research/FLUX-VS-QWEN.md and its confirmation.
 3. **Checks** only where they demonstrably separate right from wrong (e.g. full body in frame, style); a failing image
    is redrawn once with the reason noted, then left for the producer with the reason.
 4. The image is **DRAFT**; the producer approves it (one action) → **APPROVED**, the official identity.
