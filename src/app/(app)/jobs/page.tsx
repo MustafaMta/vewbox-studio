@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { redirect, usePathname, useSearchParams } from 'next/navigation';
+import { jobsTarget } from '@/components/shell/redirects';
 import { useEffect, useMemo, useState } from 'react';
 import type { Job, JobEvent } from '@/domain/jobs';
 import { JOB_LABELS, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
@@ -16,9 +17,20 @@ import { IconClose } from '@/components/ui/icons';
 import { RetryControl } from '@/components/ui/jobs';
 import { fmtAgo, fmtSeconds } from '@/lib/format';
 
+/** /jobs → /production#activity (docs/DESIGN-SYSTEM-V4.md §7.2; F4's one-time change to this P3 file). The activity
+ *  list below still lives here because the Production page renders this module's default export inside itself; at
+ *  /jobs the same export redirects. P3 moves the list into components/production/Activity.tsx and makes this file a
+ *  plain server redirect (src/components/shell/redirects.ts `jobsTarget`). */
+export default function JobsPage() {
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  if (pathname === '/jobs') redirect(jobsTarget(sp.get('job')));
+  return <section id="activity"><Activity /></section>;
+}
+
 /** ACTIVITY — every job the studio runs, newest first; one opens into its log. Progress is what the worker reports,
  *  no more: a phase, a step count where there is one, a percentage only when it is real. */
-export default function JobsPage() {
+function Activity() {
   const T = useT();
   const { jobs, state, cancelJob } = useStudio();
   const sp = useSearchParams();

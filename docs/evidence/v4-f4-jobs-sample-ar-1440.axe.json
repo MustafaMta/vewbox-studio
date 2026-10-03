@@ -1,0 +1,8 @@
+[
+  {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "help": "Scrollable region must have keyboard access",
+    "nodes": 7
+  }
+]
