@@ -1,7 +1,9 @@
-import { normalizeIraqi } from '@/server/providers/speech';
+import { normalizeIraqi, scriptCoverage } from '@/server/providers/speech';
 
-/** SPACE-INSENSITIVE ARABIC COMPARISON — an evaluation view beside the studio's own metrics (`charErrorRate`,
- *  `scriptCoverage` in speech.ts), not a replacement. Whisper writes Iraqi speech with its own word boundaries
+/** SPACE-INSENSITIVE ARABIC COMPARISON — beside the studio's own metrics (`charErrorRate`, `scriptCoverage` in
+ *  speech.ts). Since voice identity v2 (contract §4) the voice check's ARABIC word coverage is `arabicWordCoverage`
+ *  below and a line failing only on «چ» words is REVIEW (`unconfirmableCh`); English keeps `scriptCoverage`, and CER is
+ *  unchanged. Whisper writes Iraqi speech with its own word boundaries
  *  («گلتلك» comes back as «قلت لك», «شكو ماكو» as «شكوماكو»), and a word-level coverage then counts a correctly heard
  *  phrase as missing. Here both sides go through the same dialect fold (`normalizeIraqi`), then:
  *   - `letterCoverage`: the share of the intended letters heard, in order (LCS over letters, spaces removed);
@@ -84,12 +86,26 @@ export function letterChanges(ref: string, hyp: string): string[] {
 /** Longest run of words one spacing segment may join or split («شكو ماكو» ↔ «شكوماكو» is 2:1). */
 const MAX_SPAN = 4;
 
+/** One stretch of the word alignment, as written words: a MATCH (one word each side, equal after the fold), a SPACING
+ *  segment (same letters, other boundaries), or an ERROR block (consecutive substituted, missing and extra words). */
+export interface AlignedBlock { kind: 'MATCH' | 'SPACING' | 'ERROR'; ref: string[]; hyp: string[] }
+
 /** Align intended and heard words and classify every difference. Each word is folded on its own; the alignment is an
  *  edit distance whose cheap moves are a match (same folded word, free) and a SPACING segment (k intended words whose
  *  folded letters equal l heard words', k + l ≥ 3; the shortest such segment is taken); a substituted, missing or extra
  *  word is an error. Consecutive errors
  *  form one SUBSTITUTION / DELETION / INSERTION block; a match spelled differently before the fold is a VARIANT. */
 export function wordDiff(reference: string, hypothesis: string): WordDiff[] {
+  return alignWords(reference, hypothesis).flatMap((b): WordDiff[] => {
+    if (b.kind === 'MATCH') return b.ref[0] !== b.hyp[0] ? [{ kind: 'VARIANT', ref: b.ref, hyp: b.hyp, letters: letterChanges(b.ref[0], b.hyp[0]) }] : [];
+    if (b.kind === 'SPACING') return [{ kind: 'SPACING', ref: b.ref, hyp: b.hyp }];
+    if (b.ref.length && b.hyp.length) return [{ kind: 'SUBSTITUTION', ref: b.ref, hyp: b.hyp, letters: letterChanges(b.ref.join(''), b.hyp.join('')) }];
+    return [b.ref.length ? { kind: 'DELETION', ref: b.ref, hyp: b.hyp } : { kind: 'INSERTION', ref: b.ref, hyp: b.hyp }];
+  });
+}
+
+/** The whole alignment behind `wordDiff`, matches included, in order. */
+export function alignWords(reference: string, hypothesis: string): AlignedBlock[] {
   const words = (s: string) => s.split(/\s+/).map(rawLetters).filter(Boolean);
   const R = words(reference); const H = words(hypothesis);
   const fr = R.map((w) => foldedLetters(w)); const fh = H.map((w) => foldedLetters(w));
@@ -126,23 +142,48 @@ export function wordDiff(reference: string, hypothesis: string): WordDiff[] {
   for (let i = R.length, j = H.length; i > 0 || j > 0;) { const s = step[i][j]!; i -= s.di; j -= s.dj; path.push({ ...s, i, j }); }
   path.reverse();
 
-  const out: WordDiff[] = [];
-  let block: { ref: string[]; hyp: string[] } | null = null;
-  const flush = () => {
-    if (!block) return;
-    const { ref, hyp } = block;
-    if (ref.length && hyp.length) out.push({ kind: 'SUBSTITUTION', ref, hyp, letters: letterChanges(ref.join(''), hyp.join('')) });
-    else if (ref.length) out.push({ kind: 'DELETION', ref, hyp });
-    else out.push({ kind: 'INSERTION', ref, hyp });
-    block = null;
-  };
+  const out: AlignedBlock[] = [];
+  let block: AlignedBlock | null = null;
+  const flush = () => { if (block) out.push(block); block = null; };
   for (const s of path) {
     const ref = R.slice(s.i, s.i + s.di); const hyp = H.slice(s.j, s.j + s.dj);
-    if (s.kind === 'M') { flush(); if (ref[0] !== hyp[0]) out.push({ kind: 'VARIANT', ref, hyp, letters: letterChanges(ref[0], hyp[0]) }); continue; }
+    if (s.kind === 'M') { flush(); out.push({ kind: 'MATCH', ref, hyp }); continue; }
     if (s.kind === 'SP') { flush(); out.push({ kind: 'SPACING', ref, hyp }); continue; }
-    block ??= { ref: [], hyp: [] };
+    block ??= { kind: 'ERROR', ref: [], hyp: [] };
     block.ref.push(...ref); block.hyp.push(...hyp);
   }
   flush();
   return out;
+}
+
+// ------------------------------------------------------------------------------- the voice check (contract v2 §4)
+
+/** An error block whose words agree once the WHOLE phrase is folded (the sentence fold maps phrases a word-by-word fold
+ *  cannot: «اثنى عشر» is «اثنعش», «ما كو» is «ماكو»): heard, not missing. */
+const phraseFoldEqual = (b: AlignedBlock) => b.hyp.length > 0 && foldedLetters(b.ref.join(' ')) === foldedLetters(b.hyp.join(' '));
+
+/** ARABIC WORD COVERAGE for the voice check (contract v2 §4): the share of intended words heard, on the
+ *  space-insensitive alignment above — a SPACING segment («گلتلك» written «قلت لك») and a fold-equal variant are heard;
+ *  a word heard with other letters («باچر» written «باسر») or not at all is missing. Never lower than the studio's
+ *  word-level `scriptCoverage` (the sentence fold's view), so nothing that passed before fails now. English keeps
+ *  `scriptCoverage`. */
+export function arabicWordCoverage(reference: string, hypothesis: string): number {
+  const blocks = alignWords(reference, hypothesis);
+  const total = blocks.reduce((n, b) => n + b.ref.length, 0);
+  if (total === 0) return 1;
+  const missing = blocks.reduce((n, b) => n + (b.kind === 'ERROR' && !phraseFoldEqual(b) ? b.ref.length : 0), 0);
+  return Math.max((total - missing) / total, scriptCoverage(reference, hypothesis, 'AR'));
+}
+
+/** «چ» CANNOT BE CONFIRMED BY ASR: in the Iraqi A/B it never came back as چ, ج or تش in 36 tries, a real Iraqi clip
+ *  included. The substitution blocks whose intended words all carry چ (something was heard there, with other letters),
+ *  and the hypothesis with exactly those blocks taken as heard — so the voice check can tell a line that fails only on
+ *  چ-words (REVIEW, for a listener) from one that fails on other words too. A missing word is never forgiven. */
+export function unconfirmableCh(reference: string, hypothesis: string): { blocks: WordDiff[]; forgiven: string } {
+  const aligned = alignWords(reference, hypothesis);
+  const isCh = (b: AlignedBlock) => b.kind === 'ERROR' && b.ref.length > 0 && b.hyp.length > 0 && !phraseFoldEqual(b) && b.ref.every((w) => w.includes('چ'));
+  return {
+    blocks: aligned.filter(isCh).map((b) => ({ kind: 'SUBSTITUTION' as const, ref: b.ref, hyp: b.hyp, letters: letterChanges(b.ref.join(''), b.hyp.join('')) })),
+    forgiven: aligned.flatMap((b) => (isCh(b) ? b.ref : b.hyp)).join(' '),
+  };
 }

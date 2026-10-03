@@ -1,0 +1,2702 @@
+{
+  "createdAt": "2026-10-03T00:11:33.704Z",
+  "script": "scripts/arabic-coverage-evidence.ts",
+  "note": "Text comparison of what Whisper large-v3 wrote with what was intended. Old = word-level scriptCoverage; new = the v2 voice check (Arabic: space-insensitive word alignment of src/server/media/arabic-align.ts; English unchanged) and judgeHeard (a line failing only on چ-words is REVIEW, never FAIL). CER is unchanged. Nothing here measures pronunciation, accent or dialect.",
+  "gates": {
+    "line": {
+      "coverage": 0.85,
+      "cer": 0.15
+    }
+  },
+  "summary": {
+    "all": {
+      "lines": 112,
+      "meanCoverage": {
+        "old": 0.816,
+        "new": 0.832
+      },
+      "coverageChanged": 12,
+      "verdictTransitions": {
+        "PASS→PASS": 65,
+        "FAIL→REVIEW": 8,
+        "FAIL→FAIL": 15,
+        "REVIEW→REVIEW": 18,
+        "REVIEW→PASS": 6
+      }
+    },
+    "arabic": {
+      "lines": 98,
+      "meanCoverage": {
+        "old": 0.794,
+        "new": 0.813
+      },
+      "coverageChanged": 12,
+      "verdictTransitions": {
+        "PASS→PASS": 51,
+        "FAIL→REVIEW": 8,
+        "FAIL→FAIL": 15,
+        "REVIEW→REVIEW": 18,
+        "REVIEW→PASS": 6
+      }
+    },
+    "english": {
+      "lines": 14,
+      "meanCoverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "coverageChanged": 0,
+      "verdictTransitions": {
+        "PASS→PASS": 14
+      }
+    },
+    "bySource": {
+      "report.json": {
+        "lines": 22,
+        "meanCoverage": {
+          "old": 0.921,
+          "new": 0.933
+        },
+        "coverageChanged": 2,
+        "verdictTransitions": {
+          "PASS→PASS": 20,
+          "FAIL→REVIEW": 1,
+          "FAIL→FAIL": 1
+        }
+      },
+      "iraqi-ab/results.json": {
+        "lines": 45,
+        "meanCoverage": {
+          "old": 0.784,
+          "new": 0.801
+        },
+        "coverageChanged": 5,
+        "verdictTransitions": {
+          "PASS→PASS": 23,
+          "REVIEW→REVIEW": 8,
+          "FAIL→FAIL": 8,
+          "FAIL→REVIEW": 3,
+          "REVIEW→PASS": 3
+        }
+      },
+      "iraqi-ab/results-h8.json": {
+        "lines": 45,
+        "meanCoverage": {
+          "old": 0.796,
+          "new": 0.813
+        },
+        "coverageChanged": 5,
+        "verdictTransitions": {
+          "PASS→PASS": 22,
+          "REVIEW→REVIEW": 10,
+          "FAIL→FAIL": 6,
+          "REVIEW→PASS": 3,
+          "FAIL→REVIEW": 4
+        }
+      }
+    }
+  },
+  "changed": [
+    {
+      "source": "report.json",
+      "item": "habibiExperiment (Habibi IRQ from an MSA seed)",
+      "language": "AR",
+      "intended": "باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.",
+      "heard": "باسر الصبح نروح للسوبسوة. قلت لك لا تتأخر.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.429,
+        "new": 0.625
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.63 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باسر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: للسوگ سوة → للسوبسوة",
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "report.json",
+      "item": "run1 habibiExperiment (reference over 12 s)",
+      "language": "AR",
+      "intended": "باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.",
+      "heard": "تعود باهر الصبح نروح للسوبسوة. لا تتألم.",
+      "cer": 0.41,
+      "coverage": {
+        "old": 0.286,
+        "new": 0.375
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.38 < 0.85 (line)",
+        "CER 0.41 > 0.15"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → تعود باهر",
+        "SUBSTITUTION: للسوگ سوة گلتلك → للسوبسوة",
+        "SUBSTITUTION: تتأخر → تتألم"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هس.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.667,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SPACING: گلتلك → قلت لك",
+        "SUBSTITUTION: هسه → هس"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "بائر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «بائر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → بائر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باشر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باشر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "هل زاي حار هواية؟ انطيني شوية مبارد.",
+      "cer": 0.143,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «هل زاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → هل زاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "control reference (Habibi IRQ.wav, real speaker)",
+      "language": "AR",
+      "intended": "يعني ااا ما نقدر ناخذ وقت أكثر، ااا لأنه شروط كلش يحتاجلها وقت.",
+      "heard": "يعني ما نقدر ناخذ وقت أكثر لأنه شروط كلش يحتاج لها وقت.",
+      "cer": 0.089,
+      "coverage": {
+        "old": 0.75,
+        "new": 0.846
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.85 < 0.85 (line)"
+      ],
+      "diffs": [
+        "DELETION: ااا → ∅",
+        "DELETION: ااا → ∅",
+        "SPACING: يحتاجلها → يحتاج لها"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو اكت لازم نطلع هسه.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.667,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SPACING: گلتلك → قلت لك",
+        "SUBSTITUTION: وقت → اكت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية؟ انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L2-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L4-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باهر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باهر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باهر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "control reference (Habibi IRQ.wav, real speaker)",
+      "language": "AR",
+      "intended": "يعني ااا ما نقدر ناخذ وقت أكثر، ااا لأنه شروط كلش يحتاجلها وقت.",
+      "heard": "يعني ما نقدر ناخذ وقت أكثر لأنه شروط كلش يحتاج لها وقت.",
+      "cer": 0.089,
+      "coverage": {
+        "old": 0.75,
+        "new": 0.846
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.85 < 0.85 (line)"
+      ],
+      "diffs": [
+        "DELETION: ااا → ∅",
+        "DELETION: ااا → ∅",
+        "SPACING: يحتاجلها → يحتاج لها"
+      ]
+    }
+  ],
+  "all": [
+    {
+      "source": "report.json",
+      "item": "en-male-50 c1 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-male-50 c1 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-male-50 c2 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-male-50 c2 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-male-50 c3 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-male-50 c3 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c1 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c1 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c2 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.041,
+      "coverage": {
+        "old": 0.9,
+        "new": 0.9
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c2 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.041,
+      "coverage": {
+        "old": 0.9,
+        "new": 0.9
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c3 native",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "en-female-25 c3 reference",
+      "language": "EN",
+      "intended": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+      "cer": 0.007,
+      "coverage": {
+        "old": 0.967,
+        "new": 0.967
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c1 native",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c1 reference",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c2 native",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c2 reference",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c3 native",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحداً تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "ar-msa-female-35 c3 reference",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر بينما كانت العبّارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "heard": "أضاءت أنوار الميناء واحداً تلو الآخر بينما كانت العبارة المسائية تبتعد عن الرصيف. لم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "cloneHop (IndexTTS from the EN seed)",
+      "language": "EN",
+      "intended": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+      "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "habibiExperiment (Habibi IRQ from an MSA seed)",
+      "language": "AR",
+      "intended": "باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.",
+      "heard": "باسر الصبح نروح للسوبسوة. قلت لك لا تتأخر.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.429,
+        "new": 0.625
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.63 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باسر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: للسوگ سوة → للسوبسوة",
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "report.json",
+      "item": "run1 cloneHop",
+      "language": "EN",
+      "intended": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+      "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "report.json",
+      "item": "run1 habibiExperiment (reference over 12 s)",
+      "language": "AR",
+      "intended": "باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.",
+      "heard": "تعود باهر الصبح نروح للسوبسوة. لا تتألم.",
+      "cer": 0.41,
+      "coverage": {
+        "old": 0.286,
+        "new": 0.375
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.38 < 0.85 (line)",
+        "CER 0.41 > 0.15"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → تعود باهر",
+        "SUBSTITUTION: للسوگ سوة گلتلك → للسوبسوة",
+        "SUBSTITUTION: تتأخر → تتألم"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed msa-female-c1 (seeds/msa-female-c1-s4001-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed msa-female-c2 (seeds/msa-female-c2-s4002-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "وأضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0.012,
+      "coverage": {
+        "old": 0.938,
+        "new": 0.938
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: أضاءت → وأضاءت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed msa-male-c1 (seeds/msa-male-c1-s5001-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "اضاءت انوار الميناء واحدا تلو الاخر. ولم ينطق احد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed msa-male-c2 (seeds/msa-male-c2-s5002-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "اضاءت انوار الميناء واحدا تلو الاخر ولم ينطق احد بكلمة هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed iraqi-female-c1 (seeds/iraqi-female-c1-s4001-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "هونك اليوم الجو حار هواية. خلي نروح للسوق باكرا الصبح ونشتري خضرة وبعدين نرجع للبيت.",
+      "cer": 0.049,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: شلونك → هونك",
+        "SUBSTITUTION: باچر → باكرا"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed iraqi-female-c2 (seeds/iraqi-female-c2-s4002-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شلونك؟ اليوم الجو حار هواية. خلي نروح للسوق باتشار الصبح ونشتري خضرة. وبعدين نرجع البيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: باچر → باتشار",
+        "SUBSTITUTION: للبيت → البيت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed iraqi-male-c1 (seeds/iraqi-male-c1-s5002-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شونك؟ اليوم الجو حار هواية، خلي نروح للسوق باتر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: شلونك → شونك",
+        "SUBSTITUTION: باچر → باتر"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "seed iraqi-male-c2 (seeds/iraqi-male-c2-s5003-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوق باشر الصبح نشتري خضرة وبعدين نرجع للبيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: ونشتري → نشتري"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هس.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.667,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SPACING: گلتلك → قلت لك",
+        "SUBSTITUTION: هسه → هس"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "بلتلك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: گلتلك → بلتلك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حاره. هواية انطيني شوية مي بارد.",
+      "cer": 0.057,
+      "coverage": {
+        "old": 0.714,
+        "new": 0.714
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.71 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي حار → الفاي حاره"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-female-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "بائر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «بائر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → بائر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حاره هواية. انطيني شوية مي بارد.",
+      "cer": 0.057,
+      "coverage": {
+        "old": 0.714,
+        "new": 0.714
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.71 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي حار → الفاي حاره"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باسر الصبح غاعد وياكم بالغهوة.",
+      "cer": 0.138,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: نگعد → غاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/msa-male-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باهر الصبح ان قعد وياكم بالغهوة.",
+      "cer": 0.138,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باهر",
+        "SUBSTITUTION: نگعد → ان قعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "غلتلك ماكو وقت. لازم نطلع هسي.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.667,
+        "new": 0.667
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.67 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: گلتلك → غلتلك",
+        "SUBSTITUTION: هسه → هسي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الزاية حارة هواية؟ انطيني شوية مي باردة.",
+      "cer": 0.114,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي حار → الزاية حارة",
+        "SUBSTITUTION: بارد → باردة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باشر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باشر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلتلك ماكو وقت. لازم نطلع حسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: هسه → حسه"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "هل زاي حار هواية؟ انطيني شوية مبارد.",
+      "cer": 0.143,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «هل زاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → هل زاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-female-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باشر الصبح نغاعد وياكم بالغهوة.",
+      "cer": 0.138,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: نگعد → نغاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسه وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلتلك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية؟ انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باهر الصبح نقعد وياكم بالقهوة.",
+      "cer": 0.034,
+      "coverage": {
+        "old": 0.8,
+        "new": 0.8
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "چ not confirmable by ASR: «باچر» heard «باهر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باهر"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الداي حار هواية، طيني شوية مبارد.",
+      "cer": 0.143,
+      "coverage": {
+        "old": 0.429,
+        "new": 0.429
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.43 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الداي",
+        "SUBSTITUTION: انطيني → طيني",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "renders/iraqi-male-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "بس للصبح نعد وياكم بالغهوة.",
+      "cer": 0.207,
+      "coverage": {
+        "old": 0.2,
+        "new": 0.2
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.20 < 0.85 (line)",
+        "CER 0.21 > 0.15"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر الصبح نگعد → بس للصبح نعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "var/iraqi-ab/anchor/anchor-L1.wav (not committed)",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "var/iraqi-ab/anchor/anchor-L2.wav (not committed)",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلتلك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "var/iraqi-ab/anchor/anchor-L3.wav (not committed)",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية، انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "var/iraqi-ab/anchor/anchor-L4.wav (not committed)",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results.json",
+      "item": "control reference (Habibi IRQ.wav, real speaker)",
+      "language": "AR",
+      "intended": "يعني ااا ما نقدر ناخذ وقت أكثر، ااا لأنه شروط كلش يحتاجلها وقت.",
+      "heard": "يعني ما نقدر ناخذ وقت أكثر لأنه شروط كلش يحتاج لها وقت.",
+      "cer": 0.089,
+      "coverage": {
+        "old": 0.75,
+        "new": 0.846
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.85 < 0.85 (line)"
+      ],
+      "diffs": [
+        "DELETION: ااا → ∅",
+        "DELETION: ااا → ∅",
+        "SPACING: يحتاجلها → يحتاج لها"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed msa-female-c1 (seeds/msa-female-c1-s4001-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed msa-female-c2 (seeds/msa-female-c2-s4002-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "وأضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0.012,
+      "coverage": {
+        "old": 0.938,
+        "new": 0.938
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: أضاءت → وأضاءت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed msa-male-c1 (seeds/msa-male-c1-s5001-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "اضاءت انوار الميناء واحدا تلو الاخر. ولم ينطق احد بكلمة. هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed msa-male-c2 (seeds/msa-male-c2-s5002-24k.wav)",
+      "language": "AR",
+      "intended": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود العبّارة؟",
+      "heard": "اضاءت انوار الميناء واحدا تلو الاخر ولم ينطق احد بكلمة هل ستبقى هنا حين تعود العبارة؟",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed iraqi-female-c1 (seeds/iraqi-female-c1-s4001-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "هونك اليوم الجو حار هواية. خلي نروح للسوق باكرا الصبح ونشتري خضرة وبعدين نرجع للبيت.",
+      "cer": 0.049,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: شلونك → هونك",
+        "SUBSTITUTION: باچر → باكرا"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed iraqi-female-c2 (seeds/iraqi-female-c2-s4002-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شلونك؟ اليوم الجو حار هواية. خلي نروح للسوق باتشار الصبح ونشتري خضرة. وبعدين نرجع البيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: باچر → باتشار",
+        "SUBSTITUTION: للبيت → البيت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed iraqi-male-c1 (seeds/iraqi-male-c1-s5002-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شونك؟ اليوم الجو حار هواية، خلي نروح للسوق باتر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: شلونك → شونك",
+        "SUBSTITUTION: باچر → باتر"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "seed iraqi-male-c2 (seeds/iraqi-male-c2-s5003-24k.wav)",
+      "language": "AR",
+      "intended": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "heard": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوق باشر الصبح نشتري خضرة وبعدين نرجع للبيت.",
+      "cer": 0.024,
+      "coverage": {
+        "old": 0.867,
+        "new": 0.867
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: ونشتري → نشتري"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو اكت لازم نطلع هسه.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.667,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SPACING: گلتلك → قلت لك",
+        "SUBSTITUTION: وقت → اكت"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "السايح حار وهواية. انطيني شوية مي بارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.714,
+        "new": 0.714
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "چ not confirmable by ASR: «الچاي» heard «السايح» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → السايح",
+        "SUBSTITUTION: هواية → وهواية"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حارة هواية. انطيني شوية مي بارد.",
+      "cer": 0.057,
+      "coverage": {
+        "old": 0.714,
+        "new": 0.714
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.71 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي حار → الفاي حارة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-female-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "فاسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.138,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → فاسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "يلتلك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: گلتلك → يلتلك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "بسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.138,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → بسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/msa-male-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "بائر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → بائر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو. هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "التلك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: گلتلك → التلك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باسر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باسر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هزا وصلت من الشغل.",
+      "cer": 0.077,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: هسه → هزا"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلتلك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية؟ انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-female-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باشر الصبح نقاعد وياكم بالغهوة.",
+      "cer": 0.103,
+      "coverage": {
+        "old": 0.4,
+        "new": 0.4
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "FAIL"
+      },
+      "reasons": [
+        "coverage 0.40 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باشر",
+        "SUBSTITUTION: نگعد → نقاعد",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c1-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسه وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c1-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلتلك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c1-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الزاي حار هواية، انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الزاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c1-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باير الصبح نقعد وياكم بالقهوة.",
+      "cer": 0.034,
+      "coverage": {
+        "old": 0.8,
+        "new": 0.8
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "چ not confirmable by ASR: «باچر» heard «باير» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باير"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c2-L1.wav",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c2-L2.wav",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "تلك ماكو وقت لازم نطلع هسه.",
+      "cer": 0.071,
+      "coverage": {
+        "old": 0.833,
+        "new": 0.833
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.83 < 0.85 (line)"
+      ],
+      "diffs": [
+        "SUBSTITUTION: گلتلك → تلك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c2-L3.wav",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مبارد.",
+      "cer": 0.086,
+      "coverage": {
+        "old": 0.571,
+        "new": 0.571
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.57 < 0.85 (line)",
+        "چ not confirmable by ASR: «الچاي» heard «الفاي» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي",
+        "SUBSTITUTION: مي بارد → مبارد"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "renders-h8/iraqi-male-c2-L4.wav",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باش الصبح نقعد وياكم بالقهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.8,
+        "new": 0.8
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "چ not confirmable by ASR: «باچر» heard «باش» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باش"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L1-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "شكو ماكو؟ هسه وصلت من الشغل.",
+      "heard": "شكو ماكو، هسا وصلت من الشغل.",
+      "cer": 0,
+      "coverage": {
+        "old": 1,
+        "new": 1
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      }
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L2-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "گلتلك ماكو وقت، لازم نطلع هسه.",
+      "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+      "cer": 0.036,
+      "coverage": {
+        "old": 0.833,
+        "new": 1
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SPACING: گلتلك → قلت لك"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L3-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "الچاي حار هواية، انطيني شوية مي بارد.",
+      "heard": "الفاي حار هواية. انطيني شوية مي بارد.",
+      "cer": 0.029,
+      "coverage": {
+        "old": 0.857,
+        "new": 0.857
+      },
+      "verdict": {
+        "old": "PASS",
+        "new": "PASS"
+      },
+      "diffs": [
+        "SUBSTITUTION: الچاي → الفاي"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "var/iraqi-ab/anchor/anchor-L4-h8.wav (not committed)",
+      "language": "AR",
+      "intended": "باچر الصبح نگعد وياكم بالگهوة.",
+      "heard": "باهر الصبح نقعد وياكم بالغهوة.",
+      "cer": 0.069,
+      "coverage": {
+        "old": 0.6,
+        "new": 0.6
+      },
+      "verdict": {
+        "old": "FAIL",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باهر» — a listener decides"
+      ],
+      "diffs": [
+        "SUBSTITUTION: باچر → باهر",
+        "SUBSTITUTION: بالگهوة → بالغهوة"
+      ]
+    },
+    {
+      "source": "iraqi-ab/results-h8.json",
+      "item": "control reference (Habibi IRQ.wav, real speaker)",
+      "language": "AR",
+      "intended": "يعني ااا ما نقدر ناخذ وقت أكثر، ااا لأنه شروط كلش يحتاجلها وقت.",
+      "heard": "يعني ما نقدر ناخذ وقت أكثر لأنه شروط كلش يحتاج لها وقت.",
+      "cer": 0.089,
+      "coverage": {
+        "old": 0.75,
+        "new": 0.846
+      },
+      "verdict": {
+        "old": "REVIEW",
+        "new": "REVIEW"
+      },
+      "reasons": [
+        "coverage 0.85 < 0.85 (line)"
+      ],
+      "diffs": [
+        "DELETION: ااا → ∅",
+        "DELETION: ااا → ∅",
+        "SPACING: يحتاجلها → يحتاج لها"
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import type { Character, StudioState } from '@/domain/types';
 /** The voice rule: a character who has spoken in a video keeps the voice; one who has not can still be given one. */
 
 const base = (): StudioState => seed();
+const CONSENT = { statement: 'MY_VOICE' as const, by: 'PRODUCER' as const, at: '2026-10-03T00:00:00.000Z' };
 const used = (s: StudioState): Character => s.characters.find((c) => c.usage?.known && c.usage.videos.length > 0 && c.voice.selectedSampleId)!;
 const unused = (s: StudioState): Character => s.characters.find((c) => c.usage?.known && c.usage.videos.length === 0)!;
 
@@ -33,10 +34,10 @@ describe('voice lock', () => {
     const s0 = base(); const c = used(s0);
     const s = addAsset(s0, { id: 'up-z', kind: 'AUDIO', src: '/api/media/up-z', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' }).state;
     const voiceless: StudioState = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, samples: [], selectedSampleId: undefined, identity: undefined } } : x)) };
-    const r = addVoiceSample(voiceless, c.id, { label: 'first', assetId: 'up-z', source: 'UPLOADED' }, true);
+    const r = addVoiceSample(voiceless, c.id, { label: 'first', assetId: 'up-z', source: 'UPLOADED', consent: CONSENT }, true);
     expect(r.state.characters.find((x) => x.id === c.id)!.voice.selectedSampleId).toBe(r.sample.id);
     const withProof = addVoiceSample(r.state, c.id, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED', text: 'hello' }).state;
-    expect(() => setVoiceIdentity(withProof, c.id, { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', referenceSampleId: r.sample.id, referenceAssetId: 'up-z', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } })).not.toThrow();
+    expect(() => setVoiceIdentity(withProof, c.id, { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', origin: 'UPLOAD_CONSENTED', referenceSampleId: r.sample.id, referenceAssetId: 'up-z', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } })).not.toThrow();
   });
 });
 
@@ -48,10 +49,10 @@ describe('voice lock by the chosen recording alone (finding 8)', () => {
     s = addAsset(s, { id: 'up-a', kind: 'AUDIO', src: '/api/media/up-a', label: 'A', tags: [], sample: false, origin: 'UPLOAD' }).state;
     s = addAsset(s, { id: 'up-b', kind: 'AUDIO', src: '/api/media/up-b', label: 'B', tags: [], sample: false, origin: 'UPLOAD' }).state;
     s = addAsset(s, { id: 'gen-proof', kind: 'AUDIO', src: '/api/media/gen-proof', label: 'proof', tags: [], sample: false, origin: 'GENERATED' }).state;
-    s = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, identity: undefined, selectedSampleId: 's-a', samples: [{ id: 's-a', label: 'A', assetId: 'up-a', source: 'UPLOADED' as const }, { id: 's-b', label: 'B', assetId: 'up-b', source: 'UPLOADED' as const }, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED' as const }] } } : x)) };
+    s = { ...s, characters: s.characters.map((x) => (x.id === c.id ? { ...x, voice: { ...x.voice, identity: undefined, selectedSampleId: 's-a', samples: [{ id: 's-a', label: 'A', assetId: 'up-a', source: 'UPLOADED' as const, consent: CONSENT }, { id: 's-b', label: 'B', assetId: 'up-b', source: 'UPLOADED' as const, consent: CONSENT }, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED' as const }] } } : x)) };
     return { s, id: c.id };
   };
-  const identity = (referenceSampleId: string | undefined, referenceAssetId: string | undefined) => ({ provider: 'LOCAL_TTS' as const, model: 'indextts', mode: 'REFERENCE' as const, referenceSampleId, referenceAssetId, language: 'EN' as const, params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } });
+  const identity = (referenceSampleId: string | undefined, referenceAssetId: string | undefined) => ({ provider: 'LOCAL_TTS' as const, model: 'indextts', mode: 'REFERENCE' as const, origin: 'UPLOAD_CONSENTED' as const, referenceSampleId, referenceAssetId, language: 'EN' as const, params: { speed: 1, emotionAlpha: 1 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'hello' } });
 
   it('the rule: only the chosen recording may be pinned; any other upload, or a catalogue voice, is VOICE_LOCKED', () => {
     const { s, id } = lockedToA();
@@ -64,7 +65,7 @@ describe('voice lock by the chosen recording alone (finding 8)', () => {
   it('setVoiceIdentity refuses an identity built from another upload, accepts the chosen one', () => {
     const { s, id } = lockedToA();
     expect(() => setVoiceIdentity(s, id, identity('s-b', 'up-b'))).toThrow(expect.objectContaining({ code: 'VOICE_LOCKED' }));
-    expect(() => setVoiceIdentity(s, id, { ...identity(undefined, undefined), provider: 'MINIMAX', mode: 'MANUAL', providerVoiceId: 'cat-1' })).toThrow(expect.objectContaining({ code: 'VOICE_LOCKED' }));
+    expect(() => setVoiceIdentity(s, id, { ...identity(undefined, undefined), provider: 'MINIMAX', origin: 'HOSTED', mode: 'MANUAL', providerVoiceId: 'cat-1' })).toThrow(expect.objectContaining({ code: 'VOICE_LOCKED' }));
     const ok = setVoiceIdentity(s, id, identity('s-a', 'up-a'));
     expect(ok.characters.find((x) => x.id === id)!.voice.identity).toMatchObject({ referenceSampleId: 's-a', revision: 1 });
   });
@@ -79,7 +80,13 @@ describe('voice lock by the chosen recording alone (finding 8)', () => {
     const bundled: StudioState = { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, selectedSampleId: 'v-bundled', samples: [...x.voice.samples, { id: 'v-bundled', label: 'bundled', assetId: 'up-a', source: 'SAMPLE' as const }] } } : x)) };
     const pre = preflightCharacter(bundled, bundled.characters.find((x) => x.id === id)!, 'VOICE_BUILD', { mode: 'AUTOMATIC' });
     expect(pre.ok).toBe(false);
-    expect(pre.checks.find((x) => x.name === 'uploaded-recording-present')!.detail).toMatch(/chosen recording/);
+    expect(pre.checks.find((x) => x.name === 'automatic-voice-source')!.detail).toMatch(/chosen recording/);
+    // the chosen recording without a consent statement: AUTOMATIC is not silently designed instead — CONSENT_REQUIRED
+    const unconsented: StudioState = { ...s, characters: s.characters.map((x) => (x.id === id ? { ...x, voice: { ...x.voice, samples: x.voice.samples.map((v) => ({ ...v, consent: undefined })) } } : x)) };
+    const pre2 = preflightCharacter(unconsented, unconsented.characters.find((x) => x.id === id)!, 'VOICE_BUILD', { mode: 'AUTOMATIC' });
+    expect(pre2.checks.find((x) => x.name === 'automatic-voice-source')).toMatchObject({ ok: false, failureClass: 'INVALID_INPUT', detail: expect.stringMatching(/consent statement/) });
+    // a design cannot re-voice a character locked by its chosen recording
+    expect(preflightCharacter(s, c, 'VOICE_DESIGN', {}).checks.find((x) => x.name === 'voice-unlocked')!.ok).toBe(false);
   });
 });
 

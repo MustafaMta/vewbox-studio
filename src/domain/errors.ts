@@ -8,6 +8,9 @@ export const STUDIO_ERROR_CODES = [
   /** A step needs a reference the producer adds (a usable picture for the look, an uploaded recording for the
    *  voice) and the one it has is missing or unusable. Never replaced silently by text or by a generated line. */
   'MISSING_REFERENCE',
+  /** A real person's recording without the producer's consent statement (docs/CONTRACTS-VOICE-IDENTITY-V2.md §1): the
+   *  upload is refused, and an older recording without one is never cloned from in a new build. */
+  'CONSENT_REQUIRED',
   'CONFLICT',
   'NOT_CONFIGURED',
   'PROVIDER',
@@ -41,6 +44,12 @@ export function missingReference(message: string, details: Record<string, unknow
   return new StudioError('MISSING_REFERENCE', message, { ...details, failureClass: 'MISSING_REFERENCE' });
 }
 
+/** A recording without the producer's consent statement: code CONSENT_REQUIRED, class INVALID_INPUT (a person must
+ *  confirm consent; an unchanged retry cannot succeed). */
+export function consentRequired(message: string, details: Record<string, unknown> = {}): StudioError {
+  return new StudioError('CONSENT_REQUIRED', message, { ...details, failureClass: 'INVALID_INPUT' });
+}
+
 /** A code read from somewhere else (a child job's stored error, a provider's answer) as a studio code: anything
  *  outside the union is a provider failure, never passed on as if it were one of ours. */
 export const asStudioErrorCode = (code: unknown, fallback: StudioErrorCode = 'PROVIDER'): StudioErrorCode => (isStudioErrorCode(code) ? code : fallback);
@@ -52,7 +61,8 @@ export function httpStatusFor(code: StudioErrorCode): number {
     case 'VOICE_LOCKED':
     case 'ASSET_PROTECTED': return 423;
     case 'INVALID':
-    case 'MISSING_REFERENCE': return 400;
+    case 'MISSING_REFERENCE':
+    case 'CONSENT_REQUIRED': return 400;
     case 'CONFLICT': return 409;
     case 'NOT_CONFIGURED': return 424;
     case 'PROVIDER': return 502;

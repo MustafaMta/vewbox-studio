@@ -1,11 +1,12 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
-import { StudioError } from './errors';
+import { StudioError, consentRequired, missingReference } from './errors';
 import { canonical } from './hash';
 import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
-import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage } from './rules';
+import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage, voiceBuildLockProblem } from './rules';
+import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -408,12 +409,14 @@ export function addVoiceSample(s: S, id: string, sample: Omit<VoiceSample, 'id'>
   // adding a line to listen to is always allowed; making it THE voice of a used character is not
   if (select && c.voice.selectedSampleId) guardVoiceChange(c, 'chosen recording');
   if (select && !isCloneSource(sample)) throw new StudioError('INVALID', 'Only an uploaded recording can be chosen as the voice; a generated line or a bundled sample cannot.', { source: sample.source });
-  const v: VoiceSample = { ...sample, id: sample.id ?? nid('voice') };
+  // a consent statement belongs to a real person's recording only
+  const { consent, ...rest } = sample;
+  const v: VoiceSample = { ...rest, ...(consent && sample.source === 'UPLOADED' ? { consent } : {}), id: sample.id ?? nid('voice') };
   return { state: writeCharacter(s, id, { voice: { ...c.voice, samples: [...c.voice.samples, v], selectedSampleId: select ? v.id : c.voice.selectedSampleId } }), sample: v };
 }
 
 /** The producer uploaded a recording: it must exist in the library as real audio (never a bundled sample). */
-export function addVoiceRecording(s: S, id: string, assetId: string, label: string, extra: Partial<Pick<VoiceSample, 'text' | 'language' | 'dialect' | 'durationSeconds' | 'provenance'>> = {}): S {
+export function addVoiceRecording(s: S, id: string, assetId: string, label: string, extra: Partial<Pick<VoiceSample, 'text' | 'language' | 'dialect' | 'durationSeconds' | 'provenance' | 'consent'>> = {}): S {
   const a = mustFind(s.assets, assetId, 'Asset');
   if (a.kind !== 'AUDIO' || a.sample) throw new StudioError('INVALID', 'A voice recording must be an uploaded audio file.', { assetId });
   return addVoiceSample(s, id, { label, assetId, source: 'UPLOADED', ...extra }).state;
@@ -423,7 +426,9 @@ export function addVoiceRecording(s: S, id: string, assetId: string, label: stri
 export function updateVoiceSample(s: S, id: string, sampleId: string, patch: Partial<Pick<VoiceSample, 'label' | 'text' | 'language' | 'dialect' | 'durationSeconds' | 'provenance'>>): S {
   const c = mustFind(s.characters, id, 'Character');
   mustFind(c.voice.samples, sampleId, 'Voice sample');
-  return writeCharacter(s, id, { voice: { ...c.voice, samples: c.voice.samples.map((x) => (x.id === sampleId ? { ...x, ...patch } : x)) } });
+  // the consent statement has its own command (confirmVoiceConsent); a correction of the words never writes it
+  const { consent: _consent, ...safe } = patch as typeof patch & { consent?: unknown }; void _consent;
+  return writeCharacter(s, id, { voice: { ...c.voice, samples: c.voice.samples.map((x) => (x.id === sampleId ? { ...x, ...safe } : x)) } });
 }
 
 export function removeVoiceSample(s: S, id: string, sampleId: string): S {
@@ -433,10 +438,31 @@ export function removeVoiceSample(s: S, id: string, sampleId: string): S {
   return writeCharacter(s, id, { voice: { ...c.voice, identity, samples: c.voice.samples.filter((x) => x.id !== sampleId), selectedSampleId: c.voice.selectedSampleId === sampleId ? undefined : c.voice.selectedSampleId } });
 }
 
-export type VoiceIdentityInput = Omit<VoiceIdentity, 'revision' | 'createdAt' | 'status'> & { status?: VoiceIdentity['status'] };
+export type VoiceIdentityInput = Omit<VoiceIdentity, 'revision' | 'createdAt' | 'status' | 'listening'> & { status?: VoiceIdentity['status'] };
+
+/** The tier of a designed seed (contract v2 §3): the pinned seed and its 48 kHz original are SECONDARY (the voice's
+ *  source sample); a seed no longer pinned goes back to RAW, like every unchosen candidate. Files stay. */
+function withSeedTiers(s: S, pinned: string[], retired: string[]): S {
+  const want = new Map<string, AssetTier>();
+  for (const a of retired) if (!pinned.includes(a)) want.set(a, 'RAW');
+  for (const a of pinned) want.set(a, 'SECONDARY');
+  if (![...want].some(([a, tier]) => s.assets.some((x) => x.id === a && x.tier !== tier))) return s;
+  return { ...s, assets: s.assets.map((x) => (want.has(x.id) && x.tier !== want.get(x.id) ? { ...x, tier: want.get(x.id) } : x)) };
+}
+
+const seedAssetsOf = (c: Character, identity: Pick<VoiceIdentity, 'origin' | 'designId' | 'referenceAssetId'> | undefined): string[] => {
+  if (identity?.origin !== 'DESIGNED' || !identity.referenceAssetId) return [];
+  const cand = c.voice.designs?.find((d) => d.id === identity.designId)?.candidates.find((x) => x.assetId === identity.referenceAssetId);
+  return [identity.referenceAssetId, ...(cand?.nativeAssetId ? [cand.nativeAssetId] : [])];
+};
 
 /** The character's one voice identity: set when the voice is built (after the proof line exists, in the same
- *  batch), bumped when rebuilt, refused for a voice-locked character. The only writer of `voice.identity`. */
+ *  batch), bumped when rebuilt, refused for a voice-locked character. The only writer of `voice.identity` (a
+ *  listening record and a consent confirmation append to it). Contract v2 §1: every identity names its ORIGIN —
+ *  UPLOAD_CONSENTED (the reference is an upload with a consent statement, copied onto the identity), DESIGNED (Rule
+ *  V-DESIGN: the reference is a candidate of a design record of this character and its sha256 is the record's; the
+ *  record is marked chosen), HOSTED (MiniMax). The dialect status starts UNVERIFIED for Arabic (only a listener moves
+ *  it) and the Iraqi designed-seed experiment is always REVIEW. */
 export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput): S {
   const c = mustFind(s.characters, id, 'Character');
   // a locked voice keeps its identity; a voice locked by its chosen recording alone may only be pinned to that one
@@ -444,20 +470,135 @@ export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput)
   if (!identity.proof?.sampleId || !identity.proof.assetId) throw new StudioError('INVALID', 'A voice identity needs its proof: the line that was spoken with it and heard back.', { characterId: id });
   const proof = c.voice.samples.find((x) => x.id === identity.proof!.sampleId);
   if (!proof || proof.assetId !== identity.proof.assetId || proof.source !== 'GENERATED') throw new StudioError('INVALID', 'The proof line must be a generated sample of this character, stored before the identity is pinned.', { characterId: id, sampleId: identity.proof.sampleId });
+  const origin = identity.origin;
+  if (!origin) throw new StudioError('INVALID', 'A voice identity names its origin: UPLOAD_CONSENTED (a consented recording), DESIGNED (a studio-designed voice) or HOSTED (MiniMax).', { characterId: id });
+  if (origin === 'GENERATED') throw new StudioError('INVALID', 'A generated line is never the origin of a voice.', { characterId: id });
+  if ((origin === 'HOSTED') !== (identity.provider === 'MINIMAX')) throw new StudioError('INVALID', 'A hosted (MiniMax) voice has the origin HOSTED, and only it does.', { characterId: id, origin, provider: identity.provider });
+  if (identity.dialectStatus === 'LISTENER_APPROVED' || identity.dialectStatus === 'LISTENER_REJECTED') throw new StudioError('INVALID', 'Only a listener’s record sets the dialect status (recordVoiceListening).', { characterId: id });
+  let consent: VoiceIdentity['consent'];
   if (identity.referenceSampleId) {
     const ref = c.voice.samples.find((x) => x.id === identity.referenceSampleId);
     if (!ref || !isCloneSource(ref)) throw new StudioError('INVALID', 'The reference of a voice identity must be an uploaded recording, never a generated line or a bundled sample.', { characterId: id, sampleId: identity.referenceSampleId });
     if (identity.referenceAssetId && identity.referenceAssetId !== ref.assetId) throw new StudioError('INVALID', 'The reference asset does not belong to the reference sample.', { characterId: id });
+    if (!isConsentedUpload(ref)) throw consentRequired(`“${ref.label}” has no consent statement; a voice is cloned only from a recording the producer confirmed is theirs or the speaker’s with permission.`, { characterId: id, sampleId: ref.id });
+    consent = ref.consent;
   }
-  if (identity.referenceAssetId) {
+  let design: { record: VoiceDesignRecord; candidate: VoiceDesignCandidate } | undefined;
+  if (origin === 'UPLOAD_CONSENTED' && !identity.referenceSampleId) throw new StudioError('INVALID', 'A recorded voice names the consented recording it was cloned from.', { characterId: id });
+  if (origin === 'DESIGNED') {
+    if (identity.referenceSampleId) throw new StudioError('INVALID', 'A designed voice is cloned from its design seed, never from a recording.', { characterId: id });
+    if (!identity.designId || !identity.seedSha256 || !identity.referenceAssetId) throw new StudioError('INVALID', 'A designed voice names its design record, its seed file and the seed’s sha256 (Rule V-DESIGN).', { characterId: id });
+    const a = mustFind(s.assets, identity.referenceAssetId, 'Asset');
+    if (a.kind !== 'AUDIO' || a.sample || !a.sha256) throw new StudioError('INVALID', 'A design seed is a stored audio file with its sha256.', { characterId: id, assetId: a.id });
+    const problem = designedSeedProblem(c, { designId: identity.designId, assetId: a.id, fileSha256: identity.seedSha256, assetSha256: a.sha256 });
+    if (problem) throw new StudioError('INVALID', `Rule V-DESIGN: ${problem}.`, { characterId: id, designId: identity.designId, assetId: a.id });
+    if (isIraqi(identity) && !designedIraqiOn(s.settings)) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id, designId: identity.designId });
+    const record = c.voice.designs!.find((d) => d.id === identity.designId)!;
+    design = { record, candidate: record.candidates.find((x) => x.assetId === a.id)! };
+  } else if (identity.referenceAssetId) {
     const a = mustFind(s.assets, identity.referenceAssetId, 'Asset');
     if (a.kind !== 'AUDIO' || a.sample || a.origin === 'GENERATED') throw new StudioError('INVALID', 'The reference of a voice identity must be an uploaded recording.', { assetId: identity.referenceAssetId });
   }
   if (identity.mode === 'MANUAL' && !identity.providerVoiceId) throw new StudioError('INVALID', 'A catalogue voice needs the provider’s voice id.');
-  const next: VoiceIdentity = { ...identity, status: identity.status ?? 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now() };
+  const experiment = origin === 'DESIGNED' && isIraqi(identity);
+  const { listening: _listening, ...rest } = identity as VoiceIdentityInput & { listening?: unknown }; void _listening;
+  const next: VoiceIdentity = {
+    ...rest,
+    // the designed-Iraqi experiment is never ACTIVE: its dialect is unverified by construction
+    status: experiment ? 'REVIEW' : identity.status ?? 'ACTIVE',
+    dialectStatus: initialDialectStatus(identity.language),
+    revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now(),
+  };
+  // what the identity says about its source is the source's, never the caller's
+  if (consent) next.consent = consent; else delete next.consent;
+  if (design) { next.designId = design.record.id; next.seedSha256 = design.candidate.sha256; } else { delete next.designId; delete next.seedSha256; }
   // the proof line is listened to, never spoken from: it is not the chosen recording
   const selectedSampleId = c.voice.selectedSampleId === next.proof!.sampleId ? undefined : c.voice.selectedSampleId;
-  return writeCharacter(s, id, { voice: { ...c.voice, identity: next, selectedSampleId } });
+  const designs = design ? c.voice.designs!.map((d) => (d.id === design!.record.id ? { ...d, chosen: design!.candidate.index, chosenBy: identity.mode === 'DESIGN' ? ('PRODUCER' as const) : ('AUTOMATIC' as const) } : d)) : c.voice.designs;
+  const written = writeCharacter(s, id, { voice: { ...c.voice, identity: next, selectedSampleId, ...(designs ? { designs } : {}) } });
+  return withSeedTiers(written, design ? seedAssetsOf({ ...c, voice: { ...c.voice, designs } }, next) : [], seedAssetsOf(c, c.voice.identity));
+}
+
+export type VoiceDesignRecordInput = Omit<VoiceDesignRecord, 'label' | 'chosen' | 'chosenBy' | 'createdAt'> & { createdAt?: string };
+
+/** A VOICE_DESIGN result is kept on the character (Rule V-DESIGN §1): written once, after its candidate files are
+ *  stored as assets, before anything is measured — so a later failure keeps the candidates and their record. Every
+ *  candidate must be a stored generated audio file whose sha256 is the record's and whose provenance names this
+ *  design. Refused for a voice-locked character (a design could not be used), and for an Iraqi character unless the
+ *  `allowDesignedIraqi` experiment is on. */
+export function addVoiceDesign(s: S, id: string, input: VoiceDesignRecordInput): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const lock = voiceBuildLockProblem(c, undefined);
+  if (lock) throw new StudioError('VOICE_LOCKED', `${lock} (voice design).`, { characterId: id });
+  if (input.characterId !== id) throw new StudioError('INVALID', 'The design record belongs to another character.', { characterId: id, recordCharacterId: input.characterId });
+  if (c.voice.designs?.some((d) => d.id === input.id)) throw new StudioError('CONFLICT', `Voice design ${input.id} already exists.`, { characterId: id, designId: input.id });
+  if (input.language !== c.language) throw new StudioError('INVALID', `The design speaks ${input.language}; ${c.name} speaks ${c.language}.`, { characterId: id });
+  if (input.candidates.length < 1 || input.candidates.length > 3) throw new StudioError('INVALID', 'A design has one to three candidates.', { characterId: id });
+  for (const cand of input.candidates) {
+    const a = mustFind(s.assets, cand.assetId, 'Asset');
+    if (a.kind !== 'AUDIO' || a.origin !== 'GENERATED' || a.sha256 !== cand.sha256 || a.provenance?.designId !== input.id) throw new StudioError('INVALID', `Rule V-DESIGN: candidate ${cand.index}'s stored file does not match the record (it must be this design's generated audio with the same sha256).`, { characterId: id, designId: input.id, assetId: a.id });
+  }
+  if (isIraqi(input)) {
+    if (!designedIraqiOn(s.settings)) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id });
+    if (input.experiment !== 'DESIGNED_IRAQI') throw new StudioError('INVALID', 'An Iraqi design is the designed-seed experiment and says so.', { characterId: id });
+  }
+  const record: VoiceDesignRecord = { ...input, label: DESIGN_LABEL, createdAt: input.createdAt ?? now() };
+  delete record.chosen; delete record.chosenBy;
+  return writeCharacter(s, id, { voice: { ...c.voice, designs: [...(c.voice.designs ?? []), record] } });
+}
+
+export interface VoiceDesignMeasurementPatch {
+  candidates: Array<Pick<VoiceDesignCandidate, 'index' | 'measured' | 'gate'> & Partial<Pick<VoiceDesignCandidate, 'previews' | 'similarityMean' | 'letterCoverageMean' | 'cerMean'>>>;
+  ranking?: number[]; rankedBy?: string; similarityModel?: string;
+}
+
+/** The measurements of a design's candidates (gates, previews through the line engine, ECAPA, the ranking). What a
+ *  candidate IS — its file, sha256, seed and length — is never rewritten; a design already pinned is not re-measured. */
+export function updateVoiceDesign(s: S, id: string, designId: string, patch: VoiceDesignMeasurementPatch): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const rec = mustFind(c.voice.designs ?? [], designId, 'Voice design');
+  if (rec.chosen !== undefined) throw new StudioError('CONFLICT', 'A pinned design keeps the measurements it was chosen on.', { characterId: id, designId });
+  for (const p of patch.candidates) {
+    if (!rec.candidates.some((x) => x.index === p.index)) throw new StudioError('INVALID', `Design ${designId} has no candidate ${p.index}.`, { characterId: id, designId });
+    for (const pv of p.previews ?? []) if (pv.assetId) { const a = mustFind(s.assets, pv.assetId, 'Asset'); if (a.kind !== 'AUDIO') throw new StudioError('INVALID', 'A preview is an audio file.', { assetId: a.id }); }
+  }
+  for (const i of patch.ranking ?? []) if (!rec.candidates.some((x) => x.index === i)) throw new StudioError('INVALID', `The ranking names a candidate ${i} the design does not have.`, { characterId: id, designId });
+  const next: VoiceDesignRecord = {
+    ...rec,
+    candidates: rec.candidates.map((x) => {
+      const p = patch.candidates.find((y) => y.index === x.index);
+      if (!p) return x;
+      return { ...x, measured: p.measured, gate: p.gate, ...(p.previews ? { previews: p.previews } : {}), ...(p.similarityMean !== undefined ? { similarityMean: p.similarityMean } : {}), ...(p.letterCoverageMean !== undefined ? { letterCoverageMean: p.letterCoverageMean } : {}), ...(p.cerMean !== undefined ? { cerMean: p.cerMean } : {}) };
+    }),
+    ...(patch.ranking ? { ranking: patch.ranking } : {}), ...(patch.rankedBy ? { rankedBy: patch.rankedBy } : {}), ...(patch.similarityModel ? { similarityModel: patch.similarityModel } : {}),
+  };
+  return writeCharacter(s, id, { voice: { ...c.voice, designs: (c.voice.designs ?? []).map((d) => (d.id === designId ? next : d)) } });
+}
+
+/** "I listened" (contract v2 §4): naturalness 1–5 and, for an Arabic voice, whether it sounds authentic; the dialect
+ *  status follows a listener's answer and nothing else. Allowed on a locked voice — listening changes nothing in it. */
+export function recordVoiceListening(s: S, id: string, rec: { natural: number; dialectAuthentic?: boolean; note?: string }): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const identity = c.voice.identity;
+  if (!identity) throw new StudioError('INVALID', `${c.name} has no voice to listen to yet; build the voice first.`, { characterId: id });
+  if (!Number.isInteger(rec.natural) || rec.natural < 1 || rec.natural > 5) throw new StudioError('INVALID', 'Naturalness is a whole number from 1 to 5.', { characterId: id });
+  if (rec.dialectAuthentic !== undefined && identity.language !== 'AR') throw new StudioError('INVALID', 'Accent and dialect are judged for Arabic voices.', { characterId: id });
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: withListening(identity, rec, now()) } });
+}
+
+/** The producer's consent for a recording uploaded before consent was recorded (contract v2 §1): the same statement
+ *  the upload page asks for. The recording does not change, so this is allowed on a locked voice; an identity pinned
+ *  from it before v2 becomes UPLOAD_CONSENTED. */
+export function confirmVoiceConsent(s: S, id: string, sampleId: string, statement: ConsentStatement): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const sm = mustFind(c.voice.samples, sampleId, 'Voice sample');
+  if (!isCloneSource(sm)) throw new StudioError('INVALID', 'Consent is recorded for an uploaded recording; a generated line or a bundled sample has none.', { characterId: id, sampleId });
+  if (!isConsentStatement(statement)) throw new StudioError('INVALID', 'The consent statement is MY_VOICE or SPEAKER_PERMISSION.', { characterId: id });
+  if (sm.consent?.statement === statement) return s;
+  const consent = { statement, by: 'PRODUCER' as const, at: now() };
+  const identity = c.voice.identity;
+  const upgraded = identity && !identity.origin && identity.provider === 'LOCAL_TTS' && identity.referenceSampleId === sampleId ? { ...identity, origin: 'UPLOAD_CONSENTED' as const, consent } : identity && identity.referenceSampleId === sampleId && identity.consent ? { ...identity, consent } : identity;
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: upgraded, samples: c.voice.samples.map((x) => (x.id === sampleId ? { ...x, consent } : x)) } });
 }
 
 /** Deleting a character keeps every picture it had; its canonical image is no longer canonical (RAW). */
@@ -708,5 +849,6 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
 // ---------------------------------------------------------------------------------------------------- settings
 
 export function updateSettings(s: S, patch: Partial<Settings>): S {
-  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) } } };
+  const voice = patch.voice || s.settings.voice ? { voice: { ...(s.settings.voice ?? {}), ...(patch.voice ?? {}) } } : {};
+  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) }, ...voice } };
 }

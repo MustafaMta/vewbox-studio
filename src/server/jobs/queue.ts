@@ -21,7 +21,7 @@ export function rowToJob(r: typeof schema.jobs.$inferSelect): Job {
 
 export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
 
-const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1 };
+const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 3, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1, VOICE_DESIGN: 2 };
 
 /** WORKER LANES — which concurrency pool runs a job. Most follow the resource they use (JOB_RESOURCE). Orchestrators
  *  spend their life waiting for their children: they get a lane of their own (review finding 10), so a waiting chain
@@ -32,7 +32,7 @@ export const laneOf = (type: JobType): Lane => (ORCHESTRATION_LANE.types.include
 
 /** Jobs that work on one character and must never run twice at once for it: a second request while one is active
  *  gets the active job back (created: false), whatever key it carries. */
-export const ONE_PER_CHARACTER: readonly JobType[] = ['VOICE_BUILD', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS'];
+export const ONE_PER_CHARACTER: readonly JobType[] = ['VOICE_BUILD', 'VOICE_DESIGN', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS'];
 
 /** Validate and insert. A matching idempotency key returns the existing job instead of a new one. */
 export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promise<{ job: Job; created: boolean }> {

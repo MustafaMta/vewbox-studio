@@ -3,7 +3,8 @@ import path from 'node:path';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { voiceLock } from '@/domain/rules';
-import type { VoiceSample } from '@/domain/types';
+import type { VoiceConsent, VoiceSample } from '@/domain/types';
+import { CONSENT_STATEMENTS, isConsentStatement } from '@/domain/voice-identity';
 import { DIALECTS, LANGUAGES, type Dialect, type Language } from '@/domain/vocabulary';
 import { commands, readState } from '@/server/studio/engine';
 import { adoptFile, assertSafeId, assetFromStored, removeFile, storeBuffer } from '@/server/media';
@@ -17,8 +18,13 @@ export const maxDuration = 300;
 /** A voice reference is a 3–30 s recording: even uncompressed 48 kHz stereo 24-bit that is under 9 MB. */
 const VOICE_REFERENCE_MAX_BYTES = 50 * 1024 * 1024;
 
-/** UPLOAD A VOICE REFERENCE — `POST /api/characters/:id/voice-reference`, multipart: `file` (audio), optional
+/** UPLOAD A VOICE REFERENCE — `POST /api/characters/:id/voice-reference`, multipart: `file` (audio), `consent`
+ *  (REQUIRED: `MY_VOICE` — "this is my voice" — or `SPEAKER_PERMISSION` — "the speaker gave me permission"), optional
  *  `label`, `transcript` (the producer's, kept over the transcription), `language`, `dialect`.
+ *
+ *  Contract v2 §1: without a consent statement the upload is refused `CONSENT_REQUIRED` (400) before the file is read;
+ *  the statement is stored on the sample as `{ statement, by: 'PRODUCER', at }` and copied onto any identity built
+ *  from it (origin UPLOAD_CONSENTED).
  *
  *  The recording is stored, measured by the one measurement stack (src/server/media/voice-check.ts: provenance — a
  *  file the studio's own engine made is refused BAD_FORMAT —, duration, sample rate, loudness, true peak, clipped
@@ -48,6 +54,14 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
 
   const refuse = (r: Refusal, validation?: Record<string, unknown>) => json({ ok: false, code: r.code, message: r.message, validation, error: { code: 'INVALID', message: r.message, details: { reason: r.code, validation } } }, { status: 400 });
 
+  // a real person's voice is taken only with the producer's statement (contract v2 §1): refused before anything is read
+  const statement = form.get('consent') ? String(form.get('consent')) : undefined;
+  if (!isConsentStatement(statement)) {
+    const message = 'Confirm the consent first: this is your own voice (MY_VOICE), or the speaker gave you permission to use theirs (SPEAKER_PERMISSION).';
+    return json({ ok: false, code: 'CONSENT_REQUIRED', message, error: { code: 'CONSENT_REQUIRED', message, details: { reason: 'CONSENT_REQUIRED', accepted: CONSENT_STATEMENTS } } }, { status: 400 });
+  }
+  const consent: VoiceConsent = { statement, by: 'PRODUCER', at: new Date().toISOString() };
+
   // a 3–30 s recording is a few MB: the size is refused before the body is read into memory (finding 18)
   if (file.size > VOICE_REFERENCE_MAX_BYTES) return refuse({ code: 'TOO_LONG', message: `The file is ${(file.size / 1024 / 1024).toFixed(0)} MB — far more than a 3–30 second recording; a voice reference is at most ${VOICE_REFERENCE_MAX_BYTES / 1024 / 1024} MB.` });
   const assetId = nid('up');
@@ -68,7 +82,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
     const sampleId = nid('voice');
     // the first real recording of a character with no voice becomes the voice; a locked voice is never touched
     const select = !c.voice.selectedSampleId && !c.voice.identity && !voiceLock(c).locked;
-    const sample: Omit<VoiceSample, 'id'> & { id: string } = { id: sampleId, label, assetId, source: 'UPLOADED', text, language: heard === 'UNKNOWN' ? language : heard, dialect, durationSeconds: stored.probe?.durationSeconds, provenance: { validation: measured.validation, trimmedAssetId: trimmedId, window: measured.window, transcriptBy: transcript ? 'PRODUCER' : 'ASR', gainDb: measured.gainDb } };
+    const sample: Omit<VoiceSample, 'id'> & { id: string } = { id: sampleId, label, assetId, source: 'UPLOADED', consent, text, language: heard === 'UNKNOWN' ? language : heard, dialect, durationSeconds: stored.probe?.durationSeconds, provenance: { validation: measured.validation, trimmedAssetId: trimmedId, window: measured.window, transcriptBy: transcript ? 'PRODUCER' : 'ASR', gainDb: measured.gainDb } };
     await commands([
       { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — ${label}`, tags: ['voice', 'recording', 'reference'], origin: 'UPLOAD', provenance: { originalName: file.name.slice(0, 200), characterId: c.id, validation: measured.validation, measurement: { clipping: measured.measurement.clipping, speechSeconds: measured.measurement.speechSeconds, loudnessRange: measured.measurement.loudnessRange, codec: measured.measurement.codec } } })] },
       { name: 'addAsset', args: [assetFromStored(trimmedId, trimmed, { label: `${c.name} — ${label} (reference window ${measured.window.from}–${measured.window.to} s)`, tags: ['voice', 'reference', 'window'], origin: 'DERIVED', provenance: { from: assetId, characterId: c.id, window: measured.window, gainDb: measured.gainDb, targetLufs: -20, sampleRate: 24000 } })] },

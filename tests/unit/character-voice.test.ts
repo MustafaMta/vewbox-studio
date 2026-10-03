@@ -18,12 +18,12 @@ const cmd = <K extends Command['name']>(name: K, args: Command<K>['args']): Comm
 function withUpload(s: StudioState = seed(), id = 'nour') {
   let st = addAsset(s, { id: 'up-ref', kind: 'AUDIO', src: '/api/media/up-ref', label: 'ref.wav', tags: [], sample: false, origin: 'UPLOAD', durationSeconds: 6.8 }).state;
   st = addAsset(st, { id: 'gen-proof', kind: 'AUDIO', src: '/api/media/gen-proof', label: 'proof', tags: [], sample: false, origin: 'GENERATED', durationSeconds: 3.3 }).state;
-  st = addVoiceRecording(st, id, 'up-ref', 'Studio take', { text: 'hello there, this is my voice' });
+  st = addVoiceRecording(st, id, 'up-ref', 'Studio take', { text: 'hello there, this is my voice', consent: { statement: 'MY_VOICE', by: 'PRODUCER', at: '2026-10-03T00:00:00.000Z' } });
   const uploaded = ch(st, id).voice.samples.at(-1)!;
   st = addVoiceSample(st, id, { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED', text: 'Hello. My name is Nour.' }).state;
   return { state: st, uploaded };
 }
-const identityInput = (uploadedId: string): VoiceIdentityInput => ({ provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', referenceSampleId: uploadedId, referenceAssetId: 'up-ref', language: 'EN', params: { speed: 1, emotionAlpha: 1, seed: 7 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'Hello. My name is Nour.', coverage: 1 }, jobId: 'job-1' });
+const identityInput = (uploadedId: string): VoiceIdentityInput => ({ provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', origin: 'UPLOAD_CONSENTED', referenceSampleId: uploadedId, referenceAssetId: 'up-ref', language: 'EN', params: { speed: 1, emotionAlpha: 1, seed: 7 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'Hello. My name is Nour.', coverage: 1 }, jobId: 'job-1' });
 
 describe('addCharacter (validated by the command schema)', () => {
   const base: CharacterInput = { name: 'Zeina', role: 'x', style: 'CARTOON', sex: 'FEMALE', ageYears: 20, build: '', face: '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: '', language: 'EN' };

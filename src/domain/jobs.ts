@@ -26,6 +26,7 @@ export const JOB_TYPES = [
   'EPISODE_CONTINUITY', // a finished episode → the show's timeline, relationships and open storylines (Continuity Writer)
   'DESIGN_CHARACTER',   // a one-line brief → a fully designed character record (Casting)
   'CREATE_CHARACTER',   // orchestrate: design (when fields are missing) → appearance → reference sheet → voice (Casting Director)
+  'VOICE_DESIGN',       // character + description → 3 designed candidate voices, measured and previewed through the line engine
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
@@ -104,12 +105,19 @@ export const JOB_PAYLOADS = {
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
   GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional(), /** make the new take the shot's choice when it passes its checks, replacing the current one (a re-record the producer asked for) */ select: z.boolean().optional() }),
-  /** REFERENCE clones from that validated upload; AUTOMATIC picks the best validated upload (none → MISSING_REFERENCE);
-   *  MANUAL is a hosted catalogue voice (NOT_CONFIGURED without a key). The enqueue path derives the idempotency key
-   *  `VOICE_BUILD:${characterId}:${revision}`. */
-  VOICE_BUILD: z.object({ characterId: id, mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL']).default('AUTOMATIC'), referenceSampleId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional(), providerVoiceId: z.string().max(200).optional() })
+  /** docs/CONTRACTS-VOICE-IDENTITY-V2.md §2. REFERENCE clones from that validated, consented upload. AUTOMATIC: a
+   *  consented recording when there is one, otherwise EN/MSA are designed from the profile (VOICE_DESIGN's pipeline in
+   *  the same job → gates → line-engine previews → pick) and Iraqi is refused MISSING_REFERENCE (the experiment switch
+   *  `allowDesignedIraqi` aside). DESIGN pins the producer's chosen candidate of a design record. MANUAL is a hosted
+   *  catalogue voice (NOT_CONFIGURED without a key). The enqueue path derives the key `VOICE_BUILD:${characterId}:${revision}`. */
+  VOICE_BUILD: z.object({ characterId: id, mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL', 'DESIGN']).default('AUTOMATIC'), referenceSampleId: id.optional(), provider: z.enum(['LOCAL_TTS', 'MINIMAX']).optional(), providerVoiceId: z.string().max(200).optional(), designId: id.optional(), candidate: z.number().int().min(1).max(3).optional() })
     .refine((p) => p.mode !== 'REFERENCE' || Boolean(p.referenceSampleId), { message: 'REFERENCE mode needs referenceSampleId', path: ['referenceSampleId'] })
-    .refine((p) => p.mode !== 'MANUAL' || Boolean(p.providerVoiceId), { message: 'MANUAL mode needs providerVoiceId', path: ['providerVoiceId'] }),
+    .refine((p) => p.mode !== 'MANUAL' || Boolean(p.providerVoiceId), { message: 'MANUAL mode needs providerVoiceId', path: ['providerVoiceId'] })
+    .refine((p) => p.mode !== 'DESIGN' || (Boolean(p.designId) && p.candidate !== undefined), { message: 'DESIGN mode needs designId and candidate', path: ['designId'] }),
+  /** Manual design (contract v2 §2 DESIGN): the producer's description (absent: written from the profile) → three
+   *  candidates speaking the calibration sentence, each measured (CER, loudness, true peak, clipping, ≤ 11.5 s) and
+   *  heard through the line engine; the producer then builds with VOICE_BUILD { mode: 'DESIGN', designId, candidate }. */
+  VOICE_DESIGN: z.object({ characterId: id, description: z.string().trim().min(3).max(300).optional(), text: z.string().trim().min(10).max(400).optional(), seed: z.number().int().min(0).max(2 ** 31 - 4).optional(), n: z.number().int().min(1).max(3).optional() }),
   VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), force: z.boolean().optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
@@ -148,6 +156,7 @@ export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
   EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM', CREATE_CHARACTER: 'CPU',
+  VOICE_DESIGN: 'GPU',
 };
 
 /** Readable names for the activity page. */
@@ -172,6 +181,7 @@ export const JOB_LABELS: Record<JobType, { en: string; ar: string }> = {
   EPISODE_CONTINUITY: { en: 'Record the episode in the story bible', ar: 'تسجيل الحلقة في سجل القصة' },
   DESIGN_CHARACTER: { en: 'Design a character', ar: 'تصميم شخصية' },
   CREATE_CHARACTER: { en: 'Create a character', ar: 'إنشاء شخصية' },
+  VOICE_DESIGN: { en: 'Design a voice', ar: 'تصميم صوت' },
 };
 
 /** The steps of CREATE_CHARACTER and what each one reported (contract §1.1). */

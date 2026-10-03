@@ -127,6 +127,23 @@ export const TranscribeOutput = z.looseObject({
   segments: z.array(z.looseObject({ start: z.number(), end: z.number(), text: z.string(), words: z.array(z.looseObject({ start: z.number(), end: z.number(), word: z.string(), probability: z.number() })).optional() })),
   ms: z.number(), model: z.string(),
 });
+/** designVoice() (src/server/providers/voice-design.ts): a description only, no audio in (Rule V-DESIGN). */
+export const DesignVoiceInput = z.object({
+  description: z.string().min(1).max(300), text: z.string().min(1).max(1000), language: z.enum(['EN', 'AR']),
+  seed: z.number().int().nonnegative().optional(), n: z.number().int().min(1).max(3).optional(), cfgValue: z.number().optional(), inferenceTimesteps: z.number().int().optional(),
+  designId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(), loudnessTarget: z.number().min(-30).max(-12).optional(),
+});
+const designFile = z.looseObject({ file: file.optional(), sampleRate: z.number().int().positive(), durationSeconds: z.number().positive(), bytes: z.number().int().positive(), sha256: z.string().regex(/^[0-9a-f]{64}$/), truePeakDbtp: z.number().nullable(), lufs: z.number().nullable(), clippedSamples: z.number().int().nonnegative() });
+/** designVoice()'s result: every candidate's 48 kHz original and 24 kHz reference (hash-checked by the client), its
+ *  ECAPA embedding when the encoder is present, and the pairwise similarity. */
+export const DesignVoiceOutput = z.looseObject({
+  designId: z.string().min(1), engine: z.string().min(1), model: z.string(), engineVersion: z.string().min(1), language: z.enum(['EN', 'AR']),
+  description: z.string(), text: z.string(), seed: z.number().int(), seeds: z.array(z.number().int()).min(1).max(3), params: z.record(z.string(), z.number()), ms: z.number(),
+  candidates: z.array(z.looseObject({ index: z.number().int().positive(), seed: z.number().int(), generationMs: z.number(), native: designFile, reference: designFile, embedding: z.array(z.number()).length(192).optional() })).min(1).max(3),
+  similarity: z.array(z.array(z.number())).nullable(), label: z.string(),
+});
+/** embedVoice(): the 192-d ECAPA vector of a recording (CPU, in the design service). */
+export const EmbedVoiceOutput = z.looseObject({ embedding: z.array(z.number()).length(192), model: z.string().min(1), version: z.string(), durationSeconds: z.number().positive() });
 export const StemsInput = z.object({ file, outDir: file });
 export const StemsOutput = z.looseObject({ files: z.record(z.string(), z.string()), ms: z.number(), model: z.string() });
 
@@ -189,7 +206,7 @@ export interface ToolContract {
 /** The named schemas, so a ToolDef's `inputSchema`/`outputSchema` names a real schema (a test checks it). */
 export const SCHEMAS: Record<string, z.ZodType> = {
   StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, SynthesizeInput, SynthesizeOutput,
-  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
+  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
 };
@@ -203,6 +220,8 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'speech.synthesize': { input: SynthesizeInput, output: SynthesizeOutput },
   'speech.clone_voice': { input: CloneVoiceInput, output: CloneVoiceOutput },
   'speech.transcribe': { input: TranscribeInput, output: TranscribeOutput },
+  'speech.design_voice': { input: DesignVoiceInput, output: DesignVoiceOutput },
+  'speech.embed_voice': { input: FileInput, output: EmbedVoiceOutput },
   'audio.separate_stems': { input: StemsInput, output: StemsOutput },
   'music.generate': { input: MusicInput, output: MusicOutput },
   'media.probe': { input: FileInput, output: ProbeOutput },
