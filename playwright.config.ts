@@ -1,12 +1,17 @@
 import { defineConfig, devices, type Project } from '@playwright/test';
+import { TEST_PORT } from './src/server/test-guard';
 
-/** BROWSER TESTS against the running studio (web + database). One worker: every test resets the shared sample
- *  studio through the API, so tests must not overlap. Set BASE_URL to test a production build or the Docker stack.
+const BASE = process.env.STUDIO_URL || `http://127.0.0.1:${TEST_PORT}`;
+process.env.STUDIO_URL = BASE; // the helpers read it
+
+/** BROWSER TESTS against an ISOLATED test studio (docs/BACKEND-AUDIT-2026-10.md C3): `scripts/test-server.ts` on
+ *  http://127.0.0.1:4210 with its own database (`vewbox_test`, never the live `vewbox`) and a scratch library. One
+ *  worker: every test resets the test studio to the sample fixture through the API, so tests must not overlap.
  *
- *  The sample studio is a test fixture: the server loads it (POST /api/studio/reset {"kind":"sample"}) only when it
- *  runs with STUDIO_SAMPLE_FIXTURE=1. The server started here gets it; a server you started yourself (or one that is
- *  reused on :4200) needs it in its environment, e.g. `$env:STUDIO_SAMPLE_FIXTURE='1'; pnpm dev`. Without it every
- *  test fails at its first reset with the server's NOT_CONFIGURED answer.
+ *  STUDIO_URL points the suite elsewhere (a production build, the Docker stack) — but only at a TEST server: the global
+ *  setup (tests/e2e/global-setup.ts) refuses any server whose /api/health does not report `testServer: true`
+ *  (VEWBOX_ALLOW_RESET=1 on a database that is not `vewbox`), and that server refuses every reset anyway. The
+ *  producer's studio on :4200 is never a target.
  *
  *  The `journeys` project (tests/e2e/journeys, the wave-2 acceptance scenarios) runs only through
  *  scripts/qa-journeys.mjs (QA_JOURNEYS=1): it drives real generation when QA_GPU=1 (`@gpu` titles), needs the
@@ -31,8 +36,10 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
-  webServer: process.env.STUDIO_URL ? undefined : { command: 'pnpm dev', env: { STUDIO_SAMPLE_FIXTURE: '1' }, url: 'http://localhost:4200/api/health', reuseExistingServer: true, timeout: 180_000 },
-  use: { baseURL: process.env.STUDIO_URL || 'http://localhost:4200', trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
+  globalSetup: './tests/e2e/global-setup.ts',
+  // the isolated test server; a server already on :4210 is reused only if it is a test server (global setup checks)
+  webServer: BASE === `http://127.0.0.1:${TEST_PORT}` ? { command: 'pnpm test:server', url: `${BASE}/api/health`, reuseExistingServer: true, timeout: 180_000 } : undefined,
+  use: { baseURL: BASE, trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, grepInvert: /@mobile/, testIgnore: /journeys[\\/]/ },
     { name: 'mobile', use: { ...devices['Pixel 7'] }, grep: /@mobile/, testIgnore: /journeys[\\/]/ },

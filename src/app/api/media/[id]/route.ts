@@ -3,13 +3,14 @@ import fsp from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/server/db/client';
-import { assertSafeId, fileFor } from '@/server/media';
+import { assertSafeId, realFileFor } from '@/server/media';
 import { errorResponse } from '@/server/http';
 
 export const dynamic = 'force-dynamic';
 
 /** Serve a library file with HTTP Range support, so video and audio seek. Paths come from the asset row, never from
- *  the URL; the id is validated before it touches the database. */
+ *  the URL; the id is validated before it touches the database; the stored path must name a file strictly inside its
+ *  root, and so must its real path once symlinks and junctions are resolved (realFileFor, src/server/media.ts). */
 async function lookup(id: string) {
   assertSafeId(id);
   const rows = await db().select({ id: schema.assets.id, storage: schema.assets.storage, path: schema.assets.path, mimeType: schema.assets.mimeType, kind: schema.assets.kind, label: schema.assets.label, thumb: schema.assets.thumb }).from(schema.assets).where(eq(schema.assets.id, id));
@@ -18,10 +19,12 @@ async function lookup(id: string) {
 
 /** `?thumb=1` on a picture that has its display-size derivative (B7): that JPEG beside the original; otherwise the
  *  original itself, so an <img> never breaks on a picture made before thumbnails existed. */
-function fileAndType(req: Request, a: NonNullable<Awaited<ReturnType<typeof lookup>>>): { file: string; type: string } {
+async function fileAndType(req: Request, a: NonNullable<Awaited<ReturnType<typeof lookup>>>): Promise<{ file: string; type: string } | null> {
   const wantThumb = new URL(req.url).searchParams.get('thumb') === '1';
-  if (wantThumb && a.thumb?.path && a.storage === 'LIBRARY') return { file: fileFor({ storage: a.storage, path: a.thumb.path }), type: 'image/jpeg' };
-  return { file: fileFor(a), type: a.mimeType ?? 'application/octet-stream' };
+  const real = (where: { storage: string; path: string }) => realFileFor(where).catch((e: NodeJS.ErrnoException) => { if (e?.code === 'ENOENT' || e?.code === 'ENOTDIR') return null; throw e; });
+  if (wantThumb && a.thumb?.path && a.storage === 'LIBRARY') { const file = await real({ storage: a.storage, path: a.thumb.path }); return file ? { file, type: 'image/jpeg' } : null; }
+  const file = await real(a);
+  return file ? { file, type: a.mimeType ?? 'application/octet-stream' } : null;
 }
 
 const safeName = (s: string) => s.replace(/[^\w.\- ]+/g, '_').slice(0, 120);
@@ -31,9 +34,11 @@ export async function HEAD(_req: Request, ctx: { params: Promise<{ id: string }>
     const { id } = await ctx.params;
     const a = await lookup(id);
     if (!a) return new Response(null, { status: 404 });
-    const { file, type } = fileAndType(_req, a);
+    const found = await fileAndType(_req, a);
+    if (!found) return new Response(null, { status: 404 });
+    const { file, type } = found;
     const st = await fsp.stat(file).catch(() => null);
-    if (!st) return new Response(null, { status: 404 });
+    if (!st || !st.isFile()) return new Response(null, { status: 404 });
     return new Response(null, { status: 200, headers: { 'Content-Length': String(st.size), 'Content-Type': type, 'Accept-Ranges': 'bytes' } });
   } catch (e) { return errorResponse(e); }
 }
@@ -43,7 +48,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const { id } = await ctx.params;
     const a = await lookup(id);
     if (!a) return new Response('Not found', { status: 404 });
-    const { file, type } = fileAndType(req, a);
+    const found = await fileAndType(req, a);
+    if (!found) return new Response('File missing', { status: 404 });
+    const { file, type } = found;
     const st = await fsp.stat(file).catch(() => null);
     if (!st || !st.isFile()) return new Response('File missing', { status: 404 });
     const download = new URL(req.url).searchParams.get('download');

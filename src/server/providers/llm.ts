@@ -3,6 +3,7 @@ import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { log } from '../log';
 import { dropNulls } from '../story/lenient';
+import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE STORY ENGINE'S LANGUAGE MODEL — one small interface over three hosted/local backends:
  *  - MiniMax text (M3) through its Anthropic-compatible messages endpoint (the same MiniMax key as video);
@@ -44,6 +45,8 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
   const timeoutMs = opts.timeoutMs ?? 300_000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // a stopped job (cancel, deadline, lost lease) aborts the request with its own reason (src/server/jobs/context.ts)
+  const unlink = followJobSignal(ctrl);
   try {
     if (cfg.provider === 'minimax' || cfg.provider === 'anthropic') {
       const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
@@ -63,10 +66,11 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
     const text = json.choices?.[0]?.message?.content ?? '';
     return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0 };
   } catch (e) {
+    if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     if ((e as Error).name === 'AbortError') throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model} timed out after ${Math.round(timeoutMs / 1000)} s`);
     if (e instanceof StudioError) throw e;
     throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${(e as Error).message}`);
-  } finally { clearTimeout(timer); }
+  } finally { clearTimeout(timer); unlink(); }
 }
 
 /** Pull the first JSON object or array out of a model answer (tolerates code fences and <think> blocks). */

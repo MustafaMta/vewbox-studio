@@ -4,6 +4,7 @@ import { nid } from '@/domain/ids';
 import { canonical, hashString } from '@/domain/hash';
 import { diffWorld, hashWorld, scopeKey } from '@/domain/world';
 import { db, schema } from '../db/client';
+import { assertLeaseHeld, fenced } from '../jobs/fence';
 
 /** WORLD BIBLE STORAGE — append-only rows (src/server/db/schema.ts): revisions per scope, pins per production, reads
  *  per take, audio timelines per production. Nothing here updates or deletes a row. Writes that number a sequence
@@ -36,6 +37,7 @@ export async function appendRevision(scope: WorldScope, build: (latest: WorldRev
   const key = scopeKey(scope);
   return db().transaction(async (tx) => {
     await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${`world:${key}`}))`);
+    await assertLeaseHeld(tx, 'world revision');
     const rows = await tx.select().from(schema.worldRevisions).where(eq(schema.worldRevisions.scopeKey, key)).orderBy(desc(schema.worldRevisions.number)).limit(1);
     const latest = rows[0] ? toRevision(rows[0]) : undefined;
     const next = build(latest);
@@ -59,12 +61,12 @@ export async function pinHistory(productionId: string): Promise<WorldPin[]> {
 
 export async function appendPin(pin: Omit<WorldPin, 'id' | 'createdAt'>): Promise<WorldPin> {
   const row: PinRow = { id: nid('wpin'), productionId: pin.productionId, revisionId: pin.revisionId, revisionNumber: pin.revisionNumber, scopeKey: pin.scopeKey, reason: pin.reason, approvalId: pin.approvalId ?? null, diff: pin.diff, by: pin.by, jobId: pin.jobId ?? null, createdAt: new Date().toISOString() };
-  await db().insert(schema.worldPins).values(row);
+  await fenced('world pin', (tx) => tx.insert(schema.worldPins).values(row));
   return toPin(row);
 }
 
 export async function recordWorldRead(r: { productionId: string; read: WorldRead; jobId?: string; jobType: string; shotId?: string; takeId?: string }): Promise<void> {
-  await db().insert(schema.worldReads).values({ productionId: r.productionId, revisionId: r.read.revisionId, revisionNumber: r.read.revisionNumber, pinned: r.read.pinned, jobId: r.jobId ?? null, jobType: r.jobType, shotId: r.shotId ?? null, takeId: r.takeId ?? null, read: r.read, createdAt: new Date().toISOString() });
+  await fenced('world read', (tx) => tx.insert(schema.worldReads).values({ productionId: r.productionId, revisionId: r.read.revisionId, revisionNumber: r.read.revisionNumber, pinned: r.read.pinned, jobId: r.jobId ?? null, jobType: r.jobType, shotId: r.shotId ?? null, takeId: r.takeId ?? null, read: r.read, createdAt: new Date().toISOString() }));
 }
 
 export async function worldReads(filter: { takeId?: string; productionId?: string }): Promise<Array<{ productionId: string; revisionId: string; revisionNumber: number; pinned: boolean; jobType: string; shotId: string | null; takeId: string | null; read: WorldRead }>> {
@@ -77,6 +79,7 @@ export async function saveAudioTimeline(productionId: string, timeline: Record<s
   const hash = hashString(canonical(timeline));
   return db().transaction(async (tx) => {
     await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${`audio-timeline:${productionId}`}))`);
+    await assertLeaseHeld(tx, 'audio timeline');
     const rows = await tx.select({ revision: schema.audioTimelines.revision, hash: schema.audioTimelines.hash }).from(schema.audioTimelines).where(eq(schema.audioTimelines.productionId, productionId)).orderBy(desc(schema.audioTimelines.revision)).limit(1);
     if (rows[0]?.hash === hash) return { revision: rows[0].revision, created: false };
     const revision = (rows[0]?.revision ?? 0) + 1;
