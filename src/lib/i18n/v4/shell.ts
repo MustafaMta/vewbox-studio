@@ -119,6 +119,12 @@ export const shell = {
   'shell.palette.describePlace': ['Describe the place', 'صِف المكان'],
   'shell.palette.decide.stage': ['{stage} of {title}', '{stage} لـ«{title}»'],
   'shell.palette.decide.image': ['Picture of {name}', 'صورة {name}'],
+  // B8: the other kinds of decision (docs/CONTRACTS-REDESIGN-BACKEND.md)
+  'shell.palette.kind.review': ['Review', 'راجع'],
+  'shell.palette.decide.line': ['1 line to hear again in {title}', 'سطر واحد لسماعه مجددًا في «{title}»'],
+  'shell.palette.decide.lines': ['{n} lines to hear again in {title}', '{n} أسطر لسماعها مجددًا في «{title}»'],
+  'shell.palette.decide.take': ['Take to review in {title}', 'لقطة للمراجعة في {title}'],
+  'shell.palette.decide.pass': ['Production pass of {title}', 'جولة إنتاج «{title}»'],
   'shell.palette.contrastMore': ['Contrast: More', 'التباين: أعلى'],
   'shell.palette.contrastStandard': ['Contrast: Standard', 'التباين: عادي'],
   'shell.palette.motionOn': ['Reduce motion: On', 'تقليل الحركة: تشغيل'],

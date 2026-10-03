@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
@@ -249,8 +249,33 @@ export function setShotContinuity(s: S, productionId: string, shotId: string, co
 export function selectTake(s: S, productionId: string, shotId: string, takeId: string | undefined): S {
   return withProduction(s, productionId, (p) => {
     const sh = mustFind(p.shots, shotId, 'Shot');
-    if (takeId) { const t = mustFind(sh.takes, takeId, 'Take'); if (t.status === 'REJECTED') throw new StudioError('INVALID', 'A rejected take cannot be chosen for the cut.'); }
+    if (takeId) {
+      const t = mustFind(sh.takes, takeId, 'Take');
+      if (t.status === 'REJECTED') throw new StudioError('INVALID', 'A rejected take cannot be chosen for the cut.', { takeId, by: 'status' });
+      if (t.rating === 'REJECTED') throw new StudioError('INVALID', `This take was rejected${t.ratingReason ? ` (${t.ratingReason})` : ''}; a rejected take cannot be chosen for the cut.`, { takeId, by: 'rating' });
+    }
     return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) };
+  });
+}
+
+/** THE PRODUCER'S JUDGEMENT on a take (docs/CONTRACTS-REDESIGN-BACKEND.md B5): GOOD, REJECTED (with an optional
+ *  reason), or `null` to withdraw it. Rejecting never deletes: the take, its file and its provenance stay as the
+ *  record of what was tried; it only leaves the cut (it is deselected and `selectTake` refuses it). A take the
+ *  inspectors rejected (`status: REJECTED`) cannot be called good. Who and when are recorded; the same judgement
+ *  again changes nothing. */
+export function rateTake(s: S, productionId: string, shotId: string, takeId: string, rating: TakeRating | null, opts: { reason?: string; by?: string } = {}): S {
+  return withProduction(s, productionId, (p) => {
+    const sh = mustFind(p.shots, shotId, 'Shot');
+    const t = mustFind(sh.takes, takeId, 'Take');
+    if (rating !== null && rating !== 'GOOD' && rating !== 'REJECTED') throw new StudioError('INVALID', 'A take is rated GOOD or REJECTED.', { takeId, rating });
+    if (rating === 'GOOD' && t.status === 'REJECTED') throw new StudioError('INVALID', 'This take failed its checks or was rejected; it cannot be called good.', { takeId });
+    const reason = rating === null ? undefined : opts.reason?.trim() || undefined;
+    if ((t.rating ?? null) === rating && (t.ratingReason ?? undefined) === reason) return p;
+    const judged: Take = rating === null
+      ? { ...t, rating: undefined, ratingReason: undefined, ratedBy: undefined, ratedAt: undefined }
+      : { ...t, rating, ratingReason: reason, ratedBy: opts.by?.trim() || 'producer', ratedAt: now() };
+    const selectedTakeId = rating === 'REJECTED' && sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId;
+    return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId, takes: x.takes.map((y) => (y.id === takeId ? judged : y)) } : x)) };
   });
 }
 
@@ -712,7 +737,7 @@ export function addAsset(s: S, input: Omit<Asset, 'createdAt' | 'id'> & { id?: s
   return { state: { ...s, assets: [...s.assets, asset] }, asset };
 }
 
-export function updateAsset(s: S, id: string, patch: Partial<Pick<Asset, 'label' | 'tags' | 'poster' | 'width' | 'height' | 'durationSeconds' | 'fps' | 'provenance' | 'unavailable' | 'presentation'>>): S {
+export function updateAsset(s: S, id: string, patch: Partial<Pick<Asset, 'label' | 'tags' | 'poster' | 'width' | 'height' | 'durationSeconds' | 'fps' | 'provenance' | 'unavailable' | 'presentation' | 'thumb'>>): S {
   mustFind(s.assets, id, 'Asset');
   // the tier has its own command (setAssetTier) and the identity commands; a general patch never moves it
   const { tier: _tier, ...rest } = patch as typeof patch & { tier?: unknown }; void _tier;
@@ -772,7 +797,7 @@ export function deleteAsset(s: S, id: string): S {
     locations: s.locations.map((l) => ({ ...l, refs: l.refs.filter((r) => r.assetId !== id), masterAssetId: not(l.masterAssetId) })),
     shows: s.shows.map((sh) => ({ ...sh, coverAssetId: not(sh.coverAssetId), posterAssetId: not(sh.posterAssetId) })),
     productions: s.productions.map((p) => ({
-      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), cutAssetId: not(p.cutAssetId), exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
+      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), framePosterAssetId: not(p.framePosterAssetId), cutAssetId: not(p.cutAssetId), exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
       shots: p.shots.map((sh) => { const takes = sh.takes.filter((t) => t.assetId !== id); return { ...sh, openingFrameAssetId: not(sh.openingFrameAssetId), endingFrameAssetId: not(sh.endingFrameAssetId), takes, selectedTakeId: takes.some((t) => t.id === sh.selectedTakeId) ? sh.selectedTakeId : undefined, dialogue: sh.dialogue.map((d) => (d.audioAssetId === id ? { ...d, audioAssetId: undefined, durationSeconds: undefined } : d)) }; }),
     })),
   };

@@ -24,6 +24,7 @@ import { env } from '@/server/env';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { recordProducedTake } from '@/server/studio/notes';
 
 /** GENERATE A TAKE — the heart of production. Resolve the shot pack (relation to the previous shot, every character's
  *  canonical image and the plate bound as pictures, what the clip starts from), record the lines first, write the
@@ -31,8 +32,14 @@ import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/
  *  decodes, run the quality checks, make a poster frame, and record a new take with full provenance. A new take
  *  never replaces an existing one. If the worker restarts mid-way, the hosted task id is reused, not resubmitted. */
 
+/** `params.quality` as recorded on every take (docs/CONTRACTS-REDESIGN-BACKEND.md B6): the tier it was made at,
+ *  and the tier asked for when that differs. Pure, so the rule is tested. */
+export function takeQuality(requested: 'draft' | 'final' | undefined): { quality: 'final'; qualityRequested?: 'draft' } {
+  return requested === 'draft' ? { quality: 'final', qualityRequested: 'draft' } : { quality: 'final' };
+}
+
 export const generateTake: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean };
+  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean; quality?: 'draft' | 'final' };
   const { state: studio } = await readState();
   const p = studio.productions.find((x) => x.id === payload.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
@@ -391,13 +398,21 @@ export const generateTake: Handler = async (ctx) => {
   // timeline (the new frames after its head — the cut shows exactly these), and the World Bible revision it read
   const takeTimeline = { newFrames: Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.newFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
   const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
-  const params = { ...(result.params ?? {}), timeline: takeTimeline, world: takeWorld };
+  // THE QUALITY TIER (B6): what the take was really made at. The local MiniMax H3 path has one tier today (the
+  // official template: turbo LoRA, 4 or 8 steps — the standard, not a draft) and the hosted API has none, so every
+  // take is `final`; a `draft` request is kept as asked so the page can say it was not honoured. No second path is
+  // invented here.
+  const quality = takeQuality(payload.quality);
+  if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
   await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` })], 'worker');
   const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId }], 'worker');
   // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
   await recordWorldRead({ productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id, takeId: r.take.id });
+  // a screening note sent to this shot (B2) now has the take it asked for
+  try { const n = await recordProducedTake(sh.id, r.take.id); if (n) await ctx.event('info', `${n} screening note(s) sent to this shot record this take`, { takeId: r.take.id }); } catch (e) { await ctx.event('warn', `could not record the take on its screening notes: ${(e as Error).message.split('\n')[0]}`, { takeId: r.take.id }).catch(() => undefined); }
   await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden

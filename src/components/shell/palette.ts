@@ -108,10 +108,14 @@ export function buildEntries(x: PaletteInput): PaletteEntry[] {
   // ---- Decide: it opens the card; nothing is approved from here ------------------------------------------------------
   for (const d of x.decisions) {
     if (d.kind === 'stage') {
-      const stage = x.dyn(`pipeline.${d.stage}`, d.stage);
+      const stage = x.dyn(`pipeline.${d.subject.stage}`, d.subject.stage ?? '');
       out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.approve'), name: fill(tr('shell.palette.decide.stage'), { stage, title: pick(locale, d.title, d.titleAr) }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
+    } else if (d.kind === 'image' || d.kind === 'character') {
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.approve'), name: fill(tr('shell.palette.decide.image'), { name: pick(locale, d.title, d.titleAr) }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
     } else {
-      out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.approve'), name: fill(tr('shell.palette.decide.image'), { name: pick(locale, d.name, d.nameAr) }), alt: other(locale, d.name, d.nameAr), action: go(d.href) });
+      // lines to hear again, a take with a review verdict, a parked production pass: reviewed where it lives
+      const n = String(d.lines?.length ?? 0);
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.review'), name: fill(tr(d.kind === 'lines' && d.lines?.length === 1 ? 'shell.palette.decide.line' : `shell.palette.decide.${d.kind}`), { title: pick(locale, d.title, d.titleAr), n }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
     }
   }
 

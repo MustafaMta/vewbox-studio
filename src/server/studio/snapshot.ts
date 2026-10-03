@@ -51,7 +51,17 @@ const TIERS: readonly AssetTier[] = ['CANONICAL', 'SECONDARY', 'RAW'];
 /** An asset as the domain holds it, from its row (`posterOf` resolves a poster stored as another asset). */
 export function assetFromRow(a: AssetRowRead, posterOf: (posterAssetId: string) => string | undefined = () => undefined): Asset {
   const poster = (a.posterAssetId ? posterOf(a.posterAssetId) : undefined) ?? (a.posterPath ? `/${a.posterPath.replace(/^\/+/, '')}` : undefined);
-  return { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, tier: TIERS.includes(a.tier as AssetTier) ? (a.tier as AssetTier) : undefined, presentation: undef(a.presentation), createdAt: a.createdAt };
+  return { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, tier: TIERS.includes(a.tier as AssetTier) ? (a.tier as AssetTier) : undefined, presentation: undef(a.presentation), thumb: a.thumb ? { ...a.thumb, src: thumbSrc(a.id) } : undefined, createdAt: a.createdAt };
+}
+
+/** Where the browser loads a picture's display-size thumbnail from (src/app/api/media/[id]/route.ts, `?thumb=1`). */
+export const thumbSrc = (assetId: string) => `/api/media/${assetId}?thumb=1`;
+
+type TakeRowRead = typeof schema.takes.$inferSelect;
+
+/** A take as the domain holds it, from its row (the inverse of persist.ts `takeRow`; tested as a round trip). */
+export function takeFromRow(t: TakeRowRead): Take {
+  return { id: t.id, label: t.label, assetId: t.assetId, createdAt: t.createdAt, note: undef(t.note), status: t.status as Take['status'], provider: undef(t.provider) as Take['provider'], model: undef(t.model), requestId: undef(t.requestId), prompt: undef(t.prompt), params: undef(t.params), seed: undef(t.seed), references: undef(t.references), width: undef(t.width), height: undef(t.height), durationSeconds: undef(t.durationSeconds), fps: undef(t.fps), generationMs: undef(t.generationMs), costUsd: undef(t.costUsd), qa: undef(t.qa), rejectionReason: undef(t.rejectionReason), jobId: undef(t.jobId), codeVersion: undef(t.codeVersion), workflowVersion: undef(t.workflowVersion), thumbnailAssetId: undef(t.thumbnailAssetId), trimStartFrames: undef(t.trimStartFrames), soundtrack: undef(t.soundtrack), relation: undef(t.relation) as Take['relation'], continuesTakeId: undef(t.continuesTakeId), rating: undef(t.rating) as Take['rating'], ratingReason: undef(t.ratingReason), ratedBy: undef(t.ratedBy), ratedAt: undef(t.ratedAt) };
 }
 
 export function usageFromRow(u: UsageRowRead): VideoUsage {
@@ -101,7 +111,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
 
   const takesByShot = new Map<string, Take[]>();
   for (const t of takeRows) {
-    const take: Take = { id: t.id, label: t.label, assetId: t.assetId, createdAt: t.createdAt, note: undef(t.note), status: t.status as Take['status'], provider: undef(t.provider) as Take['provider'], model: undef(t.model), requestId: undef(t.requestId), prompt: undef(t.prompt), params: undef(t.params), seed: undef(t.seed), references: undef(t.references), width: undef(t.width), height: undef(t.height), durationSeconds: undef(t.durationSeconds), fps: undef(t.fps), generationMs: undef(t.generationMs), costUsd: undef(t.costUsd), qa: undef(t.qa), rejectionReason: undef(t.rejectionReason), jobId: undef(t.jobId), codeVersion: undef(t.codeVersion), workflowVersion: undef(t.workflowVersion), thumbnailAssetId: undef(t.thumbnailAssetId), trimStartFrames: undef(t.trimStartFrames), soundtrack: undef(t.soundtrack), relation: undef(t.relation) as Take['relation'], continuesTakeId: undef(t.continuesTakeId) };
+    const take = takeFromRow(t);
     hashes.takes.set(t.id, h(take));
     takesByShot.set(t.shotId, [...(takesByShot.get(t.shotId) ?? []), take]);
   }
@@ -118,7 +128,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
     scenesByProduction.set(sc.productionId, [...(scenesByProduction.get(sc.productionId) ?? []), scene]);
   }
   const productions: Production[] = productionRows.map((p) => {
-    const production: Production = { id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes: scenesByProduction.get(p.id) ?? [], shots: shotsByProduction.get(p.id) ?? [], song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), exports: undef(p.exports), createdAt: p.createdAt, updatedAt: p.updatedAt };
+    const production: Production = { id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes: scenesByProduction.get(p.id) ?? [], shots: shotsByProduction.get(p.id) ?? [], song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), exports: undef(p.exports), framePosterAssetId: undef(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt };
     hashes.productions.set(p.id, h({ ...production, scenes: undefined, shots: undefined }));
     return production;
   });

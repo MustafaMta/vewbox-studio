@@ -1,5 +1,6 @@
-import { and, desc, eq, gt, inArray, isNull, sql as dsql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, notInArray, sql as dsql } from 'drizzle-orm';
 import type { Job } from '@/domain/jobs';
+import { ACTIVITY_HIDDEN_KINDS, type RunPhaseEvent } from '@/domain/phases';
 import { isStudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema, sql } from '../db/client';
@@ -77,8 +78,26 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   // a run of this job still open belongs to a worker that died (the job was reclaimed): close it as abandoned so
   // the pages never show a ghost "running" and the statistics count it as the infrastructure failure it was
   await db().update(schema.agentRuns).set({ finishedAt: now, outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'worker lost (lease expired); the job was reclaimed by another attempt' }).where(and(eq(schema.agentRuns.jobId, job.id), isNull(schema.agentRuns.outcome)));
-  await db().insert(schema.agentRuns).values({ id, agentId, departmentId: agent?.department ?? 'EXECUTIVE', jobId: job.id, jobType: job.type, attempt: job.attempts, productionId: job.productionId ?? null, shotId: job.shotId ?? null, startedAt: now, toolCalls: [], ...versionColumns(agent) });
+  await db().insert(schema.agentRuns).values({ id, agentId, departmentId: agent?.department ?? 'EXECUTIVE', jobId: job.id, jobType: job.type, attempt: job.attempts, productionId: job.productionId ?? null, shotId: job.shotId ?? null, startedAt: now, toolCalls: [], phases: initialPhases(job, now), ...versionColumns(agent) });
   return id;
+}
+
+/** THE RUN'S FIRST PHASES (docs/CONTRACTS-REDESIGN-BACKEND.md B9): QUEUED from the moment the job could run (its
+ *  creation, or the retry's `runAfter` when later) and PREPARING from the claim. Pure. */
+export function initialPhases(job: Pick<Job, 'createdAt' | 'runAfter'>, claimedAt: string): RunPhaseEvent[] {
+  const queuedAt = job.runAfter && job.runAfter > job.createdAt && job.runAfter <= claimedAt ? job.runAfter : job.createdAt;
+  return [{ phase: 'QUEUED', at: queuedAt }, { phase: 'PREPARING', at: claimedAt }];
+}
+
+/** Append a phase change to the run (never rewritten; the worker calls it only when the phase changed). */
+export async function recordRunPhase(runId: string, event: RunPhaseEvent) {
+  await db().update(schema.agentRuns).set({ phases: dsql`${schema.agentRuns.phases} || ${JSON.stringify([event])}::jsonb` }).where(eq(schema.agentRuns.id, runId));
+}
+
+/** The phases of the runs of a job, newest attempt first (the status row reads the current attempt's). */
+export async function runPhasesOf(jobId: string): Promise<Array<{ runId: string; attempt: number; startedAt: string; finishedAt: string | null; outcome: string | null; phases: RunPhaseEvent[] }>> {
+  const rows = await db().select({ runId: schema.agentRuns.id, attempt: schema.agentRuns.attempt, startedAt: schema.agentRuns.startedAt, finishedAt: schema.agentRuns.finishedAt, outcome: schema.agentRuns.outcome, phases: schema.agentRuns.phases, parentRunId: schema.agentRuns.parentRunId }).from(schema.agentRuns).where(and(eq(schema.agentRuns.jobId, jobId), isNull(schema.agentRuns.parentRunId))).orderBy(desc(schema.agentRuns.startedAt));
+  return rows.map(({ parentRunId: _p, ...r }) => { void _p; return r; });
 }
 
 /** A DELEGATED STEP — a specialist's real piece of work inside another agent's job (a check, a selection, a
@@ -115,13 +134,23 @@ export async function studioEvent(e: NewStudioEvent) {
 
 export interface StudioEventRow { id: number; at: string; departmentId: string; agentId: string | null; productionId: string | null; kind: string; message: string; data: Record<string, unknown> | null; jobId: string | null }
 
-export async function listStudioEvents(opts: { limit?: number; departmentId?: string; agentId?: string; productionId?: string; since?: string } = {}): Promise<StudioEventRow[]> {
+export interface StudioEventQuery { limit?: number; departmentId?: string; agentId?: string; productionId?: string; since?: string; jobId?: string; /** include the bookkeeping kinds (RUN_PHASE): only the status row asks for them */ includeBookkeeping?: boolean }
+
+/** The WHERE of an activity list. The bookkeeping kinds (src/domain/phases.ts ACTIVITY_HIDDEN_KINDS) are left out
+ *  unless asked for, so no activity list shows phase noise. Pure (tested on the SQL it builds). */
+export function studioEventConditions(opts: StudioEventQuery) {
   const conds = [];
   if (opts.departmentId) conds.push(eq(schema.studioEvents.departmentId, opts.departmentId));
   if (opts.agentId) conds.push(eq(schema.studioEvents.agentId, opts.agentId));
   if (opts.productionId) conds.push(eq(schema.studioEvents.productionId, opts.productionId));
+  if (opts.jobId) conds.push(eq(schema.studioEvents.jobId, opts.jobId));
   if (opts.since) conds.push(gt(schema.studioEvents.at, opts.since));
-  const rows = await db().select().from(schema.studioEvents).where(conds.length ? and(...conds) : undefined).orderBy(desc(schema.studioEvents.at), desc(schema.studioEvents.id)).limit(Math.min(500, opts.limit ?? 100));
+  if (!opts.includeBookkeeping) conds.push(notInArray(schema.studioEvents.kind, [...ACTIVITY_HIDDEN_KINDS]));
+  return conds.length ? and(...conds) : undefined;
+}
+
+export async function listStudioEvents(opts: StudioEventQuery = {}): Promise<StudioEventRow[]> {
+  const rows = await db().select().from(schema.studioEvents).where(studioEventConditions(opts)).orderBy(desc(schema.studioEvents.at), desc(schema.studioEvents.id)).limit(Math.min(500, opts.limit ?? 100));
   return rows as StudioEventRow[];
 }
 
@@ -228,7 +257,7 @@ export async function agentStats(hours = 24 * 30): Promise<AgentStat[]> {
   return rows.map((r) => ({ agentId: r.agent_id, runs: Number(r.runs), completed: Number(r.completed), failed: Number(r.failed), cancelled: Number(r.cancelled), running: Number(r.running), firstAttemptOk: Number(r.first_ok), firstAttempts: Number(r.firsts), p50Ms: r.p50_ms === null ? null : Number(r.p50_ms), lastRunAt: r.last_run_at, toolCalls: Number(r.tool_calls), toolFailures: Number(r.tool_failures) }));
 }
 
-export interface AgentRunRow { id: string; agentId: string; departmentId: string; jobId: string; jobType: string; attempt: number; productionId: string | null; shotId: string | null; startedAt: string; finishedAt: string | null; outcome: string | null; failureClass: string | null; errorMessage: string | null; toolCalls: ToolCall[]; ms: number | null; costUsd: number | null; /** a delegated step: the run of the job it belongs to, and what the step did */ parentRunId: string | null; purpose: string | null; agentVersion: string | null; orgVersion: number | null; versions: RunVersions | null }
+export interface AgentRunRow { id: string; agentId: string; departmentId: string; jobId: string; jobType: string; attempt: number; productionId: string | null; shotId: string | null; startedAt: string; finishedAt: string | null; outcome: string | null; failureClass: string | null; errorMessage: string | null; toolCalls: ToolCall[]; ms: number | null; costUsd: number | null; /** a delegated step: the run of the job it belongs to, and what the step did */ parentRunId: string | null; purpose: string | null; agentVersion: string | null; orgVersion: number | null; versions: RunVersions | null; /** the run's phases as timed events (B9) */ phases: RunPhaseEvent[] }
 
 export async function listAgentRuns(opts: { agentId?: string; departmentId?: string; productionId?: string; jobId?: string; limit?: number }): Promise<AgentRunRow[]> {
   const conds = [];

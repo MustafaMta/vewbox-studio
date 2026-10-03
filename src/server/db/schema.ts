@@ -1,5 +1,6 @@
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
+import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
+import type { RunPhaseEvent } from '@/domain/phases';
 import type { JobError, JobProgress } from '@/domain/jobs';
 import type { Presentation } from '@/domain/presentation';
 
@@ -69,6 +70,9 @@ export const productions = pgTable('productions', {
   mood: text('mood'),
   cutAssetId: text('cut_asset_id'),
   exports: jsonb('exports').$type<ExportRecord[]>(),
+  /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
+   *  made by the backfill for a production without key art; the page renders the title over it. */
+  framePosterAssetId: text('frame_poster_asset_id'),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 }, (t) => [index('productions_show_idx').on(t.showId), index('productions_season_idx').on(t.seasonId)]);
@@ -147,6 +151,12 @@ export const takes = pgTable('takes', {
   /** CONTINUATION | CUT | STORY_TRANSITION, as generated; and the take whose tail a continuation anchored */
   relation: text('relation'),
   continuesTakeId: text('continues_take_id'),
+  /** THE PRODUCER'S JUDGEMENT (docs/CONTRACTS-REDESIGN-BACKEND.md B5): GOOD or REJECTED, the reason, who and when.
+   *  Apart from `status` (the inspectors' verdict); a REJECTED judgement keeps the take and takes it out of the cut. */
+  rating: text('rating'),
+  ratingReason: text('rating_reason'),
+  ratedBy: text('rated_by'),
+  ratedAt: ts('rated_at'),
 }, (t) => [index('takes_shot_idx').on(t.shotId), index('takes_production_idx').on(t.productionId)]);
 
 export const characters = pgTable('characters', {
@@ -247,7 +257,13 @@ export const assets = pgTable('assets', {
   /** Pictures: dominant hue, edge colour, light backdrop, focal point, face box (docs/DESIGN-SYSTEM-V4.md §2.4),
    *  measured at ingest; null until measured (scripts/presentation-backfill.ts fills older rows). */
   presentation: jsonb('presentation').$type<Presentation>(),
+  /** Pictures: the display-size JPEG derived beside the original (docs/CONTRACTS-REDESIGN-BACKEND.md B7): its library
+   *  path, size and bytes; null until made (ingest, or scripts/presentation-backfill.ts). Served as ?thumb=1. */
+  thumb: jsonb('thumb').$type<StoredThumb>(),
 });
+
+/** `assets.thumb`: the thumbnail without its URL (the loader adds `src`). */
+export type StoredThumb = Omit<AssetThumb, 'src'>;
 
 export const settings = pgTable('settings', {
   id: text('id').primaryKey(),
@@ -434,7 +450,36 @@ export const agentRuns = pgTable('agent_runs', {
   agentVersion: text('agent_version'),
   orgVersion: integer('org_version'),
   versions: jsonb('versions').$type<{ model: string; skills: Record<string, string>; tools: Record<string, string> }>(),
+  /** The run's phases as timed events (docs/CONTRACTS-REDESIGN-BACKEND.md B9): QUEUED (the job's creation),
+   *  PREPARING (the claim), GENERATING, CHECKING, FINISHING — appended when the phase changes, never rewritten. */
+  phases: jsonb('phases').$type<RunPhaseEvent[]>().notNull().default([]),
 }, (t) => [index('agent_runs_agent_idx').on(t.agentId, t.startedAt), index('agent_runs_production_idx').on(t.productionId), index('agent_runs_job_idx').on(t.jobId), index('agent_runs_parent_idx').on(t.parentRunId)]);
+
+/** SCREENING ROOM NOTES (docs/CONTRACTS-REDESIGN-BACKEND.md B2): a producer's note on a cut at a timecode (optionally a
+ *  range, a pin on the frame, a drawing), open until resolved; *Send to shot* copies its text into a shot's notes and
+ *  records the shot here — the take it leads to is recorded when a later take names the note. No foreign keys: a note
+ *  outlives a re-assembled cut and a deleted asset; the production id scopes it. */
+export const cutNotes = pgTable('cut_notes', {
+  id: text('id').primaryKey(),
+  productionId: text('production_id').notNull(),
+  /** the cut the note was made on (its asset) and that cut's version number in the production's history */
+  cutAssetId: text('cut_asset_id'),
+  cutVersion: integer('cut_version'),
+  /** seconds into the cut; `rangeEnd` closes a range */
+  timecode: doublePrecision('timecode').notNull(),
+  rangeEnd: doublePrecision('range_end'),
+  /** a pin on the frame, 0–1 of the picture's width and height */
+  pinX: doublePrecision('pin_x'),
+  pinY: doublePrecision('pin_y'),
+  drawingAssetId: text('drawing_asset_id'),
+  text: text('text').notNull(),
+  author: text('author').notNull(),
+  status: text('status').notNull().default('open'),
+  sentToShotId: text('sent_to_shot_id'),
+  producedTakeId: text('produced_take_id'),
+  createdAt: ts('created_at').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+}, (t) => [index('cut_notes_production_idx').on(t.productionId, t.timecode), index('cut_notes_cut_idx').on(t.cutAssetId)]);
 
 /** A department's explicit delivery to the next one. */
 export const handoffs = pgTable('handoffs', {

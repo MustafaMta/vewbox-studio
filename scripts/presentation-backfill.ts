@@ -1,36 +1,57 @@
-/** PRESENTATION BACKFILL — docs/DESIGN-SYSTEM-V4.md §2.4 (package B1). New pictures are measured as they are stored
- *  (src/server/media.ts); this fills `assets.presentation` for the pictures stored before that, from their own files.
+/** PRESENTATION BACKFILL — docs/DESIGN-SYSTEM-V4.md §2.4 (package B1) and docs/CONTRACTS-REDESIGN-BACKEND.md B7.
+ *  New pictures are measured and get their display-size thumbnail as they are stored (src/server/media.ts); this
+ *  fills what was stored before that, from the files themselves, in three passes:
+ *
+ *    1. presentation  IMAGE rows without `presentation` are measured (dominant, edge, lightBackdrop, faceBox);
+ *    2. thumbs        IMAGE rows in the library without `thumb` get a JPEG beside the original (long side ≤ 960 px,
+ *                     ≤ 120 KB for a figure, ≤ 160 KB for a still) and the row points at it;
+ *    3. posters       a production without key art (`posterAssetId`) gets a frame poster composed from its key frame
+ *                     (docs/DESIGN-SYSTEM-V5.md §5.9: the last shot's selected take's opening frame; see
+ *                     src/studio/selectors/poster.ts): a 2:3 crop around the focal point, no text, a DERIVED asset
+ *                     recorded as `framePosterAssetId`; a default poster whose key frame changed is made again.
  *
  *    counts only: pnpm exec tsx --env-file=.env --env-file=.env.local scripts/presentation-backfill.ts --dry-run [--verbose]
- *    fill:        pnpm exec tsx --env-file=.env --env-file=.env.local scripts/presentation-backfill.ts [--expect-db <name>] [--verbose]
+ *    fill:        pnpm exec tsx --env-file=.env --env-file=.env.local scripts/presentation-backfill.ts [--expect-db <name>] [--only presentation|thumbs|posters] [--verbose]
  *
- *  It prints the database it will use first; `--expect-db <name>` refuses any other. Only IMAGE rows whose
- *  presentation is empty are read and only their `presentation` is written — through the studio's command engine
- *  (one batch: one lock, one version, one change notice to open pages). Files are opened read-only and never moved,
- *  rewritten or removed; every other asset is untouched. A picture it cannot measure (a missing file, an SVG, a file
- *  ffmpeg cannot decode) is reported and left empty, so running it again changes nothing that is already filled:
- *  a second run fills 0 and writes nothing. */
+ *  It prints the database it will use first and REFUSES the shared studio database `vewbox` unless `--allow-vewbox`
+ *  is given; `--expect-db <name>` refuses any other. Writes go through the studio's command engine (one batch per
+ *  pass: one lock, one version, one change notice). Originals are opened read-only and never moved, rewritten or
+ *  removed; derived files are written beside them. A picture it cannot handle is reported and left as it is, so
+ *  running it again changes nothing that is already filled: a second run fills 0, makes 0 and writes nothing. */
 import fs from 'node:fs';
+import path from 'node:path';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import type { Presentation } from '@/domain/presentation';
+import type { AssetThumb } from '@/domain/types';
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const verbose = args.includes('--verbose');
-const expectIdx = args.indexOf('--expect-db');
-const expectDb = expectIdx >= 0 ? args[expectIdx + 1] : undefined;
-const unknown = args.filter((a, i) => !['--dry-run', '--verbose', '--expect-db'].includes(a) && !(expectIdx >= 0 && i === expectIdx + 1));
-if (unknown.length || (expectIdx >= 0 && !expectDb)) { console.error('usage: presentation-backfill.ts [--dry-run] [--verbose] [--expect-db <name>]'); process.exit(2); }
+const allowShared = args.includes('--allow-vewbox');
+const valueOf = (flag: string) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined; };
+const expectDb = valueOf('--expect-db');
+const only = valueOf('--only');
+const FLAGS = ['--dry-run', '--verbose', '--expect-db', '--only', '--allow-vewbox'];
+const unknown = args.filter((a, i) => !FLAGS.includes(a) && !(['--expect-db', '--only'].includes(args[i - 1] ?? '')));
+if (unknown.length || (args.includes('--expect-db') && !expectDb) || (args.includes('--only') && !['presentation', 'thumbs', 'posters'].includes(only ?? ''))) { console.error('usage: presentation-backfill.ts [--dry-run] [--verbose] [--expect-db <name>] [--only presentation|thumbs|posters] [--allow-vewbox]'); process.exit(2); }
+const runs = (pass: 'presentation' | 'thumbs' | 'posters') => !only || only === pass;
 
 let database = '';
 try { const u = new URL(process.env.DATABASE_URL ?? ''); database = decodeURIComponent(u.pathname.replace(/^\//, '')); console.log(`database: ${database} on ${u.hostname}:${u.port || '5432'}`); }
 catch { console.error('DATABASE_URL is missing or unreadable (run with --env-file=.env --env-file=.env.local)'); process.exit(2); }
 if (expectDb && database !== expectDb) { console.error(`refusing: the database is "${database}", not "${expectDb}" (--expect-db)`); process.exit(2); }
+if (database === 'vewbox' && !allowShared) { console.error('refusing: "vewbox" is the shared studio database; run against a copy, or pass --allow-vewbox on purpose'); process.exit(2); }
 
 const { db, schema, closeDb } = await import('@/server/db/client');
-const { fileFor } = await import('@/server/media');
+const { adoptFile, assetFromStored, fileFor, libraryRoot, resolveLibrary } = await import('@/server/media');
 const { presentationOfAsset, parseOklch, oklchToRgb8 } = await import('@/server/media/presentation');
+const { isFigureLike, makeFramePoster, makeThumbnail, thumbPathFor } = await import('@/server/media/thumbs');
+const { ffmpeg, tmpDir } = await import('@/server/media/ffmpeg');
+const { thumbSrc } = await import('@/server/studio/snapshot');
+const { keyFrameFor } = await import('@/studio/selectors/poster');
 const { commands, readState } = await import('@/server/studio/engine');
+const { nid } = await import('@/domain/ids');
+console.log(`library: ${libraryRoot()}`);
 
 type Outcome = { id: string; label: string; origin: string; tier: string | null } & ({ status: 'measured'; presentation: Presentation } | { status: 'skipped' | 'failed'; reason: string });
 
@@ -41,59 +62,148 @@ const show = (o: Outcome) => {
   const p = o.presentation;
   return `${head}\n    dominant ${p.dominant ?? '— (neutral)'} ${p.dominant ? `≈ ${hex(p.dominant)}` : ''}\n    edge ${p.edge ?? '—'} ≈ ${hex(p.edge)} · lightBackdrop ${p.lightBackdrop ?? '—'}${p.faceBox ? ` · faceBox ${JSON.stringify(p.faceBox)}` : ''}`;
 };
+const firstLine = (e: unknown) => (e as Error).message.split('\n')[0];
 
 try {
   const A = schema.assets;
   const [{ n: total }] = await db().select({ n: count() }).from(A);
   const [{ n: images }] = await db().select({ n: count() }).from(A).where(eq(A.kind, 'IMAGE'));
-  const rows = await db().select({ id: A.id, storage: A.storage, path: A.path, label: A.label, origin: A.origin, tier: A.tier, mimeType: A.mimeType, width: A.width, height: A.height, provenance: A.provenance }).from(A).where(and(eq(A.kind, 'IMAGE'), isNull(A.presentation))).orderBy(A.createdAt);
+  const summary: Record<string, unknown> = { mode: dryRun ? 'dry run (nothing written)' : 'fill', database, assets: total, nonImageAssetsUntouched: total - images, images };
 
-  const outcomes: Outcome[] = [];
-  for (const r of rows) {
-    const base = { id: r.id, label: r.label, origin: r.origin, tier: r.tier };
-    if (r.mimeType === 'image/svg+xml' || /\.svg$/i.test(r.path)) { outcomes.push({ ...base, status: 'skipped', reason: 'a vector picture (SVG): not decoded on the CPU' }); continue; }
-    let file: string;
-    try { file = fileFor({ storage: r.storage, path: r.path }); } catch (e) { outcomes.push({ ...base, status: 'failed', reason: (e as Error).message }); continue; }
-    if (!r.path || !fs.existsSync(file)) { outcomes.push({ ...base, status: 'failed', reason: 'the file is missing' }); continue; }
-    try { outcomes.push({ ...base, status: 'measured', presentation: await presentationOfAsset({ width: r.width ?? undefined, height: r.height ?? undefined, provenance: r.provenance ?? undefined }, file) }); }
-    catch (e) { outcomes.push({ ...base, status: 'failed', reason: (e as Error).message.split('\n')[0] }); }
-  }
-  if (verbose) for (const o of outcomes) console.log(show(o));
-
-  const measured = outcomes.filter((o): o is Extract<Outcome, { status: 'measured' }> => o.status === 'measured');
-  let filled = 0, gone = 0, writeFailed = 0;
-  if (!dryRun && measured.length) {
-    // the batch is built against the studio as it is now: a picture deleted, or measured by MEDIA_PROBE, since the
-    // read above is left alone
-    const now = new Map((await readState()).state.assets.map((a) => [a.id, a]));
-    const todo = measured.filter((o) => { const a = now.get(o.id); if (!a || a.presentation) { gone++; return false; } return true; });
-    const update = (o: (typeof todo)[number]) => ({ name: 'updateAsset' as const, args: [o.id, { presentation: o.presentation }] as [string, { presentation: Presentation }] });
-    if (todo.length) {
-      try { await commands(todo.map(update), 'presentation-backfill'); filled = todo.length; }
-      catch (e) {
-        console.warn(`the batch was refused (${(e as Error).message}); writing one picture at a time`);
-        for (const o of todo) { try { await commands([update(o)], 'presentation-backfill'); filled++; } catch (err) { writeFailed++; console.warn(`  ${o.id}: ${(err as Error).message}`); } }
+  // ---- pass 1: presentation ------------------------------------------------------------------------------------------
+  if (runs('presentation')) {
+    const rows = await db().select({ id: A.id, storage: A.storage, path: A.path, label: A.label, origin: A.origin, tier: A.tier, mimeType: A.mimeType, width: A.width, height: A.height, provenance: A.provenance }).from(A).where(and(eq(A.kind, 'IMAGE'), isNull(A.presentation))).orderBy(A.createdAt);
+    const outcomes: Outcome[] = [];
+    for (const r of rows) {
+      const base = { id: r.id, label: r.label, origin: r.origin, tier: r.tier };
+      if (r.mimeType === 'image/svg+xml' || /\.svg$/i.test(r.path)) { outcomes.push({ ...base, status: 'skipped', reason: 'a vector picture (SVG): not decoded on the CPU' }); continue; }
+      let file: string;
+      try { file = fileFor({ storage: r.storage, path: r.path }); } catch (e) { outcomes.push({ ...base, status: 'failed', reason: (e as Error).message }); continue; }
+      if (!r.path || !fs.existsSync(file)) { outcomes.push({ ...base, status: 'failed', reason: 'the file is missing' }); continue; }
+      try { outcomes.push({ ...base, status: 'measured', presentation: await presentationOfAsset({ width: r.width ?? undefined, height: r.height ?? undefined, provenance: r.provenance ?? undefined }, file) }); }
+      catch (e) { outcomes.push({ ...base, status: 'failed', reason: firstLine(e) }); }
+    }
+    if (verbose) for (const o of outcomes) console.log(show(o));
+    const measured = outcomes.filter((o): o is Extract<Outcome, { status: 'measured' }> => o.status === 'measured');
+    let filled = 0, gone = 0, writeFailed = 0;
+    if (!dryRun && measured.length) {
+      // the batch is built against the studio as it is now: a picture deleted, or measured by MEDIA_PROBE, since the
+      // read above is left alone
+      const now = new Map((await readState()).state.assets.map((a) => [a.id, a]));
+      const todo = measured.filter((o) => { const a = now.get(o.id); if (!a || a.presentation) { gone++; return false; } return true; });
+      const update = (o: (typeof todo)[number]) => ({ name: 'updateAsset' as const, args: [o.id, { presentation: o.presentation }] as [string, { presentation: Presentation }] });
+      if (todo.length) {
+        try { await commands(todo.map(update), 'presentation-backfill'); filled = todo.length; }
+        catch (e) {
+          console.warn(`the batch was refused (${(e as Error).message}); writing one picture at a time`);
+          for (const o of todo) { try { await commands([update(o)], 'presentation-backfill'); filled++; } catch (err) { writeFailed++; console.warn(`  ${o.id}: ${(err as Error).message}`); } }
+        }
       }
     }
+    summary.presentation = {
+      imagesAlreadyWithPresentation: images - rows.length, imagesWithoutPresentation: rows.length, measurable: measured.length,
+      ...(dryRun ? { wouldFill: measured.length } : { filled, leftAlone: gone, writeFailed }),
+      withDominant: measured.filter((o) => o.presentation.dominant).length, neutral: measured.filter((o) => !o.presentation.dominant).length, lightBackdrop: measured.filter((o) => o.presentation.lightBackdrop).length, withFaceBox: measured.filter((o) => o.presentation.faceBox).length,
+      skipped: outcomes.filter((o) => o.status === 'skipped').length, failed: outcomes.filter((o) => o.status === 'failed').length,
+    };
+    for (const o of outcomes) if (o.status !== 'measured' && !verbose) console.log(`presentation ${o.status}: ${o.id} — ${o.reason}`);
   }
 
-  const summary = {
-    mode: dryRun ? 'dry run (nothing written)' : 'fill',
-    database,
-    assets: total,
-    nonImageAssetsUntouched: total - images,
-    images,
-    imagesAlreadyWithPresentation: images - rows.length,
-    imagesWithoutPresentation: rows.length,
-    measurable: measured.length,
-    ...(dryRun ? { wouldFill: measured.length } : { filled, leftAlone: gone, writeFailed }),
-    withDominant: measured.filter((o) => o.presentation.dominant).length,
-    neutral: measured.filter((o) => !o.presentation.dominant).length,
-    lightBackdrop: measured.filter((o) => o.presentation.lightBackdrop).length,
-    withFaceBox: measured.filter((o) => o.presentation.faceBox).length,
-    skipped: outcomes.filter((o) => o.status === 'skipped').length,
-    failed: outcomes.filter((o) => o.status === 'failed').length,
-  };
+  // ---- pass 2: thumbnails ----------------------------------------------------------------------------------------------
+  if (runs('thumbs')) {
+    const rows = await db().select({ id: A.id, storage: A.storage, path: A.path, label: A.label, origin: A.origin, tier: A.tier, tags: A.tags, mimeType: A.mimeType, width: A.width, height: A.height, presentation: A.presentation, provenance: A.provenance }).from(A).where(and(eq(A.kind, 'IMAGE'), isNull(A.thumb))).orderBy(A.createdAt);
+    const made: Array<{ id: string; thumb: AssetThumb; figure: boolean }> = [];
+    const problems: Array<{ id: string; status: 'skipped' | 'failed'; reason: string }> = [];
+    for (const r of rows) {
+      if (r.storage !== 'LIBRARY') { problems.push({ id: r.id, status: 'skipped', reason: 'a bundled sample (public folder), not in the library' }); continue; }
+      if (r.mimeType === 'image/svg+xml' || /\.svg$/i.test(r.path)) { problems.push({ id: r.id, status: 'skipped', reason: 'a vector picture (SVG)' }); continue; }
+      let file: string;
+      try { file = fileFor({ storage: r.storage, path: r.path }); } catch (e) { problems.push({ id: r.id, status: 'failed', reason: (e as Error).message }); continue; }
+      if (!r.path || !fs.existsSync(file)) { problems.push({ id: r.id, status: 'failed', reason: 'the file is missing' }); continue; }
+      const figure = isFigureLike({ tier: r.tier, tags: r.tags, width: r.width ?? undefined, height: r.height ?? undefined });
+      const rel = thumbPathFor(r.path);
+      if (dryRun) { made.push({ id: r.id, thumb: { src: thumbSrc(r.id), path: rel, width: 0, height: 0, bytes: 0 }, figure }); continue; }
+      try {
+        const pix = (r.provenance?.probe as { pixFmt?: string } | undefined)?.pixFmt;
+        const t = await makeThumbnail(file, resolveLibrary(rel), { width: r.width ?? undefined, height: r.height ?? undefined, pixFmt: pix, figure, presentation: r.presentation ?? undefined });
+        made.push({ id: r.id, thumb: { src: thumbSrc(r.id), path: rel, ...t }, figure });
+        if (verbose) console.log(`thumb ${r.id} [${figure ? 'figure' : 'still'}] ${t.width}×${t.height} ${(t.bytes / 1024).toFixed(0)} KB ← ${r.label.slice(0, 50)}`);
+      } catch (e) { problems.push({ id: r.id, status: 'failed', reason: firstLine(e) }); }
+    }
+    let written = 0, gone = 0, writeFailed = 0;
+    if (!dryRun && made.length) {
+      const now = new Map((await readState()).state.assets.map((a) => [a.id, a]));
+      const todo = made.filter((m) => { const a = now.get(m.id); if (!a || a.thumb) { gone++; return false; } return true; });
+      const update = (m: (typeof todo)[number]) => ({ name: 'updateAsset' as const, args: [m.id, { thumb: m.thumb }] as [string, { thumb: AssetThumb }] });
+      if (todo.length) {
+        try { await commands(todo.map(update), 'presentation-backfill'); written = todo.length; }
+        catch (e) {
+          console.warn(`the batch was refused (${(e as Error).message}); writing one picture at a time`);
+          for (const m of todo) { try { await commands([update(m)], 'presentation-backfill'); written++; } catch (err) { writeFailed++; console.warn(`  ${m.id}: ${(err as Error).message}`); } }
+        }
+      }
+    }
+    summary.thumbs = {
+      imagesAlreadyWithThumb: images - rows.length, imagesWithoutThumb: rows.length,
+      ...(dryRun ? { wouldMake: made.length } : { made: made.length, written, leftAlone: gone, writeFailed, figures: made.filter((m) => m.figure).length, stills: made.filter((m) => !m.figure).length, largestKb: made.length ? Math.round(Math.max(...made.map((m) => m.thumb.bytes)) / 1024) : 0 }),
+      skipped: problems.filter((p) => p.status === 'skipped').length, failed: problems.filter((p) => p.status === 'failed').length,
+    };
+    for (const p of problems) if (verbose || p.status === 'failed') console.log(`thumb ${p.status}: ${p.id} — ${p.reason}`);
+  }
+
+  // ---- pass 3: frame posters -------------------------------------------------------------------------------------------
+  // docs/DESIGN-SYSTEM-V5.md §5.9: a production without key art gets a 2:3 crop of its key frame (default: the last
+  // shot's selected take's opening frame; src/studio/selectors/poster.ts keyFrameFor). A default poster whose key frame
+  // has changed since (a new selected take, the rule of B7 v1) is made again and the old derived poster removed; a
+  // poster the producer chose (`provenance.chosenBy: 'PRODUCER'`) is never replaced. Same key: nothing happens.
+  if (runs('posters')) {
+    const { state } = await readState();
+    const assetsById = new Map(state.assets.map((a) => [a.id, a]));
+    const results: Array<{ productionId: string; title: string; status: 'made' | 'remade' | 'would-make' | 'would-remake' | 'current' | 'kept' | 'skipped' | 'failed'; detail: string }> = [];
+    const fileOf = async (assetId: string) => { const r = (await db().select({ storage: A.storage, path: A.path, provenance: A.provenance }).from(A).where(eq(A.id, assetId)))[0]; if (!r) throw new Error(`asset ${assetId} has no row`); const file = fileFor(r); if (!fs.existsSync(file)) throw new Error(`the file of ${assetId} is missing`); return { file, pixFmt: (r.provenance?.probe as { pixFmt?: string } | undefined)?.pixFmt }; };
+    for (const p of state.productions) {
+      if (p.posterAssetId && assetsById.has(p.posterAssetId)) continue; // key art wins
+      const old = p.framePosterAssetId ? assetsById.get(p.framePosterAssetId) : undefined;
+      if (old && (old.provenance?.kind !== 'FRAME_POSTER' || old.provenance?.chosenBy === 'PRODUCER')) { results.push({ productionId: p.id, title: p.title, status: 'kept', detail: `${old.id}: the producer's choice (or not a composed poster)` }); continue; }
+      const key = keyFrameFor(p, state.assets);
+      if (!key) { results.push({ productionId: p.id, title: p.title, status: 'skipped', detail: 'no key frame yet (no selected take, no drawn opening frame)' }); continue; }
+      if (old && old.provenance?.frameKey === key.key) { results.push({ productionId: p.id, title: p.title, status: 'current', detail: `${old.id} (${key.key})` }); continue; }
+      const where = `shot ${key.sceneNumber ?? '?'}.${key.shotNumber}`;
+      const what = key.source === 'TAKE_OPENING_FRAME' ? `the opening frame of the selected take of ${where} (at ${key.frameSeconds} s)` : `the drawn opening frame of ${where}`;
+      if (dryRun) { results.push({ productionId: p.id, title: p.title, status: old ? 'would-remake' : 'would-make', detail: `${what}${old ? `; replaces ${old.id} (${String(old.provenance?.frameKey ?? 'made by the earlier rule')})` : ''}` }); continue; }
+      try {
+        const dir = await tmpDir('frame-poster');
+        const out = path.join(dir, 'poster.jpg');
+        let input: string, from: string, size: { width?: number; height?: number; pixFmt?: string } = {};
+        if (key.source === 'TAKE_OPENING_FRAME') {
+          const v = await fileOf(key.videoAssetId!);
+          input = path.join(dir, 'frame.png'); from = key.videoAssetId!;
+          // the frame at its native size, exactly at the take's opening (after a continuation's head)
+          await ffmpeg(['-v', 'error', '-ss', key.frameSeconds!.toFixed(4), '-i', v.file, '-an', '-frames:v', '1', '-update', '1', input], { timeoutMs: 120_000 });
+        } else {
+          const img = await fileOf(key.imageAssetId!); const a = assetsById.get(key.imageAssetId!)!;
+          input = img.file; from = a.id; size = { width: a.width, height: a.height, pixFmt: img.pixFmt };
+        }
+        const presentation = key.imageAssetId ? assetsById.get(key.imageAssetId)?.presentation : undefined;
+        const made = await makeFramePoster(input, out, { ...size, presentation });
+        const id = nid('gen');
+        const stored = await adoptFile(id, out, { expectKind: 'IMAGE' });
+        await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
+        const asset = assetFromStored(id, stored, { label: `${p.title} — frame poster (${where})`, tags: ['poster', 'frame-poster'], origin: 'DERIVED', provenance: { kind: 'FRAME_POSTER', rule: 'DESIGN-SYSTEM-V5 §5.9', chosenBy: 'DEFAULT', frameKey: key.key, source: key.source, from, frameSeconds: key.frameSeconds, shotId: key.shotId, takeId: key.takeId, sceneNumber: key.sceneNumber, shotNumber: key.shotNumber, crop: made.crop, focal: made.focal } });
+        // the poster keeps the frame's focal point as its own portrait focal, so a later crop of the poster agrees
+        asset.presentation = { ...(asset.presentation ?? {}), portraitFocal: made.focal };
+        await commands([{ name: 'addAsset', args: [asset] }, { name: 'updateProduction', args: [p.id, { framePosterAssetId: id }] }, ...(old ? [{ name: 'deleteAsset' as const, args: [old.id] as [string] }] : [])], 'presentation-backfill');
+        // the replaced poster was this script's own derivative: its files go with its record (never an original)
+        if (old) for (const rel of [old.provenance?.path, old.thumb?.path].filter((x): x is string => typeof x === 'string' && x.length > 0)) { try { fs.rmSync(resolveLibrary(rel)); } catch { /* already gone */ } }
+        results.push({ productionId: p.id, title: p.title, status: old ? 'remade' : 'made', detail: `${id} ${made.width}×${made.height} ${(made.bytes / 1024).toFixed(0)} KB from ${what} (${from}), crop ${JSON.stringify(made.crop)}${old ? `; replaced ${old.id}` : ''}` });
+      } catch (e) { results.push({ productionId: p.id, title: p.title, status: 'failed', detail: firstLine(e) }); }
+    }
+    const n = (s: string) => results.filter((r) => r.status === s).length;
+    summary.posters = {
+      productions: state.productions.length, withKeyArt: state.productions.filter((p) => p.posterAssetId && assetsById.has(p.posterAssetId)).length,
+      ...(dryRun ? { wouldMake: n('would-make'), wouldRemake: n('would-remake') } : { made: n('made'), remade: n('remade') }), current: n('current'), keptProducerChoice: n('kept'), skipped: n('skipped'), failed: n('failed'),
+    };
+    for (const r of results) console.log(`poster ${r.status}: ${r.productionId} “${r.title}” — ${r.detail}`);
+  }
   console.log(JSON.stringify(summary, null, 2));
-  for (const o of outcomes) if (o.status !== 'measured' && !verbose) console.log(`${o.status}: ${o.id} — ${o.reason}`);
 } finally { await closeDb(); }

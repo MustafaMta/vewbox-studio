@@ -12,8 +12,16 @@ export const dynamic = 'force-dynamic';
  *  the URL; the id is validated before it touches the database. */
 async function lookup(id: string) {
   assertSafeId(id);
-  const rows = await db().select({ id: schema.assets.id, storage: schema.assets.storage, path: schema.assets.path, mimeType: schema.assets.mimeType, kind: schema.assets.kind, label: schema.assets.label }).from(schema.assets).where(eq(schema.assets.id, id));
+  const rows = await db().select({ id: schema.assets.id, storage: schema.assets.storage, path: schema.assets.path, mimeType: schema.assets.mimeType, kind: schema.assets.kind, label: schema.assets.label, thumb: schema.assets.thumb }).from(schema.assets).where(eq(schema.assets.id, id));
   return rows[0];
+}
+
+/** `?thumb=1` on a picture that has its display-size derivative (B7): that JPEG beside the original; otherwise the
+ *  original itself, so an <img> never breaks on a picture made before thumbnails existed. */
+function fileAndType(req: Request, a: NonNullable<Awaited<ReturnType<typeof lookup>>>): { file: string; type: string } {
+  const wantThumb = new URL(req.url).searchParams.get('thumb') === '1';
+  if (wantThumb && a.thumb?.path && a.storage === 'LIBRARY') return { file: fileFor({ storage: a.storage, path: a.thumb.path }), type: 'image/jpeg' };
+  return { file: fileFor(a), type: a.mimeType ?? 'application/octet-stream' };
 }
 
 const safeName = (s: string) => s.replace(/[^\w.\- ]+/g, '_').slice(0, 120);
@@ -23,9 +31,10 @@ export async function HEAD(_req: Request, ctx: { params: Promise<{ id: string }>
     const { id } = await ctx.params;
     const a = await lookup(id);
     if (!a) return new Response(null, { status: 404 });
-    const st = await fsp.stat(fileFor(a)).catch(() => null);
+    const { file, type } = fileAndType(_req, a);
+    const st = await fsp.stat(file).catch(() => null);
     if (!st) return new Response(null, { status: 404 });
-    return new Response(null, { status: 200, headers: { 'Content-Length': String(st.size), 'Content-Type': a.mimeType ?? 'application/octet-stream', 'Accept-Ranges': 'bytes' } });
+    return new Response(null, { status: 200, headers: { 'Content-Length': String(st.size), 'Content-Type': type, 'Accept-Ranges': 'bytes' } });
   } catch (e) { return errorResponse(e); }
 }
 
@@ -34,10 +43,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const { id } = await ctx.params;
     const a = await lookup(id);
     if (!a) return new Response('Not found', { status: 404 });
-    const file = fileFor(a);
+    const { file, type } = fileAndType(req, a);
     const st = await fsp.stat(file).catch(() => null);
     if (!st || !st.isFile()) return new Response('File missing', { status: 404 });
-    const type = a.mimeType ?? 'application/octet-stream';
     const download = new URL(req.url).searchParams.get('download');
     const base: Record<string, string> = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600', 'Last-Modified': st.mtime.toUTCString(), 'X-Content-Type-Options': 'nosniff' };
     if (download) base['Content-Disposition'] = `attachment; filename="${safeName(a.label || a.id)}"`;
