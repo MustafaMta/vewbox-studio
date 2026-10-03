@@ -1,0 +1,2883 @@
+{
+  "reviewer": "AI model researcher (visual inspection of every picture at full resolution, faces at 256² crops)",
+  "scale": {
+    "quality": "1-5 overall finish (artefacts, rendering, appeal)",
+    "style": "ok | partial | wrong vs the production style",
+    "anatomy": "ok | minor | major",
+    "tokens": "[present, asked] identity tokens; reference: upload attributes kept, plus a no-hallucination check for ir2/ir3",
+    "sided": "[correct, asked] side-specific details (character's own left/right)",
+    "likeness": "1-5 vs the upload (face crops)"
+  },
+  "rows": [
+    {
+      "arm": "QWEN",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "red patch on his LEFT upper arm, not the right elbow"
+    },
+    {
+      "arm": "QWEN",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "red patch on his left upper arm"
+    },
+    {
+      "arm": "QWEN",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        10
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "freckles not visible"
+    },
+    {
+      "arm": "QWEN",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        10
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "freckles not visible"
+    },
+    {
+      "arm": "QWEN",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "bag over her left shoulder"
+    },
+    {
+      "arm": "QWEN",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": ""
+    },
+    {
+      "arm": "QWEN",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "2D but western-comic rendering (gradients, heavy outline), not flat cel anime"
+    },
+    {
+      "arm": "QWEN",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "western-comic rendering"
+    },
+    {
+      "arm": "QWEN",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her LEFT chest"
+    },
+    {
+      "arm": "QWEN",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "QWEN",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "skin light, not medium brown; studs in both ears; rag on his left hip; backdrop top edge visible"
+    },
+    {
+      "arm": "QWEN",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "skin light; studs in both ears; rag on his left hip"
+    },
+    {
+      "arm": "K4D",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "patchwork reads as a plaid of small squares; red patch on his left upper arm"
+    },
+    {
+      "arm": "K4D",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "plaid-like patchwork; patch on his left upper arm"
+    },
+    {
+      "arm": "K4D",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "overalls drawn as short overalls; bracelet on her LEFT wrist; tear on her right thigh"
+    },
+    {
+      "arm": "K4D",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "short overalls; red bracelets on BOTH wrists; tear at her right hem"
+    },
+    {
+      "arm": "K4D",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "clean cel anime; hair clip on her RIGHT; bag over her left shoulder"
+    },
+    {
+      "arm": "K4D",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "hair clip on her right; bag drawn as a two-strap backpack"
+    },
+    {
+      "arm": "K4D",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "clean cel anime; scar through his LEFT eye/cheek; looks ~20, not 30"
+    },
+    {
+      "arm": "K4D",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "scar on his left; looks young"
+    },
+    {
+      "arm": "K4D",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4D",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4D",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        2,
+        3
+      ],
+      "notes": "bib overalls over a denim shirt, not coveralls; rag on his left hip"
+    },
+    {
+      "arm": "K4D",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "bib overalls, not coveralls; studs in both ears; rag on his left hip"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "patchwork reads as a plaid of small squares; red patch on his left upper arm"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "plaid-like patchwork; patch on his left upper arm"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "overalls drawn as short overalls; bracelet on her LEFT wrist; tear on her right thigh"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "short overalls; bracelet on her left wrist; tear at her right hem"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "clean cel anime; hair clip on her RIGHT; bag over her left shoulder"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "hair clip on her right; bag drawn as a two-strap backpack"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "clean cel anime; scar through his LEFT eye/cheek; looks ~20, not 30"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "scar on his left; looks young"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "bib overalls over a grey T-shirt, not coveralls; rag on his left hip"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "bib overalls, not coveralls; studs in both ears; rag on his left hip"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 3,
+      "notes": "younger (~30), no grey streaks; extra mole dots from the description"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 2,
+      "notes": "younger (~30), no grey streaks; extra mole dots from the description; big-head chibi proportions"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 3,
+      "notes": "younger (~30), no grey streaks; extra mole dots from the description"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 3,
+      "notes": "younger (~30), no grey streaks; extra mole dots from the description"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 5,
+      "notes": "waist-up portrait: not full body"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 5,
+      "notes": "head-and-shoulders close-up: not full body; studs in both ears"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "full body; denim shirt + jeans (description said shirt)"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "waist-up: not full body"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 3,
+      "notes": "star patch turned yellow; lighter skin than the upload"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "lighter skin"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 3,
+      "notes": "multicolour star; sticker-like white outline around the figure"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": ""
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED (the shipping prompt's \"Keep … glasses\" sentence); full body",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; white star, tee, joggers, sneakers all kept",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED (the shipping prompt's \"Keep … glasses\" sentence); full body",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; white star, tee, joggers, sneakers all kept",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED (the shipping prompt's \"Keep … glasses\" sentence); full body",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; white star, tee, joggers, sneakers all kept",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 3,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED (the shipping prompt's \"Keep … glasses\" sentence); full body",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; white star, tee, joggers, sneakers all kept",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "full body; stud on the correct ear; denim shirt + jeans"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "outfit fully kept (white star 4/4); lighter skin; scars on both cheeks in s0"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "full body; stud on the correct ear; denim shirt + jeans"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "outfit fully kept (white star 4/4); lighter skin; scars on both cheeks in s0"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 4,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "full body; stud on the correct ear; denim shirt + jeans"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "outfit fully kept (white star 4/4); lighter skin; scars on both cheeks in s0"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 3,
+      "notes": "more mature face than Qwen, closer to the upload; still no grey streaks"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "full body; stud on the correct ear; denim shirt + jeans"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "outfit fully kept (white star 4/4); lighter skin; scars on both cheeks in s0"
+    },
+    {
+      "arm": "K4B",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "toy-like vinyl render, saturated orange skin; patch on his left arm"
+    },
+    {
+      "arm": "K4B",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "toy-like render; patch on his left arm"
+    },
+    {
+      "arm": "K4B",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "long neck and torso; bracelets on both wrists; several tears on both legs"
+    },
+    {
+      "arm": "K4B",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "big chibi head on a long body; extra tear on the right thigh"
+    },
+    {
+      "arm": "K4B",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "flat anime, thin legs, hands barely drawn; clip on her right; bag on her left"
+    },
+    {
+      "arm": "K4B",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "clip on her right; bag on her right shoulder"
+    },
+    {
+      "arm": "K4B",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "flat, over-saturated yellow; scar on his left"
+    },
+    {
+      "arm": "K4B",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "feet at the bottom edge, no margin; scar on his left"
+    },
+    {
+      "arm": "K4B",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "high bun, not low; badge over her left chest"
+    },
+    {
+      "arm": "K4B",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "feet touch the bottom edge; badge over her left chest"
+    },
+    {
+      "arm": "K4B",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "feet touch the bottom edge; bib overalls, not coveralls; studs in both ears; rag on his left"
+    },
+    {
+      "arm": "K4B",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "real coveralls, medium-brown skin; studs in both ears; rag on his left"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "toy-like vinyl render, saturated orange skin; patch on his left arm"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "toy-like render; patch on his left arm"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "long neck and torso; several tears, on her right leg"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "big chibi head on a long body; extra tear on the right thigh"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "minor",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        0,
+        2
+      ],
+      "notes": "flat anime, thin legs, hands barely drawn; clip on her right; bag on her left"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "clip on her right; bag on her right shoulder"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "flat, over-saturated yellow; scar on his left"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "feet at the bottom edge; cloudy watercolour backdrop, not plain"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "high bun, not low; badge over her left chest"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "feet touch the bottom edge; bib overalls, not coveralls; studs in both ears; rag on his left"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "real coveralls, medium-brown skin; studs in both ears; rag on his left"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose (not pulled back) or a bob; young; extra moles, big earrings"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose (not pulled back) or a bob; young; extra moles, big earrings"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose (not pulled back) or a bob; young; extra moles, big earrings"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose (not pulled back) or a bob; young; extra moles, big earrings"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "feet at the bottom edge (framing check fails); plain denim shirt; younger, thinner face"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED; feet at the bottom edge",
+      "hallucination": true
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "feet at the bottom edge"
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "GLASSES ADDED",
+      "hallucination": true
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; dark star",
+      "hallucination": true
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED",
+      "hallucination": true
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        8
+      ],
+      "likeness": 2,
+      "notes": "GLASSES ADDED; grey star",
+      "hallucination": true
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "cloudy backdrop, not plain"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose, not pulled back; young; extra moles"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "plain denim shirt; younger, thinner face"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 3,
+      "notes": "dark/grey star"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose, not pulled back; young; extra moles"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "plain denim shirt; younger, thinner face"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": ""
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose, not pulled back; young; extra moles"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "plain denim shirt; younger, thinner face"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        7,
+        8
+      ],
+      "likeness": 3,
+      "notes": "dark/grey star"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        3,
+        6
+      ],
+      "likeness": 2,
+      "notes": "toy-like render; hair loose, not pulled back; young; extra moles"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "plain denim shirt; younger, thinner face; feet at the bottom edge"
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        8
+      ],
+      "likeness": 3,
+      "notes": "cloudy backdrop"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "watch right; red patch still on the picture right"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "patch still on the picture right"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "bracelet and tear on the requested sides; short overalls"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        10,
+        10
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "bracelet right; tears on both legs"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "clip and bag on the requested sides"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "clip and bag on the requested sides"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "scar still on his left"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": ""
+    },
+    {
+      "arm": "K4D-S",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge still over her left chest"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        2,
+        3
+      ],
+      "notes": "bib overalls; stud on the left ear only; rag on his left"
+    },
+    {
+      "arm": "K4D-S",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "bib overalls; studs in both ears; rag on his left"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "c1-kite-maker",
+      "seed": 910001,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "patch still on the picture right"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "c1-kite-maker",
+      "seed": 910002,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "patch still on the picture right"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "c2-girl",
+      "seed": 920002,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        10
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "freckles not visible"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "c2-girl",
+      "seed": 920003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        10
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "freckles not visible"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "a1-student",
+      "seed": 930003,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": ""
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "a1-student",
+      "seed": 930004,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": ""
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "a2-courier",
+      "seed": 940004,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "western-comic rendering"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "a2-courier",
+      "seed": 940005,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        2,
+        2
+      ],
+      "notes": "western-comic rendering"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "r1-pharmacist",
+      "seed": 950005,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge still over her left chest"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "r1-pharmacist",
+      "seed": 950006,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        9,
+        9
+      ],
+      "sided": [
+        1,
+        2
+      ],
+      "notes": "badge over her left chest"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "r2-mechanic",
+      "seed": 960006,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "light skin; rag on his left; backdrop top edge visible"
+    },
+    {
+      "arm": "QWEN-S",
+      "key": "r2-mechanic",
+      "seed": 960007,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        8,
+        9
+      ],
+      "sided": [
+        1,
+        3
+      ],
+      "notes": "light skin; rag on his left"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 5,
+      "notes": "near-identical face and smile"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 5,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 5,
+      "notes": "head-and-shoulders close-up: not full body"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wild grey hair strands sticking out of the cap"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 3,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wild hair strands; turned stance; feet at the bottom edge (framing check fails)"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        4,
+        6
+      ],
+      "likeness": 2,
+      "notes": "straight orange-blonde hair, generic face; freckles faint"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "waist-up: not full body"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "wavy, not curly; barefoot"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 3,
+      "notes": "wavy, not curly; big head"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon rather than anime; stubby proportions"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": false,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "bust close-up: not full body"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon"
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 2,
+      "notes": "HAIR ADDED to a shaved head",
+      "hallucination": true
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "same man, calmer smile"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wavy, not curly; freckles, hoops, cable sweater kept; face closer to the upload than Qwen"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon rather than anime (as Qwen)"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "same man, calmer smile"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wavy, not curly; freckles, hoops, cable sweater kept; face closer to the upload than Qwen"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon rather than anime (as Qwen)"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "same type, neutral expression, less like"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wavy, not curly; freckles, hoops, cable sweater kept; face closer to the upload than Qwen"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon rather than anime (as Qwen)"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 3,
+      "notes": "same type, neutral expression, less like"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "ok",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        5,
+        6
+      ],
+      "likeness": 4,
+      "notes": "wavy, not curly; freckles, hoops, cable sweater kept; face closer to the upload than Qwen"
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "quality": 4,
+      "style": "partial",
+      "fullBody": true,
+      "anatomy": "ok",
+      "tokens": [
+        6,
+        6
+      ],
+      "likeness": 4,
+      "notes": "western flat cartoon rather than anime (as Qwen)"
+    }
+  ]
+}

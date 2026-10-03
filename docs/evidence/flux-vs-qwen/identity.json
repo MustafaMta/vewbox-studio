@@ -1,0 +1,851 @@
+{
+  "models": {
+    "face": "YuNet 2023mar + SFace 2021dec (OpenCV Zoo)",
+    "dino": "DINOv2-small ONNX (CLS, face crop with 40 % margin)",
+    "ccip": "CCIP caformer (deepghs/ccip_onnx), same character when difference <= 0.178"
+  },
+  "thresholds": {
+    "sfaceCos": 0.363,
+    "ccipDiff": 0.17847511429108218
+  },
+  "rows": [
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.264,
+      "dinoFaceCos": 0.441,
+      "ccipDiff": 0.034
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.338,
+      "dinoFaceCos": 0.57,
+      "ccipDiff": 0.04
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.164,
+      "dinoFaceCos": 0.399,
+      "ccipDiff": 0.047
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.125,
+      "dinoFaceCos": 0.417,
+      "ccipDiff": 0.061
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.889,
+      "dinoFaceCos": 0.758,
+      "ccipDiff": 0.029
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.88,
+      "dinoFaceCos": 0.731,
+      "ccipDiff": 0.008
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.838,
+      "dinoFaceCos": 0.731,
+      "ccipDiff": 0.097
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.831,
+      "dinoFaceCos": 0.736,
+      "ccipDiff": 0.019
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.488,
+      "dinoFaceCos": 0.757,
+      "ccipDiff": 0.025
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.396,
+      "dinoFaceCos": 0.782,
+      "ccipDiff": 0.024
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.708,
+      "dinoFaceCos": 0.753,
+      "ccipDiff": 0.031
+    },
+    {
+      "arm": "QWEN",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.679,
+      "dinoFaceCos": 0.753,
+      "ccipDiff": 0.024
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.437,
+      "dinoFaceCos": 0.729,
+      "ccipDiff": 0.059
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.339,
+      "dinoFaceCos": 0.462,
+      "ccipDiff": 0.05
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.289,
+      "dinoFaceCos": 0.662,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4D",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.208,
+      "dinoFaceCos": 0.414,
+      "ccipDiff": 0.058
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.742,
+      "dinoFaceCos": 0.713,
+      "ccipDiff": 0.089
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.721,
+      "dinoFaceCos": 0.722,
+      "ccipDiff": 0.084
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.707,
+      "dinoFaceCos": 0.71,
+      "ccipDiff": 0.087
+    },
+    {
+      "arm": "K4D",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.68,
+      "dinoFaceCos": 0.721,
+      "ccipDiff": 0.082
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.639,
+      "dinoFaceCos": 0.737,
+      "ccipDiff": 0.035
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.587,
+      "dinoFaceCos": 0.705,
+      "ccipDiff": 0.046
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.51,
+      "dinoFaceCos": 0.696,
+      "ccipDiff": 0.057
+    },
+    {
+      "arm": "K4D",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.44,
+      "dinoFaceCos": 0.679,
+      "ccipDiff": 0.059
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.362,
+      "dinoFaceCos": 0.731,
+      "ccipDiff": 0.062
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.289,
+      "dinoFaceCos": 0.451,
+      "ccipDiff": 0.057
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.248,
+      "dinoFaceCos": 0.615,
+      "ccipDiff": 0.074
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.187,
+      "dinoFaceCos": 0.383,
+      "ccipDiff": 0.071
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.824,
+      "dinoFaceCos": 0.736,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.845,
+      "dinoFaceCos": 0.747,
+      "ccipDiff": 0.066
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.808,
+      "dinoFaceCos": 0.716,
+      "ccipDiff": 0.066
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.776,
+      "dinoFaceCos": 0.741,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.662,
+      "dinoFaceCos": 0.779,
+      "ccipDiff": 0.021
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.592,
+      "dinoFaceCos": 0.737,
+      "ccipDiff": 0.021
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.581,
+      "dinoFaceCos": 0.742,
+      "ccipDiff": 0.036
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.47,
+      "dinoFaceCos": 0.704,
+      "ccipDiff": 0.034
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": -0.021,
+      "dinoFaceCos": 0.423,
+      "ccipDiff": 0.089
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": -0.05,
+      "dinoFaceCos": 0.309,
+      "ccipDiff": 0.099
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": -0.011,
+      "dinoFaceCos": 0.475,
+      "ccipDiff": 0.057
+    },
+    {
+      "arm": "K4B",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": -0.076,
+      "dinoFaceCos": 0.271,
+      "ccipDiff": 0.084
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.736,
+      "dinoFaceCos": 0.709,
+      "ccipDiff": 0.062
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.62,
+      "dinoFaceCos": 0.675,
+      "ccipDiff": 0.048
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.633,
+      "dinoFaceCos": 0.719,
+      "ccipDiff": 0.067
+    },
+    {
+      "arm": "K4B",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.591,
+      "dinoFaceCos": 0.676,
+      "ccipDiff": 0.051
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.507,
+      "dinoFaceCos": 0.691,
+      "ccipDiff": 0.045
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.455,
+      "dinoFaceCos": 0.711,
+      "ccipDiff": 0.08
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.395,
+      "dinoFaceCos": 0.659,
+      "ccipDiff": 0.059
+    },
+    {
+      "arm": "K4B",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.435,
+      "dinoFaceCos": 0.711,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.036,
+      "dinoFaceCos": 0.443,
+      "ccipDiff": 0.1
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": -0.104,
+      "dinoFaceCos": 0.274,
+      "ccipDiff": 0.092
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": -0.054,
+      "dinoFaceCos": 0.363,
+      "ccipDiff": 0.099
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir1-headshot-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": -0.082,
+      "dinoFaceCos": 0.263,
+      "ccipDiff": 0.08
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.747,
+      "dinoFaceCos": 0.707,
+      "ccipDiff": 0.066
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.777,
+      "dinoFaceCos": 0.696,
+      "ccipDiff": 0.052
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.624,
+      "dinoFaceCos": 0.711,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir2-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.74,
+      "dinoFaceCos": 0.691,
+      "ccipDiff": 0.062
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.522,
+      "dinoFaceCos": 0.741,
+      "ccipDiff": 0.03
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.52,
+      "dinoFaceCos": 0.747,
+      "ccipDiff": 0.058
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.431,
+      "dinoFaceCos": 0.674,
+      "ccipDiff": 0.04
+    },
+    {
+      "arm": "K4B-T",
+      "key": "ir3-anime-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.382,
+      "dinoFaceCos": 0.707,
+      "ccipDiff": 0.064
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.717,
+      "dinoFaceCos": 0.831,
+      "ccipDiff": 0.045
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.79,
+      "dinoFaceCos": 0.836,
+      "ccipDiff": 0.048
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.624,
+      "dinoFaceCos": 0.791,
+      "ccipDiff": 0.081
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.689,
+      "dinoFaceCos": 0.802,
+      "ccipDiff": 0.031
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.536,
+      "dinoFaceCos": 0.621,
+      "ccipDiff": 0.039
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.328,
+      "dinoFaceCos": 0.476,
+      "ccipDiff": 0.048
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.362,
+      "dinoFaceCos": 0.408,
+      "ccipDiff": 0.049
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.253,
+      "dinoFaceCos": 0.263,
+      "ccipDiff": 0.063
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.324,
+      "dinoFaceCos": 0.658,
+      "ccipDiff": 0.048
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.286,
+      "dinoFaceCos": 0.628,
+      "ccipDiff": 0.057
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.243,
+      "dinoFaceCos": 0.64,
+      "ccipDiff": 0.044
+    },
+    {
+      "arm": "K4D-T",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.186,
+      "dinoFaceCos": 0.616,
+      "ccipDiff": 0.054
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.839,
+      "dinoFaceCos": 0.895,
+      "ccipDiff": 0.05
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.916,
+      "dinoFaceCos": 0.971,
+      "ccipDiff": 0.005
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.822,
+      "dinoFaceCos": 0.881,
+      "ccipDiff": 0.098
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix1-bust-photo-to-realistic",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.854,
+      "dinoFaceCos": 0.822,
+      "ccipDiff": 0.154
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.096,
+      "dinoFaceCos": 0.211,
+      "ccipDiff": 0.087
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.218,
+      "dinoFaceCos": 0.243,
+      "ccipDiff": 0.077
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.26,
+      "dinoFaceCos": 0.169,
+      "ccipDiff": 0.072
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix2-waist-photo-to-cartoon",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.221,
+      "dinoFaceCos": 0.131,
+      "ccipDiff": 0.099
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.34,
+      "dinoFaceCos": 0.718,
+      "ccipDiff": 0.048
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "face",
+      "seed": 970008,
+      "faceFound": false,
+      "ccipDiff": 0.034
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970007,
+      "faceFound": true,
+      "sfaceCos": 0.307,
+      "dinoFaceCos": 0.711,
+      "ccipDiff": 0.065
+    },
+    {
+      "arm": "QWEN",
+      "key": "ix3-bust-photo-to-anime",
+      "variant": "noface",
+      "seed": 970008,
+      "faceFound": true,
+      "sfaceCos": 0.25,
+      "dinoFaceCos": 0.639,
+      "ccipDiff": 0.061
+    }
+  ]
+}
