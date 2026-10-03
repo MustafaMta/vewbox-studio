@@ -101,6 +101,16 @@ describe('a research run on this machine’s access (no TikTok/Instagram/YouTube
   });
 });
 
+describe('a link that is not a web address is not evidence', () => {
+  it('is dropped before it is stored, so the query contract never sees it', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => { const u = String(url); if (u.includes('gdelt')) return json({ articles: [{ url: 'javascript:alert(1)', title: 'Bad', seendate: '20261002T120000Z' }, { url: 'https://ok.example/a', title: 'Good', seendate: '20261002T120000Z' }] }); if (u.includes('pageviews')) return json({ items: [{ articles: [] }] }); return json({ results: { bindings: [] } }); }));
+    const store = memoryStore();
+    const run = await runResearch(shortEn, { store, now: clock });
+    const urls = (await getResearchItems(run.itemIds, store)).map((i) => i.url);
+    expect(urls).toEqual(['https://ok.example/a']);
+  });
+});
+
 describe('run status and empty runs', () => {
   it('COMPLETE / PARTIAL / UNAVAILABLE / DISABLED from the coverage', () => {
     const c = (status: string) => ({ platform: 'NEWS' as const, provider: 'p', status: status as 'OK', detail: 'd', queries: 0, items: 0 });

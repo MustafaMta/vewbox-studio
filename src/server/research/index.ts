@@ -22,6 +22,8 @@ const LABEL: Record<ResearchPlatform, string> = { TIKTOK: 'TikTok', INSTAGRAM: '
 
 export interface SourceResult { coverage: ProviderCoverage; items: ResearchItem[]; reusedFromCache: number }
 
+const webUrl = (u: string) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:'; } catch { return false; } };
+
 interface QueryContext extends ResearchOptions { kind: IdeaKind; refresh?: boolean }
 
 /** One platform, every query of it planned for these topics: cache first (unless `refresh`), then the source. Never
@@ -57,7 +59,8 @@ export async function querySource(platform: ResearchPlatform, topics: ResearchTo
     await ctx.progress?.(`Querying ${LABEL[platform]}: ${q.query}`);
     const answer = await provider.fetch(q, { signal: ctx.signal, now: now(), event: ctx.event ? (m) => ctx.event!(m, { platform }) : undefined });
     const fetchedAt = now().toISOString();
-    const fresh = Array.from(new Map(answer.items.map((i) => [i.url, i])).values()).map((i): ResearchItem => ({ ...i, id: newItemId(), retrievedAt: fetchedAt }));
+    // a link that is not a web address is not evidence: it is dropped, never repaired or guessed
+    const fresh = Array.from(new Map(answer.items.filter((i) => webUrl(i.url) && i.title.trim()).map((i) => [i.url, i])).values()).map((i): ResearchItem => ({ ...i, id: newItemId(), retrievedAt: fetchedAt }));
     const stored = await store.upsertItems(fresh);
     let cachedUntil: string | undefined;
     if (answer.status === 'OK' || answer.status === 'EMPTY') {
