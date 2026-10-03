@@ -5,8 +5,8 @@ import type { Asset, Production } from '@/domain/types';
 import type { Decision } from '@/studio/selectors/decisions';
 import { waitingDecisions } from '@/studio/selectors/decisions';
 import {
-  countWord, coverPosition, decisionCard, figureCrop, handoffWords, lineup, nameLang, needsYou, parseTime, pickMarquee, recentWork, runtime, shortWhen,
-  START_ACTIONS, studioFacts, waitingCharacters,
+  countWord, coverPosition, decisionCard, featured, figureCrop, lineup, nameLang, parseTime, pickMarquee, productionShelf, runtime, shortWhen,
+  toolCards, waitingCharacters,
 } from '@/components/home/model';
 
 /** The Home page's reading of the studio (src/components/home/model.ts; docs/design/VISUAL-STANDARD-V5.1.md §7): every
@@ -35,11 +35,6 @@ describe('formatting helpers', () => {
     expect(runtime(0)).toBeNull();
     expect(countWord(4, true)).toBe('Four');
     expect(countWord(15)).toBe('15');
-  });
-  it('handoff words', () => {
-    expect(handoffWords('EXPORT', true)).toBe('Export made and validated');
-    expect(handoffWords('EDIT', false)).toBe('Cut handed over · not validated');
-    expect(handoffWords('SOMETHING_NEW', true)).toBe('Something new handed over');
   });
   it('a name in Arabic script carries lang="ar"; others carry none', () => {
     expect(nameLang('أبو سلام')).toBe('ar');
@@ -145,20 +140,25 @@ describe('the marquee', () => {
   });
 });
 
-describe('needs you', () => {
+describe('the featured card and the decisions', () => {
   const d = (n: number, since: string | null): Decision => ({ kind: 'stage', id: `stage:p:${n}`, title: `P${n}`, subject: { productionId: 'none', stage: 'STORY' }, since, href: '/production' });
-  it('omitted when nothing waits', () => {
-    expect(needsYou([], studio().state)).toBeNull();
+  it('with decisions: the count, a sentence of the three oldest and how many more, Review to the decisions; pictures only from real assets', () => {
+    const items = [d(1, '2026-10-03T05:00:00Z'), d(2, '2026-10-03T01:00:00Z'), d(3, null), d(4, '2026-10-03T03:00:00Z'), d(5, '2026-10-03T02:00:00Z')];
+    const f = featured(items, studio().state);
+    expect(f).toMatchObject({ kind: 'decisions', chip: '5 waiting', chipTone: 'wait', title: 'Five decisions wait for you', action: { label: 'Review', href: '/production#needs-you' } });
+    expect(f.body).toBe('Story approval, story approval, story approval and two more.');
+    expect(f.thumbs.length).toBeLessThanOrEqual(4);
+    expect(featured([d(1, null)], studio().state).title).toBe('One decision waits for you');
   });
-  it('the four oldest are shown; the link counts them all when more wait', () => {
-    const items = [d(1, '2026-10-03T05:00:00Z'), d(2, '2026-10-03T01:00:00Z'), d(3, null), d(4, '2026-10-03T03:00:00Z'), d(5, '2026-10-03T02:00:00Z'), d(6, '2026-10-03T04:00:00Z')];
-    const n = needsYou(items, studio().state)!;
-    expect(n.count).toBe(6);
-    expect(n.cards.map((c) => c.id)).toEqual(['stage:p:2', 'stage:p:5', 'stage:p:4', 'stage:p:6']);
-    expect(n.link).toBe('All 6 decisions');
-    expect(needsYou(items.slice(0, 4), studio().state)!.link).toBe('All decisions');
-  });
-  it('one card per decision, words from the decision’s own facts; a character image is portrait-cropped', () => {
+  it('without decisions: the production in progress (Continue), else a start; never an invented count', () => {
+    const s = studio().state;
+    const working = featured([], s);
+    expect(['continue', 'start']).toContain(working.kind);
+    if (working.kind === 'continue') { expect(working.action.label).toBe('Continue'); expect(working.action.href).toMatch(/\/production$/); }
+    const done = featured([], { ...s, productions: s.productions.map((p) => ({ ...p, stage: 'COMPLETE' as const })) });
+    expect(done).toMatchObject({ kind: 'start', action: { label: 'New short', href: '/new/short' } });
+    expect(done.chipTone).toBe('neutral');
+  });  it('one card per decision, words from the decision’s own facts; a character image is portrait-cropped', () => {
     const f = studio();
     const s = f.state;
     // the fixture's waiting character: its draft image becomes a real (non-sample) version 2
@@ -187,23 +187,7 @@ describe('needs you', () => {
   });
 });
 
-describe('recent work and the line-up', () => {
-  it('productions, characters and locations newest first, each a 16:9 tile with its kind in the meta', () => {
-    const f = studio();
-    const s = f.state;
-    s.locations[0].updatedAt = '2099-01-02T00:00:00.000Z';
-    s.characters[0].updatedAt = '2099-01-01T00:00:00.000Z';
-    const r = recentWork(s, 6);
-    expect(r.length).toBeLessThanOrEqual(6);
-    expect(r[0]).toMatchObject({ key: s.locations[0].id, kind: 'location', href: `/locations/${s.locations[0].id}` });
-    expect(r[0].meta).toMatch(/^Location · (interior|exterior)/);
-    expect(r[1]).toMatchObject({ key: s.characters[0].id, kind: 'character' });
-    expect(r[1].meta).toMatch(/^Character · /);
-    if (r[1].src) expect(r[1].position).toBe('50% 8%');
-    expect(r.every((x, i) => i === 0 || r[i - 1].at >= x.at)).toBe(true);
-    const prod = r.find((x) => x.kind === 'production');
-    if (prod) expect(prod.meta).toMatch(/^(Short|Episode|Music video) · /);
-  });
+describe('the line-up', () => {
   it('the line-up keeps the studio’s order and marks only the characters that wait', () => {
     const f = studio();
     const ids = f.state.characters.map((c) => c.id);
@@ -214,36 +198,22 @@ describe('recent work and the line-up', () => {
   });
 });
 
-describe('start actions and the studio panel', () => {
-  it('four start actions, each to its own page', () => {
-    expect(START_ACTIONS.map((a) => [a.title, a.href])).toEqual([
-      ['New show', '/new/show'], ['New short', '/new/short'], ['New music video', '/new/music-video'], ['New character', '/characters/new'],
+describe('the tool cards and the shelves', () => {
+  it('six tool cards, each to its own page; the company line is its real size once known', () => {
+    const before = toolCards(null);
+    expect(before.map((a) => [a.title, a.href])).toEqual([
+      ['New show', '/new/show'], ['New short', '/new/short'], ['New music video', '/new/music-video'], ['New character', '/characters/new'], ['New location', '/locations/new'], ['Studio Company', '/studio'],
     ]);
+    expect(before[5].line).toBe('The team that makes it');
+    expect(toolCards({ departments: Array.from({ length: 9 }, () => ({})), agents: 35 })[5].line).toBe('9 departments · 35 agents');
   });
-  it('the four facts, from the three endpoints', () => {
-    const facts = studioFacts({
-      health: { intake: { paused: true, since: '2026-10-03 11:39:18.768+00' } },
-      engines: { video: { ok: false }, images: { ok: false }, voice: { ok: false } },
-      org: { departments: [{ id: 'POST', name: 'Post-Production' }, ...Array.from({ length: 8 }, (_, i) => ({ id: `D${i}`, name: `D${i}` }))], agents: 35, handoffs: [{ id: 'h', productionId: 'p', stage: 'EXPORT', producerDepartment: 'POST', receiverDepartment: null, qualityStatus: 'VALIDATED', createdAt: '2026-10-03 09:33:34.579+00' }] },
-      running: 0,
-    });
-    expect(facts.map((f) => f.label)).toEqual(['State', 'Company', 'Engines', 'Last handoff']);
-    expect(facts[0]).toMatchObject({ value: 'Paused', tone: 'idle' });
-    expect(facts[0].second).toMatch(/^since 3 Oct, \d\d:\d\d$/);
-    expect(facts[1].value).toBe('9 departments · 35 agents');
-    expect(facts[2].value).toBe('Picture, video and voices offline');
-    const mixed = studioFacts({ health: null, engines: { video: { ok: true }, images: { ok: true }, voice: { ok: false } }, org: null, running: 0 });
-    expect(mixed[2].value).toBe('Picture and video ready · Voices offline');
-    expect(facts[3].value).toBe('Post-Production · export made and validated');
-    expect(facts[3].second).toMatch(/^3 Oct, \d\d:\d\d$/);
-  });
-  it('while loading the values are null (skeletons); a failed source says so', () => {
-    const loading = studioFacts({ health: null, engines: null, org: null, running: 0 });
-    expect(loading.every((f) => f.value === null)).toBe(true);
-    const down = studioFacts({ health: null, engines: null, org: null, running: 0, failed: { health: true, engines: true, org: true } });
-    expect(down[0]).toMatchObject({ value: 'Server unreachable', tone: 'bad' });
-    expect(down.slice(1).every((f) => f.value === 'Not available')).toBe(true);
-    const busy = studioFacts({ health: { intake: { paused: false } }, engines: null, org: null, running: 3 });
-    expect(busy[0]).toMatchObject({ value: 'Making · 3 jobs', tone: 'running' });
+  it('a production shelf holds only its kind, newest first, with poster art from posterOf and an honest meta line', () => {
+    const s = studio().state;
+    const shorts = productionShelf(s, 'SHORT');
+    expect(shorts.every((c) => s.productions.find((p) => p.id === c.key)?.kind === 'SHORT')).toBe(true);
+    const music = productionShelf(s, 'MUSIC_VIDEO');
+    expect(music.every((c) => s.productions.find((p) => p.id === c.key)?.kind === 'MUSIC_VIDEO')).toBe(true);
+    for (const c of [...shorts, ...music]) { expect(c.href.startsWith('/')).toBe(true); expect(c.meta).not.toMatch(/undefined|NaN/); }
+    expect(productionShelf({ ...s, productions: [] }, 'SHORT')).toEqual([]);
   });
 });

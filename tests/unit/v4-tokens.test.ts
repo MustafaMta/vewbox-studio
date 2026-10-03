@@ -33,7 +33,7 @@ describe('the v4 token sheet', () => {
 
   // v5.1 (docs/design/VISUAL-STANDARD-V5.1.md §3.1): the v4 names resolve to the v5.1 values (tests/unit/v5-tokens.test.ts)
   it('resolves the v4 names to the v5.1 values', () => {
-    expect(get('--fg-nav')).toBe('#A6A6A3');
+    expect(get('--fg-nav')).toBe('#A8A8A5');
     expect(get('--ease-in')).toBe('cubic-bezier(0.4, 0, 1, 1)');
     expect(get('--clip-edge')).toBe('#8A8A8A');
     expect(get('--canvas')).toBe('#0B0B0B');

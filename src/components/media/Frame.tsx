@@ -56,13 +56,19 @@ export interface FrameProps {
 }
 
 export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', focal, position, alt, priority, state = 'ready', phase, title, titleLang, titleState, number, art, presentation, judge, radius = 'media', decorative, className, style, children }: FrameProps) {
-  const src = asset?.src ?? plainSrc ?? null;
+  // the explicit source first (a page that chose a size), else the display-size thumbnail (B7: ≤ 960 px, ≤ 160 KB),
+  // else the original — a tile never downloads a full-resolution master
+  const baseSrc = plainSrc ?? (asset as { thumb?: { src?: string } } | null | undefined)?.thumb?.src ?? asset?.src ?? null;
+  // one quiet retry before a picture is called unavailable (a dropped request on a slow network is not a missing file)
+  const [retry, setRetry] = useState(0);
+  const src = baseSrc && retry ? `retry=` : baseSrc;
   const pres = presentation ?? asset?.presentation ?? null;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [near, setNear] = useState(Boolean(priority));
   const boxRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { setLoaded(false); setFailed(false); }, [src]);
+  useEffect(() => { setLoaded(false); setFailed(false); setRetry(0); }, [baseSrc]);
+  const fail = useCallback(() => { if (retry < 1) setTimeout(() => setRetry((r) => r + 1), 1200); else setFailed(true); }, [retry]);
   // within 1.5 viewports of the screen: load now (the browser's own lazy distance is shorter and varies)
   useEffect(() => {
     if (near || !src) return;
@@ -75,7 +81,7 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
   // shown once decoded, so the fade never reveals a half-painted picture
   const reveal = useCallback((img: HTMLImageElement) => { const done = () => setLoaded(true); if (typeof img.decode === 'function') img.decode().then(done, done); else done(); }, []);
   // an image that finished before hydration fires no onLoad: read it from the element
-  const imgRef = useCallback((img: HTMLImageElement | null) => { if (img?.complete) { if (img.naturalWidth > 0) reveal(img); else if (img.currentSrc) setFailed(true); } }, [reveal]);
+  const imgRef = useCallback((img: HTMLImageElement | null) => { if (img?.complete) { if (img.naturalWidth > 0) reveal(img); else if (img.currentSrc) fail(); } }, [reveal, fail]);
 
   const unavailable = state === 'unavailable' || Boolean(asset?.unavailable);
   const vars = artStyle(art, ['--art-ph', '--art-edge']);
@@ -102,7 +108,7 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img ref={imgRef} src={src} alt={alt} loading={priority || near ? 'eager' : 'lazy'} decoding="async" fetchPriority={priority ? 'high' : undefined}
         data-light={dimsLight(pres, judge) || undefined} style={fit === 'cover' ? { objectPosition: position ?? objectPosition(pres, focal) } : undefined}
-        onLoad={(e) => reveal(e.currentTarget)} onError={() => setFailed(true)} />
+        onLoad={(e) => reveal(e.currentTarget)} onError={fail} />
       {state === 'drawing' && (
         <span className="frame-phase" role="status"><span className="m-tally" aria-hidden />{phase ?? T('media.state.drawing')}</span>
       )}

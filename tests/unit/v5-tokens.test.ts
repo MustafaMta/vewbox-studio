@@ -17,9 +17,9 @@ const ratio = (fg: string, bg: string) => contrast(solid(fg), solid(bg));
 /** docs/design/VISUAL-STANDARD-V5.1.md §3 (binding over v5 §2): the exact values, the legacy aliases, and contrast
  *  measured from the sheet. */
 const V51 = {
-  '--bg-nav': '#050505', '--bg-page': '#101010', '--surface-1': '#1A1A1A', '--surface-2': '#242424', '--surface-3': '#2E2E2E', '--black': '#000000',
-  '--line': '#222222', '--line-strong': '#333333', '--line-control': '#6E6E6C',
-  '--text-1': '#F5F5F4', '--text-2': '#A6A6A3', '--text-3': '#8E8E8B', '--text-disabled': '#5A5A58',
+  '--bg-nav': '#050505', '--bg-page': '#101010', '--surface-1': '#1F1F1F', '--surface-2': '#292929', '--surface-3': '#333333', '--black': '#000000',
+  '--line': '#222222', '--line-strong': '#3A3A3A', '--line-control': '#787876',
+  '--text-1': '#F5F5F4', '--text-2': '#A8A8A5', '--text-3': '#999996', '--text-disabled': '#5A5A58',
   '--primary': '#F5F5F4', '--primary-hover': '#FFFFFF', '--primary-active': '#E2E2E0', '--on-primary': '#0A0A0A',
   '--wait': '#E3AA5B', '--ok': '#7FCB9C', '--bad': '#F0826F',
   '--gray-canvas': '#0B0B0B', '--gray-clip': '#262626', '--gray-edge': '#8A8A8A',
@@ -44,7 +44,7 @@ describe('the v5.1 token sheet (§3)', () => {
     expect(get('--shadow-overlay')).toContain('0 12px 32px rgb(0 0 0 / .5)');
     expect(get('--shadow-modal')).toContain('0 24px 64px rgb(0 0 0 / .6)');
     expect([4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80].map((i) => get(`--s-${i}`))).toEqual([4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80].map((i) => `${i}px`));
-    expect([get('--sidebar-w'), get('--sidebar-w-collapsed'), get('--content-max'), get('--topbar-h'), get('--tabbar-h')]).toEqual(['240px', '64px', '1680px', '56px', '64px']);
+    expect([get('--sidebar-w'), get('--sidebar-w-collapsed'), get('--content-max'), get('--topbar-h'), get('--tabbar-h')]).toEqual(['240px', '64px', '1360px', '56px', '64px']);
     expect([get('--control-h'), get('--control-h-sm'), get('--control-h-lg')]).toEqual(['40px', '32px', '48px']);
     expect([get('--dur-1'), get('--dur-2'), get('--dur-3'), get('--dur-4')]).toEqual(['120ms', '180ms', '240ms', '360ms']);
     expect(get('--ease-out')).toBe('cubic-bezier(0.2, 0, 0, 1)');

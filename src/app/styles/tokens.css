@@ -17,23 +17,23 @@
   /* ── §3.1 surfaces: five steps, neutral ─────────────────────────────────────────────────────────────── */
   --bg-nav:     #050505;  /* sidebar, phone top and bottom bars */
   --bg-page:    #101010;  /* the page */
-  --surface-1:  #1A1A1A;  /* cards, panels, title cards, skeletons, fields */
-  --surface-2:  #242424;  /* hover on cards and nav, selected nav item, secondary button, menus, chips */
-  --surface-3:  #2E2E2E;  /* hover on surface-2 items, secondary button on a card, tooltips */
-  --surface-4:  #383838;  /* the pressed secondary (§5.3 "#383838") */
-  --surface-5:  #424242;  /* the pressed secondary on a card */
+  --surface-1:  #1F1F1F;  /* cards, panels, title cards, skeletons, fields (calibrated to the producer's Krea reference) */
+  --surface-2:  #292929;  /* hover on cards and nav, selected nav item, secondary button, menus, chips */
+  --surface-3:  #333333;  /* hover on surface-2 items, secondary button on a card, tooltips */
+  --surface-4:  #3D3D3D;  /* the pressed secondary (§5.3 "#383838") */
+  --surface-5:  #474747;  /* the pressed secondary on a card */
   --black:      #000000;  /* media letterbox, theatre, players (a role, not a step) */
 
   /* lines */
   --line:         #222222;  /* dividers on the page; tab baseline */
-  --line-strong:  #333333;  /* dividers inside cards; overlay edges */
-  --line-control: #6E6E6C;  /* field boundary (3.72:1 on page, 3.41 on surface-1) */
-  --line-control-hover: #8A8A88;
+  --line-strong:  #3A3A3A;  /* dividers inside cards; overlay edges */
+  --line-control: #787876;  /* field boundary (4.3:1 on page, 3.8 on surface-1, 3.3 on surface-2) */
+  --line-control-hover: #929290;
 
   /* text: four steps */
   --text-1: #F5F5F4;  /* titles, primary text, icons when selected      17.4:1 on page */
-  --text-2: #A6A6A3;  /* secondary text, descriptions, nav at rest        7.8 page · 7.1 s1 · 6.4 s2 */
-  --text-3: #8E8E8B;  /* meta, labels, counts, placeholder                 5.8 page · 5.3 s1 · 4.7 s2 (never on s3) */
+  --text-2: #A8A8A5;  /* secondary text, descriptions, nav at rest        7.9 page · 7.0 s1 · 6.3 s2 */
+  --text-3: #999996;  /* meta, labels, counts, placeholder                 6.6 page · 5.9 s1 · 5.2 s2 · 4.6 s3 */
   --text-disabled: #5A5A58;  /* disabled labels only (exempt; always paired with a reason) */
 
   /* light: the one primary, selection, focus */
@@ -79,7 +79,7 @@
   --gutter: 12px;         /* column gutter */
   --cols: 4;
   --section-gap: 40px;
-  --content-max: 1680px;
+  --content-max: 1360px; /* one centred container on every page, at the reference's width */
   --sidebar-w: 240px; --sidebar-w-collapsed: 64px;
   --topbar-h: 56px;       /* the phone and tablet top bar */
   --tabbar-h: 64px;       /* the phone and tablet bottom bar, without the safe area */
@@ -183,7 +183,7 @@
 }
 @media (min-width: 640px)  { :root { --pad: 24px; --gutter: 16px; --cols: 8; --section-gap: 48px; } }
 @media (min-width: 1024px) { :root { --pad: 32px; --cols: 12; --section-gap: 56px; } }
-@media (min-width: 1280px) { :root { --pad: 40px; } }
+@media (min-width: 1280px) { :root { --pad: 48px; } }
 @media (max-width: 639px)  { :root { --wash-end: 400px; } }
 @media (pointer: coarse)   { :root { --control-h: 44px; --control-h-sm: 44px; } }
 /* below 1024 the top bar is on top (§5.2); at 1024 and wider the sidebar is beside the content, nothing is on top */

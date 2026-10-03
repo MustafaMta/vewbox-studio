@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ImageOff } from 'lucide-react';
 import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
@@ -9,48 +9,66 @@ import { useShell } from '@/components/shell/context';
 import { artVars } from '@/studio/presentation';
 import { Frame } from '@/components/media/Frame';
 import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { IconChevronRight, IconPlay, IconPlus } from '@/components/ui/icons';
+import { IconChevronLeft, IconChevronRight, IconPlay, IconPlus } from '@/components/ui/icons';
 import { ShapeGlyph } from './glyphs';
 import {
-  coverPosition, lineup, needsYou, pickMarquee, recentWork, RUNNING_STATUSES, START_ACTIONS, studioFacts, waitingCharacters,
-  type CastTile, type DecisionCard, type Engines, type Health, type Marquee, type OrgSummary, type RecentItem, type StudioFact,
+  coverPosition, featured, lineup, pickMarquee, productionShelf, showShelf, toolCards, waitingCharacters,
+  type CastTile, type Featured, type Marquee, type OrgSummary, type ShelfCard, type ToolCard,
 } from './model';
 
-/** HOME — the lobby of the studio (docs/design/VISUAL-STANDARD-V5.1.md §7): the latest film in a rounded frame with its
- *  words under the picture, what waits for the producer (the four oldest decisions), where they left off (four 16:9
- *  tiles), the characters' line-up, the four ways to start something and, last and quiet, the studio's own state.
- *  Every word and number comes from ./model (pure, tested) over the studio's real state and the server's endpoints; an
- *  empty studio opens on "Your studio is ready." with the start actions first. */
+/** HOME — the studio's front page, composed on the producer's reference (Krea's app home; docs/design/
+ *  VISUAL-STANDARD-V5.1.md for every token and component): a wide rounded banner of the latest film with one line of
+ *  facts and one primary action under it; a featured row — the decisions that wait (or the work in progress, or a
+ *  start) beside six compact tool cards; then the producer's shelves — Shows, Shorts, Music videos and Characters —
+ *  each holding the studio's real work in its own shape and ending with a card that starts a new one (an empty shelf is
+ *  only that card, never invented content). Every word and number comes from ./model over the
+ *  studio's real state; nothing is invented to fill a section. */
 
 export function Home() {
-  const { state, jobs } = useStudio();
+  const { state } = useStudio();
   const { decisions } = useShell();
-  const health = useLive<Health>('/api/health');
-  const engines = useLive<Engines>('/api/status');
   const org = useLive<OrgSummary>('/api/studio/org?view=summary&handoffs=1');
 
   const marquee = useMemo(() => pickMarquee(state), [state]);
-  const needs = useMemo(() => needsYou(decisions.items, state), [decisions, state]);
-  const recent = useMemo(() => recentWork(state, 6), [state]);
+  const feature = useMemo(() => featured(decisions.items, state), [decisions, state]);
+  const tools = useMemo(() => toolCards(org.data), [org.data]);
+  const shows = useMemo(() => showShelf(state), [state]);
+  const shorts = useMemo(() => productionShelf(state, 'SHORT'), [state]);
+  const music = useMemo(() => productionShelf(state, 'MUSIC_VIDEO'), [state]);
   const cast = useMemo(() => lineup(state, waitingCharacters(decisions.items)), [state, decisions]);
-  const running = jobs.filter((j) => (RUNNING_STATUSES as readonly string[]).includes(j.status)).length;
-  const facts = studioFacts({ health: health.data, engines: engines.data, org: org.data, running, failed: { health: Boolean(health.error), engines: Boolean(engines.error), org: Boolean(org.error) } });
   const empty = state.productions.length === 0 && state.characters.length === 0 && state.locations.length === 0;
 
   return (
     <div className="home" data-state={empty ? 'empty' : marquee?.finished ? 'finished' : 'working'}>
-      {empty ? <EmptyOpening /> : marquee && <MarqueeSection m={marquee} />}
-      {empty && <Starts />}
-      {needs && <NeedsYou count={needs.count} cards={needs.cards} link={needs.link} />}
-      {recent.length > 0 && <PickUp items={recent} />}
-      {!empty && <Characters cast={cast} total={state.characters.length} />}
-      {!empty && <Starts />}
-      <StudioPanel facts={facts} />
+      {marquee ? <Banner m={marquee} /> : <EmptyBanner />}
+      <section className="home-feature" aria-label="Start and continue">
+        <FeaturedCard f={feature} />
+        <ul className="home-tools" role="list">
+          {tools.map((t) => <li key={t.href}><Tool t={t} /></li>)}
+        </ul>
+      </section>
+      <Shelf id="home-shows" title="Shows" description="Seasons and episodes that share one cast and one world." kind="wide" link={{ href: '/shows', label: 'All shows' }}>
+        {shows.length > 0 ? shows.map((it) => <li key={it.key}><MediaCard it={it} ratio="16/9" /></li>) : <li><StartCard href="/new/show" ratio="16/9" title="New show" line="Your first show" /></li>}
+      </Shelf>
+      <Shelf id="home-shorts" title="Shorts" description="Single films, each from one line." kind="poster" link={{ href: '/shorts', label: 'All shorts' }}>
+        {shorts.map((it) => <li key={it.key}><MediaCard it={it} ratio="2/3" /></li>)}
+        <li><StartCard href="/new/short" ratio="2/3" title="New short" line={shorts.length ? 'Your next film' : 'Your first film'} /></li>
+      </Shelf>
+      <Shelf id="home-music" title="Music videos" description="Each one starts with its song." kind="sleeve" link={{ href: '/music-videos', label: 'All music videos' }}>
+        {music.map((it) => <li key={it.key}><MediaCard it={it} ratio="1/1" /></li>)}
+        <li><StartCard href="/new/music-video" ratio="1/1" title="New music video" line={music.length ? 'Your next song' : 'Your first song'} /></li>
+      </Shelf>
+      {state.characters.length > 0 && (
+        <Shelf id="home-cast" title="Characters" description="One canonical image and one voice each." kind="figure" link={{ href: '/characters', label: 'Casting directory' }}>
+          {cast.map((c) => <li key={c.id}><CharacterCard c={c} /></li>)}
+          <li><NewCharacterCard /></li>
+        </Shelf>
+      )}
     </div>
   );
 }
 
-// ------------------------------------------------------------------------------------------------------- marquee
+// ------------------------------------------------------------------------------------------------- the banner
 
 /** The picture's crop for the box it is drawn in (§7.1): measured before paint, so the frame never jumps. */
 function useCover(asset: Marquee['wide']) {
@@ -68,37 +86,33 @@ function useCover(asset: Marquee['wide']) {
   return { box, position };
 }
 
-function MarqueeSection({ m }: { m: Marquee }) {
+function Banner({ m }: { m: Marquee }) {
   const { box, position } = useCover(m.wide);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const reveal = useCallback((img: HTMLImageElement) => { const done = () => setLoaded(true); if (typeof img.decode === 'function') img.decode().then(done, done); else done(); }, []);
   const imgRef = useCallback((img: HTMLImageElement | null) => { if (img?.complete) { if (img.naturalWidth > 0) reveal(img); else if (img.currentSrc) setFailed(true); } }, [reveal]);
-  const art = artVars(m.wide?.asset) as CSSProperties;
   return (
-    <section className="home-marquee" aria-labelledby="home-feature-title">
-      <div ref={box} className="home-marquee-frame" data-loaded={loaded || undefined} data-state={!m.wide ? 'none' : failed ? 'failed' : undefined} style={art}>
-        {m.wide && !failed && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img ref={imgRef} src={m.wide.src} alt={`A frame from ${m.title}`} width={m.wide.width} height={m.wide.height} loading="eager" fetchPriority="high" decoding="async"
-            style={position ? { objectPosition: position } : undefined} onLoad={(e) => reveal(e.currentTarget)} onError={() => setFailed(true)} />
-        )}
-        {(failed || !m.wide) && (
-          <span className="home-marquee-missing t-label">
-            {failed ? <><ImageOff aria-hidden size={20} />Picture unavailable</> : 'No key art yet'}
-          </span>
-        )}
-      </div>
-      <div className="home-words">
-        <div className="home-words-main">
-          <div className="home-meta">
-            <span className={`badge ${m.badge.tone === 'ok' ? 'badge-ok' : 'badge-neutral'}`}>{m.badge.words}</span>
-            <p className="t-meta home-slate">{m.slate.map((s, i) => <span key={i}>{s}</span>)}</p>
-          </div>
-          <h1 id="home-feature-title" className={m.long ? 't-hero home-title' : 't-display home-title'}><bdi>{m.title}</bdi></h1>
-          {m.lead && <p className="t-lead home-lead content-para" dir="auto">{m.lead}</p>}
+    <section className="home-hero" aria-labelledby="home-hero-title">
+      <Link href={m.href} className="home-hero-frame" aria-label={`Open ${m.title}`} tabIndex={-1}>
+        <div ref={box} className="home-hero-pic" data-loaded={loaded || undefined} data-state={!m.wide ? 'none' : failed ? 'failed' : undefined} style={artVars(m.wide?.asset) as CSSProperties}>
+          {m.wide && !failed && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img ref={imgRef} src={m.wide.src} alt={`A frame from ${m.title}`} width={m.wide.width} height={m.wide.height} loading="eager" fetchPriority="high" decoding="async"
+              style={position ? { objectPosition: position } : undefined} onLoad={(e) => reveal(e.currentTarget)} onError={() => setFailed(true)} />
+          )}
+          {(failed || !m.wide) && <span className="home-hero-missing t-label">{failed ? <><ImageOff aria-hidden size={20} />Picture unavailable</> : 'No key art yet'}</span>}
         </div>
-        <div className="home-acts">
+      </Link>
+      <div className="home-hero-caption">
+        <div className="home-hero-words">
+          <h1 id="home-hero-title" className="home-hero-title"><bdi>{m.title}</bdi></h1>
+          <p className="t-meta home-hero-meta">
+            <span className={`badge ${m.badge.tone === 'ok' ? 'badge-ok' : 'badge-neutral'}`}>{m.badge.words}</span>
+            <span className="home-slate">{m.slate.map((s, i) => <span key={i}>{s}</span>)}</span>
+          </p>
+        </div>
+        <div className="home-hero-acts">
           <Link className="btn btn-secondary" href={m.secondary.href}>{m.secondary.label}</Link>
           <Link className="btn btn-primary" href={m.primary.href}>{m.primary.play && <IconPlay aria-hidden />}{m.primary.label}</Link>
         </div>
@@ -107,74 +121,99 @@ function MarqueeSection({ m }: { m: Marquee }) {
   );
 }
 
-function EmptyOpening() {
+/** An empty studio: the banner's own shape, set in type, with the one first step. */
+function EmptyBanner() {
   return (
-    <header className="home-opening">
-      <h1 className="t-page">Your studio is ready.</h1>
-      <p className="t-lead">Start a show, a short or a music video. The studio drafts each step; you approve it.</p>
-    </header>
-  );
-}
-
-// ------------------------------------------------------------------------------------------------- section head
-
-/** The section head of §5.4 (Home's until the kit's SectionHead lands): the title with an optional count, the phone
- *  rail readout between, and one quiet link at the end. */
-function SectionHead({ id, title, count, wait, readout, description, link }: { id: string; title: string; count?: number; wait?: boolean; readout?: ReactNode; description?: string; link?: { href: string; label: string } }) {
-  return (
-    <div className="home-head" data-described={description ? '' : undefined}>
-      <div className="home-head-title">
-        <h2 id={id} className="t-section">{title}{count !== undefined && <span className="t-body home-count" data-tone={wait ? 'wait' : undefined}><span className="sr-only">, </span>{count}</span>}</h2>
-        {description && <p className="t-body home-head-desc">{description}</p>}
+    <section className="home-hero" aria-labelledby="home-hero-title">
+      <div className="home-hero-frame home-hero-empty">
+        <span className="home-hero-corners" aria-hidden />
+        <div className="home-hero-empty-words">
+          <h1 id="home-hero-title" className="t-page">Your studio is ready.</h1>
+          <p className="t-lead">Write one line. The studio drafts the story, the cast and the shots, and you approve each step.</p>
+          <div className="home-hero-acts"><Link className="btn btn-primary" href="/new/short">Make a short film</Link><Link className="btn btn-secondary" href="/studio">Meet your studio</Link></div>
+        </div>
       </div>
-      {readout}
-      {link && <Link className="t-body home-link" href={link.href}>{link.label}<IconChevronRight aria-hidden /></Link>}
-    </div>
+    </section>
   );
 }
 
-/** Which card of a phone rail sits at the start edge ("1 of 4", §5.4); null on a wider screen where nothing scrolls. */
-function useRailPosition() {
-  const rail = useRef<HTMLUListElement>(null);
-  const [at, setAt] = useState(0);
-  const onScroll = useCallback(() => {
-    const el = rail.current; if (!el) return;
-    const first = el.firstElementChild as HTMLElement | null;
-    if (!first) return;
-    const step = first.getBoundingClientRect().width + parseFloat(getComputedStyle(el).columnGap || '0');
-    const i = step > 0 ? Math.round(el.scrollLeft / step) : 0;
-    setAt(Math.max(0, Math.min(el.children.length - 1, i)));
-  }, []);
-  return { rail, at, onScroll };
+// -------------------------------------------------------------------------------------------- the featured row
+
+function FeaturedCard({ f }: { f: Featured }) {
+  return (
+    <article className="card home-featured" data-kind={f.kind} aria-labelledby="home-featured-h">
+      <div className="home-featured-words">
+        <span className={`badge ${f.chipTone === 'wait' ? 'badge-warn' : 'badge-neutral'}`}>{f.chip}</span>
+        <h2 id="home-featured-h" className="home-featured-title">{f.title}</h2>
+        <p className="t-body home-featured-body">{f.body}</p>
+        <Link className="btn btn-primary btn-sm home-featured-btn" href={f.action.href}>{f.action.label}<IconChevronRight aria-hidden /></Link>
+      </div>
+      {f.thumbs.length > 0 && (
+        <ul className="home-featured-thumbs" role="list" data-count={f.thumbs.length}>
+          {f.thumbs.map((t) => (
+            <li key={t.id}>
+              <Link href={t.href} className="home-featured-thumb" aria-label={t.label} title={t.label}>
+                <Frame asset={t.asset} src={t.src} ratio="1/1" fit="cover" alt="" radius="none" art={artVars(t.asset)}
+                  presentation={{ ...t.asset.presentation, ...(t.position ? { focal: focalFrom(t.position) } : null) }} title={t.label} decorative />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
 }
 
-// ------------------------------------------------------------------------------------------------------- needs you
-
-function NeedsYou({ count, cards, link }: { count: number; cards: DecisionCard[]; link: string }) {
-  const { rail, at, onScroll } = useRailPosition();
+function Tool({ t }: { t: ToolCard }) {
   return (
-    <section className="home-section" aria-labelledby="home-needs-h">
-      <SectionHead id="home-needs-h" title="Needs you" count={count} wait link={{ href: '/production#needs-you', label: link }}
-        readout={cards.length > 1 ? <span className="home-railpos t-ro" aria-hidden>{at + 1} of {cards.length}</span> : undefined} />
-      <ul className="home-row home-rail home-decisions" role="list" ref={rail} onScroll={onScroll}>
-        {cards.map((c) => (
-          <li key={c.id}>
-            <Link className="dcard home-card home-dcard" href={c.href} aria-label={`${c.action}: ${c.heading} (${c.kindLabel})`}>
-              <Frame asset={c.picture?.asset} src={c.picture?.src} ratio="16/9" fit="cover" alt="" radius="none"
-                presentation={c.picture ? { ...c.picture.asset.presentation, ...(c.picture.position ? { focal: focalFrom(c.picture.position) } : null) } : undefined}
-                art={artVars(c.picture?.asset)} title={c.heading} titleState="noImage" judge={c.picture?.figure} decorative>
-                {c.chip && <span className="home-chip t-ro">{c.chip}</span>}
-              </Frame>
-              <span className="home-dcard-body">
-                <span className="t-label home-kind"><i className="home-dot" aria-hidden />{c.kindLabel}</span>
-                <span className="t-card home-dcard-h">{c.headingIsContent ? <bdi>{c.heading}</bdi> : c.heading}</span>
-                <span className="t-body home-dcard-d">{c.body}</span>
-                <span className="btn btn-secondary btn-sm home-dcard-btn">{c.action}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <Link className="card home-tool" href={t.href}>
+      <ShapeGlyph shape={t.shape} />
+      <span className="home-tool-words">
+        <span className="home-tool-title">{t.title}</span>
+        <span className="home-tool-line">{t.line}</span>
+      </span>
+    </Link>
+  );
+}
+
+// -------------------------------------------------------------------------------------------------- the shelves
+
+/** A horizontal shelf (the reference's media rows): a head with the title, an optional description, one quiet link and,
+ *  when the row is wider than the column, previous/next buttons; the row scrolls with snap and never wraps. */
+function Shelf({ id, title, description, kind, link, children }: { id: string; title: string; description?: string; kind: 'wide' | 'poster' | 'sleeve' | 'figure'; link?: { href: string; label: string }; children: ReactNode }) {
+  const track = useRef<HTMLUListElement>(null);
+  const [edges, setEdges] = useState({ overflow: false, start: true, end: true });
+  const measure = useCallback(() => {
+    const el = track.current; if (!el) return;
+    const overflow = el.scrollWidth > el.clientWidth + 2;
+    setEdges({ overflow, start: el.scrollLeft <= 2, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 });
+  }, []);
+  useEffect(() => {
+    const el = track.current; if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
+  const page = (dir: 1 | -1) => { const el = track.current; if (!el) return; el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.8), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
+  return (
+    <section className="home-shelf" aria-labelledby={`${id}-h`} data-kind={kind}>
+      <div className="home-shelf-head">
+        <div className="home-shelf-title">
+          <h2 id={`${id}-h`} className="t-section">{title}</h2>
+          {description && <p className="t-body home-shelf-desc">{description}</p>}
+        </div>
+        <div className="home-shelf-end">
+          {link && <Link className="home-link" href={link.href}>{link.label}<IconChevronRight aria-hidden /></Link>}
+          {edges.overflow && (
+            <span className="home-shelf-arrows">
+              <button type="button" className="btn btn-secondary btn-icon btn-sm" aria-label={`Previous ${title.toLowerCase()}`} disabled={edges.start} onClick={() => page(-1)}><IconChevronLeft aria-hidden /></button>
+              <button type="button" className="btn btn-secondary btn-icon btn-sm" aria-label={`Next ${title.toLowerCase()}`} disabled={edges.end} onClick={() => page(1)}><IconChevronRight aria-hidden /></button>
+            </span>
+          )}
+        </div>
+      </div>
+      <ul ref={track} className="home-shelf-track" role="list" onScroll={measure}>{children}</ul>
     </section>
   );
 }
@@ -182,151 +221,89 @@ function NeedsYou({ count, cards, link }: { count: number; cards: DecisionCard[]
 /** "50% 8%" → { x: 0.5, y: 0.08 }: the Frame takes the crop as a focal point. */
 const focalFrom = (position: string) => { const [x, y] = position.split(' ').map((v) => parseFloat(v) / 100); return { x, y }; };
 
-// ------------------------------------------------------------------------------------ pick up where you left off
-
-function PickUp({ items }: { items: RecentItem[] }) {
+/** A media card with its words on the picture (the reference's shelf cards): the title and one meta line over the
+ *  poster scrim at the bottom; the whole card is one link. */
+function MediaCard({ it, ratio }: { it: ShelfCard; ratio: '16/9' | '2/3' | '1/1' }) {
   return (
-    <section className="home-section" aria-labelledby="home-recent-h">
-      <SectionHead id="home-recent-h" title="Pick up where you left off" />
-      <ul className="home-row home-rail home-recent" role="list">
-        {items.map((it) => (
-          <li key={it.key}>
-            <Link className="mtile-link home-tile" href={it.href} title={it.title}>
-              <Frame asset={it.asset} src={it.src} ratio="16/9" fit="cover" alt=""
-                presentation={it.asset ? { ...it.asset.presentation, ...(it.position ? { focal: focalFrom(it.position) } : null) } : undefined}
-                art={artVars(it.asset)} title={it.title} titleLang={it.lang} titleState="noImage" decorative />
-              <span className="t-card name home-tile-name"><bdi lang={it.lang}>{it.title}</bdi></span>
-              <span className="t-meta home-tile-meta">{it.meta}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Link className="home-media" href={it.href} title={it.title}>
+      <Frame asset={it.asset} src={it.src} ratio={ratio} fit="cover" alt="" radius="none" className="home-media-frame"
+        presentation={it.asset ? { ...it.asset.presentation, ...(it.position ? { focal: focalFrom(it.position) } : null) } : undefined}
+        art={artVars(it.asset)} title={it.title} titleLang={it.lang} titleState="noImage" decorative style={{ aspectRatio: ratio.replace('/', ' / ') }}>
+        <span className="home-media-words">
+          <span className="home-media-title name"><bdi lang={it.lang}>{it.title}</bdi></span>
+          {it.meta && <span className="home-media-meta">{it.meta}</span>}
+        </span>
+      </Frame>
+    </Link>
   );
 }
 
-// ------------------------------------------------------------------------------------------------------ characters
-
-function Characters({ cast, total }: { cast: CastTile[]; total: number }) {
+/** The last card of a shelf: start a new one, in the shelf's own shape (the title card's viewfinder corners). */
+function StartCard({ href, ratio, title, line }: { href: string; ratio: '16/9' | '2/3' | '1/1'; title: string; line: string }) {
   return (
-    <section className="home-section" aria-labelledby="home-cast-h">
-      <SectionHead id="home-cast-h" title="Characters" count={total} link={{ href: '/characters', label: 'Casting directory' }} />
-      <ul className="home-lineup home-rail" role="list">
-        {cast.map((c) => (
-          <li key={c.id} className="home-cast-item">
-            <Link className="mtile-link home-tile" href={c.href} title={c.name}>
-              <Frame asset={c.asset} src={c.src} ratio="928/1664" fit="contain" alt="" art={artVars(c.asset)} title={c.name} titleLang={c.lang} titleState="noImage" decorative />
-              <span className="t-card name home-tile-name"><bdi lang={c.lang}>{c.name}</bdi></span>
-              <span className="home-tile-state">{c.waiting && <span className="badge badge-warn">Needs approval</span>}</span>
-            </Link>
-          </li>
-        ))}
-        <li className="home-cast-new">
-          <Link className="mtile-link home-tile home-newchar" href="/characters/new">
-            <span className="home-newchar-frame">
-              <span className="home-newchar-plus" aria-hidden><IconPlus /></span>
-              <span className="t-body home-newchar-label">New character</span>
-            </span>
-            <span className="t-card home-tile-name" aria-hidden />
-            <span className="home-tile-state" aria-hidden />
-          </Link>
-        </li>
-      </ul>
-    </section>
+    <Link className="home-start" href={href} style={{ aspectRatio: ratio.replace('/', ' / ') }}>
+      <span className="home-hero-corners" aria-hidden />
+      <span className="home-figure-plus" aria-hidden><IconPlus /></span>
+      <span className="home-start-words"><span className="home-tool-title">{title}</span><span className="home-tool-line">{line}</span></span>
+    </Link>
   );
 }
 
-// ------------------------------------------------------------------------------------------------ start something
-
-function Starts() {
+/** A character in the shelf: the whole canonical figure on its own field (never cropped), the name below on the start
+ *  edge, and "Needs approval" only when the producer is waited on. */
+function CharacterCard({ c }: { c: CastTile }) {
   return (
-    <section className="home-section" aria-labelledby="home-start-h">
-      <SectionHead id="home-start-h" title="Start something new" description="The studio drafts each step; you approve it." />
-      <ul className="home-row home-starts" role="list">
-        {START_ACTIONS.map((a) => (
-          <li key={a.href}>
-            <Link className="acard home-card home-action" href={a.href}>
-              <ShapeGlyph shape={a.shape} />
-              <IconChevronRight aria-hidden className="home-action-chev" />
-              <span className="home-action-text">
-                <span className="t-card">{a.title}</span>
-                <span className="t-body home-action-line">{a.line}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Link className="home-figure" href={c.href} title={c.name}>
+      <Frame asset={c.asset} src={c.src} ratio="928/1664" fit="contain" alt="" art={artVars(c.asset)} title={c.name} titleLang={c.lang} titleState="noImage" decorative className="home-figure-frame" />
+      <span className="t-card name home-figure-name"><bdi lang={c.lang}>{c.name}</bdi></span>
+      <span className="home-figure-state">{c.waiting ? <span className="badge badge-warn">Needs approval</span> : null}</span>
+    </Link>
   );
 }
 
-// ------------------------------------------------------------------------------------------------- the studio
-
-function StudioPanel({ facts }: { facts: StudioFact[] }) {
+function NewCharacterCard() {
   return (
-    <section className="home-section" aria-labelledby="home-studio-h">
-      <SectionHead id="home-studio-h" title="The studio" link={{ href: '/studio', label: 'Studio Company' }} />
-      <dl className="pcard home-panel">
-        {facts.map((f) => (
-          <div key={f.key} className="home-fact" aria-busy={f.value === null || undefined}>
-            <dt className="t-label">{f.label}</dt>
-            {f.value === null
-              ? <dd className="home-fact-v"><Skeleton.Line size="body" width="72%" /></dd>
-              : <dd className="t-body home-fact-v" title={f.value}>{f.tone && <i className="home-dot" data-tone={f.tone} aria-hidden />}<span>{f.value}</span></dd>}
-            <dd className="t-body home-fact-2">{f.second ?? ''}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <Link className="home-figure" href="/characters/new">
+      <span className="home-figure-frame home-figure-new">
+        <span className="home-figure-plus" aria-hidden><IconPlus /></span>
+        <span className="t-body">New character</span>
+      </span>
+      <span className="t-card home-figure-name" aria-hidden />
+      <span className="home-figure-state" aria-hidden />
+    </Link>
   );
 }
 
 // ------------------------------------------------------------------------------------------------- the skeleton
 
-/** Home while the studio's first snapshot loads (§5.22): the same frames, rows and gaps as the page, so nothing moves
- *  when it arrives; it appears only after 150 ms (no flash on a fast load) and the page crossfades in over 240 ms. */
+/** Home while the studio's first snapshot loads (§5.22): the banner, the featured row and the shelves in their final
+ *  shapes and sizes (the same classes size them), so nothing moves when the content arrives. */
 export function HomeSkeleton() {
   return (
     <SkeletonRegion label="Opening the studio…" className="home home-skeleton">
-      <div className="home-marquee">
-        <Skeleton.Block className="home-marquee-frame" width="100%" height="auto" radius="lg" />
-        <div className="home-words">
-          <div className="home-words-main">
-            <div className="home-meta"><Skeleton.Line width="min(20rem, 60%)" /></div>
-            <div className="t-display home-title"><Skeleton.Line size="title" width="min(24rem, 70%)" /></div>
-            <div className="t-lead home-lead home-sk-lead"><Skeleton.Line width="min(36rem, 90%)" /><Skeleton.Line width="min(24rem, 60%)" /></div>
+      <section className="home-hero">
+        <Skeleton.Block className="home-hero-frame" width="100%" height="auto" radius="lg" />
+        <div className="home-hero-caption">
+          <div className="home-hero-words">
+            <div className="home-hero-title"><Skeleton.Line size="title" width="16rem" /></div>
+            <div className="t-meta home-hero-meta"><Skeleton.Line width="20rem" /></div>
           </div>
+          <div className="home-hero-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={112} height={40} radius="pill" /></div>
         </div>
+      </section>
+      <div className="home-feature">
+        <Skeleton.Block className="home-featured" width="100%" height="auto" radius="md" />
+        <div className="home-tools">{Array.from({ length: 6 }, (_, i) => <Skeleton.Block key={i} className="home-tool" width="100%" height="auto" radius="md" />)}</div>
       </div>
-      <div className="home-section">
-        <div className="home-head"><div className="t-section"><Skeleton.Line size="title" width="8rem" /></div></div>
-        <div className="home-row home-rail home-decisions">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i}>
-              <span className="dcard home-card home-dcard">
-                <Skeleton.Media ratio="16/9" />
-                <span className="home-dcard-body">
-                  <span className="t-label home-kind"><Skeleton.Line width="60%" /></span>
-                  <span className="t-card home-dcard-h"><Skeleton.Line width="50%" /></span>
-                  <span className="t-body home-dcard-d"><Skeleton.Line width="92%" /><Skeleton.Line width="64%" /></span>
-                  <Skeleton.Block className="home-dcard-btn" width={128} height={32} radius="pill" />
-                </span>
-              </span>
-            </div>
-          ))}
+      {([['wide', '16/9', 4, '6rem'], ['poster', '2/3', 6, '5rem'], ['sleeve', '1/1', 5, '8rem']] as const).map(([kind, ratio, n, w]) => (
+        <div key={kind} className="home-shelf" data-kind={kind}>
+          <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width={w} /></div><div className="t-body home-shelf-desc"><Skeleton.Line width="18rem" /></div></div></div>
+          <div className="home-shelf-track">{Array.from({ length: n }, (_, i) => <div key={i}><Skeleton.Media ratio={ratio} className="home-media" /></div>)}</div>
         </div>
-      </div>
-      <div className="home-section">
-        <div className="home-head"><div className="t-section"><Skeleton.Line size="title" width="14rem" /></div></div>
-        <div className="home-row home-rail home-recent">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="home-tile">
-              <Skeleton.Media ratio="16/9" />
-              <span className="t-card home-tile-name"><Skeleton.Line width="60%" /></span>
-              <span className="t-meta home-tile-meta"><Skeleton.Line width="40%" /></span>
-            </div>
-          ))}
-        </div>
+      ))}
+      <div className="home-shelf" data-kind="figure">
+        <div className="home-shelf-head"><div className="home-shelf-title"><div className="t-section"><Skeleton.Line size="title" width="8rem" /></div><div className="t-body home-shelf-desc"><Skeleton.Line width="14rem" /></div></div></div>
+        <div className="home-shelf-track">{Array.from({ length: 7 }, (_, i) => <div key={i}><span className="home-figure"><Skeleton.Media ratio="928/1664" className="home-figure-frame" /><span className="t-card home-figure-name"><Skeleton.Line width="60%" /></span><span className="home-figure-state" /></span></div>)}</div>
       </div>
     </SkeletonRegion>
   );

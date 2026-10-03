@@ -29,7 +29,7 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
   const shot = (p: Production | undefined, id: string | undefined) => { const sh = p?.shots.find((s) => s.id === id); return fill(T('shell.title.shot'), sh && p ? shotLabel(p, sh) : (id ?? '')); };
 
   switch (seg[0]) {
-    case undefined: return [];
+    case undefined: return ['Home'];
     case 'shows': {
       const area = T('nav.shows');
       if (!seg[1]) return [area];
