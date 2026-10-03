@@ -419,6 +419,11 @@ export const locationPlates: Handler = async (ctx) => {
   const { state } = await readState();
   const l = state.locations.find((x) => x.id === locationId);
   if (!l) throw new StudioError('NOT_FOUND', 'Location not found');
+  // a place that has been filmed keeps its plates: a new master would change it under the takes already chosen
+  if (force) {
+    const filmedIn = state.productions.filter((p) => p.shots.some((sh) => sh.selectedTakeId && p.scenes.find((sc) => sc.id === sh.sceneId)?.locationId === l.id));
+    if (filmedIn.length) throw new StudioError('APPEARANCE_LOCKED', `${l.name} has been filmed (${filmedIn.map((p) => p.title).join(', ')}); its plates are kept for continuity.`, { locationId: l.id, productionIds: filmedIn.map((p) => p.id) });
+  }
   await requireComfy();
   const refs: LocationRef[] = [];
   // a bundled sample plate is a placeholder, not a master to build views from

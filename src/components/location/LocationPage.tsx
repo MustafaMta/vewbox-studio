@@ -97,6 +97,8 @@ function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; tit
       <Select aria-label={T('loc.views')} value={role} onChange={(e) => setRole(e.target.value as LocationRefRole)} options={LOCATION_REF_ROLES.filter((r) => roles.includes(r)).map((r) => ({ value: r, label: words(r) }))} className="w-auto" />
       <label className="btn btn-secondary btn-sm cursor-pointer"><IconUpload aria-hidden />{T('btn.upload')}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} /></label>
       <JobButton type="LOCATION_PLATES" payload={{ locationId: l.id }} target={{ locationId: l.id }} size="sm" icon={<IconGenerate />}>{T('gen.plates')}</JobButton>
+      {/* D25: once a master exists, "Draw plates" builds on it; redrawing the place itself is a deliberate, separate act */}
+      {l.masterAssetId && <JobButton type="LOCATION_PLATES" payload={{ locationId: l.id, force: true }} target={{ locationId: l.id }} size="sm" variant="ghost" confirm={T('cast.loc.redrawConfirm')}>{T('cast.loc.redraw')}</JobButton>}
     </div>
   );
   return (

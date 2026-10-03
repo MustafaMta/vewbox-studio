@@ -173,6 +173,8 @@ export const cast = {
   'cast.redraw.reference': ['Reference picture', 'صورة مرجعية'],
   'cast.redraw.withReference': ['The new image follows this picture; it is not the image itself.', 'تتبع الصورة الجديدة هذه الصورة؛ وليست هي الصورة نفسها.'],
   'cast.redraw.fromDescription': ['Without a picture, the image is drawn from the written look.', 'من دون صورة، تُرسم الصورة من المظهر المكتوب.'],
+  'cast.loc.redraw': ['Redraw the place', 'أعد رسم المكان'],
+  'cast.loc.redrawConfirm': ['Draw a new master plate and new views from the description? The current plates stay in the library.', 'هل تُرسم لوحة رئيسية جديدة ومناظر جديدة من الوصف؟ تبقى اللوحات الحالية في المكتبة.'],
   'cast.redraw.fromEarlierPicture': ['Without a new picture, the image is drawn again from the reference picture this character was made from.', 'من دون صورة جديدة، تُرسم الصورة من جديد من الصورة المرجعية التي صُنعت منها الشخصية.'],
   'cast.redraw.go': ['Redraw image', 'أعد رسم الصورة'],
   'cast.profile.noDescription': ['No description yet.', 'لا وصف بعد.'],
