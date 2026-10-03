@@ -7,7 +7,7 @@
 
    The document scrolls; the sidebar is sticky at the viewport's height. Its shape is <html data-sidebar>, set by the
    boot script before the first paint (src/app/boot.ts), so the column never shifts while the page loads; the width
-   animates only once the shell has marked <html data-sidebar-ready>. Colours, radii and durations are tokens only.
+   animates only while the producer toggles it (<html data-sidebar-anim>, set for 400 ms by the toggle). Colours, radii and durations are tokens only.
    ============================================================================================================ */
 
 /* the navigation's share of the inline axis, for anything fixed beside the content (the player bar) */
@@ -80,7 +80,7 @@
 
   @media (min-width: 1024px) {
     .shell { display: grid; grid-template-columns: var(--shell-nav-w) minmax(0, 1fr); }
-    html[data-sidebar-ready] .shell { transition: grid-template-columns var(--dur-2) var(--ease-out); }
+    html[data-sidebar-anim] .shell { transition: grid-template-columns var(--dur-2) var(--ease-out); }
     .shell > .shell-nav { display: flex; position: sticky; inset-block-start: 0; z-index: var(--z-nav); block-size: 100dvh; overflow-x: hidden; overflow-y: auto; }
 
     /* ---- collapsed: 64 wide, icons only ------------------------------------------------------------------ */

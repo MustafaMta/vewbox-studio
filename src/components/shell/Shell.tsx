@@ -81,11 +81,17 @@ export function Shell({ children }: { children: ReactNode }) {
     // before hydration the server snapshot says "no choice, not wide": keep the boot's attribute until the client knows
     html.setAttribute('data-sidebar', sidebarShape(readSidebarNow(), matchMedia('(min-width: 1280px)').matches && room !== 'cutting'));
   }, [shape, room]);
-  useEffect(() => { const id = requestAnimationFrame(() => document.documentElement.setAttribute('data-sidebar-ready', '')); return () => cancelAnimationFrame(id); }, []);
   const nav = shape === 'collapsed' ? 'rail' : 'sidebar';
+  // the width animates ONLY while the producer toggles it (never on load, resize or a room change), so the content
+  // column never slides on its own (§6.5)
+  const animTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toggleNav = useCallback(() => {
     if (!matchMedia('(min-width: 1024px)').matches) return;
-    writeSidebar(document.documentElement.getAttribute('data-sidebar') === 'collapsed' ? 'expanded' : 'collapsed');
+    const html = document.documentElement;
+    html.setAttribute('data-sidebar-anim', '');
+    if (animTimer.current) clearTimeout(animTimer.current);
+    animTimer.current = setTimeout(() => html.removeAttribute('data-sidebar-anim'), 400);
+    writeSidebar(html.getAttribute('data-sidebar') === 'collapsed' ? 'expanded' : 'collapsed');
   }, []);
 
   // ---- the studio's state, one line (§5.1 footer; the More sheet) ------------------------------------------------
