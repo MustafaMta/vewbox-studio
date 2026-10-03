@@ -262,6 +262,10 @@ describe('CHARACTER_REFS: secondary material only, one pass per kind from the ca
     const [portrait] = madeSince(before);
     expect(portrait).toMatchObject({ tier: 'SECONDARY', provenance: { view: 'PORTRAIT' } });
     expect(fake.runs[0].graph['8'].inputs).toMatchObject({ width: 1024, height: 1280 });
+    // drawn from the head and shoulders of the canonical image (its recorded figure box), not from the whole figure
+    expect(fake.runs[0].graph.img1c.class_type).toBe('ImageCrop');
+    expect(fake.runs[0].graph.img1c.inputs).toMatchObject({ image: ['img1', 0] });
+    expect(portrait.provenance!.cropOfReference).toBeTruthy();
     const c = fake.state.characters.find((x) => x.id === 'nour')!;
     expect(c.portraitAssetId).toBe(portrait.id);
     expect(c.canonicalImage!.assetId).toBe(canonical);

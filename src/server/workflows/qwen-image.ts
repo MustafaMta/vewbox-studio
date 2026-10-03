@@ -43,7 +43,10 @@ export function editModel(g: Graph, opts: { quality?: boolean }): [string, numbe
   return ['5', 0];
 }
 
-export interface EditInput { prompt: string; negative?: string; references: string[]; width?: number; height?: number; seed?: number; steps?: number; cfg?: number; denoise?: number; filenamePrefix?: string; /** no Lightning LoRA: 24 steps, cfg 4 — for pictures of a character */ quality?: boolean }
+/** A rectangle in pixels of the picture it is cut from. */
+export interface CropPx { x: number; y: number; width: number; height: number }
+
+export interface EditInput { prompt: string; negative?: string; references: string[]; width?: number; height?: number; seed?: number; steps?: number; cfg?: number; denoise?: number; filenamePrefix?: string; /** no Lightning LoRA: 24 steps, cfg 4 — for pictures of a character */ quality?: boolean; /** cut image 1 to this rectangle before it is scaled (a close-up from a full figure) */ crop1?: CropPx }
 
 /** Edit-2511 takes up to three reference pictures (image1 = the main subject or scene, image2/3 = extra identities
  *  or costume sheets). The output size follows image1 unless width/height are given. */
@@ -55,9 +58,15 @@ export function qwenEdit(i: EditInput): Graph {
   i.references.forEach((ref, k) => {
     const id = `img${k + 1}`;
     g[id] = { class_type: 'LoadImage', inputs: { image: ref } };
+    let src = id;
+    if (k === 0 && i.crop1) {
+      const c = i.crop1;
+      g['img1c'] = { class_type: 'ImageCrop', inputs: { image: [id, 0], width: Math.max(16, Math.round(c.width)), height: Math.max(16, Math.round(c.height)), x: Math.max(0, Math.round(c.x)), y: Math.max(0, Math.round(c.y)) } };
+      src = 'img1c';
+    }
     // the editor works at ~1 megapixel per reference; scale each so the long side is 1328
     // resolution_steps became a required input in ComfyUI 0.38 (found by the first real reference-conditioned job)
-    g[`${id}s`] = { class_type: 'ImageScaleToTotalPixels', inputs: { image: [id, 0], upscale_method: 'lanczos', megapixels: 1.0, resolution_steps: 16 } };
+    g[`${id}s`] = { class_type: 'ImageScaleToTotalPixels', inputs: { image: [src, 0], upscale_method: 'lanczos', megapixels: 1.0, resolution_steps: 16 } };
     imgNodes.push(`${id}s`);
   });
   const enc = (text: string, id: string) => { g[id] = { class_type: 'TextEncodeQwenImageEditPlus', inputs: { clip: ['2', 0], prompt: text, vae: ['3', 0], ...(imgNodes[0] ? { image1: [imgNodes[0], 0] } : {}), ...(imgNodes[1] ? { image2: [imgNodes[1], 0] } : {}), ...(imgNodes[2] ? { image3: [imgNodes[2], 0] } : {}) } }; };
@@ -84,14 +93,16 @@ export const isSecondaryMaterialKind = (x: unknown): x is SecondaryMaterialKind 
 export const SECONDARY_SPEC: Record<SecondaryMaterialKind, { prose: string; width: number; height: number }> = {
   EXPRESSION: { prose: 'An expression sheet: the same head-and-shoulders face four times in a 2x2 grid, showing joy, worry, anger and surprise', width: 1280, height: 1280 },
   OUTFIT: { prose: 'An outfit reference: the whole figure from the front, head to toe, every garment, accessory and the footwear clearly visible and in detail', width: 928, height: 1664 },
-  PORTRAIT: { prose: 'A head-and-shoulders close-up portrait, facing the camera, neutral calm expression', width: 1024, height: 1280 },
+  PORTRAIT: { prose: 'A tight head-and-shoulders close-up portrait: the frame shows only the head, the neck and the top of the shoulders, cut at the upper chest, the face filling the upper half of the frame, facing the camera, neutral calm expression', width: 1024, height: 1280 },
 };
 
-/** One kind of secondary material from the canonical image (an uploaded file name), in quality mode by default. */
-export function qwenSecondary(i: { canonical: string; kind: SecondaryMaterialKind; prompt: string; negative?: string; seed?: number; quality?: boolean }): Graph {
+/** One kind of secondary material from the canonical image (an uploaded file name), in quality mode by default.
+ *  `crop`: the part of the canonical image the kind is drawn from (the close-up portrait: head and shoulders — from the
+ *  whole figure Edit-2511 redrew the whole figure, GPU check 2026-10-03). */
+export function qwenSecondary(i: { canonical: string; kind: SecondaryMaterialKind; prompt: string; negative?: string; seed?: number; quality?: boolean; crop?: CropPx }): Graph {
   const spec = SECONDARY_SPEC[i.kind];
   if (!spec) throw new Error(`unknown secondary material ${i.kind}`);
-  return qwenEdit({ prompt: i.prompt, negative: i.negative, references: [i.canonical], width: spec.width, height: spec.height, seed: i.seed, quality: i.quality ?? true, filenamePrefix: `vewbox/secondary-${i.kind.toLowerCase()}` });
+  return qwenEdit({ prompt: i.prompt, negative: i.negative, references: [i.canonical], width: spec.width, height: spec.height, seed: i.seed, quality: i.quality ?? true, crop1: i.crop, filenamePrefix: `vewbox/secondary-${i.kind.toLowerCase()}` });
 }
 
 // ---------------------------------------------------------------------------------------------- face detection

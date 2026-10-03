@@ -55,7 +55,7 @@ describe('D13: facial hair and a garment’s cut are stated so they cannot be re
   it('the A3 line: "moustache only, clean-shaven chin", an ankle-length dishdasha over the trousers, labelled long fields', () => {
     const { line, nonLatin } = canonicalIdentityLine(a3, { style: 'REALISTIC' });
     expect(nonLatin).toEqual([]);
-    expect(line).toContain('; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; ');
+    expect(line).toContain('; facial hair: thick, gray mustache only; the chin, jaw and cheeks are shaved smooth; ');
     expect(line.indexOf('facial hair:')).toBeGreaterThan(line.indexOf('weathered face')); // stated right after the face
     expect(line).toContain('wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem');
     expect(line).toContain('; the trousers are worn under the robe and show only at the ankles');
@@ -65,9 +65,9 @@ describe('D13: facial hair and a garment’s cut are stated so they cannot be re
     for (const bad of ['posture build', 'untold face', 'never fades eyes', 'exposure skin', 'smiling; thick']) expect(line).not.toContain(bad);
   });
   it('facial hair: a moustache alone is "only", clean-shaven is said, a beard or an explicit text adds nothing', () => {
-    expect(facialHairStatement(['a round face with a neat black moustache'])).toBe('facial hair: neat black moustache only, clean-shaven chin, jaw and cheeks, no beard');
-    expect(facialHairStatement(['thick grey mustache'])).toBe('facial hair: thick grey mustache only, clean-shaven chin, jaw and cheeks, no beard');
-    expect(facialHairStatement(['clean-shaven, square jaw'])).toBe('clean-shaven: no beard, no moustache');
+    expect(facialHairStatement(['a round face with a neat black moustache'])).toBe('facial hair: neat black moustache only; the chin, jaw and cheeks are shaved smooth');
+    expect(facialHairStatement(['thick grey mustache'])).toBe('facial hair: thick grey mustache only; the chin, jaw and cheeks are shaved smooth');
+    expect(facialHairStatement(['clean-shaven, square jaw'])).toBe('clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth');
     for (const t of ['full grey beard and mustache', 'stubble and a moustache', 'a goatee', 'thick moustache, no beard', 'moustache only, clean-shaven chin', 'short grey hair', '']) expect(facialHairStatement([t]), t).toBeUndefined();
     // the line never says it twice: a stored line that already states it is kept as written
     const stored = canonicalIdentityLine({ ...kiteMaker, distinguishing: [], canon: { identityLine: 'Identity: a man of about 70; grey moustache only, clean-shaven chin; white thobe' } }).line;
@@ -93,7 +93,7 @@ describe('D13: facial hair and a garment’s cut are stated so they cannot be re
   });
   it('the description of a picture says a moustache without a beard is only that', () => {
     const d = parseCharacterDescription('{"sex": "male", "ageRange": "55-65", "facialHair": "thick grey mustache", "clothing": []}');
-    expect(identityLineFromDescription(d).line).toContain('facial hair: thick grey mustache only, clean-shaven chin, jaw and cheeks, no beard');
+    expect(identityLineFromDescription(d).line).toContain('facial hair: thick grey mustache only; the chin, jaw and cheeks are shaved smooth');
     expect(identityLineFromDescription(parseCharacterDescription('{"facialHair": "full grey beard and mustache"}')).line).toContain('; full grey beard and mustache');
   });
 });

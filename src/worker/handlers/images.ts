@@ -16,7 +16,7 @@ import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
 import * as comfy from '@/server/providers/comfy';
 import {
-  CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL,
+  CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
@@ -353,13 +353,16 @@ export const characterRefs: Handler = async (ctx) => {
     const prev = previousSeed(kind);
     const kindSeed = (typeof prev === 'number' ? prev + 1 : seed + SECONDARY_SEED_OFFSET[kind]) % 2 ** 31;
     const prompt = secondaryPrompt({ kind, style: c.style, identityLine: line, visual });
+    // the close-up is drawn from the head and shoulders of the canonical image (from the whole figure Edit-2511 drew
+    // the whole figure again, docs/evidence/image-v2/d13)
+    const crop = kind === 'PORTRAIT' ? portraitCrop({ width: primary.width || CANONICAL_FRAME.width, height: primary.height || CANONICAL_FRAME.height }, (primary.provenance?.framing as { box?: { x: number; y: number; w: number; h: number } | null } | undefined)?.box) : undefined;
     const t0 = Date.now();
-    const run = await runGraph(ctx, qwenSecondary({ canonical: upload, kind, prompt, negative, seed: kindSeed }), { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tool: 'image.edit_with_references' });
+    const run = await runGraph(ctx, qwenSecondary({ canonical: upload, kind, prompt, negative, seed: kindSeed, crop }), { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tool: 'image.edit_with_references' });
     const out = comfy.firstOutput(run.outputs, 'images');
     if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
     const ms = Date.now() - t0;
     await recordMetric('image.generation_ms', ms, 'ms', { model: 'Qwen-Image-Edit-2511', refs: 1, quality: 1, secondary: 1 }, ctx.job.id);
-    const d = await adoptOutput(ctx, out, run, { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tags: ['character', 'secondary', kind.toLowerCase()], prompt, negative, references: [primary.id], seed: kindSeed, model: 'Qwen-Image-Edit-2511', loras: [], provenance: { characterId: c.id, view: kind, identityLine: line, identitySeed: seed, quality: true }, ms, tier: 'SECONDARY' });
+    const d = await adoptOutput(ctx, out, run, { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tags: ['character', 'secondary', kind.toLowerCase()], prompt, negative, references: [primary.id], seed: kindSeed, model: 'Qwen-Image-Edit-2511', loras: [], provenance: { characterId: c.id, view: kind, identityLine: line, identitySeed: seed, quality: true, ...(crop ? { cropOfReference: crop } : {}) }, ms, tier: 'SECONDARY' });
     drawn.push({ kind, assetId: d.id, seed: kindSeed, ms });
     await ctx.activity('CHARACTER_SECONDARY', `${c.name}: ${SECONDARY_LABEL[kind]} drawn in one pass from the character’s image (${primary.id}), seed ${kindSeed} — secondary material, not the identity`, { characterId: c.id, assetId: d.id, kind, references: [primary.id], seed: kindSeed, ms, engineMs: run.engineMs });
     await ctx.checkpoint();

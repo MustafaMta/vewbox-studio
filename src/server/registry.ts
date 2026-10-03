@@ -34,6 +34,7 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },
+    { name: 'qwen-image.secondary-portrait', graph: qwenSecondary({ canonical: 'a.png', kind: 'PORTRAIT', prompt: '', crop: { x: 0, y: 0, width: 512, height: 640 } }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
     // a reference shot with its opening frame anchored at 0 and the recorded line at frame 0 (CUT / STORY_TRANSITION)

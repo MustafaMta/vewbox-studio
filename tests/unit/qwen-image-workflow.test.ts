@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FACE_CHECK_OUTPUTS, MODELS, SECONDARY_MATERIAL, SECONDARY_SPEC, faceCheck, isSecondaryMaterialKind, qwenEdit, qwenSecondary, secondaryPrompt, workflowVersion, type Graph } from '@/server/workflows';
+import { FACE_CHECK_OUTPUTS, MODELS, SECONDARY_MATERIAL, SECONDARY_SPEC, faceCheck, isSecondaryMaterialKind, portraitCrop, qwenEdit, qwenSecondary, secondaryPrompt, workflowVersion, type Graph } from '@/server/workflows';
 
 const inputs = (g: Graph, id: string) => g[id].inputs as Record<string, unknown>;
 const nodesOf = (g: Graph, cls: string) => Object.entries(g).filter(([, n]) => n.class_type === cls).map(([id]) => id);
@@ -75,8 +75,22 @@ describe('secondary material (contract v2: one pass from the canonical image, on
     expect(p.indexOf('Identity: stylized 3D animated character')).toBeGreaterThan(p.indexOf('image 1'));
     expect(p.indexOf('VISUAL.')).toBeGreaterThan(p.indexOf('Identity'));
     expect(p).toMatch(/no text, no labels, no props\.$/);
-    expect(secondaryPrompt({ kind: 'PORTRAIT', style: 'REALISTIC', identityLine: '' })).toMatch(/^A head-and-shoulders close-up portrait, facing the camera/);
     expect(secondaryPrompt({ kind: 'OUTFIT', style: 'ANIME', identityLine: '' })).toContain('every garment, accessory and the footwear');
+  });
+  it('the close-up portrait: from the head-and-shoulders crop of the canonical image, without the garments (GPU check: else a whole figure)', () => {
+    const line = 'Identity: photorealistic real person, a man of about 62; wearing an ankle-length grey dishdasha; leather slippers.';
+    const p = secondaryPrompt({ kind: 'PORTRAIT', style: 'REALISTIC', identityLine: line });
+    expect(p).toMatch(/^A tight head-and-shoulders close-up portrait: the frame shows only the head, the neck and the top of the shoulders/);
+    expect(p).not.toContain('dishdasha'); expect(p).not.toContain('slippers'); expect(p).not.toContain('every garment');
+    const crop = portraitCrop({ width: 928, height: 1664 }, { x: 0.21910112359550563, y: 0.0328125, w: 0.5842696629213483, h: 0.9453125 });
+    expect(crop).toEqual({ x: 215, y: 5, width: 519, height: 649 }); // the A3 canonical image, as drawn on the GPU
+    expect(crop.width / crop.height).toBeCloseTo(0.8, 2);
+    expect(portraitCrop({ width: 928, height: 1664 })).toMatchObject({ y: 0, height: Math.floor(0.4 * 1664) }); // no recorded box: the top 40 %
+    const g = qwenSecondary({ canonical: 'canon.png', kind: 'PORTRAIT', prompt: p, seed: 1, crop });
+    expect(inputs(g, 'img1c')).toEqual({ image: ['img1', 0], x: 215, y: 5, width: 519, height: 649 });
+    expect(inputs(g, 'img1s').image).toEqual(['img1c', 0]);
+    expectWired(g);
+    expect(qwenSecondary({ canonical: 'canon.png', kind: 'EXPRESSION', prompt: '' }).img1c).toBeUndefined();
   });
 });
 

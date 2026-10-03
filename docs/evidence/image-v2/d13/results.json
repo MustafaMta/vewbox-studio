@@ -1,0 +1,305 @@
+{
+  "startedAt": "2026-10-03T04:47:31.538Z",
+  "records": [
+    {
+      "phase": "lines",
+      "key": "old-line-s0",
+      "seed": 1374230458,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\old-line-s0.png",
+      "jpeg": "old-line-s0.jpg",
+      "wallMs": 55272,
+      "engineMs": 53750,
+      "vramPeakMiB": 31457,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "lines",
+      "key": "old-line-s1",
+      "seed": 1374230459,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\old-line-s1.png",
+      "jpeg": "old-line-s1.jpg",
+      "wallMs": 42906,
+      "engineMs": 41929,
+      "vramPeakMiB": 30302,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "lines",
+      "key": "new-line-s0",
+      "seed": 1374230458,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\new-line-s0.png",
+      "jpeg": "new-line-s0.jpg",
+      "wallMs": 44035,
+      "engineMs": 42591,
+      "vramPeakMiB": 31384,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "lines",
+      "key": "new-line-s1",
+      "seed": 1374230459,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\new-line-s1.png",
+      "jpeg": "new-line-s1.jpg",
+      "wallMs": 42947,
+      "engineMs": 42421,
+      "vramPeakMiB": 30262,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "secondary",
+      "key": "secondary-expression",
+      "seed": 1374230474,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\secondary-expression.png",
+      "jpeg": "secondary-expression.jpg",
+      "wallMs": 81914,
+      "engineMs": 80384,
+      "vramPeakMiB": 31266,
+      "prompt": "An expression sheet: the same head-and-shoulders face four times in a 2x2 grid, showing joy, worry, anger and surprise, of the same person as in image 1, drawn as a photorealistic full-length studio photograph of a real person. Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props."
+    },
+    {
+      "phase": "secondary",
+      "key": "secondary-outfit",
+      "seed": 1374230476,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\secondary-outfit.png",
+      "jpeg": "secondary-outfit.jpg",
+      "wallMs": 68346,
+      "engineMs": 67291,
+      "vramPeakMiB": 31919,
+      "prompt": "An outfit reference: the whole figure from the front, head to toe, every garment, accessory and the footwear clearly visible and in detail, of the same person as in image 1, drawn as a photorealistic full-length studio photograph of a real person. Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props.",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "secondary",
+      "key": "secondary-portrait",
+      "seed": 1374230480,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\secondary-portrait.png",
+      "jpeg": "secondary-portrait.jpg",
+      "wallMs": 61477,
+      "engineMs": 60076,
+      "vramPeakMiB": 31686,
+      "prompt": "A head-and-shoulders close-up portrait, facing the camera, neutral calm expression, of the same person as in image 1, drawn as a photorealistic full-length studio photograph of a real person. Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props."
+    },
+    {
+      "phase": "variants",
+      "key": "new-neg-s0",
+      "seed": 1374230458,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\new-neg-s0.png",
+      "jpeg": "new-neg-s0.jpg",
+      "wallMs": 60299,
+      "engineMs": 58765,
+      "vramPeakMiB": 31264,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic, kurta",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "mid-calf",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "variants",
+      "key": "new-neg-s1",
+      "seed": 1374230459,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\new-neg-s1.png",
+      "jpeg": "new-neg-s1.jpg",
+      "wallMs": 43974,
+      "engineMs": 42484,
+      "vramPeakMiB": 30322,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic, kurta",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "variants",
+      "key": "front-neg-s0",
+      "seed": 1374230458,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\front-neg-s0.png",
+      "jpeg": "front-neg-s0.jpg",
+      "wallMs": 43889,
+      "engineMs": 42858,
+      "vramPeakMiB": 31453,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; the trousers are worn under the robe and show only at the ankles; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic, kurta",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "variants",
+      "key": "front-neg-s1",
+      "seed": 1374230459,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\front-neg-s1.png",
+      "jpeg": "front-neg-s1.jpg",
+      "wallMs": 44061,
+      "engineMs": 42616,
+      "vramPeakMiB": 30264,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; the trousers are worn under the robe and show only at the ankles; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic, kurta",
+      "judged": {
+        "facialHair": "beard and moustache",
+        "chinCleanShaven": false,
+        "robe": "at the ankles or floor",
+        "trousersVisibleBelowRobe": "most of the leg",
+        "glasses": true
+      }
+    },
+    {
+      "phase": "variants",
+      "key": "secondary-portrait-crop",
+      "seed": 1374230480,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\secondary-portrait-crop.png",
+      "jpeg": "secondary-portrait-crop.jpg",
+      "wallMs": 71504,
+      "engineMs": 70838,
+      "vramPeakMiB": 31225,
+      "prompt": "A head-and-shoulders close-up portrait, facing the camera, neutral calm expression, of the same person as in image 1, drawn as a photorealistic full-length studio photograph of a real person. Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1. Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props.",
+      "judged": {
+        "crop": {
+          "x": 215,
+          "y": 5,
+          "width": 519,
+          "height": 649
+        }
+      }
+    },
+    {
+      "phase": "variants2",
+      "key": "final-s0",
+      "seed": 1374230458,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\final-s0.png",
+      "jpeg": "final-s0.jpg",
+      "wallMs": 91601,
+      "engineMs": 90050,
+      "vramPeakMiB": 31791,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only; the chin, jaw and cheeks are shaved smooth; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic"
+    },
+    {
+      "phase": "variants2",
+      "key": "final-s1",
+      "seed": 1374230459,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\final-s1.png",
+      "jpeg": "final-s1.jpg",
+      "wallMs": 74437,
+      "engineMs": 72844,
+      "vramPeakMiB": 31909,
+      "framing": {
+        "ok": true,
+        "reasons": []
+      },
+      "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only; the chin, jaw and cheeks are shaved smooth; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+      "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin, beard, full beard, chin beard, goatee, stubble, short tunic, knee-length tunic, thigh-length tunic"
+    },
+    {
+      "phase": "variants2",
+      "key": "secondary-portrait-final",
+      "seed": 1374230480,
+      "file": "D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-ade9e4da7aaa19b69\\var\\image-v2\\d13\\secondary-portrait-final.png",
+      "jpeg": "secondary-portrait-final.jpg",
+      "wallMs": 113067,
+      "engineMs": 112202,
+      "vramPeakMiB": 31480,
+      "prompt": "A tight head-and-shoulders close-up portrait: the frame shows only the head, the neck and the top of the shoulders, cut at the upper chest, the face filling the upper half of the frame, facing the camera, neutral calm expression, of the same person as in image 1, drawn as a photorealistic full-length studio photograph of a real person. Keep the face, age, skin tone, hair and anything worn on the head or face exactly as in image 1. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props.",
+      "judged": {
+        "crop": {
+          "x": 215,
+          "y": 5,
+          "width": 519,
+          "height": 649
+        }
+      }
+    }
+  ],
+  "record": {
+    "id": "char-bc112248bf",
+    "style": "REALISTIC",
+    "seed": 1374230458,
+    "canonicalAssetId": "gen-655c17f72b"
+  },
+  "lines": {
+    "old": "Identity: photorealistic real person, a man of about 62; robust but slightly stooped, with broad shoulders and a gentle posture build; long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold face; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping hair; dark brown, sharp but kind, with a faint glint of curiosity that never fades eyes; deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure skin; wearing shimmering grayish-blue cotton deshdasha with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; old-fashioned metal-rimmed glasses perched on his own left nose.",
+    "new": "Identity: photorealistic real person, a man of about 62; build: robust but slightly stooped, with broad shoulders and a gentle posture; long, weathered face with deep vertical lines from smiling, thick, gray mustache, faint creases around the eyes that hint at stories untold; facial hair: thick, gray mustache only; the chin, jaw and cheeks are shaved smooth; thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; skin: deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure; wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges; the trousers are worn under the robe and show only at the ankles; old-fashioned metal-rimmed glasses perched on his own left nose."
+  }
+}

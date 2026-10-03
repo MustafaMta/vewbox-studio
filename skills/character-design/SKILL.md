@@ -49,9 +49,10 @@ metadata:
 2. The identity line is English and starts with the style, then age and sex, build, face, hair, eyes, skin, every
    garment with its colour, accessories with their side, footwear. Pieces in another script are left out and
    reported, never sent to the image model. The line states facial hair unambiguously (a moustache without a beard
-   becomes "… moustache only, clean-shaven chin, jaw and cheeks, no beard") and gives a robe of the dishdasha family or
-   an abaya its cut when the design left it out ("ankle-length …, a loose robe reaching down to the ankles", trousers
-   worn under it).
+   becomes "facial hair: … moustache only; the chin, jaw and cheeks are shaved smooth") and gives a robe of the
+   dishdasha family or an abaya its cut when the design left it out ("ankle-length …, a loose robe reaching down to the
+   ankles", trousers worn under it). On the GPU the cut wording lengthened a dishdasha from mid-thigh to mid-calf; the
+   model still drew a full beard on an old man with a "moustache only" (docs/evidence/image-v2/d13).
 3. From text (Auto, Manual): the prompt starts with the medium ("3D animated feature-film character design, stylized
    CG render, not a photograph" / "2D anime character design, cel-shaded … not 3D" / "Photorealistic full-length
    studio photograph"), then the framing, the identity line and the production direction; Qwen-Image-2512 in quality

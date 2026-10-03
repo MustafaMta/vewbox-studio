@@ -111,7 +111,7 @@ const MOUSTACHE = /\b(mo?ustach(?:e|es|ioed)|mustachio(?:ed)?)\b/i;
 const BEARD = /\b(beard(?:ed|s)?|goatee|stubble|sideburns?|whiskers|chin ?strap)\b/i;
 const NO_BEARD = /\b(?:no|without|never)\s+(?:a\s+|any\s+)?(?:beard|stubble|goatee)\b|\bbeardless\b|\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b/gi;
 const CLEAN_SHAVEN = /\bclean[- ]shaven\b/i;
-const ALREADY_EXPLICIT = /\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b|\bno beard\b|\bno (?:beard,? )?(?:and )?no mo?ustache\b|\bclean-shaven: no beard\b/i;
+const ALREADY_EXPLICIT = /\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b|\bno beard\b|\bno (?:beard,? )?(?:and )?no mo?ustache\b|\bshaved smooth\b/i;
 
 /** The facial hair stated so it cannot be read two ways (D13: a "thick, gray mustache" was drawn as a full beard in 2
  *  of 2 realistic draws): a moustache without a beard → "facial hair: <the moustache> only, clean-shaven chin, jaw and
@@ -129,9 +129,9 @@ export function facialHairStatement(texts: Array<string | undefined | null>): st
     // the moustache's own words only: what follows the last connecting word ("with a neat black moustache" → "neat black moustache")
     const stop = words.reduce((at, w, k) => (/^(with|from|and|has|wears|wearing|of|in|on|under|over|by|a|an|the|his|her|their)$/i.test(w.replace(/,$/, '')) ? k : at), -1);
     const phrase = words.slice(stop + 1).join(' ');
-    return `facial hair: ${phrase} only, clean-shaven chin, jaw and cheeks, no beard`;
+    return `facial hair: ${phrase} only; the chin, jaw and cheeks are shaved smooth`;
   }
-  if (CLEAN_SHAVEN.test(all) && !moustache && !beard) return 'clean-shaven: no beard, no moustache';
+  if (CLEAN_SHAVEN.test(all) && !moustache && !beard) return 'clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth';
   return undefined;
 }
 
@@ -255,14 +255,30 @@ export function referenceCanonicalPrompt(i: { style: Style; identityLine: string
   ]);
 }
 
+/** The head-and-shoulders part of a canonical image for the close-up portrait, 4:5: from the figure's box the framing
+ *  check recorded (fractions of the picture) — the top 36 % of the figure with a margin above the head — else the top
+ *  40 % of the picture. In pixels of the picture. */
+export function portraitCrop(size: { width: number; height: number }, box?: { x: number; y: number; w: number; h: number } | null): PxRect {
+  const W = size.width, H = size.height;
+  const top = box ? Math.max(0, (box.y - 0.03) * H) : 0;
+  const height = Math.min(H - top, box ? box.h * H * 0.36 + 0.05 * H : 0.4 * H);
+  const width = Math.min(W, height * 0.8);
+  const cx = box ? (box.x + box.w / 2) * W : W / 2;
+  const x = Math.max(0, Math.min(W - width, cx - width / 2));
+  return { x: Math.round(x), y: Math.round(top), width: Math.floor(width), height: Math.floor(height) };
+}
+
 /** Secondary material (contract v2 §1, on request only): what the kind shows, of the person in image 1 (the canonical
  *  image) in the production's medium, everything that makes them who they are kept as in image 1, the identity line,
  *  the visual direction, a plain background. */
 export function secondaryPrompt(i: { kind: SecondaryMaterialKind; style: Style; identityLine: string; visual?: string }): string {
+  // a close-up keeps only the head: the whole identity line (garments, footwear) made Edit-2511 redraw the whole
+  // figure even from a head-and-shoulders crop (GPU check 2026-10-03, docs/evidence/image-v2/d13)
+  const closeUp = i.kind === 'PORTRAIT';
   return sentences([
     `${SECONDARY_SPEC[i.kind].prose}, of the same person as in image 1, drawn as ${STYLE_MEDIUM[i.style].noun}`,
-    'Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1',
-    i.identityLine,
+    closeUp ? 'Keep the face, age, skin tone, hair and anything worn on the head or face exactly as in image 1' : 'Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1',
+    closeUp ? '' : i.identityLine,
     i.visual,
     'Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props',
   ]);
