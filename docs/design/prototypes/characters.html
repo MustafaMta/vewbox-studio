@@ -20,14 +20,14 @@
   .fig { position: relative; display: block; }
   .fig .frame { margin-block-end: 18px; }
   .fig .frame img { object-fit: cover; }
-  .fig .name { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .fig .name { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 36px; }
   .fig .t-card { font-size: 26px; line-height: 30px; letter-spacing: -0.016em; }
   html[dir='rtl'] .fig .t-card:lang(ar) { font-size: 28px; line-height: 38px; }
   .fig .needs-line { margin-block-start: 8px; }
-  .fig .vp { position: absolute; inset-block-end: 70px; inset-inline-end: 12px; opacity: 0; }
-  .fig:hover .vp, .fig:focus-within .vp { opacity: 1; }
-  @media (hover: none) { .fig .vp { opacity: 1; } }
-  .fig .vp .play { inline-size: 44px; block-size: 44px; }
+  .fig .name .play { inline-size: 36px; block-size: 36px; flex: none; position: relative; opacity: 0; }
+  .fig .name .play::after { content: ''; position: absolute; inset: -4px; }   /* 44 px hit area */
+  .fig:hover .name .play, .fig:focus-within .name .play { opacity: 1; }
+  @media (hover: none), (pointer: coarse) { .fig .name .play { opacity: 1; } }
   .floor { block-size: 1px; background: var(--line); margin-block: -18px 0; }
 
   .calls { display: grid; grid-template-columns: 1fr; gap: 16px var(--gutter); }
@@ -40,10 +40,11 @@
   html[dir='rtl'] .call b { font-family: var(--font-title-ar); font-weight: 600; font-size: 23px; line-height: 32px; letter-spacing: 0; }
   .call span { display: block; font-size: 13.5px; line-height: 20px; color: var(--fg-muted); margin-block-start: 4px; }
   html[dir='rtl'] .call span { font-size: 14px; line-height: 22px; }
+  .call .tcard .tc-state { font-size: 12px; }
   .call .tag { display: inline-flex; margin-block-start: 8px; }
   .rule-copy { align-self: center; color: var(--fg-muted); font-size: 15px; line-height: 24px; max-inline-size: 46ch; padding-inline-start: 8px; }
   html[dir='rtl'] .rule-copy { font-size: 16px; line-height: 27px; }
-  @media (max-width: 639px) { .bar .search { flex: 1 1 100%; } .bar .end { margin-inline-start: 0; } .fig .t-card { font-size: 21px; line-height: 26px; } .fig .vp { inset-block-end: 60px; } }
+  @media (max-width: 639px) { .bar .search { flex: 1 1 100%; } .bar .end { margin-inline-start: 0; } .fig .t-card { font-size: 21px; line-height: 26px; } }
 </style>
 </head>
 <body data-page="characters" data-title-ar="الشخصيات · استوديو فيوبوكس">
@@ -68,8 +69,7 @@
   <section class="lineup" aria-label="The cast" data-ar-label="الطاقم">
     <a class="fig" href="character.html">
       <div class="frame r-fig"><img src="media/char-hana.jpg" alt="Hana Mori, full length"></div>
-      <span class="vp"><span class="play play-art" role="button" aria-label="Hear Hana Mori"><i data-i="play"></i></span></span>
-      <div class="name"><span class="t-card" lang="en">Hana Mori</span></div>
+      <div class="name"><span class="t-card" lang="en">Hana Mori</span><span class="play play-sm" role="button" tabindex="0" aria-label="Hear Hana Mori" data-ar-label="استمع إلى هانا موري"><i data-i="play"></i></span></div>
       <div class="needs-line"><span class="state wait"><i class="dot"></i><span data-ar="تحتاج اعتمادك">Needs approval</span></span></div>
     </a>
     <a class="fig" href="character.html">
@@ -79,13 +79,11 @@
     </a>
     <a class="fig" href="character.html">
       <div class="frame r-fig"><img src="media/char-elias.jpg" alt="Elias Moore, full length"></div>
-      <span class="vp"><span class="play play-art" role="button" aria-label="Hear Elias Moore"><i data-i="play"></i></span></span>
-      <div class="name"><span class="t-card" lang="en">Elias Moore</span></div>
+      <div class="name"><span class="t-card" lang="en">Elias Moore</span><span class="play play-sm" role="button" tabindex="0" aria-label="Hear Elias Moore" data-ar-label="استمع إلى إلياس مور"><i data-i="play"></i></span></div>
     </a>
     <a class="fig" href="character.html">
       <div class="frame r-fig"><img src="media/char-najm.jpg" alt="Najm, full length"></div>
-      <span class="vp"><span class="play play-art" role="button" aria-label="Hear Najm"><i data-i="play"></i></span></span>
-      <div class="name"><span class="t-card" lang="en">Najm</span></div>
+      <div class="name"><span class="t-card" lang="en">Najm</span><span class="play play-sm" role="button" tabindex="0" aria-label="Hear Najm" data-ar-label="استمع إلى نجم"><i data-i="play"></i></span></div>
     </a>
     <a class="fig" href="character.html">
       <div class="frame r-fig"><img src="media/char-abusalam.jpg" alt="أبو سلام, full length"></div>

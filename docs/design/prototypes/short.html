@@ -23,7 +23,8 @@
   .player .transport-wrap { position: absolute; inset-inline: 0; inset-block-end: 0; padding: 48px 20px 16px; background: linear-gradient(0deg, rgb(0 0 0 / 0.82), rgb(0 0 0 / 0)); }
   .player .transport .ibtn { color: var(--paper); }
   .scenes-strip { margin-block-start: 10px; display: grid; gap: 6px; }
-  .scenes-strip .labels { direction: ltr; display: grid; grid-template-columns: 31fr 30fr; gap: 4px; font-size: 12px; color: var(--fg-faint); }
+  .scenes-strip .labels { direction: ltr; display: grid; grid-template-columns: 31fr 30fr; gap: 4px; font-size: 12.5px; color: var(--fg-faint); }
+  html[dir='rtl'] .scenes-strip .labels { font-size: 13px; }
   .scenes-strip .labels span { border-block-start: 1px solid var(--line-strong); padding-block-start: 6px; }
   .strip.fit { display: grid; grid-template-columns: 8fr 6fr 8fr 9fr 7fr 6fr 7fr 10fr; }
   .strip.fit .sf { inline-size: auto; aspect-ratio: auto; block-size: 64px; }
@@ -51,7 +52,7 @@
   .castwide { display: grid; gap: var(--gutter); grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (min-width: 1024px) { .castwide { grid-template-columns: repeat(2, minmax(0, 220px)) minmax(0, 1fr); } }
   .castwide .frame { margin-block-end: 12px; }
-  .castwide .place .frame { aspect-ratio: auto; block-size: calc(100% - 64px); min-block-size: 220px; }
+  .castwide .place .frame { aspect-ratio: 16 / 9; }
 
   .credits { display: grid; gap: 36px var(--gutter); grid-template-columns: 1fr; }
   @media (min-width: 640px) { .credits { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -96,20 +97,19 @@
       <a class="crumb" href="#"><i data-i="left" class="i-sm i-flip"></i><span data-ar="الأفلام القصيرة">Shorts</span></a>
       <div class="title-row">
         <div>
-          <div class="slate slate-lg"><span data-ar="فيلم قصير">Short film</span><span class="ro ro-md">2026</span><span class="ro ro-md">0:56</span><span data-ar="كرتون">Cartoon</span><span data-ar="خيال علمي · دراما">Sci-fi drama</span><span data-ar="الإنجليزية">English</span><span class="state ok"><i class="dot"></i><span data-ar="مكتمل">Finished</span></span></div>
+          <div class="slate slate-lg"><span data-ar="فيلم قصير">Short film</span><span class="date ro-md">2026</span><span class="ro ro-md">0:56</span><span data-ar="كرتون">Cartoon</span><span data-ar="خيال علمي · دراما">Sci-fi drama</span><span data-ar="الإنجليزية">English</span><span class="state ok"><i class="dot"></i><span data-ar="مكتمل">Finished</span></span></div>
           <h1 class="t-marquee" lang="en">The Static Sky</h1>
         </div>
       </div>
 
       <div class="diptych">
-        <div class="fposter" aria-label="Poster, composed from shot 2.4" data-ar-label="ملصق مركَّب من اللقطة 2.4"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"><div class="fp-t"><div class="fp-k" data-ar="ملصق من إطار · اللقطة 2.4">Frame poster · shot 2.4</div><div class="t-card" lang="en">The Static Sky</div></div></div>
+        <div class="fposter" aria-label="Poster, composed from shot 2.4" data-ar-label="ملصق مركَّب من اللقطة 2.4"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"><div class="fp-t"><div class="fp-k" data-ar="ملصق من إطار · اللقطة 2.4">Frame poster · shot 2.4</div><span class="annot-tag" style="margin-block-end:8px" data-ar="مقترح · B7">proposal · B7</span><div class="t-card" lang="en">The Static Sky</div></div></div>
         <div>
           <div class="player">
             <img src="media/cut-30.jpg" alt="The Static Sky, cut 3, at 0:30" data-ar-alt="The Static Sky، المونتاج 3، عند 0:30">
-            <div class="center-play"><button class="play play-lg" type="button" aria-label="Play The Static Sky" data-ar-label="شغّل الفيلم"><i data-i="play"></i></button></div>
             <div class="transport-wrap">
               <div class="transport" aria-label="Player" data-ar-label="المشغّل">
-                <button class="ibtn ibtn-sm" type="button" aria-label="Play"><i data-i="play"></i></button>
+                <button class="play play-sm" type="button" aria-label="Play The Static Sky" data-ar-label="شغّل الفيلم"><i data-i="play"></i></button>
                 <span class="time">0:30 / 0:56</span>
                 <div class="seek"><i style="inline-size:53.5%"></i><b style="inset-inline-start:53.5%"></b><span class="tick" style="inset-inline-start:55%"></span></div>
                 <button class="ibtn ibtn-sm" type="button" aria-label="Captions"><i data-i="cc"></i></button>
@@ -159,7 +159,7 @@
           <div>
             <div class="small faint" data-ar="المشهد 1 · ليلًا · ورشة إلياس">Scene 1 · Night · Elias’s Workshop</div>
             <h3 class="t-card" lang="en">The Broken Signal</h3>
-            <div class="strip"><span class="sf"><img src="media/shot-1-1.jpg" alt=""><span class="n">1.1</span></span><span class="sf"><img src="media/shot-1-2.jpg" alt=""><span class="n">1.2</span></span><span class="sf"><img src="media/shot-1-3.jpg" alt=""><span class="n">1.3</span></span><span class="sf"><img src="media/shot-1-4.jpg" alt=""><span class="n">1.4</span></span></div>
+            <div class="strip scrolls"><span class="sf"><img src="media/shot-1-1.jpg" alt=""><span class="n">1.1</span></span><span class="sf"><img src="media/shot-1-2.jpg" alt=""><span class="n">1.2</span></span><span class="sf"><img src="media/shot-1-3.jpg" alt=""><span class="n">1.3</span></span><span class="sf"><img src="media/shot-1-4.jpg" alt=""><span class="n">1.4</span></span></div>
             <div class="lines"><div><bdi lang="en"><q>Obsolescence. Always obsolescence.</q> <span>— Elias Moore</span></bdi></div><div><bdi lang="en"><q>Static’s just a story waiting to be told.</q> <span>— Elias Moore</span></bdi></div></div>
           </div>
         </article>
@@ -168,7 +168,7 @@
           <div>
             <div class="small faint" data-ar="المشهد 2 · ليلًا · ورشة إلياس">Scene 2 · Night · Elias’s Workshop</div>
             <h3 class="t-card" lang="en">Static Echoes</h3>
-            <div class="strip"><span class="sf"><img src="media/shot-2-1.jpg" alt=""><span class="n">2.1</span></span><span class="sf"><img src="media/shot-2-2.jpg" alt=""><span class="n">2.2</span></span><span class="sf"><img src="media/shot-2-3.jpg" alt=""><span class="n">2.3</span></span><span class="sf"><img src="media/shot-2-4.jpg" alt=""><span class="n">2.4</span></span></div>
+            <div class="strip scrolls"><span class="sf"><img src="media/shot-2-1.jpg" alt=""><span class="n">2.1</span></span><span class="sf"><img src="media/shot-2-2.jpg" alt=""><span class="n">2.2</span></span><span class="sf"><img src="media/shot-2-3.jpg" alt=""><span class="n">2.3</span></span><span class="sf"><img src="media/shot-2-4.jpg" alt=""><span class="n">2.4</span></span></div>
             <div class="lines"><div><bdi lang="en"><q>The Mariner… it vanished in ’87.</q> <span>— Najm</span></bdi></div><div><bdi lang="en"><q>She never left.</q> <span>— Elias Moore</span></bdi></div></div>
           </div>
         </article>
@@ -201,12 +201,12 @@
     <section class="section" aria-labelledby="rec-h" style="padding-block-start:72px">
       <div class="shead"><h2 id="rec-h" class="h2" data-ar="سجل الإنتاج">Production record</h2><span class="link" data-ar="3 تشرين الأول 2026">3 Oct 2026</span></div>
       <ol class="record">
-        <li><b data-ar="القصة">Story</b><span class="ro">06:36</span></li>
-        <li><b data-ar="الشخصيات والعالم">Cast &amp; World</b><span class="ro">07:21</span></li>
-        <li><b data-ar="اللوحة القصصية">Storyboard</b><span class="ro">08:38</span></li>
-        <li><b data-ar="التصوير">Produce</b><span class="ro">09:26</span></li>
-        <li><b data-ar="المونتاج النهائي">Final cut</b><span class="ro">09:29</span></li>
-        <li class="end"><b data-ar="صُدِّر">Exported</b><span class="ro">09:33</span></li>
+        <li><b data-ar="القصة">Story</b><span><span data-ar="سُلِّمت عند">handed over at</span> <span class="ro">06:36</span></span></li>
+        <li><b data-ar="الشخصيات والعالم">Cast &amp; World</b><span><span data-ar="عند">at</span> <span class="ro">07:21</span></span></li>
+        <li><b data-ar="اللوحة القصصية">Storyboard</b><span><span data-ar="عند">at</span> <span class="ro">08:38</span></span></li>
+        <li><b data-ar="التصوير">Produce</b><span><span data-ar="عند">at</span> <span class="ro">09:26</span></span></li>
+        <li><b data-ar="المونتاج النهائي">Final cut</b><span><span data-ar="عند">at</span> <span class="ro">09:29</span></span></li>
+        <li class="end"><b data-ar="صُدِّر">Exported</b><span><span data-ar="عند">at</span> <span class="ro">09:33</span></span></li>
       </ol>
     </section>
   </div>

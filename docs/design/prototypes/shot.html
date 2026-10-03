@@ -17,8 +17,8 @@
   .viewer { display: grid; place-items: center; padding: 0 24px; }
   .viewer img { inline-size: 100%; max-inline-size: 980px; aspect-ratio: 16 / 9; object-fit: cover; }
   .tport { direction: ltr; display: flex; align-items: center; gap: 6px; justify-content: center; padding: 12px 20px; color: var(--fg-body); }
-  .tport .tc { font-size: 12.5px; color: var(--fg); margin-inline: 12px; white-space: nowrap; }
-  @media (max-width: 639px) { .tport .tc { font-size: 11px; margin-inline: 4px; } }
+  .tport .tc { font-size: 13.5px; color: var(--fg); margin-inline: 12px; white-space: nowrap; }
+  @media (max-width: 639px) { .tport .tc { margin-inline: 4px; } .tport .opt { display: none; } }
   .tport .hint { font: 500 11px/1 var(--font-mono); color: var(--fg-faint); margin-inline-start: 16px; }
   .tport .ibtn { inline-size: 32px; block-size: 32px; color: var(--fg-body); }
   .status { display: flex; align-items: center; gap: 12px; margin-inline: 24px; padding: 10px 14px; border-radius: var(--r-md); background: var(--carbon-3); font-size: 13px; color: var(--fg-muted); flex-wrap: wrap; }
@@ -37,6 +37,7 @@
   .tk .meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-block-start: 8px; font-size: 12.5px; color: var(--fg-muted); }
   html[dir='rtl'] .tk .meta { font-size: 13px; }
   .tk .meta b { color: var(--fg); font-weight: 500; }
+  .tk .made { font-size: 12.5px; color: var(--fg-faint); margin-block-start: 2px; }
   .tk .judge { display: flex; gap: 6px; align-items: center; margin-block-start: 6px; flex-wrap: wrap; }
   .tk .use { margin-block-start: 8px; }
   .word { display: inline-flex; align-items: center; gap: 5px; block-size: 22px; padding-inline: 8px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 500; white-space: nowrap; }
@@ -67,6 +68,7 @@
   .kv dt { color: var(--fg-faint); } .kv dd { color: var(--fg-body); }
 
   .mob-tabs { display: none; }
+  @media (max-width: 1023px) { .center { min-block-size: 0; } }
   @media (max-width: 1023px) {
     .mob-tabs { display: block; padding: 10px 12px; background: var(--carbon-4); border-block-end: 1px solid var(--line-soft); }
     .mob-tabs .row { flex-wrap: nowrap; }
@@ -97,7 +99,7 @@
     <span class="saved"><i data-i="check" class="i-sm"></i><span data-ar="محفوظ">Saved</span></span>
     <a class="btn btn-secondary btn-sm" href="screening.html"><i data-i="screen" class="i-sm"></i><span data-ar="اعرضه">Screen it</span></a>
   </div>
-  <div class="paused-line"><i class="dot"></i><span data-ar="الاستوديو متوقف مؤقتًا. يمكنك التحرير والاختيار؛ اللقطات الجديدة تنتظر حتى تستأنف.">The studio is paused. You can edit and choose; new takes wait until you resume it.</span><a href="studio.html" data-ar="استأنف في شركة الاستوديو">Resume in the Studio Company</a></div>
+  <div class="paused-line"><i class="dot"></i><span class="long" data-ar="الاستوديو متوقف مؤقتًا. يمكنك التحرير والاختيار؛ المصوَّرات الجديدة تنتظر حتى تستأنفه.">The studio is paused. You can edit and choose; new takes wait until you resume it.</span><span class="short" data-ar="متوقف مؤقتًا · المصوَّرات الجديدة تنتظر">Paused · new takes wait</span><a href="studio.html" data-ar="استأنف">Resume</a></div>
   <div class="mob-tabs"><div class="row"><button class="btn btn-secondary btn-sm shotsel" type="button"><span data-ar="المشهد 2 · اللقطة 2.3">Scene 2 · Shot 2.3</span><i data-i="down" class="i-sm"></i></button><button class="ibtn ibtn-sm ibtn-solid" type="button" aria-label="Previous shot" data-ar-label="اللقطة السابقة"><i data-i="left" class="i-sm i-flip"></i></button><button class="ibtn ibtn-sm ibtn-solid" type="button" aria-label="Next shot" data-ar-label="اللقطة التالية"><i data-i="right" class="i-sm i-flip"></i></button></div></div>
 
   <div class="room">
@@ -105,12 +107,12 @@
       <div class="panel-h"><span data-ar="المخطط">Outline</span><button class="ibtn" type="button" aria-label="Collapse the outline" data-ar-label="اطوِ المخطط"><i data-i="left" class="i-sm i-flip"></i></button></div>
       <div class="outline">
         <a class="ol-story" href="#"><i data-i="check" class="i-sm" style="color:var(--ok)"></i><span data-ar="السيناريو · معتمد · 6 سطور">Script · approved · 6 lines</span></a>
-        <div class="ol-scene"><span class="mark"></span><b data-ar-html="1 · <span lang=&quot;en&quot;>The Broken Signal</span>">1 · The Broken Signal</b><span class="ro">4/4</span></div>
+        <div class="ol-scene"><span class="mark"></span><b data-ar-html="1 · <span lang=&quot;en&quot;>The Broken Signal</span>">1 · The Broken Signal</b><span class="count">4/4</span></div>
         <a class="ol-shot" href="#"><span class="no">1.1</span><span class="th"><img src="media/shot-1-1.jpg" alt=""></span><span><b data-ar="واسعة · ثابتة">Wide · static</b><span class="s" data-ar="نجم يدخل الورشة">Najm enters the workshop</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="#"><span class="no">1.2</span><span class="th"><img src="media/shot-1-2.jpg" alt=""></span><span><b data-ar="قريبة متوسطة · تراجع">Med. close-up · pull back</b><span class="s" data-ar="إلياس يفحص المذياع">Elias examines the radio</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="#"><span class="no">1.3</span><span class="th"><img src="media/shot-1-3.jpg" alt=""></span><span><b data-ar="ثنائية · حركة يسار">Two-shot · pan left</b><span class="s" data-ar="نجم يجرّب المذياع">Najm tries the radio</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="#"><span class="no">1.4</span><span class="th"><img src="media/shot-1-4.jpg" alt=""></span><span><b data-ar="متوسطة واسعة · تتبّع يسار">Med. wide · truck left</b><span class="s" data-ar="المذياع يستجيب">The radio responds</span></span><span class="mark"></span></a>
-        <div class="ol-scene"><span class="mark"></span><b data-ar-html="2 · <span lang=&quot;en&quot;>Static Echoes</span>">2 · Static Echoes</b><span class="ro">4/4</span></div>
+        <div class="ol-scene"><span class="mark"></span><b data-ar-html="2 · <span lang=&quot;en&quot;>Static Echoes</span>">2 · Static Echoes</b><span class="count">4/4</span></div>
         <a class="ol-shot" href="#"><span class="no">2.1</span><span class="th"><img src="media/shot-2-1.jpg" alt=""></span><span><b data-ar="متوسطة واسعة · إمالة لأعلى">Med. wide · tilt up</b><span class="s" data-ar="المذياع يعمل">The radio comes alive</span></span><span class="mark"></span></a>
         <a class="ol-shot" href="#"><span class="no">2.2</span><span class="th"><img src="media/shot-2-2.jpg" alt=""></span><span><b data-ar="قريبة · حركة يسار">Close-up · pan left</b><span class="s" data-ar="دهشة إلياس والصورة">Elias, stunned; the photo</span></span><span class="mark"></span></a>
         <a class="ol-shot sel" href="#" aria-current="true"><span class="no">2.3</span><span class="th"><img src="media/shot-2-3.jpg" alt=""></span><span><b data-ar="ثنائية · تتبّع يمين">Two-shot · truck right</b><span class="s" data-ar="ردّ نجم ووميض الصورة">Najm reacts; the photo flickers</span></span><span class="mark"></span></a>
@@ -127,9 +129,9 @@
         <button class="ibtn" type="button" aria-label="Previous frame"><i data-i="frameb"></i></button>
         <button class="play play-sm" type="button" aria-label="Play"><i data-i="play"></i></button>
         <button class="ibtn" type="button" aria-label="Next frame"><i data-i="framef"></i></button>
-        <span class="tc">00:00:03:12 / 00:00:07:07</span>
-        <button class="ibtn" type="button" aria-label="Audio"><i data-i="vol"></i></button>
-        <button class="ibtn" type="button" aria-label="Compare two takes" data-ar-label="قارن مصوَّرتين"><i data-i="split"></i></button>
+        <span class="tc ro">00:00:03:12 / 00:00:07:07</span>
+        <button class="ibtn opt" type="button" aria-label="Audio" data-ar-label="الصوت"><i data-i="vol"></i></button>
+        <button class="ibtn opt" type="button" aria-label="Compare two takes" data-ar-label="قارن مصوَّرتين"><i data-i="split"></i></button>
         <span class="hint">J K L · ← → · I O</span>
       </div>
       <div class="status" role="status">
@@ -140,11 +142,11 @@
 
       <div class="takes">
         <div class="takes-h"><b data-ar="المصوَّرات">Takes</b><span data-ar="4 · واحدة مختارة">4 · one selected</span><span class="end"><button class="btn btn-quiet btn-sm" type="button"><i data-i="split" class="i-sm"></i><span data-ar="قارن اثنتين">Compare two</span></button></span></div>
-        <div class="tk-row" role="radiogroup" aria-label="Takes of shot 2.3" data-ar-label="مصوَّرات اللقطة 2.3">
-          <div class="tk"><div class="th"><img src="media/take-2-3-1.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 1">Take 1</b><span class="ro">2:59</span></div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
-          <div class="tk"><div class="th"><img src="media/take-2-3-2.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 2">Take 2</b><span class="ro">7:11</span></div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
-          <div class="tk"><div class="th"><img src="media/take-2-3-3.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 3">Take 3</b><span class="ro">2:36</span></div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
-          <div class="tk chosen" role="radio" aria-checked="true"><div class="th"><img src="media/take-2-3-4.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 4">Take 4</b><span class="ro">2:50</span></div><div class="judge"><span class="word sel"><i data-i="check" class="i-sm"></i><span data-ar="مختارة">Selected</span></span><span class="word good" data-ar="جيدة">Good take</span></div></div>
+        <div class="tk-row scrolls" role="radiogroup" aria-label="Takes of shot 2.3" data-ar-label="مصوَّرات اللقطة 2.3">
+          <div class="tk"><div class="th"><img src="media/take-2-3-1.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 1">Take 1</b><span class="ro" data-ar="7.3 ث">7.3 s</span></div><div class="made" data-ar="صُوِّرت في 2 د 59 ث">made in 2 min 59 s</div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
+          <div class="tk"><div class="th"><img src="media/take-2-3-2.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 2">Take 2</b><span class="ro" data-ar="7.3 ث">7.3 s</span></div><div class="made" data-ar="صُوِّرت في 7 د 11 ث">made in 7 min 11 s</div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
+          <div class="tk"><div class="th"><img src="media/take-2-3-3.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 3">Take 3</b><span class="ro" data-ar="7.3 ث">7.3 s</span></div><div class="made" data-ar="صُوِّرت في 2 د 36 ث">made in 2 min 36 s</div><div class="judge"><span class="word qa" data-ar="اجتازت الفحص">QA passed</span></div><button class="btn btn-secondary btn-sm use" type="button"><span data-ar="استخدم هذه">Use this take</span></button></div>
+          <div class="tk chosen" role="radio" aria-checked="true"><div class="th"><img src="media/take-2-3-4.jpg" alt=""></div><div class="meta"><b data-ar="المصوَّرة 4">Take 4</b><span class="ro" data-ar="7.3 ث">7.3 s</span></div><div class="made" data-ar="صُوِّرت في 2 د 50 ث">made in 2 min 50 s</div><div class="judge"><span class="word sel"><i data-i="check" class="i-sm"></i><span data-ar="مختارة">Selected</span></span><span class="word good" data-ar="جيدة">Good take</span><span class="annot-tag" data-ar="مقترح · B5">proposal · B5</span></div></div>
         </div>
       </div>
 
@@ -167,6 +169,7 @@
     <aside class="panel" aria-labelledby="shot-h">
       <div class="insp-head">
         <div><div class="caption" data-ar-html="المشهد 2 · <span lang=&quot;en&quot;>Static Echoes</span> · ليلًا">Scene 2 · Static Echoes · night</div><h2 id="shot-h" class="t-card" data-ar="اللقطة 2.3">Shot 2.3</h2><div class="small muted" data-ar="لقطة ثنائية · تتبّع يمين · 7 ث">Two-shot · truck right · 7 s</div></div>
+        <div class="row" style="justify-content:space-between"><span class="lab" style="margin:0" data-ar="الجودة">Quality</span><span class="annot-tag" data-ar="مقترح · B6">proposal · B6</span></div>
         <div class="seg" role="radiogroup" aria-label="Quality" data-ar-label="الجودة" style="display:flex"><button role="radio" aria-checked="false" style="flex:1;justify-content:center"><span data-ar="مسودة · أسرع">Draft · faster</span></button><button role="radio" aria-checked="true" style="flex:1;justify-content:center"><span data-ar="نهائية">Final</span></button></div>
         <div class="acts"><button class="btn btn-secondary btn-sm" type="button" style="flex:1"><i data-i="plus" class="i-sm"></i><span data-ar="مصوَّرة جديدة">New take</span></button><button class="btn btn-secondary btn-sm" type="button"><i data-i="framef" class="i-sm i-flip"></i><span data-ar="تابع من اللقطة 2.2">Continue from shot 2.2</span></button></div>
         <div class="q"><span class="kbd">G</span><span data-ar="تنتظر في الدور لأن الاستوديو متوقف · نحو 3 دقائق عند التشغيل">Waits in the queue while the studio is paused · about 3 min once running</span></div>
@@ -206,7 +209,7 @@
             <button class="rchip add" type="button"><i data-i="plus" class="i-sm"></i><span data-ar="من طاقم الفيلم">From the cast</span></button>
           </div>
           <div class="slots">
-            <div class="slot"><span data-ar="الإطار الافتتاحي">Opening frame</span><div class="th" style="position:relative"><img src="media/shot-2-3.jpg" alt=""><button class="ibtn ibtn-sm ibtn-art" type="button" style="position:absolute;inset-block-start:4px;inset-inline-end:4px;inline-size:26px;block-size:26px" aria-label="Remove the opening frame" data-ar-label="أزل الإطار الافتتاحي"><i data-i="close" class="i-sm"></i></button></div></div>
+            <div class="slot"><span data-ar="الإطار الافتتاحي">Opening frame</span><div class="th" style="position:relative"><img src="media/shot-2-3.jpg" alt=""><button class="ibtn ibtn-sm ibtn-art" type="button" style="position:absolute;inset-block-start:4px;inset-inline-end:4px;inline-size:32px;block-size:32px" aria-label="Remove the opening frame" data-ar-label="أزل الإطار الافتتاحي"><i data-i="close" class="i-sm"></i></button></div></div>
             <div class="slot"><span data-ar="الإطار الختامي · اختياري">Ending frame · optional</span><div class="th empty"><i data-i="plus" class="i-sm"></i></div></div>
           </div>
           <div class="excl"><i data-i="alert" class="i-sm"></i><span data-ar="مع إطار افتتاحي وختامي معًا، لا تُضاف صور مرجعية أخرى. تبقى الشخصيات من خلال الإطارين.">With both an opening and an ending frame, no other reference pictures can be added. The characters carry through the frames.</span></div>

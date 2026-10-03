@@ -5,12 +5,13 @@
    ===================================================================================================================== */
 body.ws { font-size: 13.5px; line-height: 20px; }
 html[dir='rtl'] body.ws { font-size: 14px; line-height: 22px; }
-.wsbar { position: sticky; inset-block-start: var(--bar-h); z-index: 30; display: flex; align-items: center; gap: 14px; block-size: 56px; padding-inline: 16px 20px; background: var(--carbon-4); border-block-end: 1px solid var(--line-soft); }
+.wsbar { position: sticky; inset-block-start: var(--bar-h); z-index: 30; display: flex; align-items: center; gap: 14px; min-block-size: 56px; padding-inline: 16px 20px; background: var(--carbon-4); border-block-end: 1px solid var(--line-soft); }
 .wsbar .thumb { inline-size: 22px; block-size: 33px; border-radius: 2px; overflow: hidden; flex: none; }
 .wsbar .thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; object-position: 76% 50%; }
 .wsbar .ttl b { display: block; font: 500 18px/20px var(--font-title); color: var(--fg); letter-spacing: -0.01em; }
-.wsbar .ttl span { font-size: 12px; color: var(--fg-faint); }
-html[dir='rtl'] .wsbar .ttl span { font-size: 12.5px; }
+.wsbar .ttl { min-inline-size: 0; }
+.wsbar .ttl b, .wsbar .ttl span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wsbar .ttl span { color: var(--fg-faint); }
 .pipe { display: flex; align-items: center; gap: 4px; margin-inline: auto; }
 .pipe a { display: inline-flex; align-items: center; gap: 6px; block-size: 32px; padding-inline: 12px; border-radius: var(--r-pill); font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
 html[dir='rtl'] .pipe a { font-size: 14px; }
@@ -23,7 +24,8 @@ html[dir='rtl'] .paused-line { font-size: 14px; }
 .paused-line .dot { background: var(--fg-faint); }
 .paused-line a { margin-inline-start: auto; color: var(--fg); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
 
-.room { display: grid; grid-template-columns: 280px minmax(0, 1fr) 360px; background: var(--carbon-4); min-block-size: calc(100vh - var(--bar-h) - 56px); }
+.room { display: grid; grid-template-columns: 280px minmax(0, 1fr) 360px; background: var(--carbon-4); }
+@media (min-width: 1024px) { .room { min-block-size: calc(var(--vh, 1vh) * 100 - var(--bar-h) - 56px); } }
 .panel { background: var(--carbon-3); display: flex; flex-direction: column; min-inline-size: 0; }
 .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; block-size: 44px; padding-inline: 16px 10px; border-block-end: 1px solid var(--line-soft); font-size: 12.5px; font-weight: 600; color: var(--fg-body); flex: none; }
 html[dir='rtl'] .panel-h { font-size: 13px; }
@@ -91,6 +93,24 @@ html[dir='rtl'] .excl { font-size: 13px; line-height: 20px; }
 .excl .i { color: var(--fg-faint); flex: none; margin-block-start: 1px; }
 
 @media (max-width: 1279px) { .room { grid-template-columns: 240px minmax(0, 1fr) 320px; } .pipe a span.lbl { display: none; } }
+.paused-line .short { display: none; }
+@media (max-width: 639px) { .paused-line .long { display: none; } .paused-line .short { display: inline; } }
+
+/* THE WORKSPACE FLOOR (QA B3; §3.3, §8.11): inside a workspace page's main content no text is smaller than 13.5 px
+   (Arabic 14 px); readouts 13.5 px in the mono. The shell around it keeps the system floor (12 / 13). */
+body.ws main :is(.caption, .small, .ro, .state, .word, .lab, .pick, .slate, .panel-h, .ol-scene, .ol-shot .no, .ol-shot b, .ol-shot span.s,
+  .ol-keys, .ol-story, .ol-final, .tk .meta, .tk .made, .excl, .slot, .q, .dis > summary, .dis > summary .sum, .kv, .status, .attempts li, .attempts .h, .reuse,
+  .strip-wrap .lbl, .viewer-h, .tport .tc, .tport .hint, .wsbar .ttl span, .saved, .paused-line, .pipe a, .chip, .btn-sm, .seg button, .kbd,
+  .strip .sf .n, .flowline, .gate th, .gate td, .scard b, .scard .s, .scard .takes, .versions li, .tl b, .insp p, .rchip, .rchip .v, .tag,
+  .textlink, .shead .link, .sub, .ta, .dlg .caption, .lead-state, .takes-h, .gate-foot .note, .story .side, .on-art-chip) { font-size: 13.5px; line-height: 20px; }
+html[dir='rtl'] body.ws main :is(.caption, .small, .state, .word, .lab, .pick, .slate, .panel-h, .ol-scene, .ol-shot b, .ol-shot span.s, .ol-keys,
+  .ol-story, .ol-final, .tk .meta, .tk .made, .excl, .slot, .q, .dis > summary, .dis > summary .sum, .kv, .status, .attempts li, .attempts .h, .reuse, .strip-wrap .lbl,
+  .viewer-h, .wsbar .ttl span, .saved, .paused-line, .pipe a, .chip, .btn-sm, .seg button, .flowline, .gate th, .gate td, .scard b, .scard .s,
+  .scard .takes, .versions li, .insp p, .rchip, .tag, .textlink, .shead .link, .sub, .ta, .dlg .caption, .lead-state, .takes-h, .gate-foot .note, .story .side) { font-size: 14px; line-height: 22px; }
+body.ws main .pick { line-height: 16px; }
+html[lang] body.ws main .num-ltr { font-size: max(13.5px, 0.92em); }
+html[lang='ar'] body.ws main :is(.count, .ro:lang(ar), .tk .meta .ro) { font-size: 14px; }
+@media (pointer: coarse) { body.ws main .flowline a { min-block-size: 44px; } }
 @media (max-width: 1023px) {
   .wsbar { padding-inline: 8px 12px; gap: 10px; }
   .pipe, .wsbar .saved { display: none; }

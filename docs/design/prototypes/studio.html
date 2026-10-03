@@ -26,7 +26,7 @@
   .node { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; inline-size: 68px; block-size: 68px; border-radius: 50%; background: var(--raised); color: var(--fg-muted); font: 500 13px/1 var(--font-mono); }
   .node.sel { background: var(--paper); color: var(--carbon-2); box-shadow: 0 0 0 6px rgb(243 239 232 / 0.12); }
   .node.wait::after { content: ''; position: absolute; inset-block-start: 2px; inset-inline-end: 2px; inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--tungsten); box-shadow: 0 0 0 3px var(--sunken); }
-  .lbl { position: absolute; inline-size: 170px; font-size: 13.5px; line-height: 18px; color: var(--fg); font-weight: 600; }
+  .lbl { position: absolute; inline-size: 150px; max-inline-size: 150px; font-size: 13.5px; line-height: 18px; color: var(--fg); font-weight: 600; }
   html[dir='rtl'] .lbl { font-size: 14px; line-height: 21px; }
   .lbl span { display: block; font-weight: 400; color: var(--fg-muted); font-size: 12.5px; line-height: 17px; margin-block-start: 3px; }
   html[dir='rtl'] .lbl span { font-size: 13px; line-height: 20px; }
@@ -37,10 +37,10 @@
   .orch { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); inline-size: 200px; block-size: 200px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 1px var(--line); display: grid; place-content: center; text-align: center; gap: 6px; padding: 20px; }
   .orch b { font: 500 24px/26px var(--font-title); color: var(--fg); letter-spacing: -0.015em; }
   html[dir='rtl'] .orch b { font-family: var(--font-title-ar); font-weight: 600; font-size: 25px; line-height: 34px; letter-spacing: 0; }
-  .orch span { font-size: 12.5px; color: var(--fg-muted); line-height: 17px; }
+  .orch span { font-size: 13px; color: var(--fg-muted); line-height: 17px; }
   .gate { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px 6px 8px; border-radius: var(--r-pill); border: 1px dashed var(--carbon-8); background: var(--sunken); font-size: 12.5px; color: var(--fg-body); white-space: nowrap; transform: translate(-50%, -50%); }
-  html[dir='rtl'] .gate { font-size: 13px; }
-  .gate .you { display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--paper); color: var(--carbon-2); font: 600 10px/1 var(--font-ui); }
+  html[dir='rtl'] .gate, html[dir='rtl'] .gate .you { font-size: 13px; }
+  .gate .you { display: grid; place-items: center; min-inline-size: 26px; block-size: 24px; padding-inline: 5px; border-radius: 12px; background: var(--paper); color: var(--carbon-2); font: 600 12px/1 var(--font-ui); }
   .legend { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: center; padding-block: 12px 4px; font-size: 12.5px; color: var(--fg-faint); }
   html[dir='rtl'] .legend { font-size: 13px; }
   .legend i { display: inline-block; inline-size: 24px; block-size: 0; border-block-start: 2px solid rgb(243 239 232 / 0.6); vertical-align: middle; margin-inline-end: 8px; }
@@ -54,7 +54,8 @@
   .insp .agent { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-block: 10px; border-block-start: 1px solid var(--line-soft); font-size: 14px; }
   .insp .agent b { font-weight: 500; color: var(--fg); }
   .insp .agent span { grid-column: 1; color: var(--fg-muted); font-size: 13px; }
-  .insp .agent em { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-style: normal; font-size: 11.5px; color: var(--fg-faint); border: 1px solid var(--line-strong); border-radius: var(--r-pill); padding: 2px 8px; }
+  .insp .agent em { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-style: normal; font-size: 12.5px; color: var(--fg-muted); border: 1px solid var(--carbon-8); border-radius: var(--r-pill); padding: 3px 9px; }
+  html[dir='rtl'] .insp .agent em { font-size: 13px; }
   .insp .tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .insp .assign { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; padding-block: 8px; font-size: 14px; }
   .insp .assign .frame { inline-size: 36px; aspect-ratio: 928 / 1664; }
@@ -63,7 +64,7 @@
   .insp .act li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding-block: 7px; font-size: 13.5px; color: var(--fg-body); }
   .insp .act .ro { color: var(--fg-faint); padding-block-start: 2px; }
 
-  .runs { display: grid; gap: 0; margin-block-start: 14px; }
+  .runs { display: grid; gap: 0; margin-block-start: 0; }
   .runs div { display: grid; grid-template-columns: 260px 1fr; gap: 16px; padding-block: 10px; border-block-start: 1px solid var(--line-soft); font-size: 14px; }
   .runs dt { color: var(--fg); font-weight: 500; } .runs dd { color: var(--fg-muted); }
   @media (max-width: 639px) { .runs div { grid-template-columns: 1fr; gap: 2px; } }
@@ -75,7 +76,8 @@
 
   /* phones: the spine — the same order, top to bottom, with the relations as words */
   .spine { display: none; }
-  @media (max-width: 767px) {
+  .running p { max-inline-size: 66ch; }
+  @media (max-width: 1023px) {
     .stage { display: none; }
     .spine { display: grid; }
     .spine { margin-block-end: 8px; } .spine .orch2 { padding: 18px; border-radius: var(--r-md); background: var(--surface); margin-block-end: 10px; }
@@ -88,11 +90,8 @@
     .spine span { font-size: 13px; color: var(--fg-muted); }
     .spine span.w { color: var(--tungsten); }
     .spine .to { font-size: 12.5px; color: var(--fg-faint); margin-block-start: 2px; }
-    .runs { display: grid; gap: 0; margin-block-start: 14px; }
-  .runs div { display: grid; grid-template-columns: 260px 1fr; gap: 16px; padding-block: 10px; border-block-start: 1px solid var(--line-soft); font-size: 14px; }
-  .runs dt { color: var(--fg); font-weight: 500; } .runs dd { color: var(--fg-muted); }
-  @media (max-width: 639px) { .runs div { grid-template-columns: 1fr; gap: 2px; } }
-  .handoffs li { grid-template-columns: 48px minmax(0, 1fr); }
+    html[dir='rtl'] .spine .to { font-size: 13px; }
+    .handoffs li { grid-template-columns: 48px minmax(0, 1fr); }
     .handoffs li .ro:last-child { grid-column: 2; }
   }
 </style>
@@ -133,7 +132,7 @@
           <!-- the ring itself, faint -->
           <ellipse cx="450" cy="380" rx="300" ry="270" fill="none" stroke="#1E1E1C" stroke-width="1"/>
           <!-- the Cast & World pair: one stage shared by two departments -->
-          <path d="M 690 136 A 340 310 0 0 1 800 300" fill="none" stroke="#4A4945" stroke-width="1.5"/><path d="M 690 136 l -6 6 M 800 300 l -8 -2" stroke="#4A4945" stroke-width="1.5"/>
+          
           <!-- 1 Story → Cast & world (no handoff recorded) -->
           <path d="M 482 112 A 300 270 0 0 1 634 172" fill="none" stroke="#72706A" stroke-width="1.5" stroke-dasharray="4 5" marker-end="url(#ahf)"/>
           <!-- 2 Story → Pre-Production (the script): 2 -->
@@ -176,46 +175,49 @@
         <span class="gate" style="left:15%;top:13%"><span class="you" aria-hidden="true" data-ar="أنت">You</span><span data-ar="تعتمد المونتاج">approve the cut</span></span>
 
         <span class="node" style="left:50%;top:14.47%">ST</span>
-        <span class="lbl c" style="left:50%;top:19.5%" data-ar-html="تطوير القصة<span>خامل · سلّم السيناريو 06:50</span>">Story Development<span>Idle · script handed over 06:50</span></span>
+        <span class="lbl l" style="right:calc(50% + 42px);top:calc(14.47% - 20px)" data-ar-html="تطوير القصة<span>خامل · سلّم السيناريو 06:50</span>">Story Development<span>Idle · script handed over 06:50</span></span>
         <span class="node sel wait" style="left:73.56%;top:24.87%">CA</span>
-        <span class="lbl r" style="left:79%;top:9%" data-ar-html="اختيار وتصميم الشخصيات<span class=&quot;w&quot;>بانتظارك · صورتان</span>">Casting &amp; Character Design<span class="w">Waiting for you · 2 images</span></span>
+        <span class="lbl r" style="left:calc(73.56% + 44px);top:calc(24.87% - 20px)" data-ar-html="اختيار وتصميم الشخصيات<span class=&quot;w&quot;>بانتظارك · صورتان</span>">Casting &amp; Character Design<span class="w">Waiting for you · 2 images</span></span>
         <span class="node" style="left:83.33%;top:50%">WB</span>
-        <span class="lbl r" style="left:88%;top:44%;inline-size:120px" data-ar-html="بناء العالم والتوجيه الفني<span>خامل</span>">World Building &amp; Art Direction<span>Idle</span></span>
+        <span class="lbl r" style="left:calc(83.33% + 42px);top:calc(50% - 30px);inline-size:104px" data-ar-html="بناء العالم والتوجيه الفني<span>خامل</span>">World Building &amp; Art Direction<span>Idle</span></span>
         <span class="node" style="left:73.56%;top:75.13%">PP</span>
-        <span class="lbl r" style="left:78.5%;top:72%" data-ar-html="ما قبل الإنتاج<span>خامل · 8 لقطات مخطَّطة</span>">Pre-Production<span>Idle · 8 shots planned</span></span>
+        <span class="lbl r" style="left:calc(73.56% + 44px);top:calc(75.13% - 20px)" data-ar-html="ما قبل الإنتاج<span>خامل · 8 لقطات مخطَّطة</span>">Pre-Production<span>Idle · 8 shots planned</span></span>
         <span class="node wait" style="left:50%;top:85.53%">SM</span>
-        <span class="lbl c" style="left:50%;top:90.5%" data-ar-html="الصوت والموسيقى<span class=&quot;w&quot;>بانتظارك · سطران للمراجعة</span>">Sound &amp; Music<span class="w">Waiting for you · 2 lines to hear</span></span>
+        <span class="lbl c" style="left:50%;top:calc(85.53% + 40px);inline-size:200px;max-inline-size:200px" data-ar-html="الصوت والموسيقى<span class=&quot;w&quot;>بانتظارك · سطران للمراجعة</span>">Sound &amp; Music<span class="w">Waiting for you · 2 lines to hear</span></span>
         <span class="node" style="left:26.44%;top:75.13%">VP</span>
-        <span class="lbl l" style="left:2.5%;top:72%" data-ar-html="إنتاج الفيديو<span>خامل · 15 لقطة مصوَّرة</span>">Video Production<span>Idle · 15 takes filmed</span></span>
+        <span class="lbl l" style="right:calc(73.56% + 44px);top:calc(75.13% - 20px)" data-ar-html="إنتاج الفيديو<span>خامل · 15 لقطة مصوَّرة</span>">Video Production<span>Idle · 15 takes filmed</span></span>
         <span class="node" style="left:16.67%;top:50%">QA</span>
-        <span class="lbl c" style="left:16.67%;top:55.5%;inline-size:150px" data-ar-html="ضمان الجودة<span>خامل · اجتازت 8 لقطات</span>">Quality Assurance<span>Idle · 8 shots passed</span></span>
+        <span class="lbl l" style="right:calc(83.33% + 42px);top:calc(50% - 30px);inline-size:104px" data-ar-html="ضمان الجودة<span>خامل · اجتازت 8 لقطات</span>">Quality Assurance<span>Idle · 8 shots passed</span></span>
         <span class="node" style="left:26.44%;top:24.87%">PO</span>
-        <span class="lbl l" style="left:3%;top:27%;inline-size:150px" data-ar-html="ما بعد الإنتاج<span>خامل · صدّر 09:33</span>">Post-Production<span>Idle · exported 09:33</span></span>
+        <span class="lbl l" style="right:calc(73.56% + 44px);top:calc(24.87% - 20px)" data-ar-html="ما بعد الإنتاج<span>خامل · صدّر 09:33</span>">Post-Production<span>Idle · exported 09:33</span></span>
       </div>
-      <div class="legend"><span><i></i><span data-ar="تسليمات مسجّلة (العدد على الخط)">handoffs recorded (count on the line)</span></span><span><i class="d"></i><span data-ar="علاقة حقيقية لم يُسلَّم عليها شيء بعد">a real relation with no handoff yet</span></span><span><span style="color:var(--bad)">✕</span> <span data-ar="تسليم مرفوض">handoff refused</span></span><span><span style="color:#4A4945">⌒</span> <span data-ar="الشخصيات والعالم: مرحلة واحدة لقسمين">Cast &amp; world: one stage, two departments</span></span></div>
+      <div class="legend"><span><i></i><span data-ar="تسليمات مسجّلة (العدد على الخط)">handoffs recorded (count on the line)</span></span><span><i class="d"></i><span data-ar="علاقة حقيقية لم يُسلَّم عليها شيء بعد">a real relation with no handoff yet</span></span><span><span style="color:var(--bad)">✕</span> <span data-ar="تسليم مرفوض">handoff refused</span></span><span data-ar="اختيار الشخصيات وبناء العالم يتشاركان مرحلة «الشخصيات والعالم»">Casting and World Building share the Cast &amp; world stage</span></div>
     </div>
 
-    <section class="section" aria-labelledby="ar-h" style="padding-block-start:56px">
+    <section class="section running" aria-labelledby="ar-h" style="padding-block-start:56px">
       <div class="shead"><h2 id="ar-h" class="h2" data-ar="ما يعمل الآن">Running now</h2><span class="link" data-ar="من سجل التشغيل الفعلي فقط">From the run record only</span></div>
       <p class="small muted" data-ar="لا شيء يعمل: الاستوديو متوقف مؤقتًا. حين يعمل، يظهر هنا كل تشغيل باسم ما يصنعه، وطوره بالكلمات، والوقت المنقضي، وزر إلغاء.">Nothing is running: the studio is paused. When it runs, each run appears here by what it is making, its phase in words, the time so far, and a Cancel button.</p>
-      <dl class="runs"><div><dt data-ar="إنتاج الفيديو">Video Production</dt><dd data-ar="15 مصوَّرة · الوسيط 3 د 6 ث · محليًا، بلا تكلفة">15 takes · median 3 min 6 s · local, no cost</dd></div><div><dt data-ar="اختيار وتصميم الشخصيات">Casting &amp; Character Design</dt><dd data-ar="5 شخصيات رُسمت · 3 أصوات صُمِّمت">5 characters drawn · 3 voices designed</dd></div></dl>
     </section>
     <section class="section" aria-labelledby="ho-h" style="padding-block-start:56px">
     <div class="shead"><h2 id="ho-h" class="h2"><span data-ar="آخر التسليمات">Recent handoffs</span></h2><span class="link" data-ar="The Static Sky · 3 تشرين الأول">The Static Sky · 3 Oct</span></div>
     <ol class="handoffs">
       <li><span class="ro">09:29</span><span><b data-ar="ما بعد الإنتاج ← المكتب التنفيذي">Post-Production → Executive Office</b> · <span class="what" data-ar="المونتاج، للاعتماد">the cut, for approval</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
       <li><span class="ro">09:29</span><span><b data-ar="ضمان الجودة ← ما بعد الإنتاج">Quality Assurance → Post-Production</b> · <span class="what" data-ar="اللقطات الثماني المفحوصة">eight inspected shots</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
-      <li><span class="ro">09:26</span><span><b data-ar="إنتاج الفيديو ← ضمان الجودة">Video Production → Quality Assurance</b> · <span class="what" data-ar="اللقطة 2.4، المصوَّرة 2">shot 2.4, take 2</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
-      <li><span class="ro">09:26</span><span><b data-ar="الصوت والموسيقى ← إنتاج الفيديو">Sound &amp; Music → Video Production</b> · <span class="what" data-ar="سطر «She never left.»">the line “She never left.”</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
+      <li><span class="ro">09:26</span><span><b data-ar="إنتاج الفيديو ← ضمان الجودة">Video Production → Quality Assurance</b> · <span class="what" data-ar="ثماني مصوَّرات، واحدة لكل لقطة">eight takes, one per shot</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
+      <li><span class="ro">09:26</span><span><b data-ar="الصوت والموسيقى ← إنتاج الفيديو">Sound &amp; Music → Video Production</b> · <span class="what" data-ar-html="سطر نجم <bdi lang=&quot;en&quot;>“The Mariner…”</bdi>">Najm’s line “The Mariner…”</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
       <li><span class="ro">08:38</span><span><b data-ar="ما قبل الإنتاج ← إنتاج الفيديو">Pre-Production → Video Production</b> · <span class="what" data-ar="الإطارات الافتتاحية">the opening frames</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
-      <li><span class="ro">07:30</span><span><b data-ar="الصوت والموسيقى ← إنتاج الفيديو">Sound &amp; Music → Video Production</b> · <span class="what" data-ar="تحضير الحوار">dialogue preparation</span></span><span class="state bad"><i class="dot"></i><span data-ar="مرفوض · أُعيد">refused · redone</span></span></li>
-      <li><span class="ro">07:21</span><span><b data-ar="بناء العالم ← ما قبل الإنتاج">World Building → Pre-Production</b> · <span class="what" data-ar="ورشة إلياس">Elias’s Workshop</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
+      <li><span class="ro">07:30</span><span><b data-ar="الصوت والموسيقى ← إنتاج الفيديو">Sound &amp; Music → Video Production</b> · <span class="what" data-ar="السطور الستة المسجّلة">the six recorded lines</span></span><span class="state bad"><i class="dot"></i><span data-ar="مرفوض · أُعيد">refused · redone</span></span></li>
+      <li><span class="ro">07:21</span><span><b data-ar="بناء العالم ← ما قبل الإنتاج">World Building → Pre-Production</b> · <span class="what" data-ar-html="<bdi lang=&quot;en&quot;>Elias’s Workshop</bdi> · لوحة الطاولة">Elias’s Workshop · the workbench plate</span></span><span class="state ok"><i class="dot"></i><span data-ar="متحقَّق منه">validated</span></span></li>
     </ol>
   </section>
+    <section class="section" aria-labelledby="rec-h" style="padding-block-start:56px">
+      <div class="shead"><h2 id="rec-h" class="h2" data-ar-html="في السجل · <bdi lang=&quot;en&quot;>The Static Sky</bdi>">On record · The Static Sky</h2><span class="link" data-ar="من المصوَّرات والتسليمات">From the takes and handoffs</span></div>
+      <dl class="runs"><div><dt data-ar="إنتاج الفيديو">Video Production</dt><dd data-ar="15 مصوَّرة · الوسيط 3 د 6 ث لكل مصوَّرة · محليًا، بلا تكلفة">15 takes · median 3 min 6 s per take · local, no cost</dd></div><div><dt data-ar="اختيار وتصميم الشخصيات">Casting &amp; Character Design</dt><dd data-ar="5 شخصيات رُسمت · 3 أصوات صُمِّمت">5 characters drawn · 3 voices designed</dd></div></dl>
+    </section>
     </div>
     <aside class="insp" aria-labelledby="dept-h">
       <div class="row-between" style="align-items:flex-start">
-        <div style="display:flex;gap:14px;align-items:center"><span class="mono">CA</span><div><div class="caption" data-ar="القسم 2 من 8 · مرحلة الشخصيات والعالم">Department 2 of 8 · Cast &amp; World stage</div><h2 id="dept-h" class="t-card" data-ar="اختيار وتصميم الشخصيات">Casting &amp; Character Design</h2></div></div>
+        <div style="display:flex;gap:14px;align-items:center"><span class="mono">CA</span><div><div class="caption" data-ar="القسم الثاني في خط الإنتاج · مرحلة الشخصيات والعالم">Department 2 of 8 · Cast &amp; World stage</div><h2 id="dept-h" class="t-card" data-ar="اختيار وتصميم الشخصيات">Casting &amp; Character Design</h2></div></div>
       </div>
       <p class="small muted" data-ar="الشخصيات: التصميم، والصورة المعتمدة الكاملة من الأمام، والصوت؛ ومراجع الهوية التي تستخدمها كل لقطة.">Characters: their design, the canonical front full-body image and the voice; the identity references every shot uses.</p>
       <div>

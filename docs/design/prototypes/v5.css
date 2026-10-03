@@ -41,7 +41,7 @@
   --page: var(--carbon-2);  --sunken: var(--carbon-1);  --media: var(--carbon-1);
   --surface: var(--carbon-3);  --field: var(--carbon-4);  --raised: var(--carbon-5);
   --line-soft: #1C1C1A;  --line: var(--carbon-6);  --line-strong: var(--carbon-7);  --line-field: var(--carbon-8);
-  --fg: var(--paper);  --fg-body: var(--carbon-11);  --fg-muted: var(--carbon-10);  --fg-faint: var(--carbon-9);  --fg-disabled: #5E5C57;
+  --fg: var(--paper);  --fg-body: var(--carbon-11);  --fg-muted: var(--carbon-10);  --fg-faint: var(--carbon-9);  --fg-disabled: #7E7B75;
   --on-paper: var(--carbon-2);
   --chip-on-art: rgb(6 6 6 / 0.80);
   --scrim-b: linear-gradient(0deg, rgb(10 10 9 / 0.96) 0%, rgb(10 10 9 / 0.86) 28%, rgb(10 10 9 / 0.35) 58%, rgb(10 10 9 / 0) 78%);
@@ -88,7 +88,17 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
-:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #000; border-radius: var(--r-sm); }
+/* FOCUS (QA B1). The ring is an outline, never a box-shadow, so no state (selected segment, pick, pipeline pill,
+   outline row, chosen take) can suppress it: states own box-shadow, focus owns outline. A 2 px paper ring at a 2 px
+   offset leaves a 2 px band of the ground between the control and the ring, so every control reads as three rings:
+   control · ground · paper. Paper ring vs the dark ground: 17.3:1; vs a paper-filled control the dark gap separates
+   them (gap vs paper 17.3:1), so the primary, the play discs and the selected chip show focus too. Controls that sit
+   on art add a black outer band (box-shadow is free on them: they carry no state shadow): paper 2 px + black 2 px,
+   ≥ 10:1 against the dark chip and 21:1 against white art. */
+:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+:is(.ibtn-art, .play-art, .on-art-chip, .frame, .fposter, .tk .th, .rtakes .t, .strip .sf, .sstrip span):focus-visible,
+.on-art :focus-visible, .player :focus-visible, .ctl :focus-visible { outline-offset: 2px; box-shadow: 0 0 0 6px #000; }
+.tile:focus-visible, .fig:focus-visible, .scard:focus-visible { outline-offset: 4px; }
 ::selection { background: rgb(243 239 232 / 0.85); color: var(--carbon-2); }
 .sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .i { inline-size: 20px; block-size: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -97,10 +107,23 @@ ul, ol { list-style: none; }
 .i-fill { fill: currentColor; stroke: none; }
 html[dir='rtl'] .i-flip { transform: scaleX(-1); }   /* chevrons and back arrows mirror; play, clocks and media never do */
 [lang='ar'] { font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif; }
-/* content in the other script keeps its own direction (correct punctuation) but starts at the interface's start edge */
+/* OTHER-SCRIPT CONTENT (§9.2, QA M8 / ruling c).
+   1. Runs and one-line names/titles (spans, b, a, dt, td, li, headings, title classes) keep their own direction for
+      correct punctuation and sit on the interface's start edge, aligned like their siblings.
+   2. Blocks that can run to two or more lines (p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)
+      are set in their own direction AND alignment, isolated: an English paragraph in the Arabic interface is LTR and
+      left-aligned; an Arabic paragraph in the English interface is RTL and right-aligned. */
 html[dir='rtl'] [lang='en']:not(html), html[dir='ltr'] [lang='ar']:not(html) { unicode-bidi: plaintext; }
-html[dir='rtl'] :is(p, div, h1, h2, h3, li, dd, q)[lang='en'] { text-align: right; }
-html[dir='ltr'] :is(p, div, h1, h2, h3, li, dd, q)[lang='ar'] { text-align: left; }
+html[dir='rtl'] :is(div, h1, h2, h3, li, b, dt, td, span.block, a.block)[lang='en'] { text-align: right; }
+html[dir='ltr'] :is(div, h1, h2, h3, li, b, dt, td, span.block, a.block)[lang='ar'] { text-align: left; }
+html[dir='rtl'] :is(p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)[lang='en'] { direction: ltr; text-align: left; unicode-bidi: isolate; }
+html[dir='ltr'] :is(p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)[lang='ar'] { direction: rtl; text-align: right; unicode-bidi: isolate; }
+/* a definition list whose values are in the other script flips to the values' direction as a whole, so each label stays
+   beside its value (the label sits at the end, flush against the value) */
+html[dir='rtl'] dl.ltr-values { direction: ltr; }
+html[dir='rtl'] dl.ltr-values dt { text-align: right; }
+/* numbers kept as readouts inside Arabic prose (resolutions, times, identifiers, file data): mono, LTR, isolated */
+.num-ltr { font-family: var(--font-mono); font-size: 0.92em; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
 [lang='en'] { font-family: 'IBM Plex Sans', 'IBM Plex Sans Arabic', sans-serif; }
 
 /* ── 3. type ───────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -161,8 +184,18 @@ html[dir='rtl'] .small { font-size: 14px; line-height: 22px; }
 html[dir='rtl'] .caption { font-size: 13px; line-height: 20px; }
 html[dir='rtl'] .label { font-size: 14px; line-height: 20px; }
 /* the readout: every number of the production — timecode, duration, shot and take, counts — in Plex Mono, LTR */
-.ro { font-family: var(--font-mono), 'IBM Plex Sans Arabic'; font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; letter-spacing: 0; direction: ltr; unicode-bidi: isolate; }
+/* the Arabic floor: 13 px for every small class in the Arabic interface (QA B3) */
+html[lang='ar'] .on-art-chip * { font-size: 13px; }
+html[lang='ar'] :is(.caption, .needs, .chip .n, .tabs .n, .count, .fp-k, .tc-state, .rail-pos, .tag, .kbd, .annot-tag, .ro, .num-ltr, .on-art-chip, .slate .ro, .sp-cap) { font-size: 13px; }
+.num-ltr { font-size: max(12px, 0.92em); }
+/* a readout never carries Arabic-Indic digits (Plex Mono has none); counts in the Arabic interface are set in the sans */
+html[lang='ar'] :is(.count, .needs, .chip .n, .tabs .n, .n.count) { font-family: 'IBM Plex Sans Arabic', var(--font-ui); }
+.ro { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; letter-spacing: 0; direction: ltr; unicode-bidi: isolate; }
 .ro-md { font-size: 13px; line-height: 20px; }
+/* years and dates in slates: the mono in English; in Arabic a date is set in the sans (Arabic-Indic digits, §9.4) */
+.date { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.date.ro-md { font-size: 13px; }
+html[lang='ar'] .date { font-family: 'IBM Plex Sans Arabic', var(--font-ui); font-size: inherit; }
 .ro-lg { font-size: 15px; line-height: 20px; }
 .num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
 
@@ -205,7 +238,13 @@ html[dir='rtl'] .slate { font-size: 14px; line-height: 22px; }
 .skip { position: absolute; inset-inline-start: 8px; inset-block-start: -60px; z-index: 100; background: var(--paper); color: var(--on-paper); padding: 8px 14px; border-radius: var(--r-pill); }
 .skip:focus { inset-block-start: 8px; }
 .topbar { position: sticky; inset-block-start: 0; z-index: 40; block-size: var(--bar-h); background: rgb(10 10 9 / 0.97); border-block-end: 1px solid var(--line-soft); }
-.topbar--over { position: absolute; inset-inline: 0; background: var(--scrim-top); border-block-end-color: transparent; }
+/* over a hero (QA M9): a deeper scrim over the first 140 px and the secondary links at body colour — measured
+   ≥ 4.5:1 for 13 px text over the real hero art (scripts: measure.mjs, topbar check) */
+.topbar--over { position: absolute; inset-inline: 0; background: transparent; border-block-end-color: transparent; }
+.topbar--over::before { content: ''; position: absolute; inset-inline: 0; inset-block-start: 0; block-size: 140px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgb(10 10 9 / 0.9) 0%, rgb(10 10 9 / 0.78) 46%, rgb(10 10 9 / 0) 100%); }
+.topbar--over .util a.sec { color: var(--fg-body); }
+.topbar--over .nav a { color: var(--carbon-11); }
+.topbar--over .nav a[aria-current='page'], .topbar--over .util a.sec[aria-current='page'] { color: var(--fg); }
 .topbar .wrap { block-size: 100%; display: flex; align-items: center; gap: 40px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); flex: none; }
 .brand svg { inline-size: 26px; block-size: 26px; }
@@ -216,19 +255,19 @@ html[dir='rtl'] .slate { font-size: 14px; line-height: 22px; }
 .nav a[aria-current='page'] { color: var(--fg); }
 .nav a[aria-current='page']::after { content: ''; position: absolute; inset-inline: 0; inset-block-end: 0; block-size: 2px; background: var(--paper); }
 .util { display: none; align-items: center; gap: 20px; margin-inline-start: auto; }
-.util a.sec { font-size: 13px; color: var(--fg-faint); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.util a.sec { font-size: 13px; min-block-size: 24px; color: var(--fg-faint); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 .util a.sec:hover, .util a.sec[aria-current='page'] { color: var(--fg); }
 .util .sep { inline-size: 1px; block-size: 20px; background: var(--line); }
-.needs { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 18px; block-size: 18px; padding-inline: 5px; border-radius: 9px; background: var(--tungsten); color: var(--carbon-2); font: 600 11px/1 var(--font-mono); }
-.kbd { font: 500 11px/1 var(--font-mono); color: var(--fg-faint); border: 1px solid var(--line-strong); border-radius: 4px; padding: 3px 5px; direction: ltr; unicode-bidi: isolate; }
+.needs { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 20px; block-size: 20px; padding-inline: 6px; border-radius: 10px; background: var(--tungsten); color: var(--carbon-2); font: 600 12px/1 var(--font-ui); }
+.kbd { font: 500 12px/1 var(--font-mono); color: var(--fg-faint); border: 1px solid var(--carbon-8); border-radius: 4px; padding: 3px 5px; direction: ltr; unicode-bidi: isolate; }
 .searchbtn { display: inline-flex; align-items: center; gap: 10px; block-size: 36px; padding-inline: 12px 8px; border-radius: var(--r-pill); background: var(--field); color: var(--fg-faint); font-size: 13px; min-inline-size: 200px; }
 .searchbtn .kbd { margin-inline-start: auto; }
 .mob-actions { display: flex; align-items: center; gap: 4px; margin-inline-start: auto; }
 @media (min-width: 1024px) { .nav, .util { display: flex; } .mob-actions { display: none; } }
 @media (min-width: 1024px) and (max-width: 1279px) { .util a.sec, .util .sep { display: none; } .nav { gap: 20px; } .topbar .wrap { gap: 28px; } }
 .tabbar { position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 40; block-size: var(--tabbar-h); background: rgb(10 10 9 / 0.98); border-block-start: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding-block-end: env(safe-area-inset-bottom); }
-.tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; line-height: 14px; font-weight: 500; color: var(--fg-faint); }
-html[dir='rtl'] .tabbar a { font-size: 12px; }
+.tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 15px; font-weight: 500; color: var(--fg-faint); }
+html[dir='rtl'] .tabbar a { font-size: 13px; }
 .tabbar a[aria-current='page'] { color: var(--fg); }
 .tabbar a[aria-current='page'] .i { stroke-width: 2; }
 @media (min-width: 1024px) { .tabbar { display: none; } }
@@ -240,8 +279,8 @@ html[dir='rtl'] .tabbar a { font-size: 12px; }
 .annot { display: block; padding: 8px 12px; border: 1px dashed var(--annot); border-radius: var(--r-md); color: var(--annot); font: 500 12px/18px var(--font-mono); }
 html[dir='rtl'] .annot { font-family: 'IBM Plex Sans Arabic'; font-size: 13px; line-height: 20px; }
 .annot b { font-weight: 600; }
-.annot-tag { display: inline-flex; align-items: center; block-size: 18px; padding-inline: 6px; border: 1px dashed var(--annot); border-radius: 4px; color: var(--annot); font: 500 10px/1 var(--font-mono); white-space: nowrap; }
-html[dir='rtl'] .annot-tag { font-family: 'IBM Plex Sans Arabic'; font-size: 11px; }
+.annot-tag { display: inline-flex; align-items: center; block-size: 20px; padding-inline: 6px; border: 1px dashed var(--annot); border-radius: 4px; color: var(--annot); font: 500 12px/1 var(--font-mono); white-space: nowrap; }
+html[dir='rtl'] .annot-tag { font-family: 'IBM Plex Sans Arabic'; font-size: 13px; }
 
 /* phones: Productions is one tab; its three catalogues switch by a segmented header */
 .prodseg { padding-block: 12px 0; } .prodseg .seg { display: flex; } .prodseg .seg a { flex: 1; justify-content: center; }
@@ -253,7 +292,7 @@ html[dir='rtl'] .btn { font-size: 15px; }
 .btn-primary { background: var(--paper); color: var(--on-paper); }
 .btn-primary:hover { background: var(--paper-hi); }
 .btn-secondary { background: rgb(243 239 232 / 0.10); color: var(--fg); }
-.btn-secondary:hover { background: rgb(243 239 232 / 0.16); }
+.btn-secondary:hover { background: rgb(243 239 232 / 0.20); }
 .btn-quiet { color: var(--fg-muted); padding-inline: 12px; }
 .btn-quiet:hover { color: var(--fg); background: rgb(243 239 232 / 0.06); }
 .btn-danger { background: var(--bad); color: var(--carbon-2); }
@@ -261,6 +300,7 @@ html[dir='rtl'] .btn { font-size: 15px; }
 html[dir='rtl'] .btn-sm { font-size: 14px; }
 .btn-lg { block-size: 52px; padding-inline: 28px; font-size: 15px; }
 .btn[disabled], .btn[aria-disabled='true'] { background: rgb(243 239 232 / 0.05); color: var(--fg-disabled); cursor: not-allowed; }
+/* a disabled label is still read: --fg-disabled #7E7B75 on the disabled fill is ≥ 3.6:1 (QA minor 1) */
 .btn .split { inline-size: 1px; align-self: stretch; margin-block: 10px; background: rgb(10 10 9 / 0.25); }
 .ibtn { display: inline-grid; place-items: center; inline-size: 40px; block-size: 40px; border-radius: var(--r-pill); color: var(--fg-muted); flex: none; }
 .ibtn:hover { color: var(--fg); background: rgb(243 239 232 / 0.08); }
@@ -279,17 +319,18 @@ html[dir='rtl'] .play .i { margin-inline-start: 0; margin-inline-end: 3px; }
 .textlink:hover { color: var(--fg); }
 
 /* ── 7. chips, segmented, tabs, search, fields ─────────────────────────────────────────────────────────────────── */
-.chip { display: inline-flex; align-items: center; gap: 6px; block-size: 34px; padding-inline: 14px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; block-size: 36px; padding-inline: 14px; border-radius: var(--r-pill); border: 1px solid var(--carbon-8); font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
 html[dir='rtl'] .chip { font-size: 14px; }
-.chip:hover { color: var(--fg); border-color: var(--carbon-8); }
+.chip:hover { color: var(--fg); border-color: var(--carbon-10); }
 .chip[aria-pressed='true'], .chip.on { background: var(--paper); color: var(--on-paper); border-color: var(--paper); }
 .chip .x { margin-inline-end: -6px; inline-size: 24px; block-size: 24px; display: grid; place-items: center; border-radius: 50%; }
 .chip.filter-on { background: var(--raised); border-color: var(--raised); color: var(--fg); }
-.chip .n { font: 500 11px/1 var(--font-mono); color: var(--fg-faint); }
+.chip .n { font: 500 12px/1 var(--font-mono); color: var(--fg-faint); }
+.chip.on .n, .chip[aria-pressed='true'] .n { color: rgb(10 10 9 / 0.72); }
 .seg { display: inline-flex; padding: 3px; border-radius: var(--r-pill); background: var(--field); gap: 2px; }
-.seg button, .seg a { display: inline-flex; align-items: center; gap: 6px; block-size: 30px; padding-inline: 14px; border-radius: var(--r-pill); font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
+.seg button, .seg a { display: inline-flex; align-items: center; gap: 6px; block-size: 32px; padding-inline: 14px; border-radius: var(--r-pill); font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
 html[dir='rtl'] .seg button, html[dir='rtl'] .seg a { font-size: 14px; }
-.seg [aria-checked='true'], .seg [aria-selected='true'] { background: var(--raised); color: var(--fg); box-shadow: 0 0 0 1px var(--line-strong); }
+.seg [aria-checked='true'], .seg [aria-selected='true'] { background: var(--raised); color: var(--fg); box-shadow: 0 0 0 1px var(--carbon-8); }
 .seg [aria-disabled='true'] { color: var(--fg-disabled); }
 .seg-icon button { padding-inline: 9px; }
 .tabs { display: flex; gap: 28px; border-block-end: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
@@ -299,18 +340,19 @@ html[dir='rtl'] .tabs a, html[dir='rtl'] .tabs button { font-size: 16px; }
 .tabs [aria-selected='true'] { color: var(--fg); }
 .tabs [aria-selected='true']::after { content: ''; position: absolute; inset-inline: 0; inset-block-end: -1px; block-size: 2px; background: var(--paper); }
 .tabs .n { font: 400 12px/1 var(--font-mono); color: var(--fg-faint); }
+@media (max-width: 639px) { .tabs { flex-wrap: wrap; column-gap: 22px; overflow: visible; } .tabs a, .tabs button { block-size: 44px; } }
 .tabs-sticky { position: sticky; inset-block-start: var(--bar-h); z-index: 30; background: rgb(10 10 9 / 0.97); }
 .search { position: relative; display: flex; align-items: center; block-size: 44px; border-radius: var(--r-pill); background: var(--field); padding-inline: 16px; gap: 10px; color: var(--fg-faint); min-inline-size: 0; }
 .search input { flex: 1; min-inline-size: 0; background: none; border: 0; outline: 0; color: var(--fg); font: 400 15px/1 var(--font-ui); }
 .search input::placeholder { color: var(--fg-faint); }
-.search:focus-within { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #000; }
+.search:focus-within { outline: 2px solid var(--paper); outline-offset: 2px; }
 .field { display: grid; gap: 8px; }
 .field .input, .field textarea, .field select { inline-size: 100%; block-size: 44px; padding-inline: 14px; border-radius: var(--r-md); background: var(--field); border: 1px solid var(--line-field); color: var(--fg); font: 400 15px/1 var(--font-ui); }
 .field textarea { block-size: auto; min-block-size: 96px; padding: 12px 14px; line-height: 24px; resize: vertical; }
 .field .hint { font-size: 13px; line-height: 20px; color: var(--fg-faint); }
 .field .err { font-size: 13px; line-height: 20px; color: var(--bad); display: flex; gap: 6px; align-items: center; }
 .field.invalid .input { border-color: var(--bad); }
-.input.focus { border-color: var(--paper); box-shadow: inset 0 0 0 1px var(--paper); }
+.input.focus { border-color: var(--paper); box-shadow: inset 0 0 0 1px var(--paper); outline: 2px solid var(--paper); outline-offset: 2px; }
 
 /* ── 8. status ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 .state { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--fg-muted); white-space: nowrap; }
@@ -328,8 +370,8 @@ html[dir='rtl'] .state { font-size: 14px; line-height: 22px; }
 .meter i.d { background: var(--fg-muted); } .meter i.c { background: var(--paper); } .meter i.w { background: var(--tungsten); }
 .progress { block-size: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .progress > i { display: block; block-size: 100%; background: var(--paper); }
-.badge { display: inline-flex; align-items: center; block-size: 22px; padding-inline: 8px; border-radius: var(--r-pill); background: var(--raised); font: 500 11px/1 var(--font-mono); color: var(--fg-muted); }
-.tag { display: inline-flex; align-items: center; block-size: 24px; padding-inline: 9px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); font-size: 12px; color: var(--fg-muted); white-space: nowrap; }
+.badge { display: inline-flex; align-items: center; block-size: 22px; padding-inline: 8px; border-radius: var(--r-pill); background: var(--raised); font: 500 12px/1 var(--font-mono); color: var(--fg-muted); }
+.tag { display: inline-flex; align-items: center; block-size: 26px; padding-inline: 10px; border-radius: var(--r-pill); border: 1px solid var(--carbon-8); font-size: 12px; color: var(--fg-muted); white-space: nowrap; }
 html[dir='rtl'] .tag { font-size: 13px; }
 
 /* ── 9. media: frames, title cards, chips on art ───────────────────────────────────────────────────────────────── */
@@ -339,8 +381,8 @@ html[dir='rtl'] .tag { font-size: 13px; }
 .frame.contain > img { object-fit: contain; }
 .frame-hover:hover > img { transform: scale(1.02); }
 .frame > img { transition: transform var(--t-media) var(--ease); }
-.on-art-chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 6px; block-size: 24px; padding-inline: 8px; border-radius: var(--r-sm); background: var(--chip-on-art); color: var(--paper); font: 500 11px/1 var(--font-mono); }
-html[dir='rtl'] .on-art-chip { font-family: var(--font-mono), 'IBM Plex Sans Arabic'; font-size: 12px; }
+.on-art-chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 6px; block-size: 26px; padding-inline: 8px; border-radius: var(--r-sm); background: var(--chip-on-art); color: var(--paper); font: 500 12px/1 var(--font-mono); }
+html[dir='rtl'] .on-art-chip:not(.ro) { font-family: 'IBM Plex Sans Arabic'; font-size: 13px; }
 .pos-be { inset-block-end: 10px; inset-inline-end: 10px; } .pos-bs { inset-block-end: 10px; inset-inline-start: 10px; } .pos-ts { inset-block-start: 10px; inset-inline-start: 10px; } .pos-te { inset-block-start: 10px; inset-inline-end: 10px; }
 /* the frame poster: a poster composed from a chosen key frame (focal crop) and the title in the title voice — used
    until real poster art exists. Deterministic: no generation. */
@@ -348,7 +390,7 @@ html[dir='rtl'] .on-art-chip { font-family: var(--font-mono), 'IBM Plex Sans Ara
 .fposter > img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
 .fposter::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgb(6 6 6 / 0.92) 0%, rgb(6 6 6 / 0.55) 30%, rgb(6 6 6 / 0) 55%); }
 .fposter .fp-t { position: absolute; z-index: 2; inset-inline: 8%; inset-block-end: 7%; color: var(--paper); }
-.fposter .fp-k { font: 500 10px/14px var(--font-mono); color: rgb(243 239 232 / 0.75); margin-block-end: 6px; letter-spacing: 0.02em; }
+.fposter .fp-k { font: 500 12px/16px var(--font-ui); color: rgb(243 239 232 / 0.82); margin-block-end: 6px; }
 /* the title card: anything without art is set as type in its own shape, inside viewfinder corners */
 .tcard { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: max(7%, 28px); background: var(--surface); border-radius: var(--r-sm); color: var(--fg-muted); overflow: hidden; }
 .tcard::before { content: ''; position: absolute; inset: 14px; pointer-events: none;
@@ -357,10 +399,10 @@ html[dir='rtl'] .on-art-chip { font-family: var(--font-mono), 'IBM Plex Sans Ara
     linear-gradient(var(--carbon-8), var(--carbon-8)) top right / 14px 1px no-repeat, linear-gradient(var(--carbon-8), var(--carbon-8)) top right / 1px 14px no-repeat,
     linear-gradient(var(--carbon-8), var(--carbon-8)) bottom left / 14px 1px no-repeat, linear-gradient(var(--carbon-8), var(--carbon-8)) bottom left / 1px 14px no-repeat,
     linear-gradient(var(--carbon-8), var(--carbon-8)) bottom right / 14px 1px no-repeat, linear-gradient(var(--carbon-8), var(--carbon-8)) bottom right / 1px 14px no-repeat; }
-.tcard .tc-state { font: 500 11px/16px var(--font-mono); color: var(--fg-faint); }
+.tcard .tc-state { font: 500 12px/16px var(--font-ui); color: var(--fg-faint); }
 html[dir='rtl'] .tcard .tc-state { font-family: 'IBM Plex Sans Arabic'; font-size: 13px; }
 .tcard .tc-name { color: var(--fg-muted); }
-.tcard .tc-num { position: absolute; inset-block-start: 6%; inset-inline-end: 8%; font: 400 64px/1 var(--font-title); color: var(--carbon-6); }
+.tcard .tc-num { position: absolute; inset-block-start: 6%; inset-inline-end: 8%; font: 400 64px/1 var(--font-title); color: var(--line-strong); }
 
 /* ── 10. tiles ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 .tile { display: block; min-inline-size: 0; }
@@ -376,6 +418,17 @@ html[dir='rtl'] .tile .slate { font-size: 13px; }
 
 /* the rail: one row that scrolls; the first tile on the column start, the next one partly visible */
 .rail { display: grid; grid-auto-flow: column; grid-auto-columns: var(--tile-w, 72%); gap: var(--gutter); overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--margin); padding-inline: var(--margin); margin-inline: calc(-1 * var(--margin)); scrollbar-width: none; padding-block-end: 4px; }
+/* every horizontal strip on touch shows that it scrolls (QA M15, M17): a thin visible scrollbar and an end fade mask
+   (a mask, not a painted gradient), and a position readout "1 of 4" in the section head where it holds decisions */
+@media (pointer: coarse), (max-width: 1023px) {
+  .scrolls { scrollbar-width: thin; scrollbar-color: var(--carbon-8) transparent; padding-block-end: 10px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); }
+  html[dir='rtl'] .scrolls { -webkit-mask-image: linear-gradient(270deg, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(270deg, #000 calc(100% - 40px), transparent); }
+}
+.rail-pos { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-faint); }
+.rail-pos i { inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--carbon-7); }
+.rail-pos i.on { background: var(--paper); }
+@media (min-width: 640px) { .rail-pos { display: none; } }
 .rail > * { scroll-snap-align: start; }
 .rail-nav { display: inline-flex; gap: 4px; }
 
@@ -387,16 +440,20 @@ html[dir='rtl'] .tile .slate { font-size: 13px; }
 /* ── 11. players ───────────────────────────────────────────────────────────────────────────────────────────────── */
 .player { position: relative; background: var(--carbon-0); border-radius: var(--r-md); overflow: hidden; }
 .player > img { inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+/* the centre play disc appears only while no transport is shown and only on a face-safe poster frame (QA M2); a
+   visible transport carries play. Captions always sit above whatever transport is visible (QA M6). */
 .player .center-play { position: absolute; inset: 0; display: grid; place-items: center; }
+.player:has(.transport-wrap) .center-play { display: none; }
+.player .cc { position: absolute; inset-inline: 0; inset-block-end: calc(var(--transport-h, 0px) + 16px); text-align: center; }
 .transport { direction: ltr; display: flex; align-items: center; gap: 12px; color: var(--paper); }
-.transport .time { font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--carbon-11); white-space: nowrap; }
+.transport .time { font: 500 12.5px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--carbon-11); white-space: nowrap; }
 .seek { position: relative; flex: 1; block-size: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.25); }
 .seek > i { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 2px; background: var(--paper); }
 .seek > b { position: absolute; inset-block-start: 50%; inline-size: 13px; block-size: 13px; margin-inline-start: -6px; border-radius: 50%; background: var(--paper); transform: translateY(-50%); box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35); }
 .seek .tick { position: absolute; inset-block: -3px; inline-size: 2px; background: rgb(255 255 255 / 0.55); }
 .player-bar { position: absolute; inset-inline: 0; inset-block-end: 0; padding: 40px 20px 16px; background: linear-gradient(0deg, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0)); }
 .wave { direction: ltr; overflow: hidden; min-inline-size: 0; display: flex; align-items: center; gap: 2px; block-size: 36px; }
-.wave i { flex: 1; min-inline-size: 2px; max-inline-size: 3px; border-radius: 1px; background: var(--carbon-8); }
+.wave i { flex: 1; min-inline-size: 1px; max-inline-size: 3px; border-radius: 1px; background: var(--carbon-8); }
 .wave i.p { background: var(--paper); }
 
 /* the floating now-playing bar */
@@ -409,7 +466,7 @@ html[dir='rtl'] .tile .slate { font-size: 13px; }
 .menu .mi:hover, .menu .mi.hl { background: rgb(243 239 232 / 0.07); }
 .menu .mi .i { margin-block-start: 2px; color: var(--fg-muted); }
 .menu .mi b { display: block; font-size: 14px; font-weight: 500; line-height: 20px; }
-.menu .mi span { display: block; font-size: 12.5px; line-height: 18px; color: var(--fg-faint); margin-block-start: 2px; }
+.menu .mi span { display: block; font-size: 13px; line-height: 19px; color: var(--fg-muted); margin-block-start: 2px; }
 html[dir='rtl'] .menu .mi span { font-size: 13px; line-height: 20px; }
 .menu hr { border: 0; border-block-start: 1px solid var(--line); margin: 6px 0; }
 .dialog { border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-overlay); padding: 28px; }
@@ -425,13 +482,26 @@ html[dir='rtl'] .menu .mi span { font-size: 13px; line-height: 20px; }
 .strip { direction: ltr; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .strip .sf { position: relative; flex: none; inline-size: var(--sf-w, 128px); aspect-ratio: 16 / 9; border-radius: var(--r-xs); overflow: hidden; background: var(--gray-clip); }
 .strip .sf img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-.strip .sf .n { position: absolute; inset-block-start: 4px; inset-inline-start: 4px; padding: 2px 4px; border-radius: 2px; background: var(--chip-on-art); color: var(--paper); font: 500 10px/1 var(--font-mono); }
+.strip .sf .n { position: absolute; inset-block-start: 4px; inset-inline-start: 4px; padding: 3px 5px; border-radius: 2px; background: var(--chip-on-art); color: var(--paper); font: 500 12px/1 var(--font-mono); }
 .strip .sf.cur { box-shadow: inset 0 0 0 2px var(--paper); }
 .strip .sf.cur img { opacity: 1; }
 
 /* ── 14. skeleton, empty ───────────────────────────────────────────────────────────────────────────────────────── */
 .skel { background: var(--field); border-radius: var(--r-sm); }
 .skel-line { block-size: 10px; border-radius: 5px; background: var(--field); }
+
+/* ── 14b. the floors (QA B3) ────────────────────────────────────────────────────────────────────────────────────
+   Type: nothing in the product under 12 px (Latin) or 13 px (Arabic); chips on art 12 px on a 26 px chip.
+   Touch: on coarse pointers every control is at least 44 × 44 (visual size may be smaller; the hit area is not). */
+@media (pointer: coarse) {
+  .btn-sm, .chip, .seg button, .seg a, .verpick, .menu .mi, .brand { min-block-size: 44px; }
+  .seg button, .seg a { min-inline-size: 44px; justify-content: center; }
+  .seg { padding: 2px; }
+  .ibtn, .ibtn-sm, .play-sm { min-inline-size: 44px; min-block-size: 44px; }
+  .textlink, .shead .link, .crumb, .reuse, .footer a, .paused-line a, .strip-needs, .tile .tt .ibtn { min-block-size: 44px; min-inline-size: 44px; display: inline-flex; align-items: center; }
+  .chip .x { inline-size: 32px; block-size: 32px; }
+  .credit dd a, .performers a, .rchip, .paused-line a { min-block-size: 44px; min-inline-size: 44px; display: inline-flex; align-items: center; }
+}
 
 /* ── 15. utilities ─────────────────────────────────────────────────────────────────────────────────────────────── */
 .hide-phone { display: none !important; }

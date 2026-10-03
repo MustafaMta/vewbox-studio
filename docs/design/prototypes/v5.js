@@ -96,7 +96,7 @@
   const prodPages = ['shows', 'shorts', 'music'];
   const tabs = [['home', 'Home', 'الرئيسية', 'n_home'], ['productions', 'Productions', 'الإنتاجات', 'film'], ['characters', 'Characters', 'الشخصيات', 'n_cast'], ['studio', 'Studio', 'الاستوديو', 'n_studio'], ['more', 'More', 'المزيد', 'menu']];
   const tabCur = (k) => (k === page || (k === 'productions' && prodPages.includes(page)) || (k === 'more' && ['locations', 'production', 'screening', 'settings'].includes(page)) ? ' aria-current="page"' : '');
-  const tabbar = `<nav class="tabbar" aria-label="${t('Studio', 'الاستوديو')}">${tabs.map(([k, en, ar, icon]) => `<a href="#"${tabCur(k)} style="position:relative">${ic(icon, 'i-lg')}<span>${t(en, ar)}</span>${k === 'more' ? `<span class="needs" style="position:absolute;inset-block-start:6px;inset-inline-start:calc(50% + 6px);min-inline-size:16px;block-size:16px;font-size:10px" aria-label="${t('4 decisions waiting', '4 قرارات تنتظرك')}">4</span>` : ''}</a>`).join('')}</nav>`;
+  const tabbar = `<nav class="tabbar" aria-label="${t('Studio', 'الاستوديو')}">${tabs.map(([k, en, ar, icon]) => `<a href="#"${tabCur(k)} style="position:relative">${ic(icon, 'i-lg')}<span>${t(en, ar)}</span>${k === 'more' ? `<span class="needs" style="position:absolute;inset-block-start:4px;inset-inline-start:calc(50% + 6px)" aria-label="${t('4 decisions waiting', '4 قرارات تنتظرك')}">4</span>` : ''}</a>`).join('')}</nav>`;
   // the Productions segmented header on phones (Shows / Shorts / Music Videos)
   const prodSeg = prodPages.includes(page) && document.body.dataset.catalogue !== undefined ? `<div class="wrap only-small prodseg"><div class="seg" role="tablist" aria-label="${t('Productions', 'الإنتاجات')}">${primary.filter(([k]) => prodPages.includes(k)).map(([k, en, ar]) => `<a role="tab" href="#" aria-selected="${k === page}">${t(en, ar)}</a>`).join('')}</div></div>` : '';
   if (!document.body.dataset.noshell) {
@@ -118,21 +118,50 @@
     document.querySelectorAll('[data-ar-alt]').forEach((el) => el.setAttribute('alt', el.dataset.arAlt));
     document.querySelectorAll('[data-ar-href]').forEach((el) => el.setAttribute('href', el.dataset.arHref));
   }
-  // numerals: in the Arabic interface, Arabic-Indic digits (٠–٩) are a setting, on by default for the Iraqi dialect
-  // (decision of 2026-10-03). Timecodes, the transport, ids and file data keep Western digits and stay LTR: anything
-  // inside .tc, .transport, .strip, [data-latin-digits] or lang="en" is left alone. ?digits=western shows the other
-  // setting.
-  if (AR && new URLSearchParams(location.search).get('digits') !== 'western') {
-    const keep = (n) => n.parentElement?.closest('.tc, .transport, .ctl, .tport, .time, .strip, .sstrip, .wave, .kbd, .on-art-chip, .id, [data-latin-digits], [lang="en"], script, style');
-    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  // ── numerals (DESIGN-SYSTEM-V5 §9.4, QA B2) ────────────────────────────────────────────────────────────────────
+  // One rule, by the kind of number, not by the font:
+  //   readouts and identifiers — timecodes, clock times, durations written m:ss, shot / take / cut / version / scene /
+  //   episode numbers, resolutions, frame rates, file sizes, format names — are ALWAYS Western digits, in Plex Mono,
+  //   LTR-isolated (so "1344×768" can never read "768×1344");
+  //   counts and dates in prose and slates are Arabic-Indic in the Arabic interface when the Numerals setting is on
+  //   (default for the Iraqi dialect) and are set in the sans (Plex Mono has no Arabic-Indic digits).
+  // The product does this in formatNumber(value, context); the prototype applies the same rule to text nodes.
+  // ?digits=western shows the setting off.
+  if (AR) {
+    const ARABIC_DIGITS = new URLSearchParams(location.search).get('digits') !== 'western';
+    const skip = (n) => n.parentElement?.closest('.ro, .tc, .num-ltr, .transport, .ctl, .tport, .time, .strip, .sstrip, .tl, .rtakes, .wave, .kbd, .on-art-chip, .id, [data-latin-digits], [lang="en"], script, style, svg');
+    // readout/identifier runs inside Arabic text: identifiers after their noun, n.n ids and m:ss, W×H, NNNp, fps,
+    // sizes, Latin-letter codes (MP4, H.264, B2)
+    const KEEP = /((?:اللقطة|المصوَّرة|المصورة|المونتاج|الإصدار|المشهد|الحلقة|الموسم|اللقطات|بالإصدار)\s)?(\d+(?:[.:]\d+)+|\d+\s?×\s?\d+|\d+p\b|\d+\s?fps|\d+(?:\.\d+)?\s?(?:MB|KB|GB|م\.ب)|[A-Za-z]+[\d.]*\d[A-Za-z\d.\-]*)|((?:اللقطة|المصوَّرة|المصورة|المونتاج|الإصدار|المشهد|الحلقة|الموسم|بالإصدار)\s)(\d+)/g;
     const map = '٠١٢٣٤٥٦٧٨٩';
-    for (let n = w.nextNode(); n; n = w.nextNode()) if (/\d/.test(n.nodeValue) && !keep(n)) n.nodeValue = n.nodeValue.replace(/\d+(?:[.:]\d+)*(p\b|\s?×\s?\d+| ?fps)?/g, (m, tech) => (tech ? m : m.replace(/\d/g, (d) => map[d])));  // resolutions and frame rates are file data: Western
+    const nodes = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (/\d/.test(n.nodeValue) && !skip(n)) nodes.push(n);
+    for (const n of nodes) {
+      const text = n.nodeValue; const frag = document.createDocumentFragment(); let last = 0; let m;
+      const plain = (s) => (ARABIC_DIGITS ? s.replace(/\d/g, (d) => map[d]) : s);
+      KEEP.lastIndex = 0;
+      while ((m = KEEP.exec(text))) {
+        const noun = m[1] ?? m[3] ?? ''; const num = m[2] ?? m[4];
+        const start = m.index + noun.length;
+        frag.append(plain(text.slice(last, start)));
+        const span = document.createElement('span'); span.className = 'num-ltr'; span.textContent = num; frag.append(span);
+        last = start + num.length;
+      }
+      if (last === 0) { n.nodeValue = plain(text); continue; }
+      frag.append(plain(text.slice(last)));
+      n.replaceWith(frag);
+    }
   }
   document.title = AR && document.body.dataset.titleAr ? document.body.dataset.titleAr : document.title;
 
-  // waveform helper: <div class="wave" data-bars="64" data-played="0.4" data-seed="3">
+  // the viewport height, frozen at load: prototypes size by var(--vh) instead of vh, so a full-page capture (which
+  // grows the viewport to the document's height) cannot enlarge vh-sized pictures and widen the page (QA §7.1)
+  document.documentElement.style.setProperty('--vh', `${window.innerHeight / 100}px`);
+
+  // waveform helper: <div class="wave" data-bars="64" data-played="0.4" data-seed="3"> — never more bars than fit
+  // (2 px bar + 2 px gap), so a narrow column gets fewer bars instead of clipping (QA minor 5)
   document.querySelectorAll('.wave[data-bars]').forEach((w) => {
-    const n = +w.dataset.bars; const p = +(w.dataset.played || 0); let s = +(w.dataset.seed || 1);
+    const n = Math.max(16, Math.min(+w.dataset.bars, Math.floor((w.clientWidth || 9999) / 4))); const p = +(w.dataset.played || 0); let s = +(w.dataset.seed || 1);
     const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
     w.innerHTML = Array.from({ length: n }, (_, i) => { const env = 0.35 + 0.65 * Math.sin(Math.PI * (i + 0.5) / n) ** 0.6; const h = Math.max(12, Math.round((0.25 + rnd() * 0.75) * env * 100)); return `<i class="${i / n < p ? 'p' : ''}" style="block-size:${h}%"></i>`; }).join('');
   });

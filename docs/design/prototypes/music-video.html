@@ -10,7 +10,7 @@
 <style>
   /* MUSIC VIDEO — the song first: sleeve header with one play disc, lyrics straight after, then performers, the
      sections, the videos as a separate 16:9 shelf, credits. No backdrop, no seasons, no poster wall. */
-  .wash { background: linear-gradient(180deg, oklch(0.25 0.045 62) 0, var(--page) 620px); }
+  .wash { background: linear-gradient(180deg, oklch(0.22 0.045 62) 0, var(--page) 480px); }
   .crumb { display: inline-flex; align-items: center; gap: 6px; padding-block: 28px 24px; font-size: 13px; color: var(--fg-muted); }
   .shead-song { display: grid; gap: 32px; align-items: end; }
   @media (min-width: 1024px) { .shead-song { grid-template-columns: 380px minmax(0, 1fr); gap: 48px; } }
@@ -44,6 +44,7 @@
 
   table.sections { inline-size: 100%; border-collapse: collapse; font-size: 14px; }
   html[dir='rtl'] table.sections { font-size: 15px; }
+  html[dir='rtl'] .sections th { font-size: 13px; }
   .sections th { text-align: start; font-weight: 500; font-size: 12.5px; color: var(--fg-faint); padding-block: 0 10px; border-block-end: 1px solid var(--line); }
   .sections td { padding-block: 12px; border-block-end: 1px solid var(--line-soft); color: var(--fg-body); vertical-align: middle; }
   .sections td.n { inline-size: 36px; color: var(--fg-faint); font-family: var(--font-mono); font-size: 12.5px; }
@@ -79,6 +80,7 @@
   .nowbar .tt { min-inline-size: 0; }
   .nowbar .tt b { display: block; font: 500 17px/20px var(--font-title); color: var(--fg); }
   .nowbar .tt span { font-size: 12.5px; color: var(--fg-muted); }
+  html[dir='rtl'] .nowbar .tt span { font-size: 13px; }
   .nowbar .transport { flex: 1; }
   @media (max-width: 1023px) { .nowbar .transport .seek, .nowbar .transport .time, .nowbar .seg { display: none; } .nowbar .transport { flex: 0; margin-inline-start: auto; } }
 
@@ -111,7 +113,7 @@
             <span class="muted" data-ar="مع">featuring</span>
             <a href="character.html"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><span lang="ar">أبو سلام</span></a>
           </div>
-          <div class="slate slate-lg song-slate"><span class="ro ro-md">2026</span><span class="ro ro-md">3:42</span><span data-ar="8 أقسام">8 sections</span><span data-ar="فولك · بالاد">Folk ballad</span><span data-ar="الإنجليزية والعربية">English and Arabic</span><span class="state"><i class="dot"></i><span data-ar="اللوحة القصصية">Storyboard</span></span></div>
+          <div class="slate slate-lg song-slate"><span class="date ro-md">2026</span><span class="ro ro-md">3:42</span><span data-ar="8 أقسام">8 sections</span><span data-ar="فولك · بالاد">Folk ballad</span><span data-ar="الإنجليزية والعربية">English and Arabic</span><span class="state"><i class="dot"></i><span data-ar="اللوحة القصصية">Storyboard</span></span></div>
           <div class="song-transport">
             <button class="play play-lg" type="button" aria-label="Pause Frequencies" data-ar-label="أوقف الأغنية مؤقتًا"><i data-i="pause"></i></button>
             <div class="seg" role="radiogroup" aria-label="Song or video" data-ar-label="الأغنية أو الفيديو"><button role="radio" aria-checked="true"><i data-i="wave" class="i-sm"></i><span data-ar="الأغنية">Song</span></button><button role="radio" aria-checked="false"><i data-i="film" class="i-sm"></i><span data-ar="الفيديو">Video</span></button></div>
@@ -142,14 +144,14 @@
           <table class="sections">
             <thead><tr><th>#</th><th data-ar="القسم">Section</th><th data-ar="المؤدي">Sung by</th><th class="sh" data-ar="اللقطات">Shots</th><th style="text-align:end" data-ar="الوقت">Time</th></tr></thead>
             <tbody>
-              <tr><td class="n">1</td><td data-ar="المقدمة">Intro</td><td class="faint">—</td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i></span></td><td class="t" data-latin-digits>0:00</td></tr>
-              <tr><td class="n">2</td><td data-ar="المقطع 1">Verse 1</td><td><span class="who"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span><span lang="en">Elias</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i><i class="d"></i></span></td><td class="t" data-latin-digits>0:14</td></tr>
-              <tr class="now"><td class="n"><i data-i="wave" class="i-sm"></i></td><td data-ar="اللازمة">Chorus</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i></i><i></i></span></td><td class="t" data-latin-digits>0:58</td></tr>
-              <tr><td class="n">4</td><td data-ar="المقطع 2">Verse 2</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t" data-latin-digits>1:24</td></tr>
-              <tr><td class="n">5</td><td data-ar="اللازمة">Chorus</td><td data-ar="الاثنان">Both</td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t" data-latin-digits>2:02</td></tr>
-              <tr><td class="n">6</td><td data-ar="الجسر">Bridge</td><td><span class="who"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><span lang="ar">أبو سلام</span></span></td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t" data-latin-digits>2:28</td></tr>
-              <tr><td class="n">7</td><td data-ar="اللازمة">Chorus</td><td data-ar="الثلاثة">All three</td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t" data-latin-digits>2:58</td></tr>
-              <tr><td class="n">8</td><td data-ar="الخاتمة">Outro</td><td class="faint">—</td><td class="sh"><span class="pips"><i></i></span></td><td class="t" data-latin-digits>3:24</td></tr>
+              <tr><td class="n ro">1</td><td data-ar="المقدمة">Intro</td><td class="faint">—</td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i></span></td><td class="t" data-latin-digits>0:00</td></tr>
+              <tr><td class="n ro">2</td><td data-ar="المقطع 1">Verse 1</td><td><span class="who"><span class="face" style="background:#838488"><img src="media/char-elias.jpg" alt=""></span><span lang="en">Elias</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i class="d"></i><i class="d"></i></span></td><td class="t" data-latin-digits>0:14</td></tr>
+              <tr class="now"><td class="n ro"><i data-i="wave" class="i-sm"></i></td><td data-ar="اللازمة">Chorus</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i class="d"></i><i></i><i></i></span></td><td class="t" data-latin-digits>0:58</td></tr>
+              <tr><td class="n ro">4</td><td data-ar="المقطع 2">Verse 2</td><td><span class="who"><span class="face" style="background:#6C6F6C"><img src="media/char-najm.jpg" alt=""></span><span lang="en">Najm</span></span></td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t" data-latin-digits>1:24</td></tr>
+              <tr><td class="n ro">5</td><td data-ar="اللازمة">Chorus</td><td data-ar="الاثنان">Both</td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t" data-latin-digits>2:02</td></tr>
+              <tr><td class="n ro">6</td><td data-ar="الجسر">Bridge</td><td><span class="who"><span class="face" style="background:#808478"><img src="media/char-abusalam.jpg" alt=""></span><span lang="ar">أبو سلام</span></span></td><td class="sh"><span class="pips"><i></i><i></i></span></td><td class="t" data-latin-digits>2:28</td></tr>
+              <tr><td class="n ro">7</td><td data-ar="اللازمة">Chorus</td><td data-ar="الثلاثة">All three</td><td class="sh"><span class="pips"><i></i><i></i><i></i></span></td><td class="t" data-latin-digits>2:58</td></tr>
+              <tr><td class="n ro">8</td><td data-ar="الخاتمة">Outro</td><td class="faint">—</td><td class="sh"><span class="pips"><i></i></span></td><td class="t" data-latin-digits>3:24</td></tr>
             </tbody>
           </table>
           <div class="totals"><span data-ar="3:42 · 8 أقسام · 20 لقطة · الأغنية بالإصدار 2">3:42 · 8 sections · 20 shots · song version 2</span></div>
@@ -170,7 +172,7 @@
 
     <section class="section" aria-labelledby="vid-h" style="padding-block-start:80px">
       <div class="shead"><h2 id="vid-h" class="h2"><span data-ar="الفيديوهات">Videos</span><span class="count">3</span></h2><span class="link" data-ar="كل فيديو نسخة من الأغنية نفسها">Each video is one rendering of the same song</span></div>
-      <div class="rail videos">
+      <div class="rail videos scrolls">
         <a class="tile" href="#"><div class="frame r-16x9"><img src="media/shot-1-3.jpg" alt=""><span class="on-art-chip pos-ts" data-ar="عرض اللوحة القصصية · ليس مونتاجًا">Storyboard reel · not a cut</span><span class="on-art-chip pos-be">3:42</span></div><div class="t-card-sm" data-ar="الفيديو الموسيقي">The music video</div><div class="sub" data-ar="16:9 · 12 من 20 إطارًا مرسومًا">16:9 · 12 of 20 frames drawn</div></a>
         <a class="tile" href="#"><div class="tcard r-16x9"><span class="tc-state" data-ar="لم يُصنع بعد">Not made yet</span><span class="t-card-sm tc-name" data-ar="النسخة العمودية 9:16">Vertical cut 9:16</span></div><div class="t-card-sm" data-ar="النسخة العمودية">Vertical cut</div><div class="sub" data-ar="تُركَّب من المونتاج النهائي">assembled from the final cut</div></a>
         <a class="tile" href="#"><div class="tcard r-16x9"><span class="tc-state" data-ar="لم يُصنع بعد">Not made yet</span><span class="t-card-sm tc-name" data-ar="فيديو الكلمات">Lyric video</span></div><div class="t-card-sm" data-ar="فيديو الكلمات">Lyric video</div><div class="sub" data-ar="الكلمات على الغلاف، بتوقيت الأغنية">the lyrics over the sleeve, on the song’s timing</div></a>

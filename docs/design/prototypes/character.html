@@ -14,14 +14,14 @@
   @media (min-width: 1024px) { .profile { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: start; } }
   .figure { position: relative; }
   @media (min-width: 1024px) { .figure { position: sticky; inset-block-start: calc(var(--bar-h) + 24px); } }
-  .figure .frame { aspect-ratio: 928 / 1664; max-block-size: calc(100vh - var(--bar-h) - 56px); margin-inline: 0; background: #838488; }
+  .figure .frame { aspect-ratio: 928 / 1664; max-block-size: calc(var(--vh, 1vh) * 100 - var(--bar-h) - 56px); margin-inline: 0; background: #838488; }
   .figure .frame img { object-fit: contain; }
   .figure .cap { display: flex; justify-content: space-between; gap: 12px; margin-block-start: 12px; font-size: 12.5px; color: var(--fg-faint); }
   html[dir='rtl'] .figure .cap { font-size: 13px; }
   .crumb { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-muted); margin-block-end: 28px; }
   .profile h1 { margin-block: 10px 14px; }
   .role { font: 400 24px/32px var(--font-title); font-style: italic; color: var(--fg-body); max-inline-size: 30ch; letter-spacing: -0.005em; }
-  html[dir='rtl'] .role { font-style: normal; }
+  html[dir='rtl'] .role:not(:lang(en)) { font-style: normal; }
   .states { display: grid; gap: 1px; margin-block: 32px; background: var(--line-soft); border-radius: var(--r-md); overflow: hidden; }
   @media (min-width: 640px) { .states { grid-template-columns: 1fr 1fr; } }
   .states > div { background: var(--surface); padding: 16px 18px; }
@@ -52,18 +52,18 @@
   .lines q { font: italic 400 18px/26px var(--font-title); color: var(--fg); }
   .lines .ro { color: var(--fg-faint); }
   .vfacts { display: flex; flex-wrap: wrap; gap: 10px 32px; margin-block-start: 20px; }
-  .vfacts div { display: grid; } .vfacts dt { font-size: 12.5px; color: var(--fg-faint); } .vfacts dd { font-size: 15px; color: var(--fg); }
+  .vfacts div { display: grid; } .vfacts dt { font-size: 12.5px; color: var(--fg-faint); } html[dir='rtl'] .vfacts dt { font-size: 13px; } .vfacts dd { font-size: 15px; color: var(--fg); }
   .appears { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 24px; align-items: start; }
   .appears .strip .sf { --sf-w: 132px; }
   @media (max-width: 1023px) {
-    .figure .frame { max-block-size: 72vh; }
+    .figure .frame { max-block-size: calc(var(--vh, 1vh) * 72); }
     .anchor { margin-block-start: 32px; }
   }
   @media (max-width: 639px) {
     .profile { padding-block-start: 0; gap: 24px; }
     .figure { margin-inline: calc(-1 * var(--margin)); }
     .figure { background: #838488; }
-    .figure .frame { border-radius: 0; max-block-size: 64vh; inline-size: auto; block-size: 64vh; margin-inline: auto; }
+    .figure .frame { border-radius: 0; max-block-size: calc(var(--vh, 1vh) * 64); inline-size: auto; block-size: calc(var(--vh, 1vh) * 64); margin-inline: auto; }
     .figure .frame img { object-fit: contain; }
     .figure .cap { background: var(--page); padding-block-start: 12px; margin-block-start: 0; }
     .figure .cap { padding-inline: var(--margin); }
@@ -119,7 +119,7 @@
       <section id="about" class="block">
         <div class="k" data-ar="الشخصية">Personality</div>
         <p class="prose" lang="en">Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into.</p>
-        <dl class="look">
+        <dl class="look ltr-values">
           <dt data-ar="البنية">Build</dt><dd lang="en">Portly but sturdy, broad shoulders, a slight stoop from years of bending over radios</dd>
           <dt data-ar="الوجه">Face</dt><dd lang="en">Weathered, deep lines around the eyes; a faint scar from the left eyebrow to the cheekbone</dd>
           <dt data-ar="الشعر">Hair</dt><dd lang="en">Thick silver-grey, short at the sides, combed back with a slight wave</dd>
@@ -150,8 +150,8 @@
           <a href="short.html" class="fposter"><img src="media/shot-2-4.jpg" alt="" style="object-position:76% 50%"><div class="fp-t"><div class="t-card-sm" lang="en">The Static Sky</div></div></a>
           <div>
             <div class="t-card" lang="en">The Static Sky</div>
-            <div class="small muted" style="margin-block:4px 14px" data-ar="فيلم قصير · البطل · 4 سطور · مشهدان">Short film · lead · 4 lines · both scenes</div>
-            <div class="strip"><span class="sf"><img src="media/shot-1-2.jpg" alt=""><span class="n">1.2</span></span><span class="sf"><img src="media/shot-1-4.jpg" alt=""><span class="n">1.4</span></span><span class="sf"><img src="media/shot-2-2.jpg" alt=""><span class="n">2.2</span></span><span class="sf"><img src="media/shot-2-4.jpg" alt=""><span class="n">2.4</span></span></div>
+            <div class="small muted" style="margin-block:4px 14px" data-ar="فيلم قصير · 4 سطور · في المشهدين">Short film · 4 lines · in both scenes</div>
+            <div class="strip scrolls"><span class="sf"><img src="media/shot-1-2.jpg" alt=""><span class="n">1.2</span></span><span class="sf"><img src="media/shot-1-4.jpg" alt=""><span class="n">1.4</span></span><span class="sf"><img src="media/shot-2-2.jpg" alt=""><span class="n">2.2</span></span><span class="sf"><img src="media/shot-2-4.jpg" alt=""><span class="n">2.4</span></span></div>
           </div>
         </div>
       </section>
