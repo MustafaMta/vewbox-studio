@@ -1,12 +1,12 @@
 /* ============================================================================================================
-   TYPE — owned by DS (docs/DESIGN-SYSTEM-V5.md §3, §9.1, §9.4; §11.2 DS-1).
-   Three voices. The TITLE voice (Newsreader; Markazi Text in Arabic) sets content names and page titles only, tight
-   and large; never a button, tab, label, number, table cell that is not a name, or body copy (§1.2 principle 2). The
-   INTERFACE voice (IBM Plex Sans; IBM Plex Sans Arabic) sets everything the producer operates and reads. The READOUT
-   voice (IBM Plex Mono) sets the production's numbers, always LTR and isolated, always in Western digits (§9.4).
-   Sizes are §3.3 exactly: phone below 640 px, 640–1279, and ≥ 1280; Arabic is matched optically (display 90–95 %
-   of the Latin size, 1.25–1.38 line height, never tracked, never italic; interface +1 px, taller lines).
-   Floors (§3.2, QA B3): no product text under 12 px (Arabic 13); inside the cutting room 13.5 px (Arabic 14).
+   TYPE — owned by DS (docs/DESIGN-SYSTEM-V5.md §3, §9, §9.4; §11.2 DS-1). The interface is English-only and LTR.
+   Three voices. The TITLE voice (Newsreader) sets content names and page titles only, tight and large; never a
+   button, tab, label, number, table cell that is not a name, or body copy (§1.2 principle 2). The INTERFACE voice
+   (IBM Plex Sans) sets everything the producer operates and reads. The READOUT voice (IBM Plex Mono) sets the
+   production's numbers, LTR and isolated (§9.4). Sizes are §3.3's Latin columns: phone below 640 px, 640–1279, and
+   ≥ 1280. Content in another script (a character's name in Arabic, a lyric) is drawn by the system's own face for
+   that script (the token stacks' fallbacks) and takes its own direction through .content-text (base.css).
+   Floors (§3.2, QA B3): no product text under 12 px; inside the cutting room 13.5 px.
    No uppercase, no small caps, no positive tracking (§3.5).
    The v4 class names that current pages use (.page-title, .h1, .display-xl, .section-title, .eyebrow, .kicker,
    .prose-copy, .slate-sm, .mono, .tc, .t-hero-sm, .lyric) are kept and set in the v5 voices until Q2.
@@ -42,132 +42,63 @@
   .t-card { font-size: 21px; line-height: 26px; letter-spacing: -0.008em; }
   .t-card.t-card-wall { font-size: 25px; line-height: 30px; }
   .t-card-sm { font-size: 18px; line-height: 22px; letter-spacing: -0.005em; }
-  /* credits values and programme notes: 24–28 / 28–32, −0.016em (26/30 here; 28/32 from 1280) */
+  /* credits values and programme notes: 24–28 / 28–32, −0.016em (24/28; 28/32 from 1280) */
   .t-credit { font-size: 24px; line-height: 28px; letter-spacing: -0.016em; }
   @media (min-width: 1280px) { .t-credit { font-size: 28px; line-height: 32px; } }
-  /* the logline as a programme note, the voice reel's line: italic serif in Latin (upright in Arabic) */
+  /* the logline as a programme note, the voice reel's line: italic serif */
   .t-quote { font-size: 22px; line-height: 30px; font-style: italic; font-weight: 400; }
 
-  /* Arabic: Markazi Text 600, never tracked, never italic; display sizes 90–95 % with 1.25–1.38 line height */
-  html[dir='rtl'] :is(.t-index, .t-marquee, .t-hero, .t-hero-sm, .t-page, .page-title, .h1, .display-xl, .t-card-lg, .t-card, .t-card-sm, .t-quote, .t-credit),
-  :is(.t-index, .t-marquee, .t-hero, .t-hero-sm, .t-page, .page-title, .h1, .display-xl, .t-card-lg, .t-card, .t-card-sm, .t-quote, .t-credit):lang(ar) {
-    font-family: var(--font-title-ar); font-weight: var(--title-weight-ar); letter-spacing: 0; font-style: normal; }
-  html[dir='rtl'] .t-index { font-size: 46px; line-height: 64px; }
-  html[dir='rtl'] .t-marquee { font-size: 46px; line-height: 64px; }
-  html[dir='rtl'] .t-hero { font-size: 42px; line-height: 58px; }
-  html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm) { font-size: 40px; line-height: 56px; }
-  @media (min-width: 640px) {
-    html[dir='rtl'] .t-index { font-size: 70px; line-height: 92px; }
-    html[dir='rtl'] .t-marquee { font-size: 70px; line-height: 92px; }
-    html[dir='rtl'] .t-hero { font-size: 58px; line-height: 78px; }
-    html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm) { font-size: 52px; line-height: 70px; }
-  }
-  @media (min-width: 1280px) {
-    html[dir='rtl'] .t-index { font-size: 108px; line-height: 136px; }
-    html[dir='rtl'] .t-marquee { font-size: 96px; line-height: 120px; }
-    html[dir='rtl'] .t-hero { font-size: 72px; line-height: 96px; }
-    html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm) { font-size: 60px; line-height: 80px; }
-  }
-  html[dir='rtl'] .t-card-lg { font-size: 28px; line-height: 40px; }
-  html[dir='rtl'] .t-card { font-size: 23px; line-height: 32px; }
-  html[dir='rtl'] .t-card-sm { font-size: 20px; line-height: 28px; }
-  html[dir='rtl'] .t-credit { font-size: 25px; line-height: 36px; }
-  @media (min-width: 1280px) { html[dir='rtl'] .t-credit { font-size: 28px; line-height: 40px; } }
-  html[dir='rtl'] .t-quote { font-size: 24px; line-height: 36px; font-weight: 500; }
-  /* an English title inside the Arabic interface keeps Newsreader and the Latin metrics (§9.2); English italic stays */
-  html[dir='rtl'] :is(.t-index, .t-marquee, .t-hero, .t-hero-sm, .t-page, .page-title, .h1, .display-xl, .t-card-lg, .t-card, .t-card-sm, .t-quote, .t-credit):lang(en) { font-family: var(--font-title); font-weight: var(--title-weight); }
-  html[dir='rtl'] .t-quote:lang(en) { font-style: italic; font-weight: 400; font-size: 22px; line-height: 30px; }
-  html[dir='rtl'] .t-marquee:lang(en) { font-size: 46px; line-height: 48px; letter-spacing: -0.02em; }
-  html[dir='rtl'] .t-hero:lang(en) { font-size: 40px; line-height: 44px; letter-spacing: -0.018em; }
-  html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm):lang(en) { font-size: 38px; line-height: 40px; letter-spacing: -0.016em; }
-  html[dir='rtl'] .t-card-lg:lang(en) { font-size: 26px; line-height: 30px; letter-spacing: -0.012em; }
-  html[dir='rtl'] .t-card:lang(en) { font-size: 21px; line-height: 26px; letter-spacing: -0.008em; }
-  html[dir='rtl'] .t-card-sm:lang(en) { font-size: 18px; line-height: 22px; letter-spacing: -0.005em; }
-  @media (min-width: 640px) {
-    html[dir='rtl'] .t-marquee:lang(en) { font-size: 72px; line-height: 72px; }
-    html[dir='rtl'] .t-hero:lang(en) { font-size: 60px; line-height: 62px; }
-    html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm):lang(en) { font-size: 52px; line-height: 52px; }
-  }
-  @media (min-width: 1280px) {
-    html[dir='rtl'] .t-marquee:lang(en) { font-size: 104px; line-height: 100px; letter-spacing: -0.028em; }
-    html[dir='rtl'] .t-hero:lang(en) { font-size: 76px; line-height: 78px; letter-spacing: -0.024em; }
-    html[dir='rtl'] :is(.t-page, .page-title, .h1, .display-xl, .t-hero-sm):lang(en) { font-size: 62px; line-height: 62px; letter-spacing: -0.024em; }
-  }
-  /* an Arabic name inside the English interface takes the Arabic voice at the Latin size, with taller lines */
-  html[dir='ltr'] :is(.t-card-lg, .t-card, .t-card-sm):lang(ar) { line-height: 1.38; }
-
   /* ---- the interface voice -------------------------------------------------------------------------------- */
-  /* section heads, dialog titles: Plex 600 20/28 (Arabic 20/32) */
+  /* section heads, dialog titles: Plex 600 20/28 */
   :is(.h2, .section-title) { font-family: var(--font-ui); font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.005em; color: var(--fg); }
-  html[dir='rtl'] :is(.h2, .section-title) { font-family: var(--font-ui-ar); line-height: 32px; letter-spacing: 0; }
-  /* row and panel titles: 16/24 (Arabic 16/26) */
+  /* row and panel titles: 16/24 */
   .h3 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--fg); }
-  html[dir='rtl'] .h3 { line-height: 26px; letter-spacing: 0; }
   /* v4's interface display (a few headings set large in the sans) */
   .display { font-family: var(--font-ui); font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; color: var(--fg); }
-  html[dir='rtl'] .display { font-family: var(--font-ui-ar); letter-spacing: 0; line-height: 1.4; font-weight: 600; }
-  /* the one purpose line; hero loglines: 17/27 · 19/30 from 1280 (Arabic 18/30 · 20/34) */
+  /* the one purpose line; hero loglines: 17/27 · 19/30 from 1280 */
   .lead { font-size: 17px; line-height: 27px; color: var(--fg-muted); max-inline-size: var(--measure-lead); text-wrap: pretty; }
   @media (min-width: 1280px) { .lead { font-size: 19px; line-height: 30px; } }
-  html[dir='rtl'] .lead { font-size: 18px; line-height: 30px; }
-  @media (min-width: 1280px) { html[dir='rtl'] .lead { font-size: 20px; line-height: 34px; } }
-  /* personality, synopsis, script: 16/27, 66ch (Arabic 17/30) */
+  /* personality, synopsis, script: 16/27, 66ch */
   :is(.prose, .prose-copy) { font-size: 16px; line-height: 27px; color: var(--fg-body); max-inline-size: var(--measure-prose); text-wrap: pretty; }
-  html[dir='rtl'] :is(.prose, .prose-copy) { font-size: 17px; line-height: 30px; }
-  /* meta lines and rows: 13/20 (Arabic 14/22) */
+  /* meta lines and rows: 13/20 */
   .small { font-size: 13px; line-height: 20px; }
-  html[dir='rtl'] .small { font-size: 14px; line-height: 22px; }
-  /* LABELS WITHOUT CAPITALS (§3.5): 12–13 px, 500, faint or muted, sentence case — Arabic has no case, so neither
-     language uses it as hierarchy */
+  /* LABELS WITHOUT CAPITALS (§3.5): 12–13 px, 500, faint or muted, sentence case */
   .caption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
   .label { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg-body); }
   .eyebrow { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg-muted); }
   .kicker { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
   :is(.caption, .label, .eyebrow, .kicker) { letter-spacing: 0; text-transform: none; font-variant-caps: normal; }
-  html[dir='rtl'] :is(.caption, .kicker) { font-size: 13px; line-height: 20px; }
-  html[dir='rtl'] :is(.label, .eyebrow) { font-size: 14px; line-height: 20px; }
   .muted { color: var(--fg-muted); } .faint { color: var(--fg-faint); } .fg { color: var(--fg); }
 
   /* the slate (§3.4): one line of facts, status last; the separators are the Slate component's, aria-hidden.
-     Hero 13/20 muted (Arabic 14/22); tiles 12.5 (Arabic 13) */
+     Hero 13/20 muted; tiles 12.5 */
   .slate { font-size: 13px; line-height: 20px; font-weight: 400; color: var(--fg-muted); }
   .slate-sm { font-size: 12.5px; line-height: 18px; }
   .slate-lg { font-size: 14px; line-height: 22px; color: var(--fg-body); }
   .slate-on-art { color: var(--on-art-muted); }
-  html[dir='rtl'] .slate { font-size: 14px; line-height: 22px; }
-  html[dir='rtl'] .slate-sm { font-size: 13px; line-height: 20px; }
 
-  /* ---- the readout voice (§9.4): Western digits, Plex Mono, LTR, isolated --------------------------------- */
+  /* ---- the readout voice (§9.4): Plex Mono, LTR, isolated ---------------------------------------------------- */
   .ro { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: 0; direction: ltr; unicode-bidi: isolate; }
   .ro-md { font-size: 13px; line-height: 20px; }
   .ro-lg { font-size: 15px; line-height: 20px; }
-  html[dir='rtl'] .ro:not(.ro-md, .ro-lg) { font-size: 13px; line-height: 20px; }
-  /* a readout or identifier inside a sentence ("shot 2.3", "1344×768"): formatNumber()'s isolate (src/lib/format.ts) */
+  /* a readout or identifier inside a sentence ("shot 2.3", "1344×768"): formatNumberNode()'s isolate (src/lib/format.ts) */
   .num-ltr { font-family: var(--font-mono); font-size: max(12px, 0.92em); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; letter-spacing: 0; }
-  html[dir='rtl'] .num-ltr { font-size: max(13px, 0.92em); }
-  /* counts and dates follow the interface: the mono in English; in Arabic the sans (Arabic-Indic digits when the
-     Numerals setting is on — the mono has none) */
+  /* counts and dates: the mono, tabular */
   .date, .count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-  html[dir='rtl'] :is(.date, .count) { font-family: var(--font-ui-ar); font-size: inherit; }
   /* v4's readout classes: the same voice */
   .mono { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; }
   .tc { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
-  html[dir='rtl'] :is(.mono, .tc) { font-size: 13px; line-height: 20px; }
   .num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
   /* the "n of m · swipe" readout of a strip (§5.6): shown only on phones, beside the section head */
   .strip-pos { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: var(--fg-faint); }
   .strip-pos i { inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--carbon-7); }
   .strip-pos i.on { background: var(--paper); }
-  html[dir='rtl'] .strip-pos { font-size: 13px; line-height: 20px; }
   @media (min-width: 640px) { .strip-pos { display: none; } }
 
-  /* the lyric view (§5.14): serif 26/38, phone 21/30; Arabic 30/46, phone 24/38. The active line changes weight and
-     colour only — never size, blur or scale */
+  /* the lyric view (§5.14): serif 26/38, phone 21/30. The active line
+     changes weight and colour only — never size, blur or scale */
   .lyric { font-family: var(--font-title); font-size: 21px; line-height: 30px; font-weight: 400; color: var(--fg-faint); transition: color var(--t-fast) var(--ease); }
   @media (min-width: 640px) { .lyric { font-size: 26px; line-height: 38px; } }
-  html[dir='rtl'] .lyric, .lyric:lang(ar) { font-family: var(--font-title-ar); font-size: 24px; line-height: 38px; }
-  @media (min-width: 640px) { html[dir='rtl'] .lyric, .lyric:lang(ar) { font-size: 30px; line-height: 46px; } }
-  html[dir='rtl'] .lyric:lang(en) { font-family: var(--font-title); }
   .lyric[aria-current='true'], .lyric[data-active] { font-weight: 600; color: var(--fg); }
 
   /* mixed-script helpers (v4) */
@@ -177,24 +108,19 @@
   .h1 .bi-ar, .display .bi-ar { font-weight: 600; }
   .bdi { unicode-bidi: isolate; }
 
-  /* ---- the cutting room: compact density sets the body size of everything inside it (13.5/20; Arabic 14/22) and
-     no caption, label, readout or chip in its main content goes below that floor (§3.2, §3.3) ---------------- */
+  /* ---- the cutting room: compact density sets the body size of everything inside it (13.5/20) and no caption,
+     label, readout or chip in its main content goes below that floor (§3.2, §3.3) ------------------------------ */
   [data-density='compact'] { font-size: var(--body-fs); line-height: var(--body-lh); }
   :is([data-density='compact'], [data-room='cutting']) :is(.caption, .kicker, .eyebrow, .label, .small, .slate, .slate-sm, .ro, .mono, .tc, .num-ltr, .strip-pos) { font-size: 13.5px; }
-  html[dir='rtl'] :is([data-density='compact'], [data-room='cutting']) :is(.caption, .kicker, .eyebrow, .label, .small, .slate, .slate-sm, .ro, .mono, .tc, .num-ltr, .strip-pos) { font-size: 14px; }
 
   /* ---- the floor, for v4 sheets that still set small sizes (until DS-2 restyles them) ---------------------- */
   html :is(.cmp-key, .tcard .tcard-state, .mark, .shell-kbd, .shell-count-badge) { font-size: 12px; }
-  html[dir='rtl'] :is(.cmp-key, .tcard .tcard-state, .mark, .shell-kbd, .shell-count-badge) { font-size: 13px; }
 }
 
-/* the floor for Tailwind's arbitrary sizes in v4 components (§3.2): nothing under 12 px; Arabic nothing under 13 */
+/* the floor for Tailwind's arbitrary sizes in v4 components (§3.2): nothing under 12 px; 13.5 in the cutting room */
 @layer utilities {
   html :is(.text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\]) { font-size: 12px; }
-  html[dir='rtl'] :is(.text-xs, .text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\], .text-\[12px\], .text-\[12\.5px\]) { font-size: 13px; line-height: 20px; }
-  html[dir='rtl'] .text-sm { font-size: 14px; line-height: 22px; }
   :is([data-density='compact'], [data-room='cutting']) :is(.text-xs, .text-sm, .text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\], .text-\[12px\], .text-\[12\.5px\], .text-\[13px\]) { font-size: 13.5px; }
-  html[dir='rtl'] :is([data-density='compact'], [data-room='cutting']) :is(.text-xs, .text-sm, .text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\], .text-\[12px\], .text-\[12\.5px\], .text-\[13px\], .text-\[13\.5px\]) { font-size: 14px; }
   /* labels without capitals (§3.5): an uppercase or tracked utility left in a v4 component reads as sentence case */
   html :is(.uppercase, .small-caps) { text-transform: none; font-variant-caps: normal; letter-spacing: 0; }
 }

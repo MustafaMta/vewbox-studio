@@ -52,7 +52,8 @@ describe('every transport, seek bar, waveform, strip and timeline is laid out le
 describe('waveform contrast (§2.6)', () => {
   const tokens = fs.readFileSync(path.resolve('src/app/styles/tokens.css'), 'utf8');
   const players = fs.readFileSync(path.resolve('src/app/styles/players.css'), 'utf8');
-  const hex = (name: string) => new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i').exec(tokens)![1];
+  // DS-1: the v4 names are aliases of the v5 values (var() chains), so resolve them as the browser does
+  const hex = (name: string): string => { const v = new RegExp(`${name}:\\s*([^;]+);`, 'i').exec(tokens)![1].trim(); const m = /^var\((--[\w-]+)\)$/.exec(v); return m ? hex(m[1]) : v; };
   const lum = (x: string) => { const c = [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
   it('unplayed bars are --ink-550 and played bars --fg', () => {
