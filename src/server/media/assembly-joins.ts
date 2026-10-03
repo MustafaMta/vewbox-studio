@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { ShotRelation } from '@/domain/types';
+import { JOIN_CROSSFADE_FRAMES } from '@/domain/timeline';
 
 const execFileP = promisify(execFile);
 
@@ -10,8 +11,9 @@ const execFileP = promisify(execFile);
  *    against the distribution of consecutive-frame differences INSIDE A and B: a join passes when it is no bigger
  *    than the 95th percentile of the shots' own frame-to-frame changes (floor 1.0 luma level, so two still shots do
  *    not fail on encoder noise);
- *  - sound (on the mix, what the audience hears): the RMS level step across the join (20 ms windows, dB) and the
- *    spectral flux (32 ms Hann frames) against the same steps inside the two shots (floors 1 dB and 0.1).
+ *  - sound (on the mix, what the audience hears): the RMS level step across the join region (20 ms windows, dB, from
+ *    before the continuation cross-fade to after the join) and the spectral flux (32 ms Hann frames) over the same
+ *    span, against the same measures inside the two shots (floors 1 dB and 0.1).
  *  Only CONTINUATION joins are judged (a cut or a story transition is meant to change); every join is measured and
  *  recorded. A failed join fails the take that continues (an inspector's REJECT report), never the cut. */
 
@@ -80,20 +82,23 @@ export function flux(a: Float64Array, b: Float64Array): number {
 
 export interface JoinPart { file: string; shotId: string; relation?: ShotRelation; startFrame: number; frames: number }
 
-/** Measure every join of a cut from its conformed picture parts and its mix (before loudness normalisation). */
-export async function measureJoins(parts: JoinPart[], mixFile: string | undefined, fps = 24): Promise<JoinMetric[]> {
+/** Measure every join of a cut from its conformed picture parts and its mix (before loudness normalisation). The
+ *  sound is compared ACROSS the join region — the level and spectrum before the continuation cross-fade begins
+ *  (`gapFrames` before the join) against just after the join — and the shots' own changes are measured over the same
+ *  span, so a cross-fade cannot hide a jump and a hard join is judged the same way. */
+export async function measureJoins(parts: JoinPart[], mixFile: string | undefined, fps = 24, gapFrames = JOIN_CROSSFADE_FRAMES): Promise<JoinMetric[]> {
   if (parts.length < 2) return [];
   const frames: Uint8Array[][] = [];
   for (const p of parts) frames.push(await greyFrames(p.file));
   const intra = frames.map((fs) => fs.slice(1).map((f, i) => meanAbsDiff(fs[i], f)));
   const rate = 16000; const win = 320; const fft = 512;
+  const gap = Math.round((gapFrames / fps) * rate);
   const pcm = mixFile ? await monoPcm(mixFile, rate).catch(() => undefined) : undefined;
   const span = (p: JoinPart): [number, number] => [Math.round((p.startFrame / fps) * rate), Math.round(((p.startFrame + p.frames) / fps) * rate)];
   const audioIntra = (p: JoinPart) => {
     const [s, e] = span(p); const steps: number[] = []; const fluxes: number[] = [];
-    for (let i = s + 2 * win; i + 3 * win <= e; i += win) steps.push(Math.abs(rmsDb(pcm!, i + win, win) - rmsDb(pcm!, i, win)));
-    let prev: Float64Array | undefined;
-    for (let i = s + fft; i + 2 * fft <= e; i += fft) { const m = magnitude(pcm!, i, fft); if (prev) fluxes.push(flux(prev, m)); prev = m; }
+    for (let i = s + 2 * win; i + 3 * win + gap <= e; i += win) steps.push(Math.abs(rmsDb(pcm!, i + win + gap, win) - rmsDb(pcm!, i, win)));
+    for (let i = s + fft; i + 3 * fft + gap <= e; i += fft) fluxes.push(flux(magnitude(pcm!, i, fft), magnitude(pcm!, i + fft + gap, fft)));
     return { steps, fluxes };
   };
   const out: JoinMetric[] = [];
@@ -107,8 +112,8 @@ export async function measureJoins(parts: JoinPart[], mixFile: string | undefine
     let audio: JoinMetric['audio'] = null;
     if (pcm && pcm.length) {
       const j = Math.round((b.startFrame / fps) * rate);
-      const step = Math.abs(rmsDb(pcm, j, win) - rmsDb(pcm, j - win, win));
-      const f = flux(magnitude(pcm, j - fft, fft), magnitude(pcm, j, fft));
+      const step = Math.abs(rmsDb(pcm, j, win) - rmsDb(pcm, j - gap - win, win));
+      const f = flux(magnitude(pcm, j - gap - fft, fft), magnitude(pcm, j, fft));
       const ia = audioIntra(a); const ib = audioIntra(b);
       const rmsP95 = p95([...ia.steps, ...ib.steps]); const fluxP95 = p95([...ia.fluxes, ...ib.fluxes]);
       audio = { rmsStepDb: Number(step.toFixed(2)), rmsP95: Number(rmsP95.toFixed(2)), rmsOk: step <= Math.max(rmsP95, JOIN_FLOORS.rmsDb), flux: Number(f.toFixed(3)), fluxP95: Number(fluxP95.toFixed(3)), fluxOk: f <= Math.max(fluxP95, JOIN_FLOORS.flux) };
