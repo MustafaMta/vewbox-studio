@@ -24,7 +24,7 @@ import {
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
-import { continuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
+import { frameContinuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -488,7 +488,7 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  read) the location's own plate for the time of day or its master; then up to two characters by their primary image
  *  (the pinned canonical image in the overlay, else a legacy portrait); a lone character's legacy face crop as the
  *  third picture. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; notes: string[]; people: Character[]; plate?: { assetId: string; why: string } } {
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string } } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
@@ -504,9 +504,10 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const order = (id: string) => { const i = p.castIds.indexOf(id); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
   const people = (sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[]).sort((a, b) => order(a.id) - order(b.id));
   const shown: number[] = [];
+  const imageOf = new Map<string, number>();
   for (const c of people.slice(0, 2)) {
     const a = byId(primaryImageOf(c));
-    if (usableImage(a)) { refs.push(a); shown.push(refs.length); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
+    if (usableImage(a)) { refs.push(a); shown.push(refs.length); imageOf.set(c.id, refs.length); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
   }
   if (people.length === 1 && refs.length < 3) {
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
@@ -515,7 +516,7 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   // how many people the picture holds: shot 2.3 of "The Static Sky" came back with two strangers beside the pair (D30)
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
-  return { refs, notes, people, plate: usableImage(plateAsset) ? plate : undefined };
+  return { refs, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined };
 }
 
 /** The production's World Bible revision (pinned, else the latest) laid over the studio for this shot — the plate
@@ -537,16 +538,17 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
-  const { refs, notes, people, plate } = frameReferences(state, p, sh, world.read);
+  const { refs, notes, people, imageOf, plate } = frameReferences(state, p, sh, world.read);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
   // an editorial CUT is a new angle on the same moment: the frame carries the previous shot's state (positions,
   // screen direction, props, light) as well as this shot's own; a story transition starts fresh
   const { relation, previous } = effectiveRelation(p, sh);
-  const own = continuityLine(sh, cast);
-  const carried = relation === 'CUT' && previous && !opts.ending ? continuityLine(previous, cast) : '';
-  const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
+  // people are named by their reference picture once; the previous shot carries only its props and light (D30)
+  const own = frameContinuityLine(sh, cast, imageOf);
+  const carried = relation === 'CUT' && previous && !opts.ending ? frameContinuityLine(previous, cast, imageOf, { peopleToo: false }) : '';
+  const prompt = framePrompt(p, sh, cast, loc, scene, { pictured: new Set(imageOf.keys()) }) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
   const label = `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`;
   // D30: the prompt alone did not hold the number of people (two strangers in 2 of 10 frames); the vision model
   // counted 10/10 frames right, the portrait on the wall excluded — so the frame is counted and drawn once more

@@ -1,6 +1,7 @@
 import type { Character, Location, Production, Shot } from '@/domain/types';
 import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
+import { nonHumanSpecies } from '@/domain/identity';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
  *  described by appearance (never by name), the production direction's visual language goes first, and dialogue is
@@ -9,7 +10,9 @@ import { styleDirection } from './style';
 const clean = (s?: string | false) => (s || '').replace(/\s+/g, ' ').trim();
 
 export function describeCharacter(c: Character): string {
-  const age = c.species ? `${c.species}` : `${c.ageYears}-year-old ${c.sex === 'FEMALE' ? 'woman' : 'man'}`;
+  // "Human" is not a species to draw (D6): a person is described by age and sex
+  const species = nonHumanSpecies(c.species);
+  const age = species ? `${species}` : `${c.ageYears}-year-old ${c.sex === 'FEMALE' ? 'woman' : 'man'}`;
   const parts = [age, c.build, c.face, c.hair && `${c.hair} hair`, c.skin && c.skin !== '—' && `${c.skin} skin`, c.eyes && `${c.eyes} eyes`, c.wardrobe && `wearing ${c.wardrobe}`, ...(c.distinguishing ?? []).slice(0, 3), ...(c.canon?.accessories ?? []).slice(0, 2)].map(clean).filter(Boolean);
   return parts.join(', ');
 }
@@ -138,7 +141,9 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
   const parts = c.characters.map((x) => {
     const who = subjectOf(x.characterId) ?? (cast.find((k) => k.id === x.characterId) ? `(${describeCharacter(cast.find((k) => k.id === x.characterId)!).split(',').slice(0, 2).join(',')})` : '');
     if (!who) return '';
-    const bits = [x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`, x.wardrobe && `wears ${clean(x.wardrobe)}`].filter(Boolean);
+    // no "wears": a character's wardrobe is its canonical image; the planner's words for it ("tweed jacket" for a man in
+    // a cardigan) drew a third person into a two-shot (D30)
+    const bits = [x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`].filter(Boolean);
     return bits.length ? `${who} ${bits.join(', ')}.` : '';
   }).filter(Boolean);
   const props = c.props.filter((x) => x.position || x.state).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}${x.position ? ` ${clean(x.position)}` : ''}`);
@@ -149,6 +154,12 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
 /** A shot's continuity state in words (positions, screen direction, eyeline, what each person holds and wears, props,
  *  light), people described by appearance — for an opening frame drawn as a CUT of the previous shot's moment. */
 export const continuityLine = (sh: Shot, cast: Character[]): string => continuitySentence(sh, cast, () => undefined);
+
+/** The continuity of a storyboard frame: each person named by the reference picture that shows them ("the person of
+ *  image 2"), never described a second time in words; `peopleToo: false` keeps only props and light (the previous
+ *  shot's state carried into a CUT — its people at other places drew duplicates, D30). */
+export const frameContinuityLine = (sh: Shot, cast: Character[], imageOf: Map<string, number>, opts: { peopleToo?: boolean } = {}): string =>
+  continuitySentence(sh, cast, (id) => (opts.peopleToo === false ? '' : imageOf.has(id) ? `the person of image ${imageOf.get(id)}` : ''));
 
 /** THE REFERENCE PROMPT (Ref2VA) — the six sections MiniMax H3's reference checkpoint was trained on, in order:
  *  subject_definitions, summary (with its task type), retention_analysis, detailed_description, overall_soundscape,
@@ -258,9 +269,11 @@ export function lintH3Prompt(prompt: string, expect: { labels: 'LOCAL' | 'HOSTED
 }
 
 /** Prompt for a still frame of the shot (the opening image): same content without dialogue or motion. */
-export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined): string {
+export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
-  const people = cast.filter((c) => sh.characterIds.includes(c.id));
+  // a person shown by a reference picture is described by that picture's note alone: a second description in words
+  // read as a second person (D30)
+  const people = cast.filter((c) => sh.characterIds.includes(c.id) && !opts.pictured?.has(c.id));
   const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, `Framing: ${sh.framing.toLowerCase().replace(/_/g, ' ')}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
   return `${d.visual}. ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
