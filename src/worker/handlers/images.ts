@@ -499,15 +499,22 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const notes: string[] = [];
   const plateAsset = byId(plate?.assetId);
   if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(`image ${refs.length} is the exact place (keep its architecture, layout and props)`); }
-  const people = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
+  // the production's cast order is the screen order: the same pair stands the same way round in every shot (D29 —
+  // Najm left of Elias in one two-shot, right of him in the next, crossed the line between cuts)
+  const order = (id: string) => { const i = p.castIds.indexOf(id); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
+  const people = (sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[]).sort((a, b) => order(a.id) - order(b.id));
+  const shown: number[] = [];
   for (const c of people.slice(0, 2)) {
     const a = byId(primaryImageOf(c));
-    if (usableImage(a)) { refs.push(a); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
+    if (usableImage(a)) { refs.push(a); shown.push(refs.length); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
   }
   if (people.length === 1 && refs.length < 3) {
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
     if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); notes.push(`image ${refs.length} is the same person's face, close up`); }
   }
+  // how many people the picture holds: shot 2.3 of "The Static Sky" came back with two strangers beside the pair (D30)
+  if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
+  else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
   return { refs, notes, people, plate: usableImage(plateAsset) ? plate : undefined };
 }
 

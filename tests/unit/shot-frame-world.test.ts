@@ -46,6 +46,17 @@ describe('storyboard frames read the World Bible', () => {
     w = read(withDusk, established(bible, 'est-morning', 'MORNING'), 's13');
     expect(frameReferences(w.state, p, shotOf(p, 's13'), w.read).plate?.assetId).toBe('plate-dusk');
   });
+  it('D29/D30: a two-shot names how many people it holds and keeps the cast order as the screen order', () => {
+    const { state, p } = fixture();
+    const [a, b] = p.castIds;
+    const withImages: StudioState = { ...state, assets: [...state.assets, { ...img('canon-a'), tier: 'CANONICAL' }, { ...img('canon-b'), tier: 'CANONICAL' }] };
+    const forward = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!, b!] });
+    const reversed = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [b!, a!] });
+    expect(reversed.refs.map((x) => x.id)).toEqual(forward.refs.map((x) => x.id)); // the same way round in every shot
+    expect(forward.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 2 on the left and the person of image 3 on the right, and nobody else');
+    const alone = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!] });
+    expect(alone.notes.join(' ')).toContain('exactly one person is in the picture, the person of image 2, and nobody else');
+  });
   it('each character is its pinned canonical image (a redraw after the pin does not reach the frame)', () => {
     const { state, p } = fixture();
     const a = p.castIds[0];
