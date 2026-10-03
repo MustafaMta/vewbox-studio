@@ -1,4 +1,6 @@
-import { redirect } from 'next/navigation';
+import { Home } from '@/components/home/Home';
 
-/** The front door is the Shows catalog; the product is what the studio makes. */
-export default function HomePage() { redirect('/shows'); }
+/** The front door: the studio's lobby (docs/DESIGN-SYSTEM-V5.md §8.1). */
+export default function HomePage() {
+  return <Home />;
+}

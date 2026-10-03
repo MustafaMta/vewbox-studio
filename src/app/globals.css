@@ -29,6 +29,7 @@
 @import './styles/edit.css';
 @import './styles/shell.css';
 @import './styles/studio.css';
+@import './styles/pages/home.css';
 @import './styles/pages/shows.css';
 @import './styles/pages/film.css';
 @import './styles/pages/music.css';

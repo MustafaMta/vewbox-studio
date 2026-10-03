@@ -16,6 +16,17 @@ export const GET = route(async (req) => {
   await bootstrap();
   const sp = new URL(req.url).searchParams;
   const hours = Math.min(24 * 365, Math.max(1, Number(sp.get('hours') ?? 24 * 30) || 24 * 30));
+  // `?view=summary`: what the Home page's studio card reads — the company's size, the queue and the latest handoffs
+  // (a few hundred bytes instead of the whole organisation)
+  if (sp.get('view') === 'summary') {
+    const [org, queue, handoffs] = await Promise.all([readOrg(), queueStats(), recentHandoffs(Math.min(10, Math.max(1, Number(sp.get('handoffs') ?? 3) || 3)))]);
+    return json({
+      departments: org.departments.map((d) => ({ id: d.id, name: d.name })),
+      agents: org.agents.length,
+      queue,
+      handoffs: handoffs.map((h) => ({ id: h.id, productionId: h.productionId, stage: h.stage, producerDepartment: h.producerDepartment, receiverDepartment: h.receiverDepartment, qualityStatus: h.qualityStatus, createdAt: h.createdAt })),
+    }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   const { state } = await readState();
   const active = state.productions.filter((p) => p.stage !== 'COMPLETE').map((p) => p.id);
   const [org, stats, events, queue, handoffs, approvals, positions, jobs] = await Promise.all([
