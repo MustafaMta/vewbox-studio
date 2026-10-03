@@ -1,102 +1,106 @@
 'use client';
 
 import { useState } from 'react';
-import { T } from '@/lib/copy';
 import { useToast } from '../../toast';
-import { IconAuto, IconClose, IconDelete, IconDuplicate, IconEdit, IconManual, IconMore, IconPlus } from '../../icons';
+import { IconAuto, IconClose, IconDelete, IconDuplicate, IconEdit, IconManual, IconPlus } from '../../icons';
 import { Button } from '../Button';
 import { Field, Input } from '../Field';
-import { Dialog, Drawer, MenuButton, MenuItem, MenuSeparator, Popover, useAsk, useConfirm } from '../Overlay';
+import { Dialog, Drawer, MenuButton, MenuItem, MenuLink, MenuSeparator, Popover, Sheet, useAsk, useConfirm } from '../Overlay';
 import { StateWord } from '../Status';
 import { Cell, SpecRow, SpecSection, Still } from './parts';
 
+/** /kit — DIALOGS, DRAWERS, SHEETS, MENUS AND POPOVERS (§5.16, §5.17): live, and drawn open with every state. */
 export function OverlaysSpec() {
   const toast = useToast();
   const confirm = useConfirm();
   const ask = useAsk();
   const [dialog, setDialog] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
+  const [sort, setSort] = useState('recent');
   return (
-    <SpecSection id="overlays" title={'Overlays'} lead={'Esc closes the innermost layer and focus goes back to what opened it. No blur, no glow.'}>
-      <SpecRow label={'Try them'}>
-        <Button onClick={() => setDialog(true)}>Open a dialog</Button>
-        <Button variant="danger" icon={<IconDelete />} onClick={async () => { const ok = await confirm({ title: `Delete “${'The Kite'}”?`, body: 'Its seasons, episodes and shots go with it.', keep: 'Its characters and locations stay in the studio.' }); if (ok) toast.ok('Deleted.'); }}>Delete a show…</Button>
-        <Button onClick={async () => setAnswer(await ask({ title: 'Reject Take 2?', label: 'Why? The next take avoids it.', confirmLabel: 'Reject' }))}>Reject a take…</Button>
-        <Button onClick={() => setDrawer(true)}>Open the activity drawer</Button>
-        {answer !== null && <p className="caption basis-full" role="status">{`The answer: ${answer || '—'}`}</p>}
+    <SpecSection id="overlays" title="Dialogs, drawers, sheets and menus" lead="One modal surface: radius 20, the close button at the top end, Esc and the overlay close it, focus stays inside and goes back to the opener. Below 640 px a dialog or drawer is a bottom sheet.">
+      <SpecRow label="Open one">
+        <Button onClick={() => setDialog(true)} data-testid="open-dialog">Dialog</Button>
+        <Button variant="danger" icon={<IconDelete />} onClick={async () => { if (await confirm({ title: 'Delete “The Kite”?', body: 'Its seasons, episodes and cuts go with it.', keep: 'The characters and locations are kept.' })) toast.ok('Deleted'); }}>Confirm</Button>
+        <Button onClick={async () => setAnswer(await ask({ title: 'Reject this take?', label: 'Why is this take rejected?', confirmLabel: 'Reject' }))}>Ask</Button>
+        <Button onClick={() => setDrawer(true)} data-testid="open-drawer">Drawer</Button>
+        <Button onClick={() => setSheet(true)} data-testid="open-sheet">Sheet</Button>
+        {answer !== null && <p className="kit-spec-state" role="status">Answer: {answer || '—'}</p>}
       </SpecRow>
-      <SpecRow label="Popover · MenuButton">
-        <Popover label={'Filter'} title={'Filter'}>
+      <SpecRow label="Menu (dropdown)">
+        <MenuButton label="More" iconOnly variant="quiet">
+          <MenuItem icon={<IconEdit />} description="Change the title, the logline and the style">Edit</MenuItem>
+          <MenuItem icon={<IconDuplicate />}>Duplicate</MenuItem>
+          <MenuLink href="#overlays">Open the film</MenuLink>
+          <MenuItem disabled description="No cut yet">Export</MenuItem>
+          <MenuSeparator />
+          <MenuItem icon={<IconDelete />} tone="danger">Delete</MenuItem>
+        </MenuButton>
+        <MenuButton label="New show" icon={<IconPlus />} caret variant="secondary" align="start">
+          <MenuItem icon={<IconAuto />} description="A line is enough; you review it before anything is made">Let the studio propose</MenuItem>
+          <MenuItem icon={<IconManual />} description="Every other field has a sensible default">Write it yourself</MenuItem>
+        </MenuButton>
+        <MenuButton label={`Sort: ${sort === 'recent' ? 'Recently updated' : 'Title'}`} caret variant="quiet">
+          <MenuItem checked={sort === 'recent'} onClick={() => setSort('recent')}>Recently updated</MenuItem>
+          <MenuItem checked={sort === 'title'} onClick={() => setSort('title')}>Title</MenuItem>
+        </MenuButton>
+        <Popover label="Popover" title="A popover">
           {(close) => (
-            <div className="flex w-[16rem] flex-col gap-3 p-3">
-              <p className="text-sm text-body">A popover holds a few controls and closes on Esc or a click outside.</p>
+            <div className="kit-spec-pop">
+              <p className="t-body">A non-modal panel under its button. Esc closes it.</p>
               <Button size="sm" onClick={close}>Done</Button>
             </div>
           )}
         </Popover>
-        <MenuButton label={'More'} iconOnly variant="quiet">
-          <MenuItem icon={<IconEdit />} description={'Title, logline and style'}>Edit</MenuItem>
-          <MenuItem icon={<IconDuplicate />}>Duplicate</MenuItem>
-          <MenuItem disabled description={'No cut yet'}>Export</MenuItem>
-          <MenuSeparator />
-          <MenuItem icon={<IconDelete />} tone="danger">Delete</MenuItem>
-        </MenuButton>
-        <MenuButton label={'New show'} icon={<IconPlus />} caret variant="secondary" align="start">
-          <MenuItem icon={<IconAuto />} description={'Let the studio propose — you review it before anything is made'}>Let the studio propose</MenuItem>
-          <MenuItem icon={<IconManual />} description={'Start from a title; every other field has a default'}>Write it yourself</MenuItem>
-        </MenuButton>
       </SpecRow>
-      <SpecRow label="Toast">
-        <Button onClick={() => toast.ok('Saved.')}>Show a toast</Button>
-        <Button onClick={() => toast.push({ tone: 'info', text: 'Moved to the archive.', action: { label: 'Undo', onClick: () => toast.ok('Back where it was.') } })}>Show a toast with Undo</Button>
-        <Button onClick={() => toast.bad('The take was not saved. Your changes are still here.')}>Show an error toast</Button>
-      </SpecRow>
-      <SpecRow label={'Drawn open'}>
-        <Cell state="Menu">
-          <Still caption={'A menu: an item with a description, hovered, focused, disabled, and the one that removes.'}>
-            <div className="menu menu-still">
-              <span className="menu-item menu-item-2"><IconEdit /><span className="menu-item-text"><span>Edit</span><span className="menu-item-desc">Title, logline and style</span></span></span>
-              <span className="menu-item is-hover"><IconDuplicate />Duplicate</span>
-              <span className="menu-item is-focus"><IconMore />More</span>
-              <span className="menu-item is-disabled">Export</span>
+      <SpecRow label="Drawn open">
+        <Cell state="Menu: rest · hover · keyboard · disabled · danger">
+          <Still caption="Items 36 high, radius 10; the keyboard's item is the hover tone with the ring">
+            <div className="menu kit-spec-menu-still">
+              <span className="menu-item menu-item-2"><IconEdit /><span className="menu-item-text"><span>Edit</span><span className="menu-item-desc">Change the title, the logline and the style</span></span></span>
+              <span className="menu-item is-hover"><IconDuplicate /><span className="menu-item-label">Duplicate</span></span>
+              <span className="menu-item is-hover is-focus"><IconPlus /><span className="menu-item-label">New season</span></span>
+              <span className="menu-item is-disabled"><span className="menu-item-label">Export</span></span>
               <div className="menu-sep" />
-              <span className="menu-item" data-tone="danger"><IconDelete />Delete</span>
+              <span className="menu-item" data-tone="danger"><IconDelete /><span className="menu-item-label">Delete</span></span>
             </div>
           </Still>
         </Cell>
-        <Cell state="Toast" wide>
-          <Still caption={'A toast with Undo stays at least 10 seconds, longer while hovered or focused.'}>
-            <div className="toast toast-v4 toast-still">
-              <span className="state-dot" data-tone="running" />
-              <div className="min-w-0 flex-1"><p>Moved to the archive.</p><span className="mt-1 flex gap-3"><span className="toast-action">Undo</span></span></div>
-              <span className="btn btn-quiet btn-xs btn-icon"><IconClose /></span>
-            </div>
-          </Still>
-        </Cell>
-        <Cell state="Dialog" wide>
-          <Still caption={'A confirm: the title names the object; the one filled red button deletes.'}>
-            <div className="dialog-still dialog-sm">
-              <div className="dialog-head"><span className="h2 min-w-0 flex-1">{`Delete “${'The Kite'}”?`}</span><span className="btn btn-quiet btn-sm btn-icon"><IconClose /></span></div>
-              <div className="dialog-body"><p className="text-body">Its seasons, episodes and shots go with it.</p><p className="mt-2 text-muted">Its characters and locations stay in the studio.</p></div>
-              <div className="dialog-foot"><span className="btn btn-quiet">Cancel</span><span className="btn btn-danger-solid">Delete</span></div>
+        <Cell state="Dialog (440)" wide>
+          <Still caption="Title 16/22, the body 8 below, the footer 24 below; quiet Cancel, then the confirm">
+            <div className="dlg dialog dialog-sm kit-spec-dialog-still">
+              <div className="dialog-frame">
+                <header className="dialog-head"><h2 className="t-title dialog-title">Delete “The Kite”?</h2><span className="btn btn-quiet btn-icon btn-sm dialog-close"><IconClose /></span></header>
+                <div className="dialog-body"><p className="t-body confirm-body">Its seasons, episodes and cuts go with it.</p><p className="t-body confirm-keep">The characters and locations are kept.</p></div>
+                <footer className="dialog-foot"><span className="btn btn-quiet">Cancel</span><span className="btn btn-danger-solid">Delete</span></footer>
+              </div>
             </div>
           </Still>
         </Cell>
       </SpecRow>
 
-      <Dialog open={dialog} onClose={() => setDialog(false)} title={'Rename the show'} description={'The new title shows everywhere the show appears.'}
-        footer={<><Button variant="quiet" onClick={() => setDialog(false)}>Cancel</Button><Button variant="primary" onClick={() => { setDialog(false); toast.ok('Saved.'); }}>Save</Button></>}>
-        <Field label={'Title'} help={'Shown on the key art and in the catalogue.'}><Input defaultValue={'The Kite'} /></Field>
-        <Field label={'Logline'} optional className="mt-5"><Input /></Field>
+      <Dialog open={dialog} onClose={() => setDialog(false)} title="Rename the show" description="The new title shows on the key art and in the catalogue."
+        footer={<><Button variant="quiet" onClick={() => setDialog(false)} data-testid="dialog-cancel">Cancel</Button><Button variant="primary" onClick={() => { setDialog(false); toast.ok('Saved'); }} data-testid="dialog-save">Save</Button></>}>
+        <Field label="Title" help="Shown on the key art and in the catalogue."><Input defaultValue="The Kite" data-testid="dialog-title" /></Field>
+        <Field label="Logline" optional><Input /></Field>
       </Dialog>
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title={'Activity'}>
+      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Activity" footer={<Button onClick={() => setDrawer(false)}>Close</Button>}>
         <ol className="rows">
-          {[['running', 'kit.spec.drawer.l1'], ['done', 'kit.spec.drawer.l2'], ['failed', 'kit.spec.drawer.l3']].map(([tone, k]) => (
-            <li key={k} className="row"><StateWord tone={tone as 'running' | 'done' | 'failed'}>{T(k as 'kit.spec.drawer.l1')}</StateWord></li>
-          ))}
+          <li className="row"><StateWord tone="running">Drawing shot 7 of 20</StateWord></li>
+          <li className="row"><StateWord tone="done">The story was approved</StateWord></li>
+          <li className="row"><StateWord tone="failed">A take failed: out of memory</StateWord></li>
         </ol>
       </Drawer>
+      <Sheet open={sheet} onClose={() => setSheet(false)} title="More">
+        <nav aria-label="More" className="kit-spec-sheet-list">
+          <a className="menu-item" href="#overlays">Locations</a>
+          <a className="menu-item" href="#overlays">Production</a>
+          <a className="menu-item" href="#overlays">Screening Room</a>
+          <a className="menu-item" href="#overlays">Settings</a>
+        </nav>
+      </Sheet>
     </SpecSection>
   );
 }

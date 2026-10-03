@@ -88,7 +88,6 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
     case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : seg[1]] : ['New…'];
     // the dev-only specimen pages of the interface kit (F2) and the media kit (F3)
     case 'kit': return ['Interface kit'];
-    case 'kit-media': return ['Media kit'];
     default: return [];
   }
 }

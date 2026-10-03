@@ -1,12 +1,13 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useId, useMemo, type ReactNode } from 'react';
-import { IconFilterList, IconGrid, IconList, IconSearch } from '../icons';
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react';
+import { IconGrid, IconList, IconSearch } from '../icons';
 import { Button } from './Button';
 import { Segmented } from './Choice';
 import { cls } from './cls';
-import { MenuButton, MenuItem, Popover } from './Overlay';
+import { FiltersButton, FiltersDrawer } from './Filters';
+import { MenuButton, MenuItem } from './Overlay';
 import { FilterChip } from './Status';
 
 /** THE CATALOGUE BAR (docs/DESIGN-SYSTEM-V4.md §5.11; replaces LibraryBar and the rows of selects, V4-09):
@@ -95,6 +96,7 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
   /** anything else on the row's end (rare) */ extra?: ReactNode; className?: string;
 }) {
   const id = useId();
+  const [open, setOpen] = useState(false);
   const count = activeFilterCount(filters);
   const labelOf = (facet: Facet, value: string) => facet.options.find((o) => o.value === value)?.label ?? value;
   const set = (f: Filters) => onFilters?.(f);
@@ -108,26 +110,7 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
         </label>
         <div className="catalogue-controls">
           {facets.length > 0 && onFilters && (
-            <Popover label={'Filter'} count={count} icon={<IconFilterList aria-hidden />} title={'Filters'} variant="secondary" panelClassName="filter-panel">
-              {facets.map((facet) => (
-                <fieldset key={facet.id} className="filter-facet">
-                  <legend className="label">{facet.label}</legend>
-                  {(facet.kind ?? 'one') === 'one' ? (
-                    <Segmented label={facet.label} value={filters[facet.id]?.[0] ?? ''} onChange={(v) => set(toggleFilter(filters, facet.id, v, 'one'))}
-                      options={[{ value: '', label: 'All' }, ...facet.options.map((o) => ({ value: o.value, label: o.label }))]} />
-                  ) : (
-                    <span className="filter-checks">
-                      {facet.options.map((o) => (
-                        <label key={o.value} className="flex cursor-pointer items-center gap-2.5 text-sm">
-                          <input type="checkbox" className="check" checked={filters[facet.id]?.includes(o.value) ?? false} onChange={() => set(toggleFilter(filters, facet.id, o.value, 'many'))} />
-                          <span dir="auto">{o.label}</span>
-                        </label>
-                      ))}
-                    </span>
-                  )}
-                </fieldset>
-              ))}
-            </Popover>
+            <FiltersButton count={count} onClick={() => setOpen(true)} expanded={open} />
           )}
           {sorts && onSort && (
             <MenuButton label={`${'Sort'}: ${sortLabel ?? ''}`} display={<><span className="catalogue-sort-prefix">{'Sort'}: </span>{sortLabel}</>} variant="quiet" caret align="end">
@@ -143,6 +126,10 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
           {extra}
         </div>
       </div>
+      {facets.length > 0 && onFilters && (
+        <FiltersDrawer open={open} onClose={() => setOpen(false)} value={filters} onChange={(f) => set(f)}
+          facets={facets.map((f) => ({ id: f.id, label: f.label, multiple: (f.kind ?? 'one') === 'many', options: f.options }))} />
+      )}
       {count > 0 && onFilters && (
         <div className="catalogue-chips" aria-label={'Active filters'} role="group">
           {facets.flatMap((facet) => (filters[facet.id] ?? []).map((v) => (

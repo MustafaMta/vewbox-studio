@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
-import { IconPlus, IconRetry } from '../../icons';
+import { IconPlus } from '../../icons';
 import { ApprovalCard } from '../ApprovalCard';
 import { Button, LinkButton } from '../Button';
 import { Segmented } from '../Choice';
@@ -11,54 +10,10 @@ import { CreationShell, MadeNotice, ReviewActions, Stepper, useMethodOptions, ty
 import { Field, SaveWord, SettingsSummary, Textarea } from '../Field';
 import { MenuButton, MenuItem } from '../Overlay';
 import { PageHeader } from '../PageHeader';
-import { ErrorNotice, LoadingFrame, LoadingLine, Notice, PageEmpty, PartialLine, SampleBadge, SectionEmpty, TextBars } from '../States';
+import { ErrorNotice, SampleBadge, TextBars } from '../States';
 import { StateWord } from '../Status';
 import { TabBar } from '../Tabs';
-import { Cell, Slot, SpecRow, SpecSection } from './parts';
-
-export function StatesSpec() {
-  return (
-    <SpecSection id="states" title={'Empty, loading, error and partial'} lead={'An empty page is a title card in its own shape and one sentence that is not the lead. Raw errors stay inside Details.'}>
-      <SpecRow label="PageEmpty">
-        <div className="min-w-0 flex-1">
-          <PageEmpty art={<Slot ratio="16/9" className="w-[min(100%,22rem)]">Title card (media kit)</Slot>}
-            primary={<Button variant="primary" icon={<IconPlus />}>New show</Button>}
-            alternatives={<Button>Write it yourself</Button>}>
-            {'Your first show will stand here. Start with one line, or write it yourself.'}
-          </PageEmpty>
-        </div>
-      </SpecRow>
-      <SpecRow label="SectionEmpty">
-        <SectionEmpty action={<Button size="sm">Choose locations</Button>}>No locations are chosen for this episode yet.</SectionEmpty>
-      </SpecRow>
-      <SpecRow label={'Loading'}>
-        <Cell state="16:9"><LoadingFrame ratio="16/9" label={'Loading the key art'} className="w-[14rem]" /></Cell>
-        <Cell state={'With a phase'}><LoadingFrame ratio="2/3" phase={'Drawing'} lines={1} className="w-[8rem]" /></Cell>
-        <Cell state="TextBars"><div className="w-[12rem]"><TextBars lines={3} /></div></Cell>
-        <Cell state="LoadingLine" wide><LoadingLine /></Cell>
-      </SpecRow>
-      <SpecRow label="ErrorNotice">
-        <div className="min-w-0 flex-1">
-          <ErrorNotice live={false} title={'The engine returned nothing usable.'} why={'It ran, but what came back did not pass the checks.'} kept={'The earlier takes are kept.'}
-            action={<Button size="sm" icon={<IconRetry />}>Try again</Button>} alternatives={<Button size="sm" variant="quiet">Open the job</Button>}
-            details="RuntimeError: out of memory while sampling (step 14 of 30) at sampler.run (graph node 7)" />
-        </div>
-      </SpecRow>
-      <SpecRow label="PartialLine · SAMPLE">
-        <PartialLine items={['Episode 4', 'cut missing', '18 of 20 shots chosen']} />
-        <SampleBadge />
-      </SpecRow>
-      <SpecRow label="Notice">
-        <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">
-          <Notice tone="info" title={'Drafts are kept for this session.'} />
-          <Notice tone="ok" title={'Episode 3 is ready to screen.'} />
-          <Notice tone="warn" title={'This character is in two videos: the look is kept.'} />
-          <Notice tone="bad" title={'The song could not be read.'} icon={undefined} />
-        </div>
-      </SpecRow>
-    </SpecSection>
-  );
-}
+import { Slot, SpecRow, SpecSection } from './parts';
 
 function Paper() {
   return <div className="paper prose-copy p-5" dir="auto">Abu Samir’s café, at dusk. The radio crackles; Amina turns the dial until a voice answers. “Is anyone still listening?”</div>;
@@ -145,7 +100,7 @@ export function CreationSpec() {
           moreControl={<Segmented label={'Length'} value={len} onChange={setLen} options={[{ value: '3', label: '3 min' }, { value: '6', label: '6 min' }, { value: '10', label: '10 min' }]} />}
         >
           <Field label={'What happens in this episode?'} optional><Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={'A line is enough.'} /></Field>
-          <SettingsSummary className="mt-4" items={['For The Last Sip · Season 2', T.dyn('style.CARTOON'), 'Arabic (Iraqi Baghdadi)']}>
+          <SettingsSummary className="mt-4" items={['For The Last Sip · Season 2', 'Cartoon', 'Arabic (Iraqi Baghdadi)']}>
             <Segmented label={'Length'} value={len} onChange={setLen} options={[{ value: '3', label: '3 min' }, { value: '6', label: '6 min' }]} />
           </SettingsSummary>
         </CreationShell>

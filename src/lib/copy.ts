@@ -347,9 +347,6 @@ const COPY = {
   // creation flows (§5.19)
 
   // ---- /kit, the specimen page (development only) ---------------------------------------------------------------
-  'kit.spec.drawer.l1': 'Drawing the frames of Episode 3',
-  'kit.spec.drawer.l2': 'The story of Episode 2 was approved',
-  'kit.spec.drawer.l3': 'Take 4 of shot 12 did not pass the check',
   // ---- media ---------------------------------------------------------------------------------------------------------
   // players
   'player.noTake.hint': 'A take appears here once one exists. Generate one from the shot, or upload a clip.',

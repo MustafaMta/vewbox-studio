@@ -14,10 +14,10 @@ import { FocusModeButton, FocusModeProvider } from '@/components/edit/FocusMode'
 import { VersionStack } from '@/components/edit/VersionStack';
 import { ToolButton, ToolRow } from '@/components/edit/ToolRow';
 import { EPISODE, SONGS } from './data';
-import { Block, Cell } from './ui';
+import { Block, Figure as Cell, SpecSection } from './parts';
 
 /** The cutting-room section of the specimen page (§5.12 strips and reel, §5.14, §5.20). */
-export function EditSection() {
+export function EditSpec() {
   const mixed = useMixedLabel();
   const shots = EPISODE.shots;
   const frames = shots.map((s) => ({ id: s.id, number: s.n, src: s.frame, label: s.purpose }));
@@ -36,8 +36,7 @@ export function EditSection() {
   const dur = shared(sel.map((s) => s.d));
 
   return (
-    <section id="edit" className="spec-section" aria-labelledby="spec-edit-h">
-      <h2 id="spec-edit-h" className="h2 spec-section-h">Cutting room</h2>
+    <SpecSection id="edit" title="Cutting room" lead="Strips, the reel, compare, the timeline and the docked workspace, at the compact density.">
 
       <Block title={'Film strips'}>
         <div className="spec-stack">
@@ -115,6 +114,6 @@ export function EditSection() {
           </div>
         </div>
       </Block>
-    </section>
+    </SpecSection>
   );
 }

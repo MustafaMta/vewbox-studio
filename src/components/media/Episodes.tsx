@@ -9,12 +9,12 @@ import type { Picture } from './art';
 import { Frame } from './Frame';
 import { Slate } from './Slate';
 import { StageMeter, type StageSegment } from './StageMeter';
-import { StillCard } from './tiles';
+import { MediaTile } from './Cards';
 
 /** EPISODE PRIMITIVES (docs/DESIGN-SYSTEM-V4.md §5.7), composed by the Show page (P1a).
- *  EpisodeCard — a StillCard whose frame is the chosen take's first frame or the first shot's opening frame; with
- *  neither, a title card with the episode number. Kind label "Episode 3", the title, two lines of synopsis, then the
- *  slate with the StageMeter beside the stage words (the meter is decorative; the words carry the state).
+ *  EpisodeCard — a media tile (16:9) whose frame is the chosen take's first frame or the first shot's opening frame;
+ *  with neither, a title card. The title, then "Episode 3 · 6 min" and the stage words with the StageMeter beside them
+ *  (the meter is decorative; the words carry the state); the cut's duration as the chip on the frame.
  *  EpisodeRow — the list view (the phone default), 104 px: number · still · title, one line of synopsis and the slate
  *  · runtime · chevron. The number becomes a ▶ button on hover and focus when a cut exists ("Play Episode 3").
  *  SeasonPicker — the section heading is the button ("Season 1 ⌄"); a menu of seasons with their episode counts, a
@@ -40,9 +40,8 @@ export interface EpisodeData {
 
 export function EpisodeCard({ e }: { e: EpisodeData }) {
   return (
-    <StillCard title={e.title} titleLang={e.titleLang} href={e.href} asset={e.asset} src={e.src} number={e.number} titleState="notMade"
-      kindLabel={`Episode ${e.number}`} synopsis={e.synopsis} duration={e.duration} menu={e.menu}
-      slate={[e.runtime]} status={<span className="ep-state"><StageMeter segments={e.segments} />{e.status}</span>} />
+    <MediaTile title={e.title} titleLang={e.titleLang} href={e.href} asset={e.asset} src={e.src} chip={e.duration ? <span className="tc">{e.duration}</span> : undefined}
+      meta={[`Episode ${e.number}`, e.runtime]} status={<span className="ep-state"><StageMeter segments={e.segments} />{e.status}</span>} />
   );
 }
 

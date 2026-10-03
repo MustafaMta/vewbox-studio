@@ -102,40 +102,15 @@
   /* ---- media tiles (§5.6): no card box. Frame → 12 → name (.t-card, one line) → 2 → meta (.t-meta, one line).
      One link wraps frame and text; hover zooms the picture only; focus is the ring 3 px around the whole tile;
      selected (pickers) is a 2 px light outline and a 24 px check. ---------------------------------------------------- */
-  .tile-title { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mtile { position: relative; min-inline-size: 0; container-type: inline-size; }
   .mtile-link { display: flex; flex-direction: column; align-items: stretch; inline-size: 100%; padding: 0; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
   .mtile-link:focus-visible { outline-offset: 3px; }
   div.mtile-link { cursor: default; }
   .mtile .tcard { --tcard-inset: 12px; }
-  .mtile[data-kind='keyart'] .tcard, .mtile[data-kind='plate'] .tcard, .mtile[data-kind='still'] .tcard { --tcard-inset: 16px; }
   .mtile-title { margin-block-start: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.005em; color: var(--text-1); }
-  .mtile[data-menu] .mtile-title { padding-inline-end: 36px; }
-  .mtile-kind { margin-block-start: 12px; }
-  .mtile[data-kindlabel] .mtile-title { margin-block-start: 2px; }
-  .mtile-sub, .mtile-meta { margin-block-start: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 18px; color: var(--text-3); }
-  .mtile-synopsis { margin-block-start: 4px; font-size: 13px; line-height: 18px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .mtile .mslate { margin-block-start: 2px; }
-  .mtile-reveal { margin-block-start: 4px; min-block-size: 36px; font-size: 13px; line-height: 18px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
-  .mtile:hover .mtile-reveal, .mtile:focus-within .mtile-reveal { opacity: 1; }
-  /* the menu sits outside the art, at the end of the title row: the frame's height is the tile width × 1/ratio */
-  .mtile-menu { position: absolute; inset-inline-end: -6px; inset-block-start: calc(100cqi * var(--tile-r) + 4px); }
-  .mtile[data-kindlabel] .mtile-menu { inset-block-start: calc(100cqi * var(--tile-r) + 22px); }
-  .mtile-disc { position: absolute; inset-inline-end: 12px; inset-block-start: calc(100cqi * var(--tile-r) - 40px - 12px); opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
-  .mtile:hover .mtile-disc, .mtile:focus-within .mtile-disc, .mtile-disc:has([data-playing]) { opacity: 1; }
-  .mtile-chip { position: absolute; inset-block-end: 8px; inset-inline-end: 8px; display: inline-flex; align-items: center; block-size: 22px; padding-inline: 8px; border-radius: var(--r-xs); background: var(--chip-on-art); color: var(--text-1); }
-  .mtile-chip .tc { font-size: 12px; line-height: 16px; }
-  .mtile-check { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); }
-  .mtile-check svg { inline-size: 14px; block-size: 14px; }
   .mtile[data-selected] .mtile-frame { outline: 2px solid var(--text-1); outline-offset: 3px; }
-  .mtile-light { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-3) var(--ease-out); }
-  .mtile-light[data-on] { opacity: 1; }
-  .mtile-loading { display: flex; flex-direction: column; }
-  .mtile-skel-frame { display: block; inline-size: 100%; border-radius: var(--r-md); background: var(--surface-1); animation: pulse-ph 1.4s ease-in-out infinite; }
-  .mtile-skel-line { display: block; inline-size: 60%; block-size: 12px; margin-block-start: 12px; border-radius: var(--r-xs); background: var(--surface-1); animation: pulse-ph 1.4s ease-in-out infinite; }
-  .mtile-skel-line[data-i='1'] { inline-size: 40%; margin-block-start: 8px; }
-  .mtile-skel-line[data-i='2'] { inline-size: 50%; margin-block-start: 8px; }
-  @media (hover: none) { .mtile-reveal, .mtile-disc { opacity: 1; } }
+  .mtile-meta { margin-block-start: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 18px; color: var(--text-3); min-block-size: 18px; }
+  .mtile-badge { display: flex; min-block-size: 22px; margin-block-start: 6px; }
 
   /* ---- the cards that draw pictures (media/Cards.tsx; Home is the visual reference) -------------------------------
      Every one is one link (or a toggle in a picker): focus is the ring 3 px outside; hover zooms the picture 1.03 over
@@ -153,7 +128,10 @@
      scrim, padding 28 14 12; radius 14, surface-1 under the picture */
   .mcard { position: relative; display: block; inline-size: 100%; overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); color: var(--text-1); text-decoration: none; }
   .mcard .frame, .mcard .tcard { border-radius: 0; }
-  .mcard .tcard-title { visibility: hidden; }
+  .mcard .tcard-title, .fcard .tcard-title { visibility: hidden; }
+  .mcard .tcard { --tcard-inset: 20px; }
+  .mcard:has(.tcard) .mcard-words { padding: 0 20px 20px; }
+  .mcard .frame-phase { inset-block: 8px auto; }
   .mcard-words { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 2px; padding: 28px 14px 12px; background: var(--scrim-poster); pointer-events: none; }
   .mcard:has(.tcard) .mcard-words { background: none; }
   .mcard-title, .mcard-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -230,6 +208,10 @@
   .dcard-desc { margin-block-end: 16px; }
   .dcard-verb { margin-block-start: auto; }
   .dcard-sk { pointer-events: none; }
+  .dcard .tcard-title { visibility: hidden; }
+  /* skeleton bars size from the card's width, not from their (empty) line */
+  .dcard-sk .dcard-body, .feat-card-sk .feat-words { align-items: stretch; }
+  :is(.dcard-sk, .feat-card-sk) .sk-block { align-self: flex-start; }
 
   /* ---- catalogue grids (§4.3): deterministic columns, set per breakpoint ------------------------------------ */
   .mgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: var(--row-gap) var(--col-gap); --col-gap: 16px; --row-gap: 24px; }
@@ -248,28 +230,6 @@
     .mgrid[data-tile='figure'] { --cols: 6; }
   }
 
-  /* ---- the rail (§5.6) --------------------------------------------------------------------------------------- */
-  .rail { min-inline-size: 0; }
-  .rail-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8) var(--s-12); margin-block-end: var(--s-16); }
-  .rail-title { display: inline-flex; align-items: baseline; gap: var(--s-8); margin: 0; }
-  .rail-count { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-3); }
-  .rail-spacer { flex: 1; }
-  .rail-nav { display: inline-flex; gap: var(--s-4); }
-  .rail-all { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: var(--r-sm); }
-  .rail-all:hover { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--text-1); text-underline-offset: 3px; }
-  .rail-list { --rail-item-w: 280px; display: flex; gap: var(--rail-gap); margin: -6px calc(-1 * var(--gutter)) -8px; padding: 6px var(--gutter) 8px; list-style: none; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); }
-  .rail-item { flex: none; inline-size: var(--rail-item-w); scroll-snap-align: start; }
-  .rail[data-item='poster'] .rail-list, .rail[data-item='sleeve'] .rail-list { --rail-item-w: 160px; }
-  .rail[data-item='figure'] .rail-list { --rail-item-w: 140px; }
-  .rail[data-item='keyart'] .rail-list, .rail[data-item='plate'] .rail-list { --rail-item-w: 300px; }
-  .rail[data-item='face'] .rail-list { --rail-item-w: 104px; }
-  @media (min-width: 1280px) {
-    .rail[data-item='still'] .rail-list { --rail-item-w: 320px; }
-    .rail[data-item='poster'] .rail-list, .rail[data-item='sleeve'] .rail-list { --rail-item-w: 205px; }
-    .rail[data-item='figure'] .rail-list { --rail-item-w: 167px; }
-    .rail[data-item='keyart'] .rail-list { --rail-item-w: 357px; }
-    .rail[data-item='plate'] .rail-list { --rail-item-w: 420px; }
-  }
 
   /* ---- episodes (§5.7) --------------------------------------------------------------------------------------- */
   .ep-state { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s-8); }
@@ -332,24 +292,6 @@
   a.cast-row-item:hover { color: var(--text-1); }
   .cast-row-more { display: inline-grid; place-items: center; min-inline-size: 28px; block-size: 28px; padding-inline: 6px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font-size: 13px; text-decoration: none; }
 
-  /* ---- the compact header (§5.2) ----------------------------------------------------------------------------- */
-  .chead { position: sticky; inset-block-start: var(--sticky-top); z-index: var(--z-compact); display: flex; align-items: center; gap: var(--s-12); block-size: var(--compact-h); margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); background: color-mix(in srgb, var(--page) 96%, transparent); border-block-end: 1px solid var(--line); }
-  .chead[data-mode='lobby'] { margin-block-end: calc(-1 * var(--compact-h)); opacity: 0; visibility: hidden; transform: translateY(-8px); transition: opacity var(--t-exit-fast) var(--ease-exit), transform var(--t-exit-fast) var(--ease-exit), visibility 0s linear var(--t-exit-fast); }
-  .chead[data-mode='lobby'][data-shown] { opacity: 1; visibility: visible; transform: none; transition: opacity var(--dur-2) var(--ease-enter), transform var(--dur-2) var(--ease-enter); }
-  .chead-thumb { flex: none; block-size: 32px; overflow: hidden; border-radius: var(--r-sm); background: var(--art-ph); }
-  .chead-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-  .chead > * { flex: none; }
-  .chead-title { flex: 0 1 auto; min-inline-size: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chead-status { flex: none; }
-  .chead-tabs { display: none; }
-  @media (min-width: 1280px) { .chead[data-mode='cutting'] .chead-tabs { display: block; margin-inline: auto; } }
-  .chead-save { font-size: 12px; color: var(--text-3); }
-  .chead > .prow-spacer { flex: 1 1 0; min-inline-size: 0; }
-  .chead .btn { max-inline-size: 12rem; overflow: hidden; white-space: nowrap; }
-  /* a phone keeps back, the thumbnail, the title, the primary and More; the status and SaveState wait for room */
-  @media (max-width: 767px) { .chead-save { display: none; } }
-  @media (max-width: 639px) { .chead-status { display: none; } .chead { gap: var(--s-8); } }
-  @media (max-width: 359px) { .chead .btn:not(.btn-icon) { max-inline-size: 45%; justify-content: flex-start; } }
 
   /* ---- the heroes (§5.3) ------------------------------------------------------------------------------------- */
   .mhero { position: relative; min-inline-size: 0; }
@@ -448,15 +390,7 @@
   .mhero-theatre .mhero-text { margin-block-start: var(--s-24); }
   @media (min-width: 1440px) { .mhero-theatre-main[data-notes] { grid-template-columns: minmax(0, 1fr) 320px; } }
 
-  /* ---- the specimen sections (components/media/Specimens.tsx; dev only) ---------------------------------------- */
-  .spec-page { display: flex; flex-direction: column; gap: var(--s-12); }
-  .spec-page > .page-title { margin: 0; }
-  .spec-lead { margin: 0; }
-  .spec-nav { font-size: 13px; color: var(--text-3); }
-  .spec-nav a { color: var(--text-2); }
-  .spec { display: flex; flex-direction: column; gap: var(--s-64); margin-block-start: var(--s-32); }
-  .spec-section { display: flex; flex-direction: column; gap: var(--s-48); scroll-margin-block-start: var(--s-24); }
-  .spec-section-h { margin: 0; padding-block-end: var(--s-12); border-block-end: 1px solid var(--line); }
+  /* ---- the /kit specimen's media, player and cutting-room blocks (kit/specimen; dev only) ---------------------------------------- */
   .spec-block { display: flex; flex-direction: column; gap: var(--s-16); min-inline-size: 0; }
   .spec-h { margin: 0; }
   .spec-cell { display: flex; flex-direction: column; gap: var(--s-8); min-inline-size: 0; margin: 0; }
@@ -470,8 +404,6 @@
   .spec-faces { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-16); }
   .spec-hero { gap: var(--s-12); padding-block-end: var(--s-24); border-block-end: 1px solid var(--line); }
   .spec-theatre-room { padding: var(--s-16); background: var(--page); }
-  .spec-compact { position: relative; padding-block: var(--s-8); }
-  .spec-compact .chead { position: relative; inset-block-start: 0; margin-inline: 0; }
   .spec-preview { position: relative; aspect-ratio: 16 / 9; max-inline-size: 720px; overflow: hidden; border-radius: var(--r-md); background: var(--art-ph); }
   .spec-canvas { max-inline-size: 960px; }
   .spec-music { display: grid; gap: var(--s-32); }

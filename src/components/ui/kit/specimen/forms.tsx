@@ -5,7 +5,8 @@ import { STYLES } from '@/domain/vocabulary';
 import { T } from '@/lib/copy';
 import { Button } from '../Button';
 import { Segmented } from '../Choice';
-import { Checkbox, ChipInput, ErrorSummary, Field, FormFooter, Input, SaveWord, Select, SettingsSummary, ShapedDropzone, Textarea, Toggle } from '../Field';
+import { Checkbox, ChipInput, Dropzone, ErrorSummary, Field, FormFooter, Input, SaveWord, Select, SettingsSummary, ShapedDropzone, Textarea, Toggle } from '../Field';
+import { FilterChips, FiltersButton, FiltersDrawer, SearchField } from '../Filters';
 import { Recorder } from '../Recorder';
 import { Cell, SpecRow, SpecSection } from './parts';
 
@@ -18,7 +19,7 @@ export function FormsSpec() {
   const [refused, setRefused] = useState<string | null>(null);
   const styleOptions = STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }));
   return (
-    <SpecSection id="forms" title={'Forms'} lead={'Fields are 40 px (compact 32), the focus is an iris edge, and every message is tied to its field.'}>
+    <SpecSection id="forms" title={'Forms'} lead={'Fields are 40 px (compact 32) on surface-1 with the control boundary; the focus is the light ring; every message is tied to its field.'}>
       <SpecRow label="Field">
         <Cell state={'Rest'} wide><Field label={'Title'} help={'Shown on the key art and in the catalogue.'}><Input placeholder={'The Kite'} /></Field></Cell>
         <Cell state={'Hover'} wide><Field label={'Title'}><Input className="is-hover" defaultValue={'The Kite'} /></Field></Cell>
@@ -68,6 +69,14 @@ export function FormsSpec() {
         <Cell state={`16:9 · ${'Error'}`} wide><ShapedDropzone ratio="16/9" label={'A photo of the place'} accept="image/png,image/jpeg" onFile={() => undefined} error={'SVG and GIF are refused. Choose a PNG or a JPEG.'} className="w-[18rem]" /></Cell>
         <Cell state="4:1" wide><ShapedDropzone ratio="4/1" label={'The song file'} accept="audio/*" onFile={() => undefined} className="w-[22rem] max-w-full" /></Cell>
       </SpecRow>
+      <SpecRow label="Dropzone (upload)">
+        <Cell state={'Rest'} wide><Dropzone label="Drop a song file here, or choose one" hint="MP3, WAV or M4A · up to 50 MB" accept="audio/*" onFile={() => undefined} /></Cell>
+        <Cell state={'Drag over'} wide><div className="kit-spec-drag"><Dropzone label="Drop to upload" hint="One file" accept="audio/*" onFile={() => undefined} /></div></Cell>
+        <Cell state={'Uploading'} wide><Dropzone label="river-lights.m4a" accept="audio/*" onFile={() => undefined} progress={0.42} /></Cell>
+        <Cell state={'Error'} wide><Dropzone label="Drop a song file here, or choose one" hint="MP3, WAV or M4A" accept="audio/*" onFile={() => undefined} error={'That file is not audio. Choose an MP3, WAV or M4A.'} /></Cell>
+        <Cell state={'Disabled, with its reason'} wide><Dropzone label="Upload a song" accept="audio/*" onFile={() => undefined} disabledReason="The library is read-only while the studio is paused." /></Cell>
+        <Cell state={'Row'} wide><Dropzone row label="Add a reference picture" hint="PNG or JPEG" accept="image/*" onFile={() => undefined} /></Cell>
+      </SpecRow>
       <SpecRow label="Recorder">
         <div className="min-w-0 flex-1 max-w-[var(--measure-form)]"><Recorder onRecorded={() => undefined} primary /></div>
       </SpecRow>
@@ -93,6 +102,41 @@ export function FormsSpec() {
           </div>
         </div>
       </SpecRow>
+    </SpecSection>
+  );
+}
+
+export function SearchSpec() {
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState<string[]>(['finished']);
+  const [open, setOpen] = useState(false);
+  const [filters, setFilters] = useState<Record<string, string[]>>({ style: ['CARTOON'] });
+  const count = Object.values(filters).reduce((n, v) => n + v.length, 0) + status.length;
+  return (
+    <SpecSection id="search" title="Search and filters" lead="A catalogue shows a chip row and one Filters button (more than six items); the drawer holds every facet. The state belongs in the URL (useCatalogueParams).">
+      <SpecRow label="SearchField">
+        <Cell state="Empty" wide><SearchField value={q} onChange={setQ} label="Search the shows" placeholder="Search the shows" /></Cell>
+        <Cell state="With a query" wide><SearchField value="kite" onChange={() => undefined} label="Search the shows (filled)" /></Cell>
+        <Cell state="Disabled" wide><SearchField value="" onChange={() => undefined} label="Search the shows (disabled)" disabled /></Cell>
+      </SpecRow>
+      <SpecRow label="FilterChips · FiltersButton">
+        <div className="kit-spec-wide">
+          <div className="filter-row">
+            <FilterChips label="Status" multiple value={status} onChange={setStatus} options={[
+              { value: 'finished', label: 'Finished', count: 4 }, { value: 'producing', label: 'Producing', count: 2 }, { value: 'waiting', label: 'Waiting for you', count: 1 },
+              { value: 'draft', label: 'Draft', count: 0, disabled: true, reason: 'No drafts' },
+            ]} />
+            <FiltersButton count={count} onClick={() => setOpen(true)} expanded={open} />
+          </div>
+          <div className="filter-row">
+            <span className="chip is-hover">Hover</span><span className="chip is-focus">Focus</span><span className="chip is-selected">Selected<span className="count">3</span></span><button type="button" className="chip" disabled>Disabled</button>
+          </div>
+        </div>
+      </SpecRow>
+      <FiltersDrawer open={open} onClose={() => setOpen(false)} value={filters} onChange={setFilters} resultCount={12} facets={[
+        { id: 'style', label: 'Style', options: [{ value: 'CARTOON', label: 'Cartoon' }, { value: 'ANIME', label: 'Anime' }, { value: 'REALISTIC', label: 'Realistic' }] },
+        { id: 'lang', label: 'Language', multiple: true, options: [{ value: 'EN', label: 'English' }, { value: 'AR', label: 'Arabic' }] },
+      ]} />
     </SpecSection>
   );
 }
