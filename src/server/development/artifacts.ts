@@ -26,6 +26,12 @@ export async function saveArtifact<T extends object>(a: { ideaJobId: string; sta
   }
 }
 
+/** The artifact a job already wrote for its stage (a retried job returns it instead of calling the model again). */
+export async function artifactOfJob<T = Record<string, unknown>>(ideaJobId: string, stage: DevelopmentStage, jobId: string): Promise<DevelopmentArtifact<T> | undefined> {
+  const [r] = await db().select().from(schema.developmentArtifacts).where(and(eq(schema.developmentArtifacts.ideaJobId, ideaJobId), eq(schema.developmentArtifacts.stage, stage), eq(schema.developmentArtifacts.jobId, jobId)));
+  return r ? toArtifact<T>(r) : undefined;
+}
+
 export async function loadArtifact<T = Record<string, unknown>>(id: string): Promise<DevelopmentArtifact<T> | undefined> {
   const [r] = await db().select().from(schema.developmentArtifacts).where(eq(schema.developmentArtifacts.id, id));
   return r ? toArtifact<T>(r) : undefined;

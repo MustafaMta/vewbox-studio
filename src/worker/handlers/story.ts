@@ -1,6 +1,6 @@
 import type { Handler } from './index';
 import { step } from './step';
-import type { IdeaPreferences, Scene } from '@/domain/types';
+import type { Scene } from '@/domain/types';
 import type { Dialect } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import type { CharacterInput } from '@/domain/actions';
@@ -12,30 +12,19 @@ import { latinizeField } from '@/server/workflows/canonical-image';
 import { performanceFor, shotWindows } from '@/domain/timeline';
 import { command, commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { db, schema } from '@/server/db/client';
 import { recordMetric } from '@/server/jobs/queue';
-import { continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, proposeIdea, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, writeScript as write, type PlannedShot } from '@/server/story/engine';
 import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightPlan } from '@/server/org/preflight';
 
-/** THE STORY HANDLERS — Auto Idea, Manual Brief development, script writing, shot planning. Each runs the engine,
+/** THE STORY HANDLERS — Manual Brief development, script writing, shot planning. Each runs the engine,
  *  then writes the result into the studio through commands (so the browser sees it like any other change). */
 
 const metric = (jobId: string, r: LlmResult) => recordMetric('llm.ms', r.ms, 'ms', { provider: r.provider, model: r.model, in: r.inputTokens ?? 0, out: r.outputTokens ?? 0 }, jobId);
 
-export const autoIdea: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string };
-  await ctx.progress('GENERATING', { phase: 'writing', message: 'Writing a proposal' });
-  const { state } = await readState();
-  const proposal = await ctx.tool('story.structured_answer', () => proposeIdea(state, payload, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'proposal', input: { task: 'proposal', kind: payload.kind, showId: payload.showId } });
-  await ctx.checkpoint();
-  const id = nid('proposal');
-  await db().insert(schema.proposals).values({ id, jobId: ctx.job.id, request: payload, proposal, createdAt: new Date().toISOString() });
-  await ctx.activity('IDEA_PROPOSED', `Proposed ${payload.kind.toLowerCase().replace('_', ' ')}: “${proposal.title}”`, { proposalId: id });
-  return { proposalId: id, title: proposal.title };
-};
+/** AUTO_IDEA is the research-driven development pipeline in ./development.ts (docs/CONTRACTS-AUTO-IDEA.md). */
 
 /** THE CONTINUITY WRITER — after an episode is cut, the show's bible gains what happened, what changed between
  *  people and which storylines stay open; the next season or episode is proposed from it. */
