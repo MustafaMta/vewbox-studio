@@ -67,6 +67,20 @@ export function faceBoxOf(p: Pick<Picture, 'presentation' | 'provenance' | 'widt
   return { x: Math.max(0, box.x + box.w / 2 - w / 2), y: box.y, w, h };
 }
 
+/** A figure shown in a wider frame (a decision card, a recent tile; VISUAL-STANDARD-V5.1 §5.7): `object-position` that
+ *  puts the face centre at `at` (38 %) of the visible height, never cropping above the head; without a face box,
+ *  `50% 8%`. The picture is assumed to fill the frame's width (`cover` of a taller image). */
+export function portraitPosition(pic: Pick<Picture, 'presentation' | 'provenance' | 'width' | 'height'> | null | undefined, frame: FrameRatio = '16/9', at = 0.38): string {
+  const box = faceBoxOf(pic);
+  if (!box) return '50% 8%';
+  const W = pic?.width ?? 928, H = pic?.height ?? 1664;
+  const visible = (W / RATIO_VALUE[frame]) / H;   // the share of the picture's height the frame shows
+  if (!(visible < 1)) return '50% 50%';
+  const face = box.y + box.h / 2;
+  const top = Math.min(1 - visible, Math.max(0, face - at * visible));
+  return `50% ${+((top / (1 - visible)) * 100).toFixed(2)}%`;
+}
+
 /** Where to place the image inside a circle so the face box fills it: width and offsets in % of the circle. */
 export function faceCrop(box: { x: number; y: number; w: number; h: number }, width = 1, height = 1): { size: number; x: number; y: number; aspect: number } {
   const bw = box.w * width, bh = box.h * height;

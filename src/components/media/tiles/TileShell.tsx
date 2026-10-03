@@ -78,8 +78,8 @@ export function TileShell(p: ShellProps) {
     <>
       {frame}
       {p.kindLabel && <span className="mtile-kind caption">{p.kindLabel}</span>}
-      <span className="mtile-title tile-title" id={`${id}-t`} dir="auto" lang={p.titleLang}>{p.title}</span>
-      {p.sub && <span className="mtile-sub" dir="auto" lang={p.subLang}>{p.sub}</span>}
+      <span className="mtile-title tile-title name" id={`${id}-t`} title={p.title}><bdi lang={p.titleLang}>{p.title}</bdi></span>
+      {p.sub && <span className="mtile-sub name"><bdi lang={p.subLang}>{p.sub}</bdi></span>}
       {p.synopsis && <span className="mtile-synopsis" dir="auto">{p.synopsis}</span>}
       <Slate items={p.slate ?? []} status={p.status} size="tile" />
       {p.reveal && <span className="mtile-reveal" dir="auto">{p.reveal}</span>}
