@@ -209,102 +209,19 @@ experiment records `docs/evidence/minimax-p1/*.graph.json`.
 
 ## 3. Recommended stack, per capability (families as in §4)
 
-**3.1 Image generation: Qwen-Image-2512 (keep).**
-
-- **Why:** the best finish in the repo A/B (4.75 vs 4.25), garment fidelity, 0/12 failures, and the highest-ranked
-  commercially usable open T2I.
-- **VRAM:** fp8 DiT 20.4 GB + fp8 TE 9.4 GB, ComfyUI-managed, with the TE offloaded after encoding; the card measured
-  29.6–31.7 GB [R].
-- **Download / Docker:** none. **Upgrade path:** Qwen-Image-2.1, after a licence.
-
-**3.2 Image editing and shot frames: Qwen-Image-Edit-2511 (keep).**
-
-- **Why:** the best Apache editing model on the arena (1021).
-- **VRAM:** ≤ 31.9 GB [R]. Hold **one** 20 GB DiT at a time. On a 2512 ↔ 2511 switch the lease frees ComfyUI's
-  models, and reloading costs about 19 s [R, cold vs warm].
-
-**3.3 Reference-based identity: klein 4B distilled + MediaPipe + Qwen3.5-4B read (keep).**
-
-- **Why:** the measured A/B: whole figure 24/24 vs 17/24, 0 invented attributes, 27× faster. klein 9B is better on
-  the arena but NC.
-- **VRAM:** ≈ 22 GB [R].
-- **Cleanup:** the klein Base file (7.75 GB) can be deleted.
-
-**3.4 Canonical locations: a 2512 master plate, then Edit-2511 views (keep).** One plate per location is the World
-Bible anchor, and H3 reuses it as a `<Picture k>` reference.
-
-**3.5 Posters: a new workflow, no new model.**
-
-1. Draw the 2:3 key art with 2512 in quality mode, without text. Use Edit-2511 with the canonical images and the
-   plate when the cast must match.
-2. Typeset the EN and AR titles and credits in the worker (server-side SVG/canvas or ffmpeg `drawtext`, with a
-   licensed Arabic font).
-
-- **Why:** no open model documents Arabic glyphs, and a misspelled title cannot ship.
-- **Test:** in-model English titles are tested in §5.4 only as an option.
-
-**3.6 VLM / vision checks: Gemma 4 31B-it (new), with Qwen3.5-4B kept in-graph.**
-
-- **Why:** image input and Apache-2.0. One model does planning (§3.7) and QA: medium classification, anatomy flags,
-  garment checklists against the identity line, and poster OCR read-back. That is one download for two capabilities.
-  Qwen3.5-4B stays in the upload-read graph because it is wired, tested, and co-resident with klein.
-- **VRAM:** QAT Q4 19 GB + KV cache ≈ 22–23 GB [E].
-- **Docker (`llm`):**
-  - Pin a current Ollama.
-  - Set `OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat`.
-  - Add `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0` and `OLLAMA_CONTEXT_LENGTH=16384`, verified on the
-    pinned version.
-  - Remove `qwen3:14b` from the volume.
-- **Challenger:** Qwen3.6-27B, only if Gemma fails §5.6 L3.
-
-**3.7 LLM for story planning: Gemma 4 31B locally; hosted Anthropic or MiniMax-M3 (keep).**
-
-- **Why:** the best open model on Mizan's Iraqi track that fits one card (82.4), and Apache-2.0.
-- **Hosting:** the hosted model stays first when a key exists (`LLM_PROVIDER=auto`).
-- **Staging:** Gemma runs in the planning phase and is evicted on the lease switch (`OLLAMA_KEEP_ALIVE` stays 2m).
-
-**3.8 Video: MiniMax H3 local (keep) + hosted H3 for finals.**
-
-- **Why:** the exclusive engine by policy; the pruned int8 is numerically the full 33B model; reference + guide
-  combination is verified; measured on this card.
-- **Licence:** attribution in the UI, a US$20M cap, excluded territories. A Comfy-resold commercial licence is needed
-  for any EU, UK, South Korea or USA release.
-- **Staging:**
-  1. The nvfp4 TE (15.7 GB) encodes, then moves to RAM.
-  2. The DiT (21 GB), VAEs and LoRA stay resident: 22–32 GB on the card [R].
-  3. This needs about 40 GB of free host RAM [E], hence the `.wslconfig` fix.
-  4. FL2VA ↔ Ref2VA switches free ComfyUI first; this is already in `generateVideo`.
-- **Docker:** none. Keep `--disable-comfy-compiler` and cu130.
-
-**3.9 ASR: large-v3 for English + dialectal-v2 for Arabic (new).**
-
-- **Why:** an Iraqi CER of 0.068 is claimed, and the vanilla model charges dialect spelling as errors. Apache-2.0.
-- **Install:**
-  - Download 6.17 GB.
-  - Convert once in a one-off container with `ct2-transformers-converter --quantization float16`; about 3.1 GB on
-    disk and about 3.7 GB VRAM [E].
-- **Docker:**
-  - A new manifest group, `asr-whisper-ar-dialect`.
-  - `asr` gets `ASR_MODEL_DIR_AR` and routes `language=ar` to it.
-  - A CPU int8 path for take gates during video batches (§4).
-
-**3.10 Voices (keep): IndexTTS 2.5 for English, Habibi IRQ for Iraqi, VoxCPM2 for design.**
-
-- **English:** A/B IndexTTS 2.5 against VoxCPM2's controllable cloning (48 kHz, already on disk; §5.7). The winner
-  becomes the English line engine, with no download either way.
-- **Iraqi:**
-  - Emotion comes from emotion-tagged authorised references per voice (neutral, angry, sad, happy), since Habibi has
-    no emotion input.
-  - Apply the VOICE-STACK D1/D7/D8 fixes: peak limiting, a VAD-chosen reference window, a pinned seed.
-  - No designed Iraqi voices.
-- **VRAM:** the audio family co-resides at ≈ 18–20 GB (6 + 1–2 + 7 + 3.7) [R sum].
-
-**3.11 Qwen-Image-2.1, evaluation only (licence-gated).**
-
-- **Files:** manifest group `eval-qwen-image-2.1`, outside the default `MODEL_GROUPS`. `qwen_image_2.1_int8_convrot`
-  7.26 GB + `qwen3vl_8b_int8_convrot` 9.35 GB + VAE 0.68 GB = **17.28 GB** [V].
-- **Rule:** if it beats 2512 or Edit-2511 by the margins in §5, the producer requests a commercial licence before any
-  production use.
+| # | Capability: choice | Why | VRAM / staging | Download, Docker change |
+|---|---|---|---|---|
+| 3.1 | **Image generation: Qwen-Image-2512** (keep) | Best finish in the repo A/B (4.75 vs 4.25), garment fidelity, 0/12 failures; the highest-ranked commercially usable open T2I | fp8 DiT 20.4 + fp8 TE 9.4 GB, TE offloaded after encoding; card 29.6–31.7 GB [R] | none. Upgrade path: Qwen-Image-2.1 after a licence |
+| 3.2 | **Editing, shot frames: Qwen-Image-Edit-2511** (keep) | Best Apache editing model on the arena (1021) | ≤ 31.9 GB [R]; **one** 20 GB DiT at a time; the lease frees ComfyUI on a 2512 ↔ 2511 switch (about 19 s reload [R]) | none |
+| 3.3 | **Reference identity: klein 4B distilled + MediaPipe + Qwen3.5-4B read** (keep) | Measured A/B: whole figure 24/24 vs 17/24, 0 invented attributes, 27× faster. klein 9B is better on the arena but NC | ≈ 22 GB [R] | none; the klein Base file (7.75 GB) can be deleted |
+| 3.4 | **Canonical locations: 2512 master plate, then Edit-2511 views** (keep) | One plate per location is the World Bible anchor; H3 reuses it as a `<Picture k>` reference | as 3.1 / 3.2 | none |
+| 3.5 | **Posters: 2512 key art, no text, then typeset** (new workflow) | No open model documents Arabic glyphs, and a misspelled title cannot ship | as 3.1 | Worker: 2:3 key art in quality mode (Edit-2511 with canonical + plate when the cast must match), then EN/AR titles and credits typeset with a licensed Arabic font (server-side SVG/canvas or ffmpeg `drawtext`) |
+| 3.6 | **VLM checks: Gemma 4 31B-it** (new); Qwen3.5-4B stays in the upload-read graph | Image input and Apache-2.0. One model does planning (3.7) and QA: medium classification, anatomy flags, garment checklists against the identity line, poster OCR read-back. The 4B stays because it is wired, tested and co-resident with klein | QAT Q4 19 GB + KV cache ≈ 22–23 GB [E] | 19 GB. `llm`: pin a current Ollama; `OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat`; `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`, `OLLAMA_CONTEXT_LENGTH=16384` (verify on the pinned version); remove `qwen3:14b`. Challenger Qwen3.6-27B only if L3 in §5.6 fails |
+| 3.7 | **Story LLM: Gemma 4 31B local; hosted Anthropic / MiniMax-M3** (keep hosted first via `LLM_PROVIDER=auto`) | Best open model on Mizan's Iraqi track that fits one card (82.4); Apache-2.0 | Planning phase only; evicted on the lease switch (`OLLAMA_KEEP_ALIVE` 2m) | same download as 3.6 |
+| 3.8 | **Video: MiniMax H3 local** (keep) + **hosted H3** for finals | The exclusive engine by policy; the pruned int8 is numerically the full 33B model; references + guides verified; measured on this card. Licence: UI attribution, US$20M cap, excluded territories (a Comfy-resold commercial licence for EU, UK, South Korea or USA releases) | The nvfp4 TE (15.7 GB) encodes and moves to RAM; DiT 21 GB + VAEs + LoRA resident, card 22–32 GB [R]; about 40 GB free host RAM needed [E], hence `.wslconfig`; `/free` before every FL2VA ↔ Ref2VA switch (already in `generateVideo`) | none (optional 1.96 GB 4-step LoRA); keep `--disable-comfy-compiler` and cu130 |
+| 3.9 | **ASR: large-v3 (EN) + whisper-large-v3-arabic-dialectal-v2 (AR)** (new) | Iraqi CER 0.068 claimed; the vanilla model charges dialect spelling as errors. Apache-2.0 | ≈ 3.7 GB each in CT2 fp16 [E], one loaded at a time by language | 6.17 GB; convert once in a one-off container (`ct2-transformers-converter --quantization float16`, about 3.1 GB on disk [E]); manifest group `asr-whisper-ar-dialect`; `asr` gets `ASR_MODEL_DIR_AR` and routes `language=ar`; a CPU int8 path for take gates during video (§4) |
+| 3.10 | **Voices: IndexTTS 2.5 (EN), Habibi IRQ (Iraqi), VoxCPM2 (design)** (keep) | EN: A/B IndexTTS against VoxCPM2 controllable cloning (48 kHz, on disk); the winner becomes the line engine. Iraqi: emotion from emotion-tagged authorised references per voice (Habibi has no emotion input); apply the VOICE-STACK D1/D7/D8 fixes (peak limit, VAD reference window, pinned seed); no designed Iraqi voices | the audio family co-resides at ≈ 18–20 GB (6 + 1–2 + 7 + 3.7) [R sum] | none |
+| 3.11 | **Qwen-Image-2.1, evaluation only** (licence-gated) | If it beats 2512 or Edit-2511 by the §5 margins, the producer requests a commercial licence before any production use | int8 DiT + int8 TE ≈ 17 GB of weights [V]; card unmeasured | 17.28 GB (`qwen_image_2.1_int8_convrot` 7.26 + `qwen3vl_8b_int8_convrot` 9.35 + VAE 0.68) [V]; group `eval-qwen-image-2.1`, outside the default `MODEL_GROUPS` |
 
 ## 4. GPU scheduling plan for the RTX 5090 (32 GB)
 
@@ -322,34 +239,27 @@ Bible anchor, and H3 reuses it as a `<Picture k>` reference.
    not per job.
 2. **No co-residence across families, except CPU work.** ECAPA, the framing check, ffmpeg and the take-gate ASR (CPU
    int8, 24 threads; target ≤ 0.5× real time, verify in §5.9) run during D, so video never waits for an audio swap.
-3. **VLM checks are batched.** An image batch's vision QA runs as one Gemma load after B. In-loop guards stay on the CPU
-   or in the graph (the framing check, Qwen3.5-4B in klein's graph).
-4. **Video is exclusive.**
-   - Before D, the lease unloads B and C and makes the speech services release host RAM (or restarts them).
-   - Every FL2VA ↔ Ref2VA switch calls `/free` first.
-   - Shots are ordered by checkpoint: all Ref2VA shots, then the reference-free FL2VA ones.
+3. **VLM checks are batched.** An image batch's vision QA runs as one Gemma load after B. In-loop guards stay on the
+   CPU or in the graph (the framing check, Qwen3.5-4B in klein's graph).
+4. **Video is exclusive.** Before D, the lease unloads B and C and makes the speech services release host RAM (or
+   restarts them). Every FL2VA ↔ Ref2VA switch calls `/free` first. Shots are ordered by checkpoint: all Ref2VA shots,
+   then the reference-free FL2VA ones.
 5. **Host RAM.** With `memory=80GB`, the staged H3 TE (≈ 16 GB) and the DiT page cache (≈ 21 GB) fit beside one idle
    service family. Without it, keep "free everything before D".
-6. **Expected GPU time** for a 10-shot, 60 s short [E from R]: about 45–55 min.
-
-   | Phase | Work | Time |
-   |---|---|---|
-   | A | planning | about 5 min |
-   | B | 6 characters + 3 plates + 10 frames | 15–20 min |
-   | C | voices | about 5 min |
-   | D | 10 clips + 2 switches | 15–20 min |
-   | E | music | about 2 min |
+6. **Expected GPU time** for a 10-shot, 60 s short [E from R]: about 45–55 min. A planning about 5 min; B (6
+   characters + 3 plates + 10 frames) 15–20 min; C voices about 5 min; D (10 clips + 2 switches) 15–20 min; E music
+   about 2 min.
 
 ## 5. Test plan (a later phase; generation stays paused)
 
-**Common rules for every test:**
+**Common rules:**
 
 - Seeds 970007 and 970008; one cold run, then warm runs.
-- Record the engine time and the card peak (nvidia-smi every 200 ms), using the studio's own builders.
+- Record engine time and card peak (nvidia-smi every 200 ms), through the studio's own builders.
 - Store results in `docs/evidence/model-stack-2026-10/`.
 - Arms are blind-labelled. One reviewer for everything, plus **two native Baghdadi listeners** for Arabic.
 
-**5.1 Characters: cartoon, anime, realistic (T2I canonical).** Arms: 2512 (shipping) vs Qwen-Image-2.1 (eval).
+**5.1 Characters: cartoon, anime, realistic (T2I canonical).** Arms: 2512 (shipping) vs Qwen-Image-2.1 (evaluation).
 
 | ID | Style | Prompt (shipping order: medium, framing, identity) |
 |---|---|---|
@@ -357,26 +267,17 @@ Bible anchor, and H3 reuses it as a `<Picture k>` reference.
 | C2 | Anime | "A 2D anime character, cel-shaded, clean line art, flat colours. Front view, full body, neutral pose, plain background. A 17-year-old courier girl, short black bob, amber eyes, yellow rain jacket, navy shorts over black leggings, red sneakers, messenger bag strap across her left shoulder." |
 | C3 | Realistic | "A photograph, 85 mm, soft studio light. Front view, full body, neutral pose, seamless grey backdrop. A 34-year-old Iraqi pharmacist woman, petite, olive skin, greying hair in a low bun, thin gold glasses, white coat over a burgundy blouse, name badge on the left chest, steel watch on the left wrist." |
 
-- **Pass, every arm:**
-  - framing check 12/12
-  - medium right 12/12 (Gemma 3-way classification, confirmed by eye)
-  - identity tokens ≥ 95 %
-  - one-sided details ≥ 17/26 (the repo baseline)
-  - 0 major anatomy errors
-  - finish ≥ 4.5/5
-- **Replacement rule:** 2.1 replaces 2512 only with finish +0.25, no gate worse, and a signed licence.
+**Pass:** framing check 12/12; medium right 12/12 (Gemma 3-way classification, confirmed by eye); identity tokens
+≥ 95 %; one-sided details ≥ 17/26 (the repo baseline); 0 major anatomy errors; finish ≥ 4.5/5.
+2.1 replaces 2512 only with finish +0.25, no gate worse, and a signed licence.
 
 **5.2 Reference-based creation and identity fidelity.**
 
 - **Uploads (≥ 10):** a head shot, a bust and a waist-up photo, a full-length photo, two drawings, an anime still, and
   one consenting real person.
 - **Arms:** klein 4B (shipping) vs Qwen-Image-2.1 multi-reference.
-- **Pass:**
-  - whole figure ≥ 95 %
-  - 0 invented attributes
-  - realistic SFace ≥ 0.60 on every redraw
-  - anime CCIP no worse than 0.028
-  - eye likeness ≥ 3.50
+- **Pass:** whole figure ≥ 95 %; 0 invented attributes; realistic SFace ≥ 0.60 on every redraw; anime CCIP no worse
+  than 0.028; eye likeness ≥ 3.50.
 
 **5.3 Editing and canonical locations.**
 
@@ -385,36 +286,22 @@ Bible anchor, and H3 reuses it as a `<Picture k>` reference.
 - **L2** (Edit-2511, plate as image1): "reverse angle from the far end" · "close view of one book stall" · "same street
   at dusk with lamps lit".
 - **E1:** "Place the kite-maker (image2) at the second stall of the market (image1), three-quarter view, holding a red
-  kite, morning light". Repeat for C2 and C3.
-- **Pass:**
-  - landmarks kept in 3/3 views (arcade rhythm, signage)
-  - SFace vs canonical ≥ 0.50 (realistic)
-  - garments 100 % by checklist
-  - no duplicate person
-  - ≤ 1 minor anatomy error per 12 frames
+  kite, morning light". Repeat with C2 and C3.
+- **Pass:** landmarks kept in 3/3 views (arcade rhythm, signage); SFace vs canonical ≥ 0.50 (realistic); garments
+  100 % by checklist; no duplicate person; ≤ 1 minor anatomy error per 12 frames.
 
 **5.4 Posters.**
 
 - **P1** (2512): "Vertical film poster key art, the kite-maker on a Baghdad rooftop at dusk releasing a red kite, the
-  courier girl looking up beside him, space for a title at the top, cinematic lighting". Then typeset "THE KITE MAKER"
-  and «صانع الطائرات الورقية».
+  courier girl looking up beside him, space for a title at the top, cinematic lighting". Then typeset
+  "THE KITE MAKER" and «صانع الطائرات الورقية».
 - **P2:** P1 + "title text 'THE KITE MAKER' in large serif capitals".
-- **Pass:**
-  - P1 cast matches canon (eye; SFace ≥ 0.5 for realistic)
-  - a free title area ≥ 20 % of the height
-  - P2: OCR exact match in ≥ 3/4 seeds, which decides whether in-model English titles are allowed. Arabic is always
-    typeset.
+- **Pass:** the P1 cast matches canon (eye; SFace ≥ 0.5 for realistic); title area ≥ 20 % of the height. P2's OCR
+  exact match in ≥ 3/4 seeds decides whether in-model English titles are allowed. Arabic is always typeset.
 
-**5.5 Anatomy and style stress.** 6 poses × 3 styles × 2 seeds:
-
-- hands holding a tea glass
-- crossed arms
-- sitting cross-legged
-- a handshake
-- running mid-stride
-- a child on a parent's shoulders
-
-**Pass:** fingers and limbs right in ≥ 34/36 (by eye, with Gemma flags as a pre-filter); style right in ≥ 35/36.
+**5.5 Anatomy and style stress.** 6 poses × 3 styles × 2 seeds: hands holding a tea glass, crossed arms, sitting
+cross-legged, a handshake, running mid-stride, a child on a parent's shoulders.
+**Pass:** fingers and limbs right in ≥ 34/36 (by eye; Gemma flags as a pre-filter); style right in ≥ 35/36.
 
 **5.6 LLM and VLM.**
 
@@ -432,12 +319,9 @@ Bible anchor, and H3 reuses it as a `<Picture k>` reference.
 | English | IndexTTS 2.5 vs VoxCPM2 | E1 "I told you we'd make it before the storm." (calm); E2 the same line, angry; E3 "Don't go. Please... not tonight." (sad); E4 a 12 s monologue |
 | Iraqi | Habibi IRQ with emotion-tagged references | I1 «شلونك حبيبي، شخبارك؟»; I2 «باچر الصبح نروح للسوگ سوة، گلتلك لا تتأخر.»; I3 «لا تحچي وياي هيچ!» (angry); I4 «والله ماكو شي، بس تعبان شوية.» (tired); I5 a 10 s line with «اثنعش» and a name |
 
-**Pass:**
-
-- dialect-folded CER ≤ 0.10 EN and ≤ 0.15 IRQ (with the dialectal ASR)
-- ECAPA vs reference ≥ 0.70, and between lines ≥ 0.80
-- −23…−16 LUFS, ≤ −1 dBTP, 0 clipped samples
-- native listeners: authenticity ≥ 4 and same-voice ≥ 4 on ≥ 80 % of lines; emotion recognised in ≥ 3/4
+**Pass:** dialect-folded CER ≤ 0.10 EN and ≤ 0.15 IRQ (with the dialectal ASR); ECAPA vs reference ≥ 0.70, and
+between lines ≥ 0.80; −23…−16 LUFS, ≤ −1 dBTP, 0 clipped samples. Native listeners: authenticity ≥ 4 and
+same-voice ≥ 4 on ≥ 80 % of lines; emotion recognised in ≥ 3/4.
 
 **5.8 Video (MiniMax only).**
 
@@ -447,88 +331,71 @@ Bible anchor, and H3 reuses it as a `<Picture k>` reference.
 - **V3:** the 4-step-768p FL2V LoRA vs the 8-step one.
 - **V4:** a continuation with a 22-frame + audio guide.
 - **V5:** hosted H3 at 768P plus a 2K regeneration of V1, if a key exists.
-- **Pass:**
-  - line CER ≤ 0.10 EN and ≤ 0.20 IRQ
-  - SFace(frame 110, canonical) ≥ 0.50
-  - join PSNR ≥ the intra-shot 5th percentile
-  - no ghosting
-  - record the ECAPA of H3's own voice vs the character reference (this feeds MINIMAX-CONTINUITY finding 9)
+- **Pass:** line CER ≤ 0.10 EN and ≤ 0.20 IRQ; SFace(frame 110, canonical) ≥ 0.50; join PSNR ≥ the intra-shot 5th
+  percentile; no ghosting. Record the ECAPA of H3's own voice vs the character reference (this feeds
+  MINIMAX-CONTINUITY finding 9).
 
-**5.9 ASR.**
-
-- **Clips:** 40 authorised real Iraqi clips, 40 synthetic lines and 20 English clips.
-- **Pass:**
-  - dialectal-v2 folded CER ≤ 0.8 × large-v3's on Iraqi
-  - no English regression (English stays on large-v3)
-  - log the CPU int8 real-time factor for the D-phase take gate
+**5.9 ASR.** 40 authorised real Iraqi clips, 40 synthetic lines and 20 English clips.
+**Pass:** dialectal-v2 folded CER ≤ 0.8 × large-v3's on Iraqi, with no English regression (English stays on
+large-v3). Log the CPU int8 real-time factor for the D-phase take gate.
 
 ## 6. Not verified, open points
 
 - **Benchmarks:** arena Elo is crowd preference and drifts, and Mizan's generation axis is unpublished. Neither
   replaces §5.
-- **Qwen-Image-2.1:**
-  - VRAM and speed on this card are unknown.
-  - ComfyUI v0.38.1 support is claimed, not checked against `/object_info`.
-  - Production use needs an agreement.
+- **Qwen-Image-2.1:** VRAM and speed on this card are unknown; ComfyUI v0.38.1 support is claimed, not checked
+  against `/object_info`; production use needs an agreement.
 - **Gemma 4 31B on this card:** speed, KV size and the Ollama variables are unmeasured.
-- **Hosted MiniMax:** H3-Max Turbo is a preview, and hosted continuation and audio-copy behaviour are undocumented.
-  The repo's key status was not inspected.
+- **Hosted MiniMax:** H3-Max Turbo is a preview; hosted continuation and audio-copy behaviour are undocumented; the
+  repo's key status was not inspected.
 - **Untested hypotheses:** whether H3 speaks Iraqi dialect, and Habibi emotion via references. The Habibi female-voice
   weakness (suite WER 0.46) is still open.
-- **Keep dated copies of:**
-  - the H3 and Music 3 licences
-  - the Habibi README (per-dialect Apache grant vs the repo-wide NC tag)
-  - the bilibili licence ("may not improve other models")
+- **Keep dated copies of:** the H3 and Music 3 licences; the Habibi README (per-dialect Apache grant vs the repo-wide
+  NC tag); the bilibili licence ("may not improve other models").
 
 ## Sources (fetched 2026-10-04 unless marked)
 
-- **MiniMax H3:**
-  - [MiniMaxAI/MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3)
-  - [Comfy-Org file listing](https://huggingface.co/api/models/Comfy-Org/MiniMax-H3/tree/main?recursive=true)
-  - [Comfy-Org README](https://huggingface.co/Comfy-Org/MiniMax-H3/raw/main/README.md)
-  - [video guide](https://platform.minimax.io/docs/guides/video-generation)
-  - [models](https://platform.minimax.io/docs/guides/models-intro)
-  - [H3 launch](https://comfyui-wiki.com/en/news/2026-08-03-minimax-h3-open-weights-comfyui)
-  - [H3-Max](https://comfyui-wiki.com/en/news/2026-09-05-minimax-h3-max-comfyui)
-  - [licence resale](https://comfyui-wiki.com/en/news/2026-08-30-comfy-minimax-license)
-  - [RITS on the licence](https://rits.shanghai.nyu.edu/ai/minimax-ships-h3-weights-with-the-us-and-eu-excluded/)
-  - [open vs API-only](https://dev.to/routeai_official/minimax-h3-is-open-weight-now-heres-whats-actually-downloadable-vs-api-only-441k)
-  - [pruned/AdaLN quant card](https://huggingface.co/DmitryDB/MiniMax-H3-INT8-Lean-ConvRot)
-  - [docs.comfy.org H3](https://docs.comfy.org/tutorials/video/minimax/minimax-h3-native)
-- **Image:**
-  - [flux2](https://github.com/black-forest-labs/flux2)
-  - [flux](https://github.com/black-forest-labs/flux) (licences in FLUX-VS-QWEN.md, 2026-10-03)
-  - [FLUX.2-dev](https://huggingface.co/black-forest-labs/FLUX.2-dev)
-  - [Qwen-Image](https://github.com/QwenLM/Qwen-Image)
-  - [Qwen-Image-2.1](https://github.com/QwenLM/Qwen-Image-2.1) and its [LICENSE](https://github.com/QwenLM/Qwen-Image-2.1/blob/main/LICENSE)
-  - [Comfy-Org/Qwen-Image-2.1 listing](https://huggingface.co/api/models/Comfy-Org/Qwen-Image-2.1/tree/main?recursive=true)
-  - [AA T2I arena](https://artificialanalysis.ai/text-to-image/arena/leaderboard-text)
-  - [AA editing arena](https://artificialanalysis.ai/text-to-image/arena/leaderboard-image)
-  - [NVIDIA FLUX.2 on RTX](https://blogs.nvidia.com/blog/rtx-ai-garage-flux-2-comfyui)
-  - [RunPod FLUX.2](https://www.runpod.io/articles/guides/deploying-flux-2)
-  - [Ideogram 4 (secondary)](https://noqta.tn/en/news/ideogram-4-open-weight-image-model-design-2026)
-  - [Cosmos3-Super](https://huggingface.co/nvidia/Cosmos3-Super)
-- **LLM:**
-  - [Mizan](https://arxiv.org/html/2609.13980)
-  - [gemma-4-31B-it](https://huggingface.co/google/gemma-4-31B-it)
-  - [Gemma docs](https://ai.google.dev/gemma/docs/core)
-  - [Ollama gemma4 tags](https://ollama.com/library/gemma4/tags)
-  - [Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B)
-  - [Ollama 2026 release notes (secondary)](https://fazm.ai/t/ollama-release-notes-2026)
-- **Voice and ASR:**
-  - [IndexTTS-2.5](https://huggingface.co/IndexTeam/IndexTTS-2.5)
-  - [Habibi-TTS](https://github.com/SWivid/Habibi-TTS)
-  - [Habibi paper](https://arxiv.org/abs/2601.13802) (via VOICE-IDENTITY-V2, 2026-10-03)
-  - [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2)
-  - [whisper dialectal v2](https://huggingface.co/oddadmix/whisper-large-v3-arabic-dialectal-v2)
-  - [qwen3-asr dialectal](https://friendli.ai/models/oddadmix/qwen3-asr-0.6b-arabic-dialectal-v2)
-  - [NAMAA Saudi TTS (secondary)](https://tts.ai/voices/saudi-tts/)
-- **Music:**
-  - [ACE-Step 1.5 XL](https://blog.comfy.org/p/ace-step-15-xl-commercial-grade-music)
-  - [Music 3 licence (RITS)](https://rits.shanghai.nyu.edu/ai/minimax-opens-music-3-0-weights-no-territorial-carve-out-this-time/)
+- **MiniMax H3:** [MiniMaxAI/MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) ·
+  [Comfy-Org listing](https://huggingface.co/api/models/Comfy-Org/MiniMax-H3/tree/main?recursive=true) ·
+  [Comfy-Org README](https://huggingface.co/Comfy-Org/MiniMax-H3/raw/main/README.md) ·
+  [video guide](https://platform.minimax.io/docs/guides/video-generation) ·
+  [models](https://platform.minimax.io/docs/guides/models-intro) ·
+  [H3 launch](https://comfyui-wiki.com/en/news/2026-08-03-minimax-h3-open-weights-comfyui) ·
+  [H3-Max](https://comfyui-wiki.com/en/news/2026-09-05-minimax-h3-max-comfyui) ·
+  [licence resale](https://comfyui-wiki.com/en/news/2026-08-30-comfy-minimax-license) ·
+  [RITS on the licence](https://rits.shanghai.nyu.edu/ai/minimax-ships-h3-weights-with-the-us-and-eu-excluded/) ·
+  [open vs API-only](https://dev.to/routeai_official/minimax-h3-is-open-weight-now-heres-whats-actually-downloadable-vs-api-only-441k) ·
+  [pruned/AdaLN quant card](https://huggingface.co/DmitryDB/MiniMax-H3-INT8-Lean-ConvRot) ·
+  [docs.comfy.org H3](https://docs.comfy.org/tutorials/video/minimax/minimax-h3-native)
+- **Image:** [flux2](https://github.com/black-forest-labs/flux2) ·
+  [flux](https://github.com/black-forest-labs/flux) (licences in FLUX-VS-QWEN.md, 2026-10-03) ·
+  [FLUX.2-dev](https://huggingface.co/black-forest-labs/FLUX.2-dev) ·
+  [Qwen-Image](https://github.com/QwenLM/Qwen-Image) ·
+  [Qwen-Image-2.1](https://github.com/QwenLM/Qwen-Image-2.1) and its
+  [LICENSE](https://github.com/QwenLM/Qwen-Image-2.1/blob/main/LICENSE) ·
+  [Comfy-Org/Qwen-Image-2.1 listing](https://huggingface.co/api/models/Comfy-Org/Qwen-Image-2.1/tree/main?recursive=true) ·
+  [AA T2I arena](https://artificialanalysis.ai/text-to-image/arena/leaderboard-text) ·
+  [AA editing arena](https://artificialanalysis.ai/text-to-image/arena/leaderboard-image) ·
+  [NVIDIA FLUX.2 on RTX](https://blogs.nvidia.com/blog/rtx-ai-garage-flux-2-comfyui) ·
+  [RunPod FLUX.2](https://www.runpod.io/articles/guides/deploying-flux-2) ·
+  [Ideogram 4 (secondary)](https://noqta.tn/en/news/ideogram-4-open-weight-image-model-design-2026) ·
+  [Cosmos3-Super](https://huggingface.co/nvidia/Cosmos3-Super)
+- **LLM:** [Mizan](https://arxiv.org/html/2609.13980) ·
+  [gemma-4-31B-it](https://huggingface.co/google/gemma-4-31B-it) ·
+  [Gemma docs](https://ai.google.dev/gemma/docs/core) ·
+  [Ollama gemma4 tags](https://ollama.com/library/gemma4/tags) ·
+  [Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) ·
+  [Ollama 2026 release notes (secondary)](https://fazm.ai/t/ollama-release-notes-2026)
+- **Voice and ASR:** [IndexTTS-2.5](https://huggingface.co/IndexTeam/IndexTTS-2.5) ·
+  [Habibi-TTS](https://github.com/SWivid/Habibi-TTS) ·
+  [Habibi paper](https://arxiv.org/abs/2601.13802) (via VOICE-IDENTITY-V2, 2026-10-03) ·
+  [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) ·
+  [whisper dialectal v2](https://huggingface.co/oddadmix/whisper-large-v3-arabic-dialectal-v2) ·
+  [qwen3-asr dialectal](https://friendli.ai/models/oddadmix/qwen3-asr-0.6b-arabic-dialectal-v2) ·
+  [NAMAA Saudi TTS (secondary)](https://tts.ai/voices/saudi-tts/)
+- **Music:** [ACE-Step 1.5 XL](https://blog.comfy.org/p/ace-step-15-xl-commercial-grade-music) ·
+  [Music 3 licence (RITS)](https://rits.shanghai.nyu.edu/ai/minimax-opens-music-3-0-weights-no-territorial-carve-out-this-time/)
 - **Infrastructure:** [.wslconfig defaults](https://learn.microsoft.com/en-us/windows/wsl/wsl-config)
-- **Repo evidence:**
-  - `docs/MODELS.md`
-  - `docs/research/{FLUX-VS-QWEN,MINIMAX-API,MINIMAX-CONTINUITY,LOCAL-ENGINES,VOICE-STACK,VOICE-IDENTITY-V2}.md`
-  - `docs/evidence/{flux-vs-qwen,minimax-p1,voice-design}`
-  - `docker/models/manifest.json`, `compose.yaml`
+- **Repo evidence:** `docs/MODELS.md`;
+  `docs/research/{FLUX-VS-QWEN,MINIMAX-API,MINIMAX-CONTINUITY,LOCAL-ENGINES,VOICE-STACK,VOICE-IDENTITY-V2}.md`;
+  `docs/evidence/{flux-vs-qwen,minimax-p1,voice-design}`; `docker/models/manifest.json`; `compose.yaml`.
