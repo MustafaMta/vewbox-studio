@@ -43,7 +43,7 @@ export async function countPeopleInFiles(ctx: HandlerContext, tool: ToolRunner, 
   if (!files.length) return [];
   const uploads = await Promise.all(files.map((f) => comfy.uploadInput(f)));
   const graph = qwenVlmText({ items: uploads.map((image, k) => ({ key: `p${k}`, image, prompt: PEOPLE_COUNT_PROMPT })), maxLength: 16, megapixels: 0.6 });
-  const run = await ctx.gpu('IMAGE', 9000, () => tool(toolId, () => comfy.run(graph, { timeoutMs: 10 * 60_000 }), { label, input: { pictures: files.length } }), { jobId: ctx.job.id });
+  const run = await ctx.gpu('IMAGE', 9000, () => tool(toolId, () => comfy.run(graph, { timeoutMs: 10 * 60_000 }), { label, input: { graph, label } }), { jobId: ctx.job.id });
   return uploads.map((_, k) => parseCount(comfy.textOutput(run.outputs, vlmOutput(`p${k}`))));
 }
 
