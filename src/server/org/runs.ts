@@ -1,6 +1,6 @@
-import { and, desc, eq, gt, inArray, isNull, sql as dsql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, notInArray, sql as dsql } from 'drizzle-orm';
 import type { Job } from '@/domain/jobs';
-import type { RunPhaseEvent } from '@/domain/phases';
+import { ACTIVITY_HIDDEN_KINDS, type RunPhaseEvent } from '@/domain/phases';
 import { isStudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema, sql } from '../db/client';
@@ -134,13 +134,23 @@ export async function studioEvent(e: NewStudioEvent) {
 
 export interface StudioEventRow { id: number; at: string; departmentId: string; agentId: string | null; productionId: string | null; kind: string; message: string; data: Record<string, unknown> | null; jobId: string | null }
 
-export async function listStudioEvents(opts: { limit?: number; departmentId?: string; agentId?: string; productionId?: string; since?: string } = {}): Promise<StudioEventRow[]> {
+export interface StudioEventQuery { limit?: number; departmentId?: string; agentId?: string; productionId?: string; since?: string; jobId?: string; /** include the bookkeeping kinds (RUN_PHASE): only the status row asks for them */ includeBookkeeping?: boolean }
+
+/** The WHERE of an activity list. The bookkeeping kinds (src/domain/phases.ts ACTIVITY_HIDDEN_KINDS) are left out
+ *  unless asked for, so no activity list shows phase noise. Pure (tested on the SQL it builds). */
+export function studioEventConditions(opts: StudioEventQuery) {
   const conds = [];
   if (opts.departmentId) conds.push(eq(schema.studioEvents.departmentId, opts.departmentId));
   if (opts.agentId) conds.push(eq(schema.studioEvents.agentId, opts.agentId));
   if (opts.productionId) conds.push(eq(schema.studioEvents.productionId, opts.productionId));
+  if (opts.jobId) conds.push(eq(schema.studioEvents.jobId, opts.jobId));
   if (opts.since) conds.push(gt(schema.studioEvents.at, opts.since));
-  const rows = await db().select().from(schema.studioEvents).where(conds.length ? and(...conds) : undefined).orderBy(desc(schema.studioEvents.at), desc(schema.studioEvents.id)).limit(Math.min(500, opts.limit ?? 100));
+  if (!opts.includeBookkeeping) conds.push(notInArray(schema.studioEvents.kind, [...ACTIVITY_HIDDEN_KINDS]));
+  return conds.length ? and(...conds) : undefined;
+}
+
+export async function listStudioEvents(opts: StudioEventQuery = {}): Promise<StudioEventRow[]> {
+  const rows = await db().select().from(schema.studioEvents).where(studioEventConditions(opts)).orderBy(desc(schema.studioEvents.at), desc(schema.studioEvents.id)).limit(Math.min(500, opts.limit ?? 100));
   return rows as StudioEventRow[];
 }
 

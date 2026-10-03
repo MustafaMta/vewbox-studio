@@ -11,9 +11,11 @@ import { productionHref } from '@/studio/selectors';
  *                  that is not finished — decided on the Production page;
  *    - `image`     a character's draft canonical image the producer can approve now (drawn, not approved, not locked by
  *                  use in a video, nothing being redrawn) — decided on the character's page;
- *    - `line`      a dialogue line to hear again: recorded by a DIALOGUE_AUDIO job (or by a take) that waits in
- *                  AWAITING_REVIEW, whose recording drifted from the script or could not be heard back — decided in the
- *                  shot workspace;
+ *    - `lines`     ONE item per production for its dialogue lines to hear again (one decision per thing the producer
+ *                  decides, §6.7: "two dialogue lines to hear again"): every line recorded by a DIALOGUE_AUDIO job (or
+ *                  by a take) waiting in AWAITING_REVIEW whose recording drifted from the script or could not be heard
+ *                  back; the lines are inside (`lines`, `subject.lineIds`) — decided in the shot workspace (one shot)
+ *                  or on the production map (several);
  *    - `take`      a take with a REVIEW verdict (its speech could not be verified) from a GENERATE_TAKE job awaiting
  *                  review — decided in the shot workspace;
  *    - `pass`      a production pass (PRODUCE) parked for review — decided on the production map;
@@ -24,19 +26,26 @@ import { productionHref } from '@/studio/selectors';
 
 export interface PipelineRow { productionId: string; stages: Array<{ id: string; status: string; at: string | null }> }
 
-export type DecisionKind = 'stage' | 'image' | 'line' | 'take' | 'pass' | 'character';
+export type DecisionKind = 'stage' | 'image' | 'lines' | 'take' | 'pass' | 'character';
 
-/** The ids a page needs to open and decide the item. */
-export interface DecisionSubject { productionId?: string; stage?: string; characterId?: string; shotId?: string; lineId?: string; takeId?: string; jobId?: string }
+/** The ids a page needs to open and decide the item. `lineIds`/`jobIds`: the lines of a `lines` item and the review
+ *  jobs that recorded them. */
+export interface DecisionSubject { productionId?: string; stage?: string; characterId?: string; shotId?: string; takeId?: string; jobId?: string; lineIds?: string[]; jobIds?: string[] }
+
+/** One line inside a `lines` decision. */
+export interface DecisionLine { lineId: string; shotId: string; characterId: string; speaker?: string; speakerAr?: string; text: string; textAr?: string; jobId: string; /** the recording to hear */ audioAssetId: string; /** NOT_HEARD: transcription was unavailable; DRIFTED: it did not say the script */ reason: 'NOT_HEARD' | 'DRIFTED' }
 
 export interface Decision {
   kind: DecisionKind;
-  /** stable: `stage:{production}:{stage}`, `image:{character}`, `line:{job}:{line}`, `take:{job}:{take}`, `pass:{job}`, `character:{job}` */
+  /** stable: `stage:{production}:{stage}`, `image:{character}`, `lines:{production}`, `take:{job}:{take}`, `pass:{job}`, `character:{job}` */
   id: string;
-  /** what it is about, as the item reads it: the production's title, the character's name, the line's words */
+  /** what it is about, as the item reads it: the production's title, the character's name */
   title: string;
   titleAr?: string;
   subject: DecisionSubject;
+  /** `lines` only: the lines to hear (`lines.length` is the "2 lines to hear" of the item; it may be 0 when a review
+   *  job's recordings were replaced since — the item still stands until the job is settled) */
+  lines?: DecisionLine[];
   /** when it started waiting (ISO), when known */
   since: string | null;
   /** the route to decide it */
@@ -53,16 +62,23 @@ const sinceOf = (j: Job) => j.finishedAt ?? j.updatedAt ?? j.createdAt ?? null;
 const shotHref = (p: Production, shotId: string) => `${productionHref(p)}/shots/${encodeURIComponent(shotId)}`;
 const mapHref = (p: Production) => `${productionHref(p)}/production`;
 
-/** A recording that needs a human ear: its check (src/worker/handlers/voice.ts LineCheck) failed, or there was none. */
-const needsEar = (a: Asset | undefined): boolean => Boolean(a) && (!('check' in (a!.provenance ?? {})) || a!.provenance?.check === null || (a!.provenance?.check as { ok?: boolean } | null | undefined)?.ok === false);
+/** Why a recording needs a human ear, from its check (src/worker/handlers/voice.ts LineCheck): none or null — it
+ *  was not heard back; `ok: false` — it drifted from the script. Undefined when it passed. */
+const earReason = (a: Asset): DecisionLine['reason'] | undefined => {
+  const prov = a.provenance ?? {};
+  if (!('check' in prov) || prov.check === null) return 'NOT_HEARD';
+  return (prov.check as { ok?: boolean } | undefined)?.ok === false ? 'DRIFTED' : undefined;
+};
 
 /** The lines a job recorded (their current recording carries the job's id) that still need a human ear. */
-function linesToHear(p: Production, assets: Asset[], jobId: string): Array<{ shot: Shot; lineId: string; text: string; textAr?: string; characterId: string }> {
-  const byId = new Map(assets.map((a) => [a.id, a]));
-  const out: Array<{ shot: Shot; lineId: string; text: string; textAr?: string; characterId: string }> = [];
+function linesToHear(p: Production, assets: Map<string, Asset>, jobId: string, who: (id: string) => Character | undefined): Array<DecisionLine & { shot: Shot }> {
+  const out: Array<DecisionLine & { shot: Shot }> = [];
   for (const sh of p.shots) for (const d of sh.dialogue) {
-    const a = d.audioAssetId ? byId.get(d.audioAssetId) : undefined;
-    if (a && a.jobId === jobId && needsEar(a)) out.push({ shot: sh, lineId: d.id, text: d.text, textAr: d.textAr, characterId: d.characterId });
+    const a = d.audioAssetId ? assets.get(d.audioAssetId) : undefined;
+    const reason = a && a.jobId === jobId ? earReason(a) : undefined;
+    if (!a || !reason) continue;
+    const c = who(d.characterId);
+    out.push({ shot: sh, lineId: d.id, shotId: sh.id, characterId: d.characterId, speaker: c?.name, speakerAr: c?.nameAr, text: d.text, textAr: d.textAr, jobId, audioAssetId: a.id, reason });
   }
   return out;
 }
@@ -89,21 +105,31 @@ export function waitingDecisions(state: DecisionState, pipeline: PipelineRow[] |
   }
   // ---- what the jobs parked for a person, oldest first ----
   const review = jobs.filter((j) => j.status === 'AWAITING_REVIEW').sort((a, b) => (sinceOf(a) ?? '').localeCompare(sinceOf(b) ?? ''));
+  const assetsById = new Map(state.assets.map((a) => [a.id, a]));
+  // one `lines` item per production, placed where its oldest review job sits in the order
+  const linesBy = new Map<string, Decision>();
+  const addLines = (p: Production, j: Job, found: Array<DecisionLine & { shot: Shot }>) => {
+    let item = linesBy.get(p.id);
+    if (!item) {
+      item = { kind: 'lines', id: `lines:${p.id}`, title: titleOf(p), titleAr: p.titleAr, subject: { productionId: p.id, lineIds: [], jobIds: [] }, lines: [], since: sinceOf(j), href: mapHref(p) };
+      linesBy.set(p.id, item); items.push(item);
+    }
+    if (!item.subject.jobIds!.includes(j.id)) item.subject.jobIds!.push(j.id);
+    for (const { shot: _s, ...l } of found) { void _s; if (item.subject.lineIds!.includes(l.lineId)) continue; item.subject.lineIds!.push(l.lineId); item.lines!.push(l); }
+    // one shot: the line is heard in the shot workspace; several: from the production map
+    const shots = new Set(item.lines!.map((l) => l.shotId));
+    if (shots.size === 1) { const only = [...shots][0]; item.subject.shotId = only; item.href = shotHref(p, only); } else { delete item.subject.shotId; item.href = mapHref(p); }
+  };
   for (const j of review) {
     const p = j.productionId ? state.productions.find((x) => x.id === j.productionId) : undefined;
     if (j.type === 'DIALOGUE_AUDIO' || j.type === 'GENERATE_TAKE') {
       if (!p) continue;
       const r = (j.result ?? {}) as { takeId?: string; takeUnverified?: boolean; flagged?: number; unverified?: number };
-      const lines = linesToHear(p, state.assets, j.id);
-      for (const l of lines) {
-        const who = nameOf(l.characterId);
-        items.push({ kind: 'line', id: `line:${j.id}:${l.lineId}`, title: who ? `${who.name}: “${l.text}”` : l.text, titleAr: l.textAr ? `${who?.nameAr ?? who?.name ?? ''}${who ? ': ' : ''}«${l.textAr}»` : undefined, subject: { productionId: p.id, shotId: l.shot.id, lineId: l.lineId, characterId: l.characterId, jobId: j.id }, since: sinceOf(j), href: shotHref(p, l.shot.id) });
-      }
+      const lines = linesToHear(p, assetsById, j.id, nameOf);
+      // a dialogue job always stands for its lines (even when their recordings were replaced since: nothing is lost)
+      if (lines.length || j.type === 'DIALOGUE_AUDIO') addLines(p, j, lines);
       if (j.type === 'GENERATE_TAKE' && j.shotId && (r.takeUnverified || lines.length === 0)) {
         items.push({ kind: 'take', id: `take:${j.id}:${r.takeId ?? 'take'}`, title: titleOf(p), titleAr: p.titleAr, subject: { productionId: p.id, shotId: j.shotId, takeId: r.takeId, jobId: j.id }, since: sinceOf(j), href: shotHref(p, j.shotId) });
-      } else if (j.type === 'DIALOGUE_AUDIO' && lines.length === 0) {
-        // the job says lines wait but their recordings were replaced since: one item for the job, so nothing is lost
-        items.push({ kind: 'line', id: `line:${j.id}`, title: titleOf(p), titleAr: p.titleAr, subject: { productionId: p.id, jobId: j.id }, since: sinceOf(j), href: mapHref(p) });
       }
     } else if (j.type === 'PRODUCE') {
       if (!p) continue;
@@ -122,4 +148,4 @@ export function waitingDecisions(state: DecisionState, pipeline: PipelineRow[] |
 }
 
 /** The count per kind, for a page that groups them. */
-export const decisionCounts = (d: Decisions): Record<DecisionKind, number> => d.items.reduce((acc, x) => ({ ...acc, [x.kind]: acc[x.kind] + 1 }), { stage: 0, image: 0, line: 0, take: 0, pass: 0, character: 0 } as Record<DecisionKind, number>);
+export const decisionCounts = (d: Decisions): Record<DecisionKind, number> => d.items.reduce((acc, x) => ({ ...acc, [x.kind]: acc[x.kind] + 1 }), { stage: 0, image: 0, lines: 0, take: 0, pass: 0, character: 0 } as Record<DecisionKind, number>);

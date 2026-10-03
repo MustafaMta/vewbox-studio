@@ -113,8 +113,9 @@ export function buildEntries(x: PaletteInput): PaletteEntry[] {
     } else if (d.kind === 'image' || d.kind === 'character') {
       out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.approve'), name: fill(tr('shell.palette.decide.image'), { name: pick(locale, d.title, d.titleAr) }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
     } else {
-      // a line to hear again, a take with a review verdict, a parked production pass: reviewed where it lives
-      out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.review'), name: fill(tr(`shell.palette.decide.${d.kind}`), { title: pick(locale, d.title, d.titleAr) }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
+      // lines to hear again, a take with a review verdict, a parked production pass: reviewed where it lives
+      const n = String(d.lines?.length ?? 0);
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: tr('shell.palette.kind.review'), name: fill(tr(d.kind === 'lines' && d.lines?.length === 1 ? 'shell.palette.decide.line' : `shell.palette.decide.${d.kind}`), { title: pick(locale, d.title, d.titleAr), n }), alt: other(locale, d.title, d.titleAr), action: go(d.href) });
     }
   }
 

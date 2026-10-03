@@ -9,6 +9,7 @@ import { newSeed } from '@/domain/ids';
 import { hashState } from '@/domain/hash';
 import { StudioError, isStudioError } from '@/domain/errors';
 import { type Job, type JobPayload, type JobType, isActiveStatus } from '@/domain/jobs';
+import { isActivityNoise } from '@/domain/phases';
 import { api, type Capabilities, type StartedJob } from './api';
 import { JOB_LIST_LIMIT, applyJobEvent, jobEventNeedsReload, mergeJob, type JobEvent } from './job-list';
 import { saveStateOf, type SaveState } from './save-state';
@@ -182,7 +183,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         try { e = JSON.parse((ev as MessageEvent).data) as JobEvent; } catch { /* reload below */ }
         if (jobEventNeedsReload(e)) scheduleJobs(); else setJobs((js) => applyJobEvent(js, e));
       });
-      es.addEventListener('activity', () => setActivityTick((t) => t + 1));
+      // a run's phase change is bookkeeping (the job event already carries the progress): no page refetches on it
+      es.addEventListener('activity', (ev) => { try { if (isActivityNoise((JSON.parse((ev as MessageEvent).data) as { kind?: string }).kind)) return; } catch { /* count it */ } setActivityTick((t) => t + 1); });
       es.onerror = () => {
         setConnected(false); es?.close(); es = null;
         // the data on screen was current up to the drop

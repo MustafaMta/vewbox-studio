@@ -45,35 +45,55 @@ function studio() {
 describe('waitingDecisions (B8)', () => {
   const f = studio();
   const d = waitingDecisions(f.state, f.pipeline.productions, f.jobs);
-  it('lists every kind once, with its subject and the route to decide it', () => {
+  it('lists one item per thing the producer decides, with its subject and the route to decide it', () => {
     expect(d.complete).toBe(true);
-    expect(decisionCounts(d)).toEqual({ stage: 1, image: 2, line: 2, take: 1, pass: 1, character: 1 });
-    expect(d.count).toBe(8);
+    expect(decisionCounts(d)).toEqual({ stage: 1, image: 2, lines: 1, take: 1, pass: 1, character: 1 });
+    expect(d.count).toBe(7);
     expect(d.items.find((x) => x.kind === 'stage')).toMatchObject({ id: 'stage:paper-boats:STORY', subject: { productionId: 'paper-boats', stage: 'STORY' }, href: '/production#needs-you' });
     expect(d.items.filter((x) => x.kind === 'image').map((x) => x.id)).toEqual([`image:${f.hana.id}`, `image:${f.salam.id}`]);
-    const lines = d.items.filter((x) => x.kind === 'line');
-    expect(lines.map((x) => x.id)).toEqual(['line:job-dialogue:' + f.d1.d.id, 'line:job-dialogue:' + f.d2.d.id]);
-    expect(lines[0]).toMatchObject({ subject: { productionId: 's1e1', shotId: f.d1.sh.id, lineId: f.d1.d.id, characterId: f.d1.d.characterId, jobId: 'job-dialogue' }, since: '2026-10-03T08:15:00.000Z', href: `/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/shots/${f.d1.sh.id}` });
-    expect(lines[0].title).toMatch(/: “You could sleep at home like a normal person\.”$/);
     expect(d.items.find((x) => x.kind === 'take')).toMatchObject({ id: 'take:job-take:take-x', subject: { shotId: f.d1.sh.id, takeId: 'take-x', jobId: 'job-take' } });
     expect(d.items.find((x) => x.kind === 'pass')).toMatchObject({ id: 'pass:job-produce', title: 'The Opening Hour', subject: { productionId: 's1e1', jobId: 'job-produce' }, href: '/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/production' });
     expect(d.items.find((x) => x.kind === 'character')).toMatchObject({ id: 'character:job-create', title: 'Rami', subject: { characterId: f.rami.id, jobId: 'job-create' }, href: `/characters/${f.rami.id}` });
   });
-  it('a CREATE_CHARACTER run whose draft image is already listed, or whose identity was approved or locked since, is not a decision', () => {
+  it('the dialogue lines to hear are ONE decision per production, the lines inside it (passed and other jobs’ lines left out)', () => {
+    const lines = d.items.filter((x) => x.kind === 'lines');
+    expect(lines).toHaveLength(1);
+    const it0 = lines[0];
+    expect(it0).toMatchObject({ id: 'lines:s1e1', title: 'The Opening Hour', since: '2026-10-03T08:15:00.000Z', subject: { productionId: 's1e1', lineIds: [f.d1.d.id, f.d2.d.id], jobIds: ['job-dialogue'] } });
+    // two shots: decided from the production map
+    expect(it0.href).toBe('/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/production');
+    expect(it0.subject.shotId).toBeUndefined();
+    expect(it0.lines!.map((l) => [l.lineId, l.shotId, l.reason, l.audioAssetId, l.jobId])).toEqual([[f.d1.d.id, f.d1.sh.id, 'DRIFTED', 'rec-1', 'job-dialogue'], [f.d2.d.id, f.d2.sh.id, 'NOT_HEARD', 'rec-2', 'job-dialogue']]);
+    expect(it0.lines![0]).toMatchObject({ text: 'You could sleep at home like a normal person.', characterId: f.d1.d.characterId });
+    expect(it0.lines![0].speaker).toBeTruthy();
+  });
+  it('lines of one shot open that shot’s workspace', () => {
+    const state = { ...f.state, assets: f.state.assets.map((a) => (a.id === 'rec-2' ? { ...a, provenance: { check: { ok: true } } } : a)) };
+    const one = waitingDecisions(state, f.pipeline.productions, f.jobs).items.find((x) => x.kind === 'lines')!;
+    expect(one.lines).toHaveLength(1);
+    expect(one).toMatchObject({ href: `/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/shots/${f.d1.sh.id}`, subject: { shotId: f.d1.sh.id, lineIds: [f.d1.d.id] } });
+  });
+  it('today’s studio counts 4 (§6.7): two draft images, the lines to hear again, the parked production pass', () => {
+    const today = f.jobs.filter((j) => ['job-dialogue', 'job-produce'].includes(j.id) || !j.id.startsWith('job-'));
+    const d4 = waitingDecisions(f.state, [], today);
+    expect(d4.count).toBe(4);
+    expect(d4.items.map((x) => x.kind)).toEqual(['image', 'image', 'lines', 'pass']);
+    expect(d4.items[2].lines).toHaveLength(2);
+  });  it('a CREATE_CHARACTER run whose draft image is already listed, or whose identity was approved or locked since, is not a decision', () => {
     const pointAt = (id: string) => f.jobs.map((j) => (j.id === 'job-create' ? { ...j, result: { ...j.result, characterId: id } } : j));
     const d2 = waitingDecisions(f.state, f.pipeline.productions, pointAt(f.hana.id));
     expect(decisionCounts(d2).character).toBe(0);
-    expect(d2.count).toBe(7);
+    expect(d2.count).toBe(6);
     // Karim is locked by use, Abu Samir approved: the studio of 2026-10-03 had such a stale run (Elias Moore)
     expect(decisionCounts(waitingDecisions(f.state, f.pipeline.productions, pointAt('karim'))).character).toBe(0);
     expect(decisionCounts(waitingDecisions(f.state, f.pipeline.productions, pointAt('abu-samir'))).character).toBe(0);
   });
-  it('a dialogue job whose recordings were replaced since still counts once, on the production map', () => {
+  it('a dialogue job whose recordings were replaced since still stands as the production’s lines item, on the production map', () => {
     const state = { ...f.state, assets: f.state.assets.filter((a) => !a.id.startsWith('rec-')) };
     const d2 = waitingDecisions(state, f.pipeline.productions, f.jobs);
-    const line = d2.items.filter((x) => x.kind === 'line');
-    expect(line).toHaveLength(1);
-    expect(line[0]).toMatchObject({ id: 'line:job-dialogue', href: '/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/production' });
+    const lines = d2.items.filter((x) => x.kind === 'lines');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ id: 'lines:s1e1', lines: [], subject: { lineIds: [], jobIds: ['job-dialogue'] }, href: '/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/production' });
   });
   it('is incomplete while the pipeline has not answered; a finished production’s gate is not a decision', () => {
     expect(waitingDecisions(f.state, null, f.jobs).complete).toBe(false);
