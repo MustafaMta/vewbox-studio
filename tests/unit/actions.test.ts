@@ -305,4 +305,15 @@ describe('Auto Idea', () => {
     const plain = acceptProposal(s, { kind: 'SHORT', aspect: 'WIDE_16_9', proposal: base, keepCast: [], keepLocations: [], preferences: {} });
     expect(plain.production.brief.development).toBeUndefined();
   });
+  it('D22: each scene gets the one place, the people its words name and the time of day a word states', () => {
+    const s = seed();
+    const base = sampleProposal(s, { kind: 'SHORT', preferences: {} });
+    const p = { ...base, premise: 'During a meteor shower, two old men repair a radio.', cast: [{ key: 'n', name: 'Najm Haddad', role: 'librarian', reason: 'r', isNew: true, fromPreference: false, sex: 'MALE', ageYears: 65 }], locations: [{ key: 'w', name: 'The Workshop', description: 'a seaside workshop', kind: 'INTERIOR' }], structure: [{ title: 'Arrival', summary: 'Najm enters with the radio.' }, { title: 'At dawn', summary: 'The sun rises over the sea.' }] } as unknown as typeof base;
+    const r = acceptProposal(s, { kind: 'SHORT', aspect: 'WIDE_16_9', proposal: p, keepCast: ['n'], keepLocations: ['w'], preferences: {} });
+    const [a, b] = r.production.scenes;
+    const najm = r.state.characters.find((c) => c.name === 'Najm Haddad')!;
+    const place = r.state.locations.find((l) => l.name === 'The Workshop')!;
+    expect(a).toMatchObject({ locationId: place.id, timeOfDay: 'NIGHT', characterIds: [najm.id] }); // night from the premise
+    expect(b).toMatchObject({ locationId: place.id, timeOfDay: 'DAWN', characterIds: [] }); // the scene's own word wins
+  });
 });

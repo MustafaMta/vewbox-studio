@@ -9,6 +9,7 @@ import { developmentIntentOf } from './development';
 import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage, voiceBuildLockProblem } from './rules';
 import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
+import { sceneSetupFrom } from './scene-setup';
 
 export { nid } from './ids';
 
@@ -802,8 +803,11 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
   const development = developmentIntentOf(pr);
   const brief = { mode: 'AUTO_IDEA' as const, text: pr.premise, ideaTitle: pr.title, preferences: input.preferences, fromSampleProposal: pr.sample || undefined, proposalJobId: input.proposalJobId, ...(development ? { development } : {}) };
   const common = { style: pr.style, language: pr.language, dialect: pr.dialect, aspect: input.aspect, targetSeconds: pr.durationSeconds, brief };
+  // D22: each scene gets what its words state — the place (the only one, or the one it names), who it names, and the
+  // time of day a word says (the premise's otherwise)
   const withStructure = (state: S, productionId: string, items: IdeaProposal['structure']) => items.reduce((acc, it) => {
-    const r = addScene(acc, productionId, { title: it.title, timeOfDay: 'MORNING', characterIds: [], purpose: it.summary });
+    const setup = sceneSetupFrom(`${it.title}. ${it.summary}`, { premise: pr.premise, locations: acc.locations.filter((l) => locationIds.includes(l.id)), cast: acc.characters.filter((c) => castIds.includes(c.id)) });
+    const r = addScene(acc, productionId, { title: it.title, timeOfDay: setup.timeOfDay, locationId: setup.locationId, characterIds: setup.characterIds, purpose: it.summary });
     return updateScene(r.state, productionId, r.scene.id, { beats: [{ id: nid('beat'), action: it.summary, lines: [] }] });
   }, state);
   if (input.kind === 'SHOW') {

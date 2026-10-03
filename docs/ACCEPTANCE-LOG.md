@@ -83,6 +83,32 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 - After: identical rows in the database; the directory lists the same four with the same states; Elias's profile shows
   "Approved · Version 1" and his voice plays (audio element playing). ✓
 
+## A7 — Image Reference after the pipeline follow-up, Cartoon, English — 2026-10-03
+
+- Same reference as A4 (`gen-655c17f72b`, a full-body photographic studio image), uploaded through the page's file
+  input; name Najm, no role, "Face, hair and wardrobe". `char-e71e80cde4`.
+- D15 verified: the picture was read before the design ("Najm — reading the reference picture"); the design gave
+  Male · 65, role "Retired librarian and amateur astronomer" (A4 had "a young, curious explorer", 16).
+- v1 (FLUX.2 klein 4B, framing ok, 4 s): strong likeness, but a **photograph**, not a Cartoon → **D18**, root-caused
+  (a full-body photo in the canonical framing + "exactly as in the picture" + a thin Cartoon medium), fixed and
+  measured on the GPU (`docs/evidence/image-v2/d18`).
+- Redraw without a new picture → **D19** found first (the dialog promised "from the written look", which is empty for
+  a picture-made character); fixed; the redraw note reads "drawn again from the earlier reference picture
+  (up-684a0b8479)". v2: stylized CG render, same face, beard, glasses, top knot, cardigan, tunic with its border,
+  dotted trousers, shoes — **approved** (Version 2).
+- Voice: Automatic → designed EN voice, proof "Hello, my name is Najm, and this is my voice." heard verbatim (CER 0,
+  coverage 1), ACTIVE; labelled synthetic; nobody has listened yet (naturalness not claimed).
+
+## A8 — Short "The Static Sky" through the browser (in progress) — 2026-10-03
+
+- New Short → Auto Idea with a one-line idea, Cartoon, English, 1:00, cast Elias Moore + Najm. The research-driven
+  pipeline ran for real (142 s): GDELT and Wikipedia queried; TikTok, Instagram (and the other keyed platforms)
+  reported NOT_CONFIGURED with the reason; 15 dated sources recorded; audience, three concepts, draft, two reviews, one
+  revision. Proposal `proposal-b7fcab3684`, production `short-28bdb3342b`.
+- The proposal tied Elias (72) to his wife's loss in **1947** (introduced by a reviewer's note, kept by the revision,
+  never re-read) → **D20**; corrected by hand to 1987 in the premise, scene purposes, hook, ending, beats and the
+  location (which needed D23's fields to reach), then the script and an 8-shot plan (61 s, 6 dialogue lines).
+
 ### Defects found in A1
 
 | # | Defect | Status |
@@ -102,4 +128,11 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 | D14 | The voice description written from the profile says "A woman of about 16" for a teenager (the panel's builder ignores age bands; the image's identity line already uses "teenage girl") | fixed `2d4f236` (noun follows the age band; test) |
 | D15 | Image Reference: with no role given, the design step invented "A young, curious explorer … floating islands" for a picture of a man of 60–70 — the non-visual design does not see the picture's description | fixed `3cbaf73` (picture read before the design; the design is held to its apparent age, sex and visible clothing; a contradicting role becomes "to be decided by the producer"); unit-tested — to verify in the next browser run |
 | D13 | Realistic prompt adherence: a "thick, gray mustache" drawn as a full beard (2/2 draws); an Iraqi dishdasha drawn tunic-length | partial `1d7cd4c` (facial hair stated exactly; robes given their cut): on the GPU the robe went from mid-thigh to mid-calf (not yet ankle); the full beard persists — a model limitation (docs/evidence/image-v2/d13) |
+| D17 | Creation Ready card: "No voice yet — add a recording on the profile" (only the recording way) | fixed `9207f4a` |
+| D18 | Image Reference: a full-body photo redrawn as Cartoon stayed a photograph (klein copied it) | fixed `57ef7b1` (Cartoon medium names its traits; a stylized redraw asks for a new rendering; GPU: 14/14 whole figure, Cartoon 8/8 stylized, Realistic unchanged, no invented glasses); verified in the browser (A7 v2) |
+| D19 | Redraw of a picture-made character without a new picture drew from the empty written look | fixed `a9854db` (reuses the earlier picture; the dialog says so); verified in the browser (A7) |
+| D20 | Auto Idea: a character tied to a year before they were born (Elias, 72, and "his wife vanished in 1947"); the one revision is never re-read | fixed `4d266c1` (birth years and a timeline rule for the writers; a code check on the Story Editor's review and on the final draft, whose findings travel with the proposal as `openIssues`); unit-tested — the proposal review UI must show `openIssues` (P1a) |
+| D21 | Proposal review: the structure (scenes), hook and ending are read-only although the page says "everything is editable" | open — P1a (the review is rebuilt with the creation flows) |
+| D22 | Proposal → project: scenes created with no location although the proposal had one place, and time of day MORNING for a night story | open — to fix in the proposal acceptance (`acceptProposal`) |
+| D23 | The scene "purpose" (read by the script writer and the shot planner) and the Auto Idea hook/ending (fixed intent in every later prompt) were not visible or editable: a producer's correction left the old facts in force | fixed `3a8edef` (Story tab fields); verified in the browser (A8) |
 | D16 | Image Reference engine changed | `7d78b24`: FLUX.2 klein 4B (Apache-2.0) after a 48-redraw confirmation (whole figure 48/48, no invented attributes, ≈4 s against ≈105 s); Qwen-Image-Edit stays as rollback (`CANONICAL_REFERENCE_ENGINE=qwen`); to verify in the next browser run |
