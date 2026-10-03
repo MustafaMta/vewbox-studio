@@ -199,7 +199,7 @@ export async function designCharacter(s: StudioState, req: { brief: string; name
   const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
 Brief: """${req.brief}"""${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
 Existing characters (do not duplicate a look or a name): ${compact(existing)}
-Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot.`;
+Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot. State facial hair exactly ("a grey moustache only, clean-shaven chin", "a full beard", "clean-shaven") and give a culturally specific garment its cut and length ("an ankle-length grey dishdasha").`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
   opts.onResult?.(r.result);

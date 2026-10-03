@@ -105,10 +105,76 @@ export function whoPhrase(c: Partial<Pick<Character, 'ageYears' | 'sex' | 'speci
   return known ? `a ${noun} of about ${Math.round(age)}` : `a ${noun}`;
 }
 
+// ------------------------------------------------------------------- details stated unambiguously (D13)
+
+const MOUSTACHE = /\b(mo?ustach(?:e|es|ioed)|mustachio(?:ed)?)\b/i;
+const BEARD = /\b(beard(?:ed|s)?|goatee|stubble|sideburns?|whiskers|chin ?strap)\b/i;
+const NO_BEARD = /\b(?:no|without|never)\s+(?:a\s+|any\s+)?(?:beard|stubble|goatee)\b|\bbeardless\b|\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b/gi;
+const CLEAN_SHAVEN = /\bclean[- ]shaven\b/i;
+const ALREADY_EXPLICIT = /\bclean[- ]shaven\s+(?:chin|jaw|cheeks?)\b|\bno beard\b|\bno (?:beard,? )?(?:and )?no mo?ustache\b|\bclean-shaven: no beard\b/i;
+
+/** The facial hair stated so it cannot be read two ways (D13: a "thick, gray mustache" was drawn as a full beard in 2
+ *  of 2 realistic draws): a moustache without a beard → "facial hair: <the moustache> only, clean-shaven chin, jaw and
+ *  cheeks, no beard"; clean-shaven → "clean-shaven: no beard, no moustache". A beard, a text that already says it,
+ *  or nothing about facial hair → undefined (nothing is invented). */
+export function facialHairStatement(texts: Array<string | undefined | null>): string | undefined {
+  const all = texts.filter(Boolean).join('; ');
+  if (!all || ALREADY_EXPLICIT.test(all)) return undefined;
+  const beard = BEARD.test(all.replace(NO_BEARD, ' '));
+  const moustache = MOUSTACHE.test(all);
+  if (moustache && !beard) {
+    const clause = all.split(/[;.]/).find((s) => MOUSTACHE.test(s)) ?? '';
+    const m = /((?:[\w'-]+,?\s+){0,4})(mo?ustach(?:e|es|ioed)|mustachio(?:ed)?)/i.exec(clause);
+    const words = (m ? squash(`${m[1]}${m[2]}`) : 'moustache').split(' ');
+    // the moustache's own words only: what follows the last connecting word ("with a neat black moustache" → "neat black moustache")
+    const stop = words.reduce((at, w, k) => (/^(with|from|and|has|wears|wearing|of|in|on|under|over|by|a|an|the|his|her|their)$/i.test(w.replace(/,$/, '')) ? k : at), -1);
+    const phrase = words.slice(stop + 1).join(' ');
+    return `facial hair: ${phrase} only, clean-shaven chin, jaw and cheeks, no beard`;
+  }
+  if (CLEAN_SHAVEN.test(all) && !moustache && !beard) return 'clean-shaven: no beard, no moustache';
+  return undefined;
+}
+
+/** Robes whose cut a model does not know by name (Arabic and North African garments). */
+const ROBE = /\b(dishdashas?|dishdash|deshdashas?|dishdasheh|thobes?|thawbs?|thoub|kanduras?|kandouras?|kandooras?|jalabiyas?|jallabiyas?|jellabiyas?|galabeyas?|galabiyas?|gallabiyas?|jilbabs?|djellabas?|abayas?)\b/i;
+const ANKLE = /\b(?:ankle|floor)[- ]?(?:length|long)\b|\bto the (?:ankles|floor)\b|\breach(?:es|ing)? (?:down )?to the (?:ankles|floor)\b/i;
+const OTHER_LENGTH = /\b(?:knee|calf|mid-calf|thigh|hip|waist)[- ]?(?:length|long)?\b|\b(?:short|cropped)\b/i;
+const TROUSERS = /\b(trousers|pants|slacks|jeans|sirwal)\b/i;
+
+/** A culturally specific garment's cut stated in the same words (D13: an Iraqi dishdasha was drawn tunic-length, over
+ *  visible patterned trousers): a robe of the dishdasha family or an abaya with no length given becomes "ankle-length
+ *  <robe> (…reaching down to the ankles)", and trousers listed with an ankle-length robe are said to be worn under
+ *  it. A length the text gives is kept; every other word is kept exactly. Idempotent. */
+export function garmentCut(wardrobe: string): string {
+  let over: 'robe' | 'cloak' | undefined;
+  const clauses = wardrobe.split(/\s*;\s*/).map((cl) => {
+    const m = ROBE.exec(cl);
+    if (!m) return cl;
+    const kind = /abaya/i.test(m[1]) ? 'cloak' : 'robe';
+    if (ANKLE.test(cl)) { over = kind; return cl; }
+    if (OTHER_LENGTH.test(cl)) return cl;
+    over = kind;
+    return `${cl.slice(0, m.index)}ankle-length ${m[1]} (a loose ${kind} reaching down to the ankles)${cl.slice(m.index + m[1].length)}`;
+  });
+  if (over && TROUSERS.test(wardrobe) && !/\bunder the (?:robe|cloak|dishdasha|thobe|abaya)\b/i.test(wardrobe)) clauses.push(`the trousers are worn under the ${over} and show only at the ankles`);
+  return clauses.join('; ');
+}
+
+/** One look field as a piece of the line: its own inner semicolons become commas (the line's pieces are separated by
+ *  "; "), a short value takes its noun after it ("dark brown eyes"), a value that already names it stays as written,
+ *  and a long one is labelled ("eyes: dark brown, sharp but kind, …") — never "…that never fades eyes". */
+export function lookPiece(value: string | undefined, noun: string): string {
+  const v = squash(value).replace(/\s*;\s*/g, ', ').replace(/[.,;]+$/, '');
+  if (!v) return '';
+  if (new RegExp(`\\b${noun}\\b`, 'i').test(v)) return v;
+  return !/,/.test(v) && v.split(/\s+/).length <= 4 ? `${v} ${noun}` : `${noun}: ${v}`;
+}
+
 /** The English identity line (contract §2.1: style first, then age, build, face, hair, skin, every garment with its
  *  colour, accessories with their side of the body, footwear). A stored English line wins (with the style and, when
  *  it has none, the age added); a stored line in another script is reported in `nonLatin` and the line is derived from
- *  the fields, whose non-Latin pieces are reported too. Deterministic and de-duplicated. */
+ *  the fields, whose non-Latin pieces are reported too. Facial hair and a culturally specific garment's cut are stated
+ *  unambiguously (D13: `facialHairStatement`, `garmentCut`). Deterministic and de-duplicated. */
 export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style } = {}): CanonicalIdentityLine {
   const nonLatin: string[] = [];
   const who = whoPhrase(c);
@@ -116,32 +182,48 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   const stored = squash(c.canon?.identityLine).replace(/^identity:\s*/i, '').replace(/[.;]+$/, '');
   if (stored && !hasNonLatinLetters(stored)) {
     const statesAge = AGE_WORDS.test(stored);
-    const body = statesAge || who === 'a person' ? stored : `${who}; ${stored}`;
+    const facial = facialHairStatement([stored]);
+    const clear = `${garmentCut(stored)}${facial ? `; ${facial}` : ''}`;
+    const body = statesAge || who === 'a person' ? clear : `${who}; ${clear}`;
     const styled = opts.style && body.toLowerCase().includes(STYLE_MEDIUM[opts.style].identity.toLowerCase()) ? body : `${lead}${body}`;
     return { line: `Identity: ${styled}.`, nonLatin, hasAge: statesAge || /\d/.test(who) };
   }
   if (stored) nonLatin.push(stored);
   const parts: string[] = [];
-  const push = (s?: string | false | null) => {
-    let v = squash(s || '').replace(/[.;]+$/, '');
-    if (!v) return;
+  /** the Latin text of a piece ('' when it is reported as non-Latin) */
+  const latin = (s?: string | false | null): string => {
+    const v = squash(s || '').replace(/[.;]+$/, '');
+    if (!v || !hasNonLatinLetters(v)) return v;
     // a word with stray letters of another alphabet is repaired ("deshdaша" → "deshdasha", D12); a field with a word
     // wholly in another script is reported whole (a dropped word would leave a stub like "hair" with nothing to draw)
-    if (hasNonLatinLetters(v)) { const fixed = latinizeField(v); if (fixed.dropped.length) { nonLatin.push(v); return; } v = fixed.text; }
-    if (!parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v);
+    const fixed = latinizeField(v);
+    if (fixed.dropped.length) { nonLatin.push(v); return ''; }
+    return fixed.text;
   };
-  push(c.build && `${c.build} build`);
-  push(c.face && `${c.face} face`);
-  push(c.hair && `${c.hair} hair`);
-  push(c.eyes && `${c.eyes} eyes`);
-  push(c.skin && c.skin !== '—' && `${c.skin} skin`);
-  push(c.wardrobe && `wearing ${c.wardrobe}`);
-  for (const d of (c.distinguishing ?? []).slice(0, 8)) push(d);
+  const push = (v: string) => { if (v && !parts.some((p) => p.toLowerCase() === v.toLowerCase())) parts.push(v); };
+  const build = latin(c.build && lookPiece(c.build, 'build'));
+  const face = latin(c.face && lookPiece(c.face, 'face'));
+  const hair = latin(c.hair && lookPiece(c.hair, 'hair'));
+  const eyes = latin(c.eyes && lookPiece(c.eyes, 'eyes'));
+  const skin = latin(c.skin && c.skin !== '—' && lookPiece(c.skin, 'skin'));
+  const wardrobe = latin(c.wardrobe && `wearing ${c.wardrobe}`);
+  const distinguishing = (c.distinguishing ?? []).slice(0, 8).map((d) => latin(d));
   const acc = (c.canon?.accessories ?? []).map((a) => squash(a)).filter(Boolean);
   nonLatin.push(...acc.filter(hasNonLatinLetters));
   const accLatin = acc.filter((a) => !hasNonLatinLetters(a));
+  const restrictions = (c.canon?.visualRestrictions ?? []).slice(0, 4).map((r) => latin(r && r.charAt(0).toLowerCase() + r.slice(1)));
+  // the facial hair is found in the fields as written (their own clauses), Latin words only
+  const quiet = (s?: string) => (s && hasNonLatinLetters(s) ? latinizeField(s).text : s ?? '');
+  push(build);
+  push(face);
+  push(facialHairStatement([quiet(c.face), quiet(c.hair), ...distinguishing, ...restrictions]) ?? '');
+  push(hair);
+  push(eyes);
+  push(skin);
+  push(wardrobe && garmentCut(wardrobe));
+  for (const d of distinguishing) push(d);
   if (accLatin.length) push(`accessories: ${accLatin.join(', ')}`);
-  for (const r of (c.canon?.visualRestrictions ?? []).slice(0, 4)) push(r && r.charAt(0).toLowerCase() + r.slice(1));
+  for (const r of restrictions) push(r);
   if (!parts.length && who === 'a person') return { line: '', nonLatin, hasAge: false };
   return { line: `Identity: ${lead}${[who, ...parts].join('; ')}.`, nonLatin, hasAge: /\d/.test(who) };
 }
@@ -399,7 +481,8 @@ export function identityLineFromDescription(d: CharacterDescription, opts: { sty
   add('hair', hair ? `${hair} hair${d.hair.style && !NOT_VISIBLE.test(d.hair.style) ? `, ${d.hair.style}` : ''}` : d.hair.style);
   add('eyes', d.eyes, (s) => `${s} eyes`);
   add('skinTone', d.skinTone, (s) => `${s} skin`);
-  if (d.facialHair && !/^(none|no)\b/i.test(d.facialHair)) add('facialHair', d.facialHair);
+  // a moustache the picture shows without a beard is said to be only that (D13)
+  if (d.facialHair && !/^(none|no)\b/i.test(d.facialHair)) add('facialHair', d.facialHair, (s) => facialHairStatement([s]) ?? s);
   else if (d.facialHair) parts.push('no facial hair');
   if (d.glasses && !/^(none|no)\b/i.test(d.glasses)) add('glasses', d.glasses, (s) => (/glass|spectacle/i.test(s) ? s : `glasses (${s})`));
   for (const m of d.marks) add('marks', m);

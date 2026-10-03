@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
-  faceCropRect, firstJsonObject, hasNonLatinLetters, identityLineFromDescription, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
+  faceCropRect, facialHairStatement, firstJsonObject, garmentCut, hasNonLatinLetters, identityLineFromDescription, lookPiece, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
   qwenCanonicalImage, qwenReferenceCanonical, qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, sentences, vlmOutput, whoPhrase, workflowVersion, type Graph,
 } from '@/server/workflows';
 
@@ -44,6 +44,57 @@ describe('the English identity line (style first, age, Latin script only)', () =
   it('detects non-Latin letters but not punctuation or accents', () => {
     expect(hasNonLatinLetters('café, 85 mm — “quoted”')).toBe(false);
     expect(hasNonLatinLetters('hair: أسود')).toBe(true);
+  });
+});
+
+describe('D13: facial hair and a garment’s cut are stated so they cannot be read two ways', () => {
+  // the A3 record (أبو سلام, char-bc112248bf) as the design wrote it: the moustache was drawn as a full beard (2/2) and
+  // the dishdasha tunic-length over visible patterned trousers
+  const a3 = { sex: 'MALE' as const, ageYears: 62, build: 'robust but slightly stooped, with broad shoulders and a gentle posture', face: 'long, weathered face with deep vertical lines from smiling; thick, gray mustache; faint creases around the eyes that hint at stories untold', hair: 'thick, silver-white hair tied in a loose knot at the nape of the neck, with a few strands escaping', skin: 'deeply tanned, with a network of fine wrinkles and a faint reddish hue from years of sun exposure', eyes: 'dark brown, sharp but kind, with a faint glint of curiosity that never fades', distinguishing: ['old-fashioned metal-rimmed glasses perched on his own left nose'], wardrobe: 'shimmering grayish-blue cotton deshdaша with a faded embroidered border along the hem; wool cardigan in terracotta brown, slightly frayed at the elbows; baggy black cotton trousers with a red thread pattern; leather slippers in dark brown, worn at the edges' };
+
+  it('the A3 line: "moustache only, clean-shaven chin", an ankle-length dishdasha over the trousers, labelled long fields', () => {
+    const { line, nonLatin } = canonicalIdentityLine(a3, { style: 'REALISTIC' });
+    expect(nonLatin).toEqual([]);
+    expect(line).toContain('; facial hair: thick, gray mustache only, clean-shaven chin, jaw and cheeks, no beard; ');
+    expect(line.indexOf('facial hair:')).toBeGreaterThan(line.indexOf('weathered face')); // stated right after the face
+    expect(line).toContain('wearing shimmering grayish-blue cotton ankle-length deshdasha (a loose robe reaching down to the ankles) with a faded embroidered border along the hem');
+    expect(line).toContain('; the trousers are worn under the robe and show only at the ankles');
+    expect(line).toContain('; build: robust but slightly stooped, with broad shoulders and a gentle posture; ');
+    expect(line).toContain('; eyes: dark brown, sharp but kind, with a faint glint of curiosity that never fades; ');
+    // the old builder appended the noun after a long phrase and kept the field's own semicolons
+    for (const bad of ['posture build', 'untold face', 'never fades eyes', 'exposure skin', 'smiling; thick']) expect(line).not.toContain(bad);
+  });
+  it('facial hair: a moustache alone is "only", clean-shaven is said, a beard or an explicit text adds nothing', () => {
+    expect(facialHairStatement(['a round face with a neat black moustache'])).toBe('facial hair: neat black moustache only, clean-shaven chin, jaw and cheeks, no beard');
+    expect(facialHairStatement(['thick grey mustache'])).toBe('facial hair: thick grey mustache only, clean-shaven chin, jaw and cheeks, no beard');
+    expect(facialHairStatement(['clean-shaven, square jaw'])).toBe('clean-shaven: no beard, no moustache');
+    for (const t of ['full grey beard and mustache', 'stubble and a moustache', 'a goatee', 'thick moustache, no beard', 'moustache only, clean-shaven chin', 'short grey hair', '']) expect(facialHairStatement([t]), t).toBeUndefined();
+    // the line never says it twice: a stored line that already states it is kept as written
+    const stored = canonicalIdentityLine({ ...kiteMaker, distinguishing: [], canon: { identityLine: 'Identity: a man of about 70; grey moustache only, clean-shaven chin; white thobe' } }).line;
+    expect(stored.match(/clean-shaven/g)).toHaveLength(1);
+    expect(stored).toContain('white ankle-length thobe (a loose robe reaching down to the ankles)');
+  });
+  it('a robe of the dishdasha family or an abaya gets its cut; a length the design gives is kept; idempotent', () => {
+    expect(garmentCut('a white thobe and brown sandals')).toBe('a white ankle-length thobe (a loose robe reaching down to the ankles) and brown sandals');
+    expect(garmentCut('a black abaya; black trousers')).toBe('a black ankle-length abaya (a loose cloak reaching down to the ankles); black trousers; the trousers are worn under the cloak and show only at the ankles');
+    expect(garmentCut('a knee-length kurta over white trousers')).toBe('a knee-length kurta over white trousers');
+    expect(garmentCut('a short grey dishdasha')).toBe('a short grey dishdasha');
+    expect(garmentCut('a floor-length white jalabiya')).toBe('a floor-length white jalabiya');
+    expect(garmentCut('a navy suit, white shirt')).toBe('a navy suit, white shirt');
+    const once = garmentCut(a3.wardrobe.replace('deshdaша', 'deshdasha'));
+    expect(garmentCut(once)).toBe(once);
+  });
+  it('a look field: short → "<value> <noun>", already named → as written, long → "<noun>: …"', () => {
+    expect(lookPiece('dark brown', 'eyes')).toBe('dark brown eyes');
+    expect(lookPiece('long face', 'face')).toBe('long face'); // the old builder wrote "long face face"
+    expect(lookPiece('dark brown, sharp but kind', 'eyes')).toBe('eyes: dark brown, sharp but kind');
+    expect(lookPiece('round; freckled', 'face')).toBe('face: round, freckled');
+    expect(lookPiece('', 'hair')).toBe('');
+  });
+  it('the description of a picture says a moustache without a beard is only that', () => {
+    const d = parseCharacterDescription('{"sex": "male", "ageRange": "55-65", "facialHair": "thick grey mustache", "clothing": []}');
+    expect(identityLineFromDescription(d).line).toContain('facial hair: thick grey mustache only, clean-shaven chin, jaw and cheeks, no beard');
+    expect(identityLineFromDescription(parseCharacterDescription('{"facialHair": "full grey beard and mustache"}')).line).toContain('; full grey beard and mustache');
   });
 });
 

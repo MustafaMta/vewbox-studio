@@ -4,7 +4,7 @@ description: Designing an original character that can be drawn and voiced, and h
 license: Proprietary to this studio
 allowed-tools: story.structured_answer image.generate image.edit_with_references image.describe_reference
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
   models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
@@ -21,6 +21,12 @@ metadata:
 - Make every appearance field concrete enough to draw from without guessing, and write it in English (the image
   model reads English): build, face, hair, skin, eyes, and a complete default outfit as the wardrobe — every garment
   with its colour, and the footwear. Give one distinguishing detail that survives every shot.
+- State facial hair exactly and completely, because the image model completes what is left open: "a thick grey
+  moustache only, clean-shaven chin and cheeks", "a full grey beard and moustache", "clean-shaven". A moustache written
+  alone was drawn as a full beard.
+- Give a culturally specific garment its cut and length in the same words — "an ankle-length grey dishdasha", "a
+  knee-length kurta", "a floor-length black abaya" — and do not list a garment it hides as if it were seen (trousers
+  under an ankle-length dishdasha show only at the ankles). Without the length, a dishdasha was drawn tunic-length.
 - For a detail worn on one side of the body, say which side as the character's own ("a watch on his own left
   wrist"). The image model places such details on the correct side only about two times in three, so prefer details
   that read from any side unless the side matters to the story.
@@ -42,7 +48,10 @@ metadata:
    (portrait close-ups, expressions and outfits are optional secondary material, made on request).
 2. The identity line is English and starts with the style, then age and sex, build, face, hair, eyes, skin, every
    garment with its colour, accessories with their side, footwear. Pieces in another script are left out and
-   reported, never sent to the image model.
+   reported, never sent to the image model. The line states facial hair unambiguously (a moustache without a beard
+   becomes "… moustache only, clean-shaven chin, jaw and cheeks, no beard") and gives a robe of the dishdasha family or
+   an abaya its cut when the design left it out ("ankle-length …, a loose robe reaching down to the ankles", trousers
+   worn under it).
 3. From text (Auto, Manual): the prompt starts with the medium ("3D animated feature-film character design, stylized
    CG render, not a photograph" / "2D anime character design, cel-shaded … not 3D" / "Photorealistic full-length
    studio photograph"), then the framing, the identity line and the production direction; Qwen-Image-2512 in quality
