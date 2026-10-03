@@ -10,7 +10,7 @@ import { log } from './log';
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
  *  the manifest with its licence and whether the engine that serves it can see it right now, the hosted MiniMax
  *  models with whether a key exists, and every workflow template with a version hash of its structure (the hash a
- *  take records). Synced by the worker on boot and whenever the registry is read. */
+ *  take records). Synced by the worker on boot and on an explicit check (POST /api/registry); reading never syncs. */
 
 interface ManifestFile { repo: string; file: string; folder: string; bytes?: number; sha256?: string; license: string }
 interface Manifest { groups: Array<{ name: string; purpose: string; files: ManifestFile[] }> }
@@ -83,16 +83,18 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
   }
   // local story model
   rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  // rendered once per sync (each template builds a full graph)
+  const templates = workflowTemplates();
   await db().transaction(async (tx) => {
     for (const r of rows) await tx.insert(schema.models).values(r).onConflictDoUpdate({ target: schema.models.name, set: { ...r } });
-    for (const w of workflowTemplates()) {
+    for (const w of templates) {
       const version = workflowVersion(w.graph);
       await tx.insert(schema.workflows).values({ name: w.name, version, graph: w.graph as unknown as Record<string, unknown>, createdAt: now }).onConflictDoNothing();
     }
   });
   const present = rows.filter((r) => r.status === 'PRESENT').length;
-  log.info({ models: rows.length, present, workflows: workflowTemplates().length }, 'registry synced');
-  return { models: rows.length, workflows: workflowTemplates().length, present };
+  log.info({ models: rows.length, present, workflows: templates.length }, 'registry synced');
+  return { models: rows.length, workflows: templates.length, present };
 }
 
 export async function readRegistry(): Promise<{ models: RegistryRow[]; workflows: Array<{ name: string; version: string; createdAt: string; nodes: number }> }> {
