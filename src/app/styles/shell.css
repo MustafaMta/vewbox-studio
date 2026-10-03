@@ -125,7 +125,7 @@
 
   /* ---- the ServerBar: the event stream is down (§5.1) -------------------------------------------------------- */
   .shell-column[data-server='down'] { --sticky-top: calc(var(--mobilebar-h) + var(--server-bar-h, 40px)); }
-  .server-bar { position: sticky; inset-block-start: calc(var(--sticky-top) - var(--server-bar-h, 40px)); z-index: calc(var(--z-compact) + 1); display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 6px var(--gutter); background: color-mix(in srgb, var(--warn) 12%, var(--page)); border-block-end: 1px solid color-mix(in srgb, var(--warn) 45%, var(--page)); font-size: 13px; line-height: 18px; color: var(--warn); }
+  .server-bar { position: sticky; inset-block-start: calc(var(--sticky-top) - var(--server-bar-h, 40px)); z-index: calc(var(--z-compact) + 1); display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 4px var(--gutter); background: color-mix(in srgb, var(--warn) 12%, var(--page)); border-block-end: 1px solid color-mix(in srgb, var(--warn) 45%, var(--page)); font-size: 13px; line-height: 18px; color: var(--warn); }
   html[dir='rtl'] .server-bar { font-size: 14px; line-height: 20px; }
   .server-bar-icon { flex: none; inline-size: 16px; block-size: 16px; }
   .server-bar-text { flex: 1; min-inline-size: 0; }
