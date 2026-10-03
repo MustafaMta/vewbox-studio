@@ -87,7 +87,7 @@
   .home-kind > .home-dot { background: var(--wait); }
 
   /* the action card (§5.8): the shape glyph at the top start, the chevron at the top end, the words at the bottom */
-  .home-action { position: relative; justify-content: space-between; block-size: 112px; padding: var(--s-16); color: var(--text-1); }
+  .home .home-action { position: relative; justify-content: space-between; block-size: 112px; padding: var(--s-16); color: var(--text-1); }
   .home-glyph { flex: none; color: var(--text-1); }
   .home-action-chev { position: absolute; inset-block-start: var(--s-16); inset-inline-end: var(--s-16); inline-size: 16px; block-size: 16px; color: var(--text-3); transition: color var(--dur-1) var(--ease-out); }
   .home-action:hover .home-action-chev { color: var(--text-1); }
@@ -160,7 +160,7 @@
     .home-lineup { --rail-item: 136px; }
     .home-lineup > .home-cast-item:nth-child(n + 12) { display: block; }
     .home-starts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-12); }
-    .home-action { block-size: 104px; }
+    .home .home-action { block-size: 104px; }
     .home .home-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-20) var(--s-16); padding: var(--s-16); }
     .home-fact-v > span, .home-fact-2 { white-space: normal; }
   }

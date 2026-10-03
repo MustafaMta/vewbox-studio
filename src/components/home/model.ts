@@ -5,6 +5,7 @@ import { identityStatus, voiceTrackSource } from '@/components/character/identit
 import { primaryImageOf } from '@/domain/identity';
 import { keyFrameFor, posterOf } from '@/studio/selectors/poster';
 import { productionHref, progressOf, shotLabel } from '@/studio/selectors';
+import { faceBoxOf, type Picture } from '@/components/media/art';
 
 /** THE HOME PAGE'S READING OF THE STUDIO (docs/design/VISUAL-STANDARD-V5.1.md §7) — pure, so every word and number the
  *  page shows comes from real state and can be tested: the marquee (the latest film, with its crop), the decisions
@@ -80,7 +81,7 @@ export function coverPosition(p: Presentation | null | undefined, picture: { wid
   let x = focalX;
   if (boxRatio < ratio - 1e-6) {
     const w = boxRatio / ratio;
-    const cx = face ? face.x + face.w / 2 : p?.portraitFocal?.x ?? focalX;
+    const cx = p?.portraitFocal?.x ?? (face ? face.x + face.w / 2 : focalX);
     x = (cx - w / 2) / (1 - w);
   }
   let y = 0;
@@ -91,10 +92,11 @@ export function coverPosition(p: Presentation | null | undefined, picture: { wid
   return `${pct(x)} ${pct(y)}`;
 }
 
-/** A standing figure (928:1664) cropped to a 16:9 card or tile (§5.7): the face centre at 38 % of the visible height
- *  from `presentation.faceBox`; without a face box, `50% 8%` (head and shoulders of a full-figure image). */
-export function figureCrop(p: Presentation | null | undefined, picture: { width?: number; height?: number }, boxRatio = 16 / 9): string {
-  const face = p?.faceBox && p.faceBox.w > 0 && p.faceBox.h > 0 ? p.faceBox : undefined;
+/** A standing figure (928:1664) cropped to a 16:9 card or tile (§5.7): the face centre at 38 % of the visible height,
+ *  from the face box (`presentation.faceBox`, else the head band of the stored framing box: `faceBoxOf`); with
+ *  neither, `50% 8%` (head and shoulders of a full-figure image). */
+export function figureCrop(picture: Pick<Picture, 'presentation' | 'provenance' | 'width' | 'height'>, boxRatio = 16 / 9): string {
+  const face = faceBoxOf(picture) ?? undefined;
   if (!face) return '50% 8%';
   const ratio = picture.width && picture.height ? picture.width / picture.height : 928 / 1664;
   const v = ratio / boxRatio; // visible share of the height when the width fills the box
@@ -182,7 +184,7 @@ export function decisionCard(d: Decision, s: S): DecisionCard {
   const get = byId(s);
   const p = d.subject.productionId ? s.productions.find((x) => x.id === d.subject.productionId) : undefined;
   const c = d.subject.characterId ? s.characters.find((x) => x.id === d.subject.characterId) : undefined;
-  const figureOf = (ch: Character | undefined) => { const a = ch ? get(primaryImageOf(ch)) : undefined; return usable(a) ? { src: displaySrc(a)!, asset: a, figure: true, alt: `${ch!.name}, canonical image${ch!.canonicalImage ? `, version ${ch!.canonicalImage.version}` : ''}`, position: figureCrop(a.presentation, a) } : undefined; };
+  const figureOf = (ch: Character | undefined) => { const a = ch ? get(primaryImageOf(ch)) : undefined; return usable(a) ? { src: displaySrc(a)!, asset: a, figure: true, alt: `${ch!.name}, canonical image${ch!.canonicalImage ? `, version ${ch!.canonicalImage.version}` : ''}`, position: figureCrop(a) } : undefined; };
   const shotStill = (shotId?: string) => {
     const sh = p?.shots.find((x) => x.id === shotId);
     if (!p || !sh) return undefined;
@@ -286,7 +288,7 @@ export function recentWork(s: S, limit = 6): RecentItem[] {
     const a = get(primaryImageOf(c));
     const what = st.kind === 'LOCKED' ? 'approved, locked' : st.kind === 'APPROVED' ? 'approved' : st.kind === 'DRAFT' ? `version ${st.version ?? 1}, awaiting you` : 'no image yet';
     const ok = usable(a);
-    items.push({ key: c.id, kind: 'character', href: charHref(c), title: c.name, lang: nameLang(c.name), meta: `Character · ${what}`, src: ok ? displaySrc(a) : undefined, asset: ok ? a : undefined, position: ok ? figureCrop(a.presentation, a) : undefined, at: parseTime(c.updatedAt)?.getTime() ?? 0 });
+    items.push({ key: c.id, kind: 'character', href: charHref(c), title: c.name, lang: nameLang(c.name), meta: `Character · ${what}`, src: ok ? displaySrc(a) : undefined, asset: ok ? a : undefined, position: ok ? figureCrop(a) : undefined, at: parseTime(c.updatedAt)?.getTime() ?? 0 });
   }
   for (const l of s.locations) {
     const a = [get(l.masterAssetId), ...l.refs.map((r) => get(r.assetId))].find(usable);

@@ -56,6 +56,12 @@ describe('the crops (§7.1, §5.7)', () => {
     expect(Math.round(x)).toBe(34);
     expect(y).toBe(0);
   });
+  it('the stored data of the real frame (focal .41, face box .335–.48) and a producer-set portrait focal', () => {
+    const stored = { focal: { x: 0.41, y: 0.3 }, faceBox: { x: 0.335, y: 0.06, w: 0.145, h: 0.36 } };
+    expect(coverPosition(stored, WIDE, 1600 / 760)).toBe('41% 0%');
+    expect(coverPosition(stored, WIDE, 4 / 5)).toBe('33.18% 0%');
+    expect(coverPosition({ ...stored, portraitFocal: { x: 0.5, y: 0.4 } }, WIDE, 4 / 5)).toBe('50% 0%');
+  });
   it('the face stays inside the phone window', () => {
     const [x] = percents(coverPosition(WIDE_PRES, WIDE, 4 / 5));
     const w = (4 / 5) / (16 / 9);
@@ -74,11 +80,20 @@ describe('the crops (§7.1, §5.7)', () => {
   });
   it('a figure in a 16:9 card: 50% 8% without a face box; the face centre at 38 % of the visible height with one', () => {
     const fig = { width: 928, height: 1664 };
-    expect(figureCrop(undefined, fig)).toBe('50% 8%');
-    const [x, y] = percents(figureCrop({ faceBox: { x: 0.45, y: 0.2, w: 0.1, h: 0.1 } }, fig));
     const v = (928 / 1664) / (16 / 9);
+    expect(figureCrop(fig)).toBe('50% 8%');
+    const [x, y] = percents(figureCrop({ ...fig, presentation: { faceBox: { x: 0.45, y: 0.2, w: 0.1, h: 0.1 } } }));
     expect(x).toBe(50);
     expect(y / 100).toBeCloseTo((0.25 - 0.38 * v) / (1 - v), 3);
+  });
+  it('without a measured face, the head band of the stored framing box (faceBoxOf) places the crop', () => {
+    // Elias Moore's canonical figure: framing box x .10 y .053 w .85 h .90
+    const elias = { width: 928, height: 1664, provenance: { framing: { box: { x: 0.1, y: 0.053, w: 0.85, h: 0.9 } } } };
+    const [x, y] = percents(figureCrop(elias));
+    const side = 0.18 * 0.9 * 1664, h = side / 1664;
+    const v = (928 / 1664) / (16 / 9);
+    expect(x).toBeCloseTo(52.5, 1);
+    expect(y / 100).toBeCloseTo((0.053 + h / 2 - 0.38 * v) / (1 - v), 3);
   });
 });
 
