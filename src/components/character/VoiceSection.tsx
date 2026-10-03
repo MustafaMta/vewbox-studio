@@ -105,7 +105,7 @@ export function VoiceSection({ c }: { c: Character }) {
   return (
     <CastSection id="voice" title="Voice" description="One voice, the same in every production.">
       <div className="char-stack">
-        {vlock.locked && <p id="voice-lock" role="note" className="t-body char-note"><IconShield aria-hidden className="identity-shield" /> This character has spoken in a video, so the voice is kept as it is. You can still listen and preview lines.</p>}
+        {vlock.locked && <p id="voice-lock" role="note" className="t-body char-note pc-lock"><IconShield aria-hidden /><span>This character has spoken in a video, so the voice is kept as it is. You can still listen and preview lines.</span></p>}
         {identity && (
           <div className="card char-card">
             <h3 className="t-title char-card-title">Measured and heard</h3>

@@ -102,10 +102,13 @@ function About({ c }: { c: Character }) {
   const fromPicture = lookFromReference(c, state.assets);
   const look = (v: string) => lookFieldText(v, fromPicture, 'From the reference picture');
   const species = nonHumanSpecies(c.species);
+  const looks = [['Build', c.build], ['Face', c.face], ['Hair', c.hair], ['Skin', c.skin], ['Eyes', c.eyes], ['Wardrobe', c.wardrobe]] as const;
+  const fromRef = fromPicture ? looks.filter(([, v]) => !(v ?? '').trim() || v.trim() === '?').map(([k]) => k) : [];
   const facts = [
     ['Who', [c.sex === 'FEMALE' ? 'Female' : 'Male', c.ageYears ? `${c.ageYears}` : null, species ? words(species) : null].filter(Boolean).join(' · ')],
     ['Build', look(c.build)], ['Face', look(c.face)], ['Hair', look(c.hair)], ['Skin', look(c.skin)], ['Eyes', look(c.eyes)], ['Wardrobe', look(c.wardrobe)], ['Distinguishing marks', c.distinguishing.join(' · ')],
-  ].filter(([, v]) => v && v !== '—');
+  ].filter(([k, v]) => v && v !== '—' && !(fromRef.length > 1 && (fromRef as readonly string[]).includes(k)));
+  if (fromRef.length > 1) facts.push([fromRef.join(', '), 'As in the reference picture']);
   return (
     <CastSection id="about" title="About">
       {c.personality ? c.personality.split(/\n{2,}/).map((p, i) => <p key={i} className="t-prose char-prose" dir="auto">{p}</p>) : <p className="t-body pc-empty-line">No personality written yet.</p>}

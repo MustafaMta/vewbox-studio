@@ -49,7 +49,7 @@
   .pc-plates > li { min-inline-size: 0; }
 
   /* ------------------------------------------------------------------------------------ the character profile */
-  .char { --fig-w: min(400px, 36%, calc((100svh - 48px) * 928 / 1664)); display: grid; grid-template-columns: var(--fig-w) minmax(0, 1fr); gap: 48px; align-items: start; }
+  .char { --fig-w: min(480px, 36%, calc((100svh - 48px) * 928 / 1664)); display: grid; grid-template-columns: var(--fig-w) minmax(0, 1fr); gap: 48px; align-items: start; }
   .char-figure { position: sticky; inset-block-start: 24px; display: flex; flex-direction: column; min-inline-size: 0; }
   .char-figure-frame { inline-size: 100%; aspect-ratio: 928 / 1664; border-radius: var(--r-lg); }
   .char-main { display: flex; flex-direction: column; min-inline-size: 0; }
@@ -90,7 +90,6 @@
   /* sections of the profile */
   .char-prose { margin: 0; }
   .char-prose + .char-prose { margin-block-start: 12px; }
-  .char-traits { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
   .char-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; margin: 24px 0 0; }
   .char-facts > div { min-inline-size: 0; }
   .char-facts dt { margin: 0 0 4px; }
@@ -120,6 +119,8 @@
   .char-card-acts[data-flush] { margin-block-start: 4px; }
   .pc-grow { flex: 1 1 16rem; min-inline-size: 0; }
   .pc-notice { margin-block-end: 24px; }
+  .pc-lock { display: flex; align-items: flex-start; gap: 8px; }
+  .pc-lock > svg { flex: none; inline-size: 14px; block-size: 14px; margin-block-start: 3px; color: var(--text-3); }
   .pc-notice-bad { display: block; margin-block-start: 4px; color: var(--bad); }
   .pc-figure-note { max-inline-size: 192px; }
 
@@ -136,7 +137,6 @@
   .pc-preview { display: flex; flex-direction: column; gap: 12px; }
   .pc-preview-frame { inline-size: 100%; }
   .pc-preview-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
-  .pc-preview-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pc-preview-note { margin: 0; color: var(--text-3); }
   .pc-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .pc-pair > * { min-inline-size: 0; }
@@ -173,12 +173,9 @@
   .loc-add { display: flex; gap: 8px; margin-block-start: 12px; }
   .loc-add .input { flex: 1; min-inline-size: 0; }
   .loc-tile-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 8px; }
-  .loc-tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 
   /* --------------------------------------------------------------------------------------- the skeletons' sizes */
-  .pc-skeleton .pc-fig-name { display: flex; align-items: center; }
   .pc-skeleton .char-name { display: flex; align-items: center; block-size: 48px; }
-  .pc-skeleton .pc-plate-name, .pc-skeleton .pc-plate-meta { display: flex; align-items: center; }
 
   /* ------------------------------------------------------------------------------------------------ narrower */
   @media (max-width: 1279px) {
