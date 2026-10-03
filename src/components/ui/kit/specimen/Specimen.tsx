@@ -8,6 +8,7 @@ import { useMediaQuery } from '../layout';
 import { MenuButton, MenuItem } from '../Overlay';
 import { PageHeader } from '../PageHeader';
 import { AnchorNav } from '../Tabs';
+import { CardsSpec } from './cards';
 import { ButtonsSpec, ChoicesSpec, NavigationSpec, StatusSpec } from './controls';
 import { FormsSpec } from './forms';
 import { OverlaysSpec } from './overlays';
@@ -39,7 +40,7 @@ export function KitSpecimen({ media }: { media?: ReactNode }) {
   const docTitle = `${T('kit.page.title')} · ${T('app.name')}`;
   useEffect(() => { document.title = docTitle; }, [docTitle]);
   const sections = [
-    ['preferences', T('kit.spec.sec.preferences')], ['buttons', T('kit.spec.sec.buttons')], ['status', T('kit.spec.sec.status')], ['navigation', T('kit.spec.sec.navigation')],
+    ['preferences', T('kit.spec.sec.preferences')], ['cards', 'Cards and shelves'], ['buttons', T('kit.spec.sec.buttons')], ['status', T('kit.spec.sec.status')], ['navigation', T('kit.spec.sec.navigation')],
     ['forms', T('kit.spec.sec.forms')], ['choices', T('kit.spec.sec.choices')], ['overlays', T('kit.spec.sec.overlays')], ['states', T('kit.spec.sec.states')],
     ['approval', T('kit.spec.sec.approval')], ['headers', T('kit.spec.sec.headers')], ['creation', T('kit.spec.sec.creation')],
   ] as const;
@@ -83,6 +84,7 @@ export function KitSpecimen({ media }: { media?: ReactNode }) {
         </div>
       </SpecSection>
 
+      <CardsSpec />
       <ButtonsSpec />
       <StatusSpec />
       <NavigationSpec />
