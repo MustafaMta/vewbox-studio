@@ -1,4 +1,145 @@
 /* ============================================================================================================
-   CUTTING-ROOM KIT — owned by F3 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   Docked panels, splitters, the inspector, the timeline (§5.14, §5.20). Empty until F3.
+   CUTTING-ROOM KIT — owned by F3 (docs/DESIGN-SYSTEM-V4.md §5.12, §5.14, §5.20, §8.2 rule 2, §8.3).
+   The film strip, the dual-scale strip, the storyboard reel, compare A/B, the timeline, the dock layout (panels,
+   splitters, drawers), the inspector, the version stack and the tool row. Precision geometry: 2 px corners, 1 px
+   gaps, boundaries of at least 3:1, achromatic canvas, and LEFT TO RIGHT for anything that is time (§1.2 rule 9).
    ============================================================================================================ */
+@layer components {
+  /* ---- the film strip ---------------------------------------------------------------------------------------- */
+  .fstrip { --fs-h: 72px; --fs-gap: 4px; --fs-r: var(--r-media); min-inline-size: 0; }
+  .fstrip[data-variant='cutting'] { --fs-h: 64px; --fs-gap: 1px; --fs-r: var(--r-precise); background: var(--canvas); }
+  .fstrip-list { position: relative; display: flex; gap: var(--fs-gap); margin: 0; padding: 5px; list-style: none; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .fstrip-list > li { flex: none; }
+  .fstrip-item { position: relative; display: block; block-size: var(--fs-h); aspect-ratio: 16 / 9; padding: 0; border: 0; border-radius: var(--fs-r); overflow: hidden; background: var(--clip); color: var(--fg-faint); cursor: pointer; }
+  .fstrip[data-aspect='9/16'] .fstrip-item { aspect-ratio: 9 / 16; }
+  .fstrip[data-aspect='1/1'] .fstrip-item { aspect-ratio: 1 / 1; }
+  span.fstrip-item { cursor: default; }
+  .fstrip-item img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .fstrip-item[data-missing] { display: grid; place-items: center; background: transparent; box-shadow: inset 0 0 0 1px var(--line-field); }
+  .fstrip-item[aria-current='true'] { outline: 2px solid var(--select-precise); outline-offset: 1px; }
+  .fstrip-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); }
+  .fstrip-item:hover:not([aria-current='true']) { box-shadow: inset 0 0 0 1px var(--clip-edge); }
+
+  /* ---- the dual-scale strip ---------------------------------------------------------------------------------- */
+  .dstrip { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+  .dstrip-over { display: flex; align-items: center; gap: 6px; }
+  .dstrip-bar { position: relative; flex: 1; block-size: 24px; overflow: hidden; border-radius: var(--r-precise); background: var(--clip); cursor: pointer; touch-action: none; }
+  .dstrip-seg { position: absolute; inset-block: 0; overflow: hidden; border-inline-end: 1px solid var(--canvas); }
+  .dstrip-seg img { inline-size: 100%; block-size: 100%; object-fit: cover; opacity: 0.75; }
+  .dstrip-window { position: absolute; inset-block: 0; border-radius: var(--r-precise); background: color-mix(in srgb, var(--fg) 12%, transparent); box-shadow: inset 0 0 0 2px var(--select-precise); cursor: grab; touch-action: none; outline: none; }
+  .dstrip-window:active { cursor: grabbing; }
+  .dstrip-window:focus-visible { box-shadow: inset 0 0 0 2px var(--select-precise), inset 0 0 0 4px var(--ring); }
+  .dstrip-detail { min-inline-size: 0; }
+
+  /* ---- the storyboard reel ----------------------------------------------------------------------------------- */
+  .reel { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-3); background: var(--media); outline: none; }
+  .reel:focus-visible { box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); }
+  .reel-frame { position: relative; inline-size: 100%; background: var(--media); }
+  .reel[data-aspect='9/16'] .reel-frame { inline-size: auto; block-size: min(70vh, 640px); margin-inline: auto; }
+  .reel-frame > img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; max-inline-size: none; object-fit: contain; }
+  .reel-missing { position: absolute; inset: 0; display: grid; place-items: center; background: var(--input); color: var(--fg-faint); }
+  .reel-missing .tc { font-size: 28px; line-height: 32px; }
+  .reel-label { position: absolute; inset-block-start: var(--space-3); inset-inline-start: var(--space-3); padding: 2px 8px; border-radius: var(--r-1); background: var(--chip-on-art); color: var(--on-art); font-size: 12px; line-height: 16px; font-weight: 500; }
+  html[dir='rtl'] .reel-label { font-size: 13px; line-height: 20px; }
+  .reel-shot { position: absolute; inset-block-start: var(--space-3); inset-inline-end: var(--space-3); padding: 2px 6px; border-radius: var(--r-1); background: var(--chip-on-art); color: var(--on-art); font-size: 12px; }
+  .reel-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); }
+
+  /* ---- compare A/B ------------------------------------------------------------------------------------------- */
+  .cmp { display: flex; flex-direction: column; min-inline-size: 0; background: var(--frame); outline: none; }
+  .cmp:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+  .cmp-panes { display: grid; gap: var(--space-3); padding: var(--space-3); background: var(--canvas); }
+  .cmp[data-layout='side'] .cmp-panes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cmp-pane { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; margin: 0; }
+  .cmp-pane[hidden] { display: none; }
+  .cmp-frame { position: relative; inline-size: 100%; background: var(--canvas); }
+  .cmp-frame > video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; max-inline-size: none; object-fit: contain; background: var(--canvas); }
+  .cmp-cap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: 13px; line-height: 20px; color: var(--fg-body); }
+  .cmp-chosen { color: var(--fg-muted); }
+  .cmp-bar { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; border-block-start: 1px solid var(--line-soft); }
+  .cmp-switch > button { gap: 6px; }
+  .cmp-key { font-size: 11px; line-height: 14px; }
+
+  /* ---- the timeline (§5.14) ---------------------------------------------------------------------------------- */
+  .tl { --tl-ruler: 28px; --tl-track: 40px; --tl-music: 44px; display: flex; flex-direction: column; min-inline-size: 0; background: var(--frame); }
+  .tl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 8px; border-block-end: 1px solid var(--line-soft); }
+  .tl-nudges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding-inline-start: 8px; border-inline-start: 1px solid var(--line-soft); }
+  .tl-nudge-label { margin-inline: 4px; font-size: 12px; color: var(--fg-faint); }
+  .tl-now { color: var(--fg-body); }
+  .tl-body { display: grid; grid-template-columns: 76px minmax(0, 1fr); background: var(--canvas); }
+  .tl-heads { display: flex; flex-direction: column; background: var(--frame); border-inline-end: 1px solid var(--line-soft); }
+  .tl-head { display: flex; align-items: center; block-size: var(--tl-track); padding-inline: 8px; border-block-end: 1px solid var(--line-soft); }
+  .tl-head-ruler { block-size: var(--tl-ruler); }
+  .tl-head[data-track='music'] { block-size: var(--tl-music); }
+  .tl-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .tl-content { position: relative; }
+  .tl-ruler { position: relative; block-size: var(--tl-ruler); border-block-end: 1px solid var(--line-soft); cursor: pointer; outline: none; }
+  .tl-ruler:focus-visible { box-shadow: inset 0 0 0 2px var(--ring); }
+  .tl-tick { position: absolute; inset-block: 0; inline-size: 1px; background: var(--line-strong); }
+  .tl-tick-label { position: absolute; inset-block-start: 5px; inset-inline-start: 4px; font-size: 12px; line-height: 16px; color: var(--fg-faint); white-space: nowrap; }
+  .tl-handle { position: absolute; inset-block-end: -5px; inline-size: 10px; block-size: 10px; margin-inline-start: -5px; border-radius: var(--r-pill); background: var(--accent); z-index: 4; }
+  .tl-track { position: relative; block-size: var(--tl-track); border-block-end: 1px solid var(--line-soft); }
+  .tl-track[data-track='music'] { block-size: var(--tl-music); padding-block: 4px; }
+  .tl-clip { position: absolute; inset-block: 4px; display: flex; align-items: center; gap: 6px; padding-inline: 6px; overflow: hidden; border-radius: var(--r-precise); background: var(--clip); box-shadow: inset 0 0 0 1px var(--clip-edge); color: var(--fg-body); cursor: pointer; outline: none; }
+  .tl-clip[data-selected] { outline: 2px solid var(--select-precise); outline-offset: 0; z-index: 1; }
+  .tl-clip:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; z-index: 2; }
+  .tl-clip-n { font-size: 12px; line-height: 16px; color: var(--fg); }
+  .tl-clip-purpose { min-inline-size: 0; font-size: 12px; line-height: 16px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; }
+  .tl-clip:hover .tl-clip-purpose, .tl-clip:focus-visible .tl-clip-purpose, .tl-clip[data-selected] .tl-clip-purpose { opacity: 1; }
+  .tl-trim { position: absolute; inset-block: 0; inline-size: 8px; background: color-mix(in srgb, var(--fg) 55%, transparent); cursor: ew-resize; opacity: 0; touch-action: none; }
+  .tl-trim[data-edge='start'] { inset-inline-start: 0; }
+  .tl-trim[data-edge='end'] { inset-inline-end: 0; }
+  .tl-clip:hover .tl-trim, .tl-clip:focus-visible .tl-trim, .tl-clip[data-selected] .tl-trim { opacity: 1; }
+  .tl-line { position: absolute; inset-block: 6px; display: flex; align-items: center; padding-inline: 6px; overflow: hidden; border-radius: var(--r-precise); background: var(--clip); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 12px; line-height: 16px; color: var(--fg-body); }
+  .tl-line-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-playhead { position: absolute; z-index: 3; inset-block: 0; inline-size: 1px; background: var(--fg); pointer-events: none; }
+
+  /* ---- the dock layout (§5.20) ------------------------------------------------------------------------------- */
+  .dock { display: flex; flex-direction: column; min-inline-size: 0; background: var(--frame); }
+  .dock-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-block-size: 40px; padding: 4px 8px; border-block-end: 1px solid var(--line-soft); }
+  .dock-grid { display: grid; block-size: var(--dock-h, min(72vh, 720px)); min-block-size: 0; }
+  .dock-panel { display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; background: var(--frame); }
+  .dock-panel-head { display: flex; flex: none; align-items: center; gap: 6px; block-size: 40px; padding-inline: 12px 6px; background: var(--input); }
+  .dock-panel-title { flex: 1; margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--fg); }
+  html[dir='rtl'] .dock-panel-title { font-size: 14px; line-height: 20px; }
+  .dock-panel-body { flex: 1; min-block-size: 0; padding: 12px; overflow-x: hidden; overflow-y: auto; }
+  .dock-canvas { position: relative; display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; overflow: hidden; background: var(--canvas); }
+  .dock-split { position: relative; cursor: col-resize; touch-action: none; outline: none; }
+  .dock-split::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: calc(50% - 0.5px); inline-size: 1px; background: var(--line-soft); }
+  .dock-split:hover::after, .dock-split:focus-visible::after { inset-inline-start: calc(50% - 1px); inline-size: 2px; background: var(--accent); }
+  .dock-rail { display: flex; flex-direction: column; align-items: center; padding-block: 4px; background: var(--input); }
+  html[dir='rtl'] .dock-collapse-glyph, .dock-inspector .dock-collapse-glyph { transform: scaleX(-1); }
+  html[dir='rtl'] .dock-inspector .dock-collapse-glyph { transform: none; }
+  .dock-footer { min-inline-size: 0; background: var(--frame); border-block-start: 1px solid var(--line-soft); }
+  .dock-single { display: flex; flex-direction: column; min-block-size: 0; block-size: 100%; }
+  .dock-single > .dock-panel, .dock-single > .dock-canvas { flex: 1; }
+  .dock[data-focus-mode='on'] .dock-bar { min-block-size: 0; }
+  .dock-drawer { position: fixed; inset-block: 0; margin: 0; padding: 0; border: 0; inline-size: min(100vw, 480px); max-inline-size: 100vw; block-size: 100dvh; max-block-size: 100dvh; background: var(--surface); color: var(--fg-body); box-shadow: var(--shadow-3); }
+  .dock-drawer[data-side='start'] { inset-inline-start: 0; inset-inline-end: auto; }
+  .dock-drawer[data-side='end'] { inset-inline-end: 0; inset-inline-start: auto; }
+  .dock-drawer::backdrop { background: var(--overlay); }
+  .dock-drawer-inner { display: flex; flex-direction: column; block-size: 100%; }
+
+  /* ---- the inspector ----------------------------------------------------------------------------------------- */
+  .insp { display: flex; flex-direction: column; gap: var(--space-4); }
+  .insp-empty { margin: 0; font-size: 13px; line-height: 20px; color: var(--fg-muted); }
+  .insp-head p { margin: 0; }
+  .insp-name { margin-block-start: 2px; }
+  .insp-sec { display: flex; flex-direction: column; gap: var(--space-2); }
+  .insp-sec-title { margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
+  html[dir='rtl'] .insp-sec-title { font-size: 13px; line-height: 20px; }
+  .insp-details-body { display: flex; flex-direction: column; gap: var(--space-2); }
+
+  /* ---- the version stack ------------------------------------------------------------------------------------- */
+  .vstack { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .vstack-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .vchip { display: inline-grid; place-items: center; min-inline-size: 28px; block-size: 28px; padding-inline: 6px; border: 1px solid var(--clip-edge); border-radius: var(--r-precise); background: var(--clip); color: var(--fg-body); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .vchip:hover { color: var(--fg); }
+  .vchip[data-current] { outline: 2px solid var(--select-precise); outline-offset: 1px; color: var(--fg); }
+  .vchip[role='checkbox'][aria-checked='true'] { background: var(--raised-2); box-shadow: inset 0 -2px 0 var(--accent); }
+  .vchip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  /* ---- the tool row ------------------------------------------------------------------------------------------ */
+  .toolrow { display: inline-flex; align-items: center; gap: 2px; padding: 4px; border-radius: var(--r-2); background: var(--raised-2); box-shadow: var(--shadow-float); }
+  .toolrow .ebtn { block-size: 32px; }
+  .toolrow-float { position: absolute; z-index: var(--z-raised); inset-inline: 0; inset-block-end: var(--space-3); inline-size: max-content; max-inline-size: calc(100% - 2 * var(--space-3)); margin-inline: auto; }
+}
