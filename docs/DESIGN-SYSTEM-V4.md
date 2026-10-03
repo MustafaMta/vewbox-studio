@@ -263,8 +263,11 @@ These are refused anywhere, and each is a review blocker:
 Rules for the token sheet:
 - Every v3 name keeps resolving. New names are marked `(new)`, and changed values say what they were.
 - Tailwind utilities come from `@theme inline` (§2.2).
-- Runtime values (`--art`, `--art-ph`, `--art-edge`, `--sticky-extra`, `--bottom-bars`) are set inline on the element
-  that owns them, never on `:root` by script.
+- Runtime values (`--art`, `--art-ph`, `--art-edge`) are set inline on the element that owns them, never on `:root`
+  by script. Amendment (F2, 2026-10-03): `--sticky-extra` and `--bottom-bars` are the exception, because
+  `scroll-padding` on `html` can only read them there. They are written on `<html>` as the sum of the contributions of
+  whatever is shown (AnchorNav, CompactHeader, FormFooter, PlayerBar, ServerBar), through the kit's
+  `useRootVarContribution`, never by a component directly.
 
 ```css
 :root {
