@@ -2,8 +2,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './media/exec';
 import { fileTypeFromBuffer } from 'file-type';
 import { StudioError } from '@/domain/errors';
 import type { Asset, AssetKind, AssetThumb, AssetTier } from '@/domain/types';
@@ -14,7 +13,7 @@ import { measurePresentation } from './media/presentation';
 import { isFigureLike, makeThumbnail, thumbPathFor } from './media/thumbs';
 import { thumbSrc } from './studio/snapshot';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** THE LIBRARY ON DISK — every file the studio stores lives under LIBRARY_ROOT as `{kind}/{yyyy}/{mm}/{assetId}.{ext}`.
  *  Paths are built from ids the server minted, never from client strings; MIME types come from the bytes, not the

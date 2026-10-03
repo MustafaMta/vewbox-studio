@@ -1,8 +1,7 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import { ffprobe } from '@/server/media';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** REFERENCE IMAGE VALIDATION — on the CPU, before any generation is queued from an uploaded picture. Size comes
  *  from ffprobe; sharpness is the variance of the Laplacian over a downscaled greyscale decode (ffmpeg → raw pixels →

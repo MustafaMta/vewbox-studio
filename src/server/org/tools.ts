@@ -4,6 +4,7 @@ import type { Logger } from '../log';
 import { agentById, toolById, type AgentDef, type FailureClass } from './model';
 import { CONTRACTS, issuesOf } from './contracts';
 import { classifyFailure, finishRun, recordToolCall, startDelegatedRun, studioEvent } from './runs';
+import { raceAbort, withSignal } from '../jobs/context';
 
 /** TOOL CONTRACTS AT RUN TIME — a handler gets `ctx.tool(id, fn, { input })`: the call is refused when the tool is not
  *  on the agent's allow-list or not registered; the declared input is validated against the tool's contract before
@@ -33,17 +34,20 @@ export function makeToolRunner(agent: AgentDef, runId: string, log: Logger): Too
         throw contractError(`${def.name}: wrong parameters — ${why}`, 'WRONG_PARAMETERS', { toolId });
       }
     }
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(Object.assign(new StudioError('UNAVAILABLE', `${def.name} did not finish within ${Math.round(def.timeoutMs / 1000)} s.`), { failureClass: 'INFRASTRUCTURE' })), def.timeoutMs); });
+    // THE TOOL TIMEOUT ABORTS THE WORK (audit H5): the call runs under its own signal (the job's AND this timer's),
+    // so at the timeout its ffmpeg children are killed, its requests aborted and its ComfyUI prompt cancelled — the
+    // GPU lease is not released while the engine still renders. Work that ignores the signal is let go of 2 s later.
+    const toolCtrl = new AbortController();
+    const timer = setTimeout(() => toolCtrl.abort(Object.assign(new StudioError('UNAVAILABLE', `${def.name} did not finish within ${Math.round(def.timeoutMs / 1000)} s.`, { failureClass: 'INFRASTRUCTURE' }), { failureClass: 'INFRASTRUCTURE' })), def.timeoutMs);
     let out: Awaited<ReturnType<typeof fn>>;
     try {
-      out = await Promise.race([fn(), timeout]);
+      out = await raceAbort(withSignal(toolCtrl.signal, fn), toolCtrl.signal, 2_000);
     } catch (e) {
       const msg = (e as Error).message?.slice(0, 300);
       log.warn({ tool: toolId, ms: Date.now() - t0, err: msg, label: opts.label }, 'tool call failed');
       record(false, { error: msg, failureClass: classifyFailure(e) });
       throw e;
-    } finally { if (timer) clearTimeout(timer); }
+    } finally { clearTimeout(timer); }
     if (contract) {
       const schema = (opts.input !== undefined && contract.outputFor?.(opts.input)) || contract.output;
       const parsed = schema.safeParse(out);

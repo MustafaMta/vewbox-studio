@@ -1,9 +1,8 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import type { ShotRelation } from '@/domain/types';
 import { JOIN_CROSSFADE_FRAMES } from '@/domain/timeline';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** JOIN QA (docs/research/MINIMAX-CONTINUITY.md §3.6) — at every join of the cut, is the step from one shot to the
  *  next a jump? Measured, not judged by eye:

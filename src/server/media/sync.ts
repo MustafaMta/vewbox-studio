@@ -1,7 +1,6 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** SOUND-TO-PICTURE ALIGNMENT — a MiniMax take sings or speaks with its own timing; under a song master the cut mutes
  *  the take's sound, so its mouths must be brought onto the master's beat. The take's own audio is the one honest

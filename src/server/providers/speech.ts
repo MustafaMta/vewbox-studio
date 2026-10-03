@@ -4,6 +4,7 @@ import { StudioError } from '@/domain/errors';
 import type { Dialect, Language } from '@/domain/vocabulary';
 import { env } from '../env';
 import { log } from '../log';
+import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
@@ -32,17 +33,19 @@ const asr = () => env().ASR_URL.replace(/\/$/, '');
 
 async function post(url: string, fd: FormData, timeoutMs: number): Promise<Response> {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  const unlink = followJobSignal(ctrl); // a stopped job aborts the request (src/server/jobs/context.ts)
   try {
     const res = await fetch(url, { method: 'POST', body: fd, signal: ctrl.signal });
     if (!res.ok) { const text = await res.text().catch(() => ''); let detail = text; try { detail = (JSON.parse(text) as { detail?: string }).detail ?? text; } catch { /* plain */ } throw new StudioError(res.status === 503 ? 'NOT_CONFIGURED' : 'PROVIDER', `${url.replace(/^https?:\/\/[^/]+/, '')}: ${detail.slice(0, 400)}`, { status: res.status }); }
     return res;
   } catch (e) {
     if (e instanceof StudioError) throw e;
+    if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
     const why = cause?.code ?? cause?.message ?? (e as Error).message;
     const timedOut = (e as Error).name === 'AbortError' || /TIMEOUT/i.test(why);
     throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`);
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); unlink(); }
 }
 
 /** Which engine speaks this character: Iraqi Arabic → Habibi (IRQ model); everything else → IndexTTS 2.5. */
