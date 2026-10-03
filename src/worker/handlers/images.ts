@@ -16,6 +16,7 @@ import { adoptFile, assetFile, assetFromStored, ffprobe } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/server/media/image-check';
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
+import { faceBoxFromReading } from '@/server/media/presentation';
 import * as comfy from '@/server/providers/comfy';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
@@ -217,7 +218,9 @@ export async function readReferencePicture(ctx: HandlerContext, picture: Asset, 
   if (description) {
     const fresh = (await readState()).state.assets.find((a) => a.id === picture.id) ?? picture;
     const reading: StoredReading = { boxes, description, describedBy: 'Qwen3.5-4B', vlm: MODELS.vlm, at: new Date().toISOString() };
-    await command('updateAsset', [picture.id, { provenance: { ...(fresh.provenance ?? {}), reading } }], 'worker');
+    // the face box MediaPipe just measured on this picture is its presentation's face box (§2.4; one face only)
+    const faceBox = faceBoxFromReading({ reading }, fresh);
+    await command('updateAsset', [picture.id, { provenance: { ...(fresh.provenance ?? {}), reading }, ...(faceBox ? { presentation: { ...(fresh.presentation ?? {}), faceBox } } : {}) }], 'worker');
   }
   return { upload, boxes, description, describedBy: description ? 'Qwen3.5-4B' : undefined, notes, reused: false };
 }

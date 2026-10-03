@@ -51,7 +51,7 @@ const TIERS: readonly AssetTier[] = ['CANONICAL', 'SECONDARY', 'RAW'];
 /** An asset as the domain holds it, from its row (`posterOf` resolves a poster stored as another asset). */
 export function assetFromRow(a: AssetRowRead, posterOf: (posterAssetId: string) => string | undefined = () => undefined): Asset {
   const poster = (a.posterAssetId ? posterOf(a.posterAssetId) : undefined) ?? (a.posterPath ? `/${a.posterPath.replace(/^\/+/, '')}` : undefined);
-  return { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, tier: TIERS.includes(a.tier as AssetTier) ? (a.tier as AssetTier) : undefined, createdAt: a.createdAt };
+  return { id: a.id, kind: a.kind as Asset['kind'], src: assetSrc(a), poster, label: a.label, width: undef(a.width), height: undef(a.height), durationSeconds: undef(a.durationSeconds), fps: undef(a.fps), tags: a.tags, sample: a.sample, origin: a.origin as Asset['origin'], mimeType: undef(a.mimeType), bytes: undef(a.bytes), sha256: undef(a.sha256), provenance: undef(a.provenance), jobId: undef(a.jobId), unavailable: a.unavailable || undefined, tier: TIERS.includes(a.tier as AssetTier) ? (a.tier as AssetTier) : undefined, presentation: undef(a.presentation), createdAt: a.createdAt };
 }
 
 export function usageFromRow(u: UsageRowRead): VideoUsage {

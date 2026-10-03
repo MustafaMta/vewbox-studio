@@ -6,6 +6,8 @@ import { assetFromStored, removeFile, storeBuffer } from '@/server/media';
 import { validateReferenceImage } from '@/server/media/image-check';
 import { json, route } from '@/server/http';
 import { env } from '@/server/env';
+import { enqueue } from '@/server/jobs/queue';
+import { log } from '@/server/log';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -45,6 +47,9 @@ export const POST = route(async (req) => {
     const validation = reference ? await validateReferenceImage(stored.absPath) : undefined;
     const provenance = { originalName: file.name.slice(0, 200), ...(reference ? { purpose, validation } : {}) };
     const r = await command('addAsset', [assetFromStored(id, stored, { label, tags, origin: 'UPLOAD', provenance })], 'upload');
+    // AUDIT C9: a picture whose presentation could not be measured as it was stored is handed to the Technical Media
+    // Inspector (MEDIA_PROBE, CPU lane), which re-validates the file and measures it again; never fails the upload
+    if (stored.presentationError) await enqueue({ type: 'MEDIA_PROBE', payload: { assetId: id }, idempotencyKey: `upload-probe-${id}` }).catch((e) => log.warn({ assetId: id, err: (e as Error).message }, 'could not queue the file check of an upload'));
     return json(reference ? { asset: r.asset, validation } : { asset: r.asset }, { status: 201 });
   } catch (e) { await removeFile(stored.relPath); throw e; }
 });
