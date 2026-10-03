@@ -112,9 +112,14 @@ export function creationSteps(parent: Job | undefined, jobs: Job[], retries: Par
   const childFor = (step: CreateStepName) => children.filter((j) => j.type === STEP_JOB[step]).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const reported = parent?.progress?.step;
   const parentDead = parent?.status === 'FAILED' || parent?.status === 'CANCELLED';
+  const characterId = createdCharacterId(parent, jobs);
+  // a later job of the step's kind for the same character — "Try again" here, a redraw or a voice made on the profile —
+  // supersedes what the chain recorded, even after a reload forgot the page's own retries (D4, found 2026-10-03)
+  const laterFor = (step: CreateStepName, after: string | undefined) => characterId && after ? jobs.filter((j) => j.type === STEP_JOB[step] && j.characterId === characterId && j.parentId !== parent?.id && j.createdAt > after).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] : undefined;
   let firstOpen = true;
   return CREATE_STEPS.map((step, i) => {
-    const retry = retries[step] ? jobs.find((j) => j.id === retries[step]) : undefined;
+    const recordedJob = childFor(step);
+    const retry = (retries[step] ? jobs.find((j) => j.id === retries[step]) : undefined) ?? laterFor(step, recordedJob?.createdAt ?? parent?.createdAt);
     const outcome = result?.steps.find((s) => s.step === step);
     const job = retry ?? childFor(step);
     const live = (j: Job): StepView => {

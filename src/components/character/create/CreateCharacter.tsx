@@ -81,7 +81,10 @@ export function CreateCharacter() {
     if (d.describe) setDescribe({ ...d.describe, voiceMode: describeVoiceMode(d.describe.voiceMode) });
     if (d.sheet) setSheet({ ...EMPTY_SHEET, ...d.sheet });
     if (d.sheetStep && SHEET_STEPS.includes(d.sheetStep)) setSheetStep(d.sheetStep);
-    if (d.jobId) setParentId(d.jobId);
+    // an explicit start in the address (?start=…, the directory's "three ways to start") asks for a NEW character: the
+    // remembered run is not restored (it goes on; its profile shows it) — D5, found 2026-10-03
+    if (d.jobId && !STARTS.includes(asked as Start)) setParentId(d.jobId);
+    else if (d.jobId) writeDraft({ ...d, jobId: undefined, referenceAssetId: undefined });
     setHydrated(true);
   }, [sp, asked]);
   useEffect(() => { if (hydrated) writeDraft({ start, header, describe, sheet, sheetStep, jobId: parentId ?? undefined, referenceAssetId: draft.current.referenceAssetId }); }, [hydrated, start, header, describe, sheet, sheetStep, parentId]);
