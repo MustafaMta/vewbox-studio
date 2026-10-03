@@ -4,6 +4,8 @@
    exact shapes and nothing moves when the content arrives. */
 @layer components {
   .theatre-room { display: flex; flex-direction: column; }
+  /* the theatre's black ground from the first paint (the page's <Room> applies it only once the page has hydrated) */
+  .shell-column:has(.theatre-room, .theatre-lobby) { --page: var(--black); background: var(--page); }
 
   /* ------------------------------------------------------------------------- the theatre: stage beside the pane */
   /* the film, then (phone and tablet) the programme and the review pane; at ≥ 1280 the pane beside the film */
@@ -48,7 +50,7 @@
   .theatre-wide { display: inline-flex; }
 
   /* -------------------------------------------------------------------------------------------- the review pane */
-  .theatre-pane { display: flex; flex-direction: column; min-inline-size: 0; overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); }
+  .theatre-pane { --sk-fill: var(--surface-2); display: flex; flex-direction: column; min-inline-size: 0; overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); }
   .theatre-tabs-wrap { flex: none; padding-inline: 16px; }
   .theatre-panel { display: flex; flex: 1; flex-direction: column; min-block-size: 0; overflow-y: auto; scrollbar-width: thin; }
   .theatre-panel:focus-visible { outline-offset: -2px; }
@@ -113,15 +115,6 @@
   .theatre-lobby-head > * { margin: 0; }
   .theatre-lobby-head .t-body { color: var(--text-2); }
   .theatre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
-  .theatre-poster { position: relative; display: block; overflow: hidden; aspect-ratio: 2 / 3; border-radius: var(--r-md); background: var(--surface-1); color: var(--text-1); text-decoration: none; }
-  .theatre-poster:focus-visible { outline-offset: 3px; }
-  .theatre-poster .frame { block-size: 100%; border-radius: 0; }
-  .theatre-poster-words { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 2px; padding: 40px 14px 12px; background: var(--scrim-poster); pointer-events: none; }
-  .theatre-poster-title { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--text-1); }
-  .theatre-poster-meta { overflow: hidden; font-size: 13px; line-height: 18px; color: var(--text-2); text-overflow: ellipsis; white-space: nowrap; }
-  .theatre-poster-play { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: var(--r-pill); background: var(--chip-on-art); color: var(--text-1); opacity: 0; transition: opacity var(--dur-1) var(--ease-out); }
-  .theatre-poster-play svg { inline-size: 14px; block-size: 14px; fill: currentColor; }
-  .theatre-poster:is(:hover, :focus-visible) .theatre-poster-play { opacity: 1; }
   .theatre-lobby-empty { display: flex; }
 
   /* -------------------------------------------------------------------------------------- nothing to screen yet */

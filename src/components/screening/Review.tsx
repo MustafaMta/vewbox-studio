@@ -177,7 +177,7 @@ function Deliverables({ sc, cut }: { sc: Screening; cut: CutView }) {
   const v = cut.version;
   return (
     <div className="theatre-deliv">
-      {sc.exports.length === 0 && <p className="t-body theatre-empty">No export of this film yet. <Link className="theatre-link" href={`${sc.href}?tab=final`}>Export it from the final cut</Link>.</p>}
+      {sc.exports.length === 0 && <p className="t-body theatre-empty">No export of this film yet. <Link className="theatre-link" href={`${sc.href}/production?tab=final`}>Export it from the final cut</Link>.</p>}
       <ul className="theatre-deliv-list" aria-label="Deliverables">
         {sc.exports.map((e) => (
           <li key={e.id} className="theatre-deliv-row">

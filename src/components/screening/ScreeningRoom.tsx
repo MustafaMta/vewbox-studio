@@ -3,19 +3,18 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Download, Play } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { CutNote } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { Room, useRoom } from '@/components/shell/Room';
 import { useToast } from '@/components/ui/toast';
-import { Frame } from '@/components/media/Frame';
+import { MediaCardSkeleton, PosterCard } from '@/components/media';
 import { Segmented, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { usePlayerCore } from '@/components/players/PlayerCore';
-import { artVars } from '@/studio/presentation';
 import { Theatre } from './Theatre';
 import { Composer, Review, numbered, type PaneTab } from './Review';
 import { useNotes } from './notes';
-import { cutView, notesOfCut, screeningHref, screeningList, screeningOf, shotAt, slateOf, type ScreeningCard, type TimelineShot } from './model';
+import { cutView, notesOfCut, screeningHref, screeningList, screeningOf, shotAt, slateOf, type TimelineShot } from './model';
 
 /** THE SCREENING ROOM (docs/DESIGN-SYSTEM-V5.md §8.12; docs/design/VISUAL-STANDARD-V5.1.md; the producer's Krea
  *  reference) — `/screening?p=<productionId>` (Home's "Screen it") opens the theatre: the cut at its native ratio on
@@ -42,23 +41,9 @@ function Lobby() {
         <p className="t-body">{cards.length ? 'Every film with an assembled cut, ready to watch and review.' : 'Nothing to screen yet. A film appears here when Post-Production assembles its cut.'}</p>
       </header>
       {cards.length > 0
-        ? <ul className="theatre-grid" role="list">{cards.map((c) => <li key={c.id}><PosterCard c={c} /></li>)}</ul>
+        ? <ul className="theatre-grid" role="list">{cards.map((c) => <li key={c.id}><PosterCard href={c.href} title={c.title} titleLang={c.lang} meta={c.meta} asset={c.poster?.asset} src={c.poster?.src} /></li>)}</ul>
         : <div className="theatre-lobby-empty"><Link className="btn btn-secondary" href="/production">Open Production</Link></div>}
     </div>
-  );
-}
-
-function PosterCard({ c }: { c: ScreeningCard }) {
-  return (
-    <Link className="theatre-poster" href={c.href} title={c.title}>
-      <Frame asset={c.poster?.asset} src={c.poster?.src} ratio="2/3" fit="cover" alt="" radius="none" art={artVars(c.poster?.asset)} title={c.title} titleLang={c.lang} titleState="noImage" decorative className="theatre-poster-frame">
-        <span className="theatre-poster-words">
-          <span className="theatre-poster-title name"><bdi lang={c.lang}>{c.title}</bdi></span>
-          <span className="theatre-poster-meta">{c.meta}</span>
-        </span>
-        <span className="theatre-poster-play" aria-hidden><Play /></span>
-      </Frame>
-    </Link>
   );
 }
 
@@ -185,13 +170,15 @@ export function ScreeningSkeleton({ view }: { view?: 'theatre' | 'list' }) {
   if (v === 'list') {
     return (
       <SkeletonRegion label="Opening the Screening Room…" className="theatre-lobby theatre-skeleton">
+        <Room value="theatre" />
         <div className="theatre-lobby-head"><div className="t-page"><Skeleton.Line size="title" width="14rem" /></div><div className="t-body"><Skeleton.Line width="24rem" /></div></div>
-        <div className="theatre-grid">{Array.from({ length: 6 }, (_, i) => <div key={i}><Skeleton.Media ratio="2/3" className="theatre-poster" /></div>)}</div>
+        <div className="theatre-grid">{Array.from({ length: 6 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="2/3" /></div>)}</div>
       </SkeletonRegion>
     );
   }
   return (
     <SkeletonRegion label="Opening the Screening Room…" className="theatre-room theatre-skeleton">
+      <Room value="theatre" />
       <div className="theatre">
         <div className="theatre-stage" style={{ '--tw': 16, '--th': 9 } as React.CSSProperties}>
           <div className="theatre-pic" />

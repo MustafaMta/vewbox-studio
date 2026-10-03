@@ -119,12 +119,12 @@ for (const size of SIZES) {
   await t.ctx.close();
 
   // ---- the poster list
-  const l = await open(size, '/screening', '.theatre-lobby:not(.theatre-skeleton) .theatre-poster');
+  const l = await open(size, '/screening', '.theatre-lobby:not(.theatre-skeleton) .mcard');
   await l.shot(`list-loading-${size.w}.png`);
   await l.settle();
   await l.page.screenshot({ path: `${out}/list-${size.w}.png`, fullPage: true });
   const n = await l.page.evaluate(({ textChecks }) => {
-    const cards = [...document.querySelectorAll('.theatre-poster')].map((e) => e.getBoundingClientRect());
+    const cards = [...document.querySelectorAll('.theatre-grid .mcard')].map((e) => e.getBoundingClientRect());
     const head = document.querySelector('.theatre-lobby-head').getBoundingClientRect();
     // eslint-disable-next-line no-new-func
     const tc = new Function(`return (${textChecks})()`)();
@@ -139,6 +139,37 @@ for (const size of SIZES) {
   report.push({ view: 'list', size: `${size.w}×${size.h}`, firstMs: l.firstMs, ...n, checks: lc });
   console.log(`list    ${size.w}×${size.h}: ${lbad.length ? `✗ ${lbad.join(', ')}` : '✓ all checks'} · cards ${n.sizes.join('/')} · start x ${n.startHead}/${n.startCard} · CLS ${n.cls.toFixed(4)}${n.small.length ? ` · small: ${n.small.join('; ')}` : ''}`);
   await l.ctx.close();
+}
+// ---- evidence only (not checks): a populated notes pane answered from a fixture (reads only), and the lights down
+{
+  const snap = await (await fetch(`${base}/api/studio`)).json();
+  const prod = snap.state.productions.find((x) => x.id === pid);
+  const now = new Date().toISOString();
+  const fixture = [
+    { timecode: 9.4, pin: { x: 0.38, y: 0.3 }, text: 'Fixture note (evidence only): hold on his face a beat longer before the line.' },
+    { timecode: 31.2, text: 'Fixture note (evidence only): the static under the music is too loud here.' },
+    { timecode: 51.2, pin: { x: 0.74, y: 0.24 }, text: 'Fixture note (evidence only): the portrait should flicker here, not a second earlier.', status: 'resolved' },
+  ].map((n, i) => ({ id: `fixture-${i}`, productionId: pid, cutAssetId: prod.cutAssetId, cutVersion: 3, author: 'producer', status: 'open', createdAt: now, updatedAt: now, ...n }));
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark', deviceScaleFactor: 1 });
+  const page = await ctx.newPage();
+  await page.route('**/api/**', (route) => {
+    const r = route.request(); const u = new URL(r.url());
+    if (!['GET', 'HEAD'].includes(r.method())) return route.fulfill({ status: 403, body: '{}' });
+    if (u.pathname === '/api/notes') return route.fulfill({ json: { notes: fixture } });
+    return route.continue();
+  });
+  await page.goto(`${base}/screening?p=${encodeURIComponent(pid)}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-note', { timeout: 120000 });
+  await page.waitForFunction(() => document.querySelector('.theatre-video')?.readyState >= 2, null, { timeout: 60000 });
+  await page.getByRole('button', { name: /^Jump to 0:09/ }).click();
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: `${out}/theatre-notes-fixture-1440.png` });
+  await page.evaluate(() => { const v = document.querySelector('.theatre-video'); v.muted = true; });
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.mouse.move(700, 820);
+  await page.waitForTimeout(3200);
+  await page.screenshot({ path: `${out}/theatre-lights-down-1440.png` });
+  await ctx.close();
 }
 await browser.close();
 await fs.writeFile(`${out}/acceptance.json`, `${JSON.stringify({ checked: new Date().toISOString(), base, production: pid, report }, null, 2)}\n`);
