@@ -42,4 +42,10 @@ export const shell = {
   // navigation and the production page
   'nav.new': ['New…', 'جديد…'],
   'nav.files': ['Files', 'الملفات'],
+
+  // ---- v4: page titles (§7.3; src/components/shell/titles.ts) ----
+  'shell.title.episode': ['Episode {n}', 'الحلقة {n}'],
+  'shell.title.season': ['Season {n}', 'الموسم {n}'],
+  'shell.title.shot': ['Shot {n}', 'اللقطة {n}'],
+  'shell.title.newLocation': ['New location', 'موقع جديد'],
 } as const satisfies Record<string, readonly [string, string]>;
