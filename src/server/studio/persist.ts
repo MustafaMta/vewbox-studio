@@ -27,7 +27,7 @@ export function assetRow(a: Asset & { storage?: string; path?: string }) {
   const isPublic = a.src.startsWith('/sample/') || a.src.startsWith('/public/');
   const path = a.path ?? (isPublic ? a.src.replace(/^\/+/, '') : (a.provenance?.path as string | undefined) ?? '');
   const poster = parsePoster(a.poster);
-  return { id: a.id, kind: a.kind, storage: a.storage ?? (isPublic ? 'PUBLIC' : 'LIBRARY'), path, posterAssetId: poster.posterAssetId, posterPath: poster.posterPath, label: a.label, width: nul(a.width), height: nul(a.height), durationSeconds: nul(a.durationSeconds), fps: nul(a.fps), tags: a.tags, sample: a.sample, origin: a.origin, mimeType: nul(a.mimeType), bytes: nul(a.bytes), sha256: nul(a.sha256), provenance: nul(a.provenance), jobId: nul(a.jobId), unavailable: Boolean(a.unavailable), tier: nul(a.tier), createdAt: a.createdAt };
+  return { id: a.id, kind: a.kind, storage: a.storage ?? (isPublic ? 'PUBLIC' : 'LIBRARY'), path, posterAssetId: poster.posterAssetId, posterPath: poster.posterPath, label: a.label, width: nul(a.width), height: nul(a.height), durationSeconds: nul(a.durationSeconds), fps: nul(a.fps), tags: a.tags, sample: a.sample, origin: a.origin, mimeType: nul(a.mimeType), bytes: nul(a.bytes), sha256: nul(a.sha256), provenance: nul(a.provenance), jobId: nul(a.jobId), unavailable: Boolean(a.unavailable), tier: nul(a.tier), presentation: nul(a.presentation), createdAt: a.createdAt };
 }
 
 /** A usage record as its row (the fact is written once; later saves only mark it). */

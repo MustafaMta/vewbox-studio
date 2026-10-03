@@ -1,4 +1,5 @@
 import type { Aspect, CameraMove, CharacterRefRole, Dialect, Framing, Kind, Language, LocationRefRole, LyricKind, Sex, Stage, Style, TimeOfDay, Transition } from './vocabulary';
+import type { Presentation } from './presentation';
 
 /** WHAT THE STUDIO KEEPS — the shapes every page reads and writes, and the shapes the server persists. The
  *  database is the source of truth; the browser holds a snapshot of it and the workers write into it. */
@@ -32,6 +33,9 @@ export interface Asset {
   /** Character/location imagery only: canonical identity view, optional secondary material, or raw intermediate
    *  output (docs/CONTRACTS-IDENTITY-PACK.md). Absent on everything else. */
   tier?: AssetTier;
+  /** Pictures only: how the image presents itself (docs/DESIGN-SYSTEM-V4.md §2.4), measured from its pixels once
+   *  at ingest (src/server/media/presentation.ts). Absent means neutral. */
+  presentation?: Presentation;
   createdAt: string;
 }
 

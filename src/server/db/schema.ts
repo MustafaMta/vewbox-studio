@@ -1,6 +1,7 @@
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
 import type { JobError, JobProgress } from '@/domain/jobs';
+import type { Presentation } from '@/domain/presentation';
 
 /** THE DATABASE — the studio's source of truth. Shows, seasons, productions, scenes, shots, takes, characters,
  *  locations and assets are rows; the collections a page edits as one thing (beats and lines, dialogue, references,
@@ -243,6 +244,9 @@ export const assets = pgTable('assets', {
   /** Character/location imagery: CANONICAL (an identity view), SECONDARY, RAW; null for everything else. */
   tier: text('tier'),
   createdAt: ts('created_at').notNull(),
+  /** Pictures: dominant hue, edge colour, light backdrop, focal point, face box (docs/DESIGN-SYSTEM-V4.md §2.4),
+   *  measured at ingest; null until measured (scripts/presentation-backfill.ts fills older rows). */
+  presentation: jsonb('presentation').$type<Presentation>(),
 });
 
 export const settings = pgTable('settings', {

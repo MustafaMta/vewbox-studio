@@ -711,7 +711,7 @@ export function addAsset(s: S, input: Omit<Asset, 'createdAt' | 'id'> & { id?: s
   return { state: { ...s, assets: [...s.assets, asset] }, asset };
 }
 
-export function updateAsset(s: S, id: string, patch: Partial<Pick<Asset, 'label' | 'tags' | 'poster' | 'width' | 'height' | 'durationSeconds' | 'fps' | 'provenance' | 'unavailable'>>): S {
+export function updateAsset(s: S, id: string, patch: Partial<Pick<Asset, 'label' | 'tags' | 'poster' | 'width' | 'height' | 'durationSeconds' | 'fps' | 'provenance' | 'unavailable' | 'presentation'>>): S {
   mustFind(s.assets, id, 'Asset');
   // the tier has its own command (setAssetTier) and the identity commands; a general patch never moves it
   const { tier: _tier, ...rest } = patch as typeof patch & { tier?: unknown }; void _tier;

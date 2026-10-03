@@ -7,8 +7,10 @@ import { promisify } from 'node:util';
 import { fileTypeFromBuffer } from 'file-type';
 import { StudioError } from '@/domain/errors';
 import type { Asset, AssetKind, AssetTier } from '@/domain/types';
+import type { Presentation } from '@/domain/presentation';
 import { env } from './env';
 import { log } from './log';
+import { measurePresentation } from './media/presentation';
 
 const execFileP = promisify(execFile);
 
@@ -115,7 +117,22 @@ export async function sha256File(file: string): Promise<string> {
   return hash.digest('hex');
 }
 
-export interface StoredFile { relPath: string; absPath: string; bytes: number; mime: string; kind: AssetKind; ext: string; sha256: string; probe?: Probe }
+/** `presentation`: a picture's measured presentation (src/server/media/presentation.ts); `presentationError` when the
+ *  measure was tried and failed (the file is stored all the same: a picture without it is shown neutral). */
+export interface StoredFile { relPath: string; absPath: string; bytes: number; mime: string; kind: AssetKind; ext: string; sha256: string; probe?: Probe; presentation?: Presentation; presentationError?: string }
+
+/** THE INGEST CALL (docs/DESIGN-SYSTEM-V4.md §2.4): every picture the library takes in — an upload, a drawn image, a
+ *  poster frame, an established frame — is measured once, here, as it is stored. A failure is logged and leaves the
+ *  field empty; it never fails the ingest. */
+async function presentationAtIngest(kind: AssetKind, absPath: string, probe?: Probe): Promise<Pick<StoredFile, 'presentation' | 'presentationError'>> {
+  if (kind !== 'IMAGE') return {};
+  try { return { presentation: await measurePresentation(absPath, { width: probe?.width, height: probe?.height }) }; }
+  catch (e) {
+    const message = (e as Error).message.split('\n')[0];
+    log.warn({ file: path.basename(absPath), err: message }, 'picture presentation could not be measured at ingest');
+    return { presentationError: message };
+  }
+}
 
 /** Write bytes into the library under a fresh asset id, verifying type and decodability. */
 export async function storeBuffer(assetId: string, buf: Buffer, opts: { declaredType?: string; expectKind?: AssetKind; probe?: boolean } = {}): Promise<StoredFile> {
@@ -136,7 +153,7 @@ export async function storeBuffer(assetId: string, buf: Buffer, opts: { declared
   }
   await fsp.rename(tmp, absPath);
   const sha = await sha256File(absPath);
-  return { relPath, absPath, bytes: buf.length, mime, kind, ext, sha256: sha, probe };
+  return { relPath, absPath, bytes: buf.length, mime, kind, ext, sha256: sha, probe, ...await presentationAtIngest(kind, absPath, probe) };
 }
 
 /** Move a file the worker produced (already on disk, e.g. an ffmpeg output) into the library. */
@@ -153,7 +170,7 @@ export async function adoptFile(assetId: string, srcAbs: string, opts: { expectK
   if (kind !== 'IMAGE' && kind !== 'SUBTITLE') { const d = await decodeCheck(srcAbs); if (!d.ok) throw new StudioError('INVALID', `The file does not decode cleanly: ${d.error}`); }
   try { await fsp.rename(srcAbs, absPath); } catch { await fsp.copyFile(srcAbs, absPath); await fsp.rm(srcAbs, { force: true }); }
   const st = await fsp.stat(absPath);
-  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: await sha256File(absPath), probe };
+  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: await sha256File(absPath), probe, ...await presentationAtIngest(kind, absPath, probe) };
 }
 
 export async function removeFile(rel: string): Promise<void> {
@@ -168,5 +185,6 @@ export function assetFromStored(id: string, stored: StoredFile, meta: { label: s
     width: stored.probe?.width, height: stored.probe?.height, durationSeconds: stored.probe?.durationSeconds, fps: stored.probe?.fps,
     provenance: { ...(meta.provenance ?? {}), path: stored.relPath, probe: stored.probe }, jobId: meta.jobId,
     ...(meta.tier ? { tier: meta.tier } : {}),
+    ...(stored.presentation ? { presentation: stored.presentation } : {}),
   };
 }
