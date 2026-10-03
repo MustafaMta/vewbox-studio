@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
-import { T } from '@/lib/copy';
 import { IconClose } from '@/components/ui/icons';
 
 /** THE SHELL'S DIALOG — the one place the shell's overlays (the command palette, the shortcut sheet, the phone's menu
@@ -71,7 +70,7 @@ export function ShellDialog({ open, onClose, title, label, placement = 'center',
         {title && (
           <div className="shell-dialog-head">
             <h2 id={headingId} className="h2">{title}</h2>
-            <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('btn.close')} onClick={() => ref.current?.close()}><IconClose aria-hidden /></button>
+            <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={'Close'} onClick={() => ref.current?.close()}><IconClose aria-hidden /></button>
           </div>
         )}
         <div className="shell-dialog-body">{open && children}</div>

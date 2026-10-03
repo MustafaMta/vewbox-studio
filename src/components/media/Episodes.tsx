@@ -41,17 +41,17 @@ export interface EpisodeData {
 export function EpisodeCard({ e }: { e: EpisodeData }) {
   return (
     <StillCard title={e.title} titleLang={e.titleLang} href={e.href} asset={e.asset} src={e.src} number={e.number} titleState="notMade"
-      kindLabel={T.f('media.episode', { n: e.number })} synopsis={e.synopsis} duration={e.duration} menu={e.menu}
+      kindLabel={`Episode ${e.number}`} synopsis={e.synopsis} duration={e.duration} menu={e.menu}
       slate={[e.runtime]} status={<span className="ep-state"><StageMeter segments={e.segments} />{e.status}</span>} />
   );
 }
 
 export function EpisodeRow({ e, onPlay }: { e: EpisodeData; onPlay?: () => void }) {
-  const label = T.f('media.episode', { n: e.number });
+  const label = `Episode ${e.number}`;
   return (
     <div className="ep-row" data-playable={onPlay ? '' : undefined}>
       {onPlay ? (
-        <button type="button" className="ep-num" aria-label={T.f('media.episode.play', { n: e.number })} onClick={onPlay}>
+        <button type="button" className="ep-num" aria-label={`Play Episode ${e.number}`} onClick={onPlay}>
           <span className="ep-num-n num" aria-hidden>{e.number}</span><IconPlay aria-hidden className="ep-num-play" />
         </button>
       ) : <span className="ep-num num" aria-hidden>{e.number}</span>}
@@ -100,24 +100,24 @@ export function SeasonPicker({ seasons, value, onChange, count, onPropose, onWri
     <div className={cls('season', className)}>
       <h2 className="h2 season-h">
         <button ref={btn} type="button" className="season-btn" aria-haspopup="menu" aria-expanded={open} aria-controls={`${id}-m`} onClick={() => setOpen((o) => !o)}>
-          {cur ? T.f('media.season', { n: cur.number }) : T('media.season.choose')}<IconChevronDown aria-hidden />
+          {cur ? `Season ${cur.number}` : 'Choose a season'}<IconChevronDown aria-hidden />
         </button>
         {count && <span className="season-count num">{count}</span>}
       </h2>
       {open && (
-        <div ref={menu} id={`${id}-m`} role="menu" aria-label={T('media.season.choose')} className="menu season-menu" onKeyDown={onKey}>
+        <div ref={menu} id={`${id}-m`} role="menu" aria-label={'Choose a season'} className="menu season-menu" onKeyDown={onKey}>
           {seasons.map((s) => (
             <button key={s.id} type="button" role="menuitemradio" aria-checked={s.id === value} tabIndex={-1} className="menu-item" onClick={pick(() => onChange(s.id))}>
-              <span className="season-item-n">{T.f('media.season', { n: s.number })}</span>
+              <span className="season-item-n">{`Season ${s.number}`}</span>
               <span className="season-item-c num">{T.p('media.season.episodes', s.episodes)}</span>
             </button>
           ))}
           {(onPropose || onWrite) && <>
             <div role="separator" className="season-sep" />
-            <div role="group" aria-label={T('media.season.new')}>
-              <p className="season-group caption" aria-hidden>{T('media.season.new')}</p>
-              {onPropose && <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={pick(onPropose)}>{T('media.season.propose')}</button>}
-              {onWrite && <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={pick(onWrite)}>{T('media.season.write')}</button>}
+            <div role="group" aria-label={'New season'}>
+              <p className="season-group caption" aria-hidden>New season</p>
+              {onPropose && <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={pick(onPropose)}>Let the studio propose</button>}
+              {onWrite && <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={pick(onWrite)}>Write it yourself</button>}
             </div>
           </>}
         </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback } from '@/components/players/coordinator';
@@ -82,17 +81,17 @@ export function StoryboardReel({ shots, aspect = '16/9', onShot, title, classNam
   const keys = useShortcutScope({ Space: toggle, k: toggle, ArrowLeft: () => goShot(-1), ArrowRight: () => goShot(1), Home: () => seek(0), End: () => seek(total) }, { scope: 'reel' });
 
   return (
-    <div className={cls('reel', className)} data-aspect={aspect} tabIndex={0} role="group" aria-label={title ?? T('media.reel.player')} onKeyDown={keys}>
+    <div className={cls('reel', className)} data-aspect={aspect} tabIndex={0} role="group" aria-label={title ?? 'Storyboard reel'} onKeyDown={keys}>
       <div className="reel-frame" style={{ aspectRatio: aspect.replace('/', ' / ') }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {shot?.src ? <img src={shot.src} alt={`${T.f('media.shot', { n: shot.number })}${shot.label ? `: ${shot.label}` : ''}`} />
-          : shot ? <span className="reel-missing" role="img" aria-label={T.f('media.strip.noFrame', { n: shot.number })}><span className="tc" aria-hidden>{shot.number}</span></span> : null}
-        <span className="reel-label">{T('media.reel.label')}</span>
-        {shot && <span className="reel-shot tc" aria-hidden>{T.f('media.shot', { n: shot.number })}</span>}
+        {shot?.src ? <img src={shot.src} alt={`${`Shot ${shot.number}`}${shot.label ? `: ${shot.label}` : ''}`} />
+          : shot ? <span className="reel-missing" role="img" aria-label={`Shot ${shot.number}, no frame yet`}><span className="tc" aria-hidden>{shot.number}</span></span> : null}
+        <span className="reel-label">Storyboard reel · not a cut</span>
+        {shot && <span className="reel-shot tc" aria-hidden>{`Shot ${shot.number}`}</span>}
       </div>
-      <div className="reel-bar" dir="ltr" role="group" aria-label={T('media.player.transport')}>
-        <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={playing ? T('misc.pause') : T('misc.play')} onClick={toggle} disabled={shots.length === 0}>{playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
-        <SeekBar time={time} duration={total} step={0.1} onSeek={seek} label={T('misc.seek')} tone="edit" ticks={shots.slice(1).map((_, i) => ({ at: shots.slice(0, i + 1).reduce((s, x) => s + Math.max(0.1, x.duration), 0), kind: 'mark' as const }))} />
+      <div className="reel-bar" dir="ltr" role="group" aria-label={'Playback controls'}>
+        <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={playing ? 'Pause' : 'Play'} onClick={toggle} disabled={shots.length === 0}>{playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
+        <SeekBar time={time} duration={total} step={0.1} onSeek={seek} label={'Seek'} tone="edit" ticks={shots.slice(1).map((_, i) => ({ at: shots.slice(0, i + 1).reduce((s, x) => s + Math.max(0.1, x.duration), 0), kind: 'mark' as const }))} />
         <TimeReadout time={time} duration={total} />
       </div>
     </div>

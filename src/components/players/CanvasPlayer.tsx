@@ -1,7 +1,6 @@
 'use client';
 
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconAddNote, IconBack5, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -33,35 +32,35 @@ export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: str
     const fps0 = fps && fps > 0 ? fps : 24;
     const ticks = [marks.in, marks.out].filter((x): x is number => x !== undefined).map((at) => ({ at, kind: 'mark' as const }));
     return (
-      <div ref={c.wrap} className={cls('cplayer', className)} tabIndex={0} role="group" aria-label={title ?? T('player.video')} onKeyDown={keys}>
+      <div ref={c.wrap} className={cls('cplayer', className)} tabIndex={0} role="group" aria-label={title ?? 'Video'} onKeyDown={keys}>
         <div className="cplayer-canvas canvas" data-zoom={zoom}>
           <div className="cplayer-box" style={zoom === 'fit' ? ({ '--cp-ratio': c.ratio ?? '16 / 9' } as React.CSSProperties) : c.natural ? { inlineSize: `${c.natural.w}px`, aspectRatio: c.ratio } : undefined}>
             <video {...c.videoProps} poster={poster} className="pvideo" onClick={c.toggle} />
             {c.failed && <MediaFailure onRetry={c.retry} fileHref={fileHref ?? src} />}
           </div>
         </div>
-        <div className="cplayer-bar" dir="ltr" role="group" aria-label={T('media.player.transport')}>
-          <SeekBar time={c.time} duration={c.duration} step={c.frame} onSeek={c.seek} label={T('misc.seek')} tone="edit" disabled={!c.ready} ticks={ticks} range={marks.in !== undefined || marks.out !== undefined ? { from: marks.in, to: marks.out } : undefined} />
+        <div className="cplayer-bar" dir="ltr" role="group" aria-label={'Playback controls'}>
+          <SeekBar time={c.time} duration={c.duration} step={c.frame} onSeek={c.seek} label={'Seek'} tone="edit" disabled={!c.ready} ticks={ticks} range={marks.in !== undefined || marks.out !== undefined ? { from: marks.in, to: marks.out } : undefined} />
           <div className="cplayer-row">
             <div className="cplayer-group">
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('player.prevFrame')} onClick={() => c.step(-1)}><IconPrevFrame aria-hidden /></button>
-              <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={c.playing ? T('misc.pause') : T('misc.play')} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('player.nextFrame')} onClick={() => c.step(1)}><IconNextFrame aria-hidden /></button>
+              <button type="button" className="ebtn ebtn-icon" aria-label={'Previous frame'} onClick={() => c.step(-1)}><IconPrevFrame aria-hidden /></button>
+              <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={c.playing ? 'Pause' : 'Play'} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
+              <button type="button" className="ebtn ebtn-icon" aria-label={'Next frame'} onClick={() => c.step(1)}><IconNextFrame aria-hidden /></button>
             </div>
             <div className="cplayer-group">
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('media.player.back5')} onClick={() => c.nudge(-5)}><IconBack5 aria-hidden /></button>
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('media.player.fwd5')} onClick={() => c.nudge(5)}><IconForward5 aria-hidden /></button>
+              <button type="button" className="ebtn ebtn-icon" aria-label={'Back 5 seconds'} onClick={() => c.nudge(-5)}><IconBack5 aria-hidden /></button>
+              <button type="button" className="ebtn ebtn-icon" aria-label={'Forward 5 seconds'} onClick={() => c.nudge(5)}><IconForward5 aria-hidden /></button>
             </div>
             <div className="cplayer-group">
-              <button type="button" className="ebtn" aria-pressed={marks.in !== undefined} onClick={markIn}>{T('media.player.markIn')}</button>
-              <button type="button" className="ebtn" aria-pressed={marks.out !== undefined} onClick={markOut}>{T('media.player.markOut')}</button>
-              {(marks.in !== undefined || marks.out !== undefined) && <button type="button" className="ebtn ebtn-quiet" onClick={() => setMarks({})}>{T('media.player.clearMarks')}</button>}
+              <button type="button" className="ebtn" aria-pressed={marks.in !== undefined} onClick={markIn}>Mark in</button>
+              <button type="button" className="ebtn" aria-pressed={marks.out !== undefined} onClick={markOut}>Mark out</button>
+              {(marks.in !== undefined || marks.out !== undefined) && <button type="button" className="ebtn ebtn-quiet" onClick={() => setMarks({})}>Clear marks</button>}
             </div>
-            <span className="tc cplayer-tc" aria-label={T('media.player.timecode')} role="timer">{timecode(c.time, fps0)}<span className="cplayer-tc-total"> / {timecode(c.duration, fps0)}</span></span>
+            <span className="tc cplayer-tc" aria-label={'Timecode'} role="timer">{timecode(c.time, fps0)}<span className="cplayer-tc-total"> / {timecode(c.duration, fps0)}</span></span>
             <span className="prow-spacer" />
-            {onAddNote && <button type="button" className="ebtn" onClick={() => onAddNote(c.time)}><IconAddNote aria-hidden />{T('media.player.addNote')}</button>}
+            {onAddNote && <button type="button" className="ebtn" onClick={() => onAddNote(c.time)}><IconAddNote aria-hidden />Add a note at the playhead</button>}
             <VolumeControl volume={c.volume} muted={c.muted} onVolume={c.setVolume} onMute={c.toggleMute} popover />
-            <button type="button" className="ebtn" onClick={() => setZoom(zoom === 'fit' ? 'actual' : 'fit')}><IconFit aria-hidden />{zoom === 'fit' ? T('media.player.actualSize') : T('media.player.fit')}</button>
+            <button type="button" className="ebtn" onClick={() => setZoom(zoom === 'fit' ? 'actual' : 'fit')}><IconFit aria-hidden />{zoom === 'fit' ? 'Actual size' : 'Fit'}</button>
           </div>
         </div>
       </div>

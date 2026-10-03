@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { T } from '@/lib/copy';
 import { IconAddNote, IconEdit, IconPlus } from '@/components/ui/icons';
 import { CanvasPlayer } from '@/components/players/CanvasPlayer';
 import { FilmStrip } from '@/components/edit/FilmStrip';
@@ -38,9 +37,9 @@ export function EditSection() {
 
   return (
     <section id="edit" className="spec-section" aria-labelledby="spec-edit-h">
-      <h2 id="spec-edit-h" className="h2 spec-section-h">{T('media.spec.edit')}</h2>
+      <h2 id="spec-edit-h" className="h2 spec-section-h">Cutting room</h2>
 
-      <Block title={T('media.spec.strips')}>
+      <Block title={'Film strips'}>
         <div className="spec-stack">
           <Cell label="lobby"><FilmStrip frames={frames} variant="lobby" current={current} onSelect={(f) => setCurrent(f.id)} /></Cell>
           <Cell label="cutting room"><div data-room="cutting"><FilmStrip frames={frames} variant="cutting" current={current} onSelect={(f) => setCurrent(f.id)} /></div></Cell>
@@ -48,7 +47,7 @@ export function EditSection() {
         </div>
       </Block>
 
-      <Block title={T('media.spec.dual')}>
+      <Block title={'Dual-scale strip'}>
         <div data-room="cutting">
           <DualScaleStrip duration={360} start={win} length={60} onStart={setWin} segments={long}>
             <FilmStrip frames={long.filter((s) => s.to > win && s.from < win + 60).map((s, i) => ({ id: s.id, number: Math.round(s.from / 30) + 1, src: s.src ?? null, label: `${i}` }))} variant="cutting" />
@@ -56,39 +55,39 @@ export function EditSection() {
         </div>
       </Block>
 
-      <Block title={T('media.spec.reel')}>
+      <Block title={'Storyboard reel'}>
         <div className="spec-row spec-row-2">
           <StoryboardReel shots={shots.map((s) => ({ id: s.id, number: s.n, src: s.frame, duration: s.d }))} onShot={(i) => setCurrent(shots[i].id)} />
           <FilmStrip frames={frames} current={current} onSelect={(f) => setCurrent(f.id)} />
         </div>
       </Block>
 
-      <Block title={T('media.spec.compare')}>
+      <Block title={'Compare A/B'}>
         <div data-room="cutting" data-density="compact">
-          <CompareAB a={{ src: shots[0].take!, poster: shots[0].frame!, label: `${T.f('media.versions.version', { n: 2 })}`, chosen: true }} b={{ src: '/sample/takes/take-01.mp4', poster: shots[0].frame!, label: T.f('media.versions.version', { n: 1 }) }} onChoose={() => undefined} />
+          <CompareAB a={{ src: shots[0].take!, poster: shots[0].frame!, label: `${`Version ${2}`}`, chosen: true }} b={{ src: '/sample/takes/take-01.mp4', poster: shots[0].frame!, label: `Version ${1}` }} onChoose={() => undefined} />
         </div>
       </Block>
 
-      <Block title={T('media.spec.timeline')}>
+      <Block title={'Timeline'}>
         <div data-room="cutting" data-density="compact">
           <Timeline duration={total} time={time} onSeek={setTime} clips={clips} dialogue={dialogue} music={{ src: SONGS[0].audio!, label: SONGS[0].title }}
             selected={selected} onSelect={setSelected} onTrim={(id, edge, t) => setClips((xs) => xs.map((c) => (c.id === id ? { ...c, [edge === 'start' ? 'from' : 'to']: t } : c)))} />
         </div>
       </Block>
 
-      <Block title={T('media.spec.dock')}>
+      <Block title={'Docked workspace'}>
         <FocusModeProvider>
           <div data-room="cutting" data-density="compact" className="spec-dock">
-            <DockLayout id="spec" canvasTitle={T('media.spec.frame')} tools={<FocusModeButton />}
-              list={{ title: T('media.spec.shots'), content: (
+            <DockLayout id="spec" canvasTitle={'Frame'} tools={<FocusModeButton />}
+              list={{ title: 'Shots', content: (
                 <ul className="spec-shotlist">{shots.map((s) => (
                   <li key={s.id}><button type="button" className="ebtn spec-shot" aria-pressed={s.id === current} onClick={() => setCurrent(s.id)}><span className="tc">{s.n}</span><span dir="auto">{s.purpose}</span></button></li>
                 ))}</ul>
               ) }}
               canvas={<CanvasPlayer src={shot.take ?? EPISODE.cut} poster={shot.frame ?? undefined} title={shot.purpose} />}
-              inspector={{ title: T('media.spec.details'), content: (
-                <Inspector kind={T.f('media.shot', { n: shot.n })} name={shot.purpose}
-                  sections={[{ id: 'versions', title: T('media.versions.label'), content: <VersionStack versions={[1, 2, 3].map((n) => ({ id: `v${n}`, n }))} current={version} onPick={setVersion} onCompare={() => undefined} /> }]}
+              inspector={{ title: 'Details', content: (
+                <Inspector kind={`Shot ${shot.n}`} name={shot.purpose}
+                  sections={[{ id: 'versions', title: 'Versions', content: <VersionStack versions={[1, 2, 3].map((n) => ({ id: `v${n}`, n }))} current={version} onPick={setVersion} onCompare={() => undefined} /> }]}
                   details={<p className="tc">{shot.take}</p>} />
               ) }}
               footer={<FilmStrip frames={frames} variant="cutting" current={current} onSelect={(f) => setCurrent(f.id)} />} />
@@ -96,22 +95,22 @@ export function EditSection() {
         </FocusModeProvider>
       </Block>
 
-      <Block title={T('media.spec.inspector')}>
+      <Block title={'Inspector'}>
         <div className="spec-row spec-row-3">
-          <Cell><div className="spec-panel"><Inspector kind={T.f('media.shot', { n: shot.n })} name={shot.purpose} sections={[{ id: 'd', title: T('media.sections.time'), content: <p className="tc">{shot.d} s</p> }]} /></div></Cell>
-          <Cell><div className="spec-panel"><Inspector count={Math.max(2, sel.length)} sections={[{ id: 'd', title: T('media.sections.time'), content: <p className="tc">{dur === MIXED || sel.length < 2 ? mixed : `${String(dur)} s`}</p> }]} /></div></Cell>
+          <Cell><div className="spec-panel"><Inspector kind={`Shot ${shot.n}`} name={shot.purpose} sections={[{ id: 'd', title: 'Time', content: <p className="tc">{shot.d} s</p> }]} /></div></Cell>
+          <Cell><div className="spec-panel"><Inspector count={Math.max(2, sel.length)} sections={[{ id: 'd', title: 'Time', content: <p className="tc">{dur === MIXED || sel.length < 2 ? mixed : `${String(dur)} s`}</p> }]} /></div></Cell>
           <Cell><div className="spec-panel"><Inspector /></div></Cell>
         </div>
       </Block>
 
-      <Block title={T('media.spec.versions')}>
+      <Block title={'Version stack and tool row'}>
         <div className="spec-stack">
           <VersionStack versions={[1, 2, 3, 4, 5].map((n) => ({ id: `v${n}`, n }))} current={version} onPick={setVersion} onCompare={() => undefined} />
           <div className="spec-toolrow">
             <ToolRow floating={false}>
-              <ToolButton first icon={<IconEdit aria-hidden />} onClick={() => undefined}>{T('media.spec.a.trim')}</ToolButton>
-              <ToolButton icon={<IconPlus aria-hidden />} onClick={() => undefined}>{T('media.spec.a.split')}</ToolButton>
-              <ToolButton icon={<IconAddNote aria-hidden />} onClick={() => undefined}>{T('media.spec.a.note')}</ToolButton>
+              <ToolButton first icon={<IconEdit aria-hidden />} onClick={() => undefined}>Trim</ToolButton>
+              <ToolButton icon={<IconPlus aria-hidden />} onClick={() => undefined}>Split</ToolButton>
+              <ToolButton icon={<IconAddNote aria-hidden />} onClick={() => undefined}>Note</ToolButton>
             </ToolRow>
           </div>
         </div>

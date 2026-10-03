@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { ArtVars, Presentation } from '@/domain/presentation';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCheck } from '@/components/ui/icons';
 import { RATIO_VALUE, type FrameRatio, type Picture } from '../art';
@@ -83,7 +82,7 @@ export function TileShell(p: ShellProps) {
       {p.synopsis && <span className="mtile-synopsis" dir="auto">{p.synopsis}</span>}
       <Slate items={p.slate ?? []} status={p.status} size="tile" />
       {p.reveal && <span className="mtile-reveal" dir="auto">{p.reveal}</span>}
-      {p.onSelect && p.selected && <span className="sr-only">{T('media.selected')}</span>}
+      {p.onSelect && p.selected && <span className="sr-only">Selected</span>}
     </>
   );
   const style = { '--tile-r': String(1 / RATIO_VALUE[p.ratio]) } as CSSProperties;
@@ -106,7 +105,7 @@ export function TileShell(p: ShellProps) {
 /** A loading tile: a ratio-true frame on the placeholder tone and two text bars; no shimmer (§5.5, §5.16). */
 export function TileSkeleton({ ratio = '16/9', lines = 2, className }: { ratio?: FrameRatio; lines?: 1 | 2 | 3; className?: string }) {
   return (
-    <div className={cls('mtile mtile-loading', className)} style={{ '--tile-r': String(1 / RATIO_VALUE[ratio]) } as CSSProperties} aria-busy="true" aria-label={T('media.loading')} role="status">
+    <div className={cls('mtile mtile-loading', className)} style={{ '--tile-r': String(1 / RATIO_VALUE[ratio]) } as CSSProperties} aria-busy="true" aria-label={'Loading…'} role="status">
       <span className="mtile-skel-frame" style={{ aspectRatio: ratio.replace('/', ' / ') }} />
       {Array.from({ length: lines }, (_, i) => <span key={i} className="mtile-skel-line" data-i={i} />)}
     </div>

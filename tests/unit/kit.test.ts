@@ -123,7 +123,7 @@ describe('choices and tabs render as one radiogroup / tablist with one Tab stop'
 describe('status, states and overlays say it in words', () => {
   it('StateWord carries its tone; IdentityState uses the contract words', () => {
     expect(html(h(Kit.StateWord, { tone: 'waiting', children: 'Waiting for you' }))).toContain('data-tone="waiting"');
-    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain(T('kit.identity.draft'));
+    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain('Draft — awaiting your approval');
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 2 }))).toContain('Locked · in 2 videos');
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 1 }))).toContain('Locked · in 1 video');
     expect(html(h(Kit.StageWord, { stage: 'PRODUCE' }))).toContain('Producing');

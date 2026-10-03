@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { Button, LinkButton } from '../Button';
 import { Segmented } from '../Choice';
 import { useMediaQuery } from '../layout';
@@ -35,52 +34,52 @@ export function KitSpecimen({ media }: { media?: ReactNode }) {
   const [contrast, setContrast] = useContrastOverride();
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const osMore = useMediaQuery('(prefers-contrast: more)');
-  const effective = contrast === 'more' || (contrast === 'system' && osMore) ? T('kit.spec.contrast.more') : T('kit.spec.contrast.standard');
+  const effective = contrast === 'more' || (contrast === 'system' && osMore) ? 'More' : 'Standard';
   // the page names itself until the shell's title table has a /kit entry (F4, src/components/shell/titles.ts)
-  const docTitle = `${T('kit.page.title')} · ${T('app.name')}`;
+  const docTitle = `${'Interface kit'} · ${'Vewbox Studio'}`;
   useEffect(() => { document.title = docTitle; }, [docTitle]);
   const sections = [
-    ['preferences', T('kit.spec.sec.preferences')], ['cards', 'Cards and shelves'], ['buttons', T('kit.spec.sec.buttons')], ['status', T('kit.spec.sec.status')], ['navigation', T('kit.spec.sec.navigation')],
-    ['forms', T('kit.spec.sec.forms')], ['choices', T('kit.spec.sec.choices')], ['overlays', T('kit.spec.sec.overlays')], ['states', T('kit.spec.sec.states')],
-    ['approval', T('kit.spec.sec.approval')], ['headers', T('kit.spec.sec.headers')], ['creation', T('kit.spec.sec.creation')],
+    ['preferences', 'Contrast and density'], ['cards', 'Cards and shelves'], ['buttons', 'Buttons'], ['status', 'Status'], ['navigation', 'In-page navigation'],
+    ['forms', 'Forms'], ['choices', 'Choices'], ['overlays', 'Overlays'], ['states', 'Empty, loading, error and partial'],
+    ['approval', 'Approval card'], ['headers', 'Headers'], ['creation', 'Creation flow'],
   ] as const;
   return (
     <div className="kit-spec" data-density={density === 'compact' ? 'compact' : undefined}>
       <PageHeader
-        back={{ href: '/shows', label: T('nav.shows') }}
-        eyebrow={T('kit.spec.eyebrow')}
-        title={T('kit.page.title')}
+        back={{ href: '/shows', label: 'Shows' }}
+        eyebrow={'Development only · not in production builds'}
+        title={'Interface kit'}
         count={sections.length}
-        subtitle={T('kit.spec.lead')}
-        primary={<LinkButton href="#buttons" variant="primary">{T('kit.spec.start')}</LinkButton>}
-        secondary={<Button onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')} aria-pressed={density === 'compact'}>{T('kit.spec.density.compact')}</Button>}
-        more={<MenuButton label={T('nav.more')} iconOnly variant="quiet"><MenuItem onClick={() => setContrast('more')}>{T('kit.spec.pal.contrast')}</MenuItem><MenuItem onClick={() => setContrast('system')}>{T('kit.spec.contrast.system')}</MenuItem></MenuButton>}
+        subtitle={'Every part of the interface kit in every state: at rest, hovered, focused, disabled, loading, failed and selected.'}
+        primary={<LinkButton href="#buttons" variant="primary">Start with the buttons</LinkButton>}
+        secondary={<Button onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')} aria-pressed={density === 'compact'}>Compact</Button>}
+        more={<MenuButton label={'More'} iconOnly variant="quiet"><MenuItem onClick={() => setContrast('more')}>Contrast: More</MenuItem><MenuItem onClick={() => setContrast('system')}>As the system</MenuItem></MenuButton>}
       />
       <AnchorNav items={sections.map(([id, label]) => ({ id, label }))} />
 
-      <SpecSection id="preferences" title={T('kit.spec.sec.preferences')} lead={T('kit.spec.preferences.lead')}>
+      <SpecSection id="preferences" title={'Contrast and density'} lead={'More contrast raises muted and faint text and every boundary one step. Compact density is the cutting room’s default.'}>
         <div className="kit-spec-prefs">
           <div className="flex flex-col items-start gap-2">
-            <span className="label">{T('kit.spec.contrast')}</span>
-            <Segmented label={T('kit.spec.contrast')} value={contrast} onChange={setContrast} options={[
-              { value: 'system', label: T('kit.spec.contrast.system') }, { value: 'standard', label: T('kit.spec.contrast.standard') }, { value: 'more', label: T('kit.spec.contrast.more') },
+            <span className="label">Contrast</span>
+            <Segmented label={'Contrast'} value={contrast} onChange={setContrast} options={[
+              { value: 'system', label: 'As the system' }, { value: 'standard', label: 'Standard' }, { value: 'more', label: 'More' },
             ]} />
-            <p className="help" role="status">{osMore ? T('kit.spec.contrast.osOn') : T('kit.spec.contrast.osOff')} {T.f('kit.spec.contrast.now', { value: effective })}</p>
+            <p className="help" role="status">{osMore ? 'This browser asks for more contrast.' : 'This browser does not ask for more contrast.'} {`In effect: ${effective}.`}</p>
           </div>
           <div className="flex flex-col items-start gap-2">
-            <span className="label">{T('kit.spec.density')}</span>
-            <Segmented label={T('kit.spec.density')} value={density} onChange={setDensity} options={[{ value: 'comfortable', label: T('kit.spec.density.comfortable') }, { value: 'compact', label: T('kit.spec.density.compact') }]} />
-            <p className="help">{T('kit.spec.density.hint')}</p>
+            <span className="label">Density</span>
+            <Segmented label={'Density'} value={density} onChange={setDensity} options={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} />
+            <p className="help">Compact: 32 px controls and 13/20 text (Arabic 14/22). On touch, controls stay 44 px.</p>
           </div>
         </div>
         <div className="kit-spec-pair">
-          <DensitySample label={T('kit.spec.density.comfortable')} />
-          <DensitySample label={T('kit.spec.density.compact')} compact />
+          <DensitySample label={'Comfortable'} />
+          <DensitySample label={'Compact'} compact />
         </div>
         <div className="kit-spec-pair">
           {/* the page as it is now (the switch above, or the system), beside a sample that is always More */}
-          <ContrastSample label={T.f('kit.spec.contrast.now', { value: effective })} />
-          <ContrastSample label={T('kit.spec.contrast.more')} more />
+          <ContrastSample label={`In effect: ${effective}.`} />
+          <ContrastSample label={'More'} more />
         </div>
       </SpecSection>
 
@@ -106,12 +105,12 @@ function DensitySample({ label, compact }: { label: string; compact?: boolean })
     <div className="kit-spec-sample" data-density={compact ? 'compact' : 'comfortable'}>
       <p className="caption">{label}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button variant="primary">{T('btn.save')}</Button>
-        <Button>{T('btn.edit')}</Button>
-        <Button size="sm">{T('btn.duplicate')}</Button>
+        <Button variant="primary">Save</Button>
+        <Button>Edit</Button>
+        <Button size="sm">Duplicate</Button>
       </div>
-      <input className="input mt-3" aria-label={`${T('label.title')} (${label})`} defaultValue={T('kit.spec.ph.title')} dir="auto" />
-      <p className="mt-3 text-body">{T('kit.spec.density.body')}</p>
+      <input className="input mt-3" aria-label={`${'Title'} (${label})`} defaultValue={'The Kite'} dir="auto" />
+      <p className="mt-3 text-body">The same words, the same controls, a tighter rhythm.</p>
     </div>
   );
 }
@@ -122,10 +121,10 @@ function ContrastSample({ label, more }: { label: string; more?: boolean }) {
   return (
     <div className={more ? 'kit-spec-sample kit-spec-more' : 'kit-spec-sample'}>
       <p className="caption">{label}</p>
-      <p className="mt-3 text-fg">{T('kit.spec.contrast.fg')}</p>
-      <p className="text-muted">{T('kit.spec.contrast.muted')}</p>
-      <p className="text-faint">{T('kit.spec.contrast.faint')}</p>
-      <input className="input mt-3" aria-label={`${T('label.title')} (${label})`} placeholder={T('kit.spec.ph.title')} dir="auto" />
+      <p className="mt-3 text-fg">Titles and the work: ivory.</p>
+      <p className="text-muted">Muted text: leads and secondary lines.</p>
+      <p className="text-faint">Faint text: hints and timestamps.</p>
+      <input className="input mt-3" aria-label={`${'Title'} (${label})`} placeholder={'The Kite'} dir="auto" />
     </div>
   );
 }

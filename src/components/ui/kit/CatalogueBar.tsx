@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useId, useMemo, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { IconFilterList, IconGrid, IconList, IconSearch } from '../icons';
 import { Button } from './Button';
 import { Segmented } from './Choice';
@@ -105,17 +104,17 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
       <div className="catalogue-row">
         <label className="catalogue-search" htmlFor={`${id}-q`}>
           <IconSearch aria-hidden />
-          <input id={`${id}-q`} type="search" className="input" dir="auto" value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? T('lib.search')} aria-label={T('label.search')} />
+          <input id={`${id}-q`} type="search" className="input" dir="auto" value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? 'Search…'} aria-label={'Search'} />
         </label>
         <div className="catalogue-controls">
           {facets.length > 0 && onFilters && (
-            <Popover label={T('kit.filter')} count={count} icon={<IconFilterList aria-hidden />} title={T('kit.filter.title')} variant="secondary" panelClassName="filter-panel">
+            <Popover label={'Filter'} count={count} icon={<IconFilterList aria-hidden />} title={'Filters'} variant="secondary" panelClassName="filter-panel">
               {facets.map((facet) => (
                 <fieldset key={facet.id} className="filter-facet">
                   <legend className="label">{facet.label}</legend>
                   {(facet.kind ?? 'one') === 'one' ? (
                     <Segmented label={facet.label} value={filters[facet.id]?.[0] ?? ''} onChange={(v) => set(toggleFilter(filters, facet.id, v, 'one'))}
-                      options={[{ value: '', label: T('label.all') }, ...facet.options.map((o) => ({ value: o.value, label: o.label }))]} />
+                      options={[{ value: '', label: 'All' }, ...facet.options.map((o) => ({ value: o.value, label: o.label }))]} />
                   ) : (
                     <span className="filter-checks">
                       {facet.options.map((o) => (
@@ -131,25 +130,25 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
             </Popover>
           )}
           {sorts && onSort && (
-            <MenuButton label={`${T('lib.sort')}: ${sortLabel ?? ''}`} display={<><span className="catalogue-sort-prefix">{T('lib.sort')}: </span>{sortLabel}</>} variant="quiet" caret align="end">
+            <MenuButton label={`${'Sort'}: ${sortLabel ?? ''}`} display={<><span className="catalogue-sort-prefix">{'Sort'}: </span>{sortLabel}</>} variant="quiet" caret align="end">
               {sorts.map((s) => <MenuItem key={s.value} role="menuitemradio" aria-checked={s.value === sort} onClick={() => onSort(s.value)}>{s.label}</MenuItem>)}
             </MenuButton>
           )}
           {onView && view && (
-            <Segmented label={T('kit.view')} value={view} onChange={onView} options={[
-              { value: 'grid', label: <><IconGrid aria-hidden className="size-4" /><span className="sr-only">{T('view.grid')}</span></> },
-              { value: 'list', label: <><IconList aria-hidden className="size-4" /><span className="sr-only">{T('view.list')}</span></> },
+            <Segmented label={'View'} value={view} onChange={onView} options={[
+              { value: 'grid', label: <><IconGrid aria-hidden className="size-4" /><span className="sr-only">Grid</span></> },
+              { value: 'list', label: <><IconList aria-hidden className="size-4" /><span className="sr-only">List</span></> },
             ]} />
           )}
           {extra}
         </div>
       </div>
       {count > 0 && onFilters && (
-        <div className="catalogue-chips" aria-label={T('kit.filter.active')} role="group">
+        <div className="catalogue-chips" aria-label={'Active filters'} role="group">
           {facets.flatMap((facet) => (filters[facet.id] ?? []).map((v) => (
             <FilterChip key={`${facet.id}:${v}`} onRemove={() => set(toggleFilter(filters, facet.id, v, 'many'))}>{labelOf(facet, v)}</FilterChip>
           )))}
-          <Button size="sm" variant="quiet" onClick={() => set({})}>{T('kit.filter.clearAll')}</Button>
+          <Button size="sm" variant="quiet" onClick={() => set({})}>Clear all</Button>
         </div>
       )}
     </div>

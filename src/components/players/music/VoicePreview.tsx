@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { PlayDisc } from '../PlayDisc';
 import { usePlayer, useTrackState, type Track } from '../PlayerProvider';
@@ -20,8 +19,8 @@ export function VoicePreview({ track, name, line, lineLang, origin, className }:
   return (
     <div className={cls('vreel', className)}>
       <div className="vreel-row" dir="ltr">
-        <PlayDisc track={track} size={32} tone="ivory" labelPlay={T.f('media.voice.play', { name })} labelPause={T.f('media.voice.pause', { name })} />
-        <Waveform src={track.src} progress={progress} buckets={64} height={28} className="vreel-wave" showLabel={false} label={`${T('media.wave.label')}: ${name}`} unavailableText={T('media.wave.unavailable')} duration={st.duration}
+        <PlayDisc track={track} size={32} tone="ivory" labelPlay={`Play the voice: ${name}`} labelPause={`Pause the voice: ${name}`} />
+        <Waveform src={track.src} progress={progress} buckets={64} height={28} className="vreel-wave" showLabel={false} label={`${'Waveform'}: ${name}`} unavailableText={'The waveform could not be drawn from this file.'} duration={st.duration}
           onSeek={(f) => { const t = f * (st.duration || track.duration || 0); if (st.mine) p.seek(t); else p.play(track, t); }} />
         <span className="mono vreel-time">{fmtClock(st.mine ? st.time : st.duration)}</span>
       </div>

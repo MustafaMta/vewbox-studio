@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Children, isValidElement, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { prefersReducedMotion } from '@/components/players/prefs';
@@ -77,10 +76,10 @@ export function Rail({ title, count, controls, seeAll, item = 'still', children,
         {controls && <div className="rail-controls">{controls}</div>}
         <span className="rail-spacer" />
         <div className="rail-nav">
-          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.prev')} aria-controls={`${id}-l`} disabled={ends.start} onClick={() => page(-1)}><IconChevronLeft aria-hidden /></button>
-          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.next')} aria-controls={`${id}-l`} disabled={ends.end} onClick={() => page(1)}><IconChevronRight aria-hidden /></button>
+          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={'Previous items'} aria-controls={`${id}-l`} disabled={ends.start} onClick={() => page(-1)}><IconChevronLeft aria-hidden /></button>
+          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={'Next items'} aria-controls={`${id}-l`} disabled={ends.end} onClick={() => page(1)}><IconChevronRight aria-hidden /></button>
         </div>
-        {seeAll && <Link href={seeAll.href} className="rail-all">{seeAll.label ?? T('media.rail.seeAll')}</Link>}
+        {seeAll && <Link href={seeAll.href} className="rail-all">{seeAll.label ?? 'See all'}</Link>}
       </div>
       <ul id={`${id}-l`} ref={list} className="rail-list" aria-labelledby={`${id}-h`} onKeyDown={onKey} onFocus={onFocus} onScroll={measure}>
         {items.map((c, i) => <li key={c.key ?? i} className="rail-item">{c}</li>)}

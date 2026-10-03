@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconClose } from '@/components/ui/icons';
 import { SharedVolume } from './Controls';
@@ -25,20 +24,20 @@ export function PlayerBar({ track, show = true, persistent, placement = 'fixed',
   useRootVarContribution('--bottom-bars', 76, visible && placement === 'fixed');
   if (!visible) return null;
   return (
-    <div className={cls('playerbar', className)} role="region" aria-label={T('media.bar.label')} data-shape={shape} data-placement={placement}>
+    <div className={cls('playerbar', className)} role="region" aria-label={'Now playing'} data-shape={shape} data-placement={placement}>
       <span className="playerbar-thumb" aria-hidden>{track.artworkSrc ? <img src={track.artworkSrc} alt="" /> : null}</span>
       <span className="playerbar-text">
         <span className="playerbar-title" dir="auto">{track.title}</span>
         {track.subtitle && <span className="playerbar-sub" dir="auto">{track.subtitle}</span>}
       </span>
-      <div className="playerbar-transport" dir="ltr" role="group" aria-label={T('media.player.transport')}>
-        <PlayDisc track={track} size={40} tone="ivory" labelPlay={T.f('media.play', { title: track.title })} labelPause={T.f('media.pause', { title: track.title })} />
-        <SeekBar time={st.time} duration={st.duration} step={0.1} onSeek={(t) => { if (st.mine) p.seek(t); else p.play(track, t); }} label={T('misc.seek')} tone="quiet" className="playerbar-seek" />
+      <div className="playerbar-transport" dir="ltr" role="group" aria-label={'Playback controls'}>
+        <PlayDisc track={track} size={40} tone="ivory" labelPlay={`Play ${track.title}`} labelPause={`Pause ${track.title}`} />
+        <SeekBar time={st.time} duration={st.duration} step={0.1} onSeek={(t) => { if (st.mine) p.seek(t); else p.play(track, t); }} label={'Seek'} tone="quiet" className="playerbar-seek" />
         <TimeReadout time={st.time} duration={st.duration} className="playerbar-time" />
       </div>
       {mode && <div className="playerbar-mode">{mode}</div>}
       <span className="playerbar-vol"><SharedVolume popover /></span>
-      <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.bar.close')} onClick={() => { if (st.mine) p.stop(); onClose?.(); }}><IconClose aria-hidden /></button>
+      <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={'Close the player'} onClick={() => { if (st.mine) p.stop(); onClose?.(); }}><IconClose aria-hidden /></button>
     </div>
   );
 }

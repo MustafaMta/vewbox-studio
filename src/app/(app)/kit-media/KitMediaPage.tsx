@@ -2,7 +2,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { T } from '@/lib/copy';
 import { MediaSpecimens } from '@/components/media/Specimens';
 
 /** The temporary specimen route's page (F3; delete with the route once /kit is merged). `?only=media|players|edit`
@@ -15,10 +14,10 @@ function Sections() {
 export function KitMediaPage() {
   return (
     <div className="spec-page">
-      <h1 className="page-title">{T('media.spec.title')}</h1>
-      <p className="lead spec-lead">{T('media.spec.lead')}</p>
-      <nav className="spec-nav" aria-label={T('media.spec.title')}>
-        <a href="#media">{T('media.spec.media')}</a> · <a href="#players">{T('media.spec.players')}</a> · <a href="#edit">{T('media.spec.edit')}</a>
+      <h1 className="page-title">Media, players and the cutting room</h1>
+      <p className="lead spec-lead">Every part of the media kit in its states, on the bundled sample media. A page for development.</p>
+      <nav className="spec-nav" aria-label={'Media, players and the cutting room'}>
+        <a href="#media">Media</a> · <a href="#players">Players</a> · <a href="#edit">Cutting room</a>
       </nav>
       <Suspense fallback={null}><Sections /></Suspense>
     </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { PlayDisc } from '@/components/players/PlayDisc';
 import type { Track } from '@/components/players/PlayerProvider';
 import { prefersReducedMotion } from '@/components/players/prefs';
@@ -25,7 +24,7 @@ export function PosterTile({ contain, ...p }: TileProps & { contain?: boolean })
 export function SleeveTile({ performers, performersLang, track, ...p }: TileProps & { performers?: ReactNode; performersLang?: string; track?: Track | null }) {
   return (
     <TileShell {...p} kind="sleeve" ratio="1/1" titleState={p.titleState ?? 'noSleeve'} sub={performers} subLang={performersLang}
-      disc={track ? <PlayDisc track={track} size={40} labelPlay={T.f('media.play', { title: p.title })} labelPause={T.f('media.pause', { title: p.title })} /> : undefined} />
+      disc={track ? <PlayDisc track={track} size={40} labelPlay={`Play ${p.title}`} labelPause={`Pause ${p.title}`} /> : undefined} />
   );
 }
 
@@ -34,7 +33,7 @@ export function SleeveTile({ performers, performersLang, track, ...p }: TileProp
 export function FigureTile({ role, roleLang, voice, ...p }: TileProps & { role?: ReactNode; roleLang?: string; voice?: Track | null }) {
   return (
     <TileShell {...p} kind="figure" ratio="928/1664" fit="contain" titleState={p.titleState ?? 'noImage'} sub={role} subLang={roleLang}
-      disc={voice ? <PlayDisc track={voice} size={40} labelPlay={T.f('media.cast.voice', { name: p.title })} labelPause={T.f('media.cast.voicePause', { name: p.title })} /> : undefined} />
+      disc={voice ? <PlayDisc track={voice} size={40} labelPlay={`Play the voice of ${p.title}`} labelPause={`Pause the voice of ${p.title}`} /> : undefined} />
   );
 }
 
@@ -61,6 +60,6 @@ export function PlateTile({ lighting = [], ...p }: TileProps & { lighting?: Arra
 export function StillCard({ kindLabel, synopsis, duration, number, ...p }: TileProps & { kindLabel?: ReactNode; synopsis?: ReactNode; duration?: string; number?: number }) {
   return (
     <TileShell {...p} kind="still" ratio="16/9" kindLabel={kindLabel} synopsis={synopsis} number={number} titleState={p.titleState ?? 'notMade'}
-      chip={duration ? <><span className="tc" aria-hidden>{duration}</span><span className="sr-only">{T.f('media.duration', { t: duration })}</span></> : undefined} />
+      chip={duration ? <><span className="tc" aria-hidden>{duration}</span><span className="sr-only">{`Duration ${duration}`}</span></> : undefined} />
   );
 }
