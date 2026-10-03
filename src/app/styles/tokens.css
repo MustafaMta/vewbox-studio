@@ -38,6 +38,7 @@
 
   /* light: the one primary, selection, focus */
   --primary: #F5F5F4; --primary-hover: #FFFFFF; --primary-active: #E2E2E0; --on-primary: #0A0A0A;  /* 18.2:1 */
+  --on-primary-2: rgb(10 10 10 / .6);   /* a count on a light (selected) chip */
 
   /* state colours: meaning only */
   --wait: #E3AA5B;  --wait-soft: rgb(227 170 91 / .16);   /* tungsten: waiting for the producer   9.2:1 */
