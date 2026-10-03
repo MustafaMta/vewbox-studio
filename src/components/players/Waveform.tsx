@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { cls } from '@/components/ui/kit';
+import { fmtClock } from './time';
 
-/** A WAVEFORM FROM THE FILE ITSELF — the audio is fetched and decoded with the Web Audio API and its peaks are drawn.
- *  Nothing is invented: if the file cannot be decoded, nothing is drawn and the caption says so. Peaks are cached
- *  per source for the session. */
+/** THE WAVEFORM (docs/DESIGN-SYSTEM-V4.md §2.6, §5.13; kept and corrected) — drawn from the file itself: the audio is
+ *  fetched and decoded with the Web Audio API and its peaks become bars. Nothing is invented: until the peaks exist
+ *  nothing is drawn, and a file that cannot be decoded says so in words. 120 bars (64 on a phone), 2 wide with a 1
+ *  gap and a 1 radius at the nominal width, stretched to the row. Played bars are `--fg`; unplayed bars are
+ *  `--ink-550` (3.77:1 on the ground; v3's `--ink-600` measured 2.09:1). Playhead: a 1 px ivory line and an 8 px iris
+ *  handle. Click or tap seeks; the keyboard drives it as a slider. ALWAYS LEFT TO RIGHT, in both languages (it is
+ *  time). In edit, section boundaries show as 1 px strong-hairline ticks with their labels above. */
 
 const cache = new Map<string, Float32Array>();
 
@@ -12,6 +18,7 @@ export async function peaksFor(src: string, buckets: number): Promise<Float32Arr
   const key = `${src}#${buckets}`;
   const hit = cache.get(key); if (hit) return hit;
   const res = await fetch(src);
+  if (!res.ok) throw new Error(`audio ${res.status}`);
   const buf = await res.arrayBuffer();
   const Ctor = (window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
   if (!Ctor) throw new Error('no audio context');
@@ -34,48 +41,56 @@ export async function peaksFor(src: string, buckets: number): Promise<Float32Arr
   } finally { void ctx.close(); }
 }
 
-export function Waveform({ src, progress, onSeek, height = 56, buckets = 160, className = '', label, unavailableText }: { src: string; progress: number; onSeek?: (fraction: number) => void; height?: number; buckets?: number; className?: string; label: string; unavailableText: string }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
+/** Bars for a viewBox of (3n − 1) × 100: 2-unit bars, 1-unit gaps, centred, at least 6 % tall. */
+export function barsOf(peaks: ArrayLike<number>): Array<{ x: number; y: number; h: number }> {
+  return Array.from({ length: peaks.length }, (_, i) => { const h = Math.max(6, Math.min(1, peaks[i]) * 96); return { x: i * 3, y: (100 - h) / 2, h }; });
+}
+
+export function Waveform({ src, progress, onSeek, height = 56, buckets, className = '', label, unavailableText, duration, sections, showLabel = true }: { src: string; progress: number; onSeek?: (fraction: number) => void; height?: number; buckets?: number; className?: string; label: string; unavailableText: string; duration?: number; sections?: Array<{ at: number; label: string }>; showLabel?: boolean }) {
+  const id = useId();
+  const [n, setN] = useState(buckets ?? 120);
   const [peaks, setPeaks] = useState<Float32Array | null>(null);
   const [failed, setFailed] = useState(false);
-
+  useEffect(() => { if (buckets) setN(buckets); else { try { setN(window.matchMedia('(max-width: 639px)').matches ? 64 : 120); } catch { setN(120); } } }, [buckets]);
   useEffect(() => {
     let alive = true;
     setPeaks(null); setFailed(false);
-    peaksFor(src, buckets).then((p) => { if (alive) setPeaks(p); }).catch(() => { if (alive) setFailed(true); });
+    peaksFor(src, n).then((p) => { if (alive) setPeaks(p); }).catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
-  }, [src, buckets]);
+  }, [src, n]);
 
-  useEffect(() => {
-    const c = canvas.current; if (!c || !peaks) return;
-    const dpr = window.devicePixelRatio || 1;
-    const w = c.clientWidth, h = height;
-    c.width = Math.floor(w * dpr); c.height = Math.floor(h * dpr);
-    const g = c.getContext('2d'); if (!g) return;
-    g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
-    const n = peaks.length; const gap = 1.5; const bw = Math.max(1, (w - gap * (n - 1)) / n);
-    const styles = getComputedStyle(document.documentElement);
-    const played = styles.getPropertyValue('--ivory').trim() || '#f4f3ee';
-    const rest = styles.getPropertyValue('--line-strong').trim() || '#364861';
-    const rtl = document.documentElement.dir === 'rtl';
-    for (let i = 0; i < n; i++) {
-      const v = Math.max(0.06, peaks[i]);
-      const bh = Math.max(2, v * (h - 4));
-      const frac = (i + 0.5) / n;
-      const x = rtl ? w - (i * (bw + gap)) - bw : i * (bw + gap);
-      g.fillStyle = frac <= progress ? played : rest;
-      g.beginPath(); g.roundRect(x, (h - bh) / 2, bw, bh, 1); g.fill();
-    }
-  }, [peaks, progress, height]);
-
-  if (failed) return <p className={`text-xs text-faint ${className}`}>{unavailableText}</p>;
+  const p = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
+  if (failed) return <p className={cls('wave-failed caption', className)}>{unavailableText}</p>;
+  const W = n * 3 - 1;
+  const bars = peaks ? barsOf(peaks) : [];
+  const rects = bars.map((b, i) => <rect key={i} x={b.x} y={b.y} width={2} height={b.h} rx={1} />);
+  const stepBy = duration ? Math.min(1, 1 / duration) : 0.02;
+  const onKey = (e: React.KeyboardEvent) => {
+    if (!onSeek) return;
+    const k = e.key;
+    const next = k === 'ArrowRight' || k === 'ArrowUp' ? p + stepBy : k === 'ArrowLeft' || k === 'ArrowDown' ? p - stepBy : k === 'PageUp' ? p + 0.1 : k === 'PageDown' ? p - 0.1 : k === 'Home' ? 0 : k === 'End' ? 1 : null;
+    if (next === null) return;
+    e.preventDefault(); onSeek(Math.max(0, Math.min(1, next)));
+  };
+  const valueText = duration ? `${fmtClock(p * duration)} / ${fmtClock(duration)}` : `${Math.round(p * 100)}%`;
   return (
-    <div className={className}>
-      <canvas ref={canvas} role={onSeek ? 'slider' : 'img'} aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} tabIndex={onSeek ? 0 : -1}
-        className={`block w-full ${onSeek ? 'cursor-pointer' : ''} ${peaks ? '' : 'skeleton'}`} style={{ height }}
-        onClick={(e) => { if (!onSeek) return; const r = e.currentTarget.getBoundingClientRect(); let f = (e.clientX - r.left) / r.width; if (document.documentElement.dir === 'rtl') f = 1 - f; onSeek(Math.max(0, Math.min(1, f))); }}
-        onKeyDown={(e) => { if (!onSeek) return; if (e.key === 'ArrowRight') onSeek(Math.min(1, progress + 0.02)); if (e.key === 'ArrowLeft') onSeek(Math.max(0, progress - 0.02)); }} />
-      <p className="mt-1 text-[11px] text-faint">{label}</p>
+    <div className={cls('wave', className)} dir="ltr" data-ready={peaks ? '' : undefined}>
+      {sections && sections.length > 0 && (
+        <div className="wave-sections" aria-hidden>{sections.map((s, i) => <span key={i} className="wave-section" style={{ insetInlineStart: `${Math.min(1, Math.max(0, s.at)) * 100}%` }}><span className="wave-section-label caption">{s.label}</span></span>)}</div>
+      )}
+      <div className="wave-body" style={{ blockSize: height }}>
+        <svg className="wave-svg" viewBox={`0 0 ${W} 100`} preserveAspectRatio="none" aria-hidden focusable="false">
+          <defs><clipPath id={`${id}-c`}><rect x={0} y={0} width={W * p} height={100} /></clipPath></defs>
+          <g className="wave-rest">{rects}</g>
+          <g className="wave-played" clipPath={`url(#${id}-c)`}>{rects}</g>
+        </svg>
+        {peaks && <span className="wave-head" aria-hidden style={{ insetInlineStart: `${p * 100}%` }} />}
+        <div className={cls('wave-hit', onSeek && 'wave-hit-on')} role={onSeek ? 'slider' : 'img'} tabIndex={onSeek ? 0 : undefined} aria-label={label}
+          aria-valuemin={onSeek ? 0 : undefined} aria-valuemax={onSeek ? 100 : undefined} aria-valuenow={onSeek ? Math.round(p * 100) : undefined} aria-valuetext={onSeek ? valueText : undefined}
+          onClick={(e) => { if (!onSeek) return; const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))); }}
+          onKeyDown={onKey} />
+      </div>
+      {showLabel && <p className="wave-label caption">{label}</p>}
     </div>
   );
 }
