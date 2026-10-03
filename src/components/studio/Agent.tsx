@@ -38,11 +38,11 @@ export function AgentPage({ id }: { id: string }) {
   return (
     <div className="cp agent">
       <PageHead back={d ? { href: `/studio/departments/${d.id}`, label: d.name } : { href: '/studio', label: 'Studio Company' }}
-        kicker={`${director ? 'Director' : 'Agent'}${d ? ` · ${d.name}` : ''}`} title={a.name} lead={constWords(a.description).split(/(?<=\.)\s/)[0]} />
+        kicker={`${director ? 'Director' : 'Agent'}${d ? ` · ${d.name}` : ''}`} title={a.name} lead={a.role} />
       <PanelCard className="cp-facts" columns={4} facts={[
         { label: 'Now', value: current ? <JobDot>{current.parentRunId ? current.purpose ?? jobWords(current.jobType) : jobWords(current.jobType)}</JobDot> : <StateWord tone={st.tone === 'failed' ? 'failed' : 'idle'}>{st.words}</StateWord>, sub: cur ? <Link href={productionHref(cur)} className="cp-link"><bdi>{cur.title}</bdi></Link> : current ? `since ${shortWhen(current.startedAt)}` : null },
         { label: 'Runs', value: <span className="t-ro t-ro-md">{stats?.runs ?? 0}</span>, sub: first ? `${first} succeeded the first time` : 'No finished first attempt yet' },
-        { label: 'Median time', value: duration(stats?.p50Ms) ?? '—', sub: stats?.lastRunAt ? `Last ran ${shortWhen(stats.lastRunAt)}` : 'Has not run yet' },
+        { label: 'Median time', value: duration(stats?.p50Ms) ?? '—', sub: stats?.completed ? `of ${stats.completed} finished ${plural(stats.completed, 'run')}` : 'Nothing finished yet' },
         { label: 'Failures', value: <span className="t-ro t-ro-md">{failures.length}</span>, sub: failures.length ? `${failures.filter((f) => f.resolved).length} resolved` : 'None on record' },
       ]} />
 

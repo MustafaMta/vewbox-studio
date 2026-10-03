@@ -43,7 +43,7 @@ export function SettingsPage() {
   const hostedReason = caps && !caps.minimax ? 'Needs the hosted MiniMax key on the server.' : undefined;
   const videoModel = gen.videoModel ?? caps?.videoModel ?? 'MiniMax-H3';
   const resolution = (gen.videoResolution ?? caps?.videoResolution ?? '768P') as (typeof RESOLUTIONS)[number];
-  const storyNow = caps?.llm === 'openai-compatible' ? 'a model on this machine' : caps?.llm === 'anthropic' ? 'Anthropic' : caps?.llm === 'minimax' ? 'MiniMax' : 'no engine';
+  const storyNow = caps?.llm === 'openai-compatible' ? 'a local model' : caps?.llm === 'anthropic' ? 'Anthropic' : caps?.llm === 'minimax' ? 'MiniMax' : 'no engine';
   return (
     <div className="cp settings">
       <PageHead title="Settings" lead="How the studio makes new work. Each change is saved as you make it." end={<SaveWord state={saving} className="st-save" />} />
@@ -53,13 +53,13 @@ export function SettingsPage() {
           <SettingRow label="Video model" hint="The model that films new takes.">
             {(id) => <Select id={id} value={videoModel} onChange={(e) => setGen({ videoModel: e.target.value })} options={VIDEO_MODELS.map((m) => ({ value: m.value, label: m.label, disabled: m.hosted && Boolean(hostedReason) }))} />}
           </SettingRow>
-          {hostedReason && <p className="t-meta st-reason">The hosted models are unavailable: {hostedReason.toLowerCase()}</p>}
+          {hostedReason && <p className="t-meta st-reason">The hosted models need the MiniMax key on the server.</p>}
           <SettingRow label="Video resolution" hint="Higher resolution takes longer to film.">
             {() => <Segmented label="Video resolution" value={resolution} onChange={(v) => setGen({ videoResolution: v })} options={RESOLUTIONS.map((r) => ({ value: r, label: <span className="t-ro t-ro-md">{r}</span> }))} />}
           </SettingRow>
           <SettingRow label="Story engine" hint="Writes ideas, stories, scripts and shot plans.">
             {(id) => <Select id={id} value={gen.llmProvider ?? ''} onChange={(e) => setGen({ llmProvider: e.target.value || undefined })} options={[
-              { value: '', label: `The server’s choice (${storyNow})` },
+              { value: '', label: `Server default · ${storyNow}` },
               { value: 'openai-compatible', label: 'A model on this machine', disabled: caps ? !caps.openaiCompatible : false },
               { value: 'anthropic', label: 'Anthropic, hosted', disabled: caps ? !caps.anthropic : false },
               { value: 'minimax', label: 'MiniMax, hosted', disabled: caps ? !caps.minimax : false },

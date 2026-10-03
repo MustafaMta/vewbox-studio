@@ -48,7 +48,8 @@ for (const pg of PAGES) {
     await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
     await page.waitForSelector('.sk-region, .cp', { timeout: 120000 }).catch(() => {});
     await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
-    await page.waitForSelector(pg.ready, { timeout: 120000 });
+    const ok = await page.waitForSelector(pg.ready, { timeout: 240000 }).then(() => true, () => false);
+    if (!ok) { failed += 1; console.log(`${pg.name} ${size.w}: ✗ the page did not finish loading`); await ctx.close(); continue; }
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
     await page.waitForTimeout(800);
