@@ -90,7 +90,7 @@ export const cast = {
   'char.create.keepAll.prompt': ['Keep the face, hair and wardrobe from the reference picture.', 'احتفظ بالوجه والشعر والملابس من الصورة المرجعية.'],
   'char.create.keepChangeHelp': ['"keep the face and hair; put her in a 1970s Baghdad café"', '«احتفظ بالوجه والشعر؛ ضعها في مقهى بغدادي من السبعينات»'],
   'char.create.designFromPicture': ['Design from picture', 'صمّم من الصورة'],
-  'char.create.noVoiceYet': ['No voice yet — add a recording on the profile.', 'لا صوت بعد — أضف تسجيلاً في الملف.'],
+  'char.create.noVoiceYet': ['No voice yet — make one on the profile’s Voice tab.', 'لا صوت بعد — اصنعه في تبويب الصوت في الملف.'],
   'char.create.making': ['Making the character', 'جارٍ صنع الشخصية'],
   'char.create.notTheLook': ['a guide, not the appearance', 'دليل، لا المظهر'],
   'char.create.drawAgain': ['Draw again', 'ارسم مجدداً'],

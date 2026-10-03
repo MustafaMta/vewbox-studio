@@ -16,6 +16,7 @@ const PREFIX: Record<string, string | null> = { common: null, kit: 'kit', media:
 const REVISED: Record<string, string> = {
   'char.create.voiceNoneHint': 'D9: voices are also designed from the description, not only cloned from a recording',
   'char.form.voiceHint': 'D9: the same',
+  'char.create.noVoiceYet': 'D17: the Ready card named only the recording way',
 };
 
 describe('the split dictionary', () => {
