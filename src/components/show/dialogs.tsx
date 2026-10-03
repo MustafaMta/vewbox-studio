@@ -184,7 +184,7 @@ export function CanonDialog({ show, kind, open, onClose }: { show: Show; kind: '
       description={kind === 'cast' ? 'Every episode can use these characters with their canonical look and voice.' : 'Every episode can film in these places.'}
       footer={<Footer onClose={onClose}><Button variant="primary" onClick={save}>Save · {ids.length} chosen</Button></Footer>}>
       {items.length === 0 ? (
-        <p className="t-body">{kind === 'cast' ? 'The studio has no characters yet.' : 'The studio has no locations yet.'} <Link className="home-link" href={kind === 'cast' ? '/characters/new' : '/locations/new'}>{kind === 'cast' ? 'New character' : 'New location'}</Link></p>
+        <p className="t-body">{kind === 'cast' ? 'The studio has no characters yet.' : 'The studio has no locations yet.'} <Link className="shead-link" href={kind === 'cast' ? '/characters/new' : '/locations/new'}>{kind === 'cast' ? 'New character' : 'New location'}</Link></p>
       ) : (
         <ul className="show-pick" data-kind={kind} role="list">
           {items.map((it) => (
