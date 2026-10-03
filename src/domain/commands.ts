@@ -3,7 +3,7 @@ import type { StudioState } from './types';
 import * as A from './actions';
 import { withCommandContext } from './ids';
 import { StudioError } from './errors';
-import { DIALECTS, LANGUAGES, PACES, PITCHES, SEXES, STYLES } from './vocabulary';
+import { ASPECTS, CAMERA_MOVES, DIALECTS, FRAMINGS, KINDS, LANGUAGES, LOCATION_REF_ROLES, LYRIC_KINDS, PACES, PITCHES, SEXES, STAGES, STYLES, TIMES_OF_DAY, TRANSITIONS } from './vocabulary';
 
 /** THE COMMAND SET — every studio action by name, so the browser and the server run the same function. A command
  *  is `{ name, args, seed, at }`: the seed fixes the ids it creates and `at` fixes its clock, so both sides agree. */
@@ -160,6 +160,135 @@ export function validateCommandArgs(name: CommandName, args: unknown): void {
   if (!schema) return;
   const r = schema.safeParse(args);
   if (!r.success) throw new StudioError('INVALID', `${name}: ${r.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'args'} ${i.message}`).join('; ')}`, { command: name, issues: r.error.issues.slice(0, 10).map((i) => ({ path: i.path.map(String), message: i.message })) });
+}
+
+// ------------------------------------------------------------------------------------------ the command boundary
+
+/** THE COMMAND BOUNDARY (docs/BACKEND-AUDIT-2026-10.md H1, step 2). Every command is either a CLIENT command — a
+ *  producer's edit a page may send to POST /api/commands — or a SYSTEM command, written only in-process by the
+ *  worker and the server's own routes (`command()` / `commands()` in src/server/studio/engine.ts): generated takes,
+ *  cuts, exports, voice identities and designs, canonical images, assets and their provenance. The HTTP route refuses
+ *  system commands (403) and validates every client command's arguments against CLIENT_ARG_SCHEMAS before any reducer
+ *  runs. The browser keeps running every command locally (runCommand) — the split is about who may SEND one. */
+export const SYSTEM_COMMANDS = [
+  'recordExport', 'setCut', 'replaceScript', 'replaceSceneShots', 'setShotFrames', 'setDialogueAudio',
+  'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
+  'setCanonicalImage', 'addLocationRefs', 'addAsset', 'updateAsset',
+] as const satisfies readonly CommandName[];
+export type SystemCommandName = (typeof SYSTEM_COMMANDS)[number];
+export type ClientCommandName = Exclude<CommandName, SystemCommandName>;
+
+export const isSystemCommand = (name: CommandName): name is SystemCommandName => (SYSTEM_COMMANDS as readonly string[]).includes(name);
+export const isClientCommand = (name: unknown): name is ClientCommandName => isCommandName(name) && !isSystemCommand(name);
+export const CLIENT_COMMANDS = (Object.keys(COMMANDS) as CommandName[]).filter((n): n is ClientCommandName => !isSystemCommand(n));
+
+/** A positional argument list: `required` first, then `optional` ones (absent, or null — JSON turns a trailing
+ *  `undefined` into null), and nothing more. */
+function argList(required: z.ZodType[], optional: z.ZodType[] = []): z.ZodType<unknown[]> {
+  const all = [...required, ...optional.map((s) => s.nullish())];
+  return z.array(z.unknown()).superRefine((a, ctx) => {
+    if (a.length < required.length) ctx.addIssue({ code: 'custom', message: `expects ${required.length}${optional.length ? `–${all.length}` : ''} arguments, got ${a.length}` });
+    if (a.length > all.length) ctx.addIssue({ code: 'custom', message: `expects at most ${all.length} arguments, got ${a.length}` });
+    a.slice(0, all.length).forEach((v, i) => {
+      const r = all[i].safeParse(v);
+      if (!r.success) for (const iss of r.error.issues) ctx.addIssue({ code: 'custom', path: [i, ...iss.path], message: iss.message });
+    });
+  }) as unknown as z.ZodType<unknown[]>;
+}
+
+/** A field only the studio writes (a worker's result, a structural record): refused when a page sends it. */
+const studioOwned = z.never({ message: 'is written by the studio, never sent by a page' }).optional();
+const owned = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, studioOwned])) as Record<string, typeof studioOwned>;
+
+const idList = z.array(id).max(500);
+const line = (max: number) => z.string().max(max);
+const textList = (max: number) => z.array(line(max)).max(200);
+const titleText = z.string().max(300);
+const style = z.enum(STYLES); const language = z.enum(LANGUAGES); const dialect = z.enum(DIALECTS); const aspect = z.enum(ASPECTS);
+const timeOfDay = z.enum(TIMES_OF_DAY); const stage = z.enum(STAGES);
+const seconds = z.number().nonnegative().max(24 * 3600);
+
+const ShowBible = z.object({ worldRules: textList(2000), relationships: textList(2000), timeline: textList(2000), unresolved: textList(2000), styleNotes: line(8000) }).partial().passthrough();
+const NewShow = z.object({ title: z.string().min(1).max(300), titleAr: titleText.optional(), logline: line(8000), genre: line(200), style, language, dialect: dialect.optional(), aspect, castIds: idList.optional(), locationIds: idList.optional(), synopsis: line(40000).optional() }).passthrough();
+const ShowPatch = z.object({ title: z.string().min(1).max(300), titleAr: titleText, logline: line(8000), genre: line(200), style, language, dialect, aspect, synopsis: line(40000), coverAssetId: id, posterAssetId: id, castIds: idList, locationIds: idList, bible: ShowBible }).partial().extend(owned('id', 'createdAt')).passthrough();
+const SeasonPatch = z.object({ title: titleText, arc: line(8000) }).partial().strict();
+
+const Brief = z.object({ mode: z.enum(['AUTO_IDEA', 'MANUAL']), text: line(40000) }).passthrough();
+const LyricSection = z.object({ id, kind: z.enum(LYRIC_KINDS), text: line(8000), singerIds: idList, from: seconds, to: seconds }).passthrough();
+const Song = z.object({ id, title: titleText, source: z.enum(['GENERATED', 'GENERATED_EXAMPLE', 'UPLOADED']), assetId: id.optional(), durationSeconds: seconds, caption: line(8000), sections: z.array(LyricSection).max(200), singerIds: idList }).passthrough();
+const SongPatch = Song.partial().passthrough();
+const NewProduction = z.object({ kind: z.enum(KINDS), showId: id.optional(), seasonId: id.optional(), title: z.string().min(1).max(300), titleAr: titleText.optional(), logline: line(8000).optional(), synopsis: line(40000).optional(), style, language, dialect: dialect.optional(), aspect, targetSeconds: z.number().positive().max(4 * 3600), brief: Brief, castIds: idList, locationIds: idList, song: Song.optional() }).passthrough();
+/** cutAssetId, exports and the frame poster come from ASSEMBLE/EXPORT; scenes and shots (with their takes) from the
+ *  structural commands — a production patch from a page carries none of them. */
+const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.number().int().positive(), title: z.string().min(1).max(300), titleAr: titleText, logline: line(8000), synopsis: line(40000), style, language, dialect, aspect, targetSeconds: z.number().positive().max(4 * 3600), stage, brief: Brief, castIds: idList, locationIds: idList, song: Song, coverAssetId: id, posterAssetId: id, artist: line(300), concept: z.enum(['PERFORMANCE', 'NARRATIVE', 'MIXED']), genre: line(200), mood: line(200) })
+  .partial().extend(owned('id', 'kind', 'createdAt', 'scenes', 'shots', 'cutAssetId', 'exports', 'framePosterAssetId')).passthrough();
+
+const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
+const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();
+const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional() }).passthrough();
+const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000) }).partial().extend(owned('id', 'number')).passthrough();
+
+const ShotDialogue = z.object({ id, characterId: id, text: line(8000) }).passthrough();
+const Continuity = z.object({ characters: z.array(z.object({ characterId: id }).passthrough()).max(50), props: z.array(z.object({ name: line(300) }).passthrough()).max(100), environment: z.object({}).passthrough(), camera: z.object({}).passthrough() }).partial().passthrough();
+const shotFields = { sceneId: id, purpose: line(8000), action: line(8000), framing: z.enum(FRAMINGS), cameraMove: z.enum(CAMERA_MOVES), durationSeconds: z.number().positive().max(600), characterIds: idList, dialogue: z.array(ShotDialogue).max(100), transition: z.enum(TRANSITIONS), openingFrameAssetId: id, endingFrameAssetId: id, songWindow: z.object({ from: seconds, to: seconds }), performance: z.object({ mode: z.string().max(40), singerIds: idList }).passthrough(), notes: line(8000), continuity: Continuity, prompt: line(8000) };
+/** A shot's takes and its chosen take have their own commands (the worker's addTake, selectTake, removeTake…). */
+const shotOwned = owned('id', 'number', 'takes', 'selectedTakeId');
+const ShotInput = z.object(shotFields).partial().required({ sceneId: true }).extend(shotOwned).passthrough();
+const ShotPatch = z.object(shotFields).partial().extend(shotOwned).passthrough();
+
+/** The one take a page may add: the producer's own upload (ShotEditor). Generated takes, with their provenance, QA
+ *  and cost, are the worker's (addTake in-process). */
+const UploadedTake = z.object({ assetId: id, provider: z.literal('UPLOAD'), label: titleText.optional(), note: line(4000).optional(), width: z.number().positive().max(16384).optional(), height: z.number().positive().max(16384).optional(), durationSeconds: seconds.optional(), fps: z.number().positive().max(1000).optional() }).strict();
+
+const LocationRef = z.object({ id, role: z.enum(LOCATION_REF_ROLES), assetId: id, label: titleText, timeOfDay: timeOfDay.optional() }).passthrough();
+const locationFields = { name: z.string().min(1).max(200), nameAr: titleText, kind: z.enum(['INTERIOR', 'EXTERIOR']), description: line(8000), style, lighting: z.array(timeOfDay).max(20), landmarks: textList(400), props: textList(400), refs: z.array(LocationRef).max(200), masterAssetId: id, layout: z.object({}).passthrough() };
+const LocationInput = z.object(locationFields).partial().required({ name: true, kind: true, style: true }).extend(owned('id', 'createdAt')).passthrough();
+const LocationPatch = z.object(locationFields).partial().extend(owned('id', 'createdAt')).passthrough();
+
+const SettingsPatch = z.object({ reducedMotion: z.boolean(), defaults: z.object({ style, language, dialect, aspect }).partial().passthrough(), generation: z.object({ videoModel: line(200), videoResolution: line(40), llmProvider: line(80), voiceProvider: z.enum(['LOCAL_TTS', 'MINIMAX']) }).partial().passthrough(), voice: z.object({ allowDesignedIraqi: z.boolean() }).partial().passthrough(), research: z.object({ enabled: z.boolean(), cacheHours: z.number().min(1).max(168) }).partial().passthrough() }).partial().passthrough();
+
+const ProposedCast = z.object({ key: line(200), name: line(200), role: line(400) }).passthrough();
+const ProposedLocation = z.object({ key: line(200), name: line(200), description: line(8000) }).passthrough();
+const Proposal = z.object({ sample: z.boolean(), title: z.string().min(1).max(300), logline: line(8000), premise: line(40000), genre: line(200), mood: line(200), style, language, dialect: dialect.optional(), durationSeconds: z.number().positive().max(4 * 3600), structure: z.array(z.object({ title: titleText, summary: line(8000) }).passthrough()).max(200), cast: z.array(ProposedCast).max(50), locations: z.array(ProposedLocation).max(50) }).passthrough();
+const AcceptProposal = z.object({ kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), showId: id.optional(), seasonId: id.optional(), aspect, proposal: Proposal, keepCast: z.array(line(200)).max(50), keepLocations: z.array(line(200)).max(50), preferences: z.object({}).passthrough(), proposalJobId: id.optional() }).passthrough();
+
+const existing = (name: CommandName) => COMMAND_ARG_SCHEMAS[name]!;
+
+/** THE CLIENT ARGUMENT SCHEMAS — one for every client command (the type makes a missing one a compile error). */
+export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>> = {
+  addShow: argList([NewShow]), updateShow: argList([id, ShowPatch]), deleteShow: argList([id]),
+  addSeason: argList([id], [titleText, line(8000)]), updateSeason: argList([id, SeasonPatch]), deleteSeason: argList([id]),
+  addProduction: argList([NewProduction]), updateProduction: argList([id, ProductionPatch]), deleteProduction: argList([id]), duplicateProduction: argList([id]),
+  setStage: argList([id, stage]), markStepDone: argList([id, stage]),
+  addScene: argList([id, SceneInput]), updateScene: argList([id, id, ScenePatch]), deleteScene: argList([id, id]),
+  addShot: argList([id, ShotInput]), updateShot: argList([id, id, ShotPatch]), deleteShot: argList([id, id]), duplicateShot: argList([id, id]),
+  moveShot: argList([id, id, z.union([z.literal(-1), z.literal(1)])]), reorderShot: argList([id, id], [id]), setShotContinuity: argList([id, id, Continuity]),
+  selectTake: argList([id, id], [id]), rateTake: existing('rateTake'), noteTake: argList([id, id, id, line(4000)]), rejectTake: argList([id, id, id, line(2000)]), removeTake: argList([id, id, id]),
+  addTake: argList([id, id, UploadedTake]),
+  setSong: argList([id], [Song]), updateSong: argList([id, SongPatch]),
+  addCharacter: existing('addCharacter'), updateCharacter: existing('updateCharacter'), setPendingReference: existing('setPendingReference'), deleteCharacter: argList([id]),
+  addVoiceRecording: existing('addVoiceRecording'), removeVoiceSample: argList([id, id]), selectVoiceSample: existing('selectVoiceSample'),
+  recordVoiceListening: existing('recordVoiceListening'), confirmVoiceConsent: existing('confirmVoiceConsent'), approveCanonicalImage: existing('approveCanonicalImage'),
+  addLocation: argList([LocationInput]), updateLocation: argList([id, LocationPatch]), deleteLocation: argList([id]),
+  deleteAsset: argList([id]), setAssetTier: existing('setAssetTier'),
+  acceptProposal: argList([AcceptProposal]),
+  updateSettings: argList([SettingsPatch]),
+};
+
+export const systemCommandMessage = (name: string) => `${name} is written by the studio's workers; a page cannot send it.`;
+
+/** Refuse what a page may not send: a system command (unless `allowSystem`, the one-release rollback
+ *  STUDIO_LEGACY_COMMANDS=1; the route answers it 403 before calling this) or malformed arguments (INVALID, the
+ *  field named). */
+export function validateClientCommand(name: CommandName, args: unknown, opts: { allowSystem?: boolean } = {}): void {
+  if (isSystemCommand(name)) {
+    if (!opts.allowSystem) throw new StudioError('INVALID', systemCommandMessage(name), { command: name, reason: 'SYSTEM_COMMAND' });
+    validateCommandArgs(name, args);
+    return;
+  }
+  const r = CLIENT_ARG_SCHEMAS[name].safeParse(args);
+  if (!r.success) throw new StudioError('INVALID', `${name}: ${r.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'args'} ${i.message}`).join('; ')}`, { command: name, issues: r.error.issues.slice(0, 10).map((i) => ({ path: i.path.map(String), message: i.message })) });
+  validateCommandArgs(name, args);
 }
 
 /** Apply one command. Throws StudioError for a refused command (including malformed arguments). */

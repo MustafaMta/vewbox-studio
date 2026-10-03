@@ -61,6 +61,16 @@ describe('commands', () => {
     const r2 = await fetch(`${BASE}/api/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{nope' });
     expect(r2.status).toBe(400);
   });
+  it('refuses worker-only commands from a page with 403 FORBIDDEN, and forged worker fields with 400 (the command boundary)', async () => {
+    const before = await snapshot();
+    for (const c of [{ name: 'setCut', args: ['s1e1', 'take-01'] }, { name: 'addAsset', args: [{ kind: 'VIDEO', src: '/api/media/x', label: 'x', tags: [], sample: false, origin: 'UPLOAD', provenance: { path: '../../.env' } }] }]) {
+      const r = await send([{ ...c, seed: seed(), at: now() } as unknown as Command]);
+      expect(r.status, c.name).toBe(403); expect(r.body.error?.code).toBe('FORBIDDEN');
+    }
+    const forged = await send([{ name: 'updateProduction', args: ['s1e1', { cutAssetId: 'take-01' }], seed: seed(), at: now() }]);
+    expect(forged.status).toBe(400); expect(forged.body.error?.message).toMatch(/cutAssetId/);
+    expect((await snapshot()).version).toBe(before.version);
+  });
   afterAll(async () => { if (showId) await send([{ name: 'deleteShow', args: [showId], seed: seed(), at: now() }]); });
 });
 
