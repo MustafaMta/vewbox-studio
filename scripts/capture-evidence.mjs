@@ -1,11 +1,11 @@
 // Capture full-page screenshots of the studio's pages as evidence (headless Chromium via Playwright).
 //
 //   node scripts/capture-evidence.mjs [--base http://localhost:4200] [--out docs/evidence] [--prefix studio]
-//        [--width 1440 | --device desktop,tablet,phone] [--suffix -desktop]
+//        [--width 1440 [--height 900] | --device desktop,tablet,phone] [--suffix -desktop]
 //        [--fixture sample|empty|states|<file.json>] [--set <pkg>] [--state <label>] [--motion reduce] [--contrast more] [--axe] [path ...]
 //
 // Pages:   the paths given, or with --set <pkg> that package's page list (scripts/lib/capture.mjs SETS; §8.5).
-// Sizes:   --width <px> (a phone below 768), or --device: desktop 1440×900 · tablet 834×1112 touch · phone 390×844 touch.
+// Sizes:   --width <px> (a phone below 768; --height <px> sets the viewport height, default 900, phones 844), or --device: desktop 1440×900 · tablet 834×1112 touch · phone 390×844 touch.
 //          Several devices may be listed (comma-separated): every page is captured at each. The interface is
 //          English-only (docs/DESIGN-SYSTEM-V5.md §9): there is no language option.
 // Files:   <out>/<prefix>-<slug><suffix>.png. With several devices and no --suffix, the suffix is -<width>.
@@ -34,6 +34,7 @@ const out = opt('out', 'docs/evidence');
 const setName = opt('set', '');
 const prefix = opt('prefix', setName ? 'v4' : 'studio');
 const widthOpt = opt('width', '');
+const heightOpt = opt('height', '');
 const deviceOpt = opt('device', '');
 const suffixOpt = opt('suffix', null);
 const fixtureOpt = opt('fixture', '');
@@ -43,7 +44,7 @@ const axe = flag('axe');
 
 const sizes = deviceOpt
   ? deviceOpt.split(',').map((d) => { const s = DEVICES[d.trim()]; if (!s) throw new Error(`unknown device "${d}" (desktop, tablet, phone)`); return s; })
-  : (widthOpt || '1440').split(',').map((w) => { const width = Number(w); const phone = width < 768; return { width, height: phone ? 844 : 900, touch: phone }; });
+  : (widthOpt || '1440').split(',').map((w) => { const width = Number(w); const phone = width < 768; return { width, height: Number(heightOpt) || (phone ? 844 : 900), touch: phone }; });
 const matrix = sizes.length > 1;
 const state = opt('state', fixtureName(fixtureOpt));
 

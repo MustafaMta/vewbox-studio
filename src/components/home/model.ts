@@ -1,14 +1,17 @@
 import type { Asset, Character, Location, Production, StudioState } from '@/domain/types';
+import type { Presentation } from '@/domain/presentation';
 import type { Decision } from '@/studio/selectors/decisions';
 import { identityStatus, voiceTrackSource } from '@/components/character/identity';
 import { primaryImageOf } from '@/domain/identity';
 import { keyFrameFor, posterOf } from '@/studio/selectors/poster';
 import { productionHref, progressOf, shotLabel } from '@/studio/selectors';
+import { faceBoxOf, type Picture } from '@/components/media/art';
 
-/** THE HOME PAGE'S READING OF THE STUDIO (docs/DESIGN-SYSTEM-V5.md §8.1) — pure, so every line the page shows comes
- *  from real state and can be tested: the marquee (the latest film), one card per waiting decision, the contact sheet
- *  of recent work, and the characters' line-up. Nothing here is estimated or invented: a fact that is not in the state
- *  is left out, never filled with a placeholder. */
+/** THE HOME PAGE'S READING OF THE STUDIO (docs/design/VISUAL-STANDARD-V5.1.md §7) — pure, so every word and number the
+ *  page shows comes from real state and can be tested: the marquee (the latest film, with its crop), the decisions
+ *  that wait (the four oldest), the recent work (four equal 16:9 tiles), the characters' line-up, the start actions and
+ *  the studio panel's four facts. Nothing here is estimated or invented: a fact that is not in the state is left out,
+ *  never filled with a placeholder. */
 
 type S = Pick<StudioState, 'productions' | 'characters' | 'locations' | 'assets' | 'shows'>;
 
@@ -41,12 +44,6 @@ export function runtime(seconds: number | undefined | null): string | null {
   const s = Math.round(seconds), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`;
 }
-/** 00:00:56:00 at the cut's frame rate */
-export function timecode(seconds: number, fps = 24): string {
-  const total = Math.round(seconds * fps), f = total % fps, s = Math.floor(total / fps);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}:${p(f)}`;
-}
 
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 /** A count in words up to twelve (prose), digits above: "Four decisions", "15 takes". */
@@ -59,31 +56,80 @@ export const STYLE_LABEL: Record<string, string> = { CARTOON: 'Cartoon', ANIME: 
 export const LANGUAGE_LABEL: Record<string, string> = { EN: 'English', AR: 'Arabic' };
 const STAGE_WORDS: Record<string, string> = { STORY: 'Story', CAST_AND_WORLD: 'Cast and world', STORYBOARD: 'Storyboard', PRODUCE: 'Filming', FINAL_CUT: 'Final cut', COMPLETE: 'Finished' };
 export const stageWords = (st: string) => STAGE_WORDS[st] ?? st.charAt(0) + st.slice(1).toLowerCase().replace(/_/g, ' ');
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** A content name's language when its script says so (§4.4: `lang` when known, omitted otherwise). */
+export const nameLang = (name: string): 'ar' | undefined => (/[؀-ۿݐ-ݿࢠ-ࣿ]/.test(name) ? 'ar' : undefined);
+
+// ------------------------------------------------------------------------------------------------------ the crops
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+const pct = (n: number) => `${+(clamp01(n) * 100).toFixed(2)}%`;
+
+/** `object-position` for a picture drawn with `object-fit: cover` in a box (§7.1 crop rule, §5.7).
+ *
+ *  Horizontal: when the box is narrower than the picture (a side crop) the face centre — else `portraitFocal`, else
+ *  `focal` — is centred in the visible window: x = (cx − w/2) / (1 − w), w = the visible share of the width (§7.1's
+ *  `portraitFocal.x`). When nothing is cropped from the sides, x = `focal.x` (the standard's desktop rule).
+ *  Vertical: when the box is wider than the picture (a crop of the top or bottom) and the top of `faceBox` is in the top
+ *  20 %, the picture is anchored at the top (0 %; never crop above a head); with a lower face its centre sits at
+ *  `faceAt` (35 % by default) of the visible height; with no face box known, the top anchor (the safe choice). */
+export function coverPosition(p: Presentation | null | undefined, picture: { width?: number; height?: number }, boxRatio: number, faceAt = 0.35): string {
+  const ratio = picture.width && picture.height ? picture.width / picture.height : 16 / 9;
+  const face = p?.faceBox && p.faceBox.w > 0 && p.faceBox.h > 0 ? p.faceBox : undefined;
+  const focalX = p?.focal?.x ?? 0.5;
+  let x = focalX;
+  if (boxRatio < ratio - 1e-6) {
+    const w = boxRatio / ratio;
+    const cx = p?.portraitFocal?.x ?? (face ? face.x + face.w / 2 : focalX);
+    x = (cx - w / 2) / (1 - w);
+  }
+  let y = 0;
+  if (boxRatio > ratio + 1e-6 && face && face.y > 0.2) {
+    const v = ratio / boxRatio; // the visible share of the height
+    y = (face.y + face.h / 2 - faceAt * v) / (1 - v);
+  }
+  return `${pct(x)} ${pct(y)}`;
+}
+
+/** A standing figure (928:1664) cropped to a 16:9 card or tile (§5.7): the face centre at 38 % of the visible height,
+ *  from the face box (`presentation.faceBox`, else the head band of the stored framing box: `faceBoxOf`); with
+ *  neither, `50% 8%` (head and shoulders of a full-figure image). */
+export function figureCrop(picture: Pick<Picture, 'presentation' | 'provenance' | 'width' | 'height'>, boxRatio = 16 / 9): string {
+  const face = faceBoxOf(picture) ?? undefined;
+  if (!face) return '50% 8%';
+  const ratio = picture.width && picture.height ? picture.width / picture.height : 928 / 1664;
+  const v = ratio / boxRatio; // visible share of the height when the width fills the box
+  const y = v >= 1 ? 0.5 : (face.y + face.h / 2 - 0.38 * v) / (1 - v);
+  return `${pct(face.x + face.w / 2)} ${pct(y)}`;
+}
 
 // ---------------------------------------------------------------------------------------------------- the marquee
+
+export interface MarqueeAction { label: string; href: string; play?: boolean }
 
 export interface Marquee {
   production: Production;
   href: string;
   title: string;
+  /** a title longer than 28 characters steps down one role (§4.3) */
+  long: boolean;
   /** finished with a cut, or still being made */
   finished: boolean;
-  kick: string;
+  /** the status badge (§5.13) */
+  badge: { tone: 'ok' | 'neutral'; words: string };
   slate: string[];
-  status: { tone: 'ok' | 'wait' | 'neutral'; words: string };
   lead: string;
-  /** the wide picture (desktop) and the portrait poster (phone); either may be absent */
-  wide?: { src: string; asset: Asset };
-  poster?: { src: string; asset: Asset; kind: 'KEY_ART' | 'FRAME_POSTER' };
-  credit: string[];
-  creditMono?: string;
-  screenHref?: string;
+  /** the production's wide frame: desktop at the box's own ratio, phones a 4:5 window of the same frame */
+  wide?: { src: string; asset: Asset; width: number; height: number };
+  secondary: MarqueeAction;
+  primary: MarqueeAction;
 }
 
 const updated = (p: Production) => parseTime(p.updatedAt)?.getTime() ?? 0;
 
 /** The latest film the studio made: the most recently updated production with a cut, else the most recently updated
- *  one at all (work in progress: the marquee says Continue). Null in an empty studio. */
+ *  one at all (work in progress: the primary says "Continue: <stage>"). Null in an empty studio. */
 export function pickMarquee(s: S): Marquee | null {
   if (s.productions.length === 0) return null;
   const recent = [...s.productions].sort((a, b) => updated(b) - updated(a));
@@ -91,43 +137,29 @@ export function pickMarquee(s: S): Marquee | null {
   const get = byId(s);
   const cut = get(p.cutAssetId);
   const finished = Boolean(cut && p.stage === 'COMPLETE');
-  const exp = [...(p.exports ?? [])].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0];
   const pr = progressOf(p);
   // the wide picture: the cover, else the cut's own poster frame, else the key frame (a still of the last good shot)
   const cover = get(p.coverAssetId);
   const cutPoster = cut?.poster ? s.assets.find((a) => a.src === cut.poster || `/api/media/${a.id}` === cut.poster) : undefined;
-  const kf = keyFrameFor(p, s.assets);
-  const kfImage = get(kf?.imageAssetId);
+  const kfImage = get(keyFrameFor(p, s.assets)?.imageAssetId);
   const wideAsset = [cover, cutPoster, kfImage].find(usable);
-  const posterPick = posterOf(p, s.assets);
   const runtimeSec = cut?.durationSeconds ?? (pr.runtime || undefined);
   const year = parseTime(p.createdAt)?.getFullYear();
-  const words = (() => {
-    if (finished && exp) return { tone: 'ok' as const, words: 'Finished · exported' };
-    if (finished) return { tone: 'ok' as const, words: 'Finished' };
-    return { tone: 'neutral' as const, words: stageWords(p.stage) };
-  })();
-  const subs = exp?.subtitles ? `${LANGUAGE_LABEL[exp.subtitles.toUpperCase()] ?? exp.subtitles} subtitles, burned in` : null;
-  const credit = [
-    pr.scenes ? `${pr.scenes} ${plural(pr.scenes, 'scene')}` : null,
-    pr.shots ? `${pr.shots} ${plural(pr.shots, 'shot')}` : null,
-    subs,
-  ].filter((x): x is string => Boolean(x));
   const href = productionHref(p);
+  const title = titleOf(p);
+  const stage = stageWords(p.stage);
   return {
     production: p,
     href,
-    title: titleOf(p),
+    title,
+    long: title.length > 28,
     finished,
-    kick: finished ? (exp ? 'The final cut is ready' : 'The cut is ready') : `Continue · ${stageWords(p.stage).toLowerCase()}`,
+    badge: finished ? { tone: 'ok', words: 'Finished' } : { tone: 'neutral', words: stage },
     slate: [KIND_LABEL[p.kind], year ? String(year) : null, runtime(runtimeSec), STYLE_LABEL[p.style] ?? null, LANGUAGE_LABEL[p.language] ?? null].filter((x): x is string => Boolean(x)),
-    status: words,
-    lead: p.logline || p.synopsis,
-    wide: wideAsset ? { src: wideAsset.src, asset: wideAsset } : undefined,
-    poster: posterPick && usable(posterPick.asset) ? { src: displaySrc(posterPick.asset)!, asset: posterPick.asset, kind: posterPick.kind } : undefined,
-    credit,
-    creditMono: cut ? [cut.width && cut.height ? `${cut.width}×${cut.height}` : null, cut.durationSeconds ? timecode(cut.durationSeconds, cut.fps ?? 24) : null].filter(Boolean).join(' · ') || undefined : undefined,
-    screenHref: cut ? `/screening?p=${encodeURIComponent(p.id)}` : undefined,
+    lead: p.logline || p.synopsis || '',
+    wide: wideAsset ? { src: wideAsset.src, asset: wideAsset, width: wideAsset.width ?? 1280, height: wideAsset.height ?? 720 } : undefined,
+    secondary: { label: 'Open the film', href },
+    primary: cut ? { label: 'Screen it', href: `/screening?p=${encodeURIComponent(p.id)}`, play: true } : { label: `Continue: ${lower(stage)}`, href: `${href}/production` },
   };
 }
 
@@ -142,16 +174,17 @@ export interface DecisionCard {
   body: string;
   action: string;
   href: string;
-  picture?: { src: string; asset: Asset; figure: boolean; alt: string };
+  picture?: { src: string; asset: Asset; figure: boolean; alt: string; position?: string };
   chip?: string;
 }
 
-/** One card per decision, in the order the shared selector gives them; its words come from the decision's facts. */
+/** One card per decision; its words come from the decision's facts. A character's image is portrait-cropped from its
+ *  face (§5.7); scene stills keep their focal point. */
 export function decisionCard(d: Decision, s: S): DecisionCard {
   const get = byId(s);
   const p = d.subject.productionId ? s.productions.find((x) => x.id === d.subject.productionId) : undefined;
   const c = d.subject.characterId ? s.characters.find((x) => x.id === d.subject.characterId) : undefined;
-  const figureOf = (ch: Character | undefined) => { const a = ch ? get(primaryImageOf(ch)) : undefined; return usable(a) ? { src: displaySrc(a)!, asset: a, figure: true, alt: `${ch!.name}, canonical image${ch!.canonicalImage ? `, version ${ch!.canonicalImage.version}` : ''}` } : undefined; };
+  const figureOf = (ch: Character | undefined) => { const a = ch ? get(primaryImageOf(ch)) : undefined; return usable(a) ? { src: displaySrc(a)!, asset: a, figure: true, alt: `${ch!.name}, canonical image${ch!.canonicalImage ? `, version ${ch!.canonicalImage.version}` : ''}`, position: figureCrop(a) } : undefined; };
   const shotStill = (shotId?: string) => {
     const sh = p?.shots.find((x) => x.id === shotId);
     if (!p || !sh) return undefined;
@@ -207,81 +240,139 @@ export function decisionCard(d: Decision, s: S): DecisionCard {
   }
 }
 
-/** The sentence under the marquee: what waits and whether anything is being filmed. */
-export function introLine(decisions: number, running: number, paused: boolean): string {
-  const wait = decisions === 0 ? 'Nothing waits for you' : `${countWord(decisions, true)} ${plural(decisions, 'decision')} ${decisions === 1 ? 'waits' : 'wait'} for you`;
-  const filming = running > 0 ? `${countWord(running)} ${plural(running, 'job')} ${running === 1 ? 'is' : 'are'} running now` : paused ? 'the studio is paused' : 'nothing is being made right now';
-  return `${wait}; ${filming}.`;
+/** The Needs-you section (§7.2): the four oldest decisions as cards, the count, and the link's words ("All decisions";
+ *  "All 6 decisions" when more wait than are shown). Null when nothing waits (the section is omitted). */
+export function needsYou(items: Decision[], s: S, shown = 4): { count: number; cards: DecisionCard[]; link: string } | null {
+  if (items.length === 0) return null;
+  const at = (d: Decision) => parseTime(d.since)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+  const oldest = items.map((d, i) => ({ d, i })).sort((a, b) => at(a.d) - at(b.d) || a.i - b.i).slice(0, shown).map((x) => x.d);
+  return { count: items.length, cards: oldest.map((d) => decisionCard(d, s)), link: items.length > shown ? `All ${items.length} decisions` : 'All decisions' };
 }
 
-// ---------------------------------------------------------------------------------------------- the contact sheet
+// ------------------------------------------------------------------------------------------------ recent work
 
 export interface RecentItem {
   key: string;
-  shape: '16x9' | 'fig' | '239';
+  kind: 'production' | 'character' | 'location';
   href: string;
-  kindLabel: string;
   title: string;
-  what: string;
+  lang?: 'ar';
+  /** "Short · Final cut · 3 Oct", "Character · approved, locked", "Location · interior · 1 plate" */
+  meta: string;
   src?: string;
   asset?: Asset;
-  chip?: string;
+  /** `object-position` in the 16:9 frame: figures portrait-cropped from the face, plates and frames on their focal point */
+  position?: string;
   at: number;
 }
 
 const charHref = (c: Character) => `/characters/${encodeURIComponent(c.id)}`;
 const locHref = (l: Location) => `/locations/${encodeURIComponent(l.id)}`;
 
-/** What was touched last, each in its own shape: productions (16:9 frame), characters (the figure), locations (the
- *  2.39 plate), newest first. */
+/** What was touched last, newest first, every item a 16:9 tile (§7.3): productions their key frame, characters their
+ *  figure cropped from the face, locations their plate. */
 export function recentWork(s: S, limit = 6): RecentItem[] {
   const get = byId(s);
   const items: RecentItem[] = [];
   for (const p of s.productions) {
     const cut = get(p.cutAssetId);
-    const exp = [...(p.exports ?? [])].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0];
-    const cutPoster = cut?.poster ? s.assets.find((a) => a.src === cut.poster) : undefined;
+    const cutPoster = cut?.poster ? s.assets.find((a) => a.src === cut.poster || `/api/media/${a.id}` === cut.poster) : undefined;
     const kf = get(keyFrameFor(p, s.assets)?.imageAssetId);
-    const pic = [get(p.coverAssetId), kf, cutPoster].find(usable);
-    const when = shortWhen(exp?.createdAt ?? p.updatedAt);
-    const what = exp ? `Exported ${exp.resolution ? `${exp.resolution}p` : ''}${when ? ` · ${when}` : ''}`.replace('Exported  ·', 'Exported ·') : `${stageWords(p.stage)}${when ? ` · ${when}` : ''}`;
-    items.push({ key: p.id, shape: '16x9', href: productionHref(p), kindLabel: `${KIND_SHORT[p.kind]} · ${p.stage === 'COMPLETE' ? 'Final cut' : stageWords(p.stage)}`, title: titleOf(p), what, src: displaySrc(pic), asset: pic, chip: runtime(cut?.durationSeconds) ?? undefined, at: updated(p) });
+    const pic = [get(p.coverAssetId), cutPoster, kf].find(usable);
+    const day = shortDay(p.updatedAt);
+    const title = titleOf(p);
+    items.push({ key: p.id, kind: 'production', href: productionHref(p), title, lang: nameLang(title), meta: [KIND_SHORT[p.kind], p.stage === 'COMPLETE' ? 'Final cut' : stageWords(p.stage), day].filter(Boolean).join(' · '), src: displaySrc(pic), asset: pic, at: updated(p) });
   }
   for (const c of s.characters) {
     const st = identityStatus(c);
     const a = get(primaryImageOf(c));
-    const what = st.kind === 'LOCKED' ? 'Approved · locked' : st.kind === 'APPROVED' ? 'Approved' : st.kind === 'DRAFT' ? `Version ${st.version ?? 1} · awaiting you` : 'No image yet';
-    items.push({ key: c.id, shape: 'fig', href: charHref(c), kindLabel: 'Character', title: c.name, what, src: usable(a) ? displaySrc(a) : undefined, asset: usable(a) ? a : undefined, at: parseTime(c.updatedAt)?.getTime() ?? 0 });
+    const what = st.kind === 'LOCKED' ? 'approved, locked' : st.kind === 'APPROVED' ? 'approved' : st.kind === 'DRAFT' ? `version ${st.version ?? 1}, awaiting you` : 'no image yet';
+    const ok = usable(a);
+    items.push({ key: c.id, kind: 'character', href: charHref(c), title: c.name, lang: nameLang(c.name), meta: `Character · ${what}`, src: ok ? displaySrc(a) : undefined, asset: ok ? a : undefined, position: ok ? figureCrop(a) : undefined, at: parseTime(c.updatedAt)?.getTime() ?? 0 });
   }
   for (const l of s.locations) {
     const a = [get(l.masterAssetId), ...l.refs.map((r) => get(r.assetId))].find(usable);
-    const films = s.productions.filter((p) => p.locationIds.includes(l.id)).length;
-    const lighting = l.lighting.map((t) => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
-    const what = [l.refs.length ? `${l.refs.length} ${plural(l.refs.length, 'plate')}` : null, lighting || null, films ? `in ${films} ${plural(films, 'film')}` : null].filter(Boolean).join(' · ');
-    items.push({ key: l.id, shape: '239', href: locHref(l), kindLabel: 'Location', title: l.name, what: what || (l.kind === 'INTERIOR' ? 'Interior' : 'Exterior'), src: displaySrc(a), asset: a, at: parseTime(l.updatedAt)?.getTime() ?? 0 });
+    const plates = l.refs.length || (l.masterAssetId ? 1 : 0);
+    items.push({ key: l.id, kind: 'location', href: locHref(l), title: l.name, lang: nameLang(l.name), meta: ['Location', l.kind === 'INTERIOR' ? 'interior' : 'exterior', plates ? `${plates} ${plural(plates, 'plate')}` : null].filter(Boolean).join(' · '), src: displaySrc(a), asset: a, at: parseTime(l.updatedAt)?.getTime() ?? 0 });
   }
   return items.sort((a, b) => b.at - a.at).slice(0, limit);
 }
 
 // ---------------------------------------------------------------------------------------------- the line-up
 
-export interface CastTile { id: string; name: string; href: string; src?: string; asset?: Asset; state: { tone: 'ok' | 'wait' | 'neutral'; words: string } }
+export interface CastTile { id: string; name: string; lang?: 'ar'; href: string; src?: string; asset?: Asset; waiting: boolean }
 
-export function lineup(s: S, limit = 5): CastTile[] {
+/** The characters in the studio's order (§7.4); `waiting` marks those whose image waits for the producer (the shared
+ *  decision selector's `image:` items), the only state a tile shows. */
+export function lineup(s: S, waiting: ReadonlySet<string>, limit = 15): CastTile[] {
   const get = byId(s);
   return s.characters.slice(0, limit).map((c) => {
-    const st = identityStatus(c);
     const a = get(primaryImageOf(c));
-    const state = st.kind === 'LOCKED' ? { tone: 'neutral' as const, words: `Locked · in ${st.videos} ${plural(st.videos, 'film')}` }
-      : st.kind === 'APPROVED' ? { tone: 'ok' as const, words: 'Approved' }
-        : st.kind === 'DRAFT' ? { tone: 'wait' as const, words: 'Draft · awaiting you' }
-          : { tone: 'neutral' as const, words: 'Not drawn yet' };
-    return { id: c.id, name: c.name, href: charHref(c), src: usable(a) ? displaySrc(a) : undefined, asset: usable(a) ? a : undefined, state };
+    const ok = usable(a);
+    return { id: c.id, name: c.name, lang: nameLang(c.name), href: charHref(c), src: ok ? displaySrc(a) : undefined, asset: ok ? a : undefined, waiting: waiting.has(c.id) };
   });
 }
 
-/** Department initials for the handoff mark: "Post-Production" → PP, "Quality Assurance" → QA. */
-export const deptMark = (name: string): string => name.split(/[\s-&]+/).filter((w) => /^[A-Z]/.test(w)).slice(0, 2).map((w) => w[0]).join('') || name.slice(0, 2).toUpperCase();
+/** The character ids an `image` or `character` decision waits on. */
+export const waitingCharacters = (items: Decision[]): Set<string> => new Set(items.filter((d) => (d.kind === 'image' || d.kind === 'character') && d.subject.characterId).map((d) => d.subject.characterId!));
+
+// ------------------------------------------------------------------------------------------------- start actions
+
+export type StartShape = 'show' | 'short' | 'music' | 'character';
+export interface StartAction { href: string; title: string; line: string; shape: StartShape }
+
+/** The four ways to start (§7.5); each opens its own page, where the Auto/Manual choice happens. */
+export const START_ACTIONS: readonly StartAction[] = [
+  { href: '/new/show', title: 'New show', line: 'Seasons that share one cast', shape: 'show' },
+  { href: '/new/short', title: 'New short', line: 'One film; a line is enough to start', shape: 'short' },
+  { href: '/new/music-video', title: 'New music video', line: 'It starts with its song', shape: 'music' },
+  { href: '/characters/new', title: 'New character', line: 'One image, one voice', shape: 'character' },
+];
+
+// ------------------------------------------------------------------------------------------------ the studio panel
+
+export interface Health { intake?: { paused: boolean; since?: string | null; reason?: string | null } | null; queue?: { queued: number; running: number; failed24h: number; completed24h: number } | null }
+export interface Engines { video?: { ok: boolean }; images?: { ok: boolean }; voice?: { ok: boolean } }
+export interface OrgSummary { departments: Array<{ id: string; name: string }>; agents: number; handoffs: Array<{ id: string; productionId: string; stage: string; producerDepartment: string; receiverDepartment: string | null; qualityStatus: string; createdAt: string }> }
+
+export type FactTone = 'idle' | 'running' | 'ok' | 'bad';
+/** One cell of the studio panel: a label, a value (null while it loads), an optional second line. */
+export interface StudioFact { key: 'state' | 'company' | 'engines' | 'handoff'; label: string; value: string | null; second?: string | null; tone?: FactTone }
 
 const HANDOFF_WORDS: Record<string, string> = { EXPORT: 'Export made and validated', EDIT: 'Cut handed over and validated', QA: 'Every shot passed inspection', PRODUCE: 'Takes handed over', STORYBOARD: 'Storyboard handed over', STORY: 'Story handed over', CAST_AND_WORLD: 'Cast and world handed over' };
 export const handoffWords = (stage: string, ok: boolean) => `${HANDOFF_WORDS[stage] ?? `${stageWords(stage)} handed over`}${ok ? '' : ' · not validated'}`.replace(' and validated · not validated', ' · not validated');
+
+const engineWords = (name: string, ok: boolean | undefined) => `${name} ${ok ? 'ready' : 'offline'}`;
+
+/** The four facts of the studio panel (§7.6) from /api/health, /api/status and /api/studio/org?view=summary. A source
+ *  that has not answered yet gives `value: null` (the cell shows its skeleton); one that failed says so in words. */
+export function studioFacts(x: { health: Health | null; engines: Engines | null; org: OrgSummary | null; running: number; failed?: { health?: boolean; engines?: boolean; org?: boolean } }): StudioFact[] {
+  const { health, engines, org, running, failed = {} } = x;
+  const unknown = 'Not available';
+  const state: StudioFact = health
+    ? health.intake?.paused
+      ? { key: 'state', label: 'State', value: 'Paused', second: shortWhen(health.intake.since) ? `since ${shortWhen(health.intake.since)}` : null, tone: 'idle' }
+      : running > 0
+        ? { key: 'state', label: 'State', value: `Making · ${running} ${plural(running, 'job')}`, second: null, tone: 'running' }
+        : { key: 'state', label: 'State', value: 'Ready', second: null, tone: 'ok' }
+    : { key: 'state', label: 'State', value: failed.health ? 'Server unreachable' : null, tone: failed.health ? 'bad' : undefined };
+  const company: StudioFact = org
+    ? { key: 'company', label: 'Company', value: `${org.departments.length} ${plural(org.departments.length, 'department')} · ${org.agents} ${plural(org.agents, 'agent')}` }
+    : { key: 'company', label: 'Company', value: failed.org ? unknown : null };
+  const pictures = engines ? Boolean(engines.images?.ok && engines.video?.ok) : undefined;
+  const voices = Boolean(engines?.voice?.ok);
+  const enginesFact: StudioFact = engines
+    ? { key: 'engines', label: 'Engines', value: pictures === voices ? `Picture, video and voices ${voices ? 'ready' : 'offline'}` : `${engineWords('Picture and video', pictures)} · ${engineWords('Voices', voices)}` }
+    : { key: 'engines', label: 'Engines', value: failed.engines ? unknown : null };
+  const h = org?.handoffs[0];
+  const dept = (id: string) => org?.departments.find((d) => d.id === id)?.name ?? id;
+  const handoff: StudioFact = org
+    ? h
+      ? { key: 'handoff', label: 'Last handoff', value: `${dept(h.producerDepartment)} · ${lower(handoffWords(h.stage, h.qualityStatus === 'VALIDATED'))}`, second: shortWhen(h.createdAt) }
+      : { key: 'handoff', label: 'Last handoff', value: 'None yet' }
+    : { key: 'handoff', label: 'Last handoff', value: failed.org ? unknown : null };
+  return [state, company, enginesFact, handoff];
+}
+
+/** Jobs being made now (queued or in any working phase); a job parked for review is a decision, not work. */
+export const RUNNING_STATUSES = ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'] as const;
