@@ -11,6 +11,7 @@ import { StudioError, isStudioError } from '@/domain/errors';
 import { type Job, type JobPayload, type JobType, isActiveStatus } from '@/domain/jobs';
 import { api, type Capabilities, type StartedJob } from './api';
 import { JOB_LIST_LIMIT, applyJobEvent, jobEventNeedsReload, mergeJob, type JobEvent } from './job-list';
+import { saveStateOf, type SaveState } from './save-state';
 
 /** THE STORE — the studio as the server holds it, mirrored in React state. Every change is a named command: it is
  *  applied here at once (so the interface never waits) and sent to the server in small batches, where the same
@@ -25,6 +26,8 @@ interface Api {
   ready: boolean;
   /** How this studio began: the kind of its last seed or reset (empty, or sample in a test run) and when. */
   seeded: { kind: string | null; at: string | null } | null;
+  /** Whether every change made here has reached the server: saved, saving (queued or in flight), or unsaved${nl}   *  (a send failed; the changes are kept and retried). */
+  saving: SaveState;
   /** The event stream is open and the last batch was accepted. */
   connected: boolean;
   version: number;
@@ -79,6 +82,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const me = useRef<string>('');
   const errorSeq = useRef(0);
   const failures = useRef(0);
+  const [saving, setSaving] = useState<SaveState>('saved');
+  /** Re-derive the save state from the queue (called wherever pending, inflight or failures change). */
+  const syncSaving = useCallback(() => setSaving(saveStateOf({ pending: pending.current.length, inflight: inflight.current.length, failures: failures.current })), []);
 
   const raise = useCallback((code: string, message: string) => { errorSeq.current += 1; setLastError({ id: errorSeq.current, code, message }); }, []);
 
@@ -101,7 +107,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const flush = useCallback(async () => {
     if (inflight.current.length > 0 || pending.current.length === 0) return;
-    inflight.current = pending.current; pending.current = [];
+    inflight.current = pending.current; pending.current = []; syncSaving();
     try {
       const r = await api.commands(me.current, inflight.current);
       failures.current = 0; setConnected(true);
@@ -110,32 +116,34 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         inflight.current = [];
         // nothing else queued and the hashes differ: another process changed something in between, or our copy drifted
         if (pending.current.length === 0 && r.hash !== hashState(latest.current)) scheduleRefresh(0);
+        syncSaving();
       } else {
         const failed = inflight.current[r.failedAt];
         inflight.current = [];
         raise(r.error.code, r.error.message);
         void failed;
+        syncSaving();
         scheduleRefresh(0);
       }
     } catch (e) {
       // network trouble: keep the commands and try again with a growing delay
       pending.current = [...inflight.current, ...pending.current]; inflight.current = [];
-      failures.current += 1; setConnected(false);
+      failures.current += 1; setConnected(false); syncSaving();
       if (failures.current === 1) raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'Changes could not be saved; retrying.');
       flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, Math.min(30_000, 1000 * 2 ** failures.current));
       return;
     }
     if (pending.current.length > 0) { flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 50); }
-  }, [bumpVersion, raise, scheduleRefresh]);
+  }, [bumpVersion, raise, scheduleRefresh, syncSaving]);
 
   const scheduleFlush = useCallback(() => { if (flushTimer.current) return; flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 120); }, [flush]);
 
   const act = useCallback(<K extends CommandName>(name: K, ...args: CommandArgs<K>): CommandResult<K> => {
     const cmd: Command<K> = { name, args, seed: newSeed(), at: new Date().toISOString() };
     const r = runCommand(latest.current, cmd); // throws StudioError when refused; nothing is queued then
-    if (r.state !== latest.current) { applyLocal(r.state); pending.current.push(cmd as Command); scheduleFlush(); }
+    if (r.state !== latest.current) { applyLocal(r.state); pending.current.push(cmd as Command); syncSaving(); scheduleFlush(); }
     return r.result;
-  }, [applyLocal, scheduleFlush]);
+  }, [applyLocal, scheduleFlush, syncSaving]);
 
   // first load, the event stream, and a flush before the tab goes away
   useEffect(() => {
@@ -192,7 +200,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [applyLocal]);
 
-  const startEmpty = useCallback(async () => { pending.current = []; await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs]);
+  const startEmpty = useCallback(async () => { pending.current = []; syncSaving(); await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs, syncSaving]);
 
   const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
     const r = await api.startJob(type, payload, opts);
@@ -206,7 +214,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setLastError(null), []);
 
-  const value = useMemo<Api>(() => ({ state, ready, seeded, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
+  const value = useMemo<Api>(() => ({ state, ready, seeded, saving, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, saving, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

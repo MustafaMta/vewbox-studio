@@ -1,4 +1,4 @@
-import type { Asset, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
+import type { Asset, Brief, Character, Location, Production, Season, Show, Shot, StudioState } from '@/domain/types';
 import type { Stage } from '@/domain/vocabulary';
 import { primaryImageOf } from '@/domain/identity';
 
@@ -28,6 +28,11 @@ export const episodesOf = (s: StudioState, seasonId: string): Production[] => s.
 export const episodesOfShow = (s: StudioState, showId: string): Production[] => s.productions.filter((p) => p.showId === showId);
 export const shorts = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'SHORT');
 export const musicVideos = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'MUSIC_VIDEO');
+
+/** How a production's brief began, as a phrase key: a proposal the story engine wrote (AUTO_IDEA), the written
+ *  example the wizard offers instead (`fromSampleProposal`), or by hand. Only the written example says "example". */
+export const briefOriginKey = (b: Pick<Brief, 'mode' | 'fromSampleProposal'>): 'story.autoIdea' | 'story.autoIdea.example' | 'story.manual' =>
+  b.mode === 'AUTO_IDEA' ? (b.fromSampleProposal ? 'story.autoIdea.example' : 'story.autoIdea') : 'story.manual';
 
 /** Where a production lives in the URL. */
 export function productionHref(p: Production): string {

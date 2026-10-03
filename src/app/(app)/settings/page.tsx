@@ -83,8 +83,8 @@ export default function SettingsPage() {
   const set = (patch: Parameters<typeof act<'updateSettings'>>[1]) => act('updateSettings', patch);
   const empty = state.productions.length + state.characters.length + state.locations.length + state.shows.length === 0;
   const files = state.assets.filter((a) => !a.sample).length;
-  const holds = T('settings.data.holds').replace('{productions}', String(state.productions.length)).replace('{characters}', String(state.characters.length)).replace('{locations}', String(state.locations.length)).replace('{files}', String(files));
-  const began = seeded?.at ? T(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty').replace('{date}', new Date(seeded.at).toLocaleDateString(T.locale === 'ar' ? 'ar-IQ' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' })) : null;
+  const holds = T.f('settings.data.holds', { productions: state.productions.length, characters: state.characters.length, locations: state.locations.length, files });
+  const began = seeded?.at ? T.f(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty', { date: new Date(seeded.at).toLocaleDateString(T.locale === 'ar' ? 'ar-IQ' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' }) }) : null;
   const [status, setStatus] = useState<StatusBody | null>(null);
   const [checking, setChecking] = useState(false);
   const check = () => { setChecking(true); fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then(setStatus).catch(() => setStatus(null)).finally(() => setChecking(false)); };

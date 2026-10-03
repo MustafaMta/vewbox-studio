@@ -15,7 +15,7 @@ import { isActiveStatus } from '@/domain/jobs';
  *  most, with the page gutter (16 / 24 / 40). */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const T = useT();
-  const { ready, connected, jobs } = useStudio();
+  const { ready, connected, jobs, saving } = useStudio();
   const running = jobs.filter((j) => isActiveStatus(j.status)).length;
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -29,7 +29,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Link href="/production" className="flex items-center gap-2 rounded-[var(--r-2)] px-3 py-2 text-xs text-faint transition-colors hover:bg-input hover:text-fg">
             <span className={`dot ${connected ? (running ? 'bg-accent dot-live' : 'bg-ok') : 'bg-warn'}`} aria-hidden />{connected ? (running ? `${running} ${T('jobs.running')}` : T('status.connected')) : T('status.disconnected')}
           </Link>
-          <p className="px-3 pb-1 text-xs text-faint">{ready ? T('app.saved') : '…'}</p>
+          {/* what the store's queue says, never assumed: saved only when nothing is waiting or failing (audit D1) */}
+          <p className={`px-3 pb-1 text-xs ${saving === 'unsaved' ? 'text-warn' : 'text-faint'}`}>{!ready ? '…' : saving === 'saved' ? T('app.saved') : saving === 'saving' ? T('app.saving') : T('app.unsaved')}</p>
         </div>
       </aside>
       <div className="min-w-0">

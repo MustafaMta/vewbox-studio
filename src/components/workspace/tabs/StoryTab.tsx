@@ -5,7 +5,7 @@ import type { Beat, Line, Production, Scene } from '@/domain/types';
 import { TIMES_OF_DAY, type TimeOfDay } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
-import { castOf, worldOf } from '@/studio/selectors';
+import { briefOriginKey, castOf, worldOf } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
@@ -58,7 +58,7 @@ export function StoryTab({ p }: { p: Production }) {
       <aside className="space-y-6">
         <section className="panel p-4">
           <h2 className="h3 mb-2 flex items-center gap-2">{p.brief.mode === 'AUTO_IDEA' ? <IconAuto className="size-4 text-accent-text" /> : <IconManual className="size-4 text-accent-text" />}{T('story.brief')}</h2>
-          <p className="mb-2 text-xs text-muted">{p.brief.mode === 'AUTO_IDEA' ? `${T('story.autoIdea')}${p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}` : T('story.manual')}</p>
+          <p className="mb-2 text-xs text-muted">{T(briefOriginKey(p.brief))}{p.brief.mode === 'AUTO_IDEA' && p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}</p>
           <Textarea value={draft.briefText} onChange={(e) => patch({ briefText: e.target.value })} rows={5} aria-label={T('story.brief')} />
         </section>
       </aside>

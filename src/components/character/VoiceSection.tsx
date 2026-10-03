@@ -23,6 +23,7 @@ import { voiceListened, voiceMeasures, voiceOrigin, voiceState } from './identit
 import { VoicePlayer } from './VoicePlayer';
 import { VoiceTraitsDialog } from './EditDialogs';
 import { checkAudioDuration, checkAudioFile, measureAudio, type AudioVerdict } from './create/preflight';
+import { ConsentChoice } from './ConsentChoice';
 
 /** The engine, in words a producer can read. */
 export function engineName(identity: Character['voice']['identity'], T: ReturnType<typeof useT>): string {
@@ -241,17 +242,23 @@ function useLatest(c: Character, type: string): { running?: Job; last?: Job } {
   return { running: mine.find((j) => isActiveStatus(j.status)), last: mine[0] };
 }
 
+/** Start a job; a refusal is said in a toast — except CONSENT_REQUIRED (the server refused a build from a recording
+ *  without a consent statement), which the panel answers with the consent choice instead (consentNeeded). */
 function useLaunch() {
   const T = useT();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [consentNeeded, setConsentNeeded] = useState<{ sampleId?: unknown } | null>(null);
   const run = async (f: () => Promise<StartedJob>) => {
-    setBusy(true);
+    setBusy(true); setConsentNeeded(null);
     try { const job = await f(); for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail }); return job; }
-    catch (e) { toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); return null; }
+    catch (e) {
+      if (isStudioError(e) && e.code === 'CONSENT_REQUIRED') { setConsentNeeded({ sampleId: e.details?.sampleId }); return null; }
+      toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); return null;
+    }
     finally { setBusy(false); }
   };
-  return { run, busy };
+  return { run, busy, consentNeeded };
 }
 
 function JobPhase({ job }: { job: Job }) {
@@ -265,8 +272,10 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
   const T = useT();
   const { startJob } = useStudio();
   const copyOf = useErrorCopy();
-  const { run, busy } = useLaunch();
+  const { run, busy, consentNeeded } = useLaunch();
   const { running, last } = useLatest(c, 'VOICE_BUILD');
+  const build = () => run(() => startVoiceBuildV2(startJob, { characterId: c.id, mode: 'AUTOMATIC' }));
+  const failed = last?.status === 'FAILED' ? copyOf(last.error) : null;
   const iraqi = c.dialect === 'IRAQI_BAGHDADI';
   const blocked = iraqi && !hasUploads && !experiment;
   return (
@@ -274,8 +283,9 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
       <p className="max-w-[64ch] text-[13px] leading-5 text-muted">{iraqi ? (hasUploads ? T('cast.voice.auto.iraqiFromRecording') : experiment ? T('cast.voice.auto.iraqiExperiment') : T('cast.voice.iraqiNeedsRecording')) : c.language === 'AR' ? T('cast.voice.auto.msa') : T('cast.voice.auto.en')}</p>
       {running ? <JobPhase job={running} /> : (
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={blocked} onClick={() => void run(() => startVoiceBuildV2(startJob, { characterId: c.id, mode: 'AUTOMATIC' }))}>{T('cast.voice.auto.go')}</Button>
-          {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryControl job={last} size="sm" />} /></div>}
+          <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={blocked} onClick={() => void build()}>{T('cast.voice.auto.go')}</Button>
+          {consentNeeded && <div className="basis-full"><ConsentChoice characterId={c.id} sampleId={consentNeeded.sampleId} onConfirmed={() => void build()} /></div>}
+          {last && failed && !consentNeeded && <div className="basis-full"><FailureNotice copy={failed} jobId={last.id} action={failed.fix.kind === 'consent' ? <ConsentChoice characterId={c.id} sampleId={last.error?.details?.sampleId} job={last} /> : <RetryControl job={last} size="sm" />} /></div>}
         </div>
       )}
     </div>
@@ -446,16 +456,19 @@ function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; loc
   const T = useT();
   const { startJob } = useStudio();
   const copyOf = useErrorCopy();
-  const { run, busy } = useLaunch();
+  const { run, busy, consentNeeded } = useLaunch();
   const mine = useJobsFor({ characterId: c.id, type: 'VOICE_BUILD' });
   const active = mine.find((j) => isActiveStatus(j.status));
   const last = mine[0];
   if (active) return <JobPhase job={active} />;
+  const build = () => { if (from) void run(() => startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id })); };
+  const failed = last?.status === 'FAILED' ? copyOf(last.error) : null;
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-line-soft pt-5">
-      <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={!from || locked} aria-describedby={locked ? 'voice-lock' : undefined} onClick={() => { if (from) void run(() => startVoiceBuild(startJob, { characterId: c.id, mode: 'REFERENCE', referenceSampleId: from.id })); }} className="max-w-full"><span className="truncate">{from ? `${T('cast.voice.buildFrom')} “${from.label}”` : T('gen.voiceBuild')}</span></Button>
+      <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={!from || locked} aria-describedby={locked ? 'voice-lock' : undefined} onClick={build} className="max-w-full"><span className="truncate">{from ? `${T('cast.voice.buildFrom')} “${from.label}”` : T('gen.voiceBuild')}</span></Button>
       {!from && <span className="text-[13px] text-faint" role="status">{T('voice.build.needRecording')}</span>}
-      {last?.status === 'FAILED' && <div className="basis-full"><FailureNotice copy={copyOf(last.error)} jobId={last.id} action={copyOf(last.error).fix.kind === 'reference' ? <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> : <RetryControl job={last} size="sm" />} /></div>}
+      {consentNeeded && <div className="basis-full"><ConsentChoice characterId={c.id} sampleId={consentNeeded.sampleId ?? from?.id} onConfirmed={build} /></div>}
+      {last && failed && !consentNeeded && <div className="basis-full"><FailureNotice copy={failed} jobId={last.id} action={failed.fix.kind === 'reference' ? <span className="text-[13px] text-muted">{T('voice.build.needRecording')}</span> : failed.fix.kind === 'consent' ? <ConsentChoice characterId={c.id} sampleId={last.error?.details?.sampleId} job={last} /> : <RetryControl job={last} size="sm" />} /></div>}
     </div>
   );
 }
