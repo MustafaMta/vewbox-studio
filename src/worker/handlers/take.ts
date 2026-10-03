@@ -8,9 +8,10 @@ import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, ffprobe, fileFor, libraryRoot } from '@/server/media';
-import { ffmpeg, joinSpeech, lastFrame as closingFrame, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
-import { shotWindows } from '@/domain/timeline';
+import { adoptFile, assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
+import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
+import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
+import { recordWorldRead, worldForShot } from '@/server/world';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
@@ -29,22 +30,30 @@ import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/
  *  decodes, run the quality checks, make a poster frame, and record a new take with full provenance. A new take
  *  never replaces an existing one. If the worker restarts mid-way, the hosted task id is reused, not resubmitted. */
 
-const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
-
 export const generateTake: Handler = async (ctx) => {
   const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean };
-  const { state } = await readState();
-  const p = state.productions.find((x) => x.id === payload.productionId);
+  const { state: studio } = await readState();
+  const p = studio.productions.find((x) => x.id === payload.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   const sh = p.shots.find((x) => x.id === payload.shotId);
   if (!sh) throw new StudioError('NOT_FOUND', 'Shot not found');
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
-  const cast = castOf(state, p); const world = worldOf(state, p);
-  const loc = world.find((l) => l.id === scene?.locationId);
-  const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   const backend = chooseBackend();
 
   await ctx.progress('PREPARING', { phase: 'preparing', message: 'Gathering references and writing the prompt' });
+  // THE WORLD BIBLE (the World Continuity step): the revision this production is pinned to (pinned at the story's
+  // approval, advanced only when nothing it already filmed changes), laid over the studio for this shot — the place is
+  // filmed against the plate the bible chooses (an established frame of an approved take before a drawn plate, by
+  // id), each character holds its pinned canonical image. Everything below reads that world.
+  const world = await step(ctx, 'world-continuity', `world-read: shot ${sh.number}`, async () => {
+    const w = await worldForShot(studio, p, sh, { jobId: ctx.job.id, by: 'world-continuity' });
+    await ctx.event(w.read.conflicts.length || w.outcome.blocking.length ? 'warn' : 'info', `World Bible revision ${w.read.revisionNumber}${w.read.pinned ? ' (pinned)' : ' (not pinned)'}: ${w.outcome.message}; ${w.read.location ? `the place: ${w.read.location.why}` : 'no place'}${w.read.conflicts.length ? `; ${w.read.conflicts.join('; ')}` : ''}`, { read: w.read, action: w.outcome.action, blocking: w.outcome.blocking });
+    return w;
+  });
+  const state = world.state;
+  const cast = castOf(state, p); const places = worldOf(state, p);
+  const loc = places.find((l) => l.id === scene?.locationId);
+  const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   // PREFLIGHT (the Executive Producer's step) — the request is refused before the engine is touched when it could not
   // succeed: a failed check is a classified failure the producer corrects, not an attempt the engine burns
   await step(ctx, 'executive-producer', `take-preflight: shot ${sh.number}`, async () => {
@@ -142,8 +151,12 @@ export const generateTake: Handler = async (ctx) => {
     }
   }
   // 2) A music video shot anchors its stretch of the song: the take's soundtrack IS the song, so the performer's
-  //    mouth follows the real vocal and the cut carries one copy of the music. The hosted API cannot anchor it.
-  const window = songAsset ? shotWindows(p).get(sh.id) : undefined;
+  //    mouth follows the real vocal and the cut carries one copy of the music. The hosted API cannot anchor it. The
+  //    stretch is the shot's window on the song as the cut will play it (the production audio timeline: the song is
+  //    the clock), and the take is made exactly that long, so nothing drifts between the take and the cut.
+  const songWin = songAsset ? songWindowFrames(p).windows.get(sh.id) : undefined;
+  const window = songWin ? { from: songWin.fromFrame / CLOCK_FPS, to: songWin.toFrame / CLOCK_FPS } : undefined;
+  if (window && payload.durationSeconds === undefined) seconds = Math.min(15, Math.max(1, window.to - window.from));
   if (backend === 'local' && songAsset && songAsset.kind === 'AUDIO' && window && window.to > window.from && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') {
     soundtrackFile = await trimAudio(assetFile(songAsset), path.join(work, `${sh.id}-song.wav`), window.from, Math.min(window.to, window.from + seconds));
     soundtrack = { kind: 'SONG', assetId: songAsset.id, lines: [] };
@@ -155,16 +168,27 @@ export const generateTake: Handler = async (ctx) => {
   //    last frame becomes the first frame. CUT / STORY_TRANSITION: the drawn opening frame (below).
   let continuesTakeId: string | undefined;
   let hostedFirstFrame: { file: string; mime: string } | undefined;
+  // the guide is what the audience sees last of the previous shot: its window's end on the production audio timeline
+  // (a take may run past the frames the cut shows), not the take's own last frames
+  const prevEnd = (opening: { shotId: string; takeId: string; assetId: string }) => {
+    const ps = p.shots.find((x) => x.id === opening.shotId); const pt = ps?.takes.find((x) => x.id === opening.takeId);
+    const a = byId(opening.assetId);
+    return ps && pt ? { endFrame: windowEndSourceFrame(p, ps, pt, a), totalFrames: Math.round((pt.durationSeconds ?? a?.durationSeconds ?? 0) * CLOCK_FPS) } : undefined;
+  };
   if (pack.opening.kind === 'TAIL') {
     const prevAsset = byId(pack.opening.assetId)!;
-    const tail = await tailClip(assetFile(prevAsset), path.join(work, 'tail.mp4'), pack.opening.frames);
+    const end = prevEnd(pack.opening);
+    const cutShort = end && end.totalFrames && end.endFrame < end.totalFrames ? end.endFrame : undefined;
+    const tail = await tailClip(assetFile(prevAsset), path.join(work, 'tail.mp4'), pack.opening.frames, ...(cutShort ? [CLOCK_FPS, cutShort] as const : []));
     const songTail = soundtrack?.kind === 'SONG' && songAsset && window ? await trimAudio(assetFile(songAsset), path.join(work, 'tail-song.wav'), Math.max(0, window.from - pack.opening.frames / H3_FPS), window.from) : undefined;
     guides.push(songTail ? { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
     continuesTakeId = pack.opening.takeId;
-    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${pack.opening.frames} frames of the previous take with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
+    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${pack.opening.frames} frames the cut shows of the previous take${cutShort ? ` (ending at its frame ${cutShort})` : ''} with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
   } else if (pack.opening.kind === 'LAST_FRAME_AS_FIRST') {
     const prevAsset = byId(pack.opening.assetId)!;
-    hostedFirstFrame = { file: await closingFrame(assetFile(prevAsset), path.join(work, 'last-frame.png')), mime: 'image/png' };
+    const end = prevEnd(pack.opening);
+    const cutShort = end && end.totalFrames && end.endFrame < end.totalFrames ? end.endFrame : undefined;
+    hostedFirstFrame = { file: cutShort ? await frameAt(assetFile(prevAsset), path.join(work, 'last-frame.png'), cutShort - 1) : await closingFrame(assetFile(prevAsset), path.join(work, 'last-frame.png')), mime: 'image/png' };
     continuesTakeId = pack.opening.takeId;
     references.push({ kind: 'FIRST_FRAME', assetId: prevAsset.id, binding: 'first_frame', note: 'hosted continuation: the previous take’s last frame' });
   }
@@ -197,7 +221,7 @@ export const generateTake: Handler = async (ctx) => {
       for (const pic of pack.pictures) {
         referenceImages.push(file(pic.assetId));
         if (pic.role === 'SUBJECT') references.push({ kind: 'CHARACTER', assetId: pic.assetId, characterId: pic.characterId, binding: pic.binding, note: identity.find((s) => s.characterId === pic.characterId)?.source === 'PORTRAIT' ? 'legacy portrait' : `canonical image${identity.find((s) => s.characterId === pic.characterId)?.approved ? '' : ' (draft)'}` });
-        else if (pic.role === 'LOCATION') references.push({ kind: 'LOCATION', assetId: pic.assetId, locationId: pic.locationId, binding: pic.binding, note: `${pack.location?.role === 'STATE' ? `plate for ${scene?.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'the time of day'}` : 'master plate'}` });
+        else if (pic.role === 'LOCATION') references.push({ kind: 'LOCATION', assetId: pic.assetId, locationId: pic.locationId, binding: pic.binding, note: world.read.location?.assetId === pic.assetId ? `${world.read.location.why} (World Bible revision ${world.read.revisionNumber})` : `${pack.location?.role === 'STATE' ? `plate for ${scene?.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'the time of day'}` : 'master plate'}` });
         else references.push({ kind: 'FIRST_FRAME', assetId: pic.assetId, binding: pic.binding, note: 'the drawn opening frame, bound as a picture (a production asset, not an identity)' });
       }
     }
@@ -345,10 +369,17 @@ export const generateTake: Handler = async (ctx) => {
   // the next free number, counting any numbered label already on the shot (uploads and samples included)
   const takeNumber = Math.max(sh.takes.length, ...sh.takes.map((t) => Number(/\bTake (\d+)/i.exec(t.label)?.[1] ?? 0))) + 1;
   const label = `Take ${takeNumber}`;
-  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params: result.params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok) };
+  // what the take records beyond the engine's own parameters: the window it was made for on the production audio
+  // timeline (the new frames after its head — the cut shows exactly these), and the World Bible revision it read
+  const takeTimeline = { newFrames: Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.newFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
+  const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
+  const params = { ...(result.params ?? {}), timeline: takeTimeline, world: takeWorld };
+  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
   await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` })], 'worker');
-  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params: result.params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId }], 'worker');
+  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId }], 'worker');
+  // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
+  await recordWorldRead({ productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id, takeId: r.take.id });
   await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden

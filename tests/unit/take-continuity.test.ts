@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Job } from '@/domain/jobs';
-import type { StudioState } from '@/domain/types';
+import type { Asset, Production, Shot, StudioState, WorldBible } from '@/domain/types';
 
 /** GENERATE_TAKE end to end with every engine mocked: what the handler sends for each relation and what it records.
  *  CONTINUATION (local): the previous take's last 22 frames WITH their sound at frame 0, the recorded line at frame 22,
@@ -11,7 +11,7 @@ import type { StudioState } from '@/domain/types';
  *  the take recording its relation and the take it continues. CUT: the opening frame anchored and bound, the ending
  *  frame anchored. Hosted continuation: the previous take's last frame as the first frame, nothing silently dropped. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '' }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>> }));
 
 vi.mock('@/server/studio/engine', () => ({
   readState: async () => ({ state: fake.state, version: 1, hash: 'h' }),
@@ -21,16 +21,30 @@ vi.mock('@/server/studio/engine', () => ({
 vi.mock('@/server/media', () => ({
   adoptFile: async (_id: string, file: string) => ({ absPath: file, probe: { durationSeconds: 2.55 } }),
   assetFromStored: (id: string, _st: unknown, extra: Record<string, unknown>) => ({ id, ...extra }),
+  assetFile: (a: { provenance?: { path?: string } }) => `/lib/${a.provenance?.path}`,
   ffprobe: async () => ({ durationSeconds: 1.8 }),
   fileFor: (f: { path: string }) => `/lib/${f.path}`,
   libraryRoot: () => '/lib',
 }));
+// the World Bible service, with the real pure overlay: the pinned bible is the test's (or derived from the studio)
+vi.mock('@/server/world', async () => {
+  const w = await vi.importActual<typeof import('@/domain/world')>('@/domain/world');
+  return {
+    worldForShot: async (state: StudioState, p: Production, sh: Shot) => {
+      const bible = fake.bible ?? w.deriveWorld(state, w.worldScopeOf(p), undefined, '2026-10-03T00:00:00.000Z');
+      const { state: s, read } = w.overlayWorld(state, bible, p, sh, { id: 'wrev-3', number: 3, pinned: true });
+      return { state: s, read, outcome: { view: {}, action: 'KEPT', message: 'pinned to World Bible revision 3', blocking: [] } };
+    },
+    recordWorldRead: async (r: Record<string, unknown>) => { fake.reads.push(r); },
+  };
+});
 vi.mock('@/server/media/ffmpeg', async (orig) => ({
   ...(await orig<typeof import('@/server/media/ffmpeg')>()),
   ffmpeg: async (args: string[]) => { fake.ffmpegArgs.push(args); return { stderr: '', ms: 1 }; },
   joinSpeech: async (_lines: unknown[], out: string) => ({ file: out, durationSeconds: 2.55, windows: [{ from: 0.4, to: 2.2 }] }),
   qaTake: async (_file: string, expect: { durationSeconds: number }) => { fake.qaExpect.push(expect); return { report: { ok: true, checks: [{ name: 'decodable', ok: true }] }, probe: { durationSeconds: 158 / 24, width: 1280, height: 736, hasAudio: true } }; },
   tailClip: async (...a: unknown[]) => { fake.tails.push(a); return '/tmp/tail.mov'; },
+  frameAt: async (...a: unknown[]) => { fake.frames.push(a); return '/tmp/last.png'; },
   lastFrame: async (video: string) => { fake.closing.push(video); return '/tmp/last.png'; },
   thumbnail: async (_v: string, out: string) => out,
   webReady: async (_i: string, out: string) => out,
@@ -55,7 +69,8 @@ vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h', recordQaRe
 
 import { generateTake } from '@/worker/handlers/take';
 import { VideoGenerateInput } from '@/server/org/contracts';
-import { fixture } from './continuity-fixture';
+import { deriveWorld, withEstablished, worldScopeOf } from '@/domain/world';
+import { fixture, TAKE_A } from './continuity-fixture';
 
 const ctx = (productionId: string, shotId: string) => ({
   job: { id: 'job-take', type: 'GENERATE_TAKE', status: 'PREPARING', attempts: 0, payload: { productionId, shotId }, providerTaskId: undefined } as unknown as Job,
@@ -66,7 +81,7 @@ const ctx = (productionId: string, shotId: string) => ({
 const addTake = () => fake.commands.find((c) => c.name === 'addTake')!.args[2] as Record<string, unknown> & { references: Array<Record<string, unknown>>; soundtrack: { lines: Array<{ from: number; to: number }> } };
 
 beforeEach(async () => {
-  fake.requests = []; fake.commands = []; fake.ffmpegArgs = []; fake.tails = []; fake.closing = []; fake.qaExpect = [];
+  fake.requests = []; fake.commands = []; fake.ffmpegArgs = []; fake.tails = []; fake.closing = []; fake.frames = []; fake.qaExpect = []; fake.reads = []; fake.bible = undefined;
   fake.tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'vb-take-'));
   fake.backend = 'local';
 });
@@ -100,6 +115,50 @@ describe('GENERATE_TAKE by relation', () => {
       expect.objectContaining({ kind: 'LOCATION', assetId: 'plate-dusk', binding: '<Picture 3> = <Subject 3>' }),
     ]));
     expect(t.references.some((r) => r.assetId === 'open-12')).toBe(false);
+    // the take records the window it was made for (the cut shows exactly these frames) and the World Bible it read
+    expect(t.params).toMatchObject({ timeline: { newFrames: 120, headFrames: 22, basis: 'DIALOGUE' }, world: { revisionId: 'wrev-3', revision: 3, pinned: true, plate: { assetId: 'plate-dusk', role: 'STATE' } } });
+    expect(fake.reads).toEqual([expect.objectContaining({ productionId: p.id, shotId: 's12', takeId: 'take-new', jobType: 'GENERATE_TAKE', read: expect.objectContaining({ revisionNumber: 3, pinned: true }) })]);
+  });
+
+  it('CONTINUATION of a take the cut shows only in part: the guide is cut from where its window ends (the audio timeline)', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...TAKE_A, params: { timeline: { newFrames: 100 } } }] } : s)) });
+    fake.state = state;
+    await generateTake(ctx(p.id, 's12'));
+    expect(fake.tails[0]).toEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/tail\.mp4$/), 22, 24, 100]);
+    expect(addTake().references).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'VIDEO', note: expect.stringMatching(/ending at its frame 100/) })]));
+    // hosted: the first frame is the last frame the cut shows, not the take's own last frame
+    fake.backend = 'api'; fake.commands = [];
+    await generateTake(ctx(p.id, 's12'));
+    expect(fake.frames[0]).toEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/last-frame\.png$/), 99]);
+    expect(fake.closing).toEqual([]);
+  });
+
+  it('RETURNING PLACE: the take is filmed against the World Bible’s established frame of the place, by id, not the drawn plate', async () => {
+    const est: Asset = { id: 'est-1', kind: 'IMAGE', src: '/api/media/est-1', label: 'established', tags: ['location', 'established'], sample: false, origin: 'DERIVED', mimeType: 'image/png', provenance: { path: 'img/est-1.png' }, createdAt: 'x' };
+    const { state: base, p } = fixture();
+    const state = { ...base, assets: [...base.assets, est] };
+    fake.state = state;
+    fake.bible = withEstablished(deriveWorld(state, worldScopeOf(p), undefined, 'now'), [{ candidate: { locationId: 'loc-pharmacy', sceneId: 'sc0', shotId: 'earlier', takeId: 'take-earlier', videoAssetId: 'vid-x', frame: 6, timeOfDay: 'DUSK', framing: 'WIDE' }, imageAssetId: 'est-1', productionId: 'prod-earlier' }], 'now');
+    await generateTake(ctx(p.id, 's13'));
+    const req = fake.requests[0] as { referenceImages: Array<{ file: string }> };
+    expect(req.referenceImages.map((r) => r.file)).toEqual(['/lib/img/canon-a.png', '/lib/img/est-1.png', '/lib/img/open-13.png']);
+    const t = addTake();
+    expect(t.references).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'LOCATION', assetId: 'est-1', note: expect.stringMatching(/established frame of Corner Pharmacy at dusk.*World Bible revision 3/) })]));
+    expect(t.params).toMatchObject({ world: { plate: { assetId: 'est-1', role: 'ESTABLISHED' } } });
+  });
+
+  it('a production pinned to an earlier canonical image keeps filming with it (the redraw does not reach it)', async () => {
+    const v1: Asset = { id: 'canon-a-v1', kind: 'IMAGE', src: '/api/media/canon-a-v1', label: 'v1', tags: [], sample: false, origin: 'GENERATED', mimeType: 'image/png', provenance: { path: 'img/canon-a-v1.png' }, createdAt: 'x', tier: 'RAW' };
+    const { state: base, p } = fixture();
+    const state = { ...base, assets: [...base.assets, v1] };
+    fake.state = state;
+    const bible = deriveWorld(state, worldScopeOf(p), undefined, 'now');
+    const a = p.castIds[0];
+    fake.bible = { ...bible, characters: bible.characters.map((c) => (c.characterId === a ? { ...c, canonical: { assetId: 'canon-a-v1', version: 1, status: 'APPROVED' as const } } : c)) };
+    await generateTake(ctx(p.id, 's13'));
+    const req = fake.requests[0] as { referenceImages: Array<{ file: string }> };
+    expect(req.referenceImages[0].file).toBe('/lib/img/canon-a-v1.png');
+    expect(fake.reads[0].read).toMatchObject({ characters: [{ characterId: a, pinnedVersion: 1, currentVersion: 2, usedPinned: true }], conflicts: [expect.stringMatching(/pinned to v1; the pinned image is used/)] });
   });
 
   it('CUT: the drawn opening frame anchored at 0 and bound as <Picture 3>; the ending frame anchored; no tail', async () => {

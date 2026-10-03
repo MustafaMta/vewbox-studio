@@ -19,11 +19,44 @@ import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightPlan } from '@/server/org/preflight';
+import { syncWorld, worldOfProduction } from '@/server/world';
+import { summarizeChanges } from '@/domain/world';
+import type { WorldBible } from '@/domain/types';
 
 /** THE STORY HANDLERS — Auto Idea, Manual Brief development, script writing, shot planning. Each runs the engine,
- *  then writes the result into the studio through commands (so the browser sees it like any other change). */
+ *  then writes the result into the studio through commands (so the browser sees it like any other change). The
+ *  World Bible follows the story: after development, after the shot plan and after an episode's continuity record a
+ *  new revision is written when the world changed; the planner reads the production's pinned revision (or, before
+ *  the story is approved, the latest). */
 
 const metric = (jobId: string, r: LlmResult) => recordMetric('llm.ms', r.ms, 'ms', { provider: r.provider, model: r.model, in: r.inputTokens ?? 0, out: r.outputTokens ?? 0 }, jobId);
+
+/** THE WORLD SYNC (the World Continuity step): the production's world as the studio now has it, a new World Bible
+ *  revision when anything changed. */
+async function syncBible(ctx: Parameters<Handler>[0], productionId: string, reason: string): Promise<number | undefined> {
+  return step(ctx, 'world-continuity', `world-sync: ${reason}`, async () => {
+    const { state } = await readState();
+    const p = state.productions.find((x) => x.id === productionId);
+    if (!p) return undefined;
+    const r = await syncWorld(state, p, { reason, jobId: ctx.job.id });
+    await ctx.event('info', `World Bible ${r.created ? `revision ${r.revision.number} written (${summarizeChanges(r.revision.changes)})` : `unchanged at revision ${r.revision.number}`}`, { revision: r.revision.number, created: r.created, changes: r.created ? r.revision.changes.length : 0 });
+    return r.revision.number;
+  });
+}
+
+/** The bible a story job reads: the production's pin, else the latest revision (synced first). */
+async function readBible(ctx: Parameters<Handler>[0], productionId: string, purpose: string): Promise<WorldBible | undefined> {
+  return step(ctx, 'world-continuity', `world-sync: ${purpose}`, async () => {
+    const { state } = await readState();
+    const p = state.productions.find((x) => x.id === productionId);
+    if (!p) return undefined;
+    const view = await worldOfProduction(state, p, { jobId: ctx.job.id });
+    if (view.pinned) { await ctx.event('info', `World Bible: pinned revision ${view.revision.number} read`); return view.revision.bible; }
+    const r = await syncWorld(state, p, { reason: purpose, jobId: ctx.job.id });
+    await ctx.event('info', `World Bible: revision ${r.revision.number} read (not pinned yet: the story is not approved)`);
+    return r.revision.bible;
+  });
+}
 
 export const autoIdea: Handler = async (ctx) => {
   const payload = ctx.job.payload as { kind: 'SHOW' | 'SEASON' | 'EPISODE' | 'SHORT' | 'MUSIC_VIDEO'; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string };
@@ -58,7 +91,9 @@ export const episodeContinuity: Handler = async (ctx) => {
   const unresolved = Array.from(new Set([...(b.unresolved ?? []).filter((x) => !resolved.has(x.toLowerCase())), ...out.unresolved])).slice(0, 12);
   const relationships = Array.from(new Set([...(b.relationships ?? []), ...(out.relationships ?? [])])).slice(0, 24);
   await command('updateShow', [show.id, { bible: { ...b, timeline, unresolved, relationships } }], 'worker');
-  await recordHandoff({ productionId: p.id, stage: 'EDIT', producerDepartment: 'STORY', receiverDepartment: 'EXECUTIVE', artifactIds: [show.id], outputVersions: { timelineEntries: timeline.length, unresolved: unresolved.length }, validation: { ok: out.events.length > 0, checks: [{ name: 'events-recorded', ok: out.events.length > 0, detail: `${out.events.length} event(s) under ${tag}` }, { name: 'open-storylines-carried', ok: true, detail: `${unresolved.length} open` }] }, jobId: ctx.job.id });
+  // the show's World Bible takes the episode's facts as a new revision (the next episode pins it)
+  const revision = await syncBible(ctx, p.id, `continuity of ${tag}`);
+  await recordHandoff({ productionId: p.id, stage: 'EDIT', producerDepartment: 'STORY', receiverDepartment: 'EXECUTIVE', artifactIds: [show.id], outputVersions: { timelineEntries: timeline.length, unresolved: unresolved.length, ...(revision ? { worldRevision: revision } : {}) }, validation: { ok: out.events.length > 0, checks: [{ name: 'events-recorded', ok: out.events.length > 0, detail: `${out.events.length} event(s) under ${tag}` }, { name: 'open-storylines-carried', ok: true, detail: `${unresolved.length} open` }] }, jobId: ctx.job.id });
   await ctx.activity('BIBLE_UPDATED', `${show.title}: ${tag} recorded in the bible (${out.events.length} events, ${unresolved.length} open storylines)`, { showId: show.id, events: out.events.length, unresolved: unresolved.length });
   return { events: out.events.length, unresolved: unresolved.length, resolved: out.resolved?.length ?? 0 };
 };
@@ -114,7 +149,9 @@ export const developStory: Handler = async (ctx) => {
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   await ctx.progress('GENERATING', { phase: 'developing', message: 'Developing the story, cast and world' });
-  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'develop', input: { task: 'develop', productionId: p.id } });
+  // an episode is developed inside its show's World Bible (rules, relationships, timeline, established places)
+  const bible = p.showId ? await readBible(ctx, p.id, 'before developing the story') : undefined;
+  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: 'develop', input: { task: 'develop', productionId: p.id } });
   await ctx.checkpoint();
   await ctx.progress('POSTPROCESSING', { phase: 'saving', message: 'Saving characters, places and scenes' });
   // new characters and places first
@@ -161,6 +198,8 @@ export const developStory: Handler = async (ctx) => {
   // an episode's new people and places join the show's canon, so later seasons and episodes inherit them
   if (p.showId) { const show = state.shows.find((x) => x.id === p.showId); if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, ...castIds])), locationIds: Array.from(new Set([...show.locationIds, ...locationIds])) }], 'worker'); }
   await command('markStepDone', [p.id, 'STORY'], 'worker');
+  // the developed world (its people, places, scenes) is a World Bible revision before anyone approves the story
+  await syncBible(ctx, p.id, 'story developed');
   // STORY handoff to Casting & World: every scene located and cast by id; the human approval of the story itself
   // is recorded when the producer accepts it on the Story page
   const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
@@ -232,6 +271,8 @@ export const planShots: Handler = async (ctx) => {
       if (!pre.ok) { const failed = pre.checks.filter((c) => !c.ok); throw Object.assign(new StudioError('INVALID', failed.some((c) => c.name === 'scenes-present') ? 'There are no scenes to plan.' : failed.some((c) => c.name === 'scenes-written') ? 'Write the script before planning shots: some scenes have no beats.' : `Cannot plan: ${failed.map((c) => `${c.name} (${c.detail ?? ''})`).join('; ')}`), { failureClass: failed[0].failureClass }); }
     });
   }
+  // the planner works inside the World Bible: the pinned revision once the story is approved, else the latest
+  const bible = targets.length ? await readBible(ctx, p.id, 'before shot planning') : undefined;
   let previous: { shot?: PlannedShot; sceneExit?: string } = {};
   // continuity carries over from the last planned shot before the first target
   const firstIdx = targets.length ? p.scenes.findIndex((sc) => sc.id === targets[0].id) : -1;
@@ -240,7 +281,7 @@ export const planShots: Handler = async (ctx) => {
   let total = 0;
   for (const [i, scene] of targets.entries()) {
     await ctx.progress('GENERATING', { phase: 'planning', message: `Planning scene ${scene.number}: ${scene.title}`, step: i + 1, total: targets.length });
-    const draft = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scene ${scene.number}`, input: { task: 'shot-plan', productionId: p.id, sceneIds: [scene.id] } });
+    const draft = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scene ${scene.number}`, input: { task: 'shot-plan', productionId: p.id, sceneIds: [scene.id] } });
     // TIMING FIT (the Shot Planner's step): the scene's shots stretched evenly to fill its running-time budget
     const shots = await step(ctx, 'shot-planner', `timing-fit: scene ${scene.number}`, async () => fitDurations(draft.shots, draft.budget, draft.maxShot));
     await ctx.checkpoint();
@@ -267,6 +308,8 @@ export const planShots: Handler = async (ctx) => {
     }
   }
   await command('markStepDone', [p.id, 'STORYBOARD'], 'worker');
+  // the plan's continuity (wardrobe, props, scene states, light and weather) becomes the World Bible's state
+  if (!performanceOnly) await syncBible(ctx, p.id, 'shot plan');
   // SHOT PLAN handoff to Sound (audio first) and Video: every line assigned to exactly one shot, durations inside the
   // engine's range, the running time close to the target
   const fresh = (await readState()).state.productions.find((x) => x.id === p.id)!;
