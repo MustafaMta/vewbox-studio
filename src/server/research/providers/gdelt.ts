@@ -8,7 +8,8 @@ import { topicWords, type FetchedItem, type ResearchProvider, type SourceAnswer,
  *  measurement per article: the items carry none. */
 
 export const GDELT_DOC = 'https://api.gdeltproject.org/api/v2/doc/doc';
-export const GDELT_SPACING_MS = 5_500;
+/** GDELT's spacing (one request per 5 s, with a margin). Mutable for tests. */
+export const GDELT_TIMING = { spacingMs: 5_500 };
 export const NEWS_WINDOW_DAYS = 14;
 const MAX_QUERIES = 2;
 const KEEP = 12;
@@ -35,7 +36,7 @@ export const gdelt: ResearchProvider = {
   },
   async fetch(q: SourceQuery, ctx): Promise<SourceAnswer> {
     const url = `${GDELT_DOC}?query=${encodeURIComponent(String(q.params.q))}&mode=artlist&format=json&maxrecords=50&timespan=${NEWS_WINDOW_DAYS}d&sort=hybridrel`;
-    const once = () => spaced('gdelt', GDELT_SPACING_MS, () => call(url, { signal: ctx.signal }));
+    const once = () => spaced('gdelt', GDELT_TIMING.spacingMs, () => call(url, { signal: ctx.signal }));
     let r: Awaited<ReturnType<typeof call>>;
     try {
       try { r = await once(); } catch (e) {
