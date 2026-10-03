@@ -20,7 +20,8 @@ const outFile = opt('out', '');
 const browser = await chromium.launch();
 const rows = [];
 let failed = 0;
-for (const lang of ['en', 'ar']) {
+// the interface is English-only (docs/DESIGN-SYSTEM-V5.md §9, 2026-10-03)
+for (const lang of ['en']) {
   const fixture = await loadFixture(fixtureOpt, lang, 'reduce');
   const seen = new Map();
   const paths = [...new Set(sets.flatMap((s) => (SETS[s] ?? []).map(([, p]) => (typeof p === 'function' ? p(fixture) : p))))];

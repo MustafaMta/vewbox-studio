@@ -1,5 +1,7 @@
 # Design system v5: Viewfinder
 
+**Interface language: English-only, left-to-right (producer's change of requirement, 2026-10-03; see §9). Arabic and other languages remain fully supported as content: scripts, dialogue, names, lyrics, subtitles and films.**
+
 Status: the visual identity, the design system and the page compositions for the complete redesign · written
 2026-10-03 · creative direction, UI/UX and design-system engineering (one point of view) · **revised 2026-10-03 after
 the independent Design QA** (`docs/design/DESIGN-QA-PROTOTYPES-2026-10-03.md`): the three blockers and seventeen
@@ -509,7 +511,7 @@ is secondary; *Draw the image* on a character with no image is the primary.
 
 Art direction in RTL: when the subject sits where the RTL text block goes, the hero uses its alternative frame
 (stored `rtlFrameAssetId`, **new**, chosen once by the producer or defaulting to the next frame whose focal point is
-on the opposite side). The prototype's Home uses shot 1.1 in Arabic for this reason.
+on the opposite side). (Superseded by §9: the interface no longer has an RTL layout.)
 
 **Crops are computed from faces, never inherited** (QA M1, M3, §8 item 5). Every hero frame stores its own
 `focal` (landscape) and `portraitFocal` (phone, 4:5), and the RTL alternative frame stores its own pair; the
@@ -586,7 +588,7 @@ there is no image. Used in cast rows, performers, lyric lines, reference chips, 
   edge (3.3:1); focus is the outline ring over it (§5.0); disabled options carry their reason ("Vertical (no cut
   yet)") in `--fg-disabled` 4.3:1.
 - **Tabs** 52 high (44 on phones, wrapping to two rows), 15 px 500 muted; selected paper with a 2 px paper underline;
-  counts in the mono (the sans in Arabic, §9.4); sticky in lobby detail pages; switching is instant.
+  counts in the mono (§9.3); sticky in lobby detail pages; switching is instant.
 - **Chips, tags and keys** have `--carbon-8` boundaries (3.6:1); the count on a selected (paper) chip is
   `rgb(10 10 9 / .72)` (8.2:1).
 
@@ -647,7 +649,7 @@ credits list characters with their voice and appearance ("4 lines · designed vo
   motion) · waiting (tungsten) · done/approved (ok) · failed/refused (coral) · locked (lock icon, muted).
 - **Stage meter**: 6 segments 14 × 3 (done muted, current paper, waiting tungsten), `aria-hidden` beside the words.
 - **Progress bar**: 3 px paper on `--line`, only when the engine reports a real fraction; job progress mirrors in RTL.
-- **Needs badge**: tungsten pill 20 high with a 12 px count in the interface sans (13 px, Arabic-Indic, in Arabic).
+- **Needs badge**: tungsten pill 20 high with a 12 px count in the interface sans .
 - **Judgement words** (takes): *Selected* (paper pill with a check), *Good take* (ok soft), *Rejected · reason* (coral
   soft), *QA passed* (outlined). No stars.
 
@@ -1177,59 +1179,54 @@ Written by … · Storyboard … · Filmed by … · Characters … · Voices �
 
 ---
 
-## 9. Arabic and RTL
+## 9. Content in other languages (amended 2026-10-03: the interface is English-only)
 
-### 9.1 Type
+**Change of requirement (producer, 2026-10-03):** the Vewbox interface is **English-only and always left-to-right**.
+No Arabic interface, no RTL page layouts, no direction switching, no Arabic-Indic numerals setting. This supersedes
+the earlier §9 (Arabic and RTL), the Arabic columns of §3.3, the RTL art-direction rules (§5.4 `rtlFrame`), the Arabic
+captures in §11.5 and §13, and the QA follow-ups that only concern the Arabic interface (F2, M8, N3). The design
+research is kept; nothing working is discarded because of this change.
 
-Markazi Text for Arabic titles (600; 1.25–1.38 line height; never tracked, never italic), Plex Sans Arabic for the
-interface (+1 px, taller lines), Arabic never below 13 px, Arabic sizes matched optically (§3.3).
+**English-only interface is not English-only filmmaking.** Scripts, dialogue lines, character names, lyrics,
+subtitles, voices and finished films stay multilingual — Iraqi Arabic first among them. Everything the producer or
+the studio writes in another language is preserved and shown correctly inside the English interface:
 
-### 9.2 Direction
+### 9.1 Content faces
 
-- The interface mirrors: bars, nav order, text blocks, scrims (270°), rails, chevrons and back arrows (`.i-flip`),
-  the outline and inspector panes, the anchor nav.
-- **Never mirrored**: pictures, faces, plates, the company drawing, play/pause/skip glyphs, clocks, transports, seek
-  bars, waveforms, film strips, timelines, timecodes (`dir="ltr"` groups with translated labels).
-- **Content in the other script** (amended after QA ruling c / M8):
-  - **Runs and one-line items** (names, titles, headings, labels, table cells, list items, `b`, `dt`, `td`,
-    `span.block`): their own direction for correct punctuation (`unicode-bidi: plaintext`, `<bdi lang="en">` around
-    quotes and mixed runs), **aligned to the interface's start edge** like their siblings, so a name and the Arabic
-    status line under it align the same way.
-  - **Blocks that can run to two or more lines** (paragraphs, definition values, quotes, text areas, leads, loglines,
-    role lines, `.prose`, `.block`): **their own direction and their own alignment, isolated** —
-    `html[dir=rtl] :is(p, dd, blockquote, .ta, .prose, .lead, .logline, .role, .quote, .block)[lang=en] { direction: ltr;
-    text-align: left; unicode-bidi: isolate }` and the mirror rule for Arabic blocks in the English interface. An English
-    paragraph in the Arabic interface reads as an English paragraph: LTR, left-aligned, ragged right.
-  - **A definition list whose values are in the other script** flips to the values' direction as a whole
-    (`dl.ltr-values`), with each label flush against its value.
-  - English titles keep Newsreader and its metrics inside the Arabic page; English italic stays italic.
-- **Content stays in its language**: a production without an Arabic title shows its English title (with `lang="en"`);
-  the interface around it is Arabic. The studio translates content only when the producer asks.
-- **Art direction**: RTL heroes use the alternative frame when the subject would sit under the text (§5.4).
+Markazi Text (titles, names) and IBM Plex Sans Arabic (body text, lines, lyrics) stay loaded as the faces for
+Arabic-script content; English content uses Newsreader and IBM Plex Sans as specified. Arabic content is never set
+below 13 px and never tracked or italicised.
 
-### 9.3 Language of parts
+### 9.2 Direction of content
 
-`lang="ar"` / `lang="en"` on every name, title, quote and line in the other language (WCAG 3.1.2).
+- The interface is `<html lang="en" dir="ltr">` everywhere; nothing in the chrome mirrors.
+- **User-authored or generated content in another script** (a character name such as «أبو سلام», a title, a
+  logline, a dialogue line, a lyric line, a subtitle cue, a note) is rendered in its own direction, isolated, inside
+  the LTR interface: one content rule — `.content-text` with `dir="auto"` (or an explicit `lang`/`dir` from the data)
+  and `unicode-bidi: isolate` — owned by DS. One-line items keep the interface's start edge; multi-line Arabic blocks
+  are right-aligned within their own isolated box.
+- `lang` is set on every content string whose language is known (WCAG 3.1.2): `lang="ar"` on an Arabic line,
+  `lang="en"` on English.
+- Media never mirrors (it never did).
 
-### 9.4 Numerals (decision of 2026-10-03)
+### 9.3 Numerals
 
-**One rule, by the kind of number** (resolves QA B2; replaces the earlier wording here and in §3.3):
+Western digits everywhere in the interface. The by-kind rule stays for presentation: readouts (timecodes, clock
+times, m:ss durations, frame rates, resolutions, file sizes, formats) and identifiers (shot, take, cut, version,
+scene, episode, season and note numbers) in IBM Plex Mono, isolated so compounds like "1344×768" are never reordered
+next to Arabic content; counts and dates in the interface sans. `formatNumber(value, kind)` in `src/lib/format.ts`
+(DS) with the kinds `count | date | duration-words | readout | identifier | file`. Numbers inside user-authored Arabic
+content are left exactly as written.
 
-| Kind | Examples | Digits | Face | Direction |
-|---|---|---|---|---|
-| **Readouts** | timecodes, clock times, durations written m:ss, frame rates, resolutions, file sizes, format names (MP4, H.264) | **Western, always** | Plex Mono | LTR, isolated |
-| **Identifiers** | shot, take, cut, version, scene, episode and season numbers; note numbers; row numbers in a track list | **Western, always** (the same id is written one way everywhere: "2.3" in the outline, the strip, the cards, the inspector and in Arabic prose) | Plex Mono | LTR, isolated |
-| **Counts and dates** | "4 decisions", "8 shots", "3 Oct", "7 min 11 s" written as words, "4 / 4" progress | Arabic-Indic in the Arabic interface when the Numerals setting is on (default for the Iraqi dialect); Western otherwise | the interface sans (Plex Sans Arabic) — **the mono never carries Arabic-Indic digits** | the paragraph's |
+### 9.4 What is removed or not built
 
-Every compound numeric run (`W×H`, `a:b`, `n.n`, sizes) is wrapped in an LTR isolate, so "1344×768" can never
-render "768×1344". Implementation: `formatNumber(value, kind)` in `src/lib/format.ts` (owned by DS) with the kinds
-`count | date | duration-words | readout | identifier | file`; readouts and identifiers return an isolated `<span
-class="num-ltr">` (Plex Mono, `dir="ltr"`). The prototypes apply the same rule to text nodes in `v5.js`
-(`?digits=western` shows the setting off); `measure.mjs` checks that no mono text carries Arabic-Indic digits, that
-no shot id appears in Arabic-Indic digits and that no "×" compound sits outside an isolate (all zero).
+The language switch and `html[dir]` logic in the shell; `[dir=rtl]` styling; the Arabic interface strings for new
+work (new v5 string files are English only); Arabic prototypes and Arabic captures. The Arabic halves of the existing
+v4 dictionaries are removed by the consolidation package (Q2) after the pages land — a measured bundle saving — and
+only where no user-facing content depends on them. User data, Arabic content and the multilingual production
+pipeline are untouched.
 
 ---
-
 ## 10. Accessibility (WCAG 2.2 AA; AAA where noted)
 
 Kept from v4 §8.4 and research §5: the focus ring of §5.0 (outline, 2 px paper at a 2 px offset; on art between black
@@ -1304,7 +1301,7 @@ B2  Notes record (cut_notes) and presentation additions (portraitFocal, rtlFrame
    or durations in components (lint).
 3. **Strings**: each package adds keys only in `src/lib/i18n/v5/<pkg>.ts` under its prefix (`home.*`, `shows.*`,
    `film.*`, `music.*`, `cast.*`, `work.*`, `theatre.*`, `studio.*`, `ds.*`); a unit test fails on duplicates; Q2 deletes
-   dead keys. Every visible string has both languages (no English inside Arabic; audit 10).
+   dead keys. Every visible interface string is English (§9); content in other languages is shown in its own direction (§9.2).
 4. **Icons**: DS owns `icons.tsx`; packages add icons in `src/components/ui/icons/<pkg>.ts`.
 5. **Selectors**: new selectors in `src/studio/selectors/<pkg>.ts`; `decisions` is DS-owned (one source of truth).
 6. **Legacy shims** stay until Q2 so pages migrate one at a time.
@@ -1334,12 +1331,12 @@ B2  Notes record (cut_notes) and presentation additions (portraitFocal, rtlFrame
    other-script string tagged with `lang`, no engine names in strings).
 3. **Measurements** with `v5-measure.mjs` (§13.2) on the package's pages: zero overflow, zero text under the floors,
    zero coarse-pointer targets under 44 px, zero focus failures, zero numerals violations, top bar ≥ 4.5:1 over heroes.
-4. Captures with `scripts/capture-evidence.mjs` at **1440, 1920, 834 and 390 × EN and AR**, fixtures *sample*,
+4. Captures with `scripts/capture-evidence.mjs` at **1440, 1920, 834 and 390** (English interface; plus one check per page that Arabic content — a name, a line, a lyric — renders isolated and correct, §9.2), fixtures *sample*,
    *empty* and *states*, compared side by side with the page's prototype render in `docs/evidence/redesign-proto/`.
    No horizontal overflow at any width (the capture fails if `scrollWidth > width`, as `render.mjs` does).
-5. axe-core: 0 serious or critical; a keyboard-only pass in EN and AR; 320 px reflow; 200 % zoom; one page under
+5. axe-core: 0 serious or critical; a keyboard-only pass; 320 px reflow; 200 % zoom; one page under
    reduced motion and under More contrast.
-6. Titles: `node scripts/v4-titles.mjs` distinct in EN and AR.
+6. Titles: `node scripts/v4-titles.mjs` distinct (English).
 7. Performance (audit 12): per-page data (no whole-studio snapshot on first paint), thumbnails at display size
    (≤ 2× device pixels; figures ≤ 120 KB, stills ≤ 160 KB), route JS budget recorded before/after.
 8. The independent Design QA review signs off each page against its §8 spec and the prototype.
