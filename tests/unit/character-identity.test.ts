@@ -201,7 +201,9 @@ describe('the voice identity v2: origin, measured vs listened, design', () => {
     // personality text is never part of the description: it can name people, and the server refuses such a description
     expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little, like Samir.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English.');
     expect(designedIraqiAllowed({ uiLanguage: 'en' })).toBe(false);
-    expect(designedIraqiAllowed({ generation: { allowDesignedIraqi: true } })).toBe(true);
+    // the server keeps the switch at settings.voice.allowDesignedIraqi; nothing else turns it on
+    expect(designedIraqiAllowed({ voice: { allowDesignedIraqi: true } })).toBe(true);
+    expect(designedIraqiAllowed({ generation: { allowDesignedIraqi: true } })).toBe(false);
   });
 });
 
