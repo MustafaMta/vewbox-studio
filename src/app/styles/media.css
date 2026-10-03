@@ -249,10 +249,11 @@
   @media (min-width: 1280px) { .chead[data-mode='cutting'] .chead-tabs { display: block; margin-inline: auto; } }
   .chead-save { font-size: 12px; color: var(--fg-faint); }
   .chead > .prow-spacer { flex: 1 1 0; min-inline-size: 0; }
-  .chead .btn { max-inline-size: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chead .btn { max-inline-size: 12rem; overflow: hidden; white-space: nowrap; }
   /* a phone keeps back, the thumbnail, the title, the primary and More; the status and SaveState wait for room */
   @media (max-width: 767px) { .chead-save { display: none; } }
-  @media (max-width: 639px) { .chead-status { display: none; } .chead { gap: var(--space-2); } .chead .btn:not(.btn-icon) { max-inline-size: 40%; } }
+  @media (max-width: 639px) { .chead-status { display: none; } .chead { gap: var(--space-2); } }
+  @media (max-width: 359px) { .chead .btn:not(.btn-icon) { max-inline-size: 45%; justify-content: flex-start; } }
 
   /* ---- the heroes (§5.3) ------------------------------------------------------------------------------------- */
   .mhero { position: relative; min-inline-size: 0; }
@@ -376,7 +377,7 @@
   .spec-hero { gap: var(--space-3); padding-block-end: var(--space-5); border-block-end: 1px solid var(--line-soft); }
   .spec-theatre-room { padding: var(--space-4); background: var(--page); }
   .spec-compact { position: relative; padding-block: var(--space-2); }
-  .spec-compact .chead { position: relative; margin-inline: 0; }
+  .spec-compact .chead { position: relative; inset-block-start: 0; margin-inline: 0; }
   .spec-preview { position: relative; aspect-ratio: 16 / 9; max-inline-size: 720px; overflow: hidden; border-radius: var(--r-3); background: var(--art-ph); }
   .spec-canvas { max-inline-size: 960px; }
   .spec-music { display: grid; gap: var(--space-6); }
