@@ -1,0 +1,2398 @@
+{
+ "generatedAt": "2026-10-03T16:24:37.910Z",
+ "method": "docs/research/FRONTEND-INVENTORY-2026-10-03.md",
+ "entries": [
+  {
+   "file": "src/components/character/CastCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/CharacterForm.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/CharacterImage.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/CharacterPage.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/ConsentChoice.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/EditDialogs.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/ImagePanel.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/SecondaryMaterial.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/VoicePlayer.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/VoiceSection.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/CreateCharacter.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/CreationProgress.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/DescribeStart.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/PictureStart.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/ReadyCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/SharedHeader.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/character/create/SheetStart.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (character profile, creation, voice); delete after",
+   "after": "P-Cast",
+   "replacement": "components/character/** rebuilt on the kit"
+  },
+  {
+   "file": "src/components/edit/index.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "barrel with 0 importers: delete or make it the import path",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/edit/useMediaQuery.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: third copy of useMediaQuery",
+   "after": "DS-2",
+   "replacement": "ui/kit/layout useMediaQuery"
+  },
+  {
+   "file": "src/components/library/CanonPicker.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by reference chips (RefChips) and picks",
+   "after": "P-Work",
+   "replacement": "edit/RefChips, edit/Picks"
+  },
+  {
+   "file": "src/components/library/Cards.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete (0 importers)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/library/Library.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: LibraryBar/NoMatches/useView; CatalogueBar is built and unused",
+   "after": "Q2 (after P-Shows, P-Film, P-Music, P-Cast)",
+   "replacement": "ui/kit/CatalogueBar"
+  },
+  {
+   "file": "src/components/library/LocationCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by PlateTile; delete after",
+   "after": "P-Cast",
+   "replacement": "media/tiles PlateTile"
+  },
+  {
+   "file": "src/components/library/MusicVideoCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by SleeveTile; delete after",
+   "after": "P-Music",
+   "replacement": "media/tiles SleeveTile"
+  },
+  {
+   "file": "src/components/library/ProductionTile.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace: StageStatus → StateWord, ProductionMenu → tile menu with ConfirmDialog",
+   "after": "Q2 (after P-Shows, P-Film, P-Music)",
+   "replacement": "kit Status StateWord, kit Overlay"
+  },
+  {
+   "file": "src/components/library/ShortCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by PosterTile / frame poster; delete after",
+   "after": "P-Film",
+   "replacement": "media/tiles PosterTile, media/FramePoster"
+  },
+  {
+   "file": "src/components/library/ShowCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by KeyArtTile; delete after",
+   "after": "P-Shows",
+   "replacement": "media/tiles KeyArtTile"
+  },
+  {
+   "file": "src/components/library/StartCard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by Home \"Start something new\"; delete after",
+   "after": "P-Home",
+   "replacement": "home/*"
+  },
+  {
+   "file": "src/components/location/LocationForm.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace; delete after",
+   "after": "P-Cast",
+   "replacement": null
+  },
+  {
+   "file": "src/components/location/LocationPage.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace; delete after",
+   "after": "P-Cast",
+   "replacement": null
+  },
+  {
+   "file": "src/components/media/index.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "barrel with 0 importers: delete or make it the import path",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/VideoPlayer.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: `VideoPlayer` = InlinePlayer; move VideoPlaceholder beside InlinePlayer",
+   "after": "Q2",
+   "replacement": "players/InlinePlayer"
+  },
+  {
+   "file": "src/components/players/music/index.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "barrel with 0 importers: delete or make it the import path",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/rootVars.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete (re-export of kit/layout)",
+   "after": "Q2",
+   "replacement": "ui/kit/layout"
+  },
+  {
+   "file": "src/components/shell/MobileBar.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by TopBar + BottomBar + MoreSheet; delete after",
+   "after": "DS-2",
+   "replacement": "shell/TopBar, shell/BottomBar, shell/MoreSheet"
+  },
+  {
+   "file": "src/components/shell/Sidebar.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by TopBar + BottomBar + MoreSheet; delete after",
+   "after": "DS-2",
+   "replacement": "shell/TopBar, shell/BottomBar, shell/MoreSheet"
+  },
+  {
+   "file": "src/components/shell/brand-mark.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace: violet favicon (producer sign-off pending)",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/root-vars.ts",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete (re-export of kit/layout)",
+   "after": "Q2",
+   "replacement": "ui/kit/layout useRootVarContribution"
+  },
+  {
+   "file": "src/components/show/ShowWorkspace.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace (Show page; episode workspace moves to P-Work); delete after",
+   "after": "P-Shows",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/brand.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace: violet mark removed (§11.1); VewboxGlyph/VewboxLogo have no users",
+   "after": "DS-1",
+   "replacement": "DS brand (§1.4)"
+  },
+  {
+   "file": "src/components/ui/cinema.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: Hero, Art, ArtRow, Empty, Block, Dots after every page package",
+   "after": "Q2",
+   "replacement": "media/hero/*, Frame + tiles, kit States, kit PageHeader Section, Slate"
+  },
+  {
+   "file": "src/components/ui/kit/CompactHeader.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: duplicate of media/CompactHeader (both unused by pages)",
+   "after": "DS-2",
+   "replacement": "media/CompactHeader.tsx"
+  },
+  {
+   "file": "src/components/ui/kit/legacy.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete: Card, Details, KV, ConfirmButton, ConfirmDelete, Modal, Thumb, PickGrid, AddTile",
+   "after": "Q2",
+   "replacement": "kit Dialog / ConfirmDialog / useConfirm, Frame, tiles, kit Section"
+  },
+  {
+   "file": "src/components/ui/nav.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete (re-export shim + v3 Crumbs)",
+   "after": "Q2",
+   "replacement": "kit/Tabs Crumbs, shell/nav-model"
+  },
+  {
+   "file": "src/components/ui/page.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "delete (re-export shim; callers import `@/components/ui/kit`)",
+   "after": "Q2",
+   "replacement": "kit/PageHeader, kit/Status"
+  },
+  {
+   "file": "src/components/ui/preview.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the kit image-preview states (§5.12)",
+   "after": "P-Cast",
+   "replacement": "kit (DS-2 image previews)"
+  },
+  {
+   "file": "src/components/wizard/CreateWizard.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by New… on Home; delete after",
+   "after": "P-Home",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/FilmWorkspace.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/MusicWorkspace.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/ReplaceSong.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/ShotEditor.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/ShotForm.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/Workspace.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/FinalCutTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/OverviewTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/PerformersTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/ProduceTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/SongLyricsTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/StoryTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/StoryboardTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/VisualStoryTab.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "replace by the production map and the shot workspace; delete after",
+   "after": "P-Work",
+   "replacement": null
+  },
+  {
+   "file": "src/app/(app)/kit-media/page.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "TEMPORARY route (its own comment); /kit renders the same sections; a production build compiles it",
+   "after": "DS-2",
+   "replacement": "/kit"
+  },
+  {
+   "file": "src/app/(app)/kit-media/KitMediaPage.tsx",
+   "symbol": "*",
+   "kind": "file",
+   "reason": "see kit-media/page.tsx",
+   "after": "DS-2",
+   "replacement": "/kit"
+  },
+  {
+   "file": "src/app/(app)/jobs/page.tsx",
+   "symbol": "Activity",
+   "kind": "symbol",
+   "reason": "the Activity list rendered inside /production; /jobs becomes a plain redirect (redirects.ts jobsTarget)",
+   "after": "P-Studio",
+   "replacement": "production control room"
+  },
+  {
+   "file": "src/components/character/CharacterForm.tsx",
+   "symbol": "CreateMode",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/ConsentChoice.tsx",
+   "symbol": "recordingNeedingConsent",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "normaliseStep",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "CreateStepOutcome",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "CreateResultView",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "VoiceBuildPayload",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "VoiceReferenceValidation",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "createCharacterKey",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "DialectStatus",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "VoiceEvaluation",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "VoiceIdentityExtras",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "DesignCandidate",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/contract.ts",
+   "symbol": "DesignResult",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/create/preflight.ts",
+   "symbol": "BRIEF_MIN",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/create/preflight.ts",
+   "symbol": "IMAGE_RULES",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/create/preflight.ts",
+   "symbol": "EngineNeed",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/create/preflight.ts",
+   "symbol": "StepState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/identity.ts",
+   "symbol": "IdentityKind",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/identity.ts",
+   "symbol": "Material",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/identity.ts",
+   "symbol": "UsageGroup",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/ImagePanel.tsx",
+   "symbol": "RedrawDialog",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/look.ts",
+   "symbol": "LOOK_KEYS",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/character/VoiceSection.tsx",
+   "symbol": "engineName",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/library/Library.tsx",
+   "symbol": "View",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/CanvasPlayer.tsx",
+   "symbol": "Marks",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/InlinePlayer.tsx",
+   "symbol": "InlinePlayerProps",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/PlayerCore.tsx",
+   "symbol": "CoreOptions",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/PlayerCore.tsx",
+   "symbol": "PlayerCore",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/PlayerProvider.tsx",
+   "symbol": "PlayerStatus",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/prefs.ts",
+   "symbol": "isRtl",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/sync.ts",
+   "symbol": "createSyncBus",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/sync.ts",
+   "symbol": "handOff",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/time.ts",
+   "symbol": "runtime",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/time.ts",
+   "symbol": "clockRange",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/useShortcutScope.ts",
+   "symbol": "keyName",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/useShortcutScope.ts",
+   "symbol": "isTextField",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/useShortcutScope.ts",
+   "symbol": "ShortcutHandler",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/players/Waveform.tsx",
+   "symbol": "barsOf",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/brand-mark.ts",
+   "symbol": "BRAND_MARK_SVG",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/context.tsx",
+   "symbol": "useStickyExtra",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/context.tsx",
+   "symbol": "useBottomBars",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/palette-registry.ts",
+   "symbol": "usePaletteEntries",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/palette.ts",
+   "symbol": "fold",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/palette.ts",
+   "symbol": "PaletteAction",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/palette.ts",
+   "symbol": "PaletteInput",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "parsePrefs",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "prefAttributes",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "Contrast",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "UiPrefs",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "PREFS_KEY",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/preferences.ts",
+   "symbol": "singleKeysOn",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/Room.tsx",
+   "symbol": "Room",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/Room.tsx",
+   "symbol": "useRoom",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/ServerBar.tsx",
+   "symbol": "LastKnown",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/Shell.tsx",
+   "symbol": "SERVER_GRACE_MS",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/ShellDialog.tsx",
+   "symbol": "ShellDialogProps",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/shortcuts.ts",
+   "symbol": "isTextField",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/shortcuts.ts",
+   "symbol": "inShortcutScope",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/shortcuts.ts",
+   "symbol": "ShortcutCommand",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/shortcuts.ts",
+   "symbol": "ShortcutRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/shortcuts.ts",
+   "symbol": "ShortcutScope",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/Sidebar.tsx",
+   "symbol": "BrandLink",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/Sidebar.tsx",
+   "symbol": "NAV_ICONS",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/titles.ts",
+   "symbol": "titleParts",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/titles.ts",
+   "symbol": "TitleInput",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/url-state.ts",
+   "symbol": "parseFilters",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/url-state.ts",
+   "symbol": "formatFilters",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/url-state.ts",
+   "symbol": "tabNavigation",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/url-state.ts",
+   "symbol": "Filters",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/shell/useUrlState.ts",
+   "symbol": "useUrlState",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/show/ShowWorkspace.tsx",
+   "symbol": "EpisodeRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/show/ShowWorkspace.tsx",
+   "symbol": "AddSeason",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/Company.tsx",
+   "symbol": "useRtl",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/Company.tsx",
+   "symbol": "nodeStateLine",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/Company.tsx",
+   "symbol": "TeamDots",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/internals.tsx",
+   "symbol": "ContractFields",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/people.tsx",
+   "symbol": "agentState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/studio/people.tsx",
+   "symbol": "initials",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/brand.tsx",
+   "symbol": "VewboxGlyph",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/brand.tsx",
+   "symbol": "VewboxLogo",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons/kit.ts",
+   "symbol": "IconSortBy",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons/shell.ts",
+   "symbol": "IconEnter",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconHome",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconQueue",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconReview",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconChevronUp",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconLink",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconView",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconPerson",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconSpinner",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconBlocked",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconTimer",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconStatus",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconAttention",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconLight",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconFilm",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconSwap",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconDisc",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconAgent",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconPipeline",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconActivity",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconSkill",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconTool",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconReliability",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/icons.tsx",
+   "symbol": "IconDot",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/ApprovalCard.tsx",
+   "symbol": "InlineNote",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Choice.tsx",
+   "symbol": "ChoiceOption",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Field.tsx",
+   "symbol": "addChips",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Field.tsx",
+   "symbol": "needsErrorSummary",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Field.tsx",
+   "symbol": "DropRatio",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Field.tsx",
+   "symbol": "SaveState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/focus.ts",
+   "symbol": "tabStops",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/focus.ts",
+   "symbol": "RovingStep",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "ConfirmDialog",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "matchEntries",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "DialogProps",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "ConfirmOptions",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "AskOptions",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Overlay.tsx",
+   "symbol": "ShortcutScope",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Recorder.tsx",
+   "symbol": "ConsentStatement",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Status.tsx",
+   "symbol": "StateTone",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Status.tsx",
+   "symbol": "Identity",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Tabs.tsx",
+   "symbol": "sectionInView",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/kit/Tabs.tsx",
+   "symbol": "TabItem",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "phaseRows",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "useElapsed",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "Phase",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "ErrorCopy",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "ErrorEntry",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "ERROR_COPY",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "KNOWN",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "RowState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/progress.tsx",
+   "symbol": "fmtElapsed",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/toast.tsx",
+   "symbol": "toastDuration",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/ui/toast.tsx",
+   "symbol": "Toast",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/wizard/CreateWizard.tsx",
+   "symbol": "StylePreview",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/wizard/CreateWizard.tsx",
+   "symbol": "AspectBox",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/FilmWorkspace.tsx",
+   "symbol": "FILM_TABS",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/MusicWorkspace.tsx",
+   "symbol": "MUSIC_TABS",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/components/workspace/tabs/StoryboardTab.tsx",
+   "symbol": "AddShot",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n.ts",
+   "symbol": "DICTIONARIES",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n.ts",
+   "symbol": "KEYS",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 7 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/api.ts",
+   "symbol": "EngineHealth",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/api.ts",
+   "symbol": "SnapshotResponse",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/api.ts",
+   "symbol": "JobWarning",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/api.ts",
+   "symbol": "BatchResponse",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "stageOwners",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "OrchestratorState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "EdgeState",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "RUNNING_STATUSES",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "RECENT_MS",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "Placement",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/company.ts",
+   "symbol": "InFlight",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "schemaType",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "LiveJob",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "ProductionPosition",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "FailureRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "AgentResponse",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "StageStatusRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "QaReportRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "ApprovalRow",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "ProductionPipelineResponse",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "DepartmentResponse",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "loc",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/org.ts",
+   "symbol": "JsonSchema",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/presentation.ts",
+   "symbol": "artVars",
+   "kind": "symbol",
+   "reason": "no references outside its file (LanguageService findReferences); 1 test file(s) reference it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/presentation.ts",
+   "symbol": "ART_WASH_L",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/presentation.ts",
+   "symbol": "ART_PLACEHOLDER_L",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/presentation.ts",
+   "symbol": "ART_CHROMA_MAX",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/selectors.ts",
+   "symbol": "STAGE_ORDER",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/studio/store.tsx",
+   "symbol": "AddFileResult",
+   "kind": "export-keyword",
+   "reason": "exported but used only inside its file: drop `export`",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/base.css",
+   "symbol": ".sr-only-focusable",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".animate-fade",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/media.css",
+   "symbol": ".bleed",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/media.css",
+   "symbol": ".spec-dock-head",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/media.css",
+   "symbol": ".grid-tiles",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/players.css",
+   "symbol": ".vcontrols",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/studio.css",
+   "symbol": ".org-legend",
+   "kind": "css",
+   "reason": "CSS class with no literal, template or rendered use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-1000",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-975",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-950",
+   "kind": "css-token",
+   "reason": "token alias (5 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-900",
+   "kind": "css-token",
+   "reason": "token alias (4 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-850",
+   "kind": "css-token",
+   "reason": "token alias (4 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-800",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-700",
+   "kind": "css-token",
+   "reason": "token alias (15 var() uses in 5 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-600",
+   "kind": "css-token",
+   "reason": "token alias (6 var() uses in 3 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-550",
+   "kind": "css-token",
+   "reason": "token alias (6 var() uses in 3 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-500",
+   "kind": "css-token",
+   "reason": "token alias (8 var() uses in 3 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-400",
+   "kind": "css-token",
+   "reason": "token alias (5 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-350",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-300",
+   "kind": "css-token",
+   "reason": "token alias (5 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-200",
+   "kind": "css-token",
+   "reason": "token alias (8 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--ink-100",
+   "kind": "css-token",
+   "reason": "token alias (5 var() uses in 1 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--iris-600",
+   "kind": "css-token",
+   "reason": "token alias (3 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--iris-500",
+   "kind": "css-token",
+   "reason": "token alias (3 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--iris-400",
+   "kind": "css-token",
+   "reason": "token alias (4 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--iris-300",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--violet-700",
+   "kind": "css-token",
+   "reason": "token alias (1 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--violet-600",
+   "kind": "css-token",
+   "reason": "token alias (1 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--violet-500",
+   "kind": "css-token",
+   "reason": "token alias (1 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--violet-400",
+   "kind": "css-token",
+   "reason": "token alias (1 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--violet-300",
+   "kind": "css-token",
+   "reason": "token alias (1 var() uses in 1 file(s)); v5 names replace it",
+   "after": "DS-1",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/tokens.css",
+   "symbol": "--accent-line",
+   "kind": "css-token",
+   "reason": "token alias (2 var() uses in 2 file(s)); v5 names replace it",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".palette-field",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/kit.css:419 and src/app/styles/shell.css:170); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".palette-list",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/kit.css:424 and src/app/styles/shell.css:176); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".palette-option",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/kit.css:427 and src/app/styles/shell.css:180 and src/app/styles/shell.css:192); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".palette-empty",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/kit.css:431 and src/app/styles/shell.css:188); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".frame-phase",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/kit.css:463 and src/app/styles/media.css:52); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/styles/kit.css",
+   "symbol": ".hero",
+   "kind": "css-conflict",
+   "reason": "declared in two sheets with the same properties (src/app/styles/media.css:421 and src/app/styles/tokens.css:165); keep one",
+   "after": "DS-2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/common.ts",
+   "symbol": "misc.goHome",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "player.videoFailed",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "player.videoFailed.hint",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.alt.frame",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.episode.open",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.player.note",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.focus.leave",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.spec.loading",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/media.ts",
+   "symbol": "media.spec.light.view",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "home.startFirst",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "home.startNew",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "home.viewAll",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "nav.newProduction",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "nav.closeMenu",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "nav.libraryArea",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "app.tagline",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "projects.lead",
+   "kind": "i18n-key",
+   "reason": "dictionary key with no literal, dynamic or test use",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/lib/i18n/v4/shell.ts",
+   "symbol": "app.saved, app.saving, app.unsaved",
+   "kind": "i18n-key",
+   "reason": "used only by tests (SaveState reads shell.save.*)",
+   "after": "Q2",
+   "replacement": null
+  },
+  {
+   "file": "src/app/(app)/characters/page.tsx",
+   "symbol": "window.confirm @47",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Cast",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/app/(app)/shows/page.tsx",
+   "symbol": "window.confirm @45",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Shows",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/workspace/tabs/StoryTab.tsx",
+   "symbol": "window.confirm @113",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Work",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/workspace/tabs/StoryboardTab.tsx",
+   "symbol": "window.confirm @105",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Work",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/workspace/ShotEditor.tsx",
+   "symbol": "window.confirm @79",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Work",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/workspace/ShotEditor.tsx",
+   "symbol": "window.prompt @109",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Work",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/workspace/ShotEditor.tsx",
+   "symbol": "window.confirm @110",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Work",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  },
+  {
+   "file": "src/components/show/ShowWorkspace.tsx",
+   "symbol": "window.confirm @199",
+   "kind": "browser-dialog",
+   "reason": "browser dialog (§11.3 rule 7)",
+   "after": "P-Shows",
+   "replacement": "useConfirm / useAsk (kit Overlay)"
+  }
+ ]
+}
