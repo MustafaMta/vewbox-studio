@@ -161,7 +161,7 @@ export const generateTake: Handler = async (ctx) => {
     const songTail = soundtrack?.kind === 'SONG' && songAsset && window ? await trimAudio(assetFile(songAsset), path.join(work, 'tail-song.wav'), Math.max(0, window.from - pack.opening.frames / H3_FPS), window.from) : undefined;
     guides.push(songTail ? { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
     continuesTakeId = pack.opening.takeId;
-    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${pack.opening.frames} frames of the previous take with ${songTail ? 'the song under them' : 'their own sound'}` });
+    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${pack.opening.frames} frames of the previous take with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
   } else if (pack.opening.kind === 'LAST_FRAME_AS_FIRST') {
     const prevAsset = byId(pack.opening.assetId)!;
     hostedFirstFrame = { file: await closingFrame(assetFile(prevAsset), path.join(work, 'last-frame.png')), mime: 'image/png' };

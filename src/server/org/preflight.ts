@@ -107,7 +107,7 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
     const ok = !sameScene || Boolean(continuationSource(state, prev));
-    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames and their sound at frame 0` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
+    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
   }
   return { ok: checks.every((c) => c.ok), checks, warnings };
 }

@@ -1,4 +1,4 @@
-import type { Asset, Character, Location, Production, Shot, ShotRelation, StudioState } from '@/domain/types';
+import type { Asset, Character, Location, Production, Shot, ShotRelation, StudioState, Take } from '@/domain/types';
 import { orderedShots } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -86,6 +86,16 @@ export function continuationSource(state: Pick<StudioState, 'assets'>, prev: Sho
   return a && a.kind === 'VIDEO' && !a.sample && !a.unavailable ? { shotId: prev.id, takeId: t.id, assetId: a.id } : undefined;
 }
 
+/** Whether a take's speech reaches into its last `frames` frames: from the take's placed line windows (take-relative,
+ *  written by the speech check); a speaking shot whose take has no placed lines counts as speaking there (unknown). */
+export function speechInTail(shot: Pick<Shot, 'dialogue'>, take: Pick<Take, 'soundtrack' | 'durationSeconds'>, frames: number): boolean {
+  if (!shot.dialogue.length) return false;
+  const lines = take.soundtrack?.kind === 'DIALOGUE' ? take.soundtrack.lines : [];
+  if (!lines.length || !take.durationSeconds) return true;
+  const tailFrom = take.durationSeconds - frames / H3_FPS;
+  return lines.some((l) => l.to > tailFrom - 0.05);
+}
+
 /** The plate a shot is filmed against: the STATE plate for the scene's time of day, else the MASTER plate. */
 export function plateFor(loc: Location | undefined, timeOfDay: string | undefined, assets: Asset[]): { assetId: string; role: 'STATE' | 'MASTER' } | undefined {
   if (!loc) return undefined;
@@ -109,7 +119,13 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   let opening: PackOpening = { kind: 'NONE' };
   let lowering: string | undefined;
   if (relation === 'CONTINUATION') {
-    if (source && local) opening = { kind: 'TAIL', ...source, frames: H3_GUIDE_FRAMES, withAudio: true };
+    // the tail carries its sound — except into a shot without lines when the previous take speaks in its tail: with
+    // that sound anchored H3 kept talking after the head ("take what you need. See you, Madhya." in a silent shot),
+    // without it the shot was silent (docs/evidence/minimax-p1, C1/C1b vs C1c; one seed each)
+    const prevTake = previous?.takes.find((t) => t.id === source?.takeId);
+    const muteTail = Boolean(source && previous && prevTake && p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length === 0 && speechInTail(previous, prevTake, H3_GUIDE_FRAMES));
+    if (muteTail) notes.push(`shot ${previous!.number} speaks in its last ${H3_GUIDE_FRAMES} frames and this shot has no lines: its tail is anchored without its sound`);
+    if (source && local) opening = { kind: 'TAIL', ...source, frames: H3_GUIDE_FRAMES, withAudio: !muteTail };
     else if (source) { opening = { kind: 'LAST_FRAME_AS_FIRST', ...source }; lowering = 'hosted continuation: the previous take\'s last frame as the first frame (no anchored tail, no references in frame mode)'; }
     else notes.push(`the shot continues shot ${previous?.number ?? '?'}, which has no chosen real take yet`);
   } else if (usableImage(byId(sh.openingFrameAssetId))) opening = { kind: 'FRAME', assetId: sh.openingFrameAssetId! };

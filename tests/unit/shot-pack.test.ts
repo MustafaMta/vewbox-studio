@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bindingOf, clipSecondsFor, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
 import type { Character } from '@/domain/types';
-import { fixture, shotOf } from './continuity-fixture';
+import { fixture, shotOf, TAKE_A } from './continuity-fixture';
 
 /** The shot pack decides, purely, what a take is conditioned on (docs/research/MINIMAX-CONTINUITY.md §3–4): the three
  *  relations are handled distinctly, the canonical images and the plate ride on every shot that shows them (a
@@ -54,6 +54,25 @@ describe('relations', () => {
     expect(pack.opening).toEqual({ kind: 'FRAME', assetId: 'open-21' });
     expect(pack.location).toMatchObject({ assetId: 'plate-street', role: 'MASTER' });
     expect(pack.pictures.some((x) => x.assetId === 'vid-a')).toBe(false);
+  });
+
+  it('a continuation without lines anchors the tail WITHOUT its sound when the previous take speaks there (C1 vs C1c)', () => {
+    const speaking = (to: number | undefined) => fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, dialogue: [{ id: 'l0', characterId: s.characterIds[0], text: 'Take what you need.' }], takes: [{ ...TAKE_A, ...(to === undefined ? {} : { soundtrack: { kind: 'DIALOGUE' as const, lines: [{ lineId: 'l0', from: 2.7, to }] } }) }] } : s.id === 's12' ? { ...s, dialogue: [] } : s)) });
+    // the line ends at 4.76 s in a 5.17 s take: it reaches the last 22 frames (from 4.25 s)
+    let { state, p } = speaking(4.76);
+    let pack = resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' });
+    expect(pack.opening).toMatchObject({ kind: 'TAIL', withAudio: false });
+    expect(pack.notes.join(' ')).toMatch(/speaks in its last 22 frames/);
+    expect(plannedGuides(pack, { soundtrack: false })).toEqual([{ kind: 'TAIL', frameIdx: 0, frames: 22, audio: false }]);
+    // a line that ends before the tail: the tail keeps its sound (room tone)
+    ({ state, p } = speaking(3.5));
+    expect(resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' }).opening).toMatchObject({ withAudio: true });
+    // no placed lines on a speaking take: assumed to speak there
+    ({ state, p } = speaking(undefined));
+    expect(resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' }).opening).toMatchObject({ withAudio: false });
+    // the continuation that speaks itself keeps the tail's sound
+    const { state: s2, p: p2 } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, dialogue: [{ id: 'l0', characterId: s.characterIds[0], text: 'x' }] } : s)) });
+    expect(resolveShotPack(s2, p2, shotOf(p2, 's12'), { backend: 'local' }).opening).toMatchObject({ withAudio: true });
   });
 
   it('a continuation whose predecessor has no real take resolves to no opening (the preflight refuses it)', () => {
