@@ -46,7 +46,7 @@ test('Needs you: the four oldest decisions as cards, each one link to where it i
   test.skip(d.count === 0, 'nothing waits');
   await open(page);
   const section = page.locator('section', { has: page.getByRole('heading', { name: /^Needs you/ }) });
-  await expect(section.locator('.home-count')).toHaveText(String(d.count));
+  await expect(section.locator('.home-count')).toHaveText(new RegExp(`(^|\\D)${d.count}$`));
   const cards = section.locator('.home-dcard');
   const want = oldestFour(d);
   await expect(cards).toHaveCount(want.length);
@@ -75,7 +75,7 @@ test('the New character tile and the four start actions link to their pages', as
 
 test('every card and tile shows the focus ring when reached with the keyboard', async ({ page }) => {
   await open(page);
-  const targets = await page.locator('.home :is(.home-card, .home-tile)').evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.getAttribute('href')));
+  const targets = await page.locator('.home :is(.home-card, .home-tile):is(a)').evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.getAttribute('href')));
   const seen = new Map<string, { style: string; width: string; offset: string }>();
   for (let i = 0; i < 120 && seen.size < targets.length; i++) {
     await page.keyboard.press('Tab');

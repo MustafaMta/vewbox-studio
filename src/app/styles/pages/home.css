@@ -60,11 +60,6 @@
   .home-tile-meta { display: block; margin-block-start: 2px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .home-tile-state { display: flex; align-items: center; min-block-size: 22px; margin-block-start: 2px; }
 
-  /* every picture fades in after decode (§5.5) and zooms a little under the pointer inside a link */
-  .home .frame > img { transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-4) var(--ease-out); }
-  :is(.home-tile, .home-card):hover .frame > img { transform: scale(1.03); }
-  /* a figure waits on its own colour, never on its grey backdrop; the backdrop comes with the picture (§5.5) */
-  .home .frame[data-fit='contain']:not([data-loaded]) { background: var(--art-ph); }
 
   /* a chip on art (§5.5): bottom start, one per frame */
   .home-chip { position: absolute; inset-block-end: var(--s-8); inset-inline-start: var(--s-8); display: inline-flex; align-items: center; block-size: 22px; padding: 0 var(--s-8); border-radius: var(--r-xs); background: var(--chip-on-art); color: var(--text-1); white-space: nowrap; }
@@ -73,7 +68,6 @@
   .home .home-card { display: flex; flex-direction: column; block-size: 100%; min-inline-size: 0; overflow: hidden; border: 0; border-radius: var(--r-md); background: var(--surface-1); color: inherit; text-decoration: none; transition: background-color var(--dur-1) var(--ease-out); }
   .home .home-card:hover { background: var(--surface-2); }
   .home .home-card:active { background: var(--surface-3); }
-  .home :is(.home-card, .home-tile):focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
 
   /* the decision card (§5.7): 16:9 media edge to edge, then the body; the button sits on the card's floor */
   .home-decisions > li { display: flex; }
@@ -127,8 +121,12 @@
   @keyframes home-pulse { 50% { opacity: 0.35; } }
 
   /* -------------------------------------------------------------------------------------------- the skeleton */
-  .home-skeleton .home-words-main { display: flex; flex-direction: column; gap: var(--s-12); }
-  .home-skeleton .home-sk-title { block-size: 48px; }
+  /* every bar sits in the line box of the text it stands for, so the page drops in without a shift */
+  .home-skeleton :is(.home-meta, .home-title, .home-kind, .home-dcard-h, .home-tile-name, .home-tile-meta, .home-head .t-section) { display: flex; align-items: center; min-block-size: 1lh; }
+  .home-skeleton :is(.home-sk-lead, .home-dcard-d) { display: grid; grid-auto-rows: 1lh; align-items: center; }
+  .home-skeleton .home-card { --art-ph: var(--surface-2); }
+  .home-skeleton .home-card .sk-media { border-radius: 0; }
+  .home-skeleton .home-decisions > div { display: flex; }
 
   /* ------------------------------------------------------------------------------------------------- widths */
   @media (min-width: 640px) and (max-width: 1279px) { .home-decisions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -167,8 +165,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .home, .home-skeleton { animation-duration: var(--dur-1); }
-    :is(.home-tile, .home-card):hover .frame > img { transform: none; }
-    .home .frame > img, .home-marquee-frame > img { transition: opacity var(--dur-1) linear; }
+    .home-marquee-frame > img { transition-duration: var(--dur-1); }
     .home-dot[data-tone='running'] { animation: none; }
   }
 }

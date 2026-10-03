@@ -159,7 +159,7 @@ function NeedsYou({ count, cards, link }: { count: number; cards: DecisionCard[]
       <ul className="home-row home-rail home-decisions" role="list" ref={rail} onScroll={onScroll}>
         {cards.map((c) => (
           <li key={c.id}>
-            <Link className="card home-card home-dcard" href={c.href} aria-label={`${c.action}: ${c.heading} (${c.kindLabel})`}>
+            <Link className="dcard home-card home-dcard" href={c.href} aria-label={`${c.action}: ${c.heading} (${c.kindLabel})`}>
               <Frame asset={c.picture?.asset} src={c.picture?.src} ratio="16/9" fit="cover" alt="" radius="none"
                 presentation={c.picture ? { ...c.picture.asset.presentation, ...(c.picture.position ? { focal: focalFrom(c.picture.position) } : null) } : undefined}
                 art={artVars(c.picture?.asset)} title={c.heading} titleState="noImage" judge={c.picture?.figure} decorative>
@@ -191,7 +191,7 @@ function PickUp({ items }: { items: RecentItem[] }) {
       <ul className="home-row home-rail home-recent" role="list">
         {items.map((it) => (
           <li key={it.key}>
-            <Link className="home-tile" href={it.href} title={it.title}>
+            <Link className="mtile-link home-tile" href={it.href} title={it.title}>
               <Frame asset={it.asset} src={it.src} ratio="16/9" fit="cover" alt=""
                 presentation={it.asset ? { ...it.asset.presentation, ...(it.position ? { focal: focalFrom(it.position) } : null) } : undefined}
                 art={artVars(it.asset)} title={it.title} titleLang={it.lang} titleState="noImage" decorative />
@@ -214,7 +214,7 @@ function Characters({ cast, total }: { cast: CastTile[]; total: number }) {
       <ul className="home-lineup home-rail" role="list">
         {cast.map((c) => (
           <li key={c.id} className="home-cast-item">
-            <Link className="home-tile" href={c.href} title={c.name}>
+            <Link className="mtile-link home-tile" href={c.href} title={c.name}>
               <Frame asset={c.asset} src={c.src} ratio="928/1664" fit="contain" alt="" art={artVars(c.asset)} title={c.name} titleLang={c.lang} titleState="noImage" decorative />
               <span className="t-card name home-tile-name"><bdi lang={c.lang}>{c.name}</bdi></span>
               <span className="home-tile-state">{c.waiting && <span className="badge badge-warn">Needs approval</span>}</span>
@@ -222,7 +222,7 @@ function Characters({ cast, total }: { cast: CastTile[]; total: number }) {
           </li>
         ))}
         <li className="home-cast-new">
-          <Link className="home-tile home-newchar" href="/characters/new">
+          <Link className="mtile-link home-tile home-newchar" href="/characters/new">
             <span className="home-newchar-frame">
               <span className="home-newchar-plus" aria-hidden><IconPlus /></span>
               <span className="t-body home-newchar-label">New character</span>
@@ -245,7 +245,7 @@ function Starts() {
       <ul className="home-row home-starts" role="list">
         {START_ACTIONS.map((a) => (
           <li key={a.href}>
-            <Link className="card home-card home-action" href={a.href}>
+            <Link className="acard home-card home-action" href={a.href}>
               <ShapeGlyph shape={a.shape} />
               <IconChevronRight aria-hidden className="home-action-chev" />
               <span className="home-action-text">
@@ -266,7 +266,7 @@ function StudioPanel({ facts }: { facts: StudioFact[] }) {
   return (
     <section className="home-section" aria-labelledby="home-studio-h">
       <SectionHead id="home-studio-h" title="The studio" link={{ href: '/studio', label: 'Studio Company' }} />
-      <dl className="card home-panel">
+      <dl className="pcard home-panel">
         {facts.map((f) => (
           <div key={f.key} className="home-fact" aria-busy={f.value === null || undefined}>
             <dt className="t-label">{f.label}</dt>
@@ -292,20 +292,42 @@ export function HomeSkeleton() {
         <Skeleton.Block className="home-marquee-frame" width="100%" height="auto" radius="lg" />
         <div className="home-words">
           <div className="home-words-main">
-            <Skeleton.Line size="small" width="min(20rem, 60%)" />
-            <Skeleton.Line size="title" width="min(28rem, 70%)" className="home-sk-title" />
-            <Skeleton.Line size="body" width="min(36rem, 85%)" />
+            <div className="home-meta"><Skeleton.Line width="min(20rem, 60%)" /></div>
+            <div className="t-display home-title"><Skeleton.Line size="title" width="min(24rem, 70%)" /></div>
+            <div className="t-lead home-lead home-sk-lead"><Skeleton.Line width="min(36rem, 90%)" /><Skeleton.Line width="min(24rem, 60%)" /></div>
           </div>
         </div>
       </div>
-      {[0, 1].map((row) => (
-        <div key={row} className="home-section">
-          <div className="home-head"><Skeleton.Line size="title" width="10rem" /></div>
-          <div className="home-row home-rail">
-            {Array.from({ length: 4 }, (_, i) => <Skeleton.Tile key={i} ratio="16/9" />)}
-          </div>
+      <div className="home-section">
+        <div className="home-head"><div className="t-section"><Skeleton.Line size="title" width="8rem" /></div></div>
+        <div className="home-row home-rail home-decisions">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i}>
+              <span className="dcard home-card home-dcard">
+                <Skeleton.Media ratio="16/9" />
+                <span className="home-dcard-body">
+                  <span className="t-label home-kind"><Skeleton.Line width="60%" /></span>
+                  <span className="t-card home-dcard-h"><Skeleton.Line width="50%" /></span>
+                  <span className="t-body home-dcard-d"><Skeleton.Line width="92%" /><Skeleton.Line width="64%" /></span>
+                  <Skeleton.Block className="home-dcard-btn" width={128} height={32} radius="pill" />
+                </span>
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+      <div className="home-section">
+        <div className="home-head"><div className="t-section"><Skeleton.Line size="title" width="14rem" /></div></div>
+        <div className="home-row home-rail home-recent">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="home-tile">
+              <Skeleton.Media ratio="16/9" />
+              <span className="t-card home-tile-name"><Skeleton.Line width="60%" /></span>
+              <span className="t-meta home-tile-meta"><Skeleton.Line width="40%" /></span>
+            </div>
+          ))}
+        </div>
+      </div>
     </SkeletonRegion>
   );
 }
