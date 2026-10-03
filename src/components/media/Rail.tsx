@@ -10,7 +10,7 @@ import { prefersReducedMotion } from '@/components/players/prefs';
 /** THE RAIL (docs/DESIGN-SYSTEM-V4.md §5.6) — a heading row (`.h2`, a faint count, optional controls such as the season
  *  picker, prev/next and *See all*) over a horizontal list whose first tile sits on the column start and whose last
  *  visible tile is partial (the cue; no edge fade). Scroll snaps by proximity. One Tab stop per rail: roving tabindex
- *  over the tiles; ←/→ move between tiles (mirrored in Arabic), Home and End go to the ends, Tab leaves. Prev/next and
+ *  over the tiles; ←/→ move between tiles, Home and End go to the ends, Tab leaves. Prev/next and
  *  *See all* make drag-scrolling optional (2.5.7); *See all* is the vertical grid every rail offers (1.4.10). */
 
 const FOCUSABLE = 'a[href], button, summary, input, select, textarea, [tabindex]';
@@ -54,11 +54,8 @@ export function Rail({ title, count, controls, seeAll, item = 'still', children,
   };
   const onKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
     if ((e.target as HTMLElement).closest('[role=menu], details[open]')) return;
-    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
-    const fwd = rtl ? 'ArrowLeft' : 'ArrowRight';
-    const back = rtl ? 'ArrowRight' : 'ArrowLeft';
     const n = e.currentTarget.children.length;
-    const k = e.key === fwd ? current.current + 1 : e.key === back ? current.current - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : null;
+    const k = e.key === 'ArrowRight' ? current.current + 1 : e.key === 'ArrowLeft' ? current.current - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : null;
     if (k === null) return;
     e.preventDefault(); focusItem(k);
   };
@@ -69,8 +66,7 @@ export function Rail({ title, count, controls, seeAll, item = 'still', children,
   };
   const page = (dir: 1 | -1) => {
     const ul = list.current; if (!ul) return;
-    const rtl = getComputedStyle(ul).direction === 'rtl';
-    ul.scrollBy({ left: dir * (rtl ? -1 : 1) * ul.clientWidth * 0.85, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    ul.scrollBy({ left: dir * ul.clientWidth * 0.85, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   };
 
   const H = headingLevel === 3 ? 'h3' : 'h2';
@@ -81,8 +77,8 @@ export function Rail({ title, count, controls, seeAll, item = 'still', children,
         {controls && <div className="rail-controls">{controls}</div>}
         <span className="rail-spacer" />
         <div className="rail-nav">
-          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.prev')} aria-controls={`${id}-l`} disabled={ends.start} onClick={() => page(-1)}><IconChevronLeft aria-hidden className="rtl:rotate-180" /></button>
-          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.next')} aria-controls={`${id}-l`} disabled={ends.end} onClick={() => page(1)}><IconChevronRight aria-hidden className="rtl:rotate-180" /></button>
+          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.prev')} aria-controls={`${id}-l`} disabled={ends.start} onClick={() => page(-1)}><IconChevronLeft aria-hidden /></button>
+          <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={T('media.rail.next')} aria-controls={`${id}-l`} disabled={ends.end} onClick={() => page(1)}><IconChevronRight aria-hidden /></button>
         </div>
         {seeAll && <Link href={seeAll.href} className="rail-all">{seeAll.label ?? T('media.rail.seeAll')}</Link>}
       </div>

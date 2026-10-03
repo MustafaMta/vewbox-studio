@@ -42,7 +42,7 @@ export default function AgentPage() {
   return (
     <>
       <header className="mb-8 lg:mb-10">
-        <Link href={back.href} className="mb-4 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden /><span dir="auto">{back.label}</span></Link>
+        <Link href={back.href} className="mb-4 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5" aria-hidden /><span dir="auto">{back.label}</span></Link>
         <div className="flex items-start gap-4">
           <Monogram name={a.name} size={56} director={director} />
           <div className="min-w-0 flex-1">

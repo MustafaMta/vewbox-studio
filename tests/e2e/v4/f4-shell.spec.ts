@@ -123,7 +123,7 @@ test.describe('the command palette (Ctrl/⌘K)', () => {
     expect(sent).toEqual([]);
   });
 
-  test('groups Go to · Create · Decide · Settings, kind first; matches Arabic names too', async ({ page }) => {
+  test('groups Go to · Create · Decide · Settings, kind first; matches a show’s Arabic title (content) too', async ({ page }) => {
     await open(page, '/shows', { kind: 'states' });
     await page.keyboard.press('Control+k');
     const input = palette(page).getByRole('combobox');
@@ -339,23 +339,6 @@ test.describe('the room (§2.3)', () => {
     await expect(page.locator('.shell-column')).toHaveAttribute('data-room', 'lobby');
     await expect(page.locator('.shell-column > main#main')).toHaveCount(1);
     expect(await page.locator('.shell-column').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(13, 12, 11)');
-  });
-});
-
-test.describe('Arabic: the shell mirrors', () => {
-  test('the sidebar on the right, the marker on its start edge, the palette in Arabic', async ({ page }) => {
-    await open(page, '/characters', { lang: 'ar' });
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    const n = (await nav(page).boundingBox())!;
-    expect(Math.round(n.x + n.width)).toBe(1440);
-    await expect(nav(page).locator('[aria-current="page"]')).toHaveText('الشخصيات');
-    // the 2 × 16 tally marker sits on the inline-start edge, which is the right in Arabic
-    expect(await nav(page).locator('[aria-current="page"]').evaluate((el) => getComputedStyle(el, '::before').right)).toBe('0px');
-    await page.keyboard.press('Control+k');
-    await expect(palette(page).getByRole('combobox')).toHaveAttribute('placeholder', 'انتقل، أنشئ، قرّر…');
-    await palette(page).getByRole('combobox').fill('last sip');
-    await expect(palette(page).getByRole('option').first()).toHaveText(/مسلسل\s*·\s*آخر رشفة/);
-    expect(await seriousOrCritical(page)).toEqual([]);
   });
 });
 

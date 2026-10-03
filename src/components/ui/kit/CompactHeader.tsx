@@ -10,7 +10,7 @@ import { useMediaQuery, useRootVarContribution } from './layout';
  *  the content's own shape (F3 supplies it: key art 57 × 32, poster 21 × 32, sleeve 32 × 32, figure 18 × 32, plate
  *  57 × 32) · the title (15/20 600, interface voice) · status (a StateWord) · [cutting room] the tabs · a spacer ·
  *  [cutting room] the save state · the page primary (btn-sm) · More. Ground --page at 96 %, a bottom hairline, no
- *  blur. RTL mirrors it.
+ *  blur.
  *  - `mode="lobby"`: it appears when `watch` (the hero, or a sentinel at its end) has scrolled out of view (an
  *    IntersectionObserver with rootMargin -48px 0 0 0) and leaves when it returns: a fade and an 8 px slide, in
  *    --t, out --t-exit-fast. Hidden, it is inert.
@@ -49,7 +49,7 @@ export function CompactHeader({ mode, watch, scrollRoot, contained, back, thumb,
   return (
     <div className={cls('compact-header', className)} data-mode={mode} data-shown={shown ? 'true' : 'false'} data-tabs={tabs && mode === 'cutting' ? 'true' : undefined} data-contained={contained ? 'true' : undefined} inert={!shown}>
       <div className="compact-start">
-        {back && <Link href={back.href} className="btn btn-quiet btn-sm btn-icon" aria-label={back.label} title={back.label}><IconChevronLeft aria-hidden className="rtl:rotate-180" /></Link>}
+        {back && <Link href={back.href} className="btn btn-quiet btn-sm btn-icon" aria-label={back.label} title={back.label}><IconChevronLeft aria-hidden /></Link>}
         {thumb && <span className="compact-thumb" aria-hidden>{thumb}</span>}
         <span className="compact-title" dir="auto">{title}</span>
         {status && <span className="compact-status">{status}</span>}

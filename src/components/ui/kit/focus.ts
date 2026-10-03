@@ -3,8 +3,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 /** FOCUS — the keyboard rules every kit control shares (docs/DESIGN-SYSTEM-V4.md §5.11, §5.17, §5.18):
- *  - a row of choices is one Tab stop; the arrow keys move along it in the reading direction (← and → swap in Arabic),
- *    Home and End jump to the ends, disabled items are skipped;
+ *  - a row of choices is one Tab stop; → and ← move along it (the interface is always left to right), Home and End jump to the ends, disabled items are skipped;
  *  - an overlay keeps Tab inside itself and gives focus back to whatever opened it.
  *  The pure parts (`rovingStep`, `rovingIndex`, `tabStops`) are unit-tested; the browser parts are driven by the
  *  Playwright specs in tests/e2e/v4 on /kit. */
@@ -12,12 +11,12 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 export type RovingStep = 'next' | 'prev' | 'first' | 'last';
 
 /** What a key means along a row (or a column) of choices; null when it means nothing there. */
-export function rovingStep(key: string, opts: { rtl?: boolean; orientation?: 'horizontal' | 'vertical' | 'both' } = {}): RovingStep | null {
+export function rovingStep(key: string, opts: { orientation?: 'horizontal' | 'vertical' | 'both' } = {}): RovingStep | null {
   const o = opts.orientation ?? 'horizontal';
   const h = o !== 'vertical';
   const v = o !== 'horizontal';
-  if (h && key === 'ArrowRight') return opts.rtl ? 'prev' : 'next';
-  if (h && key === 'ArrowLeft') return opts.rtl ? 'next' : 'prev';
+  if (h && key === 'ArrowRight') return 'next';
+  if (h && key === 'ArrowLeft') return 'prev';
   if (v && key === 'ArrowDown') return 'next';
   if (v && key === 'ArrowUp') return 'prev';
   if (key === 'Home') return 'first';
@@ -41,12 +40,6 @@ export function rovingIndex(step: RovingStep, from: number, disabled: readonly b
   }
   return -1;
 }
-
-/** The element's own direction (an Arabic page, or a `dir` on an ancestor). */
-export const isRtl = (el?: Element | null): boolean => {
-  if (el && typeof getComputedStyle === 'function') return getComputedStyle(el).direction === 'rtl';
-  return typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
-};
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, audio[controls], video[controls], [contenteditable]:not([contenteditable="false"]), [tabindex]';
 

@@ -15,7 +15,7 @@ import { fmtClock, timecode } from '@/components/players/time';
  *  playhead is a 1 px ivory line through every track with an iris handle on the ruler. Trim handles (8 px) sit at the
  *  clip edges on hover and focus; their pointer and keyboard alternative is the ±1 frame nudges in the toolbar (and the
  *  numeric in/out in the inspector) (2.5.7). Zoom: − / +, Ctrl+wheel and Fit. It scrolls horizontally only, and it is
- *  LEFT TO RIGHT in both languages. */
+ *  LEFT TO RIGHT. */
 
 export interface TimelineClip { id: string; number: number; from: number; to: number; purpose?: string }
 export interface TimelineLine { id: string; from: number; to: number; text: string; lang?: string }

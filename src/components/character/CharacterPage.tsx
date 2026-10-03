@@ -45,7 +45,7 @@ export function CharacterPage({ c }: { c: Character }) {
 
   return (
     <article className="pb-8" aria-labelledby="char-name">
-      <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{T('nav.characters')}</Link>
+      <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5" aria-hidden />{T('nav.characters')}</Link>
       <JustCreated c={c} />
       {/* the canonical image is the identity: the largest thing on the page (≈ 40 % of the content width on desktop) */}
       <div className="grid gap-8 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">

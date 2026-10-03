@@ -36,10 +36,8 @@
   .shell-groups { display: flex; flex: 1 0 auto; flex-direction: column; gap: 20px; padding: 4px 12px 16px; }
   .shell-group ul { display: flex; flex-direction: column; gap: 2px; }
   .shell-group-label { padding-inline: 12px; margin-block-end: 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--fg-faint); }
-  html[dir='rtl'] .shell-group-label { font-size: 13px; line-height: 20px; }
 
   .shell-item { position: relative; display: flex; align-items: center; gap: 10px; inline-size: 100%; block-size: 36px; padding-inline: 12px; border: 0; border-radius: var(--r-2); background: transparent; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-nav); text-align: start; cursor: pointer; transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
-  html[dir='rtl'] .shell-item { font-size: 14.5px; }
   .shell-icon { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; inline-size: 18px; block-size: 18px; color: var(--fg-faint); transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
   .shell-icon svg { inline-size: 18px; block-size: 18px; stroke-width: 1.5; }
   .shell-label { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -57,7 +55,6 @@
   /* the footer: Settings, Help & shortcuts, SaveState, the connection, Collapse */
   .shell-foot { display: flex; flex: none; flex-direction: column; gap: 2px; margin-block-start: auto; padding: 8px 12px 12px; border-block-start: 1px solid var(--line-soft); }
   .shell-status { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--fg-faint); cursor: default; }
-  html[dir='rtl'] .shell-status { font-size: 14px; line-height: 20px; }
   a.shell-status { cursor: pointer; }
   .shell-status .dot { inline-size: 6px; block-size: 6px; border-radius: var(--r-pill); background: var(--fg-disabled); }
   .shell-status[data-tone='ok'] .dot { background: var(--ok); }
@@ -65,7 +62,6 @@
   .shell-status[data-tone='warn'] { color: var(--warn); }
   .shell-status[data-tone='warn'] .dot { background: var(--warn); }
   .shell-kbd { flex: none; padding-inline: 5px; border: 1px solid var(--line-strong); border-radius: var(--r-1); font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 400; color: var(--fg-faint); }
-  html[dir='rtl'] .shell-mirror { transform: scaleX(-1); }
 
   /* the rail's tooltip (Sidebar.tsx): fixed, so the scrolling rail never clips it */
   .rail-tip { position: fixed; z-index: var(--z-toast); translate: 0 -50%; max-inline-size: 18rem; padding: 6px 10px; border-radius: var(--r-3); background: var(--raised-2); box-shadow: var(--shadow-3); font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg); white-space: nowrap; }
@@ -107,7 +103,6 @@
       & .shell-foot :is(.shell-button, .shell-status) .shell-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
       & .shell-foot .shell-kbd { display: none; }
     }
-    html[dir='rtl'] :is(.shell[data-nav='rail'], html[data-nav-boot='rail'] .shell:not([data-nav])) .shell-link .shell-label { font-size: 13px; line-height: 18px; }
   }
 
   /* ---- the phone: a 56 px top bar and a full-height menu sheet (< 768) --------------------------------------- */
@@ -125,14 +120,12 @@
   /* ---- the ServerBar: the event stream is down (§5.1) -------------------------------------------------------- */
   .shell-column[data-server='down'] { --sticky-top: calc(var(--mobilebar-h) + var(--server-bar-h, 40px)); }
   .server-bar { position: sticky; inset-block-start: calc(var(--sticky-top) - var(--server-bar-h, 40px)); z-index: calc(var(--z-compact) + 1); display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 4px var(--gutter); background: color-mix(in srgb, var(--warn) 12%, var(--page)); border-block-end: 1px solid color-mix(in srgb, var(--warn) 45%, var(--page)); font-size: 13px; line-height: 18px; color: var(--warn); }
-  html[dir='rtl'] .server-bar { font-size: 14px; line-height: 20px; }
   .server-bar-icon { flex: none; inline-size: 16px; block-size: 16px; }
   .server-bar-text { flex: 1; min-inline-size: 0; }
   .server-bar-what { font-weight: 600; }
   .server-bar-retry { flex: none; }
   .shell-column[data-server='down'] > .shell-main { opacity: 0.7; }
   .last-known { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--warn); }
-  html[dir='rtl'] .last-known { font-size: 13px; line-height: 20px; }
   @media (min-width: 768px) { .shell-column[data-server='down'] { --sticky-top: var(--server-bar-h, 40px); } }
 
   /* ---- the theatre's lights down (§4.8, §6.15): the house dims while the film plays ------------------------- */
@@ -177,9 +170,7 @@
   .palette-list { flex: 1 1 auto; min-block-size: 0; max-block-size: min(56vh, 480px); overflow-y: auto; padding: 8px; }
   .palette-group + .palette-group { margin-block-start: 8px; }
   .palette-group-label { padding: 8px 12px 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--fg-faint); }
-  html[dir='rtl'] .palette-group-label { font-size: 13px; line-height: 20px; }
   .palette-option { position: relative; display: flex; align-items: baseline; gap: 8px; min-block-size: 40px; padding: 10px 12px; border-radius: var(--r-2); font-size: 14px; line-height: 20px; color: var(--fg-body); cursor: pointer; }
-  html[dir='rtl'] .palette-option { font-size: 15px; line-height: 22px; }
   .palette-option[aria-selected='true'] { background: var(--raised-2); color: var(--fg); }
   .palette-option[aria-selected='true']::before { content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 50%; translate: 0 -50%; inline-size: 2px; block-size: 16px; border-radius: var(--r-precise); background: var(--accent); }
   .palette-kind { flex: none; color: var(--fg-muted); }
@@ -188,7 +179,6 @@
   .palette-detail { flex: 0 1 auto; min-inline-size: 0; margin-inline-start: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 20px; color: var(--fg-faint); }
   .palette-empty { padding: 12px 20px 20px; color: var(--fg-muted); }
   .palette-hint { flex: none; padding: 8px 16px; border-block-start: 1px solid var(--line-soft); font-size: 12px; line-height: 16px; color: var(--fg-faint); }
-  html[dir='rtl'] .palette-hint { font-size: 13px; line-height: 20px; }
   @media (pointer: coarse) { .palette-option { min-block-size: 44px; } .palette-hint { display: none; } }
 
   /* ---- the shortcut sheet (§5.17, §7.5) --------------------------------------------------------------------- */
@@ -200,9 +190,7 @@
   .keys-table caption { padding-block-end: 8px; text-align: start; }
   .keys-scope { display: block; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); }
   .keys-scope-hint { display: block; font-size: 12px; line-height: 16px; color: var(--fg-faint); }
-  html[dir='rtl'] .keys-scope-hint { font-size: 13px; line-height: 20px; }
   .keys-table th { padding-block: 7px; padding-inline-end: 12px; font-size: 13px; line-height: 18px; font-weight: 400; color: var(--fg-body); text-align: start; }
-  html[dir='rtl'] .keys-table th { font-size: 14px; line-height: 20px; }
   .keys-table td { padding-block: 7px; text-align: end; white-space: nowrap; }
   .keys-table tr + tr :is(th, td) { border-block-start: 1px solid var(--line-soft); }
   .keys-alts { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }

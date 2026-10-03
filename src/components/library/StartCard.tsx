@@ -19,7 +19,7 @@ export function StartCard({ href, icon, title, hint, art }: { href: string; icon
           <div className="flex items-center gap-2 text-[15px] font-semibold text-fg"><span className="text-accent [&>svg]:size-4">{icon}</span>{title}</div>
           <p className="mt-1 text-[13px] leading-relaxed text-faint">{hint}</p>
         </div>
-        <IconArrowRight aria-hidden className="mt-1 size-4 shrink-0 text-ink-500 transition-transform group-hover:translate-x-0.5 group-hover:text-fg rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+        <IconArrowRight aria-hidden className="mt-1 size-4 shrink-0 text-ink-500 transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
       </div>
     </Link>
   );

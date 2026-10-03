@@ -75,8 +75,8 @@ export function FilterChip({ children, onRemove, className = '' }: { children: R
   );
 }
 
-/** 4 px, --accent-strong on --raised-2, only when the worker reports a percent (job progress is not media, so it
- *  fills from the reading start and mirrors in Arabic). `value` is 0–1. */
+/** 4 px, --accent-strong on --raised-2, only when the worker reports a percent (it fills from the
+ *  start). `value` is 0–1. */
 export function ProgressBar({ value, label, className = '' }: { value: number; label: string; className?: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return <div className={cls('progress', className)} role="progressbar" aria-label={label} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><span style={{ inlineSize: `${pct}%` }} /></div>;

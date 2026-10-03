@@ -39,7 +39,7 @@ export function CompactHeader({ back, thumb, title, titleLang, status, tabs, tab
   useRootVarContribution('--sticky-extra', tabsBelow ? 92 : 48, shown && !contained);
   return (
     <div className={cls('chead', className)} data-mode={mode} data-shown={shown || undefined} data-tabs-below={tabsBelow || undefined} aria-hidden={!shown || undefined} inert={!shown || undefined}>
-      {back && <Link href={back.href} className="btn btn-quiet btn-sm btn-icon" aria-label={back.label}><IconChevronLeft aria-hidden className="rtl:rotate-180" /></Link>}
+      {back && <Link href={back.href} className="btn btn-quiet btn-sm btn-icon" aria-label={back.label}><IconChevronLeft aria-hidden /></Link>}
       {thumb && <CompactThumb src={thumb.src} shape={thumb.shape} />}
       <span className="chead-title" dir="auto" lang={titleLang}>{title}</span>
       {status && <span className="chead-status">{status}</span>}

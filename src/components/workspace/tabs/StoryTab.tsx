@@ -132,7 +132,7 @@ export function SceneEditor({ p, scene, cast, locations }: { p: Production; scen
                     <Select aria-label={T('label.role')} value={l.characterId} onChange={(e) => setLine(b.id, l.id, { characterId: e.target.value })} options={[...(scene.characterIds.length ? scene.characterIds : cast.map((c) => c.id)).map((id) => ({ value: id, label: nameOf(id) }))]} />
                     <div className="grid gap-1.5">
                       <Input value={l.text} onChange={(e) => setLine(b.id, l.id, { text: e.target.value })} placeholder={p.language === 'AR' ? 'English (for review)' : T('label.dialogue')} aria-label={T('label.dialogue')} />
-                      {p.language === 'AR' && <Input value={l.textAr ?? ''} dir="rtl" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="النص العربي" aria-label={`${T('label.dialogue')} (${T('label.arabic')})`} />}
+                      {p.language === 'AR' && <Input value={l.textAr ?? ''} dir="rtl" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="The line in Arabic" aria-label={`${T('label.dialogue')} (${T('label.arabic')})`} />}
                     </div>
                     <Button variant="ghost" size="xs" aria-label={T('btn.remove')} icon={<IconDelete />} onClick={() => setBeat(b.id, { lines: b.lines.filter((x) => x.id !== l.id) })} />
                   </li>

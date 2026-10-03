@@ -15,7 +15,7 @@ import { useShortcutScope } from './useShortcutScope';
  *  achromatic `--canvas`, radius 0, letterboxed; a DOCKED transport under the frame (never over it, never hidden —
  *  the editor needs it): ‹ frame · play · frame ›, −5 s / +5 s (J/L), mark in / mark out (I/O), the timecode in `.tc`,
  *  volume and zoom-to-fit. The seek fill is iris on `--ink-700`; the marked range shows on the track. The transport
- *  is LTR in both languages. `onAddNote` (N) appears only when timecoded notes exist in the backend (B2). */
+ *  is LTR. `onAddNote` (N) appears only when timecoded notes exist in the backend (B2). */
 
 export interface Marks { in?: number; out?: number }
 

@@ -55,13 +55,15 @@ export const ASPECT_INFO: Record<Aspect, { width: number; height: number; label:
   CINEMA_2_39: { width: 1536, height: 640, label: '2.39:1 · anamorphic', ratio: 2.39 },
 };
 
-export const DIALECT_LABELS: Record<Dialect, { en: string; ar: string }> = {
-  IRAQI_BAGHDADI: { en: 'Iraqi — Baghdadi', ar: 'عراقي — بغدادي' },
-  MSA: { en: 'Modern Standard Arabic', ar: 'العربية الفصحى' },
-  GULF: { en: 'Gulf', ar: 'خليجي' },
-  LEVANTINE: { en: 'Levantine', ar: 'شامي' },
-  EGYPTIAN: { en: 'Egyptian', ar: 'مصري' },
-  MOROCCAN: { en: 'Moroccan', ar: 'مغربي' },
+/** The dialects' English names: the prompts' and the interface's words for a production's dialect (the interface is
+ *  English-only). The index signature is TEMPORARY, for src/lib/format.ts (DS-1) until its rewrite reads `.en`. */
+export const DIALECT_LABELS: Record<Dialect, { en: string } & Record<string, string>> = {
+  IRAQI_BAGHDADI: { en: 'Iraqi — Baghdadi' },
+  MSA: { en: 'Modern Standard Arabic' },
+  GULF: { en: 'Gulf' },
+  LEVANTINE: { en: 'Levantine' },
+  EGYPTIAN: { en: 'Egyptian' },
+  MOROCCAN: { en: 'Moroccan' },
 };
 
 /** Suggested lengths, in seconds, by what is being made. */

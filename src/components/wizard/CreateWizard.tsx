@@ -252,7 +252,7 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-        <Button variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} onClick={onBack}>{T('auto.backToPreferences')}</Button>
+        <Button variant="ghost" icon={<IconChevronLeft />} onClick={onBack}>{T('auto.backToPreferences')}</Button>
         <div className="flex flex-wrap items-center gap-2">
           {onAnother && <Button variant="secondary" icon={<IconShuffle />} onClick={onAnother}>{proposal.sample ? T('auto.another') : T('auto.writeAnother')}</Button>}
           <Button variant="primary" onClick={create}>{T('wizard.createProject')}</Button>
@@ -277,7 +277,7 @@ function ManualSeason({ showId, onBack }: { showId: string; onBack: () => void }
       <Field label={T('label.title')} hint={T('wizard.optional')}><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`${T('kind.SEASON')} ${number}`} /></Field>
       <Field label={T('label.arc')} hint={T('wizard.optional')}><Textarea value={arc} onChange={(e) => setArc(e.target.value)} rows={4} dir="auto" /></Field>
       {error && <Notice tone="bad">{error}</Notice>}
-      <div className="flex justify-between gap-2"><Button variant="ghost" onClick={onBack} icon={<IconChevronLeft className="rtl:rotate-180" />}>{T('btn.back')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
+      <div className="flex justify-between gap-2"><Button variant="ghost" onClick={onBack} icon={<IconChevronLeft />}>{T('btn.back')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
     </form>
   );
 }
@@ -372,7 +372,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
         {step === 'song' && (
           <section className="space-y-5" aria-labelledby="w-song">
             <div><h2 id="w-song" className="h2">{T('wizard.song')}</h2><p className="mt-1 text-sm text-muted">{T('manual.songOptional')}</p></div>
-            <ChoiceCards name="song" columns={3} value={songMode} onChange={(v) => { setSongMode(v); setError(null); }} options={[{ value: 'LATER', label: T('manual.songLater'), hint: T('manual.songLater.hint'), icon: <IconChevronRight className="rtl:rotate-180" /> }, { value: 'GENERATE', label: T('wizard.generateSong'), hint: T('wizard.generateSong.hint'), icon: <IconMusicVideos /> }, { value: 'UPLOAD', label: T('wizard.uploadSong'), hint: T('wizard.uploadSong.hint'), icon: <IconUpload /> }]} />
+            <ChoiceCards name="song" columns={3} value={songMode} onChange={(v) => { setSongMode(v); setError(null); }} options={[{ value: 'LATER', label: T('manual.songLater'), hint: T('manual.songLater.hint'), icon: <IconChevronRight /> }, { value: 'GENERATE', label: T('wizard.generateSong'), hint: T('wizard.generateSong.hint'), icon: <IconMusicVideos /> }, { value: 'UPLOAD', label: T('wizard.uploadSong'), hint: T('wizard.uploadSong.hint'), icon: <IconUpload /> }]} />
             {songMode === 'GENERATE' && (
               <>
                 <Field label={T('wizard.songCaption')} help={T('wizard.songCaption.help')} error={error && !caption.trim() && !lyrics.trim() ? error : null}><Textarea value={caption} onChange={(e) => { setCaption(e.target.value); setError(null); }} rows={2} /></Field>
@@ -464,9 +464,9 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
       </div>
 
       <div className="mt-8 flex items-center justify-between gap-3 border-t border-line pt-5">
-        <Button variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} onClick={back}>{T('btn.back')}</Button>
+        <Button variant="ghost" icon={<IconChevronLeft />} onClick={back}>{T('btn.back')}</Button>
         <span className="num text-xs text-faint">{stepIdx + 1} {T('step.of')} {steps.length}</span>
-        {step === 'review' ? <Button variant="primary" onClick={create}>{T('wizard.createProject')}</Button> : <Button variant="primary" onClick={next}>{T('btn.next')}<IconChevronRight className="rtl:rotate-180" /></Button>}
+        {step === 'review' ? <Button variant="primary" onClick={create}>{T('wizard.createProject')}</Button> : <Button variant="primary" onClick={next}>{T('btn.next')}<IconChevronRight /></Button>}
       </div>
     </div>
   );

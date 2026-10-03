@@ -3,8 +3,8 @@ import { open, palette, sheet } from './f4-helpers';
 
 /** F4's screenshot evidence for the states a page capture cannot reach (docs/DESIGN-SYSTEM-V4.md §8.5 F4): the
  *  sidebar at 1440, the rail at 834, the phone bar and its open menu at 390, the palette open, the shortcut sheet
- *  and the ServerBar — in English and Arabic, on the sample and the empty fixture studio. Written to
- *  docs/evidence/v4-f4-<state>-<fixture>-<lang>-<width>.png. Nothing is written to the studio.
+ *  and the ServerBar — on the sample and the empty fixture studio (the interface is English-only). Written to
+ *  docs/evidence/v4-f4-<state>-<fixture>-<width>.png. Nothing is written to the studio.
  *
  *    $env:F4_EVIDENCE='1'; $env:STUDIO_URL='http://localhost:4223'; pnpm exec playwright test tests/e2e/v4/f4-evidence --project=desktop */
 
@@ -12,31 +12,31 @@ test.skip(process.env.F4_EVIDENCE !== '1', 'evidence captures run on request (F4
 test.describe.configure({ timeout: 180_000 });
 
 const SIZES = { 1440: { width: 1440, height: 900 }, 834: { width: 834, height: 1112 }, 390: { width: 390, height: 844 } } as const;
-const file = (state: string, kind: string, lang: string, width: number) => `docs/evidence/v4-f4-${state}-${kind}-${lang}-${width}.png`;
+const file = (state: string, kind: string, width: number) => `docs/evidence/v4-f4-${state}-${kind}-${width}.png`;
 const settle = async (page: Page) => { await page.evaluate(() => document.fonts.ready); await page.waitForTimeout(400); };
 
 for (const kind of ['sample', 'empty'] as const) {
-  for (const lang of ['en', 'ar'] as const) {
-    test(`shell ${kind} ${lang}: sidebar, rail, phone bar and menu, palette`, async ({ browser }) => {
+  {
+    test(`shell ${kind}: sidebar, rail, phone bar and menu, palette`, async ({ browser }) => {
       for (const width of [1440, 834, 390] as const) {
         const phone = width === 390;
         const context = await browser.newContext({ viewport: SIZES[width], colorScheme: 'dark', ...(width < 1440 ? { isMobile: true, hasTouch: true } : {}) });
         const page = await context.newPage();
-        await open(page, '/shows', { kind, lang });
+        await open(page, '/shows', { kind });
         await settle(page);
-        await page.screenshot({ path: file(phone ? 'bar' : width === 834 ? 'rail' : 'sidebar', kind, lang, width) });
+        await page.screenshot({ path: file(phone ? 'bar' : width === 834 ? 'rail' : 'sidebar', kind, width) });
         if (phone) {
           await page.locator('header.mobile-bar button[aria-controls="mobile-menu"]').click();
           await expect(page.locator('dialog#mobile-menu')).toBeVisible();
           await settle(page);
-          await page.screenshot({ path: file('menu', kind, lang, width) });
+          await page.screenshot({ path: file('menu', kind, width) });
           await page.keyboard.press('Escape');
         }
         if (width === 1440 || width === 390) {
           await page.keyboard.press('Control+k');
           await expect(palette(page)).toBeVisible();
           await settle(page);
-          await page.screenshot({ path: file('palette', kind, lang, width) });
+          await page.screenshot({ path: file('palette', kind, width) });
           await page.keyboard.press('Escape');
         }
         await context.close();
@@ -45,11 +45,11 @@ for (const kind of ['sample', 'empty'] as const) {
   }
 }
 
-for (const lang of ['en', 'ar'] as const) {
-  test(`shell states ${lang}: palette with a query and decisions, shortcut sheet, ServerBar, rail tooltip`, async ({ browser }) => {
+{
+  test('shell states: palette with a query and decisions, shortcut sheet, ServerBar, rail tooltip', async ({ browser }) => {
     const context = await browser.newContext({ viewport: SIZES[1440], colorScheme: 'dark' });
     const page = await context.newPage();
-    await open(page, '/production', { kind: 'states', lang, before: (p) => p.addInitScript(() => {
+    await open(page, '/production', { kind: 'states', before: (p) => p.addInitScript(() => {
       // the stream drops on request (window.__drop) and stays down
       const w = window as unknown as { __es: Array<{ onerror: (() => void) | null }>; __down: boolean; __drop: () => void; EventSource: unknown };
       w.__es = []; w.__down = false;
@@ -62,30 +62,30 @@ for (const lang of ['en', 'ar'] as const) {
     await page.keyboard.press('Control+k');
     await expect(palette(page)).toBeVisible();
     await settle(page);
-    await page.screenshot({ path: file('palette-decide', 'states', lang, 1440) });
-    await palette(page).getByRole('combobox').fill(lang === 'ar' ? 'جديد' : 'new');
+    await page.screenshot({ path: file('palette-decide', 'states', 1440) });
+    await palette(page).getByRole('combobox').fill('new');
     await settle(page);
-    await page.screenshot({ path: file('palette-query', 'states', lang, 1440) });
+    await page.screenshot({ path: file('palette-query', 'states', 1440) });
     await page.keyboard.press('Escape');
     await page.locator('main h1').first().click();
     await page.keyboard.press('Shift+Slash');
     await expect(sheet(page)).toBeVisible();
     await settle(page);
-    await page.screenshot({ path: file('shortcuts', 'states', lang, 1440) });
+    await page.screenshot({ path: file('shortcuts', 'states', 1440) });
     await page.keyboard.press('Escape');
     await page.evaluate(() => (window as unknown as { __drop: () => void }).__drop());
     await expect(page.locator('.server-bar')).toBeVisible({ timeout: 8000 });
     await settle(page);
-    await page.screenshot({ path: file('serverbar', 'states', lang, 1440) });
+    await page.screenshot({ path: file('serverbar', 'states', 1440) });
     await context.close();
 
     const tablet = await browser.newContext({ viewport: SIZES[834], colorScheme: 'dark', isMobile: true, hasTouch: true });
     const t = await tablet.newPage();
-    await open(t, '/production', { kind: 'states', lang });
+    await open(t, '/production', { kind: 'states' });
     await t.locator('.shell > nav button[aria-keyshortcuts="Shift+?"]').focus();
     await expect(t.locator('.rail-tip')).toBeVisible();
     await settle(t);
-    await t.screenshot({ path: file('rail-tooltip', 'states', lang, 834) });
+    await t.screenshot({ path: file('rail-tooltip', 'states', 834) });
     await tablet.close();
   });
 }

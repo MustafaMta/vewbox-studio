@@ -10,7 +10,7 @@ import { useModLabel } from './Sidebar';
 
 /** THE SHORTCUT SHEET (docs/DESIGN-SYSTEM-V4.md §5.17, §7.5) — `?` when focus is not in a text field, or Help &
  *  shortcuts in the navigation. The shortcuts by scope (Global · Player · Storyboard · Timeline), with the on/off
- *  preference for single-key shortcuts (WCAG 2.1.4). Key combinations are written left to right in both languages. */
+ *  preference for single-key shortcuts (WCAG 2.1.4). Key combinations are written left to right. */
 export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <ShellDialog open={open} onClose={onClose} title={T('shell.keys.title')} placement="center" width={720} className="keys-dialog">

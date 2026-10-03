@@ -2,18 +2,18 @@
 
 import { useId, type ReactNode } from 'react';
 import { cls } from './cls';
-import { isRtl, rovingIndex, rovingStep } from './focus';
+import { rovingIndex, rovingStep } from './focus';
 
 /** CHOICES (docs/DESIGN-SYSTEM-V4.md §5.18) — Segmented for every short closed set (age band, pitch, lighting,
  *  Song ⇄ Video), ChoiceTiles for the method choice. Both are radiogroups with one Tab stop: the arrow keys move the
- *  selection along the reading direction (← and → swap in Arabic), Home and End jump to the ends, disabled options
+ *  selection along the row (→ next, ← previous), Home and End jump to the ends, disabled options
  *  are skipped. A disabled option says why in words beside the control (`reason`), never by colour alone. */
 
 export interface ChoiceOption<T extends string> { value: T; label: ReactNode; icon?: ReactNode; disabled?: boolean; /** why it is disabled, shown as text */ reason?: ReactNode }
 
 function useRadioKeys<T extends string>(options: ReadonlyArray<{ value: T; disabled?: boolean }>, value: T, onChange: (v: T) => void, orientation: 'horizontal' | 'both') {
   return (e: React.KeyboardEvent<HTMLElement>) => {
-    const step = rovingStep(e.key, { rtl: isRtl(e.currentTarget), orientation });
+    const step = rovingStep(e.key, { orientation });
     if (!step) return;
     const from = Math.max(0, options.findIndex((o) => o.value === value));
     const next = rovingIndex(step, from, options.map((o) => Boolean(o.disabled)));

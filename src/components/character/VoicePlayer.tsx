@@ -10,8 +10,8 @@ import { peaksFor } from '@/components/players/Waveform';
 /** THE VOICE PLAYER (DESIGN-SYSTEM-V3 §6) — one row: the ivory play disc, the name and one line of detail, the
  *  waveform decoded from the file itself (played part in ivory, the rest in the strong hairline), the time, and where
  *  the sound came from. It drives the studio's one shared <audio>, so it never overlaps another sound and nothing
- *  autoplays. Keyboard: the disc toggles; on the waveform ←/→ move one second along the reading direction (mirrored in
- *  Arabic), Home/End jump to the ends, Space/Enter toggle. `compact` is the small variant for a header or a card. */
+ *  autoplays. Keyboard: the disc toggles; on the waveform ←/→ move one second back or forward, Home/End jump to the
+ *  ends, Space/Enter toggle. `compact` is the small variant for a header or a card. */
 export function VoicePlayer({ track, name, detail, source, compact, selected, action, unavailableText, className = '' }: {
   track: Track | null; name: string; detail?: ReactNode; source?: 'SAMPLE' | 'UPLOADED' | 'GENERATED'; compact?: boolean; selected?: boolean; action?: ReactNode; unavailableText?: string; className?: string;
 }) {
@@ -35,7 +35,7 @@ export function VoicePlayer({ track, name, detail, source, compact, selected, ac
     </div>
   );
   return (
-    <div className={cls('flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--r-2)] py-1', selected && 'bg-accent-soft ps-3 shadow-[inset_2px_0_0_var(--accent)] rtl:shadow-[inset_-2px_0_0_var(--accent)]', className)} role="group" aria-label={`${T('cast.voice.title')}: ${name}`}>
+    <div className={cls('flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--r-2)] py-1', selected && 'bg-accent-soft ps-3 shadow-[inset_2px_0_0_var(--accent)]', className)} role="group" aria-label={`${T('cast.voice.title')}: ${name}`}>
       {disc}
       <div className="min-w-0 flex-1 basis-40">
         <p className="line-clamp-2 text-[14px] font-semibold leading-5 text-fg" dir="auto">{name}</p>
@@ -78,16 +78,15 @@ function Wave({ track, bars, height, className = '', label }: { track: Track; ba
     const css = getComputedStyle(document.documentElement);
     const played = css.getPropertyValue('--fg').trim() || '#f3eee6';
     const rest = css.getPropertyValue('--ink-600').trim() || '#4a4640';
-    const rtl = document.documentElement.dir === 'rtl';
     if (!peaks) { // the line that stands in
       g.fillStyle = rest; g.fillRect(0, height / 2 - 1, width, 2);
-      g.fillStyle = played; const w = width * progress; g.fillRect(rtl ? width - w : 0, height / 2 - 1, w, 2);
+      g.fillStyle = played; const w = width * progress; g.fillRect(0, height / 2 - 1, w, 2);
       return;
     }
     const n = peaks.length; const gap = 1.5; const bw = Math.max(1, (width - gap * (n - 1)) / n);
     for (let i = 0; i < n; i++) {
       const bh = Math.max(2, Math.max(0.08, peaks[i]) * (height - 2));
-      const x = rtl ? width - i * (bw + gap) - bw : i * (bw + gap);
+      const x = i * (bw + gap);
       g.fillStyle = (i + 0.5) / n <= progress ? played : rest;
       g.beginPath(); g.roundRect(x, (height - bh) / 2, bw, bh, 1); g.fill();
     }
@@ -95,8 +94,7 @@ function Wave({ track, bars, height, className = '', label }: { track: Track; ba
 
   const seekTo = (t: number) => { const d = st.duration; if (!d) { p.play(track, 0); return; } const c = Math.max(0, Math.min(d, t)); if (st.mine) p.seek(c); else p.play(track, c); };
   const onKey = (e: React.KeyboardEvent) => {
-    const rtl = document.documentElement.dir === 'rtl';
-    const fwd = e.key === (rtl ? 'ArrowLeft' : 'ArrowRight'); const back = e.key === (rtl ? 'ArrowRight' : 'ArrowLeft');
+    const fwd = e.key === 'ArrowRight'; const back = e.key === 'ArrowLeft';
     if (fwd || back) { e.preventDefault(); seekTo(st.time + (fwd ? 1 : -1)); }
     else if (e.key === 'Home') { e.preventDefault(); seekTo(0); }
     else if (e.key === 'End') { e.preventDefault(); seekTo(st.duration); }
@@ -106,6 +104,6 @@ function Wave({ track, bars, height, className = '', label }: { track: Track; ba
     <canvas ref={canvas} role="slider" tabIndex={0} aria-label={`${T('misc.seek')} ${label}`} aria-valuemin={0} aria-valuemax={Math.round(st.duration) || 0} aria-valuenow={Math.round(st.time)} aria-valuetext={`${fmtClock(st.time)} / ${fmtClock(st.duration)}`}
       title={failed ? T('cast.voice.noWave') : undefined}
       className={cls('block cursor-pointer rounded-[2px]', className)} style={{ height }} onKeyDown={onKey}
-      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); let f = (e.clientX - r.left) / r.width; if (document.documentElement.dir === 'rtl') f = 1 - f; seekTo(f * (st.duration || 0)); }} />
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const f = (e.clientX - r.left) / r.width; seekTo(f * (st.duration || 0)); }} />
   );
 }

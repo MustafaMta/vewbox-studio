@@ -22,8 +22,7 @@ export function VersionStack({ versions, current, onPick, onCompare, className }
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const xs = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('.vchip'));
     const i = xs.indexOf(document.activeElement as HTMLButtonElement); if (i < 0) return;
-    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
-    const n = e.key === (rtl ? 'ArrowLeft' : 'ArrowRight') ? i + 1 : e.key === (rtl ? 'ArrowRight' : 'ArrowLeft') ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? xs.length - 1 : null;
+    const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? xs.length - 1 : null;
     if (n === null) return;
     e.preventDefault(); xs[(n + xs.length) % xs.length]?.focus();
   };

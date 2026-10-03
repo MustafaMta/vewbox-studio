@@ -85,9 +85,9 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
     case 'assets': return [T('nav.files')];
     case 'library': return [T('library.title')];
     case 'projects': return [T('projects.title')];
-    case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : T.dyn(`wizard.new.${seg[1]}`, seg[1])] : [T('nav.new')];
+    case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : seg[1]] : [T('nav.new')];
     // the dev-only specimen pages of the interface kit (F2) and the media kit (F3)
-    case 'kit': return [T.dyn('kit.page.title', T('shell.title.kit'))];
+    case 'kit': return [T('kit.page.title')];
     case 'kit-media': return [T('shell.title.kitMedia')];
     default: return [];
   }

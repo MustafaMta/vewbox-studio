@@ -71,8 +71,8 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
         </div>
         <div className="flex items-center gap-2">
           {dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}
-          <LinkButton href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev} size="sm" variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} aria-label={T('shot.previous')} className={prev ? '' : 'pointer-events-none opacity-40'} />
-          <LinkButton href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next} size="sm" variant="ghost" icon={<IconChevronRight className="rtl:rotate-180" />} aria-label={T('shot.nextShot')} className={next ? '' : 'pointer-events-none opacity-40'} />
+          <LinkButton href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev} size="sm" variant="ghost" icon={<IconChevronLeft />} aria-label={T('shot.previous')} className={prev ? '' : 'pointer-events-none opacity-40'} />
+          <LinkButton href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next} size="sm" variant="ghost" icon={<IconChevronRight />} aria-label={T('shot.nextShot')} className={next ? '' : 'pointer-events-none opacity-40'} />
           <Menu label={T('nav.more')}>
             <MenuItem icon={<IconDuplicate />} onClick={() => { act('duplicateShot', p.id, shot.id); toast.ok(T('toast.created')); router.push(`${base}?tab=storyboard`); }}>{T('btn.duplicate')}</MenuItem>
             <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { act('deleteShot', p.id, shot.id); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); } }}>{T('btn.delete')}</MenuItem>

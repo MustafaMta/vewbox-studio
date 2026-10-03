@@ -47,7 +47,7 @@ function ToastItem({ t, onGone }: { t: Toast; onGone: (id: number) => void }) {
         {(t.link || t.action) && (
           <span className="mt-1 flex flex-wrap items-center gap-3">
             {t.action && <button type="button" className="toast-action" onClick={() => { t.action!.onClick(); close(); }}>{t.action.label}</button>}
-            {t.link && <Link href={t.link.href} className="toast-action" onClick={close}>{t.link.label} <span aria-hidden className="toast-arrow">→</span></Link>}
+            {t.link && <Link href={t.link.href} className="toast-action" onClick={close}>{t.link.label} <span aria-hidden>→</span></Link>}
           </span>
         )}
       </div>

@@ -28,7 +28,7 @@ export function PageHeader({ title, titleAr, titleAlt, subtitle, eyebrow, slate,
   const actions = primary || secondary || more ? <>{primary}{secondary}{more}</> : action;
   return (
     <header className={cls('page-header mb-8 lg:mb-10', className)}>
-      {back && <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link>}
+      {back && <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5" aria-hidden />{back.label}</Link>}
       {(slate || eyebrow) && <div className={slate ? 'page-slate' : 'eyebrow page-eyebrow'}>{slate ?? eyebrow}</div>}
       <H className={cls('page-header-title', size === 'display' ? 'display-xl' : 'page-title')} dir="auto">
         {title}{count !== undefined && <span className="page-count num">{count}</span>}

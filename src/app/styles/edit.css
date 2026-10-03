@@ -40,7 +40,6 @@
   .reel-missing { position: absolute; inset: 0; display: grid; place-items: center; background: var(--input); color: var(--fg-faint); }
   .reel-missing .tc { font-size: 28px; line-height: 32px; }
   .reel-label { position: absolute; inset-block-start: var(--space-3); inset-inline-start: var(--space-3); padding: 2px 8px; border-radius: var(--r-1); background: var(--chip-on-art); color: var(--on-art); font-size: 12px; line-height: 16px; font-weight: 500; }
-  html[dir='rtl'] .reel-label { font-size: 13px; line-height: 20px; }
   .reel-shot { position: absolute; inset-block-start: var(--space-3); inset-inline-end: var(--space-3); padding: 2px 6px; border-radius: var(--r-1); background: var(--chip-on-art); color: var(--on-art); font-size: 12px; }
   .reel-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); }
 
@@ -101,15 +100,13 @@
   .dock-panel { display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; background: var(--frame); }
   .dock-panel-head { display: flex; flex: none; align-items: center; gap: 6px; block-size: 40px; padding-inline: 12px 6px; background: var(--input); }
   .dock-panel-title { flex: 1; margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--fg); }
-  html[dir='rtl'] .dock-panel-title { font-size: 14px; line-height: 20px; }
   .dock-panel-body { flex: 1; min-block-size: 0; padding: 12px; overflow-x: hidden; overflow-y: auto; }
   .dock-canvas { position: relative; display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; overflow: hidden; background: var(--canvas); }
   .dock-split { position: relative; cursor: col-resize; touch-action: none; outline: none; }
   .dock-split::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: calc(50% - 0.5px); inline-size: 1px; background: var(--line-soft); }
   .dock-split:hover::after, .dock-split:focus-visible::after { inset-inline-start: calc(50% - 1px); inline-size: 2px; background: var(--accent); }
   .dock-rail { display: flex; flex-direction: column; align-items: center; padding-block: 4px; background: var(--input); }
-  html[dir='rtl'] .dock-collapse-glyph, .dock-inspector .dock-collapse-glyph { transform: scaleX(-1); }
-  html[dir='rtl'] .dock-inspector .dock-collapse-glyph { transform: none; }
+  .dock-inspector .dock-collapse-glyph { transform: scaleX(-1); }
   .dock-canvas > .cplayer { flex: 1; min-block-size: 0; }
   .dock-canvas .cplayer-canvas { flex: 1; min-block-size: 0; }
   .dock-canvas .cplayer-canvas[data-zoom='fit'] .cplayer-box { block-size: 100%; max-block-size: none; aspect-ratio: auto !important; }
@@ -130,7 +127,6 @@
   .insp-name { margin-block-start: 2px; }
   .insp-sec { display: flex; flex-direction: column; gap: var(--space-2); }
   .insp-sec-title { margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
-  html[dir='rtl'] .insp-sec-title { font-size: 13px; line-height: 20px; }
   .insp-details-body { display: flex; flex-direction: column; gap: var(--space-2); }
 
   /* ---- the version stack ------------------------------------------------------------------------------------- */

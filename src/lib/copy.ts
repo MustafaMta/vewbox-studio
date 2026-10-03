@@ -12,30 +12,39 @@
  *  `T('btn.save')`; `` T.dyn(`stage.${x}`) `` for a key built at runtime (unknown keys become readable words);
  *  `T.f(key, { name })` fills `{name}`; `T.p(key, n)` picks `one|other` by the count and fills `{n}`. */
 const COPY = {
-  // common
+  // ---- common --------------------------------------------------------------------------------------------------------
+  // stages
   'stage.STORY': 'Story',
   'stage.CAST_AND_WORLD': 'Cast & World',
   'stage.STORYBOARD': 'Storyboard',
   'stage.PRODUCE': 'Produce',
   'stage.FINAL_CUT': 'Final Cut',
   'stage.COMPLETE': 'Complete',
+
+  // kinds
   'kind.EPISODE': 'Episode',
   'kind.SHORT': 'Short',
   'kind.MUSIC_VIDEO': 'Music video',
   'kind.SHOW': 'Show',
   'kind.SEASON': 'Season',
+
+  // styles
   'style.CARTOON': 'Cartoon',
   'style.ANIME': 'Anime',
   'style.REALISTIC': 'Realistic',
   'style.CARTOON.hint': 'Bold shapes, flat colour, exaggerated motion.',
   'style.ANIME.hint': 'Clean line, expressive eyes, painted light.',
   'style.REALISTIC.hint': 'Natural proportions, photographic light.',
+
+  // workspace tabs
   'tab.overview': 'Overview',
   'tab.story': 'Story',
   'tab.storyboard': 'Storyboard',
   'tab.produce': 'Produce',
   'tab.finalCut': 'Final Cut',
   'tab.voice': 'Voice',
+
+  // buttons
   'btn.create': 'Create',
   'btn.save': 'Save',
   'btn.saved': 'Saved',
@@ -65,6 +74,8 @@ const COPY = {
   'btn.selected': 'Selected',
   'btn.createNew': 'Create new',
   'btn.markDone': 'Mark this step done',
+
+  // labels
   'label.title': 'Title',
   'label.titleAr': 'Arabic title',
   'label.logline': 'Logline',
@@ -94,7 +105,6 @@ const COPY = {
   'label.created': 'Created',
   'label.arc': 'Season arc',
   'label.confirmTitle': 'Type the title to confirm',
-  'label.interfaceLanguage': 'Interface language',
   'label.english': 'English',
   'label.arabic': 'Arabic',
   'label.all': 'All',
@@ -136,6 +146,8 @@ const COPY = {
   'label.masterPlate': 'Master plate',
   'label.female': 'Female',
   'label.male': 'Male',
+
+  // libraries
   'lib.addShow': 'Add Show',
   'lib.addShort': 'Add Short',
   'lib.addMusicVideo': 'Add Music Video',
@@ -161,6 +173,8 @@ const COPY = {
   'media.generated': 'Generated',
   'media.added': 'File added.',
   'toast.emptied': 'The studio is empty.',
+
+  // empty states
   'empty.shows': 'No shows yet.',
   'empty.shows.hint': 'A show holds seasons and episodes that share a cast and a world.',
   'empty.shorts': 'No shorts yet.',
@@ -179,6 +193,8 @@ const COPY = {
   'empty.cast': 'Nobody in the cast yet.',
   'empty.locationsIn': 'No locations chosen yet.',
   'empty.references': 'No reference views yet.',
+
+  // misc
   'toast.saved': 'Saved.',
   'toast.created': 'Created.',
   'toast.deleted': 'Deleted.',
@@ -186,6 +202,8 @@ const COPY = {
   'misc.notFound': 'Not here',
   'misc.notFound.hint': 'This page does not exist, or the item was deleted.',
   'misc.of': 'of',
+
+  // section tabs
   'tab.seasons': 'Seasons',
   'tab.characters': 'Characters',
   'tab.locations': 'Locations',
@@ -203,6 +221,8 @@ const COPY = {
   'meta.episode': 'episode',
   'meta.artist': 'Artist',
   'meta.noArtist': 'No performer yet',
+  // home
+  // misc
   'misc.player': 'Player',
   'misc.seek': 'Seek',
   'misc.play': 'Play',
@@ -218,12 +238,14 @@ const COPY = {
   'lib.filterProduction': 'Production',
   'lib.filterUsage': 'Usage',
   'misc.episodeOf': 'Episode',
+
+  // jobs and generation (the real backend)
   'btn.refresh': 'Refresh',
   'status.title': 'Engines',
   'status.lead': 'What this studio can do right now, and where each engine runs.',
-  'status.video': 'Video (MiniMax)',
+  'status.video': 'Video (MiniMax)', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
   'status.story': 'Story engine',
-  'status.images': 'Images (ComfyUI)',
+  'status.images': 'Images (ComfyUI)', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
   'status.voice': 'Voices',
   'status.transcription': 'Transcription',
   'status.music': 'Music',
@@ -234,21 +256,26 @@ const COPY = {
   'status.offline': 'Offline',
   'status.connected': 'Connected to the studio server',
   'status.disconnected': 'Reconnecting to the studio server…',
+  // ---- end of design v3 block ----
   'tab.episodes': 'Episodes',
   'tab.showCast': 'Cast',
   'lib.filterLanguage': 'Language',
   'lib.filterGenre': 'Genre',
   'lib.sortName': 'Name',
   'lib.sortMostUsed': 'Most used',
-  // kit
+  // ---- kit -----------------------------------------------------------------------------------------------------------
+  // library views and metadata
   'view.grid': 'Grid',
   'view.list': 'List',
+  // ---- design v3: kit, Studio Company, department and agent pages (docs/DESIGN-SYSTEM-V3.md §6, §9.1–9.3) ----
   'v3.noPictureYet': 'No picture yet',
   'v3.breadcrumb': 'Breadcrumb',
   'v3.retry.withChange': 'Retry with a change',
   'v3.retry.what': 'What did you change?',
   'v3.retry.placeholder': 'e.g. replaced the reference picture',
   'v3.retry.hint': 'Unchanged, this failure would repeat. What you write is recorded with the retry.',
+
+  // job progress: the worker's real phases, in words
   'jp.QUEUED': 'Queued',
   'jp.PREPARING': 'Preparing',
   'jp.GENERATING': 'Generating',
@@ -260,6 +287,7 @@ const COPY = {
   'jp.done': 'done',
   'jp.failed': 'failed',
   'jp.skipped': 'skipped',
+  // the phases character and voice jobs report (progress.phase), read as `jp.${phase}` (finding 14)
   'jp.preparing': 'Preparing',
   'jp.recovering': 'Recovering',
   'jp.design': 'Designing',
@@ -273,6 +301,7 @@ const COPY = {
   'jp.retry scheduled': 'Retry scheduled',
   'jp.awaiting review': 'Awaiting review',
   'jp.cancelled': 'Cancelled',
+  // error codes → plain copy and the one recovery action
   'err.unknown': 'The step failed.',
   'err.openJob': 'Open the job',
   'err.UNAVAILABLE': 'The engine is not reachable.',
@@ -306,7 +335,10 @@ const COPY = {
   'err.NOT_FOUND.fix': 'Go back',
   'err.CANCELLED': 'Cancelled.',
   'err.CANCELLED.hint': 'You stopped it; what was finished is kept.',
+  // image preview
   'preview.empty': 'No picture yet',
+
+  // ---- design v4 (F2): the interface kit (docs/DESIGN-SYSTEM-V4.md §5.2, §5.10–5.11, §5.15–5.19) ------------------
   'kit.confirm': 'Confirm',
   'kit.optional': 'optional',
   'kit.dismiss': 'Dismiss',
@@ -315,6 +347,7 @@ const COPY = {
   'kit.loading': 'Loading…',
   'kit.deleteAll': 'This removes it and everything that belongs to it.',
   'kit.err.unknownHint': 'The studio could not finish this step. What was finished before it is kept.',
+  // status (§5.10)
   'kit.state.running': 'Running',
   'kit.sub.waiting': 'Waiting for you',
   'kit.sub.refused': 'Refused by the quality check',
@@ -335,8 +368,10 @@ const COPY = {
   'kit.filter.remove': 'Remove the filter {label}',
   'kit.filter.clearAll': 'Clear all',
   'kit.view': 'View',
+  // in-page navigation (§5.11)
   'kit.onThisPage': 'On this page',
   'kit.crumbs.more': 'The rest of the path',
+  // overlays (§5.17)
   'kit.palette.label': 'Command palette',
   'kit.palette.placeholder': 'Go to, create or decide…',
   'kit.palette.results': 'Results',
@@ -351,6 +386,7 @@ const COPY = {
   'kit.shortcuts.singleKeyHint': 'Letters such as K and M act on the focused player only.',
   'kit.shortcuts.global': 'Everywhere',
   'kit.shortcuts.player': 'Player',
+  // forms (§5.18)
   'kit.errors.title': 'Check these fields before you continue',
   'kit.chip.remove': 'Remove {label}',
   'kit.drop.browse': 'Browse',
@@ -370,6 +406,7 @@ const COPY = {
   'kit.rec.recorded': 'Your recording, {time}',
   'kit.rec.denied': 'The microphone is not available. Allow it for this site in the browser, then try again.',
   'kit.rec.unsupported': 'This browser cannot record sound. Upload a recording instead.',
+  // approval card (§5.15)
   'kit.approval.approve': 'Approve',
   'kit.approval.requestChanges': 'Request changes',
   'kit.approval.whatChange': 'What should change?',
@@ -378,6 +415,7 @@ const COPY = {
   'kit.approval.sent': 'Sent back with your note',
   'kit.approval.failed': 'The decision was not saved.',
   'kit.approval.failedWhy': 'Nothing changed. Try again in a moment.',
+  // creation flows (§5.19)
   'kit.create.how': 'How do you want to start?',
   'kit.create.auto': 'Let the studio propose',
   'kit.create.autoHint': 'A line is enough. You review everything before anything is made.',
@@ -389,6 +427,8 @@ const COPY = {
   'kit.create.changePrefs': 'Change preferences',
   'kit.create.steps': 'Steps',
   'kit.create.stepOf': 'Step {n} of {total}',
+
+  // ---- /kit, the specimen page (development only) ---------------------------------------------------------------
   'kit.page.title': 'Interface kit',
   'kit.spec.eyebrow': 'Development only · not in production builds',
   'kit.spec.lead': 'Every part of the interface kit in every state: at rest, hovered, focused, disabled, loading, failed and selected.',
@@ -588,7 +628,8 @@ const COPY = {
   'kit.spec.step.look': 'Look',
   'kit.spec.made': 'Episode 4 was made. Next: approve its story.',
   'kit.spec.made.next': 'Open the story',
-  // media
+  // ---- media ---------------------------------------------------------------------------------------------------------
+  // players
   'player.audio': 'Audio',
   'player.video': 'Video',
   'player.song': 'Song',
@@ -603,6 +644,8 @@ const COPY = {
   'player.prevFrame': 'Previous frame',
   'player.nextFrame': 'Next frame',
   'player.noTake.hint': 'A take appears here once one exists. Generate one from the shot, or upload a clip.',
+
+  // ---- v4 (F3): frames and title cards (§5.4) ----------------------------------------------------------------
   'media.state.notDrawn': 'Not drawn yet',
   'media.state.drawing': 'Drawing…',
   'media.state.noKeyArt': 'No key art yet',
@@ -617,6 +660,8 @@ const COPY = {
   'media.alt.figure': 'Full-length image of {name}',
   'media.alt.plate': 'Master plate of {name}',
   'media.alt.still': 'Still from {title}',
+
+  // ---- tiles, rail, cast (§5.5–5.8) ----------------------------------------------------------------------------
   'media.play': 'Play {title}',
   'media.pause': 'Pause {title}',
   'media.selected': 'Selected',
@@ -630,6 +675,8 @@ const COPY = {
   'media.cast.more': 'The whole cast',
   'media.cast.leads': 'Leads',
   'media.cast.supporting': 'Supporting',
+
+  // ---- episodes (§5.7) -------------------------------------------------------------------------------------------
   'media.episode': 'Episode {n}',
   'media.episode.play': 'Play Episode {n}',
   'media.season': 'Season {n}',
@@ -638,6 +685,8 @@ const COPY = {
   'media.season.new': 'New season',
   'media.season.propose': 'Let the studio propose',
   'media.season.write': 'Write it yourself',
+
+  // ---- heroes (§5.3) ---------------------------------------------------------------------------------------------
   'media.hero.more': 'More',
   'media.hero.less': 'Less',
   'media.hero.pausePreview': 'Pause preview',
@@ -645,6 +694,8 @@ const COPY = {
   'media.hero.watchWithSound': 'Watch with sound',
   'media.hero.nowScreening': 'Now screening',
   'media.hero.back': 'Back to {area}',
+
+  // ---- the player family (§5.12) ---------------------------------------------------------------------------------
   'media.player.transport': 'Playback controls',
   'media.player.back5': 'Back 5 seconds',
   'media.player.fwd5': 'Forward 5 seconds',
@@ -675,6 +726,8 @@ const COPY = {
   'media.dual.later': 'Show a later part',
   'media.bar.label': 'Now playing',
   'media.bar.close': 'Close the player',
+
+  // ---- music (§5.13) ---------------------------------------------------------------------------------------------
   'media.mode.label': 'Song or video',
   'media.mode.song': 'Song',
   'media.mode.video': 'Video',
@@ -703,6 +756,8 @@ const COPY = {
   'media.voice.pause': 'Pause the voice: {name}',
   'media.wave.label': 'Waveform',
   'media.wave.unavailable': 'The waveform could not be drawn from this file.',
+
+  // ---- timeline (§5.14) ------------------------------------------------------------------------------------------
   'media.tl.label': 'Timeline',
   'media.tl.ruler': 'Ruler: click to move the playhead',
   'media.tl.picture': 'Picture',
@@ -718,6 +773,8 @@ const COPY = {
   'media.tl.endEarlier': 'End 1 frame earlier',
   'media.tl.endLater': 'End 1 frame later',
   'media.tl.selected': '{n} selected',
+
+  // ---- cutting-room kit (§5.20) ---------------------------------------------------------------------------------
   'media.dock.resize': 'Resize {panel}',
   'media.dock.collapse': 'Collapse {panel}',
   'media.dock.expand': 'Expand {panel}',
@@ -740,6 +797,8 @@ const COPY = {
   'media.versions.pickTwo': 'Pick two versions to compare.',
   'media.versions.cancel': 'Cancel',
   'media.tools.label': 'Tools',
+
+  // ---- the specimen sections of the dev-only /kit page (components/media/Specimens.tsx) ------------------------
   'media.spec.title': 'Media, players and the cutting room',
   'media.spec.lead': 'Every part of the media kit in its states, on the bundled sample media. A page for development.',
   'media.spec.media': 'Media',
@@ -837,9 +896,12 @@ const COPY = {
   'media.spec.light.night': 'Night',
   'media.spec.light.label': 'Lighting',
   'media.spec.saved': 'Saved',
+
+  // ---- production menu (ProductionTile) --------------------------------------------------------------------------
   'media.delete.title': 'Delete “{title}”?',
   'media.delete.body': 'Its story, shots and takes go with it. Characters, locations and files stay in the studio.',
-  // shell
+  // ---- shell ---------------------------------------------------------------------------------------------------------
+  // navigation
   'nav.shows': 'Shows',
   'nav.shorts': 'Shorts',
   'nav.musicVideos': 'Music Videos',
@@ -850,23 +912,32 @@ const COPY = {
   'nav.more': 'More',
   'nav.areas': 'Studio areas',
   'app.name': 'Vewbox Studio',
+
+  // home
   'home.continue': 'Continue working',
+  // the restored shell
   'nav.openMenu': 'Open menu',
   'nav.skip': 'Skip to content',
   'home.inProduction': 'In production',
+
+  // the six areas and the studio organisation
   'nav.studioArea': 'Studio',
   'nav.company': 'Studio Company',
   'nav.production': 'Production',
   'projects.title': 'Projects',
   'library.title': 'Library',
+  // navigation and the production page
   'nav.new': 'New…',
   'nav.files': 'Files',
+
+  // ---- v4: page titles (§7.3; src/components/shell/titles.ts) ----
   'shell.title.episode': 'Episode {n}',
   'shell.title.season': 'Season {n}',
   'shell.title.shot': 'Shot {n}',
   'shell.title.newLocation': 'New location',
-  'shell.title.kit': 'Interface kit',
   'shell.title.kitMedia': 'Media kit',
+
+  // ---- v4: the shell (§5.1, §7.1) ----
   'shell.group.productions': 'Productions',
   'shell.group.castWorld': 'Cast & world',
   'shell.homeLink': 'Vewbox Studio, go to Shows',
@@ -877,28 +948,34 @@ const COPY = {
   'shell.expand': 'Expand',
   'shell.expand.long': 'Expand the navigation',
   'shell.needsYou': '{n} decision waiting for you|{n} decisions waiting for you',
+  // SaveState (audit D1): what the store's queue says, never assumed
   'shell.save.saved': 'Saved',
   'shell.save.saving': 'Saving…',
   'shell.save.unsaved': 'Not saved — retrying',
   'shell.save.opening': 'Opening the studio…',
+  // the connection (the event stream) and what the studio is running, from the job list
   'shell.conn.connected': 'Connected',
   'shell.conn.running': 'Connected · {n} running',
   'shell.conn.queued': 'Connected · {n} queued',
   'shell.conn.connecting': 'Connecting…',
   'shell.conn.down': 'Not connected',
   'shell.conn.link': '{state}. Open the engine room in Production',
+  // ServerBar: only when the event stream has really dropped
   'shell.server.down': 'Can’t reach the studio server.',
   'shell.server.since': 'Showing what was there {ago}.',
   'shell.server.justNow': 'Showing what was there a moment ago.',
   'shell.server.nothing': 'Nothing could be loaded yet.',
   'shell.server.retry': 'Try now',
   'shell.lastKnown': 'Last known',
+  // the error and loading states of every page
   'shell.error.title': 'This page stopped working.',
   'shell.error.hint': 'What the studio holds is not affected. Try the page again; the details below say what broke.',
   'shell.error.retry': 'Try again',
   'shell.error.details': 'Details',
   'shell.error.home': 'Go to Shows',
   'shell.loading': 'Loading the page…',
+
+  // ---- v4: the command palette (§5.17, §7.6) ----
   'shell.palette.title': 'Command palette',
   'shell.palette.label': 'Search the studio',
   'shell.palette.placeholder': 'Go to, create, decide…',
@@ -928,6 +1005,7 @@ const COPY = {
   'shell.palette.describePlace': 'Describe the place',
   'shell.palette.decide.stage': '{stage} of {title}',
   'shell.palette.decide.image': 'Picture of {name}',
+  // B8: the other kinds of decision (docs/CONTRACTS-REDESIGN-BACKEND.md)
   'shell.palette.kind.review': 'Review',
   'shell.palette.decide.line': '1 line to hear again in {title}',
   'shell.palette.decide.lines': '{n} lines to hear again in {title}',
@@ -937,9 +1015,10 @@ const COPY = {
   'shell.palette.contrastStandard': 'Contrast: Standard',
   'shell.palette.motionOn': 'Reduce motion: On',
   'shell.palette.motionOff': 'Reduce motion: Off',
-  'shell.palette.language': 'Language: العربية',
   'shell.palette.keysOn': 'Single-key shortcuts: On',
   'shell.palette.keysOff': 'Single-key shortcuts: Off',
+
+  // ---- v4: the shortcut sheet (§5.17, §7.5) ----
   'shell.keys.title': 'Keyboard shortcuts',
   'shell.keys.or': 'or',
   'shell.keys.global': 'Global',
@@ -975,7 +1054,8 @@ const COPY = {
   'shell.key.space': 'Space',
   'shell.key.click': 'Click',
   'shell.key.scroll': 'Scroll',
-  // shows
+  // ---- shows ---------------------------------------------------------------------------------------------------------
+  // wizard
   'wizard.moreSettings': 'More settings',
   'wizard.createProject': 'Create Project',
   'wizard.lookAndFormat': 'Look and format',
@@ -998,6 +1078,7 @@ const COPY = {
   'wizard.lyrics.help': 'Leave a blank line between sections. Start a section with [verse], [chorus], [bridge], [intro] or [outro] to name it.',
   'wizard.singer': 'Who sings',
   'wizard.createdSong': 'The song is saved with the project. Generate the recording from the Story tab once the project exists.',
+  // show workspace
   'show.selectSeason': 'Season',
   'show.firstSeason': 'This show has no seasons yet. Add the first season, then its first episode.',
   'show.noEpisodes': 'No episodes in this season yet.',
@@ -1007,6 +1088,7 @@ const COPY = {
   'show.backTo': 'Back to',
   'show.deleteShow': 'Delete show',
   'show.delete.hint': 'This removes the show, its seasons and every episode. Characters and locations stay in the library.',
+  // creation steps
   'step.song': 'Song',
   'step.look': 'Look & format',
   'step.people': 'Cast & places',
@@ -1021,6 +1103,7 @@ const COPY = {
   'show.world': 'World',
   'show.episodeLength': 'Episode length',
   'show.noWorld': 'No locations chosen yet.',
+  // Auto Idea
   'auto.title': 'Auto Idea',
   'auto.lead': 'The studio proposes the concept, the title and premise, the cast and places, and the structure. You review and edit all of it before anything is created.',
   'auto.create': 'Create an idea for me',
@@ -1050,6 +1133,7 @@ const COPY = {
   'auto.existing': 'In your library',
   'auto.another': 'Show another sample',
   'auto.backToPreferences': 'Back',
+  // Manual brief
   'manual.title': 'Manual brief',
   'manual.lead': 'A title or a short description is enough to begin. Everything else has a default.',
   'manual.start': 'Write my brief',
@@ -1093,12 +1177,14 @@ const COPY = {
   'show.preview.hint': 'The latest finished cut of an episode.',
   'new.character.hint': 'A person the studio keeps: one look and one voice across every production.',
   'new.location.hint': 'A place with its plates and views, reused across productions.',
-  // film
+  // ---- film ----------------------------------------------------------------------------------------------------------
+  // D23: what the script writer and the shot planner read, editable by the producer
   'film.scene.purpose': 'What the scene is for',
   'film.scene.purposeHelp': 'The script and the shot plan are written from this. Correct it before writing the script.',
   'film.brief.promiseHelp': 'The story’s promise: how it opens and how it ends. Every later step of the story keeps to it.',
   'film.brief.hook': 'The opening',
   'film.brief.ending': 'The ending',
+  // next steps
   'next.writeStory': 'Write the story',
   'next.chooseCast': 'Choose the cast',
   'next.writeScript': 'Write the script',
@@ -1106,6 +1192,8 @@ const COPY = {
   'next.chooseTakes': 'Choose takes',
   'next.reviewCut': 'Review the cut',
   'produce.sampleNote': 'The takes here are sample clips. Generate makes real ones; they cannot be exported as yours.',
+
+  // story
   'story.brief': 'The brief',
   'story.script': 'Script',
   'story.lines': 'lines',
@@ -1114,6 +1202,8 @@ const COPY = {
   'story.autoIdea.example': 'Started from Auto Idea (the written example)',
   'story.manual': 'Started from your brief',
   'story.writeHint': 'Write the story in your own words, or let "Develop the story" draft it from the brief; every edit is yours.',
+
+  // storyboard
   'board.shotsIn': 'shots',
   'board.noFrame': 'No opening frame',
   'board.dragHint': 'Drag shots to reorder within a scene.',
@@ -1122,6 +1212,8 @@ const COPY = {
   'board.framed': 'framed',
   'board.filmed': 'with takes',
   'board.chosen': 'chosen',
+
+  // produce
   'produce.lead': 'Frames and takes for every shot. Choose the take that goes into the cut.',
   'produce.selectedTake': 'Selected take',
   'produce.chooseTake': 'Choose a take',
@@ -1129,6 +1221,8 @@ const COPY = {
   'produce.opening': 'Opening frame',
   'produce.ending': 'Ending frame',
   'produce.shotsReady': 'shots with a chosen take',
+
+  // final cut
   'final.assembled': 'Assembled cut',
   'final.sampleCut': 'Sample cut',
   'final.noCut': 'No assembled cut yet.',
@@ -1142,6 +1236,8 @@ const COPY = {
   'final.dialogueTrack': 'Dialogue',
   'final.musicTrack': 'Music',
   'final.ambienceTrack': 'Ambience',
+
+  // shot editor
   'shot.whatHappens': 'What happens',
   'shot.references': 'References',
   'shot.advanced': 'Advanced',
@@ -1171,7 +1267,7 @@ const COPY = {
   'gen.plates': 'Draw plates',
   'gen.voiceBuild': 'Build the voice',
   'gen.dialogue': 'Record the dialogue',
-  'gen.dialogue.hint': 'Speaks every line with its character’s studio voice and checks each one by transcription. The cut uses these recordings for takes without their own sound (uploaded clips); MiniMax takes speak natively.',
+  'gen.dialogue.hint': 'Speaks every line with its character’s studio voice and checks each one by transcription. The cut uses these recordings for takes without their own sound (uploaded clips); MiniMax takes speak natively.', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Produce)
   'produce.linesVoiced': 'lines recorded',
   'gen.song': 'Generate the song',
   'gen.respeak': 'Re-record speaking shots',
@@ -1211,7 +1307,8 @@ const COPY = {
   'gate.approved': 'Approved',
   'gate.by': 'by',
   'gate.changesRequested': 'Changes were requested',
-  // music
+  // ---- music ---------------------------------------------------------------------------------------------------------
+  // songs
   'song.title': 'Song',
   'song.generated': 'Generated song',
   'song.notRecorded': 'Not recorded yet',
@@ -1220,6 +1317,7 @@ const COPY = {
   'song.lyrics': 'Lyrics',
   'song.noSong': 'No song yet.',
   'song.replace': 'Replace song',
+  // music video workspace
   'mv.lyrics.hint': 'Write the lyrics as sections. Select a section to set who sings it and when.',
   'mv.sectionTiming': 'Timing',
   'mv.sectionSingers': 'Sung by',
@@ -1242,10 +1340,14 @@ const COPY = {
   'mv.nowPlaying': 'Now playing',
   'song.noWordsYet': 'No words yet — select to write them.',
   'mv.waveformUnavailable': 'The waveform could not be drawn from this file.',
-  // cast
+  // ---- cast ----------------------------------------------------------------------------------------------------------
+  // later — where generation would happen
+
+  // characters & locations
   'char.deleteConfirm': 'Delete this character? They are removed from every cast list.',
   'loc.deleteConfirm': 'Delete this location? Scenes set here keep their other details.',
   'loc.views': 'Views and states',
+  // characters & locations
   'char.voiceIdentity': 'Voice identity',
   'loc.props.hint': 'What stands in the location and can be used in a shot.',
   'loc.addProp': 'Add prop',
@@ -1253,11 +1355,13 @@ const COPY = {
   'loc.states': 'States',
   'loc.cameraViews': 'Camera views',
   'loc.libraryLead': 'The places your stories happen in: one master plate each, with its views and lighting.',
+  // voice
   'voice.source.SAMPLE': 'Sample',
   'voice.notGenerated': 'Not generated yet. Build the voice to hear it.',
   'voice.upload': 'Upload a recording',
   'voice.added': 'Recording added.',
   'voice.notAudio': 'Choose an audio file.',
+  // characters: usage and the continuity rule
   'char.usage.unused': 'Unused',
   'char.usage.unknown': 'History not on record',
   'char.usage.takeRemoved': 'take removed',
@@ -1275,6 +1379,8 @@ const COPY = {
   'char.usedIn.assignedHint': 'Shows and productions whose cast includes this character.',
   'char.usedIn.deleted': 'deleted',
   'char.usedIn.first': 'First appeared',
+
+  // character creation — one page, three starts
   'char.create.header': 'For whom, which look, which language',
   'char.create.forNone': 'The library (no show yet)',
   'char.create.describe': 'Describe them',
@@ -1334,6 +1440,7 @@ const COPY = {
   'char.create.leave': 'Leave without creating the character? The brief is lost.',
   'char.create.recordOnly': 'Create',
   'char.create.andDraw': 'Create and draw',
+  // the sheet
   'char.form.identity': 'Identity',
   'char.form.look': 'Look',
   'char.form.needName': 'give them a name',
@@ -1362,6 +1469,8 @@ const COPY = {
   'voice.pace.MEASURED': 'Measured',
   'voice.pace.QUICK': 'Quick',
   'voice.proofLine': 'Proof line',
+
+  // the directory and the profile
   'char.usage.inVideos': 'In videos',
   'char.usage.unknown.hint': 'The video history of this character is not on record, so it is preserved as if it had been used.',
   'char.create.img.reason.MIN_SIDE': 'the shortest side is under 512 px',
@@ -1370,6 +1479,7 @@ const COPY = {
   'char.create.img.reason.FACE_SMALL': 'the face is too small in the frame',
   'char.create.img.reason.BLURRY': 'the picture is blurry',
   'char.created.title': 'Just created',
+  // ---- characters v3: the canonical image, the cast profile, the voice identity, creation (CONTRACTS-IDENTITY-PACK.md v2; DESIGN-SYSTEM-V3 §9.4–9.7) ----
   'cast.status.draft': 'Draft',
   'cast.status.approved': 'Approved',
   'cast.status.locked': 'Locked',
@@ -1573,9 +1683,11 @@ const COPY = {
   'cast.voice.consentFirst': 'Say whose voice it is before recording or uploading.',
   'cast.voice.consentFor': '“{label}” has no consent statement. Whose voice is it?',
   'cast.voice.consentAndRetry': 'Confirm and try again',
+  // ---- end of characters v3 block ----
+  // voice tab
   'voice.engine.habibi': 'Iraqi dialect engine',
   'voice.engine.indextts': 'Bilingual studio engine',
-  'voice.engine.minimax': 'MiniMax clone',
+  'voice.engine.minimax': 'MiniMax clone', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (character voice)
   'voice.revision': 'revision',
   'voice.identity.review': 'Needs a listen',
   'voice.identity.stale': 'Out of date: the language changed',
@@ -1605,11 +1717,13 @@ const COPY = {
   'voice.refuse.BAD_FORMAT': 'The file could not be read as audio.',
   'voice.build.needRecording': 'Upload a recording first.',
   'voice.dialectEngine': 'The language and dialect choose the engine; Latin words in an Arabic line go to the bilingual engine.',
-  // studio
+  // ---- studio --------------------------------------------------------------------------------------------------------
   'settings.startEmpty': 'Start with an empty studio',
   'settings.startEmpty.hint': 'Removes every show, character, location and file on this server. Your settings stay.',
   'settings.startEmptyConfirm': 'Remove everything and start with an empty studio?',
   'settings.data.empty': 'The studio is empty.',
+
+  // settings
   'settings.interface': 'Interface',
   'settings.defaults': 'Defaults for new projects',
   'settings.data': 'Studio data',
@@ -1618,11 +1732,11 @@ const COPY = {
   'settings.data.began.empty': 'Started as an empty studio on {date}.',
   'settings.data.began.sample': 'Loaded from the test sample on {date} (a test run).',
   'settings.about': 'About this studio',
-  'settings.about.body': 'Vewbox Studio runs on this server: writing by the story engine, pictures and voices on the local GPU, video by MiniMax (hosted or local), assembly and export by ffmpeg. The database is the record; every generated file carries its provenance.',
+  'settings.about.body': 'Vewbox Studio runs on this server: writing by the story engine, pictures and voices on the local GPU, video by MiniMax (hosted or local), assembly and export by ffmpeg. The database is the record; every generated file carries its provenance.', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
   'settings.motion': 'Reduce motion',
   'settings.motion.hint': 'Turns off transitions and animations in the interface.',
   'settings.lead': 'The interface, the defaults for new projects, the engines and models behind this studio, and its data.',
-  'settings.generation.body': 'The hosted MiniMax API is not configured on this server: add MINIMAX_API_KEY to the server’s .env to generate video with it. Video can also come from the local MiniMax H3 engine when ComfyUI reports it above. Nothing is simulated: a button whose engine is not running says so and the job fails with the reason.',
+  'settings.generation.body': 'The hosted MiniMax API is not configured on this server: add MINIMAX_API_KEY to the server’s .env to generate video with it. Video can also come from the local MiniMax H3 engine when ComfyUI reports it above. Nothing is simulated: a button whose engine is not running says so and the job fails with the reason.', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
   'asset.protected': 'This picture is part of the appearance of a character who has been in a video, so it is kept:',
   'jobs.title': 'Activity',
   'jobs.lead': 'Everything the studio is doing or has done: writing, drawing, generating, assembling. Cancel, retry or open the result from here.',
@@ -1718,6 +1832,7 @@ const COPY = {
   'orch.refused': 'Refused',
   'studio.failureHistory': 'Failure history',
   'studio.noFailureHistory': 'No failures recorded for this agent.',
+  // counted phrases: `one|other` (T.p); {n} is the count
   'co.lead': 'Who is working on what, and every handoff between the departments.',
   'co.viewList': 'View as list',
   'co.inspector': 'Selection',

@@ -15,9 +15,8 @@ import { useMediaQuery } from './useMediaQuery';
  *    < 768      one pane; a segmented control switches List · Canvas · Details
  *  Panels have a 40 px header (title 13/18 600 and a collapse button) and scroll vertically; the canvas never scrolls
  *  (no nested scrollbars). Splitters are 8 px hit areas showing a 1 px line, `role="separator"` with their width as
- *  value: drag, or ←/→ 16 px (mirrored in Arabic) and Enter to collapse; *More › Reset layout* restores the defaults
- *  (2.5.7). Widths persist per workspace in this browser. Focus mode (F) collapses both panels. In Arabic the list
- *  docks on the right and the inspector on the left. The footer (film strip or timeline) spans the full width. */
+ *  value: drag, or ←/→ 16 px and Enter to collapse; *More › Reset layout* restores the defaults
+ *  (2.5.7). Widths persist per workspace in this browser. Focus mode (F) collapses both panels. The footer (film strip or timeline) spans the full width. */
 
 export interface DockPanel { title: string; content: ReactNode }
 interface Layout { list: number; inspector: number; listCollapsed: boolean; inspectorCollapsed: boolean }
@@ -44,11 +43,10 @@ export function Panel({ title, onCollapse, actions, children, className, collaps
 }
 
 function Splitter({ panel, title, width, onWidth, onToggle }: { panel: 'list' | 'inspector'; title: string; width: number; onWidth: (w: number) => void; onToggle: () => void }) {
-  const drag = useRef<{ x: number; w: number; rtl: boolean } | null>(null);
-  // the separator grows its panel when it moves away from it: toward the inline end for the list, the start for the inspector
-  const grow = (e: { currentTarget: Element }) => { const rtl = getComputedStyle(e.currentTarget).direction === 'rtl'; return (panel === 'list') !== rtl ? 1 : -1; };
+  const drag = useRef<{ x: number; w: number } | null>(null);
+  // the separator grows its panel when it moves away from it: rightward for the list, leftward for the inspector
+  const g = panel === 'list' ? 1 : -1;
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const g = grow(e);
     if (e.key === 'ArrowRight') { e.preventDefault(); onWidth(clampW(panel, width + 16 * g)); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); onWidth(clampW(panel, width - 16 * g)); }
     else if (e.key === 'Home') { e.preventDefault(); onWidth(BOUNDS[panel][0]); }
@@ -58,8 +56,8 @@ function Splitter({ panel, title, width, onWidth, onToggle }: { panel: 'list' | 
   return (
     <div className="dock-split" role="separator" aria-orientation="vertical" tabIndex={0} aria-label={T.f('media.dock.resize', { panel: title })}
       aria-valuenow={width} aria-valuemin={BOUNDS[panel][0]} aria-valuemax={BOUNDS[panel][1]} onKeyDown={onKey}
-      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, w: width, rtl: getComputedStyle(e.currentTarget).direction === 'rtl' }; }}
-      onPointerMove={(e) => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x; const g = (panel === 'list') !== d.rtl ? 1 : -1; onWidth(clampW(panel, d.w + dx * g)); }}
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, w: width }; }}
+      onPointerMove={(e) => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x; onWidth(clampW(panel, d.w + dx * g)); }}
       onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} />
   );
 }
@@ -102,7 +100,7 @@ export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, t
   if (inspOn) cols.push('8px', l.inspectorCollapsed ? '40px' : `${l.inspector}px`);
 
   const collapsedRail = (k: 'list' | 'inspector', p: DockPanel) => (
-    <div className="dock-rail"><button type="button" className="ebtn ebtn-icon" aria-label={T.f('media.dock.expand', { panel: p.title })} onClick={() => update(k === 'list' ? { listCollapsed: false } : { inspectorCollapsed: false })}>{k === 'list' ? <IconChevronRight aria-hidden className="rtl:rotate-180" /> : <IconChevronLeft aria-hidden className="rtl:rotate-180" />}</button></div>
+    <div className="dock-rail"><button type="button" className="ebtn ebtn-icon" aria-label={T.f('media.dock.expand', { panel: p.title })} onClick={() => update(k === 'list' ? { listCollapsed: false } : { inspectorCollapsed: false })}>{k === 'list' ? <IconChevronRight aria-hidden /> : <IconChevronLeft aria-hidden />}</button></div>
   );
 
   return (
@@ -113,8 +111,8 @@ export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, t
             options={([list && ['list', list.title], ['canvas', canvasTitle], inspector && ['inspector', inspector.title]].filter(Boolean) as Array<[typeof pane, string]>).map(([value, label]) => ({ value, label }))} />
         ) : (
           <>
-            {list && (mode === 'two' || mode === 'drawers') && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('list')}><IconChevronRight aria-hidden className="rtl:rotate-180" />{T.f('media.dock.open', { panel: list.title })}</button>}
-            {inspector && mode === 'drawers' && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('inspector')}>{T.f('media.dock.open', { panel: inspector.title })}<IconChevronLeft aria-hidden className="rtl:rotate-180" /></button>}
+            {list && (mode === 'two' || mode === 'drawers') && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('list')}><IconChevronRight aria-hidden />{T.f('media.dock.open', { panel: list.title })}</button>}
+            {inspector && mode === 'drawers' && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('inspector')}>{T.f('media.dock.open', { panel: inspector.title })}<IconChevronLeft aria-hidden /></button>}
           </>
         )}
         <span className="prow-spacer" />

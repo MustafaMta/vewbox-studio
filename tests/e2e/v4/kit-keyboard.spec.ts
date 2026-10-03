@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { openKit } from './kit-helpers';
 
 /** THE KIT'S KEYBOARD (docs/DESIGN-SYSTEM-V4.md §5.11, §5.17, §5.18; §8.5 F2 acceptance) on the /kit specimen:
- *  roving focus in Tabs, Segmented and ChoiceTiles (mirrored in Arabic), the Dialog's focus trap and focus return,
+ *  roving focus in Tabs, Segmented and ChoiceTiles, the Dialog's focus trap and focus return,
  *  the ConfirmDialog behind useConfirm, the Menu's Esc, and a Toast that stays while it has focus.
  *  Run: $env:STUDIO_URL='http://localhost:4221'; pnpm exec playwright test tests/e2e/v4 --project=desktop
  *  Read-only: no reset, no write API (kit-helpers answers every write in the browser). */
@@ -28,16 +28,6 @@ test.describe('roving focus', () => {
     await expect(bar.locator('[tabindex="0"]')).toHaveCount(1);
   });
 
-  test('TabBar in Arabic: ← moves forward, → back', async ({ page }) => {
-    await openKit(page, 'ar');
-    const bar = page.locator('#navigation').getByRole('tablist');
-    await bar.getByRole('tab', { name: 'القصة', exact: true }).focus();
-    await page.keyboard.press('ArrowLeft');
-    await expect(bar.getByRole('tab', { name: /^اللوحة القصصية/ })).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('ArrowRight');
-    await expect(bar.getByRole('tab', { name: 'القصة', exact: true })).toHaveAttribute('aria-selected', 'true');
-  });
-
   test('Segmented: arrows move the choice and wrap; a disabled option is skipped; Tab leaves the group', async ({ page }) => {
     await openKit(page);
     const light = page.locator('#choices').getByRole('radiogroup', { name: 'Lighting states' }).first();
@@ -57,16 +47,6 @@ test.describe('roving focus', () => {
     await expect(mode.getByRole('radio', { name: 'Video' })).toHaveAccessibleDescription('No cut yet');
     await page.keyboard.press('Tab');
     expect(await mode.evaluate((el) => el.contains(document.activeElement))).toBe(false);
-  });
-
-  test('Segmented in Arabic: ← is the next option', async ({ page }) => {
-    await openKit(page, 'ar');
-    const light = page.locator('#choices').getByRole('radiogroup', { name: 'حالات الإضاءة' }).first();
-    await light.getByRole('radio', { name: 'غروب' }).focus();
-    await page.keyboard.press('ArrowLeft');
-    await expect(light.getByRole('radio', { name: 'ليل' })).toHaveAttribute('aria-checked', 'true');
-    await page.keyboard.press('ArrowRight');
-    await expect(light.getByRole('radio', { name: 'غروب' })).toHaveAttribute('aria-checked', 'true');
   });
 
   test('ChoiceTiles: one Tab stop; arrows move the selection past a disabled tile', async ({ page }) => {
@@ -189,11 +169,9 @@ test.describe('overlays', () => {
 });
 
 test.describe('the specimen page', () => {
-  test('has its own title in both languages', async ({ page }) => {
+  test('has its own English title', async ({ page }) => {
     await openKit(page);
     await expect(page).toHaveTitle('Interface kit · Vewbox Studio');
-    await openKit(page, 'ar');
-    await expect(page).toHaveTitle('مجموعة الواجهة · استوديو فيوبوكس');
   });
   test('More contrast: the specimen switch sets html[data-contrast] and puts it back', async ({ page }) => {
     await openKit(page);

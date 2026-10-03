@@ -9,7 +9,7 @@ import { fmtClock } from './time';
  *  nothing is drawn, and a file that cannot be decoded says so in words. 120 bars (64 on a phone), 2 wide with a 1
  *  gap and a 1 radius at the nominal width, stretched to the row. Played bars are `--fg`; unplayed bars are
  *  `--ink-550` (3.77:1 on the ground; v3's `--ink-600` measured 2.09:1). Playhead: a 1 px ivory line and an 8 px iris
- *  handle. Click or tap seeks; the keyboard drives it as a slider. ALWAYS LEFT TO RIGHT, in both languages (it is
+ *  handle. Click or tap seeks; the keyboard drives it as a slider. ALWAYS LEFT TO RIGHT (it is
  *  time). In edit, section boundaries show as 1 px strong-hairline ticks with their labels above. */
 
 const cache = new Map<string, Float32Array>();

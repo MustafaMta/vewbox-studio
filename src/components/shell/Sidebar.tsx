@@ -81,7 +81,7 @@ export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNav
       <ConnectionState onNavigate={onNavigate} />
       {collapse && (
         <button type="button" className="shell-item shell-button shell-collapse" onClick={toggleNav} aria-keyshortcuts="Control+\ Meta+\" aria-label={toggleName} data-tip={`${toggleName} · ${mod}+\\`}>
-          <span className="shell-icon" aria-hidden>{nav === 'rail' ? <IconExpand aria-hidden className="shell-mirror" /> : <IconCollapse aria-hidden className="shell-mirror" />}</span>
+          <span className="shell-icon" aria-hidden>{nav === 'rail' ? <IconExpand aria-hidden /> : <IconCollapse aria-hidden />}</span>
           <span className="shell-label" aria-hidden>{T(nav === 'rail' ? 'shell.expand' : 'shell.collapse')}</span>
           <kbd className="shell-kbd" dir="ltr" aria-hidden>{mod}+\</kbd>
         </button>
@@ -125,9 +125,8 @@ export function Sidebar() {
     const el = target instanceof Element ? target.closest<HTMLElement>('[data-tip]') : null;
     if (nav !== 'rail' || !el?.dataset.tip) { setTip(null); return; }
     const r = el.getBoundingClientRect();
-    const rtl = document.documentElement.dir === 'rtl';
-    // beside the rail, on its inline-end side (the right in English, the left in Arabic)
-    setTip({ text: el.dataset.tip, y: r.top + r.height / 2, x: rtl ? window.innerWidth - r.left + 8 : r.right + 8 });
+    // beside the rail, on its right
+    setTip({ text: el.dataset.tip, y: r.top + r.height / 2, x: r.right + 8 });
   };
   return (
     <nav className="shell-nav" aria-label={T('nav.areas')}

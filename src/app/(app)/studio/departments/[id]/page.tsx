@@ -82,7 +82,7 @@ export default function DepartmentPage() {
                   <ExecutesLine agent={a} className="mt-0.5 block text-xs text-muted" />
                 </span>
                 <AgentStatus stat={org.stats.find((s) => s.agentId === a.id)} className="mt-1 flex-none sm:mt-0" />
-                <IconChevronRight aria-hidden className="mt-1 size-4 flex-none text-faint sm:mt-0 rtl:rotate-180" />
+                <IconChevronRight aria-hidden className="mt-1 size-4 flex-none text-faint sm:mt-0" />
               </Link>
             </li>
           ); })}
@@ -192,7 +192,7 @@ function PipelinePlace({ org, company, d }: { org: OrgResponse; company: Company
       {xs.length ? <ul>{xs.map((x) => item(x.id, x.gate, dir))}</ul> : <p className="py-1.5 text-sm text-muted">{fallback}</p>}
     </div>
   );
-  const arrow = <span aria-hidden className="hidden items-center self-center text-ink-550 md:flex"><span className="h-px w-10 bg-ink-600" /><IconArrowRight className="-ms-1 size-4 rtl:rotate-180" /></span>;
+  const arrow = <span aria-hidden className="hidden items-center self-center text-ink-550 md:flex"><span className="h-px w-10 bg-ink-600" /><IconArrowRight className="-ms-1 size-4" /></span>;
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
       {col(T('co.receivesFrom'), place.from, 'from', T('co.fromYou'))}

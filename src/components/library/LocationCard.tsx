@@ -23,7 +23,7 @@ export function LocationCard({ l }: { l: Location }) {
             <div className="bi truncate text-[14px] font-semibold text-fg" dir="auto"><span>{l.name}</span>{l.nameAr && <span className="bi-ar" dir="rtl">{l.nameAr}</span>}</div>
             <div className="mt-0.5 truncate text-[12px] text-faint">{l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior')} · {T.dyn(`style.${l.style}`)} · {l.refs.length} {T('meta.views')}</div>
           </div>
-          <IconArrowRight aria-hidden className="mt-1 size-4 shrink-0 text-ink-500 transition-transform group-hover:translate-x-0.5 group-hover:text-fg rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+          <IconArrowRight aria-hidden className="mt-1 size-4 shrink-0 text-ink-500 transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
         </div>
       </Link>
     </li>

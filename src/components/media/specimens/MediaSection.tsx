@@ -164,7 +164,7 @@ export function MediaSection() {
             slate={[T('media.spec.f.musicVideo'), '2026', '0:48', T.p('media.count.sections', 4), T.p('media.count.shots', 3)]} status={<Word>{T('media.spec.st.story')}</Word>}
             performers={<CastRow members={[people[4]]} />}
             transport={<SongTransport track={songTrack} title={song.title} mode="song" onMode={() => undefined} videoDisabledReason={T('media.mode.noCut')}
-              action={<Button>{T('media.spec.a.continue')}<IconChevronRight aria-hidden className="rtl:rotate-180" /></Button>} />} />
+              action={<Button>{T('media.spec.a.continue')}<IconChevronRight aria-hidden /></Button>} />} />
         </Cell>
         <Cell label={T('media.spec.hero.figure')} className="spec-hero">
           <FigureHero headingLevel={4} figure={{ src: '/sample/characters/hana-full-body.svg' }} figureAlt={T.f('media.alt.figure', { name: PEOPLE[3].name })} title={PEOPLE[3].name} titleLang="en"

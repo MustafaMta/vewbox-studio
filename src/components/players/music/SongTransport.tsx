@@ -17,7 +17,7 @@ import { fmtClock } from '../time';
  *  The 56 px ivory disc is the hero's primary. Song | Video is a radiogroup over ONE transport: in Video mode the page
  *  hands the transport the video's controller, so the same disc and seek bar drive the picture (the playhead is
  *  handed over with `handOff`, players/sync.ts). Video is disabled, with its reason as text, until a cut or a
- *  storyboard exists. The whole transport is LTR in both languages; the play glyph is never mirrored. On a phone the
+ *  storyboard exists. The whole transport is LTR; the play glyph is never mirrored. On a phone the
  *  disc and the switch share a row and the seek bar takes the next. */
 
 export interface MediaController { playing: boolean; time: number; duration: number; toggle: () => void; seek: (t: number) => void }

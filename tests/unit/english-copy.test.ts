@@ -35,7 +35,7 @@ describe('the English copy module', () => {
 
   it('has every key the source looks up', () => {
     const used = new Set<string>();
-    for (const m of SOURCE.matchAll(/\bT(?:\.f|\.p)?\(\s*'([^']+)'/g)) used.add(m[1]);
+    for (const m of SOURCE.matchAll(/\bT(?:\.f|\.p)?\(\s*'(\w[\w ]*(?:\.[\w ]+)+)'/g)) used.add(m[1]);
     const missing = [...used].filter((k) => !KEYSET.has(k));
     expect(missing).toEqual([]);
     // a runtime prefix that names no key at all is a typo
@@ -58,13 +58,14 @@ describe('the English copy module', () => {
 });
 
 describe('no interface-language machinery is left in the website', () => {
-  // DS-1 owns these and removes their remaining language rules in the same change set (docs/REDESIGN-2026-10-03.md)
-  const DS1 = new Set(['src/app/styles/tokens.css', 'src/app/styles/base.css', 'src/app/styles/type.css', 'src/app/fonts.ts', 'src/app/layout.tsx', 'src/lib/format.ts']);
+  // DS-1 owns these and removes their remaining language rules in the same change set (docs/REDESIGN-2026-10-03.md);
+  // the two TEMPORARY shims exist only for DS-1's layout.tsx and format.ts and go when DS-1's versions are merged
+  const DS1 = new Set(['src/app/styles/tokens.css', 'src/app/styles/base.css', 'src/app/styles/type.css', 'src/app/fonts.ts', 'src/app/layout.tsx', 'src/lib/format.ts', 'src/components/ui/locale.tsx', 'src/lib/i18n.ts']);
   const files = FILES.filter((f) => !DS1.has(rel(f)));
   const hits = (re: RegExp) => files.flatMap((f) => fs.readFileSync(f, 'utf8').split('\n').map((l, i) => [rel(f), i + 1, l] as const).filter(([, , l]) => re.test(l)).map(([f, i, l]) => `${f}:${i} ${l.trim().slice(0, 120)}`));
 
   it('no language setting, locale state or locale branch', () => {
-    expect(hits(/\buiLanguage\b|\bT\.locale\b|\buseLocale\b|\bLocaleProvider\b(?!.*TEMPORARY)|['"]ar-IQ|documentElement\.(?:dir|lang)\s*=|\bhtml\.(?:dir|lang)\s*=/)).toEqual([]);
+    expect(hits(/\buiLanguage\b|\bT\.locale\b|\buseLocale\b|\bLocaleProvider\b|['"]ar-IQ|documentElement\.(?:dir|lang)\s*=|\bhtml\.(?:dir|lang)\s*=/)).toEqual([]);
   });
 
   it('no RTL-only interface rules (Tailwind rtl: variants, [dir=rtl] / :dir(rtl) selectors, [lang=ar] interface styling)', () => {
@@ -73,7 +74,7 @@ describe('no interface-language machinery is left in the website', () => {
 
   it('only the temporary shims still name the old modules', () => {
     const importers = CODE.filter((f) => /from '@\/lib\/i18n'|from '@\/components\/ui\/locale'/.test(fs.readFileSync(f, 'utf8'))).map(rel);
-    // src/lib/format.ts (DS-1) and src/app/layout.tsx (DS-1) until their rewrite lands; nothing else
+    // src/lib/format.ts (DS-1) and src/app/layout.tsx (DS-1) until their rewrite lands, and the shims; nothing else
     expect(importers.filter((f) => !DS1.has(f))).toEqual([]);
   });
 });

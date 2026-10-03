@@ -7,7 +7,7 @@ import { openKit } from './f3-helpers';
 test.describe('under reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
   test('the PreviewPlayer never starts', async ({ page }) => {
-    await openKit(page, 'en', '#players');
+    await openKit(page, '#players');
     const previews = page.locator('.preview');
     expect(await previews.count()).toBeGreaterThan(0);
     await page.waitForTimeout(4500); // more than twice the 2 s delay
@@ -22,7 +22,7 @@ test.describe('under reduced motion', () => {
 test.describe('with motion allowed', () => {
   test.use({ reducedMotion: 'no-preference' });
   test('it starts muted after 2 s, with Pause and Watch with sound visible', async ({ page }) => {
-    await openKit(page, 'en', '#players');
+    await openKit(page, '#players');
     const p = page.locator('#players .preview').first();
     await p.scrollIntoViewIfNeeded();
     await expect(p).toHaveAttribute('data-state', 'still');

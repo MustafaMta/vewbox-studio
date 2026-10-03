@@ -7,7 +7,7 @@ import { agentForJobType } from './org';
  *  - a connection exists only where a handoff was recorded (no handoff, no line);
  *  - the orchestrator's state and its production rings come from the jobs, positions and approvals.
  *  The geometry is docs/DESIGN-SYSTEM-V3.md §9.1: one orbit around the orchestrator, the departments in pipeline
- *  order clockwise from the top (counter-clockwise in Arabic, with the reading direction). */
+ *  order clockwise from the top. */
 
 /** The ring order follows the flow of a production. */
 export const RING = ['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'SOUND', 'VIDEO', 'QA', 'POST'] as const;

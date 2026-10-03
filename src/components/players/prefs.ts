@@ -34,4 +34,3 @@ export function savesData(): boolean {
   return Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
 }
 
-export const isRtl = () => html()?.dir === 'rtl';

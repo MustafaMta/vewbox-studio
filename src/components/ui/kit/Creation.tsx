@@ -61,7 +61,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
   return (
     <div className={cls('creation', className)}>
       <div className="creation-top">
-        {back ? <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link> : <span />}
+        {back ? <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5" aria-hidden />{back.label}</Link> : <span />}
         {cancelEl}
       </div>
       <H className="page-title" dir="auto">{title}</H>

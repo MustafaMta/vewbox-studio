@@ -100,7 +100,7 @@ function Shell({ open, onClose, title, description, size = 'md', children, foote
  *  inside; the first field takes focus; focus returns to the opener. */
 export function Dialog(props: DialogProps) { return <Shell {...props} kind="dialog" />; }
 
-/** Docks to the end side (mirrored in Arabic), 480 (`md`) or 640 (`lg`) wide, full width on a phone: activity logs
+/** Docks to the right, 480 (`md`) or 640 (`lg`) wide, full width on a phone: activity logs
  *  from a job button, the inspector at tablet width. */
 export function Drawer({ size = 'md', ...props }: Omit<DialogProps, 'size'> & { size?: 'md' | 'lg' }) { return <Shell {...props} size={size} kind="drawer" />; }
 
@@ -354,7 +354,7 @@ export interface PaletteEntry {
   group: string;
   /** kind-first: "Show · The Kite", "Approve · Story of E4" */
   label: ReactNode;
-  /** what the query matches, in both languages ("The Kite الطائرة الورقية") */
+  /** what the query matches: the label and a record's name in another script ("The Kite الطائرة الورقية") */
   text: string;
   hint?: ReactNode;
   icon?: ReactNode;

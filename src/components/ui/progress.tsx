@@ -68,7 +68,7 @@ export const KNOWN: Record<StudioErrorCode, ErrorEntry> = ERROR_COPY;
 
 const entryOf = (code: string): ErrorEntry | undefined => (ERROR_COPY as Record<string, ErrorEntry | undefined>)[code];
 
-/** The StudioError code → plain words in the interface language and the one recovery action. An unknown code is
+/** The StudioError code → plain words and the one recovery action. An unknown code is
  *  "The step failed." with Retry. The engine's own message never becomes the words: it is `detail`, for Details. */
 export function useErrorCopy() {
   return (err?: JobError | { code: string; message?: string } | null): ErrorCopy => {

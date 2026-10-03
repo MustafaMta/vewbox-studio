@@ -64,7 +64,7 @@ export function EpisodeRow({ e, onPlay }: { e: EpisodeData; onPlay?: () => void 
           <Slate size="tile" items={[]} status={<span className="ep-state"><StageMeter segments={e.segments} />{e.status}</span>} />
         </span>
         {e.runtime && <span className="ep-runtime num">{e.runtime}</span>}
-        <IconChevronRight aria-hidden className="ep-chev rtl:rotate-180" />
+        <IconChevronRight aria-hidden className="ep-chev" />
       </Link>
       {e.menu && <div className="ep-menu">{e.menu}</div>}
     </div>

@@ -58,7 +58,7 @@ export const isMac = (platform: string | undefined): boolean => /Mac|iPhone|iPad
 
 /** A key in a combination: `Mod` is Ctrl, or ⌘ on a Mac. A row's `keys` are alternatives ("Space / K"). */
 export type KeyName = 'Mod' | 'Shift' | 'Alt' | 'Esc' | 'Space' | 'Enter' | 'Home' | 'End' | '←' | '→' | '↑' | '↓' | 'Click' | 'Scroll' | string;
-export interface ShortcutRow { keys: KeyName[][]; label: Key; /** media time: shown left to right in both languages */ ltr?: boolean }
+export interface ShortcutRow { keys: KeyName[][]; label: Key; /** media time: shown left to right */ ltr?: boolean }
 export interface ShortcutScope { id: 'global' | 'player' | 'storyboard' | 'timeline'; label: Key; hint: Key; rows: ShortcutRow[] }
 
 export const SHORTCUT_SCOPES: ShortcutScope[] = [

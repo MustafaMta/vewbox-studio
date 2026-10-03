@@ -65,7 +65,7 @@ export function MusicWorkspace({ p }: { p: Production }) {
         description={<span className="text-base text-fg" dir="auto">{artist}</span>}
         meta={<><StageStatus p={p} /><span className="text-faint" aria-hidden>·</span><Dots items={[T.dyn(`style.${p.style}`), p.concept ? T.dyn(`mv.concept.${p.concept}`) : null, p.song ? fmtSeconds(p.song.durationSeconds) : fmtSeconds(p.targetSeconds), p.song ? `${p.song.sections.length} ${T('mv.sections')}` : null]} /></>}
         back={{ href: '/music-videos', label: T('nav.musicVideos') }}>
-        <div ref={sentinel} className="mt-5"><SongPlayer track={track} title={p.song?.title || p.title} performer={artist} artworkSrc={art?.src ?? cover?.src} action={p.stage !== 'COMPLETE' && <Link href={`${base}?tab=${nextTab}`} className="btn btn-primary">{T.dyn(next.key)}<IconChevronRight className="rtl:rotate-180" /></Link>} /></div>
+        <div ref={sentinel} className="mt-5"><SongPlayer track={track} title={p.song?.title || p.title} performer={artist} artworkSrc={art?.src ?? cover?.src} action={p.stage !== 'COMPLETE' && <Link href={`${base}?tab=${nextTab}`} className="btn btn-primary">{T.dyn(next.key)}<IconChevronRight /></Link>} /></div>
       </Hero>
 
       <TabBar ariaLabel={p.title} current={tab} hrefFor={(id) => `${base}?tab=${id}`} className="mb-6" tabs={[

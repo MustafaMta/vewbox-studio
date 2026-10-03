@@ -24,8 +24,6 @@ describe('roving focus (Tabs, Segmented, ChoiceTiles, menus)', () => {
   it('← and → follow the reading direction; ↑ ↓ move along a column; Home and End jump', () => {
     expect(rovingStep('ArrowRight')).toBe('next');
     expect(rovingStep('ArrowLeft')).toBe('prev');
-    expect(rovingStep('ArrowRight', { rtl: true })).toBe('prev');
-    expect(rovingStep('ArrowLeft', { rtl: true })).toBe('next');
     expect(rovingStep('ArrowDown')).toBeNull();
     expect(rovingStep('ArrowDown', { orientation: 'both' })).toBe('next');
     expect(rovingStep('ArrowRight', { orientation: 'vertical' })).toBeNull();

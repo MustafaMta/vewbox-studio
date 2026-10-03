@@ -16,7 +16,7 @@ export function Crumbs({ items }: { items: Array<{ href?: string; label: string 
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((c, i) => (
           <li key={i} className="flex min-w-0 items-center gap-1">
-            {i > 0 && <IconChevronRight aria-hidden className="size-3.5 flex-none text-faint rtl:rotate-180" />}
+            {i > 0 && <IconChevronRight aria-hidden className="size-3.5 flex-none text-faint" />}
             {c.href ? <Link href={c.href} className="truncate rounded-sm hover:text-fg" dir="auto">{c.label}</Link> : <span aria-current="page" className="truncate text-fg" dir="auto">{c.label}</span>}
           </li>
         ))}

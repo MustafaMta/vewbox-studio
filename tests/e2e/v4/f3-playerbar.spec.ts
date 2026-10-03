@@ -5,7 +5,7 @@ import { openKit } from './f3-helpers';
  *  an element that receives keyboard focus below its top edge scrolls clear of it. Read-only. */
 
 test('the PlayerBar sets --bottom-bars and a focused element below it scrolls clear', async ({ page }) => {
-  await openKit(page, 'en', '#players');
+  await openKit(page, '#players');
   const bottomBars = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bottom-bars').trim());
   expect(await bottomBars()).toBe('0px');
 

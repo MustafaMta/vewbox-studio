@@ -5,7 +5,7 @@ import { cls } from '@/components/ui/kit';
  *  · style · language · status. Status always comes last (a StateWord from the kit). Missing facts are dropped, never
  *  shown as "—". Items are isolated spans that never break inside; the line wraps only between them, and the `·`
  *  separators (`--ink-500`) are hidden from assistive technology. Sizes: `hero` 13/20 muted (`onArt`: on-art muted),
- *  `tile` 12/16 faint and clamped at two lines, `header` 12/16 muted. In Arabic the logical order is the same. */
+ *  `tile` 12/16 faint and clamped at two lines, `header` 12/16 muted. */
 
 export function Slate({ items, status, size = 'tile', onArt, className, id }: { items: Array<ReactNode | false | null | undefined>; status?: ReactNode; size?: 'hero' | 'tile' | 'header'; onArt?: boolean; className?: string; id?: string }) {
   const xs = items.filter((x): x is Exclude<ReactNode, false | null | undefined | ''> => x !== false && x !== null && x !== undefined && x !== '');

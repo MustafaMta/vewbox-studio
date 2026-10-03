@@ -120,7 +120,7 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
                 <div className="min-w-0 flex-1">
                   <p className="num text-[11.5px] text-faint">{T('misc.episodeOf')} {recent.episodeNumber} · {fmtAgo(recent.updatedAt)}</p>
                   <p className="truncate text-[15px] font-semibold text-fg" dir="auto">{recent.title}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[12.5px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5 rtl:rotate-180" /></p>
+                  <p className="mt-1 flex items-center gap-1 text-[12.5px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5" /></p>
                 </div>
                 <StageStatus p={recent} className="hidden sm:inline-flex" />
               </Link>
@@ -236,7 +236,7 @@ export function EpisodeRow({ p, seasons, showSeason }: { p: Production; seasons:
         </div>
         <span className="num hidden w-16 flex-none text-end text-[13px] text-muted sm:block">{fmtSeconds(pr.runtime || p.targetSeconds)}</span>
         <span className="hidden w-28 flex-none md:block"><StageStatus p={p} /></span>
-        <IconChevronRight className="size-4 flex-none text-ink-500 rtl:rotate-180" aria-hidden />
+        <IconChevronRight className="size-4 flex-none text-ink-500" aria-hidden />
       </Link>
     </li>
   );

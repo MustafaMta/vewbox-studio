@@ -14,7 +14,7 @@ import { fmtAgo } from '@/lib/format';
  *  departments on one orbit in pipeline order, each a seat with its people as dots. Lines appear only where a
  *  handoff was recorded; a department's assignment line only while one of its agents has an open run; the
  *  orchestrator's rings are the productions in flight. The stage is one tab stop with roving focus: the arrow keys
- *  walk the orbit (mirrored in Arabic), Enter selects, Enter again opens; the inspector beside it carries the
+ *  walk the orbit, Enter selects, Enter again opens; the inspector beside it carries the
  *  selection in words, so the SVG itself is hidden from assistive technology. Below 768 px, or on request, the same
  *  company is a vertical spine. */
 
