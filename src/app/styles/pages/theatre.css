@@ -1,0 +1,151 @@
+/* THE SCREENING ROOM — the theatre, the review pane, the programme and the poster list (src/components/screening;
+   docs/DESIGN-SYSTEM-V5.md §8.12, docs/design/VISUAL-STANDARD-V5.1.md). Layout only: every colour, radius, duration and
+   type role is a token or a kit class. The skeleton (ScreeningSkeleton) uses the same classes, so it has the page's
+   exact shapes and nothing moves when the content arrives. */
+@layer components {
+  .theatre-room { display: flex; flex-direction: column; }
+
+  /* ------------------------------------------------------------------------- the theatre: stage beside the pane */
+  /* the film, then (phone and tablet) the programme and the review pane; at ≥ 1280 the pane beside the film */
+  .theatre { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'stage' 'prog' 'pane'; gap: 16px; }
+  .theatre > .theatre-stage { grid-area: stage; }
+  .theatre > .theatre-pane { grid-area: pane; }
+  .theatre > .theatre-prog { grid-area: prog; }
+  @media (min-width: 1280px) {
+    .theatre { grid-template-columns: minmax(0, 1fr) clamp(320px, 28%, 400px); grid-template-areas: 'stage pane' 'prog prog'; gap: 24px; }
+    /* the pane is as tall as the stage; its notes scroll inside it */
+    .theatre-pane { block-size: 0; min-block-size: 100%; }
+  }
+
+  /* the stage: the picture at its native ratio on black, never taller than the screen allows, the transport under it */
+  .theatre-stage { --ratio: calc(var(--tw) / var(--th)); display: flex; flex-direction: column; min-inline-size: 0; background: var(--black); }
+  .theatre-stage:focus-visible { outline-offset: 3px; }
+  .theatre-pic { position: relative; inline-size: min(100%, calc((100svh - 220px) * var(--ratio))); aspect-ratio: var(--tw) / var(--th); margin-inline: auto; overflow: hidden; background: var(--black); }
+  .theatre-stage[data-full] { justify-content: center; }
+  .theatre-stage[data-full] .theatre-pic { inline-size: min(100%, calc((100vh - 52px) * var(--ratio))); }
+  .theatre-video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; background: var(--black); cursor: pointer; }
+  .theatre-video::cue { font-family: var(--font-ui); background: var(--chip-on-art); color: var(--text-1); }
+
+  /* pins: the one thing ever drawn over the frame */
+  .theatre-pinlayer { position: absolute; inset: 0; z-index: 2; inline-size: 100%; block-size: 100%; padding: 0; border: 0; background: transparent; cursor: crosshair; }
+  .theatre-pins { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  .theatre-pin { position: absolute; display: grid; place-items: center; inline-size: 24px; block-size: 24px; padding: 0; border: 0; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer; box-shadow: 0 0 0 2px var(--black); }
+  .theatre-pin[data-resolved] { background: var(--surface-3); color: var(--text-2); }
+  .theatre-pin[data-active] { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  .theatre-pin[data-draft] { background: var(--chip-on-art); color: var(--text-1); pointer-events: none; }
+  .theatre-pin svg { inline-size: 14px; block-size: 14px; }
+  .theatre-stage[data-pinning] .theatre-pic { outline: 1px dashed var(--line-control); outline-offset: -1px; }
+
+  /* the transport, docked: always visible, never over the picture */
+  .theatre-transport { display: flex; align-items: center; gap: 8px; block-size: 52px; padding: 0 12px; background: var(--black); color: var(--text-2); }
+  .theatre-time { flex: none; color: var(--text-2); white-space: nowrap; }
+  .theatre-time-total { color: var(--text-3); }
+  .theatre-seek, .theatre-seek-sk { flex: 1; min-inline-size: 0; }
+  /* on the seek bar: the shot marks quiet, the notes in light */
+  .theatre-seek .seek-tick[data-kind='mark'] { inset-block-start: calc(50% - 4px); inline-size: 1px; block-size: 8px; background: var(--text-3); }
+  .theatre-seek .seek-tick[data-kind='note'] { inline-size: 2px; block-size: 12px; background: var(--text-1); }
+  .theatre-cc { gap: 6px; padding-inline: 8px; }
+  .theatre-wide { display: inline-flex; }
+
+  /* -------------------------------------------------------------------------------------------- the review pane */
+  .theatre-pane { display: flex; flex-direction: column; min-inline-size: 0; overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); }
+  .theatre-tabs-wrap { flex: none; padding-inline: 16px; }
+  .theatre-panel { display: flex; flex: 1; flex-direction: column; min-block-size: 0; overflow-y: auto; scrollbar-width: thin; }
+  .theatre-panel:focus-visible { outline-offset: -2px; }
+  .theatre-empty { margin: 0; padding: 4px 16px 16px; color: var(--text-2); }
+  .theatre-link { color: var(--text-1); text-decoration: underline; text-underline-offset: 2px; }
+
+  .theatre-composer { display: flex; flex: none; flex-direction: column; gap: 8px; padding: 16px; }
+  .theatre-composer-at { display: block; color: var(--text-2); }
+  .theatre-composer-text { min-block-size: 64px; resize: none; }
+  .theatre-composer-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
+  .theatre-notes { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0 8px 12px; list-style: none; }
+  .theatre-note { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-radius: var(--r-sm); }
+  .theatre-note[data-active] { background: var(--surface-2); }
+  .theatre-note-head { display: flex; align-items: center; gap: 8px; min-block-size: 24px; }
+  .theatre-note-tc { padding: 2px 6px; border: 0; border-radius: var(--r-xs); background: var(--surface-2); color: var(--text-1); cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
+  .theatre-note-tc:hover, .theatre-note[data-active] .theatre-note-tc { background: var(--surface-3); }
+  .theatre-note-n { display: inline-grid; place-items: center; min-inline-size: 20px; block-size: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); }
+  .theatre-note-n[data-pin] { background: var(--primary); color: var(--on-primary); }
+  .theatre-note-state { margin-inline-start: auto; }
+  .theatre-note-text { margin: 0; font-size: 14px; line-height: 20px; color: var(--text-1); text-align: start; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .theatre-note[data-resolved] .theatre-note-text { color: var(--text-2); }
+  .theatre-note-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+  .theatre-note-by { min-inline-size: 0; }
+  .theatre-note-acts { display: flex; gap: 4px; margin-inline-start: auto; }
+
+  .theatre-shots { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 8px; list-style: none; }
+  .theatre-shot { display: flex; align-items: center; gap: 4px; padding-inline-end: 4px; border-radius: var(--r-sm); }
+  .theatre-shot[data-current] { background: var(--surface-2); }
+  .theatre-shot-main { display: flex; flex: 1; align-items: center; gap: 12px; min-inline-size: 0; padding: 6px 8px; border: 0; border-radius: var(--r-sm); background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+  .theatre-shot-main:focus-visible { outline-offset: -2px; }
+  .theatre-shot-still { flex: none; inline-size: 64px; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-xs); background: var(--surface-2); }
+  .theatre-shot-still img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .theatre-shot-words { display: flex; flex: 1; flex-direction: column; min-inline-size: 0; }
+  .theatre-shot-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  .theatre-shot-time { flex: none; color: var(--text-3); }
+
+  .theatre-deliv { padding: 12px 16px 16px; }
+  .theatre-deliv .theatre-empty { padding: 0 0 16px; }
+  .theatre-deliv-list { display: flex; flex-direction: column; gap: 24px; margin: 0; padding: 0; list-style: none; }
+  .theatre-deliv-row { display: flex; flex-direction: column; gap: 4px; }
+  .theatre-deliv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 32px; }
+  .theatre-deliv-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  .theatre-deliv-sub { margin-block-start: 8px; }
+  .theatre-files { display: flex; flex-wrap: wrap; gap: 4px; margin-inline: -12px; }
+
+  /* ------------------------------------------------------------------------------------------------ the programme */
+  .theatre-prog { display: flex; flex-direction: column; min-inline-size: 0; margin-block-start: 8px; }
+  .theatre-kicker { margin: 0 0 8px; }
+  .theatre-prog-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
+  .theatre-title { margin: 0; min-inline-size: 0; }
+  .theatre-prog-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .theatre-latest { color: var(--text-3); }
+  .theatre-slate { display: flex; flex-wrap: wrap; margin: 0; }
+  .theatre-slate > span { white-space: nowrap; }
+  .theatre-slate > span:not(:last-child)::after { content: '·'; margin-inline: 6px; color: var(--text-3); }
+  .theatre-prog .theatre-slate { margin-block-start: 12px; }
+  .theatre-logline { margin: 12px 0 0; }
+
+  /* ---------------------------------------------------------------------------------------------- the poster list */
+  .theatre-lobby-head { display: flex; flex-direction: column; gap: 4px; margin-block-end: 24px; }
+  .theatre-lobby-head > * { margin: 0; }
+  .theatre-lobby-head .t-body { color: var(--text-2); }
+  .theatre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
+  .theatre-poster { position: relative; display: block; overflow: hidden; aspect-ratio: 2 / 3; border-radius: var(--r-md); background: var(--surface-1); color: var(--text-1); text-decoration: none; }
+  .theatre-poster:focus-visible { outline-offset: 3px; }
+  .theatre-poster .frame { block-size: 100%; border-radius: 0; }
+  .theatre-poster-words { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 2px; padding: 40px 14px 12px; background: var(--scrim-poster); pointer-events: none; }
+  .theatre-poster-title { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  .theatre-poster-meta { overflow: hidden; font-size: 13px; line-height: 18px; color: var(--text-2); text-overflow: ellipsis; white-space: nowrap; }
+  .theatre-poster-play { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: var(--r-pill); background: var(--chip-on-art); color: var(--text-1); opacity: 0; transition: opacity var(--dur-1) var(--ease-out); }
+  .theatre-poster-play svg { inline-size: 14px; block-size: 14px; fill: currentColor; }
+  .theatre-poster:is(:hover, :focus-visible) .theatre-poster-play { opacity: 1; }
+  .theatre-lobby-empty { display: flex; }
+
+  /* -------------------------------------------------------------------------------------- nothing to screen yet */
+  .theatre-missing { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .theatre-missing > h1 { margin: 0; }
+  .theatre-missing-frame { display: grid; place-items: center; inline-size: 100%; aspect-ratio: 16 / 9; max-block-size: 60svh; padding: 24px; background: var(--black); text-align: center; }
+  .theatre-missing-frame .t-body { margin: 0; color: var(--text-2); }
+
+  /* --------------------------------------------------------------------------------------- the skeleton's sizes */
+  .theatre-skeleton .theatre-composer-text { block-size: 64px; }
+  .theatre-skeleton .theatre-title { overflow: visible; }
+
+  /* ---------------------------------------------------------------------------------------------------- narrower */
+  @media (max-width: 1279px) {
+    .theatre-panel { overflow: visible; }
+  }
+  @media (max-width: 639px) {
+    /* the picture edge to edge; the transport stays under it */
+    .theatre-stage { margin-inline: calc(-1 * var(--pad)); }
+    .theatre-transport { gap: 4px; padding: 0 8px; }
+    .theatre-wide { display: none; }
+    .theatre-prog-row { align-items: flex-start; flex-direction: column; }
+    .theatre-prog-acts { inline-size: 100%; }
+    .theatre-prog-acts > .btn { flex: 1; }
+    .theatre-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  }
+}
