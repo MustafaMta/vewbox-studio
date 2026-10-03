@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { PlayDisc } from '@/components/players/PlayDisc';
 import type { Track } from '@/components/players/PlayerProvider';
@@ -42,7 +41,7 @@ function Cell({ m }: { m: CastMember }) {
   return (
     <li className="cast-cell">
       {m.href ? <Link href={m.href} className="cast-link">{body}</Link> : <div className="cast-link">{body}</div>}
-      {m.voice && <div className="cast-disc"><PlayDisc track={m.voice} size={28} labelPlay={T.f('media.cast.voice', { name: m.name })} labelPause={T.f('media.cast.voicePause', { name: m.name })} /></div>}
+      {m.voice && <div className="cast-disc"><PlayDisc track={m.voice} size={28} labelPlay={`Play the voice of ${m.name}`} labelPause={`Pause the voice of ${m.name}`} /></div>}
     </li>
   );
 }
@@ -50,7 +49,7 @@ function Cell({ m }: { m: CastMember }) {
 export function CastGrid({ members, leadIds, className }: { members: CastMember[]; leadIds?: string[]; className?: string }) {
   const leads = leadIds?.length ? members.filter((m) => leadIds.includes(m.id)) : [];
   const groups = leads.length && leads.length < members.length
-    ? [{ label: T('media.cast.leads'), xs: leads }, { label: T('media.cast.supporting'), xs: members.filter((m) => !leadIds!.includes(m.id)) }]
+    ? [{ label: 'Leads', xs: leads }, { label: 'Supporting', xs: members.filter((m) => !leadIds!.includes(m.id)) }]
     : [{ label: null, xs: members }];
   return (
     <div className={cls('cast', className)}>
@@ -73,7 +72,7 @@ export function CastRow({ members, max = 6, moreHref, className }: { members: Ca
         const inner = <><FaceCircle name={m.name} asset={m.asset} src={m.src} size={28} ring={m.ring} lang={m.nameLang} decorative /><span dir="auto" lang={m.nameLang}>{m.name}</span></>;
         return <li key={m.id}>{m.href ? <Link href={m.href} className="cast-row-item">{inner}</Link> : <span className="cast-row-item">{inner}</span>}</li>;
       })}
-      {rest > 0 && <li>{moreHref ? <Link href={moreHref} className="cast-row-more num" aria-label={`${T('media.cast.more')} (+${rest})`}>+{rest}</Link> : <span className="cast-row-more num">+{rest}</span>}</li>}
+      {rest > 0 && <li>{moreHref ? <Link href={moreHref} className="cast-row-more num" aria-label={`${'The whole cast'} (+${rest})`}>+{rest}</Link> : <span className="cast-row-more num">+{rest}</span>}</li>}
     </ul>
   );
 }

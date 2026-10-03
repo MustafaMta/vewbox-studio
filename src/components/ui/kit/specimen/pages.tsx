@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
-import { IconPlus, IconRetry } from '../../icons';
+import { IconPlus } from '../../icons';
 import { ApprovalCard } from '../ApprovalCard';
 import { Button, LinkButton } from '../Button';
 import { Segmented } from '../Choice';
@@ -11,57 +10,13 @@ import { CreationShell, MadeNotice, ReviewActions, Stepper, useMethodOptions, ty
 import { Field, SaveWord, SettingsSummary, Textarea } from '../Field';
 import { MenuButton, MenuItem } from '../Overlay';
 import { PageHeader } from '../PageHeader';
-import { ErrorNotice, LoadingFrame, LoadingLine, Notice, PageEmpty, PartialLine, SampleBadge, SectionEmpty, TextBars } from '../States';
+import { ErrorNotice, SampleBadge, TextBars } from '../States';
 import { StateWord } from '../Status';
 import { TabBar } from '../Tabs';
-import { Cell, Slot, SpecRow, SpecSection } from './parts';
-
-export function StatesSpec() {
-  return (
-    <SpecSection id="states" title={T('kit.spec.sec.states')} lead={T('kit.spec.states.lead')}>
-      <SpecRow label="PageEmpty">
-        <div className="min-w-0 flex-1">
-          <PageEmpty art={<Slot ratio="16/9" className="w-[min(100%,22rem)]">{T('kit.spec.slot.titleCard')}</Slot>}
-            primary={<Button variant="primary" icon={<IconPlus />}>{T('kit.spec.pal.newShow')}</Button>}
-            alternatives={<Button>{T('kit.create.manual')}</Button>}>
-            {T('kit.spec.empty.page')}
-          </PageEmpty>
-        </div>
-      </SpecRow>
-      <SpecRow label="SectionEmpty">
-        <SectionEmpty action={<Button size="sm">{T('kit.spec.empty.action')}</Button>}>{T('kit.spec.empty.section')}</SectionEmpty>
-      </SpecRow>
-      <SpecRow label={T('kit.spec.loading')}>
-        <Cell state="16:9"><LoadingFrame ratio="16/9" label={T('kit.spec.loadingKeyArt')} className="w-[14rem]" /></Cell>
-        <Cell state={T('kit.spec.phase')}><LoadingFrame ratio="2/3" phase={T('jp.drawing')} lines={1} className="w-[8rem]" /></Cell>
-        <Cell state="TextBars"><div className="w-[12rem]"><TextBars lines={3} /></div></Cell>
-        <Cell state="LoadingLine" wide><LoadingLine /></Cell>
-      </SpecRow>
-      <SpecRow label="ErrorNotice">
-        <div className="min-w-0 flex-1">
-          <ErrorNotice live={false} title={T('err.PROVIDER')} why={T('err.PROVIDER.hint')} kept={T('kit.spec.err.kept')}
-            action={<Button size="sm" icon={<IconRetry />}>{T('err.PROVIDER.fix')}</Button>} alternatives={<Button size="sm" variant="quiet">{T('err.openJob')}</Button>}
-            details="RuntimeError: out of memory while sampling (step 14 of 30) at sampler.run (graph node 7)" />
-        </div>
-      </SpecRow>
-      <SpecRow label="PartialLine · SAMPLE">
-        <PartialLine items={[T('kit.spec.episode4'), T('kit.spec.cutMissing'), T('kit.spec.shotsChosen')]} />
-        <SampleBadge />
-      </SpecRow>
-      <SpecRow label="Notice">
-        <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">
-          <Notice tone="info" title={T('kit.spec.notice.info')} />
-          <Notice tone="ok" title={T('kit.spec.notice.ok')} />
-          <Notice tone="warn" title={T('kit.spec.notice.warn')} />
-          <Notice tone="bad" title={T('kit.spec.notice.bad')} icon={undefined} />
-        </div>
-      </SpecRow>
-    </SpecSection>
-  );
-}
+import { Slot, SpecRow, SpecSection } from './parts';
 
 function Paper() {
-  return <div className="paper prose-copy p-5" dir="auto">{T('kit.spec.approval.excerpt')}</div>;
+  return <div className="paper prose-copy p-5" dir="auto">Abu Samir’s café, at dusk. The radio crackles; Amina turns the dial until a voice answers. “Is anyone still listening?”</div>;
 }
 function Frames() {
   return (
@@ -69,7 +24,7 @@ function Frames() {
       <div className="kit-spec-frames">
         {['01', '02', '03', '04', '05', '06'].map((n) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={n} src={`/sample/frames/frame-${n}-a.svg`} alt={T.f('kit.spec.frameAlt', { n: Number(n) })} />
+          <img key={n} src={`/sample/frames/frame-${n}-a.svg`} alt={`Storyboard frame ${Number(n)}`} />
         ))}
       </div>
       <SampleBadge className="mt-2" />
@@ -80,14 +35,14 @@ function Frames() {
 export function ApprovalSpec() {
   const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
   return (
-    <SpecSection id="approval" title={T('kit.spec.sec.approval')} lead={T('kit.spec.approval.lead')}>
-      <ApprovalCard id="kit-story" media={<Paper />} kind={T('tab.story')} title={T('kit.spec.approval.title')} provenance={T('kit.spec.approval.from')} ask={T('kit.spec.approval.ask')}
+    <SpecSection id="approval" title={'Approval card'} lead={'The thing to approve sits inline; the decision beside it. After Approve, one line with Undo for 10 seconds.'}>
+      <ApprovalCard id="kit-story" media={<Paper />} kind={'Story'} title={'The Kite — Episode 4'} provenance={'Story Development handed it over · 12 min ago'} ask={'Approve the story to start storyboarding.'}
         onApprove={() => wait(900)} onRequestChanges={() => wait(600)} openHref="#approval" onUndo={() => undefined} />
-      <ApprovalCard id="kit-frames" media={<Frames />} kind={T('tab.storyboard')} title={T('kit.spec.approval.title')} provenance={T('kit.spec.approval.from')} ask={T('kit.spec.approval.askFrames')}
+      <ApprovalCard id="kit-frames" media={<Frames />} kind={'Storyboard'} title={'The Kite — Episode 4'} provenance={'Story Development handed it over · 12 min ago'} ask={'Approve the frames to start producing.'}
         onApprove={() => undefined} busy />
-      <ApprovalCard id="kit-failed" media={<Paper />} kind={T('tab.story')} title={T('kit.spec.episode4')} ask={T('kit.spec.approval.ask')}
-        onApprove={() => undefined} failure={<ErrorNotice live={false} title={T('kit.approval.failed')} why={T('kit.approval.failedWhy')} details="POST /api/commands 503 (approveStory)" />} />
-      <ApprovalCard id="kit-done" kind={T('tab.story')} title={T('kit.spec.episode')} onApprove={() => undefined} approved onUndo={() => undefined} />
+      <ApprovalCard id="kit-failed" media={<Paper />} kind={'Story'} title={'Episode 4'} ask={'Approve the story to start storyboarding.'}
+        onApprove={() => undefined} failure={<ErrorNotice live={false} title={'The decision was not saved.'} why={'Nothing changed. Try again in a moment.'} details="POST /api/commands 503 (approveStory)" />} />
+      <ApprovalCard id="kit-done" kind={'Story'} title={'Episode 3'} onApprove={() => undefined} approved onUndo={() => undefined} />
     </SpecSection>
   );
 }
@@ -98,29 +53,29 @@ export function HeadersSpec() {
   const [tab, setTab] = useState('storyboard');
   // the lobby example opens scrolled past its hero, so the header is seen in its shown state
   useEffect(() => { if (box.current && hero.current) box.current.scrollTop = hero.current.offsetHeight + 24; }, []);
-  const more = <MenuButton label={T('nav.more')} iconOnly variant="quiet" size="sm"><MenuItem>{T('btn.edit')}</MenuItem><MenuItem>{T('btn.duplicate')}</MenuItem></MenuButton>;
+  const more = <MenuButton label={'More'} iconOnly variant="quiet" size="sm"><MenuItem>Edit</MenuItem><MenuItem>Duplicate</MenuItem></MenuButton>;
   return (
-    <SpecSection id="headers" title={T('kit.spec.sec.headers')} lead={T('kit.spec.headers.lead')}>
+    <SpecSection id="headers" title={'Headers'} lead={'The page header has fixed places. The compact header appears once the hero has scrolled away, or stays, in the cutting room.'}>
       <div className="kit-spec-sample">
-        <PageHeader titleAs="h2" className="!mb-0" back={{ href: '#headers', label: T('nav.characters') }} eyebrow={T('kit.spec.header.eyebrow')} title={T('nav.characters')} count={7} subtitle={T('kit.spec.header.lead')}
-          primary={<Button variant="primary" icon={<IconPlus />}>{T('kit.spec.newChar')}</Button>} secondary={<Button>{T('btn.select')}</Button>} more={<MenuButton label={T('nav.more')} iconOnly variant="quiet"><MenuItem>{T('btn.edit')}</MenuItem></MenuButton>} />
+        <PageHeader titleAs="h2" className="!mb-0" back={{ href: '#headers', label: 'Characters' }} eyebrow={'Cast & world'} title={'Characters'} count={7} subtitle={'Everyone who can be cast, each with one image and one voice.'}
+          primary={<Button variant="primary" icon={<IconPlus />}>New character</Button>} secondary={<Button>Select</Button>} more={<MenuButton label={'More'} iconOnly variant="quiet"><MenuItem>Edit</MenuItem></MenuButton>} />
       </div>
-      <SpecRow label={`CompactHeader · ${T('kit.spec.lobby')}`}>
-        <div ref={box} className="kit-spec-scrollbox" tabIndex={0} aria-label={T('kit.spec.scrollbox')}>
-          <CompactHeader mode="lobby" watch={hero} scrollRoot={box} contained back={{ href: '#headers', label: T('kit.spec.backShows') }} title={T('kit.spec.show')}
-            status={<StateWord tone="waiting">{T('kit.sub.waiting')}</StateWord>} primary={<Button size="sm" variant="primary">{T('kit.spec.continue')}</Button>} more={more} />
-          <div ref={hero}><Slot ratio="21/9">{T('kit.spec.slot.hero')}</Slot></div>
-          <p className="mt-4 text-muted">{T('kit.spec.scrollHint')}</p>
+      <SpecRow label={`CompactHeader · ${'lobby'}`}>
+        <div ref={box} className="kit-spec-scrollbox" tabIndex={0} aria-label={'A scrolling example'}>
+          <CompactHeader mode="lobby" watch={hero} scrollRoot={box} contained back={{ href: '#headers', label: 'Back to Shows' }} title={'The Last Sip'}
+            status={<StateWord tone="waiting">Waiting for you</StateWord>} primary={<Button size="sm" variant="primary">Continue: Storyboard</Button>} more={more} />
+          <div ref={hero}><Slot ratio="21/9">Hero (media kit)</Slot></div>
+          <p className="mt-4 text-muted">Scroll this box up: the compact header leaves when the hero comes back, and returns when the hero goes.</p>
           <TextBars lines={3} className="mt-6" />
           <TextBars lines={3} className="mt-6" />
           <TextBars lines={3} className="mt-6 pb-40" />
         </div>
       </SpecRow>
-      <SpecRow label={`CompactHeader · ${T('kit.spec.cutting')}`}>
-        <div className="kit-spec-scrollbox kit-spec-cutting" data-room="cutting" data-density="compact" tabIndex={0} aria-label={T('kit.spec.scrollbox')}>
-          <CompactHeader mode="cutting" contained back={{ href: '#headers', label: T('kit.spec.backShows') }} title={T('kit.spec.episode')} status={<StateWord tone="running">{T('kit.state.running')}</StateWord>}
-            tabs={<TabBar tabs={[{ id: 'story', label: T('tab.story') }, { id: 'storyboard', label: T('tab.storyboard') }, { id: 'produce', label: T('tab.produce') }]} current={tab} onSelect={setTab} ariaLabel={T('kit.spec.tabsLabel')} />}
-            save={<SaveWord state="saved" />} primary={<Button size="sm" variant="primary">{T('kit.spec.continue')}</Button>} more={more} />
+      <SpecRow label={`CompactHeader · ${'cutting room'}`}>
+        <div className="kit-spec-scrollbox kit-spec-cutting" data-room="cutting" data-density="compact" tabIndex={0} aria-label={'A scrolling example'}>
+          <CompactHeader mode="cutting" contained back={{ href: '#headers', label: 'Back to Shows' }} title={'Episode 3'} status={<StateWord tone="running">Running</StateWord>}
+            tabs={<TabBar tabs={[{ id: 'story', label: 'Story' }, { id: 'storyboard', label: 'Storyboard' }, { id: 'produce', label: 'Produce' }]} current={tab} onSelect={setTab} ariaLabel={'Episode workspace'} />}
+            save={<SaveWord state="saved" />} primary={<Button size="sm" variant="primary">Continue: Storyboard</Button>} more={more} />
           <div className="mt-4 grid gap-4"><TextBars lines={3} /><TextBars lines={3} /><TextBars lines={3} className="pb-24" /></div>
         </div>
       </SpecRow>
@@ -134,30 +89,30 @@ export function CreationSpec() {
   const [brief, setBrief] = useState('');
   const [len, setLen] = useState('6');
   return (
-    <SpecSection id="creation" title={T('kit.spec.sec.creation')} lead={T('kit.spec.creation.lead')}>
+    <SpecSection id="creation" title={'Creation flow'} lead={'One layout for every new thing: the method, the one essential input, the settings in one line, and the time it takes.'}>
       <div>
         <CreationShell
-          titleAs="h2" back={{ href: '#creation', label: T('kit.spec.backTo') }} cancel={{ href: '#creation' }}
-          title={T('kit.spec.newEpisode')} slate={<p className="slate">{T('kit.spec.creation.slate')}</p>}
+          titleAs="h2" back={{ href: '#creation', label: 'Back to The Last Sip · Season 2' }} cancel={{ href: '#creation' }}
+          title={'New episode'} slate={<p className="slate">For The Last Sip · Season 2 · Cartoon · Arabic (Iraqi)</p>}
           method={{ value: method, onChange: setMethod, options: methods }}
-          preview={<Slot ratio="16/9">{brief ? <span className="t-card-lg text-muted" dir="auto">{brief}</span> : T('kit.spec.slot.titleCard')}</Slot>}
-          estimate={T('kit.spec.estimate')} primary={<Button variant="primary">{method === 'auto' ? T('kit.spec.propose') : T('btn.create')}</Button>}
-          moreControl={<Segmented label={T('kit.spec.length')} value={len} onChange={setLen} options={[{ value: '3', label: T('kit.spec.len3') }, { value: '6', label: T('kit.spec.len6') }, { value: '10', label: T('kit.spec.len10') }]} />}
+          preview={<Slot ratio="16/9">{brief ? <span className="t-card-lg text-muted" dir="auto">{brief}</span> : 'Title card (media kit)'}</Slot>}
+          estimate={'About a minute.'} primary={<Button variant="primary">{method === 'auto' ? 'Propose' : 'Create'}</Button>}
+          moreControl={<Segmented label={'Length'} value={len} onChange={setLen} options={[{ value: '3', label: '3 min' }, { value: '6', label: '6 min' }, { value: '10', label: '10 min' }]} />}
         >
-          <Field label={T('kit.spec.brief')} optional><Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={T('kit.spec.briefPh')} /></Field>
-          <SettingsSummary className="mt-4" items={[T('kit.spec.forShow'), T.dyn('style.CARTOON'), T('kit.spec.lang')]}>
-            <Segmented label={T('kit.spec.length')} value={len} onChange={setLen} options={[{ value: '3', label: T('kit.spec.len3') }, { value: '6', label: T('kit.spec.len6') }]} />
+          <Field label={'What happens in this episode?'} optional><Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={'A line is enough.'} /></Field>
+          <SettingsSummary className="mt-4" items={['For The Last Sip · Season 2', 'Cartoon', 'Arabic (Iraqi Baghdadi)']}>
+            <Segmented label={'Length'} value={len} onChange={setLen} options={[{ value: '3', label: '3 min' }, { value: '6', label: '6 min' }]} />
           </SettingsSummary>
         </CreationShell>
       </div>
       <SpecRow label="Stepper">
-        <Stepper steps={[{ id: 'identity', label: T('kit.spec.step.identity') }, { id: 'look', label: T('kit.spec.step.look') }, { id: 'voice', label: T('tab.voice') }]} current={1} />
+        <Stepper steps={[{ id: 'identity', label: 'Identity' }, { id: 'look', label: 'Look' }, { id: 'voice', label: 'Voice' }]} current={1} />
       </SpecRow>
       <SpecRow label="ReviewActions">
         <div className="min-w-0 flex-1"><ReviewActions onCreate={() => undefined} onAnother={() => undefined} onPreferences={() => undefined} /></div>
       </SpecRow>
       <SpecRow label="MadeNotice">
-        <div className="min-w-0 flex-1"><MadeNotice next={<LinkButton href="#approval" size="sm">{T('kit.spec.made.next')}</LinkButton>} onDismiss={() => undefined}>{T('kit.spec.made')}</MadeNotice></div>
+        <div className="min-w-0 flex-1"><MadeNotice next={<LinkButton href="#approval" size="sm">Open the story</LinkButton>} onDismiss={() => undefined}>Episode 4 was made. Next: approve its story.</MadeNotice></div>
       </SpecRow>
     </SpecSection>
   );

@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { T } from '@/lib/copy';
 import { IconOffline } from '@/components/ui/icons';
 import { fmtAgo } from '@/lib/format';
 import { useShellMaybe } from './context';
@@ -29,12 +28,12 @@ export function ServerBar({ onHeight }: { onHeight?: (px: number) => void }) {
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (!trying) return; const t = setTimeout(() => setTrying(false), 1500); return () => clearTimeout(t); }, [trying]);
   const at = stream.lastDataAt;
-  const since = at === null ? T('shell.server.nothing') : Date.now() - at < 60_000 ? T('shell.server.justNow') : T.f('shell.server.since', { ago: fmtAgo(new Date(at)) });
+  const since = at === null ? 'Nothing could be loaded yet.' : Date.now() - at < 60_000 ? 'Showing what was there a moment ago.' : `Showing what was there ${fmtAgo(new Date(at))}.`;
   return (
     <div ref={ref} className="server-bar" role="status">
       <IconOffline aria-hidden className="server-bar-icon" />
-      <p className="server-bar-text"><span className="server-bar-what">{T('shell.server.down')}</span> <span>{since}</span></p>
-      <button type="button" className="btn btn-secondary btn-xs server-bar-retry" aria-busy={trying || undefined} disabled={trying} onClick={() => { setTrying(true); reconnect(); }}>{T('shell.server.retry')}</button>
+      <p className="server-bar-text"><span className="server-bar-what">Can’t reach the studio server.</span> <span>{since}</span></p>
+      <button type="button" className="btn btn-secondary btn-xs server-bar-retry" aria-busy={trying || undefined} disabled={trying} onClick={() => { setTrying(true); reconnect(); }}>Try now</button>
     </div>
   );
 }
@@ -43,5 +42,5 @@ export function ServerBar({ onHeight }: { onHeight?: (px: number) => void }) {
 export function LastKnown({ className = '' }: { className?: string }) {
   const shell = useShellMaybe();
   if (!shell?.serverDown) return null;
-  return <span className={`last-known ${className}`}>{T('shell.lastKnown')}</span>;
+  return <span className={`last-known ${className}`}>Last known</span>;
 }

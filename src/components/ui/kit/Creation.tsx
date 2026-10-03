@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useId, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { IconAuto, IconCheck, IconChevronLeft, IconManual } from '../icons';
 import { Button } from './Button';
 import { ChoiceTiles, type TileOption } from './Choice';
@@ -33,8 +32,8 @@ export type CreationMethod = 'auto' | 'manual';
 /** The method tiles in the kit's words; pass your own options for a flow with other methods. */
 export function useMethodOptions(): Array<TileOption<CreationMethod>> {
   return [
-    { value: 'auto', label: T('kit.create.auto'), hint: T('kit.create.autoHint'), icon: <IconAuto /> },
-    { value: 'manual', label: T('kit.create.manual'), hint: T('kit.create.manualHint'), icon: <IconManual /> },
+    { value: 'auto', label: 'Let the studio propose', hint: 'A line is enough. You review everything before anything is made.', icon: <IconAuto /> },
+    { value: 'manual', label: 'Write it yourself', hint: 'A title or a line; every other field has a sensible default.', icon: <IconManual /> },
   ];
 }
 
@@ -57,7 +56,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
   /** the page's h1 (default); h2 only inside another page (the /kit specimen) */ titleAs?: 'h1' | 'h2';
 }) {
   const howId = useId();
-  const cancelEl = cancel ? ('href' in cancel ? <Link href={cancel.href} className="btn btn-quiet">{T('btn.cancel')}</Link> : <Button variant="quiet" onClick={cancel.onClick}>{T('btn.cancel')}</Button>) : null;
+  const cancelEl = cancel ? ('href' in cancel ? <Link href={cancel.href} className="btn btn-quiet">Cancel</Link> : <Button variant="quiet" onClick={cancel.onClick}>Cancel</Button>) : null;
   return (
     <div className={cls('creation', className)}>
       <div className="creation-top">
@@ -69,7 +68,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
       {stepper && <div className="mt-4">{stepper}</div>}
       {method && state === 'form' && (
         <div className="creation-method">
-          <p id={howId} className="label">{method.label ?? T('kit.create.how')}</p>
+          <p id={howId} className="label">{method.label ?? 'How do you want to start?'}</p>
           <ChoiceTiles value={method.value} onChange={method.onChange} options={method.options} labelledBy={howId} />
         </div>
       )}
@@ -81,7 +80,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
               {children}
               {moreControl && (
                 <details className="details creation-more">
-                  <summary>{T('kit.create.moreControl')}</summary>
+                  <summary>More control</summary>
                   <div className="mt-4">{moreControl}</div>
                 </details>
               )}
@@ -94,7 +93,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
             </>
           )}
         </div>
-        {preview && <aside className="creation-preview" aria-label={T('kit.create.preview')}>{preview}</aside>}
+        {preview && <aside className="creation-preview" aria-label={'Preview'}>{preview}</aside>}
       </div>
     </div>
   );
@@ -106,9 +105,9 @@ export function ReviewActions({ onCreate, onAnother, onPreferences, creating, an
     <div className="creation-foot">
       <span />
       <span className="flex flex-wrap items-center gap-2">
-        {onPreferences && <Button variant="quiet" onClick={onPreferences}>{T('kit.create.changePrefs')}</Button>}
-        {onAnother && <Button onClick={onAnother} loading={anotherBusy} disabled={creating}>{T('kit.create.another')}</Button>}
-        <Button variant="primary" onClick={onCreate} loading={creating}>{T('btn.create')}</Button>
+        {onPreferences && <Button variant="quiet" onClick={onPreferences}>Change preferences</Button>}
+        {onAnother && <Button onClick={onAnother} loading={anotherBusy} disabled={creating}>Another idea</Button>}
+        <Button variant="primary" onClick={onCreate} loading={creating}>Create</Button>
       </span>
     </div>
   );
@@ -119,21 +118,21 @@ export function ReviewActions({ onCreate, onAnother, onPreferences, creating, an
 export function Stepper({ steps, current, className = '' }: { steps: ReadonlyArray<{ id: string; label: ReactNode }>; current: number; className?: string }) {
   return (
     <div className={cls('stepper-v4', className)}>
-      <ol className="stepper stepper-full" aria-label={T('kit.create.steps')}>
+      <ol className="stepper stepper-full" aria-label={'Steps'}>
         {steps.map((s, i) => (
           <li key={s.id} className="step-v4" aria-current={i === current ? 'step' : undefined} data-done={i < current ? '' : undefined}>
             <span className="stepper-n" aria-hidden>{i < current ? <IconCheck className="size-3.5" /> : i + 1}</span>
-            <span>{s.label}{i < current && <span className="sr-only"> ({T('jp.done')})</span>}</span>
+            <span>{s.label}{i < current && <span className="sr-only"> ({'done'})</span>}</span>
             {i < steps.length - 1 && <span aria-hidden className="step-line" />}
           </li>
         ))}
       </ol>
-      <p className="stepper-short">{T.f('kit.create.stepOf', { n: current + 1, total: steps.length })} · {steps[current]?.label}</p>
+      <p className="stepper-short">{`Step ${current + 1} of ${steps.length}`} · {steps[current]?.label}</p>
     </div>
   );
 }
 
 /** The one-time notice on the object's own page after a flow lands there: what was made, and the next step. */
 export function MadeNotice({ children, next, onDismiss }: { children: ReactNode; next?: ReactNode; onDismiss?: () => void }) {
-  return <Notice tone="ok" title={children} action={<span className="flex flex-wrap items-center gap-2">{next}{onDismiss && <Button size="sm" variant="quiet" onClick={onDismiss}>{T('kit.dismiss')}</Button>}</span>} />;
+  return <Notice tone="ok" title={children} action={<span className="flex flex-wrap items-center gap-2">{next}{onDismiss && <Button size="sm" variant="quiet" onClick={onDismiss}>Dismiss</Button>}</span>} />;
 }
