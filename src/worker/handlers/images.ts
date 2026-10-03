@@ -20,7 +20,8 @@ import {
   negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenIdentitySheet, qwenReferenceCanonical, qwenTextToImage,
   qwenView, referenceCanonicalPrompt, referenceReadGraph, sheetPrompt, viewPrompt, vlmOutput, type CharacterDescription, type PxRect, type ViewRole,
 } from '@/server/workflows';
-import { framePrompt, locationPrompt } from '@/server/story/prompts';
+import { continuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
+import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
 import { canChangeAppearance } from '@/domain/rules';
@@ -462,7 +463,12 @@ export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnTy
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
-  const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + guidance;
+  // an editorial CUT is a new angle on the same moment: the frame carries the previous shot's state (positions,
+  // screen direction, props, light) as well as this shot's own; a story transition starts fresh
+  const { relation, previous } = effectiveRelation(p, sh);
+  const own = continuityLine(sh, cast);
+  const carried = relation === 'CUT' && previous && !opts.ending ? continuityLine(previous, cast) : '';
+  const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
   const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id) } });
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: r.id } : { openingFrameAssetId: r.id }], 'worker');
   return r.id;

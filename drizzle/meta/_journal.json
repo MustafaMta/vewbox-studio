@@ -57,6 +57,13 @@
       "when": 1790980638067,
       "tag": "0007_canonical_image",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790992563946,
+      "tag": "0008_take_relation",
+      "breakpoints": true
     }
   ]
 }

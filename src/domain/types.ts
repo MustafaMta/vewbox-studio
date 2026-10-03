@@ -87,7 +87,13 @@ export interface Scene {
 
 export type TakeStatus = 'READY' | 'REJECTED';
 
-export interface TakeReference { kind: 'FIRST_FRAME' | 'LAST_FRAME' | 'SUBJECT' | 'CHARACTER' | 'LOCATION' | 'VIDEO' | 'AUDIO'; assetId?: string; characterId?: string; locationId?: string; note?: string }
+/** What a take was conditioned on. `binding` is how the prompt names it (`<Picture 1>` / `<Subject 1>`, `<Audio 1>`,
+ *  or `guide@0` for media anchored on the timeline), so the provenance says which picture was whom. */
+export interface TakeReference { kind: 'FIRST_FRAME' | 'LAST_FRAME' | 'SUBJECT' | 'CHARACTER' | 'LOCATION' | 'VIDEO' | 'AUDIO'; assetId?: string; characterId?: string; locationId?: string; note?: string; binding?: string }
+
+/** How a shot joins the one before it, as the take was generated: CONTINUATION (the previous take's tail anchored at
+ *  frame 0), CUT (a new opening frame of the same moment), STORY_TRANSITION (fresh). */
+export type ShotRelation = 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
 
 export interface QaCheck { name: string; ok: boolean; value?: number | string; threshold?: number | string; detail?: string }
 export interface QaReport { ok: boolean; checks: QaCheck[]; reviewedAt?: string; reviewer?: 'AUTO' | 'HUMAN'; notes?: string }
@@ -121,6 +127,10 @@ export interface Take {
   thumbnailAssetId?: string;
   /** Frames at the start that repeat the previous shot's tail (a continuation guide); the cut drops them. */
   trimStartFrames?: number;
+  /** The relation the take was generated for, and for a CONTINUATION the take whose tail it continues (so a later
+   *  change of the previous shot's chosen take can be detected). */
+  relation?: ShotRelation;
+  continuesTakeId?: string;
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
   soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };

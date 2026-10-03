@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { preflightPlan, preflightTake } from '@/server/org/preflight';
 import { seed } from '@/domain/sample';
 import type { Production, Shot, StudioState } from '@/domain/types';
+import { fixture, shotOf } from './continuity-fixture';
 
 /** Preflight refuses a generation that could not succeed, and names the failure class. Built on the sample
  *  studio: its takes are bundled samples (no usable portraits), which is exactly what preflight must notice. */
@@ -59,6 +60,47 @@ describe('preflightTake', () => {
     expect(r.checks.find((x) => x.name === 'prompt-complete')!.ok).toBe(false);
     expect(r.checks.find((x) => x.name === 'duration-in-range')!.ok).toBe(false);
     expect(r.checks.find((x) => x.name === 'duration-in-range')!.failureClass).toBe('WRONG_PARAMETERS');
+  });
+});
+
+describe('preflightTake — the engine’s verified limits (P0.6) on the shot pack', () => {
+  it('reports the frames the engine will really make, and guides that count and fit', () => {
+    const { state, p } = fixture();
+    const r = preflightTake(state, p, shotOf(p, 's12'), { backend: 'local' });
+    expect(r.checks.find((c) => c.name === 'duration-in-range')!.detail).toMatch(/^5 s → 158 frames \(6\.58 s; engine 1–15 s, trained 124–362 frames\)/);
+    expect(r.checks.find((c) => c.name === 'guides-within-limit')).toMatchObject({ ok: true, detail: '2 guide(s) (tail@0, soundtrack@22), limit 4' });
+    expect(r.checks.find((c) => c.name === 'guides-fit-clip')).toMatchObject({ ok: true });
+    expect(r.checks.find((c) => c.name === 'continuation-source-ready')).toMatchObject({ ok: true, detail: expect.stringMatching(/last 22 frames and their sound at frame 0/) });
+    expect(r.checks.find((c) => c.name === 'reference-pictures-within-limit')).toMatchObject({ ok: true, detail: '3 picture(s) (2 character(s), the plate), limit 9' });
+    const cut = preflightTake(state, p, shotOf(p, 's13'), { backend: 'local', customPrompt: true });
+    expect(cut.checks.find((c) => c.name === 'guides-within-limit')!.detail).toBe('2 guide(s) (opening_frame@0, ending_frame@-1), limit 4');
+    expect(cut.checks.find((c) => c.name === 'reference-pictures-within-limit')!.detail).toMatch(/2 picture|3 picture/);
+  });
+  it('identity comes from the characters’ own images, never from an opening frame alone', () => {
+    const { state, p } = fixture({ characters: (cs) => cs.map((c, i) => (i < 2 ? { ...c, canonicalImage: undefined, portraitAssetId: undefined } : c)) });
+    const r = preflightTake(state, p, shotOf(p, 's13'), { backend: 'local', customPrompt: true });
+    expect(shotOf(p, 's13').openingFrameAssetId).toBeTruthy();
+    expect(r.checks.find((c) => c.name === 'identity-reference-present')).toMatchObject({ ok: false, failureClass: 'MISSING_REFERENCE' });
+  });
+  it('warns when a continuation cannot carry the planned length after its guide, when transition and relation disagree, and when the hosted request is lowered', () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, durationSeconds: 15, transition: 'DISSOLVE' as const } : s)) });
+    const r = preflightTake(state, p, shotOf(p, 's12'), { backend: 'local' });
+    // warnings, not refusals
+    expect(r.ok).toBe(true);
+    expect(r.warnings.map((w) => w.name)).toEqual(expect.arrayContaining(['continuation-length', 'transition-matches-relation']));
+    expect(r.warnings.find((w) => w.name === 'continuation-length')!.detail).toMatch(/at most 340 new frames \(14\.2 s\)/);
+    const hosted = preflightTake(state, p, shotOf(p, 's13'), { backend: 'api', customPrompt: true });
+    expect(hosted.warnings.find((w) => w.name === 'hosted-lowering')!.detail).toMatch(/frame and reference roles cannot be mixed/);
+    expect(hosted.checks.find((c) => c.name === 'guides-within-limit')!.detail).toBe('0 guide(s), limit 4');
+  });
+  it('names characters beyond the nine-picture budget', () => {
+    const { state: s0, p: p0 } = fixture();
+    const extra = Array.from({ length: 9 }, (_, i) => ({ ...s0.characters[0], id: `extra-${i}`, name: `Extra ${i}`, canonicalImage: { assetId: 'canon-a', status: 'APPROVED' as const, version: 1, generatedAt: 'x' } }));
+    const state = { ...s0, characters: [...s0.characters, ...extra] };
+    const p = { ...p0, castIds: [...p0.castIds, ...extra.map((c) => c.id)], shots: p0.shots.map((s) => (s.id === 's13' ? { ...s, characterIds: [...s.characterIds, ...extra.map((c) => c.id)] } : s)) };
+    const r = preflightTake(state, p, shotOf(p, 's13'), { backend: 'local', customPrompt: true });
+    expect(r.checks.find((c) => c.name === 'reference-pictures-within-limit')).toMatchObject({ ok: true });
+    expect(r.warnings.find((w) => w.name === 'characters-over-picture-budget')!.detail).toMatch(/3 character\(s\) beyond the 9-picture budget go unreferenced: Extra 6, Extra 7, Extra 8/);
   });
 });
 
