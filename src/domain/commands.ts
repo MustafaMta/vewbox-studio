@@ -115,7 +115,7 @@ const VoiceDesignRecordSchema = z.object({
   id, characterId: id, mode: z.enum(['AUTOMATIC', 'DESIGN']), engine: short(80).min(1), model: short(200), engineVersion: short(400).min(1),
   description: z.string().min(1).max(300), descriptionSource: z.enum(['PROFILE', 'PRODUCER']), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), experiment: z.literal('DESIGNED_IRAQI').optional(),
   text: z.string().min(1).max(1000), seed: z.number().int().nonnegative(), seeds: z.array(z.number().int().nonnegative()).min(1).max(3), params: z.record(z.string(), z.number()),
-  lineEngine: short(40), similarityModel: short(200).optional(), candidates: z.array(designCandidate).min(1).max(3), similarity: z.array(z.array(z.number())).max(3).optional(),
+  lineEngine: short(40), similarityModel: short(200).optional(), lineParams: z.object({ speed: z.number().positive().max(3), emotionAlpha: z.number().min(0).max(2), seed: z.number().int() }).optional(), candidates: z.array(designCandidate).min(1).max(3), similarity: z.array(z.array(z.number())).max(3).optional(),
   ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), jobId: id, createdAt: z.string().max(40).optional(),
 });
 const VoiceDesignPatchSchema = z.object({ candidates: z.array(z.object({ index: z.number().int().min(1).max(3), measured: designMeasure, gate: designGate, ...designScores })).max(3), ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), similarityModel: short(200).optional() });

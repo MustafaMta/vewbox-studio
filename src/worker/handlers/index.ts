@@ -43,6 +43,7 @@ import { autoIdea, designCharacter, developStory, episodeContinuity, writeScript
 import { generateTake } from './take';
 import { characterAppearance, characterRefs, locationPlates, shotFrames } from './images';
 import { voiceBuild, voicePreview, dialogueAudio } from './voice';
+import { voiceDesign } from './voice-design';
 import { generateSong } from './music';
 import { assemble, exportCut } from './assemble';
 import { produce } from './produce';
@@ -54,7 +55,7 @@ export const HANDLERS: Partial<Record<JobType, Handler>> = {
   AUTO_IDEA: autoIdea, DEVELOP_STORY: developStory, WRITE_SCRIPT: writeScript, PLAN_SHOTS: planShots,
   GENERATE_TAKE: generateTake,
   CHARACTER_APPEARANCE: characterAppearance, CHARACTER_REFS: characterRefs, LOCATION_PLATES: locationPlates, SHOT_FRAMES: shotFrames,
-  VOICE_BUILD: voiceBuild, VOICE_PREVIEW: voicePreview, DIALOGUE_AUDIO: dialogueAudio,
+  VOICE_DESIGN: voiceDesign, VOICE_BUILD: voiceBuild, VOICE_PREVIEW: voicePreview, DIALOGUE_AUDIO: dialogueAudio,
   GENERATE_SONG: generateSong,
   ASSEMBLE: assemble, EXPORT: exportCut,
   PRODUCE: produce,

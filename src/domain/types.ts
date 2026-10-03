@@ -422,6 +422,9 @@ export interface VoiceDesignRecord {
   seed: number; seeds: number[]; params: Record<string, number>;
   /** The line engine the candidates were previewed through, and the speaker-similarity model. */
   lineEngine: string; similarityModel?: string;
+  /** The line engine's parameters the previews were spoken with; a build from this design pins the same seed and
+   *  emotion strength, so the voice pinned is the voice heard. */
+  lineParams?: { speed: number; emotionAlpha: number; seed: number };
   candidates: VoiceDesignCandidate[];
   /** Pairwise ECAPA cosine between the candidates (index order). */
   similarity?: number[][];

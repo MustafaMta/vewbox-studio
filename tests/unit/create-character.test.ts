@@ -79,7 +79,8 @@ describe('CREATE_CHARACTER', () => {
       { step: 'design', status: 'skipped', reason: 'the sheet was complete' },
       { step: 'appearance', status: 'done', jobId: 'character_appearance-1' },
       { step: 'sheet', status: 'done', jobId: 'character_refs-2' },
-      { step: 'voice', status: 'skipped', reason: expect.stringMatching(/no voice yet: .*upload a 3–30 second recording/) },
+      // an Iraqi character without an Iraqi recording: the contract's sentence (v2 §2), no designed voice in its place
+      { step: 'voice', status: 'skipped', reason: 'no voice yet: Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.' },
     ]);
     expect(fake.enqueued.map((e) => [e.type, e.key, e.parentId])).toEqual([['CHARACTER_APPEARANCE', 'create:job-cc:appearance', 'job-cc'], ['CHARACTER_REFS', 'create:job-cc:sheet', 'job-cc']]);
     expect(fake.enqueued.every((e) => e.payload.characterId === c.id)).toBe(true);
@@ -168,10 +169,25 @@ describe('CREATE_CHARACTER', () => {
     await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, draw: false }));
     const c = fake.state.characters.find((x) => x.name === 'Rafid')!;
     fake.state = addAsset(fake.state, { id: 'up-voice', kind: 'AUDIO', src: '/api/media/up-voice', label: 'v', tags: [], sample: false, origin: 'UPLOAD' }).state;
-    fake.state = addVoiceRecording(fake.state, c.id, 'up-voice', 'ref');
+    fake.state = addVoiceRecording(fake.state, c.id, 'up-voice', 'ref', { consent: { statement: 'SPEAKER_PERMISSION', by: 'PRODUCER', at: '2026-10-03T00:00:00.000Z' } });
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, draw: false, voice: { mode: 'AUTOMATIC' } }));
     expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:skipped', 'sheet:skipped', 'voice:done']);
     expect(fake.enqueued.at(-1)).toMatchObject({ type: 'VOICE_BUILD', key: 'create:job-cc:voice', payload: { characterId: c.id, mode: 'AUTOMATIC' } });
+  });
+  it('the voice step of an English character with no recording runs the AUTOMATIC build (a designed voice); a recording without consent fails the step with its reason', async () => {
+    fake.outcomes.VOICE_BUILD = { status: 'COMPLETED', result: { engine: 'indextts' } };
+    const en = { ...sheet, name: 'Rana', language: 'EN', dialect: undefined } as const;
+    const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: en, draw: false, voice: { mode: 'AUTOMATIC' } }));
+    expect(r!.steps.at(-1)).toMatchObject({ step: 'voice', status: 'done' });
+    expect(fake.enqueued.at(-1)).toMatchObject({ type: 'VOICE_BUILD', payload: { mode: 'AUTOMATIC' } });
+    const rana = fake.state.characters.find((x) => x.name === 'Rana')!;
+    fake.state = addAsset(fake.state, { id: 'up-old', kind: 'AUDIO', src: '/api/media/up-old', label: 'old', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    fake.state = addVoiceRecording(fake.state, rana.id, 'up-old', 'before consent existed');
+    fake.jobs.clear(); fake.enqueued = [];
+    // the same creation again (a retry adopts the record it wrote, now with an old recording on it)
+    const again = await createCharacter(ctxFor({ mode: 'MANUAL', profile: en, draw: false, voice: { mode: 'AUTOMATIC' } }));
+    expect(again!.steps.at(-1)).toMatchObject({ step: 'voice', status: 'failed', failureClass: 'INVALID_INPUT', reason: expect.stringMatching(/consent statement/) });
+    expect(fake.enqueued.map((e) => e.type)).not.toContain('VOICE_BUILD');
   });
   it('retrying the parent (same job, /api/jobs/{id}/retry) runs a failed child again and makes progress (finding 12)', async () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'ComfyUI is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };

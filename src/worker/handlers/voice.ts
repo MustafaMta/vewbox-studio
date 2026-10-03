@@ -2,38 +2,45 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
 import { step } from './step';
-import { StudioError, missingReference } from '@/domain/errors';
+import { StudioError, consentRequired, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, Character, Production, VoiceIdentity, VoiceSample } from '@/domain/types';
+import type { Asset, Character, Production, VoiceConsent, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceOrigin, VoiceSample } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFromStored, ffprobe, fileFor, removeFile } from '@/server/media';
+import { adoptFile, assetFromStored, ffprobe, removeFile, sha256File } from '@/server/media';
 import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
-import { engineOutputTag, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
+import { engineOutputTag, formatTags, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
+import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
-import { VOICE_GATES, charErrorRate, lineScript, pickEngine, routeLine as routeLineByScript, scriptCoverage, synthesize, transcribe, verdict, wordErrorRate, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
+import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
+import { unloadDesign } from '@/server/providers/voice-design';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
 import { registerUnloader } from '../gpu';
 import { unloadAsr, unloadTts } from '@/server/providers/speech';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
-import { guardVoiceBuild, isCloneSource, voiceLock } from '@/domain/rules';
+import { designChoiceProblem } from '@/server/org/preflight';
+import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
+import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, rankDesignCandidates, rankingFor, tagDesignId, usableRecordingAsset, voiceLabels } from '@/domain/voice-identity';
 import type { VoiceIdentityInput } from '@/domain/actions';
+import { TTS_VRAM, assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
+import { designAndMeasure, designSummary } from './voice-design';
 
-/** VOICES — one persistent identity per character (which engine, which reference recording, which revision), a
- *  preview line, and the recording of every dialogue line of a production. The reference is always the producer's
- *  upload, never a generated line. Each generated line is transcribed back and compared with the script; a line
- *  that drifts too far is regenerated once and flagged if it still drifts; a line that could not be heard back is
- *  flagged too, never passed. Contract: docs/CONTRACTS-CHARACTER-VOICE.md §1.4. */
+/** VOICES — one persistent identity per character (which engine, which reference, which revision), a preview line,
+ *  and the recording of every dialogue line of a production. The reference is a consented recording or a studio
+ *  design seed with its record (Rule V-DESIGN), never a generated line. Each generated line is transcribed back and
+ *  compared with the script; a line that drifts too far is regenerated once and flagged if it still drifts; a line
+ *  that could not be heard back is flagged too, never passed. Contracts: docs/CONTRACTS-CHARACTER-VOICE.md §1.4,
+ *  docs/CONTRACTS-VOICE-IDENTITY-V2.md. */
 
 registerUnloader('TTS', unloadTts);
+registerUnloader('TTS', unloadDesign);
 registerUnloader('ASR', unloadAsr);
 
-const TTS_VRAM = 8000;
-const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
+export { speedForPace };
 
 /** Gates (contract §1.4, `VOICE_GATES` in speech.ts): a recorded line (and the proof line) must cover this much of
  *  its script, in order, AND be within CER ≤ 0.15 after the dialect fold; a take's clip ≥ 0.7 with the same CER.
@@ -84,56 +91,108 @@ export function minimaxCloneProblem(a: Pick<Asset, 'durationSeconds' | 'bytes'>)
   return null;
 }
 
-/** The profile's pace as the engine's speed factor. */
-export const speedForPace = (pace: Character['voice']['pace']): number => (pace === 'SLOW' ? 0.9 : pace === 'QUICK' ? 1.12 : 1.0);
+/** A clone source as found: a consented upload; an upload an identity was pinned from before consent was recorded
+ *  (spoken from, never built from again — `confirmVoiceConsent` upgrades it); an upload without consent (refused at a
+ *  build); or a design seed with its record and candidate (Rule V-DESIGN, checked on the file in `referenceWav`). */
+export interface ReferencePick {
+  asset: Asset; sample?: VoiceSample;
+  via: 'IDENTITY' | 'SELECTED' | 'UPLOADED' | 'REQUESTED' | 'DESIGN';
+  kind: 'CONSENTED' | 'LEGACY' | 'UNCONSENTED' | 'DESIGNED';
+  design?: { record: VoiceDesignRecord; candidate: VoiceDesignCandidate };
+}
 
-export interface ReferencePick { asset: Asset; sample?: VoiceSample; via: 'IDENTITY' | 'SELECTED' | 'UPLOADED' | 'REQUESTED' }
+export interface ReferenceOptions {
+  /** one specific upload (REFERENCE mode, or AUTOMATIC's chosen recording) */
+  sampleId?: string;
+  /** one specific design candidate (DESIGN mode, or AUTOMATIC's designed pick) */
+  design?: { designId: string; candidate: number };
+  /** BUILD: a new identity is pinned from it (consent required); SPEAK (default): a line is spoken from the voice */
+  purpose?: 'BUILD' | 'SPEAK';
+}
 
-const usableAudio = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'AUDIO' && !a.sample && !a.unavailable && a.origin !== 'GENERATED');
-
-/** THE REFERENCE RULE — which recording a character's voice is cloned from, in this order: the identity's reference
- *  upload; the chosen sample when it is an upload; any upload. GENERATED lines (the proof, previews) and bundled
- *  SAMPLE voices are never cloned from. `sampleId` asks for one specific upload (REFERENCE mode). Null = refuse. */
-export function pickReference(c: Character, assets: Asset[], opts: { sampleId?: string } = {}): ReferencePick | null {
+/** THE REFERENCE RULE — what a character's voice is cloned from. An identity designed by the studio speaks from its
+ *  design seed and nothing else (never a silent fall-back to another voice). Otherwise, in this order: the identity's
+ *  reference upload; the chosen sample when it is a consented upload; any consented upload. GENERATED lines (the
+ *  proof, previews), bundled SAMPLE voices and uploads without consent are never cloned from — except that an identity
+ *  pinned before consent existed keeps speaking from its own recording. `sampleId` / `design` ask for one source. */
+export function pickReference(c: Character, assets: Asset[], opts: ReferenceOptions = {}): ReferencePick | null {
   const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
+  const designPick = (designId: string, match: (x: VoiceDesignCandidate) => boolean, via: ReferencePick['via']): ReferencePick | null => {
+    const record = c.voice.designs?.find((d) => d.id === designId);
+    const candidate = record?.candidates.find(match);
+    const a = candidate ? byId(candidate.assetId) : undefined;
+    return record && candidate && a && a.kind === 'AUDIO' && !a.sample && !a.unavailable ? { asset: a, via, kind: 'DESIGNED', design: { record, candidate } } : null;
+  };
+  if (opts.design) return designPick(opts.design.designId, (x) => x.index === opts.design!.candidate, 'DESIGN');
   if (opts.sampleId) {
     const sm = c.voice.samples.find((s) => s.id === opts.sampleId);
     const a = sm && isCloneSource(sm) ? byId(sm.assetId) : undefined;
-    return usableAudio(a) ? { asset: a, sample: sm, via: 'REQUESTED' } : null;
+    return usableRecordingAsset(a) ? { asset: a, sample: sm, via: 'REQUESTED', kind: isConsentedUpload(sm!) ? 'CONSENTED' : 'UNCONSENTED' } : null;
   }
   const id = c.voice.identity;
+  if (id?.origin === 'DESIGNED') return id.designId ? designPick(id.designId, (x) => x.assetId === id.referenceAssetId, 'IDENTITY') : null;
   if (id?.referenceAssetId) {
     const a = byId(id.referenceAssetId);
-    if (usableAudio(a)) return { asset: a, sample: c.voice.samples.find((s) => s.id === id.referenceSampleId) ?? c.voice.samples.find((s) => s.assetId === a.id && isCloneSource(s)), via: 'IDENTITY' };
+    if (usableRecordingAsset(a)) {
+      const sample = c.voice.samples.find((s) => s.id === id.referenceSampleId) ?? c.voice.samples.find((s) => s.assetId === a.id && isCloneSource(s));
+      const kind = sample && isConsentedUpload(sample) ? 'CONSENTED' : !id.origin ? 'LEGACY' : 'UNCONSENTED';
+      if (kind !== 'UNCONSENTED') return { asset: a, sample, via: 'IDENTITY', kind };
+    }
   }
   const chosen = c.voice.samples.find((s) => s.id === c.voice.selectedSampleId);
-  if (chosen && isCloneSource(chosen)) { const a = byId(chosen.assetId); if (usableAudio(a)) return { asset: a, sample: chosen, via: 'SELECTED' }; }
+  if (chosen && isConsentedUpload(chosen)) { const a = byId(chosen.assetId); if (usableRecordingAsset(a)) return { asset: a, sample: chosen, via: 'SELECTED', kind: 'CONSENTED' }; }
   for (const s of c.voice.samples) {
-    if (!isCloneSource(s)) continue;
+    if (!isConsentedUpload(s)) continue;
     const a = byId(s.assetId);
-    if (usableAudio(a)) return { asset: a, sample: s, via: 'UPLOADED' };
+    if (usableRecordingAsset(a)) return { asset: a, sample: s, via: 'UPLOADED', kind: 'CONSENTED' };
   }
   return null;
 }
+
+/** The uploads a character has that could be cloned from but for a consent statement (for the refusal's words). */
+export const unconsentedUploads = (c: Character, assets: Asset[]): VoiceSample[] => c.voice.samples.filter((s) => isCloneSource(s) && !isConsentedUpload(s) && usableRecordingAsset(assets.find((a) => a.id === s.assetId)));
 
 // ----------------------------------------------------------------------------------------- reference on disk
 
 export interface Reference {
   file: string; asset: Asset; sample?: VoiceSample;
-  /** what the recording says, read from the sample (stored once at upload); transcribed on first use when absent */
+  /** what the recording says, read from the sample (stored once at upload); transcribed on first use when absent. For
+   *  a design seed: the calibration sentence it speaks (the record's) */
   text?: string;
   /** the stretch of the original the engine hears, and its stored asset when the window was stored at upload */
   window?: { from: number; to: number; assetId?: string };
   via: ReferencePick['via'];
+  /** the identity origin this reference gives a voice (LEGACY_UPLOAD: speaking only, never a new build) */
+  origin: Extract<VoiceOrigin, 'UPLOAD_CONSENTED' | 'DESIGNED'> | 'LEGACY_UPLOAD';
+  consent?: VoiceConsent;
+  /** a design seed: its record, candidate and the sha256 the file was checked against */
+  design?: { designId: string; candidate: number; sha256: string; gateOk: boolean };
 }
 
-/** The character's reference recording as the engine takes it (mono 24 kHz, ≤ 12 s, −20 LUFS), or null when
- *  there is nothing to clone from. The window stored at upload is used as it is; otherwise it is cut here with the
- *  one measurement stack (voice-check). A file the studio's own engine made is refused whatever path brought it in
- *  (finding 7: the synthetic-speech tag docker/tts writes is read here and at upload). */
-export async function referenceWav(c: Character, assets: Asset[], dir: string, opts: { sampleId?: string } = {}): Promise<Reference | null> {
+/** RULE V-DESIGN AT THE CLONE BOUNDARY — a design seed is spoken from only when the file as found hashes to its design
+ *  record's sha256 (and the asset's, and the pinned identity's), its provenance tag names the same design, and the line
+ *  engine hears all of it. Anything else is refused MISSING_REFERENCE, whatever path brought the file in. */
+async function designedReference(c: Character, pick: ReferencePick): Promise<Reference> {
+  const { record, candidate } = pick.design!;
+  const file = assetFile(pick.asset);
+  const tags = await formatTags(file);
+  const fileSha256 = await sha256File(file).catch(() => '');
+  const problem = designedSeedProblem(c, { designId: record.id, assetId: pick.asset.id, fileSha256, assetSha256: pick.asset.sha256, pinnedSha256: pick.via === 'IDENTITY' ? c.voice.identity?.seedSha256 : undefined, tagDesignId: tagDesignId([tags.comment, tags.icmt].filter(Boolean).join(' ')) });
+  if (problem) throw missingReference(`Rule V-DESIGN refused ${c.name}'s design seed: ${problem}. A designed voice is cloned only from its own recorded seed; design the voice again.`, { characterId: c.id, designId: record.id, assetId: pick.asset.id });
+  return { file, asset: pick.asset, text: record.text, via: pick.via, origin: 'DESIGNED', design: { designId: record.id, candidate: candidate.index, sha256: candidate.sha256, gateOk: candidate.gate.ok } };
+}
+
+/** The character's reference as the engine takes it (mono 24 kHz, ≤ 12 s, −20 LUFS), or null when there is nothing
+ *  to clone from. A design seed is that already (checked by Rule V-DESIGN). For a recording, the window stored at
+ *  upload is used as it is; otherwise it is cut here with the one measurement stack (voice-check). A recording without
+ *  a consent statement is refused CONSENT_REQUIRED (an identity pinned from it before consent existed keeps speaking
+ *  from it); a file the studio's own engine made is refused whatever path brought it in (finding 7: the
+ *  synthetic-speech tag docker/tts writes is read here and at upload — no design record can make an upload DESIGNED). */
+export async function referenceWav(c: Character, assets: Asset[], dir: string, opts: ReferenceOptions = {}): Promise<Reference | null> {
   const pick = pickReference(c, assets, opts);
   if (!pick) return null;
+  if (pick.kind === 'DESIGNED') return designedReference(c, pick);
+  if (pick.kind === 'UNCONSENTED' || (pick.kind === 'LEGACY' && opts.purpose === 'BUILD')) throw consentRequired(`“${pick.sample?.label ?? pick.asset.label}” has no consent statement; confirm that it is ${c.name}'s voice used with permission (your own voice, or the speaker's permission) before a voice is cloned from it.`, { characterId: c.id, sampleId: pick.sample?.id });
   const engine = await engineOutputTag(assetFile(pick.asset));
   if (engine) throw missingReference(`“${pick.sample?.label ?? pick.asset.label}” is the studio's own engine output (${engine.split(' · ')[0]}), not a recording; upload a real recording of ${c.name}'s voice.`, { characterId: c.id, assetId: pick.asset.id, engineOutput: engine });
   const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
@@ -141,9 +200,11 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string, o
   // the trimmed window stored with the upload, or the one the identity was built with
   const storedWindowId = pick.sample?.provenance?.trimmedAssetId ?? (pick.via === 'IDENTITY' ? c.voice.identity?.referenceWindow?.assetId : undefined);
   const stored = byId(storedWindowId);
+  const origin: Reference['origin'] = pick.kind === 'CONSENTED' ? 'UPLOAD_CONSENTED' : 'LEGACY_UPLOAD';
+  const consent = pick.kind === 'CONSENTED' ? pick.sample?.consent : undefined;
   if (stored && stored.kind === 'AUDIO' && !stored.unavailable) {
     const w = pick.sample?.provenance?.window ?? c.voice.identity?.referenceWindow;
-    return { file: assetFile(stored), asset: pick.asset, sample: pick.sample, text, window: w ? { from: w.from, to: w.to, assetId: stored.id } : { from: 0, to: stored.durationSeconds ?? 0, assetId: stored.id }, via: pick.via };
+    return { file: assetFile(stored), asset: pick.asset, sample: pick.sample, text, window: w ? { from: w.from, to: w.to, assetId: stored.id } : { from: 0, to: stored.durationSeconds ?? 0, assetId: stored.id }, via: pick.via, origin, consent };
   }
   const src = assetFile(pick.asset);
   const speech = await speechRegions(src, { durationSeconds: pick.asset.durationSeconds });
@@ -152,7 +213,7 @@ export async function referenceWav(c: Character, assets: Asset[], dir: string, o
   const window = found ? { from: found.from, to: found.to } : { from: 0, to: Math.min(speech.durationSeconds || REFERENCE_WINDOW.maxSeconds, REFERENCE_WINDOW.maxSeconds) };
   const out = path.join(dir, `ref-${c.id}.wav`);
   await trimReference(src, out, window);
-  return { file: out, asset: pick.asset, sample: pick.sample, text, window, via: pick.via };
+  return { file: out, asset: pick.asset, sample: pick.sample, text, window, via: pick.via, origin, consent };
 }
 
 /** What the reference recording says. Habibi (F5-TTS) conditions on the reference transcript; it is stored once on
@@ -207,13 +268,26 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
  *  verdict — FAIL is regenerated once, REVIEW (just below the gate) goes to a person. */
 export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string }
 
-/** THE GATE (contract §1.4) on a line and what was heard: coverage over folded words, CER after the dialect fold,
- *  WER for the report — and the verdict for a recorded line ('line') or a take's clip ('take'). Pure. */
+/** THE GATE (contract §1.4, v2 §4) on a line and what was heard: word coverage (Arabic on the space-insensitive
+ *  alignment of src/server/media/arabic-align.ts — «گلتلك» written «قلت لك» is heard, «باچر» written «باسر» is not),
+ *  CER after the dialect fold, WER for the report — and the verdict for a recorded line ('line') or a take's clip
+ *  ('take'). «چ» cannot be confirmed by ASR (the Iraqi A/B: never written چ/ج/تش in 36 tries, a real Iraqi clip
+ *  included): a line that fails only on words with چ is REVIEW for a listener, "چ not confirmable by ASR", never FAIL;
+ *  the numbers recorded stay the measured ones. Pure. */
 export function judgeHeard(text: string, heard: string, language: Language, context: 'line' | 'take' = 'line'): LineCheck {
-  const coverage = scriptCoverage(text, heard, language);
-  const cer = charErrorRate(text, heard, language);
-  const v = verdict({ coverage, cer, context });
-  return { ok: v.status === 'PASS', status: v.status, reasons: v.reasons, wer: wordErrorRate(text, heard, language), cer, coverage, heard };
+  const m = heardMetrics(text, heard, language);
+  const v = verdict({ coverage: m.coverage, cer: m.cer, context });
+  let status = v.status; let reasons = v.reasons;
+  if (language === 'AR' && status !== 'PASS') {
+    const ch = unconfirmableCh(text, heard);
+    if (ch.blocks.length) {
+      const f = heardMetrics(text, ch.forgiven, 'AR');
+      const fv = verdict({ coverage: f.coverage, cer: f.cer, context });
+      const why = `چ not confirmable by ASR: ${ch.blocks.map((b) => `«${b.ref.join(' ')}» heard «${b.hyp.join(' ')}»`).join(', ')} — a listener decides`;
+      if (fv.status !== 'FAIL') { status = 'REVIEW'; reasons = fv.status === 'PASS' ? [why] : [...v.reasons, why]; }
+    }
+  }
+  return { ok: status === 'PASS', status, reasons, wer: m.wer, cer: m.cer, coverage: m.coverage, heard };
 }
 
 /** A heard line that failed the gate outright is spoken once more; one just below the gate is kept and flagged for a
@@ -234,37 +308,73 @@ export async function verifyLine(ctx: HandlerContext, file: string, text: string
 
 const proofLineFor = (c: Character) => (c.language === 'AR' ? (c.dialect === 'IRAQI_BAGHDADI' ? 'هلا بيك. اني اسمي ' + (c.nameAr || c.name) + '، وهذا صوتي.' : 'أهلاً بك. اسمي ' + (c.nameAr || c.name) + '، وهذا صوتي.') : `Hello. My name is ${c.name}, and this is my voice.`);
 
-/** Build and pin a character's voice. Modes: REFERENCE clones from one validated upload; AUTOMATIC from the best
- *  upload (none → MISSING_REFERENCE); MANUAL is a hosted catalogue voice. Nothing is written until the proof line
- *  exists on disk and was heard back: identity and proof go into the studio in one batch; a failed build leaves the
- *  character exactly as it was. The proof line is a GENERATED sample and is never the chosen recording. */
+/** Build and pin a character's voice (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). Modes: REFERENCE clones from one
+ *  consented upload; DESIGN pins the producer's chosen design candidate; AUTOMATIC uses a consented recording when there
+ *  is one, otherwise designs an English or MSA voice from the profile and pins the best measured candidate (Iraqi:
+ *  refused without an Iraqi recording — or the designed-seed experiment when switched on, always REVIEW); MANUAL is a
+ *  hosted catalogue voice. Nothing is written to the identity until the proof line exists on disk and was heard back
+ *  and measured: identity and proof go into the studio in one batch; a failed build leaves the identity as it was (a
+ *  design's candidates and record are kept). The proof line is a GENERATED sample and is never the chosen recording. */
 export const voiceBuild: Handler = async (ctx) => {
   const payload = ctx.job.payload as JobPayloadParsed<'VOICE_BUILD'>;
   const mode = payload.mode ?? 'AUTOMATIC';
-  const { state } = await readState();
-  const c = state.characters.find((x) => x.id === payload.characterId);
+  let { state } = await readState();
+  let c = state.characters.find((x) => x.id === payload.characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
   // the voice of a character who has been in a video is preserved like their face (VOICE_LOCKED): with an identity it
   // is never rebuilt; locked by the chosen recording alone, it is built only from that recording (AUTOMATIC is held
-  // to it, REFERENCE must name it, a catalogue voice is refused) — finding 8
-  const locked = voiceLock(c).locked;
+  // to it, REFERENCE must name it, a design or a catalogue voice is refused) — finding 8
   guardVoiceBuild(c, mode === 'REFERENCE' ? payload.referenceSampleId : mode === 'AUTOMATIC' ? c.voice.selectedSampleId : undefined, 'build the voice');
-  const dir = await tmpDir('voice');
-  const useMinimax = mode === 'MANUAL' || ((payload.provider ?? state.settings.generation?.voiceProvider) === 'MINIMAX' && Boolean(env().MINIMAX_API_KEY));
   if (mode === 'MANUAL' && !env().MINIMAX_API_KEY) throw new StudioError('NOT_CONFIGURED', 'A catalogue voice needs the hosted speech provider: MINIMAX_API_KEY is not set.');
+  const dir = await tmpDir('voice');
 
-  // 1) the reference: the producer's upload, never a generated line
+  // the line engine's parameters to pin — decided first: a design's previews are spoken with the same seed
+  const params: VoiceIdentity['params'] = { speed: speedForPace(c.voice.pace), emotionAlpha: 1, seed: Math.floor(Math.random() * 2 ** 31) };
+
+  // 1) the reference: a consented recording or a recorded design seed (Rule V-DESIGN), never a generated line
   let ref: Reference | null = null;
+  let record: VoiceDesignRecord | undefined;
+  let experiment = false;
+  if (mode === 'REFERENCE') {
+    ref = await referenceWav(c, state.assets, dir, { sampleId: payload.referenceSampleId, purpose: 'BUILD' });
+    if (!ref) throw missingReference(`The requested recording is not an uploaded recording of ${c.name} (or its file is gone). Upload a 3–30 second recording of the voice on the Voice tab.`, { characterId: c.id, mode });
+  } else if (mode === 'DESIGN') {
+    const problem = designChoiceProblem(state, c, payload.designId, payload.candidate);
+    if (problem) throw missingReference(problem, { characterId: c.id, mode, designId: payload.designId });
+    record = c.voice.designs!.find((d) => d.id === payload.designId)!;
+    experiment = isIraqi(c);
+    // the voice pinned is the voice heard: the previews' seed and emotion strength
+    if (record.lineParams) { params.seed = record.lineParams.seed; params.emotionAlpha = record.lineParams.emotionAlpha; }
+    ref = await referenceWav(c, state.assets, dir, { design: { designId: record.id, candidate: payload.candidate! }, purpose: 'BUILD' });
+  } else if (mode === 'AUTOMATIC') {
+    const plan = automaticVoicePlan(c, state.assets, state.settings);
+    await ctx.event('info', `automatic voice: ${plan.kind === 'UPLOAD' ? `the consented recording “${plan.label}”` : plan.kind === 'DESIGN' ? (plan.experiment ? 'a designed Arabic seed for the Iraqi engine (experiment)' : 'a voice designed from the profile') : `refused (${plan.code})`}`, { plan });
+    if (plan.kind === 'REFUSE') throw plan.code === 'CONSENT_REQUIRED' ? consentRequired(plan.message, { characterId: c.id, sampleId: plan.sampleId }) : missingReference(plan.message, { characterId: c.id, mode });
+    if (plan.kind === 'UPLOAD') ref = await referenceWav(c, state.assets, dir, { sampleId: plan.sampleId, purpose: 'BUILD' });
+    else {
+      experiment = plan.experiment;
+      record = await designAndMeasure(ctx, c, { mode: 'AUTOMATIC', experiment, speech: { speed: params.speed, emotionAlpha: params.emotionAlpha, seed: params.seed! } });
+      const pick = rankDesignCandidates(record.candidates, rankingFor(c)).pick;
+      if (pick === undefined) {
+        const unheard = record.candidates.every((x) => x.measured.cer === undefined);
+        const why = record.candidates.map((x) => `candidate ${x.index}: ${x.gate.reasons.join('; ')}`).join(' | ');
+        throw new StudioError(unheard ? 'UNAVAILABLE' : 'PROVIDER', `None of the ${record.candidates.length} voices designed for ${c.name} passed the gates (${why}); they are kept on design ${record.id}. Retry to design new candidates.`, { failureClass: unheard ? 'INFRASTRUCTURE' : 'PROVIDER', characterId: c.id, designId: record.id });
+      }
+      // the record is on the character now
+      ({ state } = await readState());
+      c = state.characters.find((x) => x.id === payload.characterId)!;
+      ref = await referenceWav(c, state.assets, dir, { design: { designId: record.id, candidate: pick }, purpose: 'BUILD' });
+    }
+  }
   if (mode !== 'MANUAL') {
-    ref = await referenceWav(c, state.assets, dir, mode === 'REFERENCE' ? { sampleId: payload.referenceSampleId } : locked ? { sampleId: c.voice.selectedSampleId } : {});
-    if (!ref) throw missingReference(mode === 'REFERENCE' ? `The requested recording is not an uploaded recording of ${c.name} (or its file is gone). Upload a 3–30 second recording of the voice on the Voice tab.` : `${c.name} has no uploaded recording to clone from. Upload a 3–30 second recording of the voice on the Voice tab first.`, { characterId: c.id, mode });
-    await ctx.progress('PREPARING', { phase: 'preparing', message: `Reference recording for ${c.name}: “${ref.sample?.label ?? ref.asset.label}” (${ref.window ? `${ref.window.from}–${ref.window.to} s` : 'whole file'})` });
-    await ctx.event('info', 'reference chosen', { assetId: ref.asset.id, sampleId: ref.sample?.id, via: ref.via, window: ref.window, hasText: Boolean(ref.text) });
+    if (!ref) throw missingReference(`${c.name} has nothing to clone from: the chosen source is gone from the library.`, { characterId: c.id, mode });
+    await ctx.progress('PREPARING', { phase: 'preparing', message: ref.origin === 'DESIGNED' ? `Design seed for ${c.name}: design ${ref.design!.designId}, candidate ${ref.design!.candidate} (studio-designed synthetic voice)` : `Reference recording for ${c.name}: “${ref.sample?.label ?? ref.asset.label}” (${ref.window ? `${ref.window.from}–${ref.window.to} s` : 'whole file'})` });
+    await ctx.event('info', 'reference chosen', { assetId: ref.asset.id, sampleId: ref.sample?.id, via: ref.via, origin: ref.origin, design: ref.design, window: ref.window, hasText: Boolean(ref.text) });
   }
 
-  // 2) the identity to prove: engine, parameters, seed
-  const seed = Math.floor(Math.random() * 2 ** 31);
-  const params: VoiceIdentity['params'] = { speed: speedForPace(c.voice.pace), emotionAlpha: 1, seed };
+  // 2) the identity to prove: engine, parameters, seed; a design seed stays local (a hosted clone is of a recording)
+  const useMinimax = mode === 'MANUAL' || ((payload.provider ?? state.settings.generation?.voiceProvider) === 'MINIMAX' && Boolean(env().MINIMAX_API_KEY) && ref?.origin === 'UPLOAD_CONSENTED');
+  const origin: VoiceOrigin = useMinimax ? 'HOSTED' : ref?.origin === 'DESIGNED' ? 'DESIGNED' : 'UPLOAD_CONSENTED';
   let head: Pick<VoiceIdentity, 'provider' | 'model' | 'fallbackModel' | 'providerVoiceId'>;
   if (useMinimax) {
     if (mode === 'MANUAL') head = { provider: 'MINIMAX', model: env().MINIMAX_SPEECH_MODEL, providerVoiceId: payload.providerVoiceId };
@@ -287,37 +397,67 @@ export const voiceBuild: Handler = async (ctx) => {
     head = { provider: 'LOCAL_TTS', model, fallbackModel: model === 'habibi' ? 'indextts' : undefined };
   }
   // the character as the proof line will see it: the identity-to-be, so routing and parameters are the ones pinned
-  const trial: Character = { ...c, voice: { ...c.voice, identity: { ...head, mode, language: c.language, dialect: c.dialect, params, status: 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: new Date().toISOString() } } };
+  const trial: Character = { ...c, voice: { ...c.voice, identity: { ...head, mode, origin, language: c.language, dialect: c.dialect, params, status: 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: new Date().toISOString() } } };
 
-  // 3) the proof line, spoken and heard back
+  // 3) the proof line, spoken, heard back and measured
   const text = proofLineFor(c);
   await ctx.progress('GENERATING', { phase: 'speaking', message: 'Speaking a proof line' });
   const line = await speakLine(ctx, trial, text, ref, dir);
   // the proof is a recorded line: coverage ≥ 0.85 and CER ≤ 0.15 (anything else, or unheard, is REVIEW) — heard back
   // by the Audio Synchronization Inspector (its step, with its own tool runner)
   const check = await step(ctx, 'audio-sync-inspector', `voice-proof-check: ${c.name}`, (tool) => verifyLine({ ...ctx, tool }, line.file, text, line.language, 'line'));
-  const status: VoiceIdentity['status'] = check?.ok ? 'ACTIVE' : 'REVIEW';
+  const measured = await measureVoiceLine(ctx, line.file, ref?.file);
+  const reviewReasons: string[] = [];
+  if (!check?.ok) reviewReasons.push(check ? `proof line: ${check.reasons.join('; ')}` : 'proof line not heard back (transcription unavailable)');
+  if (experiment) reviewReasons.push('designed Arabic seed on the Iraqi engine: an experiment, its dialect is unverified');
+  if (ref?.design && !ref.design.gateOk) reviewReasons.push(`design candidate ${ref.design.candidate} did not pass its gates`);
+  const status: VoiceIdentity['status'] = reviewReasons.length ? 'REVIEW' : 'ACTIVE';
+  const evaluation: NonNullable<VoiceIdentity['evaluation']> = {
+    ...(check ? { cer: Number(check.cer.toFixed(4)), coverage: Number(check.coverage.toFixed(4)) } : {}),
+    ...(measured.lufs !== undefined ? { lufs: measured.lufs } : {}), ...(measured.truePeakDbtp !== undefined ? { truePeakDbtp: measured.truePeakDbtp } : {}), ...(measured.clipped !== undefined ? { clipped: measured.clipped } : {}),
+    ...(measured.seedToLineSimilarity !== undefined ? { seedToLineSimilarity: measured.seedToLineSimilarity, similarityModel: measured.similarityModel } : {}),
+    measuredAt: new Date().toISOString(),
+  };
+  const dialectStatus = initialDialectStatus(c.language);
 
   // 4) into the studio in one batch: the audio first, then its sample, then the identity that cites both
   const sampleId = nid('voice'); const assetId = nid('gen');
   const stored = await adoptFile(assetId, line.file, { expectKind: 'AUDIO' });
+  const source = ref?.origin === 'DESIGNED'
+    ? { referenceAssetId: ref.asset.id, designId: ref.design!.designId, seedSha256: ref.design!.sha256 }
+    : { referenceSampleId: ref?.sample?.id, referenceAssetId: ref?.asset.id, referenceWindow: ref?.window?.assetId ? { from: ref.window.from, to: ref.window.to, assetId: ref.window.assetId } : undefined, ...(ref?.consent ? { consent: ref.consent } : {}) };
   const identity: VoiceIdentityInput = {
-    ...head, mode, referenceSampleId: ref?.sample?.id, referenceAssetId: ref?.asset.id, referenceWindow: ref?.window?.assetId ? { from: ref.window.from, to: ref.window.to, assetId: ref.window.assetId } : undefined, referenceText: ref?.text,
+    ...head, mode, origin, ...source, referenceText: ref?.text,
     language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, cer: check?.cer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
+    dialectStatus, evaluation,
   };
   try {
     await commands([
-      { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — voice proof`, tags: ['voice', 'generated', 'proof'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref?.asset.id, window: ref?.window, params, check } })] },
+      { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — voice proof`, tags: ['voice', 'generated', 'proof'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref?.asset.id, origin, designId: ref?.design?.designId, window: ref?.window, params, check, measured } })] },
       { name: 'addVoiceSample', args: [c.id, { id: sampleId, label: `Proof line (${line.engine})`, assetId, source: 'GENERATED', text, language: line.language, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
       { name: 'setVoiceIdentity', args: [c.id, identity] },
     ], 'worker');
   } catch (e) { await removeFile(stored.relPath); throw e; }
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await recordMetric('voice.build_ms', line.ms, 'ms', { engine: line.engine }, ctx.job.id);
-  // the voice is handed to the production only with its proof: a line spoken and heard back
-  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' }, { name: 'proof-line-coverage', ok: Boolean(check && check.coverage >= PROOF_COVERAGE), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE }, { name: 'proof-line-cer', ok: Boolean(check && check.cer <= VOICE_GATES.cer), value: check ? Number(check.cer.toFixed(2)) : undefined, threshold: VOICE_GATES.cer, detail: 'character error rate after the dialect fold' }, { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' }], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()})${check?.reasons.length ? `; ${check.reasons.join('; ')}` : ''}` });
-  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard, CER ${Math.round(check.cer * 100)} %${check.ok ? '' : ' — review'}` : 'not verified — review'}`, { characterId: c.id, engine: line.engine, coverage: check?.coverage, cer: check?.cer, wer: check?.wer, status });
-  return { identity: { ...head, mode, status, referenceAssetId: ref?.asset.id, params }, sampleAssetId: assetId, proofSampleId: sampleId, engine: line.engine, check, awaitingReview: status !== 'ACTIVE' };
+  const labels = voiceLabels({ origin, language: c.language, dialect: c.dialect, dialectStatus, listening: [] });
+  // the voice is handed to the production only with its proof: a line spoken, heard back and measured
+  await recordQaReport({ subjectKind: 'CHARACTER', subjectId: c.id, inspectorId: 'audio-sync-inspector', checks: [
+    { name: 'proof-line-heard', ok: check !== null, detail: check ? `heard: ${check.heard.slice(0, 120)}` : 'transcription unavailable' },
+    { name: 'proof-line-coverage', ok: Boolean(check && check.coverage >= PROOF_COVERAGE), value: check ? Number(check.coverage.toFixed(2)) : undefined, threshold: PROOF_COVERAGE },
+    { name: 'proof-line-cer', ok: Boolean(check && check.cer <= VOICE_GATES.cer), value: check ? Number(check.cer.toFixed(2)) : undefined, threshold: VOICE_GATES.cer, detail: 'character error rate after the dialect fold' },
+    { name: 'word-error-rate', ok: true, value: check ? Number(check.wer.toFixed(2)) : undefined, detail: 'reported, not gated' },
+    { name: 'proof-line-clipping', ok: measured.clipped === 0, value: measured.clipped, threshold: 0, detail: measured.lufs !== undefined ? `${measured.lufs} LUFS, true peak ${measured.truePeakDbtp} dBTP` : 'level not measured' },
+    { name: 'seed-to-line-similarity', ok: true, value: measured.seedToLineSimilarity, detail: 'ECAPA cosine between the reference and the proof line; reported, not gated (VoxCeleb-trained, relative)' },
+    { name: 'voice-origin', ok: true, value: origin, detail: labels.join('; ') },
+  ], decision: status === 'ACTIVE' ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [assetId], jobId: ctx.job.id, notes: `voice of ${c.name} (${line.engine}, ${mode.toLowerCase()}, ${origin.toLowerCase()})${reviewReasons.length ? `; ${reviewReasons.join('; ')}` : ''}` });
+  await ctx.activity('VOICE_BUILT', `${c.name}'s voice pinned (${line.engine}, ${mode.toLowerCase()}, ${origin === 'DESIGNED' ? 'studio-designed synthetic voice' : origin === 'HOSTED' ? 'hosted' : 'consented recording'}); proof line ${check ? `${Math.round(check.coverage * 100)} % heard, CER ${Math.round(check.cer * 100)} % (intelligibility, measured)${check.ok ? '' : ' — review'}` : 'not verified — review'}${measured.seedToLineSimilarity !== undefined ? `; ECAPA reference→line ${measured.seedToLineSimilarity}` : ''}; ${labels.join('; ')}`, { characterId: c.id, engine: line.engine, origin, coverage: check?.coverage, cer: check?.cer, wer: check?.wer, status, designId: ref?.design?.designId });
+  return {
+    identity: { ...head, mode, origin, status, referenceAssetId: ref?.asset.id, designId: ref?.design?.designId, params, dialectStatus },
+    sampleAssetId: assetId, proofSampleId: sampleId, engine: line.engine, check, evaluation,
+    ...(record ? { design: { designId: record.id, chosen: ref?.design?.candidate, ranking: record.ranking ?? [], rankedBy: record.rankedBy, candidates: designSummary(record) } } : {}),
+    labels, reviewReasons, awaitingReview: status !== 'ACTIVE',
+  };
 };
 
 // ---------------------------------------------------------------------------------------------- VOICE_PREVIEW
@@ -329,18 +469,23 @@ export const voicePreview: Handler = async (ctx) => {
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
   const dir = await tmpDir('voice');
   const ref = await referenceWav(c, state.assets, dir);
-  if (!ref) throw missingReference(`${c.name} has no uploaded recording to speak with. Upload a short clip of the voice first.`, { characterId });
+  if (!ref) {
+    const waiting = unconsentedUploads(c, state.assets);
+    if (waiting.length) throw consentRequired(`${c.name}'s recording “${waiting[0].label}” has no consent statement; confirm it before the voice speaks from it.`, { characterId, sampleId: waiting[0].id });
+    throw missingReference(`${c.name} has no voice to speak with yet: build the voice (from a consented recording, or a studio-designed voice) first.`, { characterId });
+  }
   await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}` });
   const line = await speakLine(ctx, c, text, ref, dir, { emotion });
   const check = await verifyLine(ctx, line.file, text, line.language);
+  const measured = await measureVoiceLine(ctx, line.file, ref.file);
   const id = nid('gen');
   const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
   await commands([
-    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, check } })] },
+    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, origin: ref.origin, check, measured } })] },
     { name: 'addVoiceSample', args: [c.id, { label: text.slice(0, 48), assetId: id, source: 'GENERATED', text, language: line.language, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
   ], 'worker');
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
-  return { assetId: id, engine: line.engine, durationSeconds: stored.probe?.durationSeconds, check, awaitingReview: check === null || !check.ok };
+  return { assetId: id, engine: line.engine, durationSeconds: stored.probe?.durationSeconds, check, measured, awaitingReview: check === null || !check.ok };
 };
 
 // --------------------------------------------------------------------------------------------- DIALOGUE_AUDIO

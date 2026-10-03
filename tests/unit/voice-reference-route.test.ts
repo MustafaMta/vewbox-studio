@@ -27,7 +27,7 @@ import { StudioError } from '@/domain/errors';
 import { seed } from '@/domain/sample';
 import { POST } from '@/app/api/characters/[id]/voice-reference/route';
 
-const call = (file: File) => { const fd = new FormData(); fd.set('file', file); return POST({ url: 'http://studio.test/api/characters/nour/voice-reference', method: 'POST', formData: async () => fd } as unknown as Request, { params: Promise.resolve({ id: 'nour' }) }); };
+const call = (file: File, consent: string | null = 'MY_VOICE') => { const fd = new FormData(); fd.set('file', file); if (consent !== null) fd.set('consent', consent); return POST({ url: 'http://studio.test/api/characters/nour/voice-reference', method: 'POST', formData: async () => fd } as unknown as Request, { params: Promise.resolve({ id: 'nour' }) }); };
 const wav = () => new File([new Uint8Array([82, 73, 70, 70, 1, 2, 3, 4])], 'take.wav', { type: 'audio/wav' });
 
 beforeEach(() => { fake.state = seed(); fake.removed = []; fake.stored = []; fake.adoptFails = null; fake.commandsFail = null; fake.readFailsAfterCommit = false; fake.committed = false; });
@@ -53,10 +53,29 @@ describe('voice-reference route: nothing of a failed upload is kept', () => {
     expect(res.status).toBe(500);
     expect(fake.removed).toHaveLength(0);
   });
-  it('the happy path keeps both files and answers 201', async () => {
-    const res = await call(wav());
+  it('the happy path keeps both files and answers 201; the sample carries the producer’s consent statement', async () => {
+    let written: Array<{ name: string; args: unknown[] }> = [];
+    const engine = await import('@/server/studio/engine');
+    const spy = vi.spyOn(engine, 'commands').mockImplementationOnce(async (list) => { written = list as typeof written; fake.committed = true; return []; });
+    const res = await call(wav(), 'SPEAKER_PERMISSION');
+    spy.mockRestore();
     expect(res.status).toBe(201);
     expect(fake.removed).toHaveLength(0);
+    const sample = written.find((c) => c.name === 'addVoiceSample')!.args[1] as { source: string; consent: { statement: string; by: string; at: string } };
+    expect(sample).toMatchObject({ source: 'UPLOADED', consent: { statement: 'SPEAKER_PERMISSION', by: 'PRODUCER' } });
+    expect(Date.parse(sample.consent.at)).not.toBeNaN();
+  });
+  it('without a consent statement (or with one that is not MY_VOICE / SPEAKER_PERMISSION) the upload is refused CONSENT_REQUIRED before it is read or stored (contract v2 §1)', async () => {
+    for (const consent of [null, '', 'yes', 'my_voice']) {
+      const f = wav();
+      let read = false;
+      Object.defineProperty(f, 'arrayBuffer', { value: async () => { read = true; return new ArrayBuffer(8); } });
+      const res = await call(f, consent);
+      expect(res.status, String(consent)).toBe(400);
+      expect(await res.json()).toMatchObject({ ok: false, code: 'CONSENT_REQUIRED', error: { code: 'CONSENT_REQUIRED' } });
+      expect(read).toBe(false);
+    }
+    expect(fake.stored).toHaveLength(0);
   });
   it('an oversized file is refused from its declared size before it is read or stored (finding 18)', async () => {
     const big = wav();

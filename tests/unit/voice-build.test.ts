@@ -19,10 +19,20 @@ vi.mock('@/server/media', () => ({
   adoptFile: async (id: string) => ({ relPath: `audio/${id}.wav`, absPath: `/lib/audio/${id}.wav`, bytes: 1000, mime: 'audio/wav', kind: 'AUDIO', ext: 'wav', sha256: 'x', probe: { hasAudio: true, hasVideo: false, durationSeconds: 2.5, sampleRate: 24000, channels: 1 } }),
   assetFromStored: (id: string, stored: { kind: Asset['kind']; mime: string; bytes: number; sha256: string; relPath: string; probe?: { durationSeconds?: number } }, meta: { label: string; tags: string[]; origin: Asset['origin']; jobId?: string; provenance?: Record<string, unknown> }) => ({ id, kind: stored.kind, src: `/api/media/${id}`, label: meta.label, tags: meta.tags, sample: false, origin: meta.origin, mimeType: stored.mime, bytes: stored.bytes, sha256: stored.sha256, durationSeconds: stored.probe?.durationSeconds, provenance: { ...(meta.provenance ?? {}), path: stored.relPath }, jobId: meta.jobId }),
   fileFor: (a: { path: string }) => `/lib/${a.path}`, removeFile: async (rel: string) => { fake.removed.push(rel); }, ffprobe: async () => ({ hasAudio: true, hasVideo: false, durationSeconds: 2 }), libraryRoot: () => '/lib', assertSafeId: (x: string) => x, storeBuffer: async () => { throw new Error('unused'); },
+  sha256File: async () => 'x',
 }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async () => '/tmp/fake', ffmpeg: async () => { throw new Error('ffmpeg must not run in this test'); }, measureLoudness: async () => null }));
-// the provenance tag of a file: the files a test marks as engine output carry docker/tts's synthetic-speech tag
-vi.mock('@/server/media/voice-check', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/server/media/voice-check')>()), engineOutputTag: async (file: string) => (fake.engineFiles.has(file) ? 'vewbox-tts indextts · synthetic speech; engine=indextts; seed=1; not a voice reference' : null) }));
+// the provenance tag of a file: the files a test marks as engine output carry docker/tts's synthetic-speech tag; the
+// level of every line is a fixed measurement (no ffmpeg here)
+vi.mock('@/server/media/voice-check', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/server/media/voice-check')>()),
+  engineOutputTag: async (file: string) => (fake.engineFiles.has(file) ? 'vewbox-tts indextts · synthetic speech; engine=indextts; seed=1; not a voice reference' : null),
+  formatTags: async () => ({}),
+  loudness: async () => ({ integratedLufs: -20.1, truePeakDbtp: -1.5, loudnessRange: 3, threshold: -30 }),
+  clipping: async () => ({ clippedSamples: 0, totalSamples: 1000, ratio: 0, flatFactor: 0, peakDbfs: -1.5 }),
+}));
+// no design engine and no speaker encoder in this file (TTS_DESIGN_URL is not set): a design is NOT_CONFIGURED
+vi.mock('@/server/providers/voice-design', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/server/providers/voice-design')>()), unloadDesign: async () => {} }));
 vi.mock('@/server/providers/speech', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/server/providers/speech')>()),
   synthesize: async (i: Record<string, unknown>) => { fake.synth.push(i); return { file: `/tmp/fake/line-${fake.synth.length}.wav`, sampleRate: 24000, durationSeconds: 2.5, engine: i.engine as string, model: `${i.engine}-v1`, ms: 10 }; },
@@ -43,6 +53,7 @@ import { lineScript as suiteLineScript, routeLine as suiteRoute } from '@/server
 import type { HandlerContext } from '@/worker/handlers';
 
 const ch = (id: string): Character => fake.state.characters.find((c) => c.id === id)!;
+const CONSENT = { statement: 'MY_VOICE' as const, by: 'PRODUCER' as const, at: '2026-10-03T00:00:00.000Z' };
 const ctxFor = (job: Partial<Job> & { payload: Record<string, unknown> }): HandlerContext => ({
   job: { id: 'job-vb', type: 'VOICE_BUILD', status: 'PREPARING', priority: 0, attempts: 1, maxAttempts: 1, cancelRequested: false, createdAt: 'x', updatedAt: 'x', ...job } as Job,
   log: { info() {}, warn() {}, error() {}, debug() {}, child() { return this; } } as unknown as HandlerContext['log'], workerId: 'w', agent: { id: 'voice-casting', name: 'Voice', department: 'CASTING', tools: [] } as unknown as HandlerContext['agent'], runId: 'run',
@@ -54,7 +65,7 @@ function prepare(opts: { language?: 'EN' | 'AR'; dialect?: 'IRAQI_BAGHDADI' | 'M
   let s = seed();
   s = addAsset(s, { id: 'up-ref', kind: 'AUDIO', src: '/api/media/up-ref', label: 'ref.wav', tags: [], sample: false, origin: 'UPLOAD', durationSeconds: 6.8, provenance: { path: 'audio/up-ref.wav' } }).state;
   if (opts.windowStored !== false) s = addAsset(s, { id: 'gen-win', kind: 'AUDIO', src: '/api/media/gen-win', label: 'window', tags: [], sample: false, origin: 'DERIVED', durationSeconds: 5.2, provenance: { path: 'audio/gen-win.wav' } }).state;
-  s = addVoiceRecording(s, 'nour', 'up-ref', 'Studio take', { text: opts.text, provenance: opts.windowStored !== false ? { trimmedAssetId: 'gen-win', window: { from: 0.3, to: 5.5 } } : undefined });
+  s = addVoiceRecording(s, 'nour', 'up-ref', 'Studio take', { text: opts.text, consent: CONSENT, provenance: opts.windowStored !== false ? { trimmedAssetId: 'gen-win', window: { from: 0.3, to: 5.5 } } : undefined });
   if (opts.language) s = updateCharacter(s, 'nour', { language: opts.language, dialect: opts.dialect });
   fake.state = s;
   return ch('nour').voice.samples.at(-1)!;
@@ -131,10 +142,10 @@ describe('pickReference (pure): identity reference → selected upload → any u
     expect(pickReference(withProofSelected, fake.state.assets)).toMatchObject({ asset: { id: 'up-ref' }, via: 'UPLOADED' });
     // the identity's reference wins over the selection
     fake.state = addAsset(fake.state, { id: 'up-2', kind: 'AUDIO', src: '/api/media/up-2', label: 'second', tags: [], sample: false, origin: 'UPLOAD' }).state;
-    fake.state = addVoiceRecording(fake.state, 'nour', 'up-2', 'second');
+    fake.state = addVoiceRecording(fake.state, 'nour', 'up-2', 'second', { consent: CONSENT });
     const second = ch('nour').voice.samples.at(-1)!;
     fake.state = selectVoiceSample(fake.state, 'nour', second.id);
-    expect(pickReference(ch('nour'), fake.state.assets)).toMatchObject({ asset: { id: 'up-2' }, via: 'SELECTED' });
+    expect(pickReference(ch('nour'), fake.state.assets)).toMatchObject({ asset: { id: 'up-2' }, via: 'SELECTED', kind: 'CONSENTED' });
     const pinned = { ...ch('nour'), voice: { ...ch('nour').voice, identity: { provider: 'LOCAL_TTS', model: 'indextts', mode: 'REFERENCE', referenceAssetId: 'up-ref', language: 'EN', params: { speed: 1, emotionAlpha: 1 }, status: 'ACTIVE', revision: 1, createdAt: 'x' } } } as Character;
     expect(pickReference(pinned, fake.state.assets)).toMatchObject({ asset: { id: 'up-ref' }, via: 'IDENTITY' });
     expect(pickReference(ch('nour'), fake.state.assets, { sampleId: 'proof' })).toBeNull();
@@ -188,9 +199,14 @@ describe('VOICE_BUILD', () => {
     expect(fake.removed.length).toBe(1);
     expect(JSON.stringify(fake.state)).toBe(before);
   });
-  it('refuses MISSING_REFERENCE when there is no upload (AUTOMATIC) or the requested sample is not an upload (REFERENCE)', async () => {
+  it('AUTOMATIC with no recording designs the voice (here: no design engine → NOT_CONFIGURED, nothing written); an Iraqi one is refused with the contract’s sentence; REFERENCE to a non-upload is MISSING_REFERENCE', async () => {
     fake.state = seed();
-    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE' });
+    const before = JSON.stringify(fake.state);
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
+    expect(JSON.stringify(fake.state)).toBe(before);
+    fake.state = updateCharacter(seed(), 'nour', { dialect: 'IRAQI_BAGHDADI' });
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: 'Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.' });
+    expect(fake.synth).toHaveLength(0);
     prepare();
     await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'REFERENCE', referenceSampleId: 'v-low' } }))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE' });
     expect(ch('nour').voice.identity).toBeUndefined();

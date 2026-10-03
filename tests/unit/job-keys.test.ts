@@ -33,7 +33,7 @@ beforeEach(() => {
   fake.jobs = [];
   let s = seed();
   s = addAsset(s, { id: 'up-rec', kind: 'AUDIO', src: '/api/media/up-rec', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' }).state;
-  s = addVoiceRecording(s, 'nour', 'up-rec', 'take one');
+  s = addVoiceRecording(s, 'nour', 'up-rec', 'take one', { consent: { statement: 'MY_VOICE', by: 'PRODUCER', at: '2026-10-03T00:00:00.000Z' } });
   fake.state = s;
 });
 
@@ -72,6 +72,16 @@ describe('POST /api/jobs — voice builds after a failure', () => {
     finish(first.body.job.id, 'CANCELLED');
     const again = await post({ type: 'VOICE_BUILD', payload });
     expect(again.body).toMatchObject({ created: true }); expect(again.body.job.key).toMatch(/^VOICE_BUILD:nour:0:/);
+  });
+  it('a recording without a consent statement is refused CONSENT_REQUIRED before anything is queued (contract v2 §1)', async () => {
+    let s = addAsset(fake.state, { id: 'up-old', kind: 'AUDIO', src: '/api/media/up-old', label: 'old', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    s = addVoiceRecording(s, 'nour', 'up-old', 'before consent existed');
+    fake.state = s;
+    const old = s.characters.find((c) => c.id === 'nour')!.voice.samples.at(-1)!;
+    const res = await POST(new Request('http://studio.test/api/jobs', { method: 'POST', body: JSON.stringify({ type: 'VOICE_BUILD', payload: { characterId: 'nour', mode: 'REFERENCE', referenceSampleId: old.id } }), headers: { 'Content-Type': 'application/json' } }), undefined);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: { code: 'CONSENT_REQUIRED' } });
+    expect(fake.jobs).toHaveLength(0);
   });
 });
 
