@@ -11,6 +11,7 @@
 // (scripts/lib/capture.mjs answers the browser's own reads and never sends a write). Exit code 1 when a check fails.
 import { chromium } from '@playwright/test';
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { loadFixture, prepare } from './lib/capture.mjs';
 
 const args = process.argv.slice(2);
@@ -86,7 +87,7 @@ for (const size of SIZES) {
         if (parseFloat(cs.fontSize) < 12) small.push(`${parseFloat(cs.fontSize)}px "${n.textContent.trim().slice(0, 30)}"`);
       }
       const imgs = all('main img');
-      const sleeve = document.querySelector('.mv-sleeve'); const audio = document.querySelector('.mv-audio'); const lyr = document.querySelector('.mv-lyrics');
+      const sleeve = document.querySelector('.mv-sleeve'); const audio = document.querySelector('.mv-transport'); const lyr = document.querySelector('.mv-lyrics');
       const arabic = all('.mv-line[lang="ar"]').map((p) => getComputedStyle(p).direction);
       return {
         catalogue, starts, startOk: new Set(starts).size === 1,
@@ -112,7 +113,7 @@ for (const size of SIZES) {
       'no broken images': m.broken.length === 0,
       'CLS < 0.02': m.cls < 0.02,
       'skeleton shown while loading': m.skeleton,
-      ...(m.catalogue ? {} : { 'audio row 64 high': m.audioH === null || m.audioH === 64, 'Arabic lyrics right to left': m.arabicRtl }),
+      ...(m.catalogue ? {} : { 'audio row 64 high (108 in two rows below 480)': m.audioH === null || m.audioH === (size.w < 480 ? 108 : 64), 'Arabic lyrics right to left': m.arabicRtl }),
     };
     const bad = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k);
     failed += bad.length;
@@ -122,5 +123,5 @@ for (const size of SIZES) {
   }
 }
 await browser.close();
-await fs.writeFile(`${out}/acceptance-${fixtureName}.json`, `${JSON.stringify({ checked: new Date().toISOString(), base, fixture: fixtureName, report }, null, 2)}\n`);
+await fs.writeFile(`${out}/acceptance-${path.basename(fixtureName, '.json')}.json`, `${JSON.stringify({ checked: new Date().toISOString(), base, fixture: fixtureName, report }, null, 2)}\n`);
 process.exitCode = failed ? 1 : 0;

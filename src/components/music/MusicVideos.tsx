@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { MenuButton, MenuLink, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { EmptyState, MenuButton, MenuLink, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { MediaCardSkeleton, StartCard } from '@/components/media';
 import { IconAuto, IconChevronDown, IconUpload } from '@/components/ui/icons';
 import { MusicVideoCard } from '@/components/library/MusicVideoCard';
@@ -39,48 +39,46 @@ export function MusicVideos() {
   const items = filterItems(all, filter);
   const empty = all.length === 0;
 
+  if (empty) {
+    return (
+      <div className="mv-cat" data-state="empty">
+        <EmptyState kind="page" title="Music videos" className="mv-empty"
+          cards={<><StartCard href={NEW_AUTO} ratio="1/1" title="Write the song" line="From one line of yours" /><StartCard href={NEW_MANUAL} ratio="1/1" title="Bring your own song" line="Upload your own track" /></>}>
+          It starts with its song. Write it with the studio from one line, or bring a track you already have.
+        </EmptyState>
+        <ol className="mv-steps" role="list" aria-label="What follows the song">
+          <li><span className="t-ro mv-step-n">1</span><span className="t-card">The song</span><span className="t-body">Lyrics, music and the voices that sing it, section by section.</span></li>
+          <li><span className="t-ro mv-step-n">2</span><span className="t-card">The performers</span><span className="t-body">Your characters sing it: each section has its singer.</span></li>
+          <li><span className="t-ro mv-step-n">3</span><span className="t-card">The video</span><span className="t-body">Storyboarded to the song’s sections and cut to its beat.</span></li>
+        </ol>
+      </div>
+    );
+  }
+
   return (
-    <div className="mv-cat" data-state={empty ? 'empty' : 'list'}>
+    <div className="mv-cat" data-state="list">
       <header className="mv-cat-head">
         <div className="mv-cat-words">
           <h1 className="t-page mv-cat-title">Music videos</h1>
-          <p className="t-body mv-cat-desc">{empty ? 'It starts with its song.' : 'Each one starts with its song.'}</p>
+          <p className="t-body mv-cat-desc">Each one starts with its song.</p>
         </div>
-        {!empty && <NewMusicVideo />}
+        <NewMusicVideo />
       </header>
-
-      {empty ? (
-        <section className="mv-empty" aria-labelledby="mv-empty-h">
-          <h2 id="mv-empty-h" className="sr-only">Make your first music video</h2>
-          <ul className="mv-grid" role="list">
-            <li><StartCard href={NEW_AUTO} ratio="1/1" title="Write the song" line="From one line of yours" /></li>
-            <li><StartCard href={NEW_MANUAL} ratio="1/1" title="Bring your own song" line="Upload your own track" /></li>
-          </ul>
-          <ol className="mv-steps" role="list">
-            <li><span className="t-ro mv-step-n">1</span><span className="t-card">The song</span><span className="t-body">Lyrics, music and the voices that sing it, section by section.</span></li>
-            <li><span className="t-ro mv-step-n">2</span><span className="t-card">The performers</span><span className="t-body">Your characters sing it: each section has its singer.</span></li>
-            <li><span className="t-ro mv-step-n">3</span><span className="t-card">The video</span><span className="t-body">Storyboarded to the song’s sections and cut to its beat.</span></li>
-          </ol>
-        </section>
+      {all.length > 6 && (
+        <div className="mv-filters" role="group" aria-label="Show">
+          {FILTERS.map((f) => (
+            <button key={f.id} type="button" className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              {f.label}<span className="count">{filterItems(all, f.id).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {items.length === 0 ? (
+        <EmptyState action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => setFilter('all')}>Show all</button>}>Nothing here yet.</EmptyState>
       ) : (
-        <>
-          {all.length > 6 && (
-            <div className="mv-filters" role="group" aria-label="Show">
-              {FILTERS.map((f) => (
-                <button key={f.id} type="button" className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-                  {f.label}<span className="count">{filterItems(all, f.id).length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {items.length === 0 ? (
-            <p className="t-body mv-none">Nothing here yet. <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFilter('all')}>Show all</button></p>
-          ) : (
-            <ul className="mv-grid" role="list" aria-label="Music videos">
-              {items.map((it, i) => <li key={it.id}><MusicVideoCard item={it} priority={i < 10} /></li>)}
-            </ul>
-          )}
-        </>
+        <ul className="mv-grid" role="list" aria-label="Music videos">
+          {items.map((it, i) => <li key={it.id}><MusicVideoCard item={it} priority={i < 10} /></li>)}
+        </ul>
       )}
     </div>
   );

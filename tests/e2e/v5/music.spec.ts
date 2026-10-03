@@ -35,8 +35,9 @@ async function open(page: Page, path: string, fixture: unknown, width = 1440, he
 test('an empty studio: the catalogue starts with the song, two ways in, no invented item', async ({ page }) => {
   await open(page, '/music-videos', empty);
   await expect(page.getByRole('heading', { level: 1, name: 'Music videos' })).toBeVisible();
-  await expect(page.locator('.mv-cat-desc')).toHaveText('It starts with its song.');
-  await expect(page.locator('.mv-grid .start-card')).toHaveCount(2);
+  await expect(page.locator('.empty-page-sentence')).toHaveText(/^It starts with its song\./);
+  await expect(page.locator('.mv-empty .start-card')).toHaveCount(2);
+  await expect(page.locator('.mv-steps > li')).toHaveCount(3);
   await expect(page.getByRole('link', { name: /Write the song/ })).toHaveAttribute('href', '/new/music-video?mode=auto');
   await expect(page.getByRole('link', { name: /Bring your own song/ })).toHaveAttribute('href', '/new/music-video?mode=manual');
   await expect(page.locator('.mv-card')).toHaveCount(0);
@@ -96,9 +97,9 @@ test('the title page: the song first — title, performers, the audio row, lyric
   await expect(page.locator('h1.t-display')).toHaveText('River Lights');
   await expect(page.locator('.mv-alt')).toHaveText('أضواء النهر');
   await expect(page.locator('.mv-performers')).toContainText('Nour');
-  await expect(page.locator('.mv-audio')).toHaveCount(1);
-  expect(Math.round((await page.locator('.mv-audio').boundingBox())!.height)).toBe(64);
-  await expect(page.getByRole('slider', { name: 'Seek in River Lights' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.mv-transport')).toHaveCount(1);
+  expect(Math.round((await page.locator('.mv-transport').boundingBox())!.height)).toBe(64);
+  await expect(page.locator('.mv-transport').getByRole('slider', { name: 'Seek River Lights' })).toBeVisible({ timeout: 30_000 });
   const labels = await page.locator('.mv-sec-label').allTextContents();
   expect(labels).toEqual(['Intro', 'Verse', 'Chorus', 'Outro']);
   const verse = page.locator('.mv-sec').nth(1);
@@ -125,12 +126,12 @@ test('Continue and Edit the song open the production at their tabs; the back lin
 test('playback controls: play from a section, the section lights up, pause', async ({ page }) => {
   await open(page, '/music-videos/river-lights', sample);
   await page.getByRole('button', { name: 'Play from Chorus' }).click();
-  const disc = page.locator('.mv-audio').getByRole('button', { name: 'Pause River Lights' });
+  const disc = page.locator('.mv-transport').getByRole('button', { name: 'Pause', exact: true });
   await expect(disc).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.mv-lyrics')).toHaveAttribute('data-playing');
   await expect(page.locator('.mv-sec').nth(2)).toHaveAttribute('data-live');
   await disc.click();
-  await expect(page.locator('.mv-audio').getByRole('button', { name: 'Play River Lights' })).toBeVisible();
+  await expect(page.locator('.mv-transport').getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 });
 
 test('More: Delete asks first, and Cancel keeps the music video', async ({ page }) => {

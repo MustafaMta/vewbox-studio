@@ -18,9 +18,9 @@
   @media (hover: none) { .mv-disc { opacity: 1; } }
   .mv-grid > li { display: flex; min-inline-size: 0; }
   .mv-grid > li > * { flex: 1; min-inline-size: 0; }
-  .mv-none { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; }
 
   /* the empty catalogue: the two ways in, in the sleeve's shape, then what follows the song */
+  .mv-empty .start-card { max-inline-size: 280px; }
   .mv-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-inline-size: 960px; margin: 40px 0 0; padding: 0; list-style: none; }
   .mv-steps > li { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
   .mv-step-n { color: var(--text-3); }
@@ -54,17 +54,6 @@
   .mv-nosong { margin: 24px 0 0; max-inline-size: 56ch; }
   .mv-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 16px; }
 
-  /* the audio row (§5.24): 64 high on a level-1 card — play · title and performers · waveform · time */
-  .mv-audio { display: flex; align-items: center; gap: 12px; block-size: 64px; padding: 12px; }
-  .mv-audio-words { display: flex; flex: none; flex-direction: column; inline-size: 168px; min-inline-size: 0; }
-  .mv-audio-title { font-weight: 500; color: var(--text-1); }
-  .mv-audio-meta { font-weight: 400; letter-spacing: 0; }
-  .mv-audio-wave { flex: 1; min-inline-size: 0; }
-  .mv-audio-wave.wave-failed { color: var(--text-3); }
-  .mv-audio-time { flex: none; color: var(--text-3); }
-  .mv-audio-note { margin: 8px 0 0; }
-  .mv-audio-note:empty { display: none; }
-
   /* the lyrics beside the facts and the cast: 7 + 4 of 12 columns */
   .mv-body { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 16px; row-gap: var(--section-gap); margin-block-start: var(--section-gap); }
   .mv-lyrics { grid-column: 1 / span 7; min-inline-size: 0; }
@@ -93,9 +82,6 @@
 
   .mv-video { margin-block-start: var(--section-gap); }
   .mv-player { max-inline-size: 880px; }
-  .mv-missing { align-items: flex-start; gap: 8px; }
-  .mv-missing .t-page, .mv-missing .t-body { margin: 0; }
-  .mv-missing .btn { margin-block-start: 16px; }
 
   /* ---------------------------------------------------------------------------------------- the skeletons' sizes */
   .mv-sk :is(.t-page, .t-body, .t-display, .t-hero, .t-section, .t-meta, .mtile-title, .mtile-sub, .mslate, .lyric) { display: flex; align-items: center; block-size: 1lh; }
@@ -103,8 +89,10 @@
   .mv-sk .mv-meta { block-size: 22px; }
   .mv-sk .mv-performers { block-size: 28px; align-items: center; }
   .mv-sk .mv-sec-head { block-size: 32px; }
-  .mv-sk .mv-audio { padding: 0; }
   .mv-sk .mv-facts .pcard-grid { --pcard-cols: 2; }
+  /* the kit's audio row: one 64 row, two rows (40 + 12 + 32 + padding) below 480 */
+  .mv-sk-transport { block-size: 64px; }
+  @media (max-width: 479px) { .mv-sk-transport { block-size: 108px; } }
 
   /* ------------------------------------------------------------------------------------------------ narrower */
   @media (max-width: 1279px) {
@@ -124,7 +112,6 @@
     .mv-steps { grid-template-columns: minmax(0, 1fr); margin-block-start: 32px; }
     .mv-page.hero::before { inset-block-start: -12px; }
     .mv-back { margin-block-end: 16px; }
-    .mv-audio-words { display: none; }
     .mv-acts { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
     .mv-acts > .btn-primary { grid-column: 1 / -1; }
   }

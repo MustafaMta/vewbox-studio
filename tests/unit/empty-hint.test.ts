@@ -20,8 +20,6 @@ const BASELINE: string[] = [
   'empty.shows.hint',
   // /shorts (P1b): the lead is the empty hint
   'empty.shorts.hint',
-  // /music-videos (P1c): the lead is the empty hint
-  'empty.musicVideos.hint',
   // /locations (P2): the lead is the empty hint
   'loc.libraryLead',
 ];

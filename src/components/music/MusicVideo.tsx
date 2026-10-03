@@ -6,12 +6,12 @@ import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { Frame, FaceCircle } from '@/components/media';
-import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { EmptyState, ErrorState, PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { PanelCardSkeleton, SectionHeadSkeleton } from '@/components/media';
 import { InlinePlayer } from '@/components/players/InlinePlayer';
+import { AudioRow } from '@/components/players/Controls';
 import { usePlayer, useTrackState } from '@/components/players/PlayerProvider';
 import { IconChevronLeft, IconChevronRight, IconPlay } from '@/components/ui/icons';
-import { AudioRow } from './AudioRow';
 import { MusicVideoMenu } from './MusicVideoMenu';
 import { productionTab, titlePage, type LyricSectionView, type Person, type TitlePage } from './model';
 
@@ -31,11 +31,9 @@ export function MusicVideo({ id }: { id: string }) {
 
 function NotInStudio() {
   return (
-    <div className="mv-page mv-missing">
-      <h1 className="t-page">This music video isn’t in the studio</h1>
-      <p className="t-body">It may have been deleted, or the link is wrong.</p>
-      <Link className="btn btn-secondary" href="/music-videos">Back to Music videos</Link>
-    </div>
+    <ErrorState kind="page" title="This music video isn’t in the studio" back={{ href: '/music-videos', label: 'Back to Music videos' }}>
+      It may have been deleted, or the link is wrong.
+    </ErrorState>
   );
 }
 
@@ -65,7 +63,7 @@ function TitlePageView({ p }: { p: Production }) {
             <h1 id="mv-title" className={`${m.long ? 't-hero' : 't-display'} mv-title`}><bdi lang={m.lang}>{m.title}</bdi></h1>
             {m.altTitle && <p className="t-lead mv-alt"><bdi lang="ar">{m.altTitle}</bdi></p>}
             <Performers m={m} />
-            {m.track ? <AudioRow track={m.track} title={m.title} meta={m.artist || undefined} className="mv-transport" />
+            {m.track ? <AudioRow track={m.track} meta={m.artist || undefined} className="mv-transport" />
               : <p className="t-body mv-nosong">{m.production.song ? 'The song’s file is not in the studio yet, so it cannot play here.' : 'No song yet. A music video starts with its song.'}</p>}
             <div className="mv-acts">
               <Link className="btn btn-primary" href={m.primary.href}>{m.primary.label}<IconChevronRight aria-hidden /></Link>
@@ -80,7 +78,7 @@ function TitlePageView({ p }: { p: Production }) {
         <section className="mv-lyrics" aria-labelledby="mv-lyrics-h" data-playing={playing || undefined}>
           <SectionHead id="mv-lyrics-h" title="Lyrics" count={m.sections.length || null} description={m.lyricsLanguage ? `As they are sung, in ${m.lyricsLanguage}${m.translationLanguage ? `, with the ${m.translationLanguage} beneath` : ''}.` : undefined} />
           {m.sections.length === 0 ? (
-            <p className="t-body mv-none">No lyrics yet. <Link className="btn btn-secondary btn-sm" href={m.primary.href}>{m.production.song ? 'Write the lyrics' : 'Write the song'}</Link></p>
+            <EmptyState action={<Link className="btn btn-secondary btn-sm" href={productionTab(p, 'song')}>{m.production.song ? 'Write the lyrics' : 'Write the song'}</Link>}>No lyrics yet.</EmptyState>
           ) : (
             <ol className="mv-sections" role="list">
               {m.sections.map((sec) => <Section key={sec.id} sec={sec} live={st.mine && st.time >= sec.from && st.time < sec.to} onPlay={m.track ? () => player.play(m.track!, sec.from + 0.001) : undefined} />)}
@@ -95,7 +93,7 @@ function TitlePageView({ p }: { p: Production }) {
           <section className="mv-cast" aria-labelledby="mv-cast-h">
             <SectionHead id="mv-cast-h" title="Cast" count={m.cast.length || null} />
             {m.cast.length === 0 ? (
-              <p className="t-body mv-none">Nobody is cast yet. <Link className="btn btn-secondary btn-sm" href={productionTab(p, 'performers')}>Choose performers</Link></p>
+              <EmptyState action={<Link className="btn btn-secondary btn-sm" href={productionTab(p, 'performers')}>Choose performers</Link>}>Nobody is cast yet.</EmptyState>
             ) : (
               <ul className="mv-cast-list" role="list">
                 {m.cast.map((c) => (
@@ -182,7 +180,7 @@ export function MusicVideoSkeleton() {
             <div className="t-meta mv-meta"><Skeleton.Line width="16rem" /></div>
             <div className="t-display mv-title"><Skeleton.Line size="title" width="60%" /></div>
             <div className="mv-performers"><Skeleton.Line width="10rem" /></div>
-            <Skeleton.Block className="mv-transport mv-audio" width="100%" height={64} radius="md" />
+            <Skeleton.Block className="mv-transport mv-sk-transport" width="100%" radius="md" style={{ blockSize: undefined }} />
             <div className="mv-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={176} height={40} radius="pill" /></div>
           </div>
         </div>
