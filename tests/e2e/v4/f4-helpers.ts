@@ -21,8 +21,15 @@ export async function open(page: Page, path: string, opts: { kind?: 'sample' | '
   await prepare(page, { lang, fixture: fx, motion: 'reduce' });
   if (opts.prefs) await page.addInitScript((p) => { const u = JSON.parse(localStorage.getItem('vewbox.ui') || '{}'); localStorage.setItem('vewbox.ui', JSON.stringify({ ...u, ...p })); }, opts.prefs);
   if (opts.before) await opts.before(page);
-  await page.goto(path, { waitUntil: 'domcontentloaded' });
-  await waitForPage(page);
+  // the dev server can hand out a chunk while it is still compiling it (a SyntaxError in the page): load again
+  let broken = false;
+  page.on('pageerror', (e) => { if (e.name === 'SyntaxError' || /Invalid or unexpected token|ChunkLoadError/.test(e.message)) broken = true; });
+  for (let attempt = 1; ; attempt++) {
+    broken = false;
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    try { await expect(page.locator('main h1').first()).toBeVisible({ timeout: attempt < 3 ? 30_000 : 90_000 }); return; }
+    catch (e) { if (attempt >= 3 || !broken) throw e; }
+  }
 }
 
 export async function waitForPage(page: Page) {

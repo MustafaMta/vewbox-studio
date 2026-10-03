@@ -16,7 +16,6 @@
   .shell-main:focus-visible { outline: none; } /* the skip link's target; the content after it carries the focus */
   [data-room='cutting'] > .shell-main { max-inline-size: none; }  /* the cutting room uses the full width (§4.2) */
   @media (min-width: 640px) { .shell-main { padding-block-start: 32px; } }
-  @media (min-width: 1024px) { .shell-main { padding-block-start: 40px; } }
 
   /* the skip link: the first focusable element of every page, shown only while focused */
   .skip-link { position: fixed; inset-block-start: 12px; inset-inline-start: 12px; z-index: var(--z-skip); padding: 8px 12px; border-radius: var(--r-2); background: var(--primary); color: var(--on-primary); font-size: 13px; line-height: 18px; font-weight: 600; }
