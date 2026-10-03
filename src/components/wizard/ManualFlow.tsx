@@ -101,7 +101,7 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
     <div className="create-field">
       <p className="label">{isMV ? 'Performers' : 'Cast'}</p>
       {state.characters.length ? (
-        <PickGrid shape="figure" label={isMV ? 'Performers' : 'Cast'} items={castItems(state, (c) => (inheritedCast.includes(c.id) ? 'In the show' : undefined))} selected={cast} locked={inheritedCast} onToggle={toggle(setCast)} />
+        <PickGrid shape="figure" label={isMV ? 'Performers' : 'Cast'} items={castItems(state, (c) => (inheritedCast.includes(c.id) ? 'In the show' : undefined))} selected={cast} onToggle={toggle(setCast)} />
       ) : <p className="t-body">No characters yet. The studio can cast new ones once the story is written.</p>}
     </div>
   );
@@ -109,7 +109,7 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
     <div className="create-field">
       <p className="label">Locations</p>
       {state.locations.length ? (
-        <PickGrid shape="plate" label="Locations" items={placeItems(state)} selected={places} locked={inheritedPlaces} onToggle={toggle(setPlaces)} />
+        <PickGrid shape="plate" label="Locations" items={placeItems(state, (l) => (inheritedPlaces.includes(l.id) ? 'In the show' : undefined))} selected={places} onToggle={toggle(setPlaces)} />
       ) : <p className="t-body">No locations yet. The studio proposes places with the story.</p>}
     </div>
   );

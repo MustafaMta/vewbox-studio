@@ -81,7 +81,10 @@ async function measure(page) {
   return page.evaluate(() => {
     const main = document.querySelector('main') ?? document.body;
     const r = (sel) => [...main.querySelectorAll(sel)].map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0);
-    const starts = [...r('.create-head > *:not(.create-mode)'), ...r('.create-mode'), ...r('.create-flow > *'), ...r('.create-hub-head'), ...r('.create-hub-shead'), ...r('.create-hub-grid'), ...r('.create-missing')].map((b) => Math.round(b.left));
+    const startEls = [...main.querySelectorAll('.create-head > *:not(.create-mode), .create-mode, .create-flow > *:not(.form-footer, .sr-only), .create-hub-head, .create-hub-shead, .create-hub-grid, .create-hub-tools, .create-missing')].filter((e) => e.getBoundingClientRect().width > 0);
+    const starts = startEls.map((e) => Math.round(e.getBoundingClientRect().left));
+    const mode = starts.sort((a, b) => starts.filter((v) => v === b).length - starts.filter((v) => v === a).length)[0];
+    const offenders = startEls.filter((e) => Math.round(e.getBoundingClientRect().left) !== mode).map((e) => `${e.className.toString().slice(0, 40)}@${e.getBoundingClientRect().left}`);
     const rows = (sel) => { const m = new Map(); for (const b of r(sel)) { const k = Math.round(b.top); m.set(k, [...(m.get(k) ?? []), Math.round(b.height)]); } return [...m.values()].every((hs) => new Set(hs).size === 1); };
     const fonts = new Set(); const small = [];
     const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
@@ -93,12 +96,12 @@ async function measure(page) {
       if (parseFloat(cs.fontSize) < 12) small.push(`${parseFloat(cs.fontSize)}px "${n.textContent.trim().slice(0, 30)}"`);
     }
     return {
-      starts: [...new Set(starts)], startOk: new Set(starts).size <= 1,
+      starts: [...new Set(starts)], startOk: new Set(starts).size <= 1, offenders,
       cardsEqual: rows('.create-start'), picksEqual: rows('.create-pick'),
       fonts: [...fonts], small: small.slice(0, 6),
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       unavailable: [...main.querySelectorAll('[data-failed]')].length + [...main.querySelectorAll('img')].filter((i) => i.complete && i.naturalWidth === 0).length,
-      cls: (window.__shifts ?? []).reduce((a, s) => a + s.value, 0),
+      cls: (window.__shifts ?? []).reduce((a, s) => a + s.value, 0), shifts: (window.__shifts ?? []).filter((s) => s.value > 0.001).slice(0, 5),
     };
   });
 }
@@ -108,7 +111,7 @@ for (const size of SIZES) {
     const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     await prepare(page, { motion: 'reduce' });
-    await page.addInitScript(() => { window.__shifts = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value }); }).observe({ type: 'layout-shift', buffered: true }); });
+    await page.addInitScript(() => { window.__shifts = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 50) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true }); });
     const eng = st.engines ? ENGINES[st.engines] : null;
     if (eng) {
       await page.route('**/api/status', (route) => (eng.status === 'hang' ? new Promise(() => {}) : route.fulfill({ json: { video: { ok: false }, images: { ok: false }, voice: { ok: false }, transcription: { ok: false }, music: { ok: false }, gpu: null, minimaxConfigured: false, ...eng.status } })));
@@ -135,7 +138,7 @@ for (const size of SIZES) {
         await page.waitForTimeout(400);
         await page.screenshot({ path: file, fullPage: true });
       } else {
-        await page.waitForSelector(st.wait ?? 'main h1', { timeout: 120000 });
+        await page.waitForSelector(st.wait ?? 'main h1', { timeout: st.cls ? 300000 : 120000 });
         await page.waitForFunction(() => !document.querySelector('.create-skeleton, .sk-region'), null, { timeout: 60000 }).catch(() => {});
         if (st.dev) await page.waitForSelector('.create-step', { timeout: 30000 });
         if (st.act) await st.act(page);
@@ -144,6 +147,8 @@ for (const size of SIZES) {
         await page.waitForTimeout(700);
         if (cdp) await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
         await page.screenshot({ path: file, fullPage: true });
+        // phones: the sticky action bar as the producer sees it, at the end of the page
+        if (size.touch) { await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await page.waitForTimeout(300); await page.screenshot({ path: file.replace(/\.png$/, '-end.png') }); await page.evaluate(() => window.scrollTo(0, 0)); }
       }
       const m = st.loading ? null : await measure(page);
       const fontOk = !m || m.fonts.every((f) => /^(Geist|Geist Mono|__Geist)/i.test(f) || /Segoe UI|Tahoma|Geeza|Arabic/i.test(f));
@@ -151,7 +156,7 @@ for (const size of SIZES) {
       const bad = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k);
       failed += bad.length;
       report.push({ state: st.name, size: `${size.w}×${size.h}`, file, ...(m ?? {}), checks });
-      console.log(`${size.w} ${st.name}: ${bad.length ? `✗ ${bad.join(', ')}` : '✓'}${m ? ` · start x ${m.starts.join('/')}${st.cls ? ` · CLS ${m.cls.toFixed(4)}` : ''}${m.small.length ? ` · small ${m.small.join('; ')}` : ''}${m.overflow > 0 ? ` · overflow ${m.overflow}` : ''} · fonts ${m.fonts.join(', ')}` : ''}`);
+      console.log(`${size.w} ${st.name}: ${bad.length ? `✗ ${bad.join(', ')}` : '✓'}${m ? ` · start x ${m.starts.join('/')}${m.offenders.length ? ` (${m.offenders.join(', ')})` : ''}${st.cls ? ` · CLS ${m.cls.toFixed(4)}${m.shifts.length ? ` ${JSON.stringify(m.shifts)}` : ''}` : ''}${m.small.length ? ` · small ${m.small.join('; ')}` : ''}${m.overflow > 0 ? ` · overflow ${m.overflow}` : ''} · fonts ${m.fonts.join(', ')}` : ''}`);
     } catch (e) {
       failed += 1;
       console.log(`${size.w} ${st.name}: ✗ ${e.message.split('\n')[0]}`);

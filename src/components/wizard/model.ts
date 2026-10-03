@@ -205,12 +205,14 @@ export interface EngineReading {
   storyOk: boolean | null;
   intakePaused: boolean;
   intakeReason?: string;
+  /** false until /api/health answered (a reading without it is still checking) */
+  intakeKnown?: boolean;
 }
 
 /** Whether Auto can start, and if not, the honest sentence. */
 export function autoAvailability(e: EngineReading): { state: 'checking' | 'ready' | 'unavailable'; title?: string; why?: string } {
   if (e.intakePaused) return { state: 'unavailable', title: 'The studio is not taking new work right now', why: `${e.intakeReason ? `${e.intakeReason.replace(/\.$/, '')}. ` : ''}Auto ideas will be back when the studio resumes. You can write the brief yourself now.` };
-  if (e.storyOk === null) return { state: 'checking' };
+  if (e.storyOk === null || e.intakeKnown === false) return { state: 'checking' };
   if (!e.storyOk) return { state: 'unavailable', title: 'The story engine is offline', why: 'The studio cannot write ideas until it is back. You can write the brief yourself now.' };
   return { state: 'ready' };
 }

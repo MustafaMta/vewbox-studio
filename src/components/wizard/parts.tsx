@@ -5,10 +5,9 @@ import type { Asset, Character, Location, StudioState } from '@/domain/types';
 import type { Aspect, Style } from '@/domain/vocabulary';
 import { STYLES } from '@/domain/vocabulary';
 import { primaryImageOf } from '@/domain/identity';
-import { artVars } from '@/studio/presentation';
-import { Frame } from '@/components/media/Frame';
 import { TitleCard } from '@/components/media/TitleCard';
-import { displaySrc, nameLang } from '@/components/home/model';
+import { nameLang } from '@/components/home/model';
+import { FigureCard, MediaTile } from '@/components/media';
 import { rovingIndex, rovingStep } from '@/components/ui/kit';
 import { IconAuto, IconCheck } from '@/components/ui/icons';
 import { STYLE_WORDS, type ContentRatio } from './model';
@@ -37,25 +36,21 @@ export function Panel({ id, title, description, end, children, className }: { id
 
 // ------------------------------------------------------------------------------------------------- picker tiles
 
-interface PickItem { id: string; name: string; sub?: string; frame: ReactNode }
+export interface PickItem { id: string; name: string; sub?: string; asset?: Asset; /** in the show already: chosen and fixed, with the reason */ locked?: string }
 
-/** A grid of tiles the producer chooses from (several at once): each a toggle button named by its object. */
-export function PickGrid({ items, selected, onToggle, shape, label, locked = [] }: { items: PickItem[]; selected: readonly string[]; onToggle: (id: string) => void; shape: 'figure' | 'plate'; label: string; locked?: readonly string[] }) {
+/** A grid of the kit's picker cards (several at once): characters as FigureCards (the whole canonical figure), places
+ *  as MediaTiles (the master plate); each a toggle button named by its object, chosen with the outline and the check. */
+export function PickGrid({ items, selected, onToggle, shape, label }: { items: PickItem[]; selected: readonly string[]; onToggle: (id: string) => void; shape: 'figure' | 'plate'; label: string }) {
   return (
     <ul className="create-picks" data-shape={shape} role="list" aria-label={label}>
       {items.map((it) => {
-        const on = selected.includes(it.id) || locked.includes(it.id);
-        const lock = locked.includes(it.id);
+        const on = selected.includes(it.id) || Boolean(it.locked);
+        const lang = nameLang(it.name);
         return (
           <li key={it.id}>
-            <button type="button" className="create-pick" aria-pressed={on} disabled={lock} title={it.name} onClick={() => onToggle(it.id)}>
-              <span className="create-pick-frame">
-                {it.frame}
-                <span className="create-pick-check" aria-hidden data-on={on || undefined}>{on && <IconCheck />}</span>
-              </span>
-              <span className="t-card name create-pick-name"><bdi lang={nameLang(it.name)}>{it.name}</bdi></span>
-              <span className="t-meta create-pick-sub">{it.sub ?? ''}</span>
-            </button>
+            {shape === 'figure'
+              ? <FigureCard name={it.name} nameLang={lang} asset={it.asset} selected={on} disabledReason={it.locked} onSelect={() => onToggle(it.id)} badge={it.sub ? <span className="t-meta">{it.sub}</span> : undefined} />
+              : <MediaTile title={it.name} titleLang={lang} asset={it.asset} ratio="16/9" selected={on} onSelect={it.locked ? undefined : () => onToggle(it.id)} meta={[it.locked ?? it.sub]} />}
           </li>
         );
       })}
@@ -66,29 +61,17 @@ export function PickGrid({ items, selected, onToggle, shape, label, locked = [] 
 const assetOf = (s: Pick<StudioState, 'assets'>, id?: string | null): Asset | undefined => (id ? s.assets.find((a) => a.id === id) : undefined);
 const usable = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'IMAGE' && !a.unavailable);
 
-/** A character in its one canonical full-body figure (never cropped), or its title card when it has none. */
-export function figureFrame(s: Pick<StudioState, 'assets'>, c: Pick<Character, 'name' | 'canonicalImage' | 'portraitAssetId'>): ReactNode {
-  const a = assetOf(s, primaryImageOf(c as Character));
-  return usable(a)
-    ? <Frame asset={a} src={displaySrc(a)} ratio="928/1664" fit="contain" alt="" art={artVars(a)} title={c.name} decorative radius="none" />
-    : <TitleCard title={c.name} lang={nameLang(c.name)} ratio="928/1664" state="noImage" decorative radius="none" small />;
-}
+/** A character's one canonical figure, when it has a usable one. */
+export const figureOf = (s: Pick<StudioState, 'assets'>, c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): Asset | undefined => { const a = assetOf(s, primaryImageOf(c as Character)); return usable(a) ? a : undefined; };
+/** A location's master plate, when it has a usable one. */
+export const plateOf = (s: Pick<StudioState, 'assets'>, l: Pick<Location, 'masterAssetId'>): Asset | undefined => { const a = assetOf(s, l.masterAssetId); return usable(a) ? a : undefined; };
 
-/** A location's master plate at 16:9, or its title card. */
-export function plateFrame(s: Pick<StudioState, 'assets'>, l: Pick<Location, 'name' | 'masterAssetId'>): ReactNode {
-  const a = assetOf(s, l.masterAssetId);
-  return usable(a)
-    ? <Frame asset={a} src={displaySrc(a)} ratio="16/9" fit="cover" alt="" art={artVars(a)} title={l.name} decorative radius="none" />
-    : <TitleCard title={l.name} lang={nameLang(l.name)} ratio="16/9" state="notDrawn" decorative radius="none" small />;
+export function castItems(s: StudioState, locked?: (c: Character) => string | undefined): PickItem[] {
+  return s.characters.map((c) => ({ id: c.id, name: c.name, asset: figureOf(s, c), locked: locked?.(c) }));
 }
-
-export function castItems(s: StudioState, sub?: (c: Character) => string | undefined): PickItem[] {
-  return s.characters.map((c) => ({ id: c.id, name: c.name, sub: sub ? sub(c) : undefined, frame: figureFrame(s, c) }));
+export function placeItems(s: StudioState, locked?: (l: Location) => string | undefined): PickItem[] {
+  return s.locations.map((l) => ({ id: l.id, name: l.name, sub: l.kind === 'INTERIOR' ? 'Interior' : 'Exterior', asset: plateOf(s, l), locked: locked?.(l) }));
 }
-export function placeItems(s: StudioState): PickItem[] {
-  return s.locations.map((l) => ({ id: l.id, name: l.name, sub: l.kind === 'INTERIOR' ? 'Interior' : 'Exterior', frame: plateFrame(s, l) }));
-}
-
 // ------------------------------------------------------------------------------------------------- style
 
 /** The three looks as drawings (not pictures from anywhere): one radio group, arrows move the choice. */
@@ -113,7 +96,7 @@ export function StylePicker({ value, onChange, label = 'Style', auto }: { value:
             <button key={s ?? 'auto'} type="button" role="radio" aria-checked={on} tabIndex={on || (value === undefined && s === opts[0]) ? 0 : -1} className="create-pick" onClick={() => onChange(s)}>
               <span className="create-pick-frame">
                 {s ? <StyleDrawing style={s} /> : <span className="create-pick-auto" aria-hidden><IconAuto /></span>}
-                <span className="create-pick-check" aria-hidden data-on={on || undefined}>{on && <IconCheck />}</span>
+                {on && <span className="card-check" aria-hidden><IconCheck /></span>}
               </span>
               <span className="t-card create-pick-name">{words.label}</span>
               <span className="t-meta create-pick-sub">{words.hint}</span>

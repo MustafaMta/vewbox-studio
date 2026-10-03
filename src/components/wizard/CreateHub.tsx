@@ -5,7 +5,8 @@ import { useMemo } from 'react';
 import { isActiveStatus, type Job } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
 import { shortWhen } from '@/components/home/model';
-import { JobDot, ShapeGlyph, Skeleton, SkeletonRegion, type ShapeName } from '@/components/ui/kit';
+import { JobDot, ShapeGlyph, Skeleton, SkeletonRegion, ToolCard, type ShapeName } from '@/components/ui/kit';
+import { ToolCardSkeleton } from '@/components/media';
 import { IconAuto, IconChevronRight, IconManual } from '@/components/ui/icons';
 
 /** THE CREATION HUB (/new) — everything the studio makes, in Home's language: films (show, short, music video) each
@@ -36,8 +37,8 @@ export function CreateHub() {
     { key: 'music-video', shape: 'music', title: 'New music video', line: 'It starts with its song, then its performers.', count: plural(n('MUSIC_VIDEO'), 'music video') },
   ];
   const world: Start[] = [
-    { key: 'character', shape: 'character', title: 'New character', line: 'One canonical image and one voice.', count: plural(state.characters.length, 'character'), href: '/characters/new' },
-    { key: 'location', shape: 'location', title: 'New location', line: 'A place to film in, drawn as its plates.', count: plural(state.locations.length, 'location'), href: '/locations/new' },
+    { key: 'character', shape: 'character', title: 'New character', line: 'One image, one voice.', count: plural(state.characters.length, 'character'), href: '/characters/new' },
+    { key: 'location', shape: 'location', title: 'New location', line: 'A place to film in.', count: plural(state.locations.length, 'location'), href: '/locations/new' },
   ];
   const ideas = useMemo(() => {
     const used = new Set(state.productions.map((p) => p.brief?.proposalJobId).filter(Boolean));
@@ -61,8 +62,8 @@ export function CreateHub() {
 
       <section className="create-hub-section" aria-labelledby="create-hub-world">
         <div className="create-hub-shead"><h2 id="create-hub-world" className="t-section">Cast and world</h2><p className="t-body">The characters and places your films share.</p></div>
-        <ul className="create-hub-grid" data-count="2" role="list">
-          {world.map((f) => <li key={f.key}><StartCard s={f} /></li>)}
+        <ul className="create-hub-tools" role="list">
+          {world.map((f) => <li key={f.key}><ToolCard href={f.href!} shape={f.shape} title={f.title} line={f.line} chevron /></li>)}
         </ul>
       </section>
 
@@ -95,7 +96,7 @@ function StartCard({ s }: { s: Start }) {
   return (
     <article className="card create-start" aria-labelledby={id}>
       <div className="create-start-stage" aria-hidden>
-        <span className="create-start-frame" data-shape={s.shape}><span className="create-corners" /><ShapeGlyph shape={s.shape} size={24} /></span>
+        <span className="create-start-frame" data-shape={s.shape}><span className="corners" /><ShapeGlyph shape={s.shape} size={24} /></span>
       </div>
       <div className="create-start-words">
         <h3 id={id} className="t-card">{s.title}</h3>
@@ -121,7 +122,7 @@ export function CreateHubSkeleton() {
   return (
     <SkeletonRegion label="Opening the studio…" className="create-hub create-skeleton">
       <div className="create-hub-head"><span className="t-page"><Skeleton.Line size="title" width="8rem" /></span><span className="t-lead"><Skeleton.Line width="28rem" /></span></div>
-      {[3, 2].map((count) => (
+      {[3].map((count) => (
         <div key={count} className="create-hub-section">
           <div className="create-hub-shead"><span className="t-section"><Skeleton.Line size="title" width="7rem" /></span><span className="t-body"><Skeleton.Line width="20rem" /></span></div>
           <div className="create-hub-grid" data-count={count}>
@@ -137,6 +138,10 @@ export function CreateHubSkeleton() {
           </div>
         </div>
       ))}
+      <div className="create-hub-section">
+        <div className="create-hub-shead"><span className="t-section"><Skeleton.Line size="title" width="9rem" /></span><span className="t-body"><Skeleton.Line width="16rem" /></span></div>
+        <div className="create-hub-tools"><div><ToolCardSkeleton /></div><div><ToolCardSkeleton /></div></div>
+      </div>
     </SkeletonRegion>
   );
 }

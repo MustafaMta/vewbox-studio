@@ -7,10 +7,10 @@ import type { DevelopmentView, EngineReading, ResearchSource } from './model';
 
 /** Is the story engine reachable, and is the studio taking new work? (GET /api/status, GET /api/health — reads only.) */
 export function useEngines(): EngineReading {
-  const [r, setR] = useState<EngineReading>({ storyOk: null, intakePaused: false });
+  const [r, setR] = useState<EngineReading>({ storyOk: null, intakePaused: false, intakeKnown: false });
   useEffect(() => {
     let live = true;
-    api.health().then((h: { intake?: { paused?: boolean; reason?: string } }) => { if (live) setR((x) => ({ ...x, intakePaused: Boolean(h?.intake?.paused), intakeReason: h?.intake?.reason })); }).catch(() => {});
+    api.health().then((h: { intake?: { paused?: boolean; reason?: string } }) => { if (live) setR((x) => ({ ...x, intakeKnown: true, intakePaused: Boolean(h?.intake?.paused), intakeReason: h?.intake?.reason })); }).catch(() => { if (live) setR((x) => ({ ...x, intakeKnown: true })); });
     api.status().then((s) => { if (live) setR((x) => ({ ...x, storyOk: Boolean(s.story?.ok) })); }).catch(() => { if (live) setR((x) => ({ ...x, storyOk: false })); });
     return () => { live = false; };
   }, []);

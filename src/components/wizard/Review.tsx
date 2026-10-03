@@ -10,11 +10,10 @@ import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, FormFooter, Input, Notice, Segmented, Select, SettingsSummary, Textarea } from '@/components/ui/kit';
-import { TitleCard } from '@/components/media/TitleCard';
 import { AudioPlayer } from '@/components/players/Controls';
 import { nameLang } from '@/components/home/model';
 import { IconShuffle } from '@/components/ui/icons';
-import { AspectGlyph, Panel, PickGrid, StylePicker, figureFrame, plateFrame } from './parts';
+import { AspectGlyph, Panel, PickGrid, StylePicker, figureOf, plateOf } from './parts';
 import type { SongDraft } from './Song';
 import { ASPECT_WORDS, KIND_INFO, LANGUAGE_WORDS, STYLE_WORDS, dialectWords, languageWords, lengthWords, type CreateKind } from './model';
 import { focusField } from './ManualFlow';
@@ -135,14 +134,14 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
       <Panel id="create-review-cast-h" title={isMV ? 'Performers' : 'Cast'} description="Keep who the story needs. New characters are added to the studio without a picture; you cast them next.">
         {p.cast.length ? (
           <PickGrid shape="figure" label={isMV ? 'Performers' : 'Cast'} selected={keepCast} onToggle={toggle(setKeepCast)}
-            items={p.cast.map((c) => { const ch = c.characterId ? state.characters.find((x) => x.id === c.characterId) : undefined; return { id: c.key, name: c.name, sub: ch ? (c.fromPreference ? 'Your choice' : 'In the studio') : 'New character', frame: ch ? figureFrame(state, ch) : <TitleCard title={c.name} lang={nameLang(c.name)} ratio="928/1664" stateLabel={c.role || 'New'} decorative radius="none" small /> }; })} />
+            items={p.cast.map((c) => { const ch = c.characterId ? state.characters.find((x) => x.id === c.characterId) : undefined; return { id: c.key, name: c.name, sub: ch ? (c.fromPreference ? 'Your choice' : 'In the studio') : 'New character', asset: ch ? figureOf(state, ch) : undefined }; })} />
         ) : <p className="t-body">The proposal names no one yet.</p>}
       </Panel>
 
       <Panel id="create-review-places-h" title="Locations">
         {p.locations.length ? (
           <PickGrid shape="plate" label="Locations" selected={keepPlaces} onToggle={toggle(setKeepPlaces)}
-            items={p.locations.map((l) => { const loc = l.locationId ? state.locations.find((x) => x.id === l.locationId) : undefined; return { id: l.key, name: l.name, sub: loc ? 'In the studio' : 'New location', frame: loc ? plateFrame(state, loc) : <TitleCard title={l.name} lang={nameLang(l.name)} ratio="16/9" stateLabel="New" decorative radius="none" small /> }; })} />
+            items={p.locations.map((l) => { const loc = l.locationId ? state.locations.find((x) => x.id === l.locationId) : undefined; return { id: l.key, name: l.name, sub: loc ? 'In the studio' : 'New location', asset: loc ? plateOf(state, loc) : undefined }; })} />
         ) : <p className="t-body">The proposal names no place yet.</p>}
       </Panel>
 

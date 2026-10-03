@@ -152,6 +152,17 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
   }
 
   // ---------------------------------------------------------------------------------------------- start
+  // until the engines have answered, the panels hold their places (so an "offline" notice never pushes the page down)
+  if (avail.state === 'checking') {
+    return (
+      <div className="create-flow" aria-busy="true">
+        <p className="sr-only" role="status">Checking the story engine…</p>
+        {isMV && <Skeleton.Block className="create-panel" width="100%" height={232} radius="md" />}
+        <Skeleton.Block className="create-panel" width="100%" height={294} radius="md" />
+        <div className="form-footer"><span className="t-meta create-avail">Checking the story engine…</span><span className="form-footer-actions"><Skeleton.Block width={168} height={40} radius="pill" /></span></div>
+      </div>
+    );
+  }
   const unavailable = avail.state === 'unavailable';
   return (
     <form className="create-flow" noValidate onSubmit={(e) => { e.preventDefault(); if (!unavailable) void develop(); }}>
@@ -215,8 +226,8 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
 
       {startError && <ErrorNotice title="The studio did not start the idea" why={startError} action={<Button size="sm" onClick={onManual} icon={<IconManual />}>Write it yourself</Button>} />}
 
-      <FormFooter start={<span className="t-meta create-avail">{avail.state === 'checking' ? 'Checking the story engine…' : avail.state === 'ready' ? 'The story team takes a few minutes.' : 'Auto ideas are unavailable right now.'}</span>}>
-        <Button type="submit" variant="primary" icon={<IconAuto />} loading={starting} disabled={unavailable || avail.state === 'checking'} aria-describedby={unavailable ? 'create-engine-why' : undefined}>Develop an idea</Button>
+      <FormFooter start={<span className="t-meta create-avail">{avail.state === 'ready' ? 'The story team takes a few minutes.' : 'Auto ideas are unavailable right now.'}</span>}>
+        <Button type="submit" variant="primary" icon={<IconAuto />} loading={starting} disabled={unavailable} aria-describedby={unavailable ? 'create-engine-why' : undefined}>Develop an idea</Button>
       </FormFooter>
 
       {ideas.length > 0 && <Ideas ideas={ideas} onOpen={goIdea} />}
