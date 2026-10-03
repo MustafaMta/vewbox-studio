@@ -1,0 +1,4734 @@
+{
+  "createdAt": "2026-10-03T00:21:48.458Z",
+  "harness": "tests/evidence/voice-identity-v2.evidence.ts (vitest.evidence.config.ts)",
+  "note": "Real services through the studio code paths (handlers, the Voice Casting tool runner with its contracts, the GPU lease); the studio in memory with the real reducers, the library in a scratch folder. Measurements only: naturalness, accent, dialect authenticity and whether a voice matches its description are NOT measured — they need listeners (VOICE-IDENTITY-V2 §5.2). ECAPA is VoxCeleb-trained: relative similarity, never identity proof. Whisper large-v3 is not dialect-tuned.",
+  "healthBefore": {
+    "design": {
+      "ok": true,
+      "engine": "voxcpm2",
+      "engine_version": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+      "ecapa_version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+      "loaded": false,
+      "ecapa_loaded": true,
+      "weights_present": true,
+      "ecapa_weights_present": true,
+      "gpu": {
+        "used_mb": 3542,
+        "total_mb": 32607
+      },
+      "torch": {
+        "allocated_mb": 8,
+        "reserved_mb": 20,
+        "peak_reserved_mb": 20
+      },
+      "peak_ceiling_dbtp": -1,
+      "max_candidates": 3,
+      "engines": [
+        "voxcpm2",
+        "ecapa"
+      ],
+      "sample_rates": {
+        "native": 48000,
+        "reference": 24000
+      },
+      "ecapa_device": "cpu",
+      "optimize": false
+    },
+    "indextts": {
+      "ok": true,
+      "engine": "indextts",
+      "engines": [
+        "indextts"
+      ],
+      "engine_version": "indextts 2.0.0; repo v2.5.0; model IndexTTS-2.5; torch 2.8.0+cu128",
+      "loaded": false,
+      "weights_present": true,
+      "gpu": {
+        "used_mb": 3542,
+        "total_mb": 32607
+      },
+      "peak_ceiling_dbtp": -1
+    },
+    "habibi": {
+      "ok": true,
+      "engine": "habibi",
+      "engines": [
+        "habibi"
+      ],
+      "engine_version": "habibi-tts 0.1.1; f5-tts 1.1.22; model Specialized/IRQ/model_100000; torch 2.8.0+cu128",
+      "loaded": false,
+      "weights_present": true,
+      "gpu": {
+        "used_mb": 3542,
+        "total_mb": 32607
+      },
+      "peak_ceiling_dbtp": -1
+    },
+    "asr": {
+      "ok": true,
+      "model": "large-v3",
+      "compute": "float16",
+      "loaded": false,
+      "demucs": "htdemucs",
+      "demucs_loaded": false,
+      "gpu": {
+        "used_mb": 3542,
+        "total_mb": 32607
+      },
+      "weights_present": true
+    }
+  },
+  "gpuBefore": {
+    "usedMb": 3123,
+    "totalMb": 32607
+  },
+  "runs": [
+    {
+      "run": "A-automatic-en",
+      "what": "AUTOMATIC English build (no recording → designed voice)",
+      "type": "VOICE_BUILD",
+      "characterId": "char-5d7674695a",
+      "payload": {
+        "characterId": "char-5d7674695a",
+        "mode": "AUTOMATIC"
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "automatic-voice-source",
+            "ok": true,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "designing a voice from Rana’s profile (studio-designed synthetic voice)"
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Rana (no canonical image)",
+            "characterIds": [
+              "char-5d7674695a"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:21:48.553Z",
+      "gpuBefore": {
+        "usedMb": 3123,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:21:48.603Z",
+          "level": "info",
+          "message": "automatic voice: a voice designed from the profile",
+          "data": {
+            "plan": {
+              "kind": "DESIGN",
+              "experiment": false
+            }
+          }
+        },
+        {
+          "at": "2026-10-03T00:22:23.041Z",
+          "level": "info",
+          "message": "voice designed",
+          "data": {
+            "designId": "vd-9463933b73",
+            "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+            "seeds": [
+              342483154,
+              342483155,
+              342483156
+            ],
+            "ms": 33791,
+            "description": "A warm, clear, mid-pitched female voice, about 34, speaking English at a steady, measured pace, close-microphone studio recording"
+          }
+        },
+        {
+          "at": "2026-10-03T00:23:05.006Z",
+          "level": "info",
+          "message": "voice design measured",
+          "data": {
+            "designId": "vd-9463933b73",
+            "ranking": [
+              2,
+              3,
+              1
+            ],
+            "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+            "pick": 2,
+            "gates": [
+              {
+                "index": 1,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.6213
+              },
+              {
+                "index": 2,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.6834
+              },
+              {
+                "index": 3,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.663
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-10-03T00:23:05.086Z",
+          "level": "info",
+          "message": "reference chosen",
+          "data": {
+            "assetId": "gen-606de6fdc6",
+            "via": "DESIGN",
+            "origin": "DESIGNED",
+            "design": {
+              "designId": "vd-9463933b73",
+              "candidate": 2,
+              "sha256": "993c86060ea59c42d516c75b2a1b06033ece09f51fc77fefd5fc3fc404a66327",
+              "gateOk": true
+            },
+            "hasText": true
+          }
+        }
+      ],
+      "progress": [
+        {
+          "at": "2026-10-03T00:21:48.605Z",
+          "status": "GENERATING",
+          "phase": "designing",
+          "message": "Designing 3 candidate voices for Rana (VoxCPM2, from a description only)"
+        },
+        {
+          "at": "2026-10-03T00:22:24.049Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 1 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:22:28.993Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 2 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:22:29.799Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 3 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:22:30.606Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:22:48.123Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:22:50.511Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:22:53.046Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:22:55.172Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:22:57.515Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:23:05.086Z",
+          "status": "PREPARING",
+          "phase": "preparing",
+          "message": "Design seed for Rana: design vd-9463933b73, candidate 2 (studio-designed synthetic voice)"
+        },
+        {
+          "at": "2026-10-03T00:23:05.086Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Speaking a proof line"
+        }
+      ],
+      "activity": [
+        {
+          "kind": "VOICE_BUILT",
+          "message": "Rana's voice pinned (indextts, automatic, studio-designed synthetic voice); proof line 100 % heard, CER 0 % (intelligibility, measured); ECAPA reference→line 0.62; Studio-designed synthetic voice — not a real person; naturalness not yet judged by a listener",
+          "data": {
+            "characterId": "char-5d7674695a",
+            "engine": "indextts",
+            "origin": "DESIGNED",
+            "coverage": 1,
+            "cer": 0,
+            "wer": 0,
+            "status": "ACTIVE",
+            "designId": "vd-9463933b73"
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "tool": "speech.design_voice",
+          "ms": 33867,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 3895,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 577,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 579,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 17106,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 289,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2308,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 80,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2451,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 83,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2059,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 67,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2261,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 82,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 1944,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 71,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2342,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 288,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 379,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 299,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 378,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 306,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 13032,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 1995,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 633,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 90,
+          "ok": true
+        }
+      ],
+      "result": {
+        "identity": {
+          "provider": "LOCAL_TTS",
+          "model": "indextts",
+          "mode": "AUTOMATIC",
+          "origin": "DESIGNED",
+          "status": "ACTIVE",
+          "referenceAssetId": "gen-606de6fdc6",
+          "designId": "vd-9463933b73",
+          "params": {
+            "speed": 1,
+            "emotionAlpha": 1,
+            "seed": 1566245079
+          },
+          "dialectStatus": "NOT_APPLICABLE"
+        },
+        "sampleAssetId": "gen-aa9dc00342",
+        "proofSampleId": "voice-e413444141",
+        "engine": "indextts",
+        "check": {
+          "ok": true,
+          "status": "PASS",
+          "reasons": [],
+          "wer": 0,
+          "cer": 0,
+          "coverage": 1,
+          "heard": "Hello, my name is Rana, and this is my voice."
+        },
+        "evaluation": {
+          "cer": 0,
+          "coverage": 1,
+          "lufs": -19.58,
+          "truePeakDbtp": -1.97,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.62,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:23:21.711Z"
+        },
+        "design": {
+          "designId": "vd-9463933b73",
+          "chosen": 2,
+          "ranking": [
+            2,
+            3,
+            1
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 342483154,
+              "assetId": "gen-2616b49d30",
+              "nativeAssetId": "gen-40c1a11c7a",
+              "sha256": "0e759fb44b9d3af38ac8867391540a9c9bcadd2afe19c062d5676d231c1bb262",
+              "durationSeconds": 10.24,
+              "measured": {
+                "durationSeconds": 10.24,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.15,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.584,
+                  "cosine": 0.619,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again. So we wait by the lights until it comes.",
+                  "assetId": "gen-653cdfbcb0"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.505,
+                  "cosine": 0.6236,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-640e528233"
+                }
+              ],
+              "similarityMean": 0.6213,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 342483155,
+              "assetId": "gen-606de6fdc6",
+              "nativeAssetId": "gen-e5c5117ac3",
+              "sha256": "993c86060ea59c42d516c75b2a1b06033ece09f51fc77fefd5fc3fc404a66327",
+              "durationSeconds": 8.32,
+              "measured": {
+                "durationSeconds": 8.32,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.51,
+                "truePeakDbtp": -4.22,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.271,
+                  "cosine": 0.7485,
+                  "cer": 0.025,
+                  "coverage": 0.9444,
+                  "heard": "I told you, the fairy would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-f6a2e931ec"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.029,
+                  "cosine": 0.6183,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-96fad6ffe4"
+                }
+              ],
+              "similarityMean": 0.6834,
+              "cerMean": 0.0125
+            },
+            {
+              "index": 3,
+              "seed": 342483156,
+              "assetId": "gen-0a3789e8e0",
+              "nativeAssetId": "gen-618c86b3fa",
+              "sha256": "ebaae0a270ecd1b451270bbd730cb23ce167f47b2fee38bcfa6694ac06d17fbd",
+              "durationSeconds": 8.48,
+              "measured": {
+                "durationSeconds": 8.48,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.51,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.783,
+                  "cosine": 0.6431,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you the ferry would be late again. So we wait by the lights until it comes.",
+                  "assetId": "gen-e8af3867f4"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.785,
+                  "cosine": 0.6829,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-40a4b24b83"
+                }
+              ],
+              "similarityMean": 0.663,
+              "cerMean": 0
+            }
+          ]
+        },
+        "labels": [
+          "Studio-designed synthetic voice — not a real person",
+          "naturalness not yet judged by a listener"
+        ],
+        "reviewReasons": [],
+        "awaitingReview": false
+      },
+      "ms": 93267,
+      "gpuAfter": {
+        "usedMb": 6877,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "A-automatic-en",
+      "what": "VOICE_PREVIEW from the pinned designed voice (persistence of the identity)",
+      "type": "VOICE_PREVIEW",
+      "characterId": "char-5d7674695a",
+      "payload": {
+        "characterId": "char-5d7674695a",
+        "text": "Keep the engine slow until we clear the breakwater."
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Rana (no canonical image)",
+            "characterIds": [
+              "char-5d7674695a"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:23:21.920Z",
+      "gpuBefore": {
+        "usedMb": 6877,
+        "totalMb": 32607
+      },
+      "events": [],
+      "progress": [
+        {
+          "at": "2026-10-03T00:23:21.993Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Speaking as Rana"
+        }
+      ],
+      "activity": [],
+      "toolCalls": [
+        {
+          "tool": "speech.synthesize",
+          "ms": 12781,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2242,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 334,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 166,
+          "ok": true
+        }
+      ],
+      "result": {
+        "assetId": "gen-04fb292348",
+        "engine": "indextts",
+        "durationSeconds": 3.506213,
+        "check": {
+          "ok": true,
+          "status": "PASS",
+          "reasons": [],
+          "wer": 0,
+          "cer": 0,
+          "coverage": 1,
+          "heard": "Keep the engine slow until we clear the breakwater."
+        },
+        "measured": {
+          "lufs": -20.99,
+          "truePeakDbtp": -8.35,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.6893,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)"
+        },
+        "awaitingReview": false
+      },
+      "ms": 16852,
+      "gpuAfter": {
+        "usedMb": 12541,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "B-automatic-msa",
+      "what": "AUTOMATIC MSA build (no recording → designed voice)",
+      "type": "VOICE_BUILD",
+      "characterId": "char-755b4a7172",
+      "payload": {
+        "characterId": "char-755b4a7172",
+        "mode": "AUTOMATIC"
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "automatic-voice-source",
+            "ok": true,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "designing a voice from Salim’s profile (studio-designed synthetic voice)"
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Salim (no canonical image)",
+            "characterIds": [
+              "char-755b4a7172"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:23:38.860Z",
+      "gpuBefore": {
+        "usedMb": 12541,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:23:38.908Z",
+          "level": "info",
+          "message": "automatic voice: a voice designed from the profile",
+          "data": {
+            "plan": {
+              "kind": "DESIGN",
+              "experiment": false
+            }
+          }
+        },
+        {
+          "at": "2026-10-03T00:24:35.076Z",
+          "level": "info",
+          "message": "voice designed",
+          "data": {
+            "designId": "vd-1d6e4ad329",
+            "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+            "seeds": [
+              265354233,
+              265354234,
+              265354235
+            ],
+            "ms": 55603,
+            "description": "A deep, calm, low male voice, about 52, speaking formal Modern Standard Arabic at a slow, unhurried pace, close-microphone studio recording"
+          }
+        },
+        {
+          "at": "2026-10-03T00:25:41.325Z",
+          "level": "info",
+          "message": "voice design measured",
+          "data": {
+            "designId": "vd-1d6e4ad329",
+            "ranking": [
+              1,
+              2,
+              3
+            ],
+            "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+            "pick": 1,
+            "gates": [
+              {
+                "index": 1,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8745,
+                "letterCoverageMean": 1
+              },
+              {
+                "index": 2,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8512,
+                "letterCoverageMean": 1
+              },
+              {
+                "index": 3,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8454,
+                "letterCoverageMean": 1
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-10-03T00:25:41.408Z",
+          "level": "info",
+          "message": "reference chosen",
+          "data": {
+            "assetId": "gen-c5fac0e008",
+            "via": "DESIGN",
+            "origin": "DESIGNED",
+            "design": {
+              "designId": "vd-1d6e4ad329",
+              "candidate": 1,
+              "sha256": "21cc3b789a516454655fe9d7fff16aa02630a165ed2df5f1cadf4e2df1ea9663",
+              "gateOk": true
+            },
+            "hasText": true
+          }
+        }
+      ],
+      "progress": [
+        {
+          "at": "2026-10-03T00:23:38.912Z",
+          "status": "GENERATING",
+          "phase": "designing",
+          "message": "Designing 3 candidate voices for Salim (VoxCPM2, from a description only)"
+        },
+        {
+          "at": "2026-10-03T00:24:36.134Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 1 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:24:41.436Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 2 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:24:42.904Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 3 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:24:44.327Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:17.110Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:19.795Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:23.768Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:27.014Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:30.894Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:25:41.408Z",
+          "status": "PREPARING",
+          "phase": "preparing",
+          "message": "Design seed for Salim: design vd-1d6e4ad329, candidate 1 (studio-designed synthetic voice)"
+        },
+        {
+          "at": "2026-10-03T00:25:41.408Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Speaking a proof line"
+        }
+      ],
+      "activity": [
+        {
+          "kind": "VOICE_BUILT",
+          "message": "Salim's voice pinned (indextts, automatic, studio-designed synthetic voice); proof line 83 % heard, CER 18 % (intelligibility, measured) — review; ECAPA reference→line 0.7607; Studio-designed synthetic voice — not a real person; Arabic accent not yet listener-verified; naturalness not yet judged by a listener",
+          "data": {
+            "characterId": "char-755b4a7172",
+            "engine": "indextts",
+            "origin": "DESIGNED",
+            "coverage": 0.8333333333333334,
+            "cer": 0.17857142857142858,
+            "wer": 0.16666666666666666,
+            "status": "REVIEW",
+            "designId": "vd-1d6e4ad329"
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "tool": "speech.design_voice",
+          "ms": 55724,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 4502,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 1197,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 1155,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 29748,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 2916,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2512,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 173,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 3448,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 525,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2790,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 455,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 3626,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 254,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2465,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 139,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 3731,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 413,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 555,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 458,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 582,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 515,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 14894,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 3013,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 236,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 83,
+          "ok": true
+        }
+      ],
+      "result": {
+        "identity": {
+          "provider": "LOCAL_TTS",
+          "model": "indextts",
+          "mode": "AUTOMATIC",
+          "origin": "DESIGNED",
+          "status": "REVIEW",
+          "referenceAssetId": "gen-c5fac0e008",
+          "designId": "vd-1d6e4ad329",
+          "params": {
+            "speed": 0.9,
+            "emotionAlpha": 1,
+            "seed": 651430850
+          },
+          "dialectStatus": "UNVERIFIED"
+        },
+        "sampleAssetId": "gen-f526be9498",
+        "proofSampleId": "voice-36e27e7585",
+        "engine": "indextts",
+        "check": {
+          "ok": false,
+          "status": "REVIEW",
+          "reasons": [
+            "coverage 0.83 < 0.85 (line)",
+            "CER 0.18 > 0.15"
+          ],
+          "wer": 0.16666666666666666,
+          "cer": 0.17857142857142858,
+          "coverage": 0.8333333333333334,
+          "heard": "اهلا بك. اسمي سليم. وهذا صوتي."
+        },
+        "evaluation": {
+          "cer": 0.1786,
+          "coverage": 0.8333,
+          "lufs": -17.78,
+          "truePeakDbtp": -2.09,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.7607,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:26:00.489Z"
+        },
+        "design": {
+          "designId": "vd-1d6e4ad329",
+          "chosen": 1,
+          "ranking": [
+            1,
+            2,
+            3
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 265354233,
+              "assetId": "gen-c5fac0e008",
+              "nativeAssetId": "gen-e1c4268fdf",
+              "sha256": "21cc3b789a516454655fe9d7fff16aa02630a165ed2df5f1cadf4e2df1ea9663",
+              "durationSeconds": 8.16,
+              "measured": {
+                "durationSeconds": 8.16,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.13,
+                "truePeakDbtp": -2.39,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 7.407,
+                  "cosine": 0.8647,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-111735e63d"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.364,
+                  "cosine": 0.8842,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-92b4db91b3"
+                }
+              ],
+              "similarityMean": 0.8745,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 265354234,
+              "assetId": "gen-f84fdfa49e",
+              "nativeAssetId": "gen-b6b40f44dd",
+              "sha256": "8bca5fa02fe010b6b3c0b289c7baf13618e49c206117571c47f19334b9cf17a2",
+              "durationSeconds": 10.08,
+              "measured": {
+                "durationSeconds": 10.08,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.26,
+                "truePeakDbtp": -4.81,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 8.382,
+                  "cosine": 0.8816,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-7ab37e58f2"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 6.026,
+                  "cosine": 0.8207,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-e35ee7ce05"
+                }
+              ],
+              "similarityMean": 0.8512,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            },
+            {
+              "index": 3,
+              "seed": 265354235,
+              "assetId": "gen-a91ecb88da",
+              "nativeAssetId": "gen-1bdacf9959",
+              "sha256": "32ce5d820f2930415c19e903d26811400b691035515a1363049f8861791e543c",
+              "durationSeconds": 9.44,
+              "measured": {
+                "durationSeconds": 9.44,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.56,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 8.557,
+                  "cosine": 0.8615,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى. فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-59045a1da8"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.492,
+                  "cosine": 0.8293,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-8f0755ce60"
+                }
+              ],
+              "similarityMean": 0.8454,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            }
+          ]
+        },
+        "labels": [
+          "Studio-designed synthetic voice — not a real person",
+          "Arabic accent not yet listener-verified",
+          "naturalness not yet judged by a listener"
+        ],
+        "reviewReasons": [
+          "proof line: coverage 0.83 < 0.85 (line); CER 0.18 > 0.15"
+        ],
+        "awaitingReview": true
+      },
+      "ms": 141744,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "C-design",
+      "what": "VOICE_DESIGN with the producer’s description",
+      "type": "VOICE_DESIGN",
+      "characterId": "char-d58e81cad4",
+      "payload": {
+        "characterId": "char-d58e81cad4",
+        "description": "A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording"
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "design-language",
+            "ok": true,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "English design"
+          },
+          {
+            "name": "description-describes-attributes",
+            "ok": true,
+            "failureClass": "INVALID_INPUT"
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Omar (no canonical image)",
+            "characterIds": [
+              "char-d58e81cad4"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:26:00.697Z",
+      "gpuBefore": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:26:29.107Z",
+          "level": "info",
+          "message": "voice designed",
+          "data": {
+            "designId": "vd-307f8ead61",
+            "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+            "seeds": [
+              5253526,
+              5253527,
+              5253528
+            ],
+            "ms": 28001,
+            "description": "A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording"
+          }
+        },
+        {
+          "at": "2026-10-03T00:27:10.749Z",
+          "level": "info",
+          "message": "voice design measured",
+          "data": {
+            "designId": "vd-307f8ead61",
+            "ranking": [
+              3,
+              1,
+              2
+            ],
+            "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+            "pick": 3,
+            "gates": [
+              {
+                "index": 1,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8346
+              },
+              {
+                "index": 2,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8189
+              },
+              {
+                "index": 3,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.8379
+              }
+            ]
+          }
+        }
+      ],
+      "progress": [
+        {
+          "at": "2026-10-03T00:26:00.742Z",
+          "status": "GENERATING",
+          "phase": "designing",
+          "message": "Designing 3 candidate voices for Omar (VoxCPM2, from a description only)"
+        },
+        {
+          "at": "2026-10-03T00:26:30.052Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 1 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:26:33.324Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 2 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:26:34.106Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 3 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:26:34.985Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:26:51.340Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:26:53.765Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:26:56.628Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 2 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:26:58.550Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 1 of 2 through indextts"
+        },
+        {
+          "at": "2026-10-03T00:27:01.233Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 2 of 2 through indextts"
+        }
+      ],
+      "activity": [
+        {
+          "kind": "VOICE_DESIGNED",
+          "message": "3 designed voices for Omar, 3 within the gates; recommended: candidate 3 — studio-designed synthetic voices, waiting for the producer’s choice",
+          "data": {
+            "characterId": "char-d58e81cad4",
+            "designId": "vd-307f8ead61",
+            "ranking": [
+              3,
+              1,
+              2
+            ]
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "tool": "speech.design_voice",
+          "ms": 28067,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2607,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 564,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 654,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 16016,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 256,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2168,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 257,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2549,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 314,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 1829,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 93,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2408,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 275,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 2260,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 125,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 3869,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 308,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 377,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 300,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 384,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 289,
+          "ok": true
+        }
+      ],
+      "result": {
+        "characterId": "char-d58e81cad4",
+        "designId": "vd-307f8ead61",
+        "language": "EN",
+        "description": "A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording",
+        "descriptionSource": "PRODUCER",
+        "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+        "lineEngine": "indextts",
+        "ranking": [
+          3,
+          1,
+          2
+        ],
+        "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+        "recommended": 3,
+        "candidates": [
+          {
+            "index": 1,
+            "seed": 5253526,
+            "assetId": "gen-8bff9e3eb0",
+            "nativeAssetId": "gen-77c6c18f31",
+            "sha256": "cee5d9a7872a68c5be69d668dd0a01d3068d6f0ef144378e43d7752d9bcb4862",
+            "durationSeconds": 6.72,
+            "measured": {
+              "durationSeconds": 6.72,
+              "cer": 0.0345,
+              "coverage": 0.9333,
+              "heard": "The harbor lights came on one by one as the evening ferry pulled away from the koe. Nobody said a word. Will you still be here when it comes back?",
+              "asrModel": "large-v3",
+              "lufs": -19.87,
+              "truePeakDbtp": -5.13,
+              "clippedSamples": 0
+            },
+            "gate": {
+              "ok": true,
+              "reasons": []
+            },
+            "previews": [
+              {
+                "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                "engine": "indextts",
+                "durationSeconds": 4.598,
+                "cosine": 0.8333,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                "assetId": "gen-2a1d905594"
+              },
+              {
+                "text": "Where were you last night? Nobody could find you anywhere.",
+                "engine": "indextts",
+                "durationSeconds": 3.344,
+                "cosine": 0.8358,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "Where were you last night? Nobody could find you anywhere.",
+                "assetId": "gen-dfc0da479f"
+              }
+            ],
+            "similarityMean": 0.8346,
+            "cerMean": 0
+          },
+          {
+            "index": 2,
+            "seed": 5253527,
+            "assetId": "gen-77f7b44301",
+            "nativeAssetId": "gen-5fa5b7617d",
+            "sha256": "731f6132081c847815933701bd30e754f11e1bfc843550971b94feed73bdb730",
+            "durationSeconds": 7.2,
+            "measured": {
+              "durationSeconds": 7.2,
+              "cer": 0.0276,
+              "coverage": 0.9333,
+              "heard": "The harbor lights came on one by one as the evening ferry pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+              "asrModel": "large-v3",
+              "lufs": -20.06,
+              "truePeakDbtp": -6.5,
+              "clippedSamples": 0
+            },
+            "gate": {
+              "ok": true,
+              "reasons": []
+            },
+            "previews": [
+              {
+                "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                "engine": "indextts",
+                "durationSeconds": 4.528,
+                "cosine": 0.8208,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                "assetId": "gen-07efe88366"
+              },
+              {
+                "text": "Where were you last night? Nobody could find you anywhere.",
+                "engine": "indextts",
+                "durationSeconds": 3.065,
+                "cosine": 0.817,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "Where were you last night? Nobody could find you anywhere.",
+                "assetId": "gen-5a77340047"
+              }
+            ],
+            "similarityMean": 0.8189,
+            "cerMean": 0
+          },
+          {
+            "index": 3,
+            "seed": 5253528,
+            "assetId": "gen-e3ede30e4b",
+            "nativeAssetId": "gen-fc67b57a33",
+            "sha256": "72fe357cc554a58c937c25f4aaeeac7d945eda34c0b8c475e3d18c6790ef1de8",
+            "durationSeconds": 7.2,
+            "measured": {
+              "durationSeconds": 7.2,
+              "cer": 0.0414,
+              "coverage": 0.9,
+              "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+              "asrModel": "large-v3",
+              "lufs": -20.22,
+              "truePeakDbtp": -6.34,
+              "clippedSamples": 0
+            },
+            "gate": {
+              "ok": true,
+              "reasons": []
+            },
+            "previews": [
+              {
+                "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                "engine": "indextts",
+                "durationSeconds": 4.377,
+                "cosine": 0.8589,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                "assetId": "gen-3228cf17d8"
+              },
+              {
+                "text": "Where were you last night? Nobody could find you anywhere.",
+                "engine": "indextts",
+                "durationSeconds": 3.274,
+                "cosine": 0.8169,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "Where were you last night? Nobody could find you anywhere.",
+                "assetId": "gen-d3274d992d"
+              }
+            ],
+            "similarityMean": 0.8379,
+            "cerMean": 0
+          }
+        ],
+        "label": "Studio-designed synthetic voice — not a real person",
+        "notes": [
+          "Studio-designed synthetic voice — not a real person",
+          "naturalness not yet judged by a listener"
+        ],
+        "awaitingReview": false
+      },
+      "ms": 70010,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "C-design",
+      "what": "VOICE_BUILD { mode: DESIGN } from the chosen candidate 1",
+      "type": "VOICE_BUILD",
+      "characterId": "char-d58e81cad4",
+      "payload": {
+        "characterId": "char-d58e81cad4",
+        "mode": "DESIGN",
+        "designId": "vd-307f8ead61",
+        "candidate": 1
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "design-candidate-usable",
+            "ok": true,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "design vd-307f8ead61 candidate 1"
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Omar (no canonical image)",
+            "characterIds": [
+              "char-d58e81cad4"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:27:10.795Z",
+      "gpuBefore": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:27:10.922Z",
+          "level": "info",
+          "message": "reference chosen",
+          "data": {
+            "assetId": "gen-8bff9e3eb0",
+            "via": "DESIGN",
+            "origin": "DESIGNED",
+            "design": {
+              "designId": "vd-307f8ead61",
+              "candidate": 1,
+              "sha256": "cee5d9a7872a68c5be69d668dd0a01d3068d6f0ef144378e43d7752d9bcb4862",
+              "gateOk": true
+            },
+            "hasText": true
+          }
+        }
+      ],
+      "progress": [
+        {
+          "at": "2026-10-03T00:27:10.922Z",
+          "status": "PREPARING",
+          "phase": "preparing",
+          "message": "Design seed for Omar: design vd-307f8ead61, candidate 1 (studio-designed synthetic voice)"
+        },
+        {
+          "at": "2026-10-03T00:27:10.922Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Speaking a proof line"
+        }
+      ],
+      "activity": [
+        {
+          "kind": "VOICE_BUILT",
+          "message": "Omar's voice pinned (indextts, design, studio-designed synthetic voice); proof line 100 % heard, CER 0 % (intelligibility, measured); ECAPA reference→line 0.7575; Studio-designed synthetic voice — not a real person; naturalness not yet judged by a listener",
+          "data": {
+            "characterId": "char-d58e81cad4",
+            "engine": "indextts",
+            "origin": "DESIGNED",
+            "coverage": 1,
+            "cer": 0,
+            "wer": 0,
+            "status": "ACTIVE",
+            "designId": "vd-307f8ead61"
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "tool": "speech.synthesize",
+          "ms": 13897,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2689,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 264,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 85,
+          "ok": true
+        }
+      ],
+      "result": {
+        "identity": {
+          "provider": "LOCAL_TTS",
+          "model": "indextts",
+          "mode": "DESIGN",
+          "origin": "DESIGNED",
+          "status": "ACTIVE",
+          "referenceAssetId": "gen-8bff9e3eb0",
+          "designId": "vd-307f8ead61",
+          "params": {
+            "speed": 1.12,
+            "emotionAlpha": 1,
+            "seed": 806721831
+          },
+          "dialectStatus": "NOT_APPLICABLE"
+        },
+        "sampleAssetId": "gen-7d48768dc3",
+        "proofSampleId": "voice-4492166c52",
+        "engine": "indextts",
+        "check": {
+          "ok": true,
+          "status": "PASS",
+          "reasons": [],
+          "wer": 0,
+          "cer": 0,
+          "coverage": 1,
+          "heard": "Hello, my name is Omar, and this is my voice."
+        },
+        "evaluation": {
+          "cer": 0,
+          "coverage": 1,
+          "lufs": -20.81,
+          "truePeakDbtp": -4.94,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.7575,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:27:28.779Z"
+        },
+        "design": {
+          "designId": "vd-307f8ead61",
+          "chosen": 1,
+          "ranking": [
+            3,
+            1,
+            2
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 5253526,
+              "assetId": "gen-8bff9e3eb0",
+              "nativeAssetId": "gen-77c6c18f31",
+              "sha256": "cee5d9a7872a68c5be69d668dd0a01d3068d6f0ef144378e43d7752d9bcb4862",
+              "durationSeconds": 6.72,
+              "measured": {
+                "durationSeconds": 6.72,
+                "cer": 0.0345,
+                "coverage": 0.9333,
+                "heard": "The harbor lights came on one by one as the evening ferry pulled away from the koe. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -19.87,
+                "truePeakDbtp": -5.13,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.598,
+                  "cosine": 0.8333,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-2a1d905594"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.344,
+                  "cosine": 0.8358,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-dfc0da479f"
+                }
+              ],
+              "similarityMean": 0.8346,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 5253527,
+              "assetId": "gen-77f7b44301",
+              "nativeAssetId": "gen-5fa5b7617d",
+              "sha256": "731f6132081c847815933701bd30e754f11e1bfc843550971b94feed73bdb730",
+              "durationSeconds": 7.2,
+              "measured": {
+                "durationSeconds": 7.2,
+                "cer": 0.0276,
+                "coverage": 0.9333,
+                "heard": "The harbor lights came on one by one as the evening ferry pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.06,
+                "truePeakDbtp": -6.5,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.528,
+                  "cosine": 0.8208,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-07efe88366"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.065,
+                  "cosine": 0.817,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-5a77340047"
+                }
+              ],
+              "similarityMean": 0.8189,
+              "cerMean": 0
+            },
+            {
+              "index": 3,
+              "seed": 5253528,
+              "assetId": "gen-e3ede30e4b",
+              "nativeAssetId": "gen-fc67b57a33",
+              "sha256": "72fe357cc554a58c937c25f4aaeeac7d945eda34c0b8c475e3d18c6790ef1de8",
+              "durationSeconds": 7.2,
+              "measured": {
+                "durationSeconds": 7.2,
+                "cer": 0.0414,
+                "coverage": 0.9,
+                "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.22,
+                "truePeakDbtp": -6.34,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.377,
+                  "cosine": 0.8589,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-3228cf17d8"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.274,
+                  "cosine": 0.8169,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-d3274d992d"
+                }
+              ],
+              "similarityMean": 0.8379,
+              "cerMean": 0
+            }
+          ]
+        },
+        "labels": [
+          "Studio-designed synthetic voice — not a real person",
+          "naturalness not yet judged by a listener"
+        ],
+        "reviewReasons": [],
+        "awaitingReview": false
+      },
+      "ms": 18103,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "D-iraqi-refusal",
+      "what": "AUTOMATIC Iraqi build without an Iraqi recording (experiment off)",
+      "type": "VOICE_BUILD",
+      "characterId": "char-04a0671c07",
+      "payload": {
+        "characterId": "char-04a0671c07",
+        "mode": "AUTOMATIC"
+      },
+      "preflight": {
+        "ok": false,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "automatic-voice-source",
+            "ok": false,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice."
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Hamid (no canonical image)",
+            "characterIds": [
+              "char-04a0671c07"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:27:28.993Z",
+      "gpuBefore": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:27:29.038Z",
+          "level": "info",
+          "message": "automatic voice: refused (MISSING_REFERENCE)",
+          "data": {
+            "plan": {
+              "kind": "REFUSE",
+              "code": "MISSING_REFERENCE",
+              "message": "Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice."
+            }
+          }
+        }
+      ],
+      "progress": [],
+      "activity": [],
+      "toolCalls": [],
+      "error": {
+        "code": "MISSING_REFERENCE",
+        "message": "Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.",
+        "failureClass": "MISSING_REFERENCE"
+      },
+      "ms": 1,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "D-iraqi-refusal",
+      "what": "VOICE_DESIGN for an Iraqi character (experiment off)",
+      "type": "VOICE_DESIGN",
+      "characterId": "char-04a0671c07",
+      "payload": {
+        "characterId": "char-04a0671c07"
+      },
+      "preflight": {
+        "ok": false,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "design-language",
+            "ok": false,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice."
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Hamid (no canonical image)",
+            "characterIds": [
+              "char-04a0671c07"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:27:29.084Z",
+      "gpuBefore": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      },
+      "events": [],
+      "progress": [],
+      "activity": [],
+      "toolCalls": [],
+      "error": {
+        "code": "MISSING_REFERENCE",
+        "message": "Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.",
+        "failureClass": "MISSING_REFERENCE"
+      },
+      "ms": 0,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    },
+    {
+      "run": "E-iraqi-experiment",
+      "what": "AUTOMATIC Iraqi build with allowDesignedIraqi ON (experiment: dialect unverified, REVIEW)",
+      "type": "VOICE_BUILD",
+      "characterId": "char-9ab2b2ad97",
+      "payload": {
+        "characterId": "char-9ab2b2ad97",
+        "mode": "AUTOMATIC"
+      },
+      "preflight": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "voice-unlocked",
+            "ok": true,
+            "failureClass": "INCONSISTENT_PLAN"
+          },
+          {
+            "name": "automatic-voice-source",
+            "ok": true,
+            "failureClass": "MISSING_REFERENCE",
+            "detail": "designing an Arabic seed for the Iraqi engine (experiment: dialect unverified, REVIEW)"
+          }
+        ],
+        "warnings": [
+          {
+            "name": "identity-approved",
+            "detail": "identity not approved: Zahra (no canonical image)",
+            "characterIds": [
+              "char-9ab2b2ad97"
+            ]
+          }
+        ]
+      },
+      "startedAt": "2026-10-03T00:27:29.179Z",
+      "gpuBefore": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      },
+      "events": [
+        {
+          "at": "2026-10-03T00:27:29.225Z",
+          "level": "info",
+          "message": "automatic voice: a designed Arabic seed for the Iraqi engine (experiment)",
+          "data": {
+            "plan": {
+              "kind": "DESIGN",
+              "experiment": true
+            }
+          }
+        },
+        {
+          "at": "2026-10-03T00:28:00.861Z",
+          "level": "info",
+          "message": "voice designed",
+          "data": {
+            "designId": "vd-048f6c9f86",
+            "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+            "seeds": [
+              120897108,
+              120897109,
+              120897110
+            ],
+            "ms": 31281,
+            "description": "A warm, mid-pitched female voice, about 30, speaking formal Modern Standard Arabic at a steady, measured pace, close-microphone studio recording"
+          }
+        },
+        {
+          "at": "2026-10-03T00:28:28.921Z",
+          "level": "info",
+          "message": "voice design measured",
+          "data": {
+            "designId": "vd-048f6c9f86",
+            "ranking": [
+              2,
+              1,
+              3
+            ],
+            "rankedBy": "gates passed first, then the Iraqi probe lines’ mean letter coverage (spaces ignored), then their mean CER (Iraqi A/B screening)",
+            "pick": 2,
+            "gates": [
+              {
+                "index": 1,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.7314,
+                "letterCoverageMean": 0.9505
+              },
+              {
+                "index": 2,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.6646,
+                "letterCoverageMean": 0.9528
+              },
+              {
+                "index": 3,
+                "ok": true,
+                "reasons": [],
+                "similarityMean": 0.7959,
+                "letterCoverageMean": 0.9505
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-10-03T00:28:28.998Z",
+          "level": "info",
+          "message": "reference chosen",
+          "data": {
+            "assetId": "gen-4c2a752121",
+            "via": "DESIGN",
+            "origin": "DESIGNED",
+            "design": {
+              "designId": "vd-048f6c9f86",
+              "candidate": 2,
+              "sha256": "6c489055110a7dd75458d50caae75ccbc574669de71bedfb881736cfa7d737bd",
+              "gateOk": true
+            },
+            "hasText": true
+          }
+        },
+        {
+          "at": "2026-10-03T00:28:28.999Z",
+          "level": "info",
+          "message": "engine fallback for “هلا بيك. اني اسمي Zahra، وهذا صوتي.”: mixed Arabic/Latin line: habibi has no English, spoken by indextts (same reference)",
+          "data": {
+            "characterId": "char-9ab2b2ad97",
+            "engine": "indextts",
+            "pinned": "habibi",
+            "script": "MIXED"
+          }
+        }
+      ],
+      "progress": [
+        {
+          "at": "2026-10-03T00:27:29.230Z",
+          "status": "GENERATING",
+          "phase": "designing",
+          "message": "Designing 3 candidate voices for Zahra (VoxCPM2, from a description only)"
+        },
+        {
+          "at": "2026-10-03T00:28:01.810Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 1 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:28:05.216Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 2 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:28:06.201Z",
+          "status": "VALIDATING",
+          "phase": "designing",
+          "message": "Measuring candidate 3 of 3: heard back, loudness, peak, length"
+        },
+        {
+          "at": "2026-10-03T00:28:07.073Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 1 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:11.024Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 2 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:11.762Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 3 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:12.456Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 1: preview 4 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:13.239Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 1 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:13.939Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 2 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:14.643Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 3 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:15.453Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 2: preview 4 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:16.453Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 1 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:17.270Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 2 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:18.342Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 3 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:19.542Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Candidate 3: preview 4 of 4 through habibi"
+        },
+        {
+          "at": "2026-10-03T00:28:28.998Z",
+          "status": "PREPARING",
+          "phase": "preparing",
+          "message": "Design seed for Zahra: design vd-048f6c9f86, candidate 2 (studio-designed synthetic voice)"
+        },
+        {
+          "at": "2026-10-03T00:28:28.998Z",
+          "status": "GENERATING",
+          "phase": "speaking",
+          "message": "Speaking a proof line"
+        }
+      ],
+      "activity": [
+        {
+          "kind": "VOICE_BUILT",
+          "message": "Zahra's voice pinned (indextts, automatic, studio-designed synthetic voice); proof line 57 % heard, CER 22 % (intelligibility, measured) — review; ECAPA reference→line 0.775; Studio-designed synthetic voice — not a real person; Iraqi dialect not yet verified by a native listener; naturalness not yet judged by a listener",
+          "data": {
+            "characterId": "char-9ab2b2ad97",
+            "engine": "indextts",
+            "origin": "DESIGNED",
+            "coverage": 0.5714285714285714,
+            "cer": 0.21875,
+            "wer": 0.42857142857142855,
+            "status": "REVIEW",
+            "designId": "vd-048f6c9f86"
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "tool": "speech.design_voice",
+          "ms": 31347,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2738,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 772,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 657,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 3667,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 202,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 620,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 118,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 618,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 76,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 597,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 186,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 604,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 96,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 612,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 92,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 624,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 186,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 647,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 353,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 612,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 205,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 569,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 503,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 618,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 582,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 569,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 82,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 2333,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 437,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 384,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 369,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 345,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 385,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 390,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 348,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 334,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 366,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 396,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 337,
+          "ok": true
+        },
+        {
+          "tool": "speech.synthesize",
+          "ms": 17579,
+          "ok": true
+        },
+        {
+          "tool": "speech.transcribe",
+          "ms": 3519,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 1323,
+          "ok": true
+        },
+        {
+          "tool": "speech.embed_voice",
+          "ms": 882,
+          "ok": true
+        }
+      ],
+      "result": {
+        "identity": {
+          "provider": "LOCAL_TTS",
+          "model": "habibi",
+          "fallbackModel": "indextts",
+          "mode": "AUTOMATIC",
+          "origin": "DESIGNED",
+          "status": "REVIEW",
+          "referenceAssetId": "gen-4c2a752121",
+          "designId": "vd-048f6c9f86",
+          "params": {
+            "speed": 1,
+            "emotionAlpha": 1,
+            "seed": 1385761820
+          },
+          "dialectStatus": "UNVERIFIED"
+        },
+        "sampleAssetId": "gen-08ce8381ea",
+        "proofSampleId": "voice-d269ce7646",
+        "engine": "indextts",
+        "check": {
+          "ok": false,
+          "status": "FAIL",
+          "reasons": [
+            "coverage 0.57 < 0.85 (line)",
+            "CER 0.22 > 0.15"
+          ],
+          "wer": 0.42857142857142855,
+          "cer": 0.21875,
+          "coverage": 0.5714285714285714,
+          "heard": "هل لبيك؟ اني اسمي زارة وهذا صوتي."
+        },
+        "evaluation": {
+          "cer": 0.2188,
+          "coverage": 0.5714,
+          "lufs": -17.15,
+          "truePeakDbtp": -1,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.775,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:28:53.197Z"
+        },
+        "design": {
+          "designId": "vd-048f6c9f86",
+          "chosen": 2,
+          "ranking": [
+            2,
+            1,
+            3
+          ],
+          "rankedBy": "gates passed first, then the Iraqi probe lines’ mean letter coverage (spaces ignored), then their mean CER (Iraqi A/B screening)",
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 120897108,
+              "assetId": "gen-5ea9c9c94d",
+              "nativeAssetId": "gen-f61b8504d1",
+              "sha256": "1b5adafa767d45d4a6ef102be6e15e59e49dfdfcbe778a7aa0e62c9ee7cdad02",
+              "durationSeconds": 7.84,
+              "measured": {
+                "durationSeconds": 7.84,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.03,
+                "truePeakDbtp": -3.03,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.613,
+                  "cosine": 0.6808,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو. هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-f28d223be6"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.827,
+                  "cosine": 0.7619,
+                  "cer": 0.0357,
+                  "coverage": 0.8333,
+                  "heard": "يلتلك ماكو وقت لازم نطلع هسه.",
+                  "letterCoverage": 0.9565,
+                  "assetId": "gen-862c3f8bc5"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.509,
+                  "cosine": 0.7671,
+                  "cer": 0.0286,
+                  "coverage": 0.8571,
+                  "heard": "الزاي حار هواية. انطيني شوية مي بارد.",
+                  "letterCoverage": 0.9655,
+                  "assetId": "gen-469d8112d4"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.88,
+                  "cosine": 0.7157,
+                  "cer": 0.1379,
+                  "coverage": 0.4,
+                  "heard": "بائر الصبح نجاعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-afc23aed50"
+                }
+              ],
+              "similarityMean": 0.7314,
+              "letterCoverageMean": 0.9505,
+              "cerMean": 0.0506
+            },
+            {
+              "index": 2,
+              "seed": 120897109,
+              "assetId": "gen-4c2a752121",
+              "nativeAssetId": "gen-92401d0264",
+              "sha256": "6c489055110a7dd75458d50caae75ccbc574669de71bedfb881736cfa7d737bd",
+              "durationSeconds": 8.64,
+              "measured": {
+                "durationSeconds": 8.64,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحداً تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.05,
+                "truePeakDbtp": -1.32,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.837,
+                  "cosine": 0.5501,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو، هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-dc66650ea1"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.061,
+                  "cosine": 0.6789,
+                  "cer": 0.0357,
+                  "coverage": 1,
+                  "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-b579cc4004"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.808,
+                  "cosine": 0.7203,
+                  "cer": 0.0857,
+                  "coverage": 0.5714,
+                  "heard": "الفاي حار هواية، انطيني شوية مبارد.",
+                  "letterCoverage": 0.931,
+                  "assetId": "gen-d8dbd92816"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.125,
+                  "cosine": 0.709,
+                  "cer": 0.1034,
+                  "coverage": 0.4,
+                  "heard": "بائر الصبح نجعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-bfd1aacfa3"
+                }
+              ],
+              "similarityMean": 0.6646,
+              "letterCoverageMean": 0.9528,
+              "cerMean": 0.0562
+            },
+            {
+              "index": 3,
+              "seed": 120897110,
+              "assetId": "gen-ec69ec61e0",
+              "nativeAssetId": "gen-64bf262710",
+              "sha256": "b0d2fdb2e77a5a70cde05d6e7843a55685af6e250544451e10fdf7ade1dec040",
+              "durationSeconds": 6.72,
+              "measured": {
+                "durationSeconds": 6.72,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.09,
+                "truePeakDbtp": -1.82,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.219,
+                  "cosine": 0.738,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو، هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-bea81f9af6"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.4,
+                  "cosine": 0.8335,
+                  "cer": 0.0357,
+                  "coverage": 0.8333,
+                  "heard": "يلتلك ماكو وقت لازم نطلع هسه.",
+                  "letterCoverage": 0.9565,
+                  "assetId": "gen-204e863dab"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.987,
+                  "cosine": 0.8361,
+                  "cer": 0.0571,
+                  "coverage": 0.7143,
+                  "heard": "الفاي حاره هواية. انطيني شوية مي بارد.",
+                  "letterCoverage": 0.9655,
+                  "assetId": "gen-f2f0fbebe2"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.443,
+                  "cosine": 0.7761,
+                  "cer": 0.1379,
+                  "coverage": 0.4,
+                  "heard": "باسر الصبح نغاعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-1d5d853f4b"
+                }
+              ],
+              "similarityMean": 0.7959,
+              "letterCoverageMean": 0.9505,
+              "cerMean": 0.0577
+            }
+          ]
+        },
+        "labels": [
+          "Studio-designed synthetic voice — not a real person",
+          "Iraqi dialect not yet verified by a native listener",
+          "naturalness not yet judged by a listener"
+        ],
+        "reviewReasons": [
+          "proof line: coverage 0.57 < 0.85 (line); CER 0.22 > 0.15",
+          "designed Arabic seed on the Iraqi engine: an experiment, its dialect is unverified"
+        ],
+        "awaitingReview": true
+      },
+      "ms": 84216,
+      "gpuAfter": {
+        "usedMb": 15647,
+        "totalMb": 32607
+      }
+    }
+  ],
+  "characters": {
+    "A": {
+      "id": "char-5d7674695a",
+      "name": "Rana",
+      "language": "EN",
+      "sex": "FEMALE",
+      "ageYears": 34,
+      "voiceProfile": {
+        "pitch": "MID",
+        "pace": "MEASURED",
+        "timbre": "warm, clear"
+      },
+      "identity": {
+        "provider": "LOCAL_TTS",
+        "model": "indextts",
+        "mode": "AUTOMATIC",
+        "origin": "DESIGNED",
+        "referenceAssetId": "gen-606de6fdc6",
+        "designId": "vd-9463933b73",
+        "seedSha256": "993c86060ea59c42d516c75b2a1b06033ece09f51fc77fefd5fc3fc404a66327",
+        "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+        "language": "EN",
+        "params": {
+          "speed": 1,
+          "emotionAlpha": 1,
+          "seed": 1566245079
+        },
+        "proof": {
+          "sampleId": "voice-e413444141",
+          "assetId": "gen-aa9dc00342",
+          "text": "Hello. My name is Rana, and this is my voice.",
+          "wer": 0,
+          "cer": 0,
+          "coverage": 1,
+          "heard": "Hello, my name is Rana, and this is my voice."
+        },
+        "status": "ACTIVE",
+        "engineVersion": "IndexTTS-2.5",
+        "jobId": "ev-A",
+        "dialectStatus": "NOT_APPLICABLE",
+        "evaluation": {
+          "cer": 0,
+          "coverage": 1,
+          "lufs": -19.58,
+          "truePeakDbtp": -1.97,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.62,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:23:21.711Z"
+        },
+        "revision": 1,
+        "createdAt": "2026-10-03T00:23:21.864Z"
+      },
+      "designs": [
+        {
+          "id": "vd-9463933b73",
+          "characterId": "char-5d7674695a",
+          "mode": "AUTOMATIC",
+          "engine": "voxcpm2",
+          "model": "openbmb/VoxCPM2",
+          "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+          "description": "A warm, clear, mid-pitched female voice, about 34, speaking English at a steady, measured pace, close-microphone studio recording",
+          "descriptionSource": "PROFILE",
+          "language": "EN",
+          "text": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+          "seed": 342483154,
+          "seeds": [
+            342483154,
+            342483155,
+            342483156
+          ],
+          "params": {
+            "seed": 342483154,
+            "n": 3,
+            "cfg_value": 2,
+            "inference_timesteps": 10,
+            "loudness_target": -20
+          },
+          "lineEngine": "indextts",
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb",
+          "lineParams": {
+            "speed": 1,
+            "emotionAlpha": 1,
+            "seed": 1566245079
+          },
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 342483154,
+              "assetId": "gen-2616b49d30",
+              "sha256": "0e759fb44b9d3af38ac8867391540a9c9bcadd2afe19c062d5676d231c1bb262",
+              "durationSeconds": 10.24,
+              "nativeAssetId": "gen-40c1a11c7a",
+              "nativeSha256": "c40fbac0f3ca5f9d1c578dd636f46e3d311992e4d147a1a972f9370af5b4451e",
+              "measured": {
+                "durationSeconds": 10.24,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.15,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.584,
+                  "cosine": 0.619,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again. So we wait by the lights until it comes.",
+                  "assetId": "gen-653cdfbcb0"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.505,
+                  "cosine": 0.6236,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-640e528233"
+                }
+              ],
+              "similarityMean": 0.6213,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 342483155,
+              "assetId": "gen-606de6fdc6",
+              "sha256": "993c86060ea59c42d516c75b2a1b06033ece09f51fc77fefd5fc3fc404a66327",
+              "durationSeconds": 8.32,
+              "nativeAssetId": "gen-e5c5117ac3",
+              "nativeSha256": "008580c731ee1adce18a2b54706b0a7867be5550b4baa0c3f76299eef063bafb",
+              "measured": {
+                "durationSeconds": 8.32,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.51,
+                "truePeakDbtp": -4.22,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.271,
+                  "cosine": 0.7485,
+                  "cer": 0.025,
+                  "coverage": 0.9444,
+                  "heard": "I told you, the fairy would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-f6a2e931ec"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.029,
+                  "cosine": 0.6183,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-96fad6ffe4"
+                }
+              ],
+              "similarityMean": 0.6834,
+              "cerMean": 0.0125
+            },
+            {
+              "index": 3,
+              "seed": 342483156,
+              "assetId": "gen-0a3789e8e0",
+              "sha256": "ebaae0a270ecd1b451270bbd730cb23ce167f47b2fee38bcfa6694ac06d17fbd",
+              "durationSeconds": 8.48,
+              "nativeAssetId": "gen-618c86b3fa",
+              "nativeSha256": "742eb5eaadea7acd17481603f085d24232e0d14f76dcf1d91a95397862897567",
+              "measured": {
+                "durationSeconds": 8.48,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.51,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.783,
+                  "cosine": 0.6431,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you the ferry would be late again. So we wait by the lights until it comes.",
+                  "assetId": "gen-e8af3867f4"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.785,
+                  "cosine": 0.6829,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-40a4b24b83"
+                }
+              ],
+              "similarityMean": 0.663,
+              "cerMean": 0
+            }
+          ],
+          "similarity": [
+            [
+              1,
+              0.2805,
+              0.4902
+            ],
+            [
+              0.2805,
+              1,
+              0.1023
+            ],
+            [
+              0.4902,
+              0.1023,
+              1
+            ]
+          ],
+          "jobId": "ev-A",
+          "label": "Studio-designed synthetic voice — not a real person",
+          "createdAt": "2026-10-03T00:22:24.046Z",
+          "ranking": [
+            2,
+            3,
+            1
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "chosen": 2,
+          "chosenBy": "AUTOMATIC"
+        }
+      ],
+      "samples": [
+        {
+          "id": "voice-e413444141",
+          "label": "Proof line (indextts)",
+          "source": "GENERATED",
+          "assetId": "gen-aa9dc00342",
+          "text": "Hello. My name is Rana, and this is my voice."
+        },
+        {
+          "id": "voice-8b00ee268a",
+          "label": "Keep the engine slow until we clear the breakwat",
+          "source": "GENERATED",
+          "assetId": "gen-04fb292348",
+          "text": "Keep the engine slow until we clear the breakwater."
+        }
+      ],
+      "files": {
+        "vd-9463933b73#1": {
+          "seed": "A-automatic-en/vd-9463933b73-candidate-1-seed-342483154-24k.wav",
+          "previews": [
+            "A-automatic-en/vd-9463933b73-candidate-1-preview-1-indextts.wav",
+            "A-automatic-en/vd-9463933b73-candidate-1-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-40c1a11c7a.wav"
+        },
+        "vd-9463933b73#2": {
+          "seed": "A-automatic-en/vd-9463933b73-candidate-2-seed-342483155-24k.wav",
+          "previews": [
+            "A-automatic-en/vd-9463933b73-candidate-2-preview-1-indextts.wav",
+            "A-automatic-en/vd-9463933b73-candidate-2-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-e5c5117ac3.wav"
+        },
+        "vd-9463933b73#3": {
+          "seed": "A-automatic-en/vd-9463933b73-candidate-3-seed-342483156-24k.wav",
+          "previews": [
+            "A-automatic-en/vd-9463933b73-candidate-3-preview-1-indextts.wav",
+            "A-automatic-en/vd-9463933b73-candidate-3-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-618c86b3fa.wav"
+        },
+        "proof": "A-automatic-en/proof-line.wav"
+      }
+    },
+    "B": {
+      "id": "char-755b4a7172",
+      "name": "Salim",
+      "language": "AR",
+      "dialect": "MSA",
+      "sex": "MALE",
+      "ageYears": 52,
+      "voiceProfile": {
+        "pitch": "LOW",
+        "pace": "SLOW",
+        "timbre": "deep, calm"
+      },
+      "identity": {
+        "provider": "LOCAL_TTS",
+        "model": "indextts",
+        "mode": "AUTOMATIC",
+        "origin": "DESIGNED",
+        "referenceAssetId": "gen-c5fac0e008",
+        "designId": "vd-1d6e4ad329",
+        "seedSha256": "21cc3b789a516454655fe9d7fff16aa02630a165ed2df5f1cadf4e2df1ea9663",
+        "referenceText": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+        "language": "AR",
+        "dialect": "MSA",
+        "params": {
+          "speed": 0.9,
+          "emotionAlpha": 1,
+          "seed": 651430850
+        },
+        "proof": {
+          "sampleId": "voice-36e27e7585",
+          "assetId": "gen-f526be9498",
+          "text": "أهلاً بك. اسمي Salim، وهذا صوتي.",
+          "wer": 0.16666666666666666,
+          "cer": 0.17857142857142858,
+          "coverage": 0.8333333333333334,
+          "heard": "اهلا بك. اسمي سليم. وهذا صوتي."
+        },
+        "status": "REVIEW",
+        "engineVersion": "IndexTTS-2.5",
+        "jobId": "ev-B",
+        "dialectStatus": "UNVERIFIED",
+        "evaluation": {
+          "cer": 0.1786,
+          "coverage": 0.8333,
+          "lufs": -17.78,
+          "truePeakDbtp": -2.09,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.7607,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:26:00.489Z"
+        },
+        "revision": 1,
+        "createdAt": "2026-10-03T00:26:00.649Z"
+      },
+      "designs": [
+        {
+          "id": "vd-1d6e4ad329",
+          "characterId": "char-755b4a7172",
+          "mode": "AUTOMATIC",
+          "engine": "voxcpm2",
+          "model": "openbmb/VoxCPM2",
+          "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+          "description": "A deep, calm, low male voice, about 52, speaking formal Modern Standard Arabic at a slow, unhurried pace, close-microphone studio recording",
+          "descriptionSource": "PROFILE",
+          "language": "AR",
+          "dialect": "MSA",
+          "text": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+          "seed": 265354233,
+          "seeds": [
+            265354233,
+            265354234,
+            265354235
+          ],
+          "params": {
+            "seed": 265354233,
+            "n": 3,
+            "cfg_value": 2,
+            "inference_timesteps": 10,
+            "loudness_target": -20
+          },
+          "lineEngine": "indextts",
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb",
+          "lineParams": {
+            "speed": 0.9,
+            "emotionAlpha": 1,
+            "seed": 651430850
+          },
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 265354233,
+              "assetId": "gen-c5fac0e008",
+              "sha256": "21cc3b789a516454655fe9d7fff16aa02630a165ed2df5f1cadf4e2df1ea9663",
+              "durationSeconds": 8.16,
+              "nativeAssetId": "gen-e1c4268fdf",
+              "nativeSha256": "731b01cd60bb00938fbcdd5dc3b4b7564b357426a7d309b74228ff716e442e36",
+              "measured": {
+                "durationSeconds": 8.16,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.13,
+                "truePeakDbtp": -2.39,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 7.407,
+                  "cosine": 0.8647,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-111735e63d"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.364,
+                  "cosine": 0.8842,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-92b4db91b3"
+                }
+              ],
+              "similarityMean": 0.8745,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 265354234,
+              "assetId": "gen-f84fdfa49e",
+              "sha256": "8bca5fa02fe010b6b3c0b289c7baf13618e49c206117571c47f19334b9cf17a2",
+              "durationSeconds": 10.08,
+              "nativeAssetId": "gen-b6b40f44dd",
+              "nativeSha256": "8d507ee0d8d82546fc07b5b9d6159fed6f17083f4426969ea4304124246fc8c4",
+              "measured": {
+                "durationSeconds": 10.08,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.26,
+                "truePeakDbtp": -4.81,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 8.382,
+                  "cosine": 0.8816,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-7ab37e58f2"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 6.026,
+                  "cosine": 0.8207,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-e35ee7ce05"
+                }
+              ],
+              "similarityMean": 0.8512,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            },
+            {
+              "index": 3,
+              "seed": 265354235,
+              "assetId": "gen-a91ecb88da",
+              "sha256": "32ce5d820f2930415c19e903d26811400b691035515a1363049f8861791e543c",
+              "durationSeconds": 9.44,
+              "nativeAssetId": "gen-1bdacf9959",
+              "nativeSha256": "22d7fc22a5f94d0d514cfab2ccfbf9afa7b2eef7b35d8abb44970a36e924fc67",
+              "measured": {
+                "durationSeconds": 9.44,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.56,
+                "truePeakDbtp": -1,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "قلت لك إن العبّارة ستتأخر مرة أخرى، فلننتظر قرب الأضواء حتى تصل.",
+                  "engine": "indextts",
+                  "durationSeconds": 8.557,
+                  "cosine": 0.8615,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "قلت لك إن العبارة ستتأخر مرة أخرى. فلننتظر قرب الأضواء حتى تصل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-59045a1da8"
+                },
+                {
+                  "text": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "engine": "indextts",
+                  "durationSeconds": 5.492,
+                  "cosine": 0.8293,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "أين كنت ليلة أمس؟ لم يستطع أحد أن يجدك.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-8f0755ce60"
+                }
+              ],
+              "similarityMean": 0.8454,
+              "letterCoverageMean": 1,
+              "cerMean": 0
+            }
+          ],
+          "similarity": [
+            [
+              1,
+              0.3734,
+              0.6045
+            ],
+            [
+              0.3734,
+              1,
+              0.4185
+            ],
+            [
+              0.6045,
+              0.4185,
+              1
+            ]
+          ],
+          "jobId": "ev-B",
+          "label": "Studio-designed synthetic voice — not a real person",
+          "createdAt": "2026-10-03T00:24:36.134Z",
+          "ranking": [
+            1,
+            2,
+            3
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "chosen": 1,
+          "chosenBy": "AUTOMATIC"
+        }
+      ],
+      "samples": [
+        {
+          "id": "voice-36e27e7585",
+          "label": "Proof line (indextts)",
+          "source": "GENERATED",
+          "assetId": "gen-f526be9498",
+          "text": "أهلاً بك. اسمي Salim، وهذا صوتي."
+        }
+      ],
+      "files": {
+        "vd-1d6e4ad329#1": {
+          "seed": "B-automatic-msa/vd-1d6e4ad329-candidate-1-seed-265354233-24k.wav",
+          "previews": [
+            "B-automatic-msa/vd-1d6e4ad329-candidate-1-preview-1-indextts.wav",
+            "B-automatic-msa/vd-1d6e4ad329-candidate-1-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-e1c4268fdf.wav"
+        },
+        "vd-1d6e4ad329#2": {
+          "seed": "B-automatic-msa/vd-1d6e4ad329-candidate-2-seed-265354234-24k.wav",
+          "previews": [
+            "B-automatic-msa/vd-1d6e4ad329-candidate-2-preview-1-indextts.wav",
+            "B-automatic-msa/vd-1d6e4ad329-candidate-2-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-b6b40f44dd.wav"
+        },
+        "vd-1d6e4ad329#3": {
+          "seed": "B-automatic-msa/vd-1d6e4ad329-candidate-3-seed-265354235-24k.wav",
+          "previews": [
+            "B-automatic-msa/vd-1d6e4ad329-candidate-3-preview-1-indextts.wav",
+            "B-automatic-msa/vd-1d6e4ad329-candidate-3-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-1bdacf9959.wav"
+        },
+        "proof": "B-automatic-msa/proof-line.wav"
+      }
+    },
+    "C": {
+      "id": "char-d58e81cad4",
+      "name": "Omar",
+      "language": "EN",
+      "sex": "MALE",
+      "ageYears": 27,
+      "voiceProfile": {
+        "pitch": "MID",
+        "pace": "QUICK",
+        "timbre": "bright"
+      },
+      "identity": {
+        "provider": "LOCAL_TTS",
+        "model": "indextts",
+        "mode": "DESIGN",
+        "origin": "DESIGNED",
+        "referenceAssetId": "gen-8bff9e3eb0",
+        "designId": "vd-307f8ead61",
+        "seedSha256": "cee5d9a7872a68c5be69d668dd0a01d3068d6f0ef144378e43d7752d9bcb4862",
+        "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+        "language": "EN",
+        "params": {
+          "speed": 1.12,
+          "emotionAlpha": 1,
+          "seed": 806721831
+        },
+        "proof": {
+          "sampleId": "voice-4492166c52",
+          "assetId": "gen-7d48768dc3",
+          "text": "Hello. My name is Omar, and this is my voice.",
+          "wer": 0,
+          "cer": 0,
+          "coverage": 1,
+          "heard": "Hello, my name is Omar, and this is my voice."
+        },
+        "status": "ACTIVE",
+        "engineVersion": "IndexTTS-2.5",
+        "jobId": "ev-C-build",
+        "dialectStatus": "NOT_APPLICABLE",
+        "evaluation": {
+          "cer": 0,
+          "coverage": 1,
+          "lufs": -20.81,
+          "truePeakDbtp": -4.94,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.7575,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:27:28.779Z"
+        },
+        "revision": 1,
+        "createdAt": "2026-10-03T00:27:28.943Z"
+      },
+      "designs": [
+        {
+          "id": "vd-307f8ead61",
+          "characterId": "char-d58e81cad4",
+          "mode": "DESIGN",
+          "engine": "voxcpm2",
+          "model": "openbmb/VoxCPM2",
+          "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+          "description": "A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording",
+          "descriptionSource": "PRODUCER",
+          "language": "EN",
+          "text": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+          "seed": 5253526,
+          "seeds": [
+            5253526,
+            5253527,
+            5253528
+          ],
+          "params": {
+            "seed": 5253526,
+            "n": 3,
+            "cfg_value": 2,
+            "inference_timesteps": 10,
+            "loudness_target": -20
+          },
+          "lineEngine": "indextts",
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb",
+          "lineParams": {
+            "speed": 1.12,
+            "emotionAlpha": 1,
+            "seed": 806721831
+          },
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 5253526,
+              "assetId": "gen-8bff9e3eb0",
+              "sha256": "cee5d9a7872a68c5be69d668dd0a01d3068d6f0ef144378e43d7752d9bcb4862",
+              "durationSeconds": 6.72,
+              "nativeAssetId": "gen-77c6c18f31",
+              "nativeSha256": "ca5640306d265363d0b57e251f00a519e8fd8c5ad5dbb369138bb8c0b345da83",
+              "measured": {
+                "durationSeconds": 6.72,
+                "cer": 0.0345,
+                "coverage": 0.9333,
+                "heard": "The harbor lights came on one by one as the evening ferry pulled away from the koe. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -19.87,
+                "truePeakDbtp": -5.13,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.598,
+                  "cosine": 0.8333,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-2a1d905594"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.344,
+                  "cosine": 0.8358,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-dfc0da479f"
+                }
+              ],
+              "similarityMean": 0.8346,
+              "cerMean": 0
+            },
+            {
+              "index": 2,
+              "seed": 5253527,
+              "assetId": "gen-77f7b44301",
+              "sha256": "731f6132081c847815933701bd30e754f11e1bfc843550971b94feed73bdb730",
+              "durationSeconds": 7.2,
+              "nativeAssetId": "gen-5fa5b7617d",
+              "nativeSha256": "b805b10cf9b7676524ffc0d05228a7e4295abc5a2297ede3dc25daa828b8058e",
+              "measured": {
+                "durationSeconds": 7.2,
+                "cer": 0.0276,
+                "coverage": 0.9333,
+                "heard": "The harbor lights came on one by one as the evening ferry pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.06,
+                "truePeakDbtp": -6.5,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.528,
+                  "cosine": 0.8208,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-07efe88366"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.065,
+                  "cosine": 0.817,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-5a77340047"
+                }
+              ],
+              "similarityMean": 0.8189,
+              "cerMean": 0
+            },
+            {
+              "index": 3,
+              "seed": 5253528,
+              "assetId": "gen-e3ede30e4b",
+              "sha256": "72fe357cc554a58c937c25f4aaeeac7d945eda34c0b8c475e3d18c6790ef1de8",
+              "durationSeconds": 7.2,
+              "nativeAssetId": "gen-fc67b57a33",
+              "nativeSha256": "6962b0e04954606671a895c548e821789bcbfdf1dd57240b52d15cc3fb0eda1f",
+              "measured": {
+                "durationSeconds": 7.2,
+                "cer": 0.0414,
+                "coverage": 0.9,
+                "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+                "asrModel": "large-v3",
+                "lufs": -20.22,
+                "truePeakDbtp": -6.34,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+                  "engine": "indextts",
+                  "durationSeconds": 4.377,
+                  "cosine": 0.8589,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+                  "assetId": "gen-3228cf17d8"
+                },
+                {
+                  "text": "Where were you last night? Nobody could find you anywhere.",
+                  "engine": "indextts",
+                  "durationSeconds": 3.274,
+                  "cosine": 0.8169,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "Where were you last night? Nobody could find you anywhere.",
+                  "assetId": "gen-d3274d992d"
+                }
+              ],
+              "similarityMean": 0.8379,
+              "cerMean": 0
+            }
+          ],
+          "similarity": [
+            [
+              1,
+              0.6503,
+              0.7536
+            ],
+            [
+              0.6503,
+              1,
+              0.6733
+            ],
+            [
+              0.7536,
+              0.6733,
+              1
+            ]
+          ],
+          "jobId": "ev-C-design",
+          "label": "Studio-designed synthetic voice — not a real person",
+          "createdAt": "2026-10-03T00:26:30.051Z",
+          "ranking": [
+            3,
+            1,
+            2
+          ],
+          "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+          "chosen": 1,
+          "chosenBy": "PRODUCER"
+        }
+      ],
+      "samples": [
+        {
+          "id": "voice-4492166c52",
+          "label": "Proof line (indextts)",
+          "source": "GENERATED",
+          "assetId": "gen-7d48768dc3",
+          "text": "Hello. My name is Omar, and this is my voice."
+        }
+      ],
+      "files": {
+        "vd-307f8ead61#1": {
+          "seed": "C-design/vd-307f8ead61-candidate-1-seed-5253526-24k.wav",
+          "previews": [
+            "C-design/vd-307f8ead61-candidate-1-preview-1-indextts.wav",
+            "C-design/vd-307f8ead61-candidate-1-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-77c6c18f31.wav"
+        },
+        "vd-307f8ead61#2": {
+          "seed": "C-design/vd-307f8ead61-candidate-2-seed-5253527-24k.wav",
+          "previews": [
+            "C-design/vd-307f8ead61-candidate-2-preview-1-indextts.wav",
+            "C-design/vd-307f8ead61-candidate-2-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-5fa5b7617d.wav"
+        },
+        "vd-307f8ead61#3": {
+          "seed": "C-design/vd-307f8ead61-candidate-3-seed-5253528-24k.wav",
+          "previews": [
+            "C-design/vd-307f8ead61-candidate-3-preview-1-indextts.wav",
+            "C-design/vd-307f8ead61-candidate-3-preview-2-indextts.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-fc67b57a33.wav"
+        },
+        "proof": "C-design/proof-line.wav"
+      }
+    },
+    "D": {
+      "id": "char-04a0671c07",
+      "name": "Hamid",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "sex": "MALE",
+      "ageYears": 45,
+      "voiceProfile": {
+        "pitch": "LOW",
+        "pace": "MEASURED",
+        "timbre": "husky"
+      },
+      "samples": []
+    },
+    "E": {
+      "id": "char-9ab2b2ad97",
+      "name": "Zahra",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "sex": "FEMALE",
+      "ageYears": 30,
+      "voiceProfile": {
+        "pitch": "MID",
+        "pace": "MEASURED",
+        "timbre": "warm"
+      },
+      "identity": {
+        "provider": "LOCAL_TTS",
+        "model": "habibi",
+        "fallbackModel": "indextts",
+        "mode": "AUTOMATIC",
+        "origin": "DESIGNED",
+        "referenceAssetId": "gen-4c2a752121",
+        "designId": "vd-048f6c9f86",
+        "seedSha256": "6c489055110a7dd75458d50caae75ccbc574669de71bedfb881736cfa7d737bd",
+        "referenceText": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+        "language": "AR",
+        "dialect": "IRAQI_BAGHDADI",
+        "params": {
+          "speed": 1,
+          "emotionAlpha": 1,
+          "seed": 1385761820
+        },
+        "proof": {
+          "sampleId": "voice-d269ce7646",
+          "assetId": "gen-08ce8381ea",
+          "text": "هلا بيك. اني اسمي Zahra، وهذا صوتي.",
+          "wer": 0.42857142857142855,
+          "cer": 0.21875,
+          "coverage": 0.5714285714285714,
+          "heard": "هل لبيك؟ اني اسمي زارة وهذا صوتي."
+        },
+        "status": "REVIEW",
+        "engineVersion": "IndexTTS-2.5",
+        "jobId": "ev-E",
+        "dialectStatus": "UNVERIFIED",
+        "evaluation": {
+          "cer": 0.2188,
+          "coverage": 0.5714,
+          "lufs": -17.15,
+          "truePeakDbtp": -1,
+          "clipped": 0,
+          "seedToLineSimilarity": 0.775,
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+          "measuredAt": "2026-10-03T00:28:53.197Z"
+        },
+        "revision": 1,
+        "createdAt": "2026-10-03T00:28:53.438Z"
+      },
+      "designs": [
+        {
+          "id": "vd-048f6c9f86",
+          "characterId": "char-9ab2b2ad97",
+          "mode": "AUTOMATIC",
+          "engine": "voxcpm2",
+          "model": "openbmb/VoxCPM2",
+          "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+          "description": "A warm, mid-pitched female voice, about 30, speaking formal Modern Standard Arabic at a steady, measured pace, close-microphone studio recording",
+          "descriptionSource": "PROFILE",
+          "language": "AR",
+          "dialect": "IRAQI_BAGHDADI",
+          "experiment": "DESIGNED_IRAQI",
+          "text": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+          "seed": 120897108,
+          "seeds": [
+            120897108,
+            120897109,
+            120897110
+          ],
+          "params": {
+            "seed": 120897108,
+            "n": 3,
+            "cfg_value": 2,
+            "inference_timesteps": 10,
+            "loudness_target": -20
+          },
+          "lineEngine": "habibi",
+          "similarityModel": "speechbrain/spkrec-ecapa-voxceleb",
+          "lineParams": {
+            "speed": 1,
+            "emotionAlpha": 1,
+            "seed": 1385761820
+          },
+          "candidates": [
+            {
+              "index": 1,
+              "seed": 120897108,
+              "assetId": "gen-5ea9c9c94d",
+              "sha256": "1b5adafa767d45d4a6ef102be6e15e59e49dfdfcbe778a7aa0e62c9ee7cdad02",
+              "durationSeconds": 7.84,
+              "nativeAssetId": "gen-f61b8504d1",
+              "nativeSha256": "52e196c161f7e88c012556fbbf759a1ff469b4ee3032591ef4570bc995e415f5",
+              "measured": {
+                "durationSeconds": 7.84,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.03,
+                "truePeakDbtp": -3.03,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.613,
+                  "cosine": 0.6808,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو. هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-f28d223be6"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.827,
+                  "cosine": 0.7619,
+                  "cer": 0.0357,
+                  "coverage": 0.8333,
+                  "heard": "يلتلك ماكو وقت لازم نطلع هسه.",
+                  "letterCoverage": 0.9565,
+                  "assetId": "gen-862c3f8bc5"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.509,
+                  "cosine": 0.7671,
+                  "cer": 0.0286,
+                  "coverage": 0.8571,
+                  "heard": "الزاي حار هواية. انطيني شوية مي بارد.",
+                  "letterCoverage": 0.9655,
+                  "assetId": "gen-469d8112d4"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.88,
+                  "cosine": 0.7157,
+                  "cer": 0.1379,
+                  "coverage": 0.4,
+                  "heard": "بائر الصبح نجاعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-afc23aed50"
+                }
+              ],
+              "similarityMean": 0.7314,
+              "letterCoverageMean": 0.9505,
+              "cerMean": 0.0506
+            },
+            {
+              "index": 2,
+              "seed": 120897109,
+              "assetId": "gen-4c2a752121",
+              "sha256": "6c489055110a7dd75458d50caae75ccbc574669de71bedfb881736cfa7d737bd",
+              "durationSeconds": 8.64,
+              "nativeAssetId": "gen-92401d0264",
+              "nativeSha256": "a7cf9f61dd52ed36c8efd141948b20c3e14f552b86476cc02e794b940e8f52b9",
+              "measured": {
+                "durationSeconds": 8.64,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحداً تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.05,
+                "truePeakDbtp": -1.32,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.837,
+                  "cosine": 0.5501,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو، هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-dc66650ea1"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.061,
+                  "cosine": 0.6789,
+                  "cer": 0.0357,
+                  "coverage": 1,
+                  "heard": "قلت لك ماكو وقت. لازم نطلع هسه.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-b579cc4004"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.808,
+                  "cosine": 0.7203,
+                  "cer": 0.0857,
+                  "coverage": 0.5714,
+                  "heard": "الفاي حار هواية، انطيني شوية مبارد.",
+                  "letterCoverage": 0.931,
+                  "assetId": "gen-d8dbd92816"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 3.125,
+                  "cosine": 0.709,
+                  "cer": 0.1034,
+                  "coverage": 0.4,
+                  "heard": "بائر الصبح نجعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-bfd1aacfa3"
+                }
+              ],
+              "similarityMean": 0.6646,
+              "letterCoverageMean": 0.9528,
+              "cerMean": 0.0562
+            },
+            {
+              "index": 3,
+              "seed": 120897110,
+              "assetId": "gen-ec69ec61e0",
+              "sha256": "b0d2fdb2e77a5a70cde05d6e7843a55685af6e250544451e10fdf7ade1dec040",
+              "durationSeconds": 6.72,
+              "nativeAssetId": "gen-64bf262710",
+              "nativeSha256": "8ad15088e0d3232b97baf81eb8c25d08f2e605de40a81895893492ace2d78a6e",
+              "measured": {
+                "durationSeconds": 6.72,
+                "cer": 0,
+                "coverage": 1,
+                "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+                "asrModel": "large-v3",
+                "lufs": -20.09,
+                "truePeakDbtp": -1.82,
+                "clippedSamples": 0
+              },
+              "gate": {
+                "ok": true,
+                "reasons": []
+              },
+              "previews": [
+                {
+                  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.219,
+                  "cosine": 0.738,
+                  "cer": 0,
+                  "coverage": 1,
+                  "heard": "شكو ماكو، هسا وصلت من الشغل.",
+                  "letterCoverage": 1,
+                  "assetId": "gen-bea81f9af6"
+                },
+                {
+                  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.4,
+                  "cosine": 0.8335,
+                  "cer": 0.0357,
+                  "coverage": 0.8333,
+                  "heard": "يلتلك ماكو وقت لازم نطلع هسه.",
+                  "letterCoverage": 0.9565,
+                  "assetId": "gen-204e863dab"
+                },
+                {
+                  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.987,
+                  "cosine": 0.8361,
+                  "cer": 0.0571,
+                  "coverage": 0.7143,
+                  "heard": "الفاي حاره هواية. انطيني شوية مي بارد.",
+                  "letterCoverage": 0.9655,
+                  "assetId": "gen-f2f0fbebe2"
+                },
+                {
+                  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+                  "engine": "habibi",
+                  "durationSeconds": 2.443,
+                  "cosine": 0.7761,
+                  "cer": 0.1379,
+                  "coverage": 0.4,
+                  "heard": "باسر الصبح نغاعد وياكم بالغهوة.",
+                  "letterCoverage": 0.88,
+                  "assetId": "gen-1d5d853f4b"
+                }
+              ],
+              "similarityMean": 0.7959,
+              "letterCoverageMean": 0.9505,
+              "cerMean": 0.0577
+            }
+          ],
+          "similarity": [
+            [
+              1,
+              0.4855,
+              0.2931
+            ],
+            [
+              0.4855,
+              1,
+              0.3544
+            ],
+            [
+              0.2931,
+              0.3544,
+              1
+            ]
+          ],
+          "jobId": "ev-E",
+          "label": "Studio-designed synthetic voice — not a real person",
+          "createdAt": "2026-10-03T00:28:01.810Z",
+          "ranking": [
+            2,
+            1,
+            3
+          ],
+          "rankedBy": "gates passed first, then the Iraqi probe lines’ mean letter coverage (spaces ignored), then their mean CER (Iraqi A/B screening)",
+          "chosen": 2,
+          "chosenBy": "AUTOMATIC"
+        }
+      ],
+      "samples": [
+        {
+          "id": "voice-d269ce7646",
+          "label": "Proof line (indextts)",
+          "source": "GENERATED",
+          "assetId": "gen-08ce8381ea",
+          "text": "هلا بيك. اني اسمي Zahra، وهذا صوتي."
+        }
+      ],
+      "files": {
+        "vd-048f6c9f86#1": {
+          "seed": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-seed-120897108-24k.wav",
+          "previews": [
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-1-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-2-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-3-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-4-habibi.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-f61b8504d1.wav"
+        },
+        "vd-048f6c9f86#2": {
+          "seed": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-seed-120897109-24k.wav",
+          "previews": [
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-1-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-2-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-3-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-4-habibi.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-92401d0264.wav"
+        },
+        "vd-048f6c9f86#3": {
+          "seed": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-seed-120897110-24k.wav",
+          "previews": [
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-1-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-2-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-3-habibi.wav",
+            "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-4-habibi.wav"
+          ],
+          "nativeInScratchLibrary": "C:\\Users\\MTA\\AppData\\Local\\Temp\\claude\\D--volexar-studio\\33c41b68-db43-44f2-b804-75576f206aa5\\scratchpad\\evidence-library\\audio\\2026\\10\\gen-64bf262710.wav"
+        },
+        "proof": "E-iraqi-experiment/proof-line.wav"
+      }
+    }
+  },
+  "listen": {
+    "note": "Blind, loudness-matched, headphones (VOICE-IDENTITY-V2 §5.2). File names reveal the candidate; hide them from raters.",
+    "files": [
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-1-seed-342483154-24k.wav",
+        "what": "Rana: designed candidate 1 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A warm, clear, mid-pitched female voice, about 34, speaking English at a steady, measured pace, close-microphone studio recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-1-preview-1-indextts.wav",
+        "what": "Rana: candidate 1 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-1-preview-2-indextts.wav",
+        "what": "Rana: candidate 1 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-2-seed-342483155-24k.wav",
+        "what": "Rana: designed candidate 2 (VoxCPM2, 24 kHz seed, PINNED; gate passed). Does it fit the description “A warm, clear, mid-pitched female voice, about 34, speaking English at a steady, measured pace, close-microphone studio recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-2-preview-1-indextts.wav",
+        "what": "Rana: candidate 2 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-2-preview-2-indextts.wav",
+        "what": "Rana: candidate 2 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-3-seed-342483156-24k.wav",
+        "what": "Rana: designed candidate 3 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A warm, clear, mid-pitched female voice, about 34, speaking English at a steady, measured pace, close-microphone studio recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-3-preview-1-indextts.wav",
+        "what": "Rana: candidate 3 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/vd-9463933b73-candidate-3-preview-2-indextts.wav",
+        "what": "Rana: candidate 3 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/proof-line.wav",
+        "what": "Rana: the proof line spoken by the pinned identity (indextts) — same voice as the pinned seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "A-automatic-en/voice-preview-line.wav",
+        "what": "Rana: a later preview line from the pinned identity — the same voice as the proof line?"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-1-seed-265354233-24k.wav",
+        "what": "Salim: designed candidate 1 (VoxCPM2, 24 kHz seed, PINNED; gate passed). Does it fit the description “A deep, calm, low male voice, about 52, speaking formal Modern Standard Arabic at a slow, unhurried pace, close-microphone studio recording”? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-1-preview-1-indextts.wav",
+        "what": "Salim: candidate 1 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-1-preview-2-indextts.wav",
+        "what": "Salim: candidate 1 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-2-seed-265354234-24k.wav",
+        "what": "Salim: designed candidate 2 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A deep, calm, low male voice, about 52, speaking formal Modern Standard Arabic at a slow, unhurried pace, close-microphone studio recording”? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-2-preview-1-indextts.wav",
+        "what": "Salim: candidate 2 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-2-preview-2-indextts.wav",
+        "what": "Salim: candidate 2 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-3-seed-265354235-24k.wav",
+        "what": "Salim: designed candidate 3 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A deep, calm, low male voice, about 52, speaking formal Modern Standard Arabic at a slow, unhurried pace, close-microphone studio recording”? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-3-preview-1-indextts.wav",
+        "what": "Salim: candidate 3 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/vd-1d6e4ad329-candidate-3-preview-2-indextts.wav",
+        "what": "Salim: candidate 3 heard through indextts — the same voice as its seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "B-automatic-msa/proof-line.wav",
+        "what": "Salim: the proof line spoken by the pinned identity (indextts) — same voice as the pinned seed? Fusha as a news reader speaks it? natural? (MSA listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-1-seed-5253526-24k.wav",
+        "what": "Omar: designed candidate 1 (VoxCPM2, 24 kHz seed, PINNED; gate passed). Does it fit the description “A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-1-preview-1-indextts.wav",
+        "what": "Omar: candidate 1 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-1-preview-2-indextts.wav",
+        "what": "Omar: candidate 1 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-2-seed-5253527-24k.wav",
+        "what": "Omar: designed candidate 2 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-2-preview-1-indextts.wav",
+        "what": "Omar: candidate 2 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-2-preview-2-indextts.wav",
+        "what": "Omar: candidate 2 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-3-seed-5253528-24k.wav",
+        "what": "Omar: designed candidate 3 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A bright, energetic young man's voice, about 27, quick and friendly, close-microphone recording”? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-3-preview-1-indextts.wav",
+        "what": "Omar: candidate 3 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/vd-307f8ead61-candidate-3-preview-2-indextts.wav",
+        "what": "Omar: candidate 3 heard through indextts — the same voice as its seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "C-design/proof-line.wav",
+        "what": "Omar: the proof line spoken by the pinned identity (indextts) — same voice as the pinned seed? Natural or artificial? (EN listeners)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-seed-120897108-24k.wav",
+        "what": "Zahra: designed candidate 1 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A warm, mid-pitched female voice, about 30, speaking formal Modern Standard Arabic at a steady, measured pace, close-microphone studio recording”? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-1-habibi.wav",
+        "what": "Zahra: candidate 1 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-2-habibi.wav",
+        "what": "Zahra: candidate 1 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-3-habibi.wav",
+        "what": "Zahra: candidate 1 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-1-preview-4-habibi.wav",
+        "what": "Zahra: candidate 1 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-seed-120897109-24k.wav",
+        "what": "Zahra: designed candidate 2 (VoxCPM2, 24 kHz seed, PINNED; gate passed). Does it fit the description “A warm, mid-pitched female voice, about 30, speaking formal Modern Standard Arabic at a steady, measured pace, close-microphone studio recording”? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-1-habibi.wav",
+        "what": "Zahra: candidate 2 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-2-habibi.wav",
+        "what": "Zahra: candidate 2 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-3-habibi.wav",
+        "what": "Zahra: candidate 2 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-2-preview-4-habibi.wav",
+        "what": "Zahra: candidate 2 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-seed-120897110-24k.wav",
+        "what": "Zahra: designed candidate 3 (VoxCPM2, 24 kHz seed; gate passed). Does it fit the description “A warm, mid-pitched female voice, about 30, speaking formal Modern Standard Arabic at a steady, measured pace, close-microphone studio recording”? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-1-habibi.wav",
+        "what": "Zahra: candidate 3 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-2-habibi.wav",
+        "what": "Zahra: candidate 3 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-3-habibi.wav",
+        "what": "Zahra: candidate 3 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/vd-048f6c9f86-candidate-3-preview-4-habibi.wav",
+        "what": "Zahra: candidate 3 heard through habibi — the same voice as its seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      },
+      {
+        "file": "E-iraqi-experiment/proof-line.wav",
+        "what": "Zahra: the proof line spoken by the pinned identity (habibi) — same voice as the pinned seed? Iraqi or MSA-accented? (native Baghdadi listeners only)"
+      }
+    ],
+    "notMeasured": [
+      "naturalness",
+      "accent (English, MSA)",
+      "Iraqi dialect authenticity",
+      "whether a voice matches its description (age, warmth, brightness)",
+      "emotional fit"
+    ]
+  },
+  "qaReports": [
+    {
+      "subjectKind": "CHARACTER",
+      "subjectId": "char-5d7674695a",
+      "inspectorId": "audio-sync-inspector",
+      "checks": [
+        {
+          "name": "proof-line-heard",
+          "ok": true,
+          "detail": "heard: Hello, my name is Rana, and this is my voice."
+        },
+        {
+          "name": "proof-line-coverage",
+          "ok": true,
+          "value": 1,
+          "threshold": 0.85
+        },
+        {
+          "name": "proof-line-cer",
+          "ok": true,
+          "value": 0,
+          "threshold": 0.15,
+          "detail": "character error rate after the dialect fold"
+        },
+        {
+          "name": "word-error-rate",
+          "ok": true,
+          "value": 0,
+          "detail": "reported, not gated"
+        },
+        {
+          "name": "proof-line-clipping",
+          "ok": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": "-19.58 LUFS, true peak -1.97 dBTP"
+        },
+        {
+          "name": "seed-to-line-similarity",
+          "ok": true,
+          "value": 0.62,
+          "detail": "ECAPA cosine between the reference and the proof line; reported, not gated (VoxCeleb-trained, relative)"
+        },
+        {
+          "name": "voice-origin",
+          "ok": true,
+          "value": "DESIGNED",
+          "detail": "Studio-designed synthetic voice — not a real person; naturalness not yet judged by a listener"
+        }
+      ],
+      "decision": "ACCEPT",
+      "evidenceAssetIds": [
+        "gen-aa9dc00342"
+      ],
+      "jobId": "ev-A",
+      "notes": "voice of Rana (indextts, automatic, designed)"
+    },
+    {
+      "subjectKind": "CHARACTER",
+      "subjectId": "char-755b4a7172",
+      "inspectorId": "audio-sync-inspector",
+      "checks": [
+        {
+          "name": "proof-line-heard",
+          "ok": true,
+          "detail": "heard: اهلا بك. اسمي سليم. وهذا صوتي."
+        },
+        {
+          "name": "proof-line-coverage",
+          "ok": false,
+          "value": 0.83,
+          "threshold": 0.85
+        },
+        {
+          "name": "proof-line-cer",
+          "ok": false,
+          "value": 0.18,
+          "threshold": 0.15,
+          "detail": "character error rate after the dialect fold"
+        },
+        {
+          "name": "word-error-rate",
+          "ok": true,
+          "value": 0.17,
+          "detail": "reported, not gated"
+        },
+        {
+          "name": "proof-line-clipping",
+          "ok": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": "-17.78 LUFS, true peak -2.09 dBTP"
+        },
+        {
+          "name": "seed-to-line-similarity",
+          "ok": true,
+          "value": 0.7607,
+          "detail": "ECAPA cosine between the reference and the proof line; reported, not gated (VoxCeleb-trained, relative)"
+        },
+        {
+          "name": "voice-origin",
+          "ok": true,
+          "value": "DESIGNED",
+          "detail": "Studio-designed synthetic voice — not a real person; Arabic accent not yet listener-verified; naturalness not yet judged by a listener"
+        }
+      ],
+      "decision": "REVIEW",
+      "evidenceAssetIds": [
+        "gen-f526be9498"
+      ],
+      "jobId": "ev-B",
+      "notes": "voice of Salim (indextts, automatic, designed); proof line: coverage 0.83 < 0.85 (line); CER 0.18 > 0.15"
+    },
+    {
+      "subjectKind": "CHARACTER",
+      "subjectId": "char-d58e81cad4",
+      "inspectorId": "audio-sync-inspector",
+      "checks": [
+        {
+          "name": "proof-line-heard",
+          "ok": true,
+          "detail": "heard: Hello, my name is Omar, and this is my voice."
+        },
+        {
+          "name": "proof-line-coverage",
+          "ok": true,
+          "value": 1,
+          "threshold": 0.85
+        },
+        {
+          "name": "proof-line-cer",
+          "ok": true,
+          "value": 0,
+          "threshold": 0.15,
+          "detail": "character error rate after the dialect fold"
+        },
+        {
+          "name": "word-error-rate",
+          "ok": true,
+          "value": 0,
+          "detail": "reported, not gated"
+        },
+        {
+          "name": "proof-line-clipping",
+          "ok": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": "-20.81 LUFS, true peak -4.94 dBTP"
+        },
+        {
+          "name": "seed-to-line-similarity",
+          "ok": true,
+          "value": 0.7575,
+          "detail": "ECAPA cosine between the reference and the proof line; reported, not gated (VoxCeleb-trained, relative)"
+        },
+        {
+          "name": "voice-origin",
+          "ok": true,
+          "value": "DESIGNED",
+          "detail": "Studio-designed synthetic voice — not a real person; naturalness not yet judged by a listener"
+        }
+      ],
+      "decision": "ACCEPT",
+      "evidenceAssetIds": [
+        "gen-7d48768dc3"
+      ],
+      "jobId": "ev-C-build",
+      "notes": "voice of Omar (indextts, design, designed)"
+    },
+    {
+      "subjectKind": "CHARACTER",
+      "subjectId": "char-9ab2b2ad97",
+      "inspectorId": "audio-sync-inspector",
+      "checks": [
+        {
+          "name": "proof-line-heard",
+          "ok": true,
+          "detail": "heard: هل لبيك؟ اني اسمي زارة وهذا صوتي."
+        },
+        {
+          "name": "proof-line-coverage",
+          "ok": false,
+          "value": 0.57,
+          "threshold": 0.85
+        },
+        {
+          "name": "proof-line-cer",
+          "ok": false,
+          "value": 0.22,
+          "threshold": 0.15,
+          "detail": "character error rate after the dialect fold"
+        },
+        {
+          "name": "word-error-rate",
+          "ok": true,
+          "value": 0.43,
+          "detail": "reported, not gated"
+        },
+        {
+          "name": "proof-line-clipping",
+          "ok": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": "-17.15 LUFS, true peak -1 dBTP"
+        },
+        {
+          "name": "seed-to-line-similarity",
+          "ok": true,
+          "value": 0.775,
+          "detail": "ECAPA cosine between the reference and the proof line; reported, not gated (VoxCeleb-trained, relative)"
+        },
+        {
+          "name": "voice-origin",
+          "ok": true,
+          "value": "DESIGNED",
+          "detail": "Studio-designed synthetic voice — not a real person; Iraqi dialect not yet verified by a native listener; naturalness not yet judged by a listener"
+        }
+      ],
+      "decision": "REVIEW",
+      "evidenceAssetIds": [
+        "gen-08ce8381ea"
+      ],
+      "jobId": "ev-E",
+      "notes": "voice of Zahra (indextts, automatic, designed); proof line: coverage 0.57 < 0.85 (line); CER 0.22 > 0.15; designed Arabic seed on the Iraqi engine: an experiment, its dialect is unverified"
+    }
+  ],
+  "gpuAfterUnload": {
+    "usedMb": 11893,
+    "totalMb": 32607
+  },
+  "healthAfter": {
+    "design": {
+      "ok": true,
+      "engine": "voxcpm2",
+      "engine_version": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+      "ecapa_version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+      "loaded": false,
+      "ecapa_loaded": false,
+      "weights_present": true,
+      "ecapa_weights_present": true,
+      "gpu": {
+        "used_mb": 12312,
+        "total_mb": 32607
+      },
+      "torch": {
+        "allocated_mb": 8,
+        "reserved_mb": 20,
+        "peak_reserved_mb": 20
+      },
+      "peak_ceiling_dbtp": -1,
+      "max_candidates": 3,
+      "engines": [
+        "voxcpm2",
+        "ecapa"
+      ],
+      "sample_rates": {
+        "native": 48000,
+        "reference": 24000
+      },
+      "ecapa_device": "cpu",
+      "optimize": false
+    },
+    "indextts": {
+      "ok": true,
+      "engine": "indextts",
+      "engines": [
+        "indextts"
+      ],
+      "engine_version": "indextts 2.0.0; repo v2.5.0; model IndexTTS-2.5; torch 2.8.0+cu128",
+      "loaded": false,
+      "weights_present": true,
+      "gpu": {
+        "used_mb": 12312,
+        "total_mb": 32607
+      },
+      "peak_ceiling_dbtp": -1
+    },
+    "habibi": {
+      "ok": true,
+      "engine": "habibi",
+      "engines": [
+        "habibi"
+      ],
+      "engine_version": "habibi-tts 0.1.1; f5-tts 1.1.22; model Specialized/IRQ/model_100000; torch 2.8.0+cu128",
+      "loaded": false,
+      "weights_present": true,
+      "gpu": {
+        "used_mb": 12312,
+        "total_mb": 32607
+      },
+      "peak_ceiling_dbtp": -1
+    },
+    "asr": {
+      "ok": true,
+      "model": "large-v3",
+      "compute": "float16",
+      "loaded": false,
+      "demucs": "htdemucs",
+      "demucs_loaded": false,
+      "gpu": {
+        "used_mb": 12312,
+        "total_mb": 32607
+      },
+      "weights_present": true
+    }
+  }
+}
