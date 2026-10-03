@@ -34,6 +34,7 @@ async function shoot(file, out, width, { lang = 'en', full = true, height } = {}
   if (full) await page.addStyleTag({ content: 'body{position:relative} .tabbar,.nowbar{position:absolute!important}' });
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   if (sw > width) {
+    process.exitCode = 1;
     console.log(`  WARNING ${file} ${lang} ${width}: page is ${sw}px wide (horizontal overflow)`);
     const culprits = await page.evaluate((w) => [...document.querySelectorAll('body *')].filter((e) => { const r = e.getBoundingClientRect(); return (r.right > w + 1 || r.left < -1) && !e.closest('.rail, .strip, .contact, .tabs, .decisions, .chips, .end, .tk-row, .videos') && getComputedStyle(e).position !== 'fixed'; }).slice(0, 6).map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')} ${Math.round(e.getBoundingClientRect().right)}`), width);
     console.log('    ', culprits.join(' | '));

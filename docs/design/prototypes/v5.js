@@ -126,7 +126,7 @@
     const keep = (n) => n.parentElement?.closest('.tc, .transport, .ctl, .tport, .time, .strip, .sstrip, .wave, .kbd, .on-art-chip, .id, [data-latin-digits], [lang="en"], script, style');
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const map = '٠١٢٣٤٥٦٧٨٩';
-    for (let n = w.nextNode(); n; n = w.nextNode()) if (/\d/.test(n.nodeValue) && !keep(n)) n.nodeValue = n.nodeValue.replace(/\d/g, (d) => map[d]);
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (/\d/.test(n.nodeValue) && !keep(n)) n.nodeValue = n.nodeValue.replace(/\d+(?:[.:]\d+)*(p\b|\s?×\s?\d+| ?fps)?/g, (m, tech) => (tech ? m : m.replace(/\d/g, (d) => map[d])));  // resolutions and frame rates are file data: Western
   }
   document.title = AR && document.body.dataset.titleAr ? document.body.dataset.titleAr : document.title;
 

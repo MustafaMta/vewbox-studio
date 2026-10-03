@@ -114,6 +114,12 @@ html[dir='ltr'] :is(p, div, h1, h2, h3, li, dd, q)[lang='ar'] { text-align: left
 .t-card    { font-size: 21px; line-height: 26px; letter-spacing: -0.008em; }
 .t-card-sm { font-size: 18px; line-height: 22px; letter-spacing: -0.005em; }
 .t-quote   { font-size: 22px; line-height: 30px; font-style: italic; font-weight: 400; }
+.t-index   { font-family: var(--font-title); color: var(--fg); font-weight: 500; font-size: 46px; line-height: 46px; letter-spacing: -0.02em; }
+@media (min-width: 640px) { .t-index { font-size: 76px; line-height: 72px; letter-spacing: -0.028em; } }
+@media (min-width: 1280px) { .t-index { font-size: 120px; line-height: 112px; letter-spacing: -0.034em; } }
+html[dir='rtl'] .t-index:not(:lang(en)) { font-family: var(--font-title-ar); font-weight: 600; letter-spacing: 0; font-size: 46px; line-height: 64px; }
+@media (min-width: 640px) { html[dir='rtl'] .t-index:not(:lang(en)) { font-size: 70px; line-height: 92px; } }
+@media (min-width: 1280px) { html[dir='rtl'] .t-index:not(:lang(en)) { font-size: 108px; line-height: 136px; } }
 @media (min-width: 640px) {
   .t-marquee { font-size: 76px; line-height: 72px; letter-spacing: -0.028em; } .t-hero { font-size: 60px; line-height: 58px; letter-spacing: -0.024em; } .t-page { font-size: 52px; line-height: 52px; letter-spacing: -0.02em; }
 }
@@ -334,6 +340,7 @@ html[dir='rtl'] .tag { font-size: 13px; }
 .frame-hover:hover > img { transform: scale(1.02); }
 .frame > img { transition: transform var(--t-media) var(--ease); }
 .on-art-chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 6px; block-size: 24px; padding-inline: 8px; border-radius: var(--r-sm); background: var(--chip-on-art); color: var(--paper); font: 500 11px/1 var(--font-mono); }
+html[dir='rtl'] .on-art-chip { font-family: var(--font-mono), 'IBM Plex Sans Arabic'; font-size: 12px; }
 .pos-be { inset-block-end: 10px; inset-inline-end: 10px; } .pos-bs { inset-block-end: 10px; inset-inline-start: 10px; } .pos-ts { inset-block-start: 10px; inset-inline-start: 10px; } .pos-te { inset-block-start: 10px; inset-inline-end: 10px; }
 /* the frame poster: a poster composed from a chosen key frame (focal crop) and the title in the title voice — used
    until real poster art exists. Deterministic: no generation. */
@@ -343,7 +350,7 @@ html[dir='rtl'] .tag { font-size: 13px; }
 .fposter .fp-t { position: absolute; z-index: 2; inset-inline: 8%; inset-block-end: 7%; color: var(--paper); }
 .fposter .fp-k { font: 500 10px/14px var(--font-mono); color: rgb(243 239 232 / 0.75); margin-block-end: 6px; letter-spacing: 0.02em; }
 /* the title card: anything without art is set as type in its own shape, inside viewfinder corners */
-.tcard { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 7%; background: var(--surface); border-radius: var(--r-sm); color: var(--fg-muted); overflow: hidden; }
+.tcard { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: max(7%, 28px); background: var(--surface); border-radius: var(--r-sm); color: var(--fg-muted); overflow: hidden; }
 .tcard::before { content: ''; position: absolute; inset: 14px; pointer-events: none;
   background:
     linear-gradient(var(--carbon-8), var(--carbon-8)) top left / 14px 1px no-repeat, linear-gradient(var(--carbon-8), var(--carbon-8)) top left / 1px 14px no-repeat,
