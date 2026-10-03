@@ -30,23 +30,34 @@ const report = [];
 
 for (const size of SIZES) {
   for (const pg of PAGES) {
-    const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
-    const page = await ctx.newPage();
-    await prepare(page, { fixture });
-    const cdp = await ctx.newCDPSession(page);
-    await cdp.send('Network.enable');
-    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
-    await page.addInitScript(() => {
-      window.__shifts = []; window.__skeleton = false;
-      new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 60) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true });
-      new MutationObserver(() => { if (document.querySelector('.mv-sk')) window.__skeleton = true; }).observe(document, { childList: true, subtree: true });
-    });
-    const t0 = Date.now();
-    await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
-    await page.waitForSelector('.mv-sk, .mv-cat, .mv-page', { timeout: 120000 });
-    await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
-    await page.waitForSelector(pg.root, { timeout: 120000 });
-    const firstMs = Date.now() - t0;
+    // a dev server sometimes leaves the first snapshot hanging: open the page again (three times at most)
+    let ctx, page, firstMs;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
+        page = await ctx.newPage();
+        await prepare(page, { fixture });
+        const cdp = await ctx.newCDPSession(page);
+        await cdp.send('Network.enable');
+        await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
+        await page.addInitScript(() => {
+          window.__shifts = []; window.__skeleton = false;
+          new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 60) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true });
+          new MutationObserver(() => { if (document.querySelector('.mv-sk')) window.__skeleton = true; }).observe(document, { childList: true, subtree: true });
+        });
+        const t0 = Date.now();
+        await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
+        await page.waitForSelector('.mv-sk, .mv-cat, .mv-page', { timeout: 120000 });
+        await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
+        await page.waitForSelector(pg.root, { timeout: 150000 });
+        firstMs = Date.now() - t0;
+        break;
+      } catch (e) {
+        await ctx?.close();
+        if (attempt >= 3) throw e;
+        console.log(`  retrying ${pg.path} at ${size.w}`);
+      }
+    }
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
     await page.waitForFunction(() => !document.querySelector('.wave:not([data-ready])') || document.querySelector('.wave-failed'), null, { timeout: 60000 }).catch(() => {});

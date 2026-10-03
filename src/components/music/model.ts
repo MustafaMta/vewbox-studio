@@ -194,6 +194,9 @@ export interface TitlePage {
   /** a song without its file: what the transport says instead of playing */
   noFile: boolean;
   sections: LyricSectionView[];
+  /** the language the lyrics are shown in, as sung ("Arabic"), and the translation's, when written */
+  lyricsLanguage?: string;
+  translationLanguage?: string;
   facts: Fact[];
   cast: CastMember[];
   video?: { asset: Asset; src: string; poster?: string; duration: string | null };
@@ -203,6 +206,13 @@ export interface TitlePage {
 
 const sectionsSung = (sections: LyricSectionView[], id: string) => [...new Set(sections.filter((x) => x.singers.some((p) => p.id === id) || x.lines.some((l) => l.singer?.id === id)).map((x) => x.label.replace(/ \d+$/, '').toLowerCase()))];
 const listWords = (xs: string[]) => (xs.length <= 1 ? xs[0] ?? '' : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+const langWord = (l?: 'ar') => (l === 'ar' ? 'Arabic' : 'English');
+function lyricLanguages(sections: LyricSectionView[]): { lyricsLanguage?: string; translationLanguage?: string } {
+  const sung = sections.flatMap((x) => x.lines)[0];
+  const tr = sections.flatMap((x) => x.translation)[0];
+  return { lyricsLanguage: sung ? langWord(sung.lang) : undefined, translationLanguage: tr ? langWord(tr.lang) : undefined };
+}
 
 export function titlePage(s: S, p: Production): TitlePage {
   const get = byId(s);
@@ -246,6 +256,7 @@ export function titlePage(s: S, p: Production): TitlePage {
     track,
     noFile: Boolean(p.song && !track && !playable(audio, 'AUDIO')),
     sections,
+    ...lyricLanguages(sections),
     facts,
     cast,
     video,

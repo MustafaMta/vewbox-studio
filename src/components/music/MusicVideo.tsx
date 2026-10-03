@@ -6,7 +6,8 @@ import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { Frame, FaceCircle } from '@/components/media';
-import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { PanelCardSkeleton, SectionHeadSkeleton } from '@/components/media';
 import { InlinePlayer } from '@/components/players/InlinePlayer';
 import { usePlayer, useTrackState } from '@/components/players/PlayerProvider';
 import { IconChevronLeft, IconChevronRight, IconPlay } from '@/components/ui/icons';
@@ -48,8 +49,8 @@ function TitlePageView({ p }: { p: Production }) {
   const playing = st.mine && st.playing;
 
   return (
-    <div className="mv-page">
-      <section className="hero mv-hero" style={artVars(m.sleeve.asset) as CSSProperties} aria-labelledby="mv-title">
+    <div className="hero mv-page" style={artVars(m.sleeve.asset) as CSSProperties}>
+      <section className="mv-hero" aria-labelledby="mv-title">
         <Link className="t-body mv-back" href="/music-videos"><IconChevronLeft aria-hidden />Music videos</Link>
         <div className="mv-head">
           <div className="mv-sleeve">
@@ -77,10 +78,7 @@ function TitlePageView({ p }: { p: Production }) {
 
       <div className="mv-body">
         <section className="mv-lyrics" aria-labelledby="mv-lyrics-h" data-playing={playing || undefined}>
-          <div className="mv-shead">
-            <h2 id="mv-lyrics-h" className="t-section">Lyrics</h2>
-            {m.sections.length > 0 && <span className="t-ro t-ro-md mv-count">{m.sections.length}</span>}
-          </div>
+          <SectionHead id="mv-lyrics-h" title="Lyrics" count={m.sections.length || null} description={m.lyricsLanguage ? `As they are sung, in ${m.lyricsLanguage}${m.translationLanguage ? `, with the ${m.translationLanguage} beneath` : ''}.` : undefined} />
           {m.sections.length === 0 ? (
             <p className="t-body mv-none">No lyrics yet. <Link className="btn btn-secondary btn-sm" href={m.primary.href}>{m.production.song ? 'Write the lyrics' : 'Write the song'}</Link></p>
           ) : (
@@ -92,15 +90,10 @@ function TitlePageView({ p }: { p: Production }) {
 
         <aside className="mv-side" aria-label="About the song">
           {m.facts.length > 0 && (
-            <section className="card mv-facts" aria-labelledby="mv-facts-h">
-              <h2 id="mv-facts-h" className="t-title mv-facts-title">About the song</h2>
-              <dl className="mv-facts-grid">
-                {m.facts.map((f) => <div key={f.label} className="mv-fact"><dt className="t-label">{f.label}</dt><dd className="t-body mv-fact-value"><bdi>{f.value}</bdi></dd></div>)}
-              </dl>
-            </section>
+            <PanelCard title="About the song" columns={2} className="mv-facts" facts={m.facts.map((f) => ({ label: f.label, value: <bdi>{f.value}</bdi> }))} />
           )}
           <section className="mv-cast" aria-labelledby="mv-cast-h">
-            <div className="mv-shead"><h2 id="mv-cast-h" className="t-section">Cast</h2>{m.cast.length > 0 && <span className="t-ro t-ro-md mv-count">{m.cast.length}</span>}</div>
+            <SectionHead id="mv-cast-h" title="Cast" count={m.cast.length || null} />
             {m.cast.length === 0 ? (
               <p className="t-body mv-none">Nobody is cast yet. <Link className="btn btn-secondary btn-sm" href={productionTab(p, 'performers')}>Choose performers</Link></p>
             ) : (
@@ -121,7 +114,7 @@ function TitlePageView({ p }: { p: Production }) {
 
       {m.video && (
         <section className="mv-video" aria-labelledby="mv-video-h">
-          <div className="mv-shead"><h2 id="mv-video-h" className="t-section">The video</h2>{m.video.duration && <span className="t-ro t-ro-md mv-count">{m.video.duration}</span>}</div>
+          <SectionHead id="mv-video-h" title="The video" description={m.video.duration ? `The final cut · ${m.video.duration}` : 'The final cut'} />
           <InlinePlayer src={m.video.src} poster={m.video.poster} title={`${m.title}, the music video`} className="mv-player" />
         </section>
       )}
@@ -180,8 +173,8 @@ function Section({ sec, live, onPlay }: { sec: LyricSectionView; live: boolean; 
  *  the lyrics beside the facts and the cast, in their final sizes (the same classes size them). */
 export function MusicVideoSkeleton() {
   return (
-    <SkeletonRegion label="Opening the music video…" className="mv-page mv-sk">
-      <div className="hero mv-hero">
+    <SkeletonRegion label="Opening the music video…" className="hero mv-page mv-sk">
+      <div className="mv-hero">
         <div className="t-body mv-back"><Skeleton.Line width="7rem" /></div>
         <div className="mv-head">
           <div className="mv-sleeve"><Skeleton.Media ratio="1/1" className="mv-sleeve-frame" /></div>
@@ -196,7 +189,7 @@ export function MusicVideoSkeleton() {
       </div>
       <div className="mv-body">
         <div className="mv-lyrics">
-          <div className="mv-shead"><div className="t-section"><Skeleton.Line size="title" width="5rem" /></div></div>
+          <SectionHeadSkeleton titleWidth="5rem" description />
           <div className="mv-sections">
             {[3, 2, 2].map((n, i) => (
               <div key={i} className="mv-sec">
@@ -207,7 +200,7 @@ export function MusicVideoSkeleton() {
           </div>
         </div>
         <div className="mv-side">
-          <Skeleton.Block className="mv-facts" width="100%" height={196} radius="md" />
+          <PanelCardSkeleton title cells={6} className="mv-facts" />
         </div>
       </div>
     </SkeletonRegion>

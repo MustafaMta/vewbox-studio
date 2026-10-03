@@ -1,23 +1,26 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import type { Production } from '@/domain/types';
-import { useStudio } from '@/studio/store';
-import { SleeveTile, TitleCard } from '@/components/media';
-import { StateWord } from '@/components/ui/kit';
+import type { useStudio } from '@/studio/store';
+import { SleeveCard, TitleCard } from '@/components/media';
+import { PlayDisc } from '@/components/players/PlayDisc';
 import { performersLine, type SleeveItem } from '@/components/music/model';
-import { artVars } from '@/studio/presentation';
 
-/** A music video in the catalogue (docs/design/VISUAL-STANDARD-V5.1.md §5.6 "Sleeve"): the square sleeve with no box,
- *  the song title on one line, the performers, then the length and the status word. The play disc previews the real
- *  song on the studio's one audio source; it appears on hover, focus and touch, and only when the file exists. The
- *  sleeve without art is the title card in the sleeve's own shape. */
-export function MusicVideoCard({ item, menu }: { item: SleeveItem; menu?: ReactNode }) {
+/** A music video in the catalogue: the kit's SleeveCard (the 1:1 sleeve with the song's title and one line over the
+ *  poster scrim — Home's shelf cards) with the performers, the length and the status in that line. The play disc
+ *  previews the real song on the studio's one audio source; it is a sibling of the card's link (never inside it),
+ *  shows on hover, focus and touch, and exists only when the song's file does. */
+export function MusicVideoCard({ item, priority }: { item: SleeveItem; priority?: boolean }) {
+  const meta = [item.performers || 'No performers yet', item.duration, item.status.words].filter(Boolean).join(' · ');
   return (
-    <SleeveTile href={item.href} title={item.title} titleLang={item.lang} asset={item.asset} src={item.src} art={artVars(item.asset)}
-      performers={item.performers || 'No performers yet'} performersLang={item.performersLang} track={item.track} titleState="noSleeve"
-      slate={[item.duration && <span className="num">{item.duration}</span>]} status={<StateWord tone={item.status.tone}>{item.status.words}</StateWord>}
-      menu={menu} className="mv-tile" />
+    <div className="mv-item" data-playable={item.track ? '' : undefined}>
+      <SleeveCard href={item.href} title={item.title} titleLang={item.lang} meta={meta} asset={item.asset} src={item.src} priority={priority} className="mv-card" />
+      {item.track && (
+        <span className="mv-disc">
+          <PlayDisc track={item.track} size={40} tone="chip" labelPlay={`Play ${item.title}`} labelPause={`Pause ${item.title}`} />
+        </span>
+      )}
+    </div>
   );
 }
 
