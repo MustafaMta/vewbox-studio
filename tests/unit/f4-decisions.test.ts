@@ -57,6 +57,5 @@ describe('page titles the shell adds (§7.3)', () => {
   });
   it('names the dev-only kit pages', () => {
     expect(title('/kit')).toBe('Interface kit · Vewbox Studio');
-    expect(title('/kit-media')).toBe('Media kit · Vewbox Studio');
   });
 });

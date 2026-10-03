@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconFocusMode } from '@/components/ui/icons';
 
@@ -16,7 +15,7 @@ const Ctx = createContext<Api | null>(null);
 export function FocusModeProvider({ children }: { children: ReactNode }) {
   const [on, setOn] = useState(false);
   const [said, setSaid] = useState('');
-  const set = useCallback((v: boolean) => { setOn(v); setSaid(v ? T('media.focus.on') : T('media.focus.off')); }, [T]);
+  const set = useCallback((v: boolean) => { setOn(v); setSaid(v ? 'Focus mode on. Press Esc to leave it.' : 'Focus mode off.'); }, []);
   const toggle = useCallback(() => set(!on), [on, set]);
   useEffect(() => {
     if (!on) return;
@@ -37,7 +36,7 @@ export function FocusModeButton({ className }: { className?: string }) {
   const f = useFocusMode();
   return (
     <button type="button" className={cls('ebtn', className)} aria-pressed={f.on} onClick={f.toggle}>
-      <IconFocusMode aria-hidden />{T('media.focus.label')}<kbd className="kbd" aria-hidden>F</kbd>
+      <IconFocusMode aria-hidden />Focus mode<kbd className="kbd" aria-hidden>F</kbd>
     </button>
   );
 }

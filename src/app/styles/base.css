@@ -22,12 +22,12 @@
 @layer base {
   /* ---- the document ------------------------------------------------------------------------------------ */
   /* the 14 px root stays (rem-based Tailwind spacing is unchanged, §4.3); body text is 15/24 (§3.3) */
-  html { background: var(--page); color: var(--fg-body); font-family: var(--font-ui); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-kerning: normal; font-optical-sizing: auto; -webkit-text-size-adjust: 100%; }
-  body { min-height: 100dvh; background: var(--page); color: var(--fg-body); font-size: var(--body-fs); line-height: var(--body-lh); overflow-wrap: break-word; }
+  html { background: var(--page); color: var(--text-1); font-family: var(--font-ui); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-kerning: normal; font-optical-sizing: auto; -webkit-text-size-adjust: 100%; }
+  body { min-height: 100dvh; background: var(--page); color: var(--text-1); font-size: var(--body-fs); line-height: var(--body-lh); overflow-wrap: break-word; }
   main { min-width: 0; }
-  h1, h2, h3, h4 { text-wrap: balance; color: var(--fg); }
+  h1, h2, h3, h4 { text-wrap: balance; color: var(--text-1); }
   p { text-wrap: pretty; }
-  ::selection { background: var(--selection); color: var(--on-paper); }
+  ::selection { background: var(--selection); color: var(--on-primary); }
   img, video { max-inline-size: 100%; }
   /* vertical scroll areas: a quiet, thin scrollbar */
   ::-webkit-scrollbar { inline-size: 11px; block-size: 11px; }
@@ -40,9 +40,9 @@
      on the page; on a paper-filled control the dark band separates paper from paper). States own box-shadow; focus
      owns outline, so no selected segment, pick, pipeline pill, outline row or chosen take can hide it. A focus
      target that is not a Tab stop (tabindex="-1": the skip link's target, a dialog's own box) draws no ring. */
-  :focus-visible:not([tabindex='-1']) { outline: 2px solid var(--paper) !important; outline-offset: 2px !important; }
+  :focus-visible:not([tabindex='-1']) { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
   /* tiles: the ring stands 4 px off the picture so it never touches the art */
-  :is(.tile, .fig, .scard, .mtile-link, .poster-link, .dcard, .acard, .card-link):focus-visible { outline-offset: 3px !important; }
+  :is(.tile, .fig, .scard, .mtile-link, .poster-link, .dcard, .acard, .card-link, .mcard, .fcard, .start-card, .tool-card, .feat-thumb, .iplayer):focus-visible { outline-offset: 3px !important; }
   /* controls on art, in players and in the theatre: black gap · paper ring · black band (ring vs black 18.3:1,
      black vs white art 21:1) — the one box-shadow focus may use, because it is a band, not the ring */
   :is(.ibtn-art, .play-art, .on-art-chip, .play-on-art, .pdisc[data-tone='chip']):focus-visible,
@@ -54,7 +54,7 @@
   :is([role='tablist'], [role='menu'], [role='menubar'], [role='listbox'], [role='tree'], [role='grid'], [data-focus-inset], .tabs, .anchor-nav, .overflow-auto, .overflow-y-auto, .overflow-x-auto, .tl-scroll, .dock-panel-body, .lyrics-scroll, .shell-nav) :focus-visible:not([tabindex='-1']),
   :is([data-focus-inset], .focus-inset, [role='tab'], [role='menuitem'], [role='menuitemradio'], [role='menuitemcheckbox'], [role='option'], [role='treeitem'], [role='row']):focus-visible:not([tabindex='-1']) { outline-offset: -2px !important; }
   :is([role='tablist'], [role='menu'], [role='listbox'], [role='tree'], [data-focus-inset], .tabs, .anchor-nav, .overflow-auto, .overflow-y-auto, .overflow-x-auto) :is([aria-pressed='true'], [aria-checked='true'], .on, .btn-primary, [data-paper]):focus-visible:not([tabindex='-1']),
-  :is([data-focus-inset], .focus-inset):is([aria-pressed='true'], [aria-checked='true'], .on, .btn-primary, [data-paper]):focus-visible { outline-color: var(--on-paper) !important; outline-offset: -4px !important; }
+  :is([data-focus-inset], .focus-inset):is([aria-pressed='true'], [aria-checked='true'], .on, .btn-primary, [data-paper]):focus-visible { outline-color: var(--on-primary) !important; outline-offset: -4px !important; }
   /* the skip link floats over the shell's own text: it keeps a band of the page around its ring */
   :is(.skip-link, .skip):focus-visible { box-shadow: 0 0 0 6px var(--page) !important; }
   /* a box that clips its content (rounded cards, a player in a card) still shows the ring of a control flush with its
@@ -62,7 +62,7 @@
      clipped, the margin lets the ring and its black band through) */
   :is(.overflow-hidden, .card, .poster-card, [data-clips]):has(:focus-visible) { overflow: clip !important; overflow-clip-margin: 8px !important; }
   /* a field: the paper ring around the whole search pill or field row while its input has focus (§5.10) */
-  :is(.search, [data-focus-within]):focus-within { outline: 2px solid var(--paper) !important; outline-offset: 2px !important; }
+  :is(.search, [data-focus-within]):focus-within { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
   :is(.search, [data-focus-within]) :is(input, textarea):focus-visible { outline-color: transparent !important; }
 
   /* ---- F3 · strips (§5.6; QA M15, M17, F3) ----------------------------------------------------------------
@@ -78,7 +78,7 @@
   :where(.grid, .flex, .inline-grid, .inline-flex, [data-grid]) > :has(:is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip)) { min-inline-size: 0 !important; }
   /* keyboard focus scrolls an item fully into view; snapping would pull a partly hidden item back, so it rests while
      the strip holds focus */
-  :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
+  :is(.scrolls, [data-strip], .rail-list, .shelf-track, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
   @media (pointer: coarse), (max-width: 1023px) {
     :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip) {
       scrollbar-width: thin !important; scrollbar-color: var(--carbon-8) transparent !important; padding-block-end: 12px !important;

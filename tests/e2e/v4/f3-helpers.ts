@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 // studio) — these specs must not change any record
 import { prepare } from '../../../scripts/lib/capture.mjs';
 
-export const KIT = '/kit-media';
+export const KIT = '/kit';
 
 /** Open the specimen route with every write refused locally, and wait for the specimens to be drawn. The
  *  dev server sometimes hands out the first snapshot late; like the capture harness, the page is opened again then. */

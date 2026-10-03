@@ -3,7 +3,7 @@ import { createElement as h, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { BackdropHero, DiptychHero, FigureHero, PlateHero, SleeveHero, TheatreHero } from '@/components/media/hero';
 import { Frame } from '@/components/media/Frame';
-import { FigureTile, KeyArtTile } from '@/components/media/tiles';
+import { FigureCard, MediaCard, MediaTile } from '@/components/media/Cards';
 import { PlayerProvider } from '@/components/players/PlayerProvider';
 
 /** DESIGN-SYSTEM-V4 §2.4, §5.3, §8.5 F3 acceptance: "Without presentation data, every hero renders neutral (test)".
@@ -79,16 +79,17 @@ describe('frames and tiles are neutral without data too', () => {
     expect(m).toContain('Night Tray');
     expect(m).toContain('No key art yet');
   });
-  it('tiles keep their menu outside the link (V4-09)', () => {
-    const m = html(h(KeyArtTile, { title: 'The Last Sip', href: '/shows/last-sip', src: '/x.svg', menu: h('button', { type: 'button' }, 'More') }));
+  it('a media tile is one link holding the frame and the name (§5.6); a media card sets its words on the picture', () => {
+    const m = html(h(MediaTile, { title: 'The Last Sip', href: '/shows/last-sip', src: '/x.svg', meta: ['Show', '2 seasons'] }));
     const link = /<a [^>]*class="mtile-link"[^>]*>([\s\S]*?)<\/a>/.exec(m)?.[1] ?? '';
     expect(link).toContain('The Last Sip');
-    expect(link).not.toContain('More');
-    expect(m).toContain('class="mtile-menu"');
+    expect(link).toContain('class="frame');
+    const c = html(h(MediaCard, { title: 'Paper Boats', href: '/shorts/x', src: '/x.svg', ratio: '2/3', meta: 'Short · 2:00' }));
+    expect(c).toContain('class="mcard-words"');
+    expect(c).toContain('aspect-ratio:2 / 3');
   });
-  it('a figure tile letterboxes on its edge colour and carries no tint', () => {
-    const m = html(h(FigureTile, { title: 'Hana', href: '/characters/hana', src: '/x.svg' }));
+  it('a figure card letterboxes on its edge colour and carries no tint', () => {
+    const m = html(h(FigureCard, { name: 'Hana', href: '/characters/hana', src: '/x.svg' }));
     expect(m).toContain('data-fit="contain"');
     expect(m).not.toMatch(/--art/);
-  });
-});
+  });});

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { prefersReducedMotion } from '@/components/players/prefs';
 
@@ -37,9 +36,9 @@ export function FilmStrip({ frames, variant = 'lobby', aspect = '16/9', current,
   };
   return (
     <div className={cls('fstrip', className)} data-variant={variant} data-aspect={aspect} dir="ltr">
-      <ul ref={list} className="fstrip-list" aria-label={label ?? T('media.strip.label')} onKeyDown={onKey}>
+      <ul ref={list} className="fstrip-list" aria-label={label ?? 'Shots in order'} onKeyDown={onKey}>
         {frames.map((f, i) => {
-          const name = f.src ? `${T.f('media.shot', { n: f.number })}${f.label ? `: ${f.label}` : ''}` : T.f('media.strip.noFrame', { n: f.number });
+          const name = f.src ? `${`Shot ${f.number}`}${f.label ? `: ${f.label}` : ''}` : `Shot ${f.number}, no frame yet`;
           const inner = f.src
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={f.src} alt="" loading="lazy" decoding="async" />

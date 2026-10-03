@@ -2,7 +2,7 @@
 
 import { DecisionCard, FeaturedCard, FigureCard, MediaCard, PosterCard, SleeveCard, StartCard } from '@/components/media/Cards';
 import { DecisionCardSkeleton, FeaturedCardSkeleton, FigureCardSkeleton, MediaCardSkeleton, PanelCardSkeleton, SectionHeadSkeleton, ShelfSkeleton, ToolCardSkeleton } from '@/components/media/Skeletons';
-import { PEOPLE, SHORTS, SHOWS, SONGS, PLACES, EPISODE } from '@/components/media/specimens/data';
+import { PEOPLE, SHORTS, SHOWS, SONGS, PLACES, EPISODE } from './data';
 import { useState } from 'react';
 import { PanelCard, SectionHead, ToolCard } from '../Cards';
 import { StateWord } from '../Status';

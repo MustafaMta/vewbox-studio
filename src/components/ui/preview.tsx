@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { Button, SampleMark, Thumb, cls } from './kit';
 import { RATIO, type Ratio } from './cinema';
 import { IconDelete, IconUpload } from './icons';
@@ -20,7 +19,7 @@ export function ImagePreview({ src, alt, ratio = 'portrait', fileName, width, he
   return (
     <figure className={cls('min-w-0', className)}>
       <div className="relative">
-        <Thumb src={src} alt={alt} ratio={RATIO[ratio]} contain unavailable={unavailable} className="border border-line" empty={T('preview.empty')} />
+        <Thumb src={src} alt={alt} ratio={RATIO[ratio]} contain unavailable={unavailable} className="border border-line" empty={'No picture yet'} />
         {sample && <SampleMark className="absolute start-2 top-2" />}
       </div>
       <figcaption className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
@@ -29,8 +28,8 @@ export function ImagePreview({ src, alt, ratio = 'portrait', fileName, width, he
         {caption && <span className="basis-full text-faint">{caption}</span>}
         {(onReplace || onRemove) && (
           <span className="flex basis-full items-center gap-2 pt-1">
-            {onReplace && <label className="btn btn-secondary btn-sm cursor-pointer" aria-busy={busy || undefined}><IconUpload aria-hidden />{T('char.ref.replace')}<input type="file" accept={accept} className="sr-only" aria-label={T('char.ref.replace')} onChange={(e) => { const f = e.target.files?.[0]; if (f) onReplace(f); e.target.value = ''; }} /></label>}
-            {onRemove && <Button size="sm" variant="quiet" icon={<IconDelete />} onClick={onRemove}>{T('btn.remove')}</Button>}
+            {onReplace && <label className="btn btn-secondary btn-sm cursor-pointer" aria-busy={busy || undefined}><IconUpload aria-hidden />Replace<input type="file" accept={accept} className="sr-only" aria-label={'Replace'} onChange={(e) => { const f = e.target.files?.[0]; if (f) onReplace(f); e.target.value = ''; }} /></label>}
+            {onRemove && <Button size="sm" variant="quiet" icon={<IconDelete />} onClick={onRemove}>Remove</Button>}
           </span>
         )}
       </figcaption>

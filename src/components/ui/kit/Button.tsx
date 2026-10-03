@@ -4,23 +4,21 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cls } from './cls';
 
-/** BUTTONS (docs/DESIGN-SYSTEM-V4.md §2.5, §4.5, §5): ivory `primary` for the region's one next action, `secondary`
- *  for the rest, `quiet` for text-like actions, `danger` (red text and edge) for what removes. `destructive` is the
- *  one filled red button in the system, used only to confirm inside a ConfirmDialog. `ghost` and `subtle` are the old
- *  names of `quiet`. Heights follow the density tokens (--control-h 40, compact 32; --control-h-sm 32, compact 28,
- *  40 on touch). */
+/** BUTTONS (docs/design/VISUAL-STANDARD-V5.1.md §5.3): filled pills, never outlined — `primary` (the light) for the
+ *  region's one next action, `secondary` for the rest, `quiet` for text-like actions, `danger` (red words) for what
+ *  removes; `destructive` is the one filled red button, used only to confirm inside a ConfirmDialog. `ghost` is the
+ *  old name of `quiet`. md 40 · sm 32 · lg 48 (44 on touch). */
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger' | 'destructive' | 'ok';
 export type ButtonSize = 'sm' | 'xs' | 'lg';
 
 export const variantClass = (v: ButtonVariant) => (v === 'ghost' || v === 'quiet' ? 'btn-quiet' : v === 'destructive' ? 'btn-danger-solid' : `btn-${v}`);
 
-/** `loading` keeps the button's width (the spinner takes the icon's place, or sits over a label-only button whose
- *  words stay in the accessible name), sets aria-busy and blocks a second press. */
+/** `loading`: a 14 px spinner takes the leading icon's place, or sits before the label; the label and the fill stay;
+ *  aria-busy, and a second press is blocked. */
 export function Button({ variant = 'secondary', size, icon, className = '', type = 'button', children, loading, disabled, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: ReactNode; loading?: boolean }) {
-  const overlay = loading && !icon && children != null;
   return (
     <button type={type} className={cls('btn', variantClass(variant), size && `btn-${size}`, children == null && 'btn-icon', className)} disabled={disabled || loading} aria-busy={loading || undefined} data-loading={loading || undefined} {...rest}>
-      {overlay ? <><Spinner className="btn-spinner" /><span className="btn-label-busy">{children}</span></> : <>{loading ? <Spinner /> : icon}{children}</>}
+      {loading ? <Spinner /> : icon}{children}
     </button>
   );
 }

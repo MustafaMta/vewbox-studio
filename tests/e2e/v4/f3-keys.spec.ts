@@ -4,21 +4,17 @@ import { openKit } from './f3-helpers';
 /** DESIGN-SYSTEM-V4 §1.2 rule 10, §5.6, §5.14, §5.20 (WCAG 2.5.7, 2.1.1): every drag has a button and a keyboard
  *  path, and a rail is one Tab stop. Read-only (the specimens keep their state in the page). */
 
-test('a rail is one Tab stop; the arrows move between its tiles', async ({ page }) => {
-  await openKit(page);
-  const rail = page.locator('#media .rail').first();
-  const stops = await rail.locator('.rail-list [tabindex="0"]').count();
-  expect(stops).toBe(1);
-  const first = rail.locator('.rail-item').nth(0).locator('[data-rail-item]');
-  await first.focus();
-  await page.keyboard.press('ArrowRight');
-  await expect(rail.locator('.rail-item').nth(1).locator('[data-rail-item]')).toBeFocused();
-  await page.keyboard.press('End');
-  await expect(rail.locator('.rail-item').last().locator('[data-rail-item]')).toBeFocused();
-  // the prev/next buttons are the pointer alternative to dragging the rail
-  await expect(rail.getByRole('button', { name: 'Next items' })).toBeVisible();
+test('a shelf pages with its prev/next buttons (the pointer alternative to dragging the row)', async ({ page }) => {
+  await openKit(page, '#media');
+  const shelf = page.locator('#media .shelf').first();
+  const track = shelf.locator('.shelf-track');
+  const next = shelf.getByRole('button', { name: /^Next/ });
+  await expect(next).toBeVisible();
+  await expect(shelf.getByRole('button', { name: /^Previous/ })).toBeDisabled();
+  const before = await track.evaluate((el) => el.scrollLeft);
+  await next.click();
+  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
 });
-
 test('the timeline: trim by ±1 frame buttons, the ruler and the clips by keyboard, zoom by buttons', async ({ page }) => {
   await openKit(page, '#edit');
   const tl = page.locator('#edit .tl');
