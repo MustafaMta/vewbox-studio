@@ -6,8 +6,11 @@ import { useT } from '@/components/ui/locale';
 import { Input, Segmented, Select } from '@/components/ui/kit';
 import { IconGrid, IconList, IconSearch } from '@/components/ui/icons';
 
-/** THE LIBRARY FRAME — a compact heading with the count and the one action, then a row with search, a filter or
- *  two, and the grid/list switch. Each library puts its own object inside. */
+/** THE LIBRARY FRAME — v4 replaces LibraryBar and its rows of selects with the kit's CatalogueBar (search, one
+ *  Filter popover with every facet, Sort, View, and the active filters as chips; docs/DESIGN-SYSTEM-V4.md §5.11,
+ *  V4-09), re-exported here so a catalogue page needs one import. LibraryHeader, LibraryBar, NoMatches and useView
+ *  are v3 and stay until their pages migrate (Q1 deletes them). */
+export { CatalogueBar, useCatalogueParams, parseFilters, serializeFilters, toggleFilter, activeFilterCount, type Facet, type Filters } from '@/components/ui/kit/CatalogueBar';
 
 export type View = 'grid' | 'list';
 
