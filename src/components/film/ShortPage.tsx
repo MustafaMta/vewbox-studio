@@ -6,13 +6,12 @@ import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { useLive, useProductionPipeline } from '@/studio/org';
 import { artVars } from '@/studio/presentation';
-import { Frame } from '@/components/media/Frame';
-import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { FigureCard, Frame, MediaTile } from '@/components/media';
+import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { IconChevronLeft, IconDownload, IconPlay } from '@/components/ui/icons';
 import { runtime } from '@/components/home/model';
 import { FilmPlayer, type FilmPlayerHandle } from './FilmPlayer';
 import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, type FilmPage, type StripScene, type StripShot } from './model';
-import { Head } from './parts';
 
 /** A SHORT'S TITLE PAGE (docs/DESIGN-SYSTEM-V5.md §8.5 under docs/design/VISUAL-STANDARD-V5.1.md) — the film presented
  *  as finished creative work, not a workspace:
@@ -80,7 +79,7 @@ export function ShortPage({ p }: { p: Production }) {
 function FilmHead({ film }: { film: FilmPage }) {
   return (
     <header className="film-head">
-      <Link className="home-link film-back" href="/shorts"><IconChevronLeft aria-hidden />Shorts</Link>
+      <Link className="shead-link film-back" href="/shorts"><IconChevronLeft aria-hidden />Shorts</Link>
       <div className="film-head-row">
         <div className="film-words">
           <p className="film-meta">
@@ -144,7 +143,7 @@ function Downloads({ items }: { items: ExportItem[] }) {
   for (const f of items[0]?.subtitles ?? []) subs.set(f.label, [...(subs.get(f.label) ?? []), f]);
   return (
     <section className="film-section" aria-labelledby="film-dl-h">
-      <Head id="film-dl-h" title="Downloads" description="The finished film and its subtitles, as the studio delivered them." />
+      <SectionHead id="film-dl-h" title="Downloads" description="The finished film and its subtitles, as the studio delivered them." />
       <ul className="film-files" role="list">
         {items.map((ex) => (
           <li key={ex.id} className="card film-file">
@@ -176,20 +175,10 @@ function Downloads({ items }: { items: ExportItem[] }) {
 function Story({ film }: { film: FilmPage }) {
   return (
     <section className="film-section" aria-labelledby="film-story-h">
-      <Head id="film-story-h" title="Story" link={{ href: productionTabHref(film.p, 'story'), label: 'Edit the story' }} />
+      <SectionHead id="film-story-h" title="Story" link={{ href: productionTabHref(film.p, 'story'), label: 'Edit the story' }} />
       <div className="film-story">
         {film.synopsis ? <p className="t-prose film-synopsis" dir="auto">{film.synopsis}</p> : <p className="t-body">No synopsis yet.</p>}
-        {film.facts.length > 0 && (
-          <dl className="card film-facts">
-            {film.facts.map((f) => (
-              <div key={f.label} className="film-fact">
-                <dt className="t-label">{f.label}</dt>
-                <dd className="film-fact-value">{f.value}</dd>
-                {f.sub && <dd className="t-meta film-fact-sub">{f.sub}</dd>}
-              </div>
-            ))}
-          </dl>
-        )}
+        {film.facts.length > 0 && <PanelCard className="film-facts" columns={2} facts={film.facts.map((f) => ({ label: f.label, value: f.value, sub: f.sub }))} />}
       </div>
     </section>
   );
@@ -201,24 +190,16 @@ function CastAndPlaces({ film }: { film: FilmPage }) {
   const title = film.cast.length && film.places.length ? 'Cast and locations' : film.cast.length ? 'Cast' : 'Locations';
   return (
     <section className="film-section" aria-labelledby="film-cast-h">
-      <Head id="film-cast-h" title={title} link={{ href: productionTabHref(film.p, film.cast.length ? 'characters' : 'locations'), label: 'Edit in production' }} />
+      <SectionHead id="film-cast-h" title={title} link={{ href: productionTabHref(film.p, film.cast.length ? 'characters' : 'locations'), label: 'Edit in production' }} />
       <ul className="film-cast" role="list">
         {film.cast.map((c) => (
           <li key={c.id} className="film-person">
-            <Link className="film-tile" href={c.href} title={c.name}>
-              <Frame asset={c.asset} src={c.src} ratio="928/1664" fit="contain" alt="" art={artVars(c.asset)} title={c.name} titleLang={c.lang} titleState="noImage" decorative className="film-figure" />
-              <span className="t-card name film-tile-name"><bdi lang={c.lang}>{c.name}</bdi></span>
-              <span className="t-meta film-tile-line">{c.line}</span>
-            </Link>
+            <FigureCard href={c.href} asset={c.asset} src={c.src} name={c.name} nameLang={c.lang} badge={<span className="t-meta">{c.line}</span>} />
           </li>
         ))}
         {film.places.map((l) => (
           <li key={l.id} className="film-place">
-            <Link className="film-tile" href={l.href} title={l.name}>
-              <Frame asset={l.asset} src={l.src} ratio="16/9" fit="cover" alt="" art={artVars(l.asset)} title={l.name} titleLang={l.lang} titleState="noImage" decorative className="film-plate" />
-              <span className="t-card name film-tile-name"><bdi lang={l.lang}>{l.name}</bdi></span>
-              <span className="t-meta film-tile-line">{l.line}</span>
-            </Link>
+            <MediaTile href={l.href} asset={l.asset} src={l.src} title={l.name} titleLang={l.lang} ratio="16/9" meta={[l.line]} />
           </li>
         ))}
       </ul>
@@ -239,7 +220,7 @@ function Credits({ p }: { p: Production }) {
   if (!credits && (pipeline.error || org.error)) return null;
   return (
     <section className="film-section" aria-labelledby="film-credits-h" aria-busy={credits ? undefined : true}>
-      <Head id="film-credits-h" title="Credits" link={{ href: '/studio', label: 'Studio Company' }} />
+      <SectionHead id="film-credits-h" title="Credits" link={{ href: '/studio', label: 'Studio Company' }} />
       {credits ? (
         <dl className="film-credits">
           {credits.map((c) => (
@@ -273,7 +254,7 @@ export function ShortSkeleton() {
   return (
     <SkeletonRegion label="Opening the film…" className="film film-skeleton">
       <div className="film-head">
-        <span className="home-link film-back"><Skeleton.Line width="4rem" /></span>
+        <span className="shead-link film-back"><Skeleton.Line width="4rem" /></span>
         <div className="film-head-row">
           <div className="film-words">
             <div className="film-meta"><Skeleton.Block width={64} height={22} radius="pill" /><Skeleton.Line width="18rem" /></div>

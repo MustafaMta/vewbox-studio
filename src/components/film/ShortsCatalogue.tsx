@@ -4,11 +4,12 @@ import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { ShortCard } from '@/components/library/ShortCard';
-import { shortsCatalogue, type PosterCard } from './model';
-import { NewShortButton, StartPosterCard } from './parts';
+import { MediaCardSkeleton, StartCard } from '@/components/media';
+import { NEW_SHORT, shortsCatalogue, type PosterCard } from './model';
+import { NewShortButton } from './parts';
 
 /** SHORTS — the catalogue of single films (docs/DESIGN-SYSTEM-V5.md §8.4 under docs/design/VISUAL-STANDARD-V5.1.md):
- *  the page title with the count and one line, New short as the page's primary (split: let the studio propose, or
+ *  the page title and one line, New short as the page's primary (split: let the studio propose, or
  *  write it yourself), then the films as cinematic 2:3 posters — five across on a desktop, three on a tablet, two on a
  *  phone — each with its runtime (from the cut) and where it stands; a finished film opens in the Screening Room in one
  *  click. The grid ends with a start card in the poster's own shape; an empty studio shows only that card. Filters
@@ -46,7 +47,7 @@ export function ShortsCatalogue() {
       )}
       <ul className="shorts-grid" role="list" aria-label="Short films">
         {shown.map((c, i) => <li key={c.id}><ShortCard card={c} priority={i < 10} /></li>)}
-        {filter !== 'finished' && <li><StartPosterCard title={cards.length ? 'New short' : 'Your first short'} line={cards.length ? 'Your next film' : 'A line is enough to start'} /></li>}
+        {filter !== 'finished' && <li><StartCard href={NEW_SHORT.auto} ratio="2/3" title={cards.length ? 'New short' : 'Your first short'} line={cards.length ? 'Your next film' : 'A line is enough to start'} /></li>}
       </ul>
     </div>
   );
@@ -64,7 +65,7 @@ export function ShortsSkeleton() {
         <Skeleton.Block width={152} height={40} radius="pill" />
       </div>
       <div className="shorts-grid">
-        {Array.from({ length: 10 }, (_, i) => <div key={i}><Skeleton.Media ratio="2/3" className="short-skel" /></div>)}
+        {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="2/3" /></div>)}
       </div>
     </SkeletonRegion>
   );

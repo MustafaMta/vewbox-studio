@@ -84,11 +84,6 @@
 
   .film-story { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: start; }
   .film-synopsis { margin: 0; }
-  .film-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; margin: 0; padding: 20px; }
-  .film-fact { display: flex; flex-direction: column; min-inline-size: 0; }
-  .film-fact > dd { margin: 0; }
-  .film-fact-value { margin-block-start: 4px !important; }
-  .film-fact-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* the cast as standing figures, then the locations' plates at the figures' height; one row that scrolls */
   .film-cast { --fig-w: 168px; --fig-h: calc(var(--fig-w) * 1664 / 928); display: flex; gap: 12px; margin: -4px; padding: 4px; list-style: none; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
@@ -96,11 +91,6 @@
   .film-cast > li { flex: none; scroll-snap-align: start; }
   .film-person { inline-size: var(--fig-w); }
   .film-place { inline-size: calc(var(--fig-h) * 16 / 9); }
-  .film-tile { display: flex; flex-direction: column; border-radius: var(--r-md); color: var(--text-1); text-decoration: none; }
-  .film-tile:focus-visible { outline-offset: 3px; }
-  .film-figure, .film-plate { inline-size: 100%; }
-  .film-tile-name { margin-block-start: 12px; }
-  .film-tile-line { margin-block-start: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .film-credits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 16px; margin: 0; }
   .film-credit { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
@@ -140,7 +130,6 @@
     .film-strip-shots > * { min-inline-size: 72px; }
     .film-transport { gap: 4px; padding-inline: 8px; }
     .film-files { grid-template-columns: minmax(0, 1fr); }
-    .film-facts { padding: 16px; }
     .film-cast { --fig-w: 136px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
     .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   }
