@@ -101,17 +101,18 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 7)', () => {
+describe('the studio organisation (ORG_VERSION 8)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
-    expect(ORG_VERSION).toBe(7);
+    expect(ORG_VERSION).toBe(8);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
     const directors = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.directorId]));
     expect(directors).toEqual({ EXECUTIVE: 'executive-producer', STORY: 'head-of-story', CASTING: 'casting-director', WORLD: 'art-director', PREPRODUCTION: 'film-director', VIDEO: 'minimax-video-specialist', SOUND: 'dialogue-director', POST: 'video-editor', QA: 'quality-director' });
     for (const d of DEPARTMENTS) expect(AGENTS.find((a) => a.id === d.directorId)!.department, `${d.id} director`).toBe(d.id);
-    // 30 since World Continuity was staffed (the World Bible: sync, pin, per-take read, established frames)
-    expect(AGENTS).toHaveLength(30);
+    // 35: World Continuity staffed (the World Bible: sync, pin, per-take read, established frames) and v8's five
+    // research-driven Auto Idea development agents in Story Development
+    expect(AGENTS).toHaveLength(35);
     expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations']);
   });
 
@@ -125,6 +126,11 @@ describe('the studio organisation (ORG_VERSION 7)', () => {
     expect(agentIdForJob({ type: 'PLAN_SHOTS', payload: {} })).toBe('film-director');
     expect(agentIdForJob({ type: 'VOICE_PREVIEW', payload: {} })).toBe('voice-casting');
     expect(agentIdForJob({ type: 'MEDIA_PROBE', payload: {} })).toBe('technical-media-inspector');
+    // the review of an Auto Idea draft: the Story Editor, or the Audience Experience Agent when the payload says so
+    expect(agentIdForJob({ type: 'IDEA_REVIEW', payload: { reviewer: 'STORY_EDITOR' } })).toBe('story-editor');
+    expect(agentIdForJob({ type: 'IDEA_REVIEW', payload: { reviewer: 'AUDIENCE_EXPERIENCE', audienceExperience: true } })).toBe('audience-experience');
+    expect(agentIdForJob({ type: 'IDEA_WRITE', payload: {} })).toBe('screenwriter');
+    expect(agentIdForJob({ type: 'IDEA_RESEARCH', payload: {} })).toBe('trend-research');
   });
 
   it('every declared step is invoked by step(ctx, <agent>, <step>…) in its file — or listed as pending in a file another engineer owns', () => {
@@ -185,7 +191,8 @@ describe('the studio organisation (ORG_VERSION 7)', () => {
   });
 
   it('planned roles are listed, explained, in Arabic too, and never staffed', () => {
-    expect(PLANNED_ROLES).toHaveLength(21);
+    // 19: World Continuity, Creative Research (now the Trend Research Agent) and the Story Editor are staffed
+    expect(PLANNED_ROLES).toHaveLength(19);
     expect(PLANNED_ROLES.some((r) => r.id === 'world-continuity')).toBe(false);
     const ids = new Set(AGENTS.map((a) => a.id));
     for (const r of PLANNED_ROLES) {
@@ -235,8 +242,9 @@ describe('skills', () => {
     expect(got).toEqual({
       'h3-prompting': 'VERIFIED', 'audio-first-dialogue': 'VERIFIED', 'iraqi-dialogue': 'VERIFIED', 'shot-planning': 'VERIFIED', screenwriting: 'VERIFIED', 'character-design': 'VERIFIED', 'voice-identity': 'VERIFIED',
       'world-continuity': 'VERIFIED', 'singing-performance': 'VERIFIED', 'audio-mix-policy': 'VERIFIED', 'take-inspection': 'VERIFIED', 'minimax-multimodal-toolkit': 'UNAVAILABLE', 'minimax-music-gen': 'UNAVAILABLE',
+      'trend-research': 'VERIFIED', 'audience-analysis': 'VERIFIED', 'creative-concepts': 'VERIFIED', 'story-formats': 'VERIFIED', 'story-review': 'VERIFIED', 'audience-experience-review': 'VERIFIED',
     });
-    expect(SKILLS.filter((s) => s.kind === 'PROMPT').map((s) => s.id).sort()).toEqual(['character-design', 'screenwriting', 'shot-planning']);
+    expect(SKILLS.filter((s) => s.kind === 'PROMPT').map((s) => s.id).sort()).toEqual(['audience-analysis', 'audience-experience-review', 'character-design', 'creative-concepts', 'screenwriting', 'shot-planning', 'story-review']);
     for (const s of SKILLS.filter((x) => x.kind === 'PROMPT')) expect(skillEvidence(s, fileExists).injectedInto.length, `${s.id} is injected nowhere`).toBeGreaterThan(0);
     expect(status(SKILLS.find((s) => s.id === 'minimax-music-gen')!).reason).toMatch(/MINIMAX_API_KEY/);
   });
@@ -256,7 +264,9 @@ describe('skills', () => {
   });
 
   it('only the agents that call the model receive instructions and skills', () => {
-    expect(AGENTS.filter(callsModel).map((a) => a.id).sort()).toEqual(['casting-director', 'continuity-writer', 'film-director', 'head-of-story', 'screenwriter', 'singing-performance']);
+    expect(AGENTS.filter(callsModel).map((a) => a.id).sort()).toEqual(['audience-experience', 'audience-research', 'casting-director', 'continuity-writer', 'creative-concept', 'film-director', 'head-of-story', 'screenwriter', 'singing-performance', 'story-editor']);
+    // the Trend Research Agent calls no model: its instructions document the rules its code applies
+    expect(callsModel(AGENTS.find((a) => a.id === 'trend-research')!)).toBe(false);
   });
 });
 

@@ -39,7 +39,8 @@ export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> 
 export { step } from './step';
 
 import { mediaProbe } from './media-probe';
-import { autoIdea, designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';
+import { designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';
+import { autoIdea, ideaAudience, ideaConcepts, ideaResearch, ideaReview, ideaWrite } from './development';
 import { generateTake } from './take';
 import { characterAppearance, characterRefs, locationPlates, shotFrames } from './images';
 import { voiceBuild, voicePreview, dialogueAudio } from './voice';
@@ -60,4 +61,6 @@ export const HANDLERS: Partial<Record<JobType, Handler>> = {
   ASSEMBLE: assemble, EXPORT: exportCut,
   PRODUCE: produce,
   EPISODE_CONTINUITY: episodeContinuity, DESIGN_CHARACTER: designCharacter,
+  // the research-driven Auto Idea's stages (AUTO_IDEA orchestrates them as child jobs)
+  IDEA_RESEARCH: ideaResearch, IDEA_AUDIENCE: ideaAudience, IDEA_CONCEPTS: ideaConcepts, IDEA_WRITE: ideaWrite, IDEA_REVIEW: ideaReview,
 };
