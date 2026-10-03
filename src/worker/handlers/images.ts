@@ -532,7 +532,8 @@ async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: 
   }
 }
 
-export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string> {
+/** Draws a shot's opening (or ending) frame; an ending frame that still holds the wrong people is not kept (undefined). */
+export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string | undefined> {
   const world = await frameWorld(ctx, studio, p, sh);
   const state = world.state;
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
@@ -562,7 +563,14 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
     else await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${r.id}) holds ${counted} people where the shot has ${expected}; drawing it once more`, { shotId: sh.id, assetId: r.id, expected, counted });
     await ctx.checkpoint();
   }
-  if (expected !== undefined && counted !== undefined && counted !== expected) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+  const wrong = expected !== undefined && counted !== undefined && counted !== expected;
+  // an ending frame is optional and a take is guided towards it: a wrong one is left out rather than filmed towards
+  if (wrong && opts.ending) {
+    await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ending frame still holds ${counted} people where the shot has ${expected} (${kept!.id}); the shot keeps no ending frame`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+    await command('setShotFrames', [p.id, sh.id, { endingFrameAssetId: undefined }], 'worker');
+    return undefined;
+  }
+  if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
 }
