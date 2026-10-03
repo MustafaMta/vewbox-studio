@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls, Menu, MenuItem, Segmented } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight, IconClose, IconReplay } from '@/components/ui/icons';
 import { useShortcutScope } from '@/components/players/useShortcutScope';
@@ -9,7 +8,7 @@ import { useFocusMode } from './FocusMode';
 import { useMediaQuery } from './useMediaQuery';
 
 /** THE DOCK LAYOUT (docs/DESIGN-SYSTEM-V4.md §4.1, §5.20, §6.6) — the cutting room's panes:
- *    ≥ 1280   [list 280] | [canvas 1fr] | [inspector 320], two splitters
+ *    ≥ 1280   [list 280] | [canvas 1fr] | [inspector 360], two splitters
  *    1024–1279  canvas | inspector; the list is a start drawer
  *    768–1023   the canvas alone; the list is a start drawer and the inspector an end drawer, opened from labelled buttons
  *    < 768      one pane; a segmented control switches List · Canvas · Details
@@ -20,7 +19,7 @@ import { useMediaQuery } from './useMediaQuery';
 
 export interface DockPanel { title: string; content: ReactNode }
 interface Layout { list: number; inspector: number; listCollapsed: boolean; inspectorCollapsed: boolean }
-const DEFAULT: Layout = { list: 280, inspector: 320, listCollapsed: false, inspectorCollapsed: false };
+const DEFAULT: Layout = { list: 280, inspector: 360, listCollapsed: false, inspectorCollapsed: false };
 const BOUNDS = { list: [200, 480], inspector: [260, 520] } as const;
 const keyOf = (id: string) => `vewbox.dock.${id}`;
 function load(id: string): Layout { try { return { ...DEFAULT, ...(JSON.parse(localStorage.getItem(keyOf(id)) ?? '{}') as Partial<Layout>) }; } catch { return DEFAULT; } }
@@ -35,7 +34,7 @@ export function Panel({ title, onCollapse, actions, children, className, collaps
       <header className="dock-panel-head">
         <h2 id={`${id}-h`} className="dock-panel-title">{title}</h2>
         {actions}
-        {onCollapse && <button type="button" className="ebtn ebtn-icon" aria-label={collapseLabel ?? T.f('media.dock.collapse', { panel: title })} onClick={onCollapse}><IconChevronLeft aria-hidden className="dock-collapse-glyph" /></button>}
+        {onCollapse && <button type="button" className="ebtn ebtn-icon" aria-label={collapseLabel ?? `Collapse ${title}`} onClick={onCollapse}><IconChevronLeft aria-hidden className="dock-collapse-glyph" /></button>}
       </header>
       <div className="dock-panel-body">{children}</div>
     </section>
@@ -54,7 +53,7 @@ function Splitter({ panel, title, width, onWidth, onToggle }: { panel: 'list' | 
     else if (e.key === 'Enter') { e.preventDefault(); onToggle(); }
   };
   return (
-    <div className="dock-split" role="separator" aria-orientation="vertical" tabIndex={0} aria-label={T.f('media.dock.resize', { panel: title })}
+    <div className="dock-split" role="separator" aria-orientation="vertical" tabIndex={0} aria-label={`Resize ${title}`}
       aria-valuenow={width} aria-valuemin={BOUNDS[panel][0]} aria-valuemax={BOUNDS[panel][1]} onKeyDown={onKey}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, w: width }; }}
       onPointerMove={(e) => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x; onWidth(clampW(panel, d.w + dx * g)); }}
@@ -70,7 +69,7 @@ function Drawer({ side, title, open, onClose, children }: { side: 'start' | 'end
       <div className="dock-drawer-inner">
         <header className="dock-panel-head">
           <h2 className="dock-panel-title">{title}</h2>
-          <button type="button" className="ebtn ebtn-icon" aria-label={T.f('media.dock.close', { panel: title })} onClick={onClose}><IconClose aria-hidden /></button>
+          <button type="button" className="ebtn ebtn-icon" aria-label={`Close ${title}`} onClick={onClose}><IconClose aria-hidden /></button>
         </header>
         <div className="dock-panel-body">{open && children}</div>
       </div>
@@ -100,26 +99,26 @@ export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, t
   if (inspOn) cols.push('8px', l.inspectorCollapsed ? '40px' : `${l.inspector}px`);
 
   const collapsedRail = (k: 'list' | 'inspector', p: DockPanel) => (
-    <div className="dock-rail"><button type="button" className="ebtn ebtn-icon" aria-label={T.f('media.dock.expand', { panel: p.title })} onClick={() => update(k === 'list' ? { listCollapsed: false } : { inspectorCollapsed: false })}>{k === 'list' ? <IconChevronRight aria-hidden /> : <IconChevronLeft aria-hidden />}</button></div>
+    <div className="dock-rail"><button type="button" className="ebtn ebtn-icon" aria-label={`Expand ${p.title}`} onClick={() => update(k === 'list' ? { listCollapsed: false } : { inspectorCollapsed: false })}>{k === 'list' ? <IconChevronRight aria-hidden /> : <IconChevronLeft aria-hidden />}</button></div>
   );
 
   return (
     <div className={cls('dock', className)} data-mode={mode} data-focus-mode={focus.on ? 'on' : 'off'} onKeyDown={keys}>
       <div className="dock-bar">
         {mode === 'single' ? (
-          <Segmented<typeof pane> value={pane} onChange={setPane} label={T('media.dock.panes')} className="dock-panes"
+          <Segmented<typeof pane> value={pane} onChange={setPane} label={'Show'} className="dock-panes"
             options={([list && ['list', list.title], ['canvas', canvasTitle], inspector && ['inspector', inspector.title]].filter(Boolean) as Array<[typeof pane, string]>).map(([value, label]) => ({ value, label }))} />
         ) : (
           <>
-            {list && (mode === 'two' || mode === 'drawers') && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('list')}><IconChevronRight aria-hidden />{T.f('media.dock.open', { panel: list.title })}</button>}
-            {inspector && mode === 'drawers' && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('inspector')}>{T.f('media.dock.open', { panel: inspector.title })}<IconChevronLeft aria-hidden /></button>}
+            {list && (mode === 'two' || mode === 'drawers') && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('list')}><IconChevronRight aria-hidden />{`Open ${list.title}`}</button>}
+            {inspector && mode === 'drawers' && !focus.on && <button type="button" className="ebtn" onClick={() => setDrawer('inspector')}>{`Open ${inspector.title}`}<IconChevronLeft aria-hidden /></button>}
           </>
         )}
         <span className="prow-spacer" />
         {tools}
         {(mode === 'three' || mode === 'two') && (
-          <Menu label={`${T('media.dock.layout')}: ${T('nav.more')}`}>
-            <MenuItem icon={<IconReplay />} onClick={reset}>{T('media.dock.reset')}</MenuItem>
+          <Menu label={`${'Layout'}: ${'More'}`}>
+            <MenuItem icon={<IconReplay />} onClick={reset}>Reset layout</MenuItem>
           </Menu>
         )}
       </div>

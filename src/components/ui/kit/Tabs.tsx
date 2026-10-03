@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from './cls';
 import { rovingIndex, rovingStep } from './focus';
 import { useRootVarContribution } from './layout';
@@ -98,7 +97,7 @@ export function AnchorNav({ items, label, className = '', sticky = true }: { ite
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return (
-    <nav ref={nav} aria-label={label ?? T('kit.onThisPage')} className={cls('anchor-nav', sticky && 'anchor-nav-sticky', className)}>
+    <nav ref={nav} aria-label={label ?? 'On this page'} className={cls('anchor-nav', sticky && 'anchor-nav-sticky', className)}>
       <ul>
         {items.map((it) => <li key={it.id}><a href={`#${it.id}`} className="anchor-link" aria-current={current === it.id ? 'true' : undefined} onClick={() => setCurrent(it.id)}>{it.label}</a></li>)}
       </ul>
@@ -117,13 +116,13 @@ export function Crumbs({ items, className = '' }: { items: ReadonlyArray<{ href?
   );
   const middle = items.slice(1, -1);
   return (
-    <nav aria-label={T('v3.breadcrumb')} className={cls('crumbs', className)}>
+    <nav aria-label={'Breadcrumb'} className={cls('crumbs', className)}>
       <ol className={cls('crumbs-full', middle.length > 0 && 'crumbs-collapsible')}>{items.map(item)}</ol>
       {middle.length > 0 && (
         <ol className="crumbs-short">
           {item(items[0], 0)}
           <li>
-            <MenuButton label={T('kit.crumbs.more')} iconOnly variant="quiet" size="xs" align="start">
+            <MenuButton label={'The rest of the path'} iconOnly variant="quiet" size="xs" align="start">
               {middle.map((m, i) => (m.href ? <MenuLink key={i} href={m.href}>{m.label}</MenuLink> : null))}
             </MenuButton>
           </li>

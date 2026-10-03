@@ -60,29 +60,29 @@ export function buildEntries(x: PaletteInput): PaletteEntry[] {
   const go = (href: string): PaletteAction => ({ type: 'go', href });
 
   // ---- Go to ----------------------------------------------------------------------------------------------------
-  for (const n of NAV_ITEMS) out.push({ id: `page:${n.href}`, group: 'goto', kind: T('shell.palette.kind.page'), name: n.label, action: go(n.href) });
-  for (const s of state.shows) out.push({ id: `show:${s.id}`, group: 'goto', kind: T('kind.SHOW'), name: s.title, alt: s.titleAr, action: go(`/shows/${encodeURIComponent(s.id)}`) });
+  for (const n of NAV_ITEMS) out.push({ id: `page:${n.href}`, group: 'goto', kind: 'Page', name: n.label, action: go(n.href) });
+  for (const s of state.shows) out.push({ id: `show:${s.id}`, group: 'goto', kind: 'Show', name: s.title, alt: s.titleAr, action: go(`/shows/${encodeURIComponent(s.id)}`) });
   for (const p of state.productions) {
     const title = p.kind === 'MUSIC_VIDEO' ? (p.song?.title || p.title) : p.title;
     const name = title;
     const alt = p.titleAr;
     if (p.kind === 'EPISODE') {
       const show = state.shows.find((s) => s.id === p.showId);
-      const detail = [show ? show.title : null, p.episodeNumber != null ? fill(T('shell.title.episode'), { n: p.episodeNumber }) : null].filter(Boolean).join(' · ');
-      out.push({ id: `episode:${p.id}`, group: 'goto', kind: T('kind.EPISODE'), name, detail: detail || undefined, alt, words: show ? `${show.title} ${show.titleAr ?? ''}` : undefined, action: go(productionHref(p)) });
+      const detail = [show ? show.title : null, p.episodeNumber != null ? fill('Episode {n}', { n: p.episodeNumber }) : null].filter(Boolean).join(' · ');
+      out.push({ id: `episode:${p.id}`, group: 'goto', kind: 'Episode', name, detail: detail || undefined, alt, words: show ? `${show.title} ${show.titleAr ?? ''}` : undefined, action: go(productionHref(p)) });
     } else {
       out.push({ id: `${p.kind === 'MUSIC_VIDEO' ? 'music-video' : 'short'}:${p.id}`, group: 'goto', kind: T(p.kind === 'MUSIC_VIDEO' ? 'kind.MUSIC_VIDEO' : 'kind.SHORT'), name, alt, action: go(productionHref(p)) });
     }
   }
-  for (const c of state.characters) out.push({ id: `character:${c.id}`, group: 'goto', kind: T('shell.palette.kind.character'), name: c.name, alt: c.nameAr, action: go(`/characters/${encodeURIComponent(c.id)}`) });
-  for (const l of state.locations) out.push({ id: `location:${l.id}`, group: 'goto', kind: T('shell.palette.kind.location'), name: l.name, alt: l.nameAr, action: go(`/locations/${encodeURIComponent(l.id)}`) });
-  for (const d of x.departments) out.push({ id: `department:${d.id}`, group: 'goto', kind: T('shell.palette.kind.department'), name: d.name, action: go(`/studio/departments/${encodeURIComponent(d.id)}`) });
+  for (const c of state.characters) out.push({ id: `character:${c.id}`, group: 'goto', kind: 'Character', name: c.name, alt: c.nameAr, action: go(`/characters/${encodeURIComponent(c.id)}`) });
+  for (const l of state.locations) out.push({ id: `location:${l.id}`, group: 'goto', kind: 'Location', name: l.name, alt: l.nameAr, action: go(`/locations/${encodeURIComponent(l.id)}`) });
+  for (const d of x.departments) out.push({ id: `department:${d.id}`, group: 'goto', kind: 'Department', name: d.name, action: go(`/studio/departments/${encodeURIComponent(d.id)}`) });
 
   // ---- Create: each start with its method (§7.6) --------------------------------------------------------------------
   const methods = (id: string, kind: Key, path: string, query: Record<string, string>, detail?: string) => {
     for (const [m, label] of [['auto', 'shell.palette.propose'], ['manual', 'shell.palette.write']] as const) {
       const q = new URLSearchParams({ ...query, method: m }).toString();
-      out.push({ id: `new:${id}:${m}`, group: 'create', kind: T(kind), name: T(label), detail, words: T('nav.new'), action: go(`${path}?${q}`) });
+      out.push({ id: `new:${id}:${m}`, group: 'create', kind: T(kind), name: T(label), detail, words: 'New…', action: go(`${path}?${q}`) });
     }
   };
   const show = x.currentShowId ? state.shows.find((s) => s.id === x.currentShowId) : undefined;
@@ -93,31 +93,31 @@ export function buildEntries(x: PaletteInput): PaletteEntry[] {
   methods('short', 'shell.palette.new.short', '/new/short', {});
   methods('music-video', 'shell.palette.new.musicVideo', '/new/music-video', {});
   // a character starts from words, a written sheet or a picture (the three real starts of /characters/new)
-  for (const s of ['describe', 'sheet', 'picture'] as const) out.push({ id: `new:character:${s}`, group: 'create', kind: T('shell.palette.new.character'), name: T(`cast.start.${s}`), words: T('nav.new'), action: go(`/characters/new?start=${s}`) });
-  out.push({ id: 'new:location', group: 'create', kind: T('shell.palette.new.location'), name: T('shell.palette.describePlace'), words: T('nav.new'), action: go('/locations/new') });
+  for (const s of ['describe', 'sheet', 'picture'] as const) out.push({ id: `new:character:${s}`, group: 'create', kind: 'New character', name: T(`cast.start.${s}`), words: 'New…', action: go(`/characters/new?start=${s}`) });
+  out.push({ id: 'new:location', group: 'create', kind: 'New location', name: 'Describe the place', words: 'New…', action: go('/locations/new') });
 
   // ---- Decide: it opens the card; nothing is approved from here ------------------------------------------------------
   for (const d of x.decisions) {
     if (d.kind === 'stage') {
       const stage = T.dyn(`pipeline.${d.subject.stage}`, d.subject.stage ?? '');
-      out.push({ id: `decide:${d.id}`, group: 'decide', kind: T('shell.palette.kind.approve'), name: fill(T('shell.palette.decide.stage'), { stage, title: d.title }), alt: d.titleAr, action: go(d.href) });
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: 'Approve', name: fill('{stage} of {title}', { stage, title: d.title }), alt: d.titleAr, action: go(d.href) });
     } else if (d.kind === 'image' || d.kind === 'character') {
-      out.push({ id: `decide:${d.id}`, group: 'decide', kind: T('shell.palette.kind.approve'), name: fill(T('shell.palette.decide.image'), { name: d.title }), alt: d.titleAr, action: go(d.href) });
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: 'Approve', name: fill('Picture of {name}', { name: d.title }), alt: d.titleAr, action: go(d.href) });
     } else {
       // lines to hear again, a take with a review verdict, a parked production pass: reviewed where it lives
       const n = String(d.lines?.length ?? 0);
-      out.push({ id: `decide:${d.id}`, group: 'decide', kind: T('shell.palette.kind.review'), name: fill(T(d.kind === 'lines' && d.lines?.length === 1 ? 'shell.palette.decide.line' : `shell.palette.decide.${d.kind}`), { title: d.title, n }), alt: d.titleAr, action: go(d.href) });
+      out.push({ id: `decide:${d.id}`, group: 'decide', kind: 'Review', name: fill(T(d.kind === 'lines' && d.lines?.length === 1 ? 'shell.palette.decide.line' : `shell.palette.decide.${d.kind}`), { title: d.title, n }), alt: d.titleAr, action: go(d.href) });
     }
   }
 
   // ---- Settings ------------------------------------------------------------------------------------------------------
-  const set = T('shell.palette.kind.setting');
+  const set = 'Setting';
   out.push(x.prefs.contrastMore
-    ? { id: 'setting:contrast', group: 'settings', kind: set, name: T('shell.palette.contrastStandard'), action: { type: 'contrast', value: 'standard' } }
-    : { id: 'setting:contrast', group: 'settings', kind: set, name: T('shell.palette.contrastMore'), action: { type: 'contrast', value: 'more' } });
+    ? { id: 'setting:contrast', group: 'settings', kind: set, name: 'Contrast: Standard', action: { type: 'contrast', value: 'standard' } }
+    : { id: 'setting:contrast', group: 'settings', kind: set, name: 'Contrast: More', action: { type: 'contrast', value: 'more' } });
   out.push({ id: 'setting:motion', group: 'settings', kind: set, name: T(x.prefs.reducedMotion ? 'shell.palette.motionOff' : 'shell.palette.motionOn'), action: { type: 'motion', value: !x.prefs.reducedMotion } });
   out.push({ id: 'setting:keys', group: 'settings', kind: set, name: T(x.prefs.singleKeys ? 'shell.palette.keysOff' : 'shell.palette.keysOn'), action: { type: 'keys', value: !x.prefs.singleKeys } });
-  out.push({ id: 'setting:sheet', group: 'settings', kind: set, name: T('shell.help'), words: '? keyboard', action: { type: 'sheet' } });
+  out.push({ id: 'setting:sheet', group: 'settings', kind: set, name: 'Help & shortcuts', words: '? keyboard', action: { type: 'sheet' } });
   return out;
 }
 

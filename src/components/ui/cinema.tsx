@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from './kit';
 import { IconChevronLeft } from './icons';
 
@@ -18,9 +17,9 @@ export function Art({ src, alt = '', ratio = 'poster', title, sample, className 
   const r = (RATIO as Record<string, string>)[ratio] ?? ratio;
   return (
     <div className={cls('poster', r, className)}>
-      {unavailable ? <div className="poster-text absolute inset-0 items-center justify-center text-center text-sm !font-sans !font-medium">{T('media.unavailable')}</div>
+      {unavailable ? <div className="poster-text absolute inset-0 items-center justify-center text-center text-sm !font-sans !font-medium">File not available</div>
         : src ? <img src={src} alt={alt} loading="lazy" decoding="async" className={cls('absolute inset-0', top && 'object-top')} />
-        : <div className="poster-text absolute inset-0" aria-hidden><span dir="auto" className="line-clamp-4">{title ?? T('misc.noArtwork')}</span></div>}
+        : <div className="poster-text absolute inset-0" aria-hidden><span dir="auto" className="line-clamp-4">{title ?? 'No artwork yet'}</span></div>}
       {children}
     </div>
   );

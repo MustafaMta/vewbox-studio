@@ -18,6 +18,19 @@ import { useMediaQuery, useRootVarContribution } from './layout';
  *    row under it.
  *  While shown it adds 48 px to --sticky-extra (92 px when tabs stick under it), so scroll-padding keeps focused
  *  elements clear (2.4.11), and sets --sticky-header so a sticky TabBar parks under it. */
+/** The header's 32 px thumbnail in the content's own shape: key art 57 × 32, poster 21 × 32, sleeve 32 × 32, figure 18 × 32,
+ *  plate 57 × 32. Decorative: the title names it. */
+const THUMB = { keyart: '57 / 32', poster: '21 / 32', sleeve: '1 / 1', figure: '18 / 32', plate: '57 / 32' } as const;
+export type ThumbShape = keyof typeof THUMB;
+export function CompactThumb({ src, shape }: { src?: string | null; shape: ThumbShape }) {
+  return (
+    <span className="compact-thumb-shape" style={{ aspectRatio: THUMB[shape] }} aria-hidden>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src ? <img src={src} alt="" /> : null}
+    </span>
+  );
+}
+
 export function CompactHeader({ mode, watch, scrollRoot, contained, back, thumb, title, status, tabs, save, primary, more, tabsStick, className = '' }: {
   mode: 'lobby' | 'cutting';
   /** lobby: the element whose leaving shows the header */ watch?: RefObject<Element | null>;
@@ -51,7 +64,7 @@ export function CompactHeader({ mode, watch, scrollRoot, contained, back, thumb,
       <div className="compact-start">
         {back && <Link href={back.href} className="btn btn-quiet btn-sm btn-icon" aria-label={back.label} title={back.label}><IconChevronLeft aria-hidden /></Link>}
         {thumb && <span className="compact-thumb" aria-hidden>{thumb}</span>}
-        <span className="compact-title" dir="auto">{title}</span>
+        <span className="compact-title">{typeof title === 'string' ? <bdi>{title}</bdi> : title}</span>
         {status && <span className="compact-status">{status}</span>}
       </div>
       {tabs && mode === 'cutting' && <div className="compact-tabs">{tabs}</div>}

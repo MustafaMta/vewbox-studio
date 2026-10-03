@@ -24,12 +24,12 @@ export function useStartJob() {
     setBusy(true);
     try {
       const job = await startJob(type, payload, { idempotencyKey: opts.idempotencyKey });
-      if (!opts.quiet) toast.ok(T('gen.started'), { label: T('nav.production'), href: `/production?job=${job.id}` });
+      if (!opts.quiet) toast.ok('Started. Progress shows in Activity.', { label: 'Production', href: `/production?job=${job.id}` });
       // the server's preflight warnings (e.g. an identity not approved yet) are said, never dropped
       for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail });
       return job;
     } catch (e) {
-      toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`);
+      toast.bad(`${'Could not start'}: ${isStudioError(e) ? e.message : (e as Error).message}`);
       return null;
     } finally { setBusy(false); }
   };
@@ -47,8 +47,8 @@ export function JobButton<K extends JobType>({ type, payload, children, icon, va
   if (active) {
     return (
       <span className={cls('inline-flex max-w-full items-center gap-2', className)}>
-        <Status tone="info" live className="max-w-[18rem] truncate"><Spinner className="me-1" />{(active.progress?.phase && T.dyn(`jp.${active.progress.phase}`, '')) || T('jobs.inProgress')}{active.progress?.percent != null && active.progress.percent > 0 ? ` · ${active.progress.percent}%` : ''}{active.progress?.step && active.progress.total ? ` · ${active.progress.step}/${active.progress.total}` : ''}</Status>
-        <Button size="xs" variant="ghost" icon={<IconClose />} aria-label={T('jobs.cancel')} title={T('jobs.cancel')} disabled={active.cancelRequested} onClick={() => void cancelJob(active.id)} />
+        <Status tone="info" live className="max-w-[18rem] truncate"><Spinner className="me-1" />{(active.progress?.phase && T.dyn(`jp.${active.progress.phase}`, '')) || 'In progress'}{active.progress?.percent != null && active.progress.percent > 0 ? ` · ${active.progress.percent}%` : ''}{active.progress?.step && active.progress.total ? ` · ${active.progress.step}/${active.progress.total}` : ''}</Status>
+        <Button size="xs" variant="ghost" icon={<IconClose />} aria-label={'Cancel'} title={'Cancel'} disabled={active.cancelRequested} onClick={() => void cancelJob(active.id)} />
       </span>
     );
   }
@@ -82,18 +82,18 @@ export function RetryControl({ job, size = 'xs', label }: { job: Job; size?: 'xs
     setBusy(true); setError(null);
     try { await retryJob(job.id, change); setAsking(false); setText(''); } catch (e) { setError(isStudioError(e) ? e.message : (e as Error).message); } finally { setBusy(false); }
   };
-  if (!needs) return <Button size={size} variant="quiet" icon={<IconRetry />} loading={busy} onClick={() => void go()}>{label ?? T('jobs.retry')}</Button>;
-  if (!asking) return <Button size={size} variant="quiet" icon={<IconRetry />} onClick={() => setAsking(true)}>{T('v3.retry.withChange')}</Button>;
+  if (!needs) return <Button size={size} variant="quiet" icon={<IconRetry />} loading={busy} onClick={() => void go()}>{label ?? 'Retry'}</Button>;
+  if (!asking) return <Button size={size} variant="quiet" icon={<IconRetry />} onClick={() => setAsking(true)}>Retry with a change</Button>;
   const id = `retry-${job.id}`;
   return (
     <form className="flex w-full max-w-[28rem] flex-col gap-1.5 text-start" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void go(text.trim()); }} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setAsking(false); } }}>
-      <label htmlFor={id} className="text-[13px] font-medium text-body">{T('v3.retry.what')}</label>
+      <label htmlFor={id} className="text-[13px] font-medium text-body">What did you change?</label>
       <span className="flex flex-wrap items-center gap-2">
-        <input id={id} ref={field} className="input h-8 min-w-0 flex-1 text-[13px] leading-8" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder={T('v3.retry.placeholder')} aria-describedby={`${id}-hint`} dir="auto" />
-        <Button type="submit" size="sm" disabled={!text.trim()} loading={busy}>{T('jobs.retry')}</Button>
-        <Button size="sm" variant="quiet" onClick={() => setAsking(false)}>{T('btn.cancel')}</Button>
+        <input id={id} ref={field} className="input h-8 min-w-0 flex-1 text-[13px] leading-8" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder={'e.g. replaced the reference picture'} aria-describedby={`${id}-hint`} dir="auto" />
+        <Button type="submit" size="sm" disabled={!text.trim()} loading={busy}>Retry</Button>
+        <Button size="sm" variant="quiet" onClick={() => setAsking(false)}>Cancel</Button>
       </span>
-      <span id={`${id}-hint`} className="text-xs text-faint">{T('v3.retry.hint')}</span>
+      <span id={`${id}-hint`} className="text-xs text-faint">Unchanged, this failure would repeat. What you write is recorded with the retry.</span>
       {error && <span role="alert" className="text-xs text-bad" dir="auto">{error}</span>}
     </form>
   );
