@@ -28,8 +28,11 @@ export const newRunId = () => nid('rr');
 
 // ---------------------------------------------------------------------------------------------------- database
 
+/** Postgres answers timestamps as "2026-10-03 04:43:44.024+00"; evidence carries ISO 8601 like the providers write it. */
+export const iso = (s: string | null | undefined): string | undefined => { if (!s) return undefined; const d = new Date(s.includes('T') ? s : s.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00')); return Number.isNaN(d.getTime()) ? s : d.toISOString(); };
+
 type ItemRow = { id: string; platform: string; provider: string; url: string; title: string; publishedAt: string | null; retrievedAt: string; category: string; language: string | null; region: string | null; metrics: ResearchItem['metrics']; excerpt: string | null; query: string; creator: string | null };
-const rowToItem = (r: ItemRow): ResearchItem => ({ id: r.id, platform: r.platform as ResearchPlatform, provider: r.provider, url: r.url, title: r.title, publishedAt: r.publishedAt ?? undefined, retrievedAt: r.retrievedAt, category: r.category as ResearchItem['category'], language: r.language ?? undefined, region: r.region ?? undefined, metrics: r.metrics ?? {}, excerpt: r.excerpt ?? undefined, query: r.query, creator: r.creator ?? undefined });
+const rowToItem = (r: ItemRow): ResearchItem => ({ id: r.id, platform: r.platform as ResearchPlatform, provider: r.provider, url: r.url, title: r.title, publishedAt: iso(r.publishedAt), retrievedAt: iso(r.retrievedAt)!, category: r.category as ResearchItem['category'], language: r.language ?? undefined, region: r.region ?? undefined, metrics: r.metrics ?? {}, excerpt: r.excerpt ?? undefined, query: r.query, creator: r.creator ?? undefined });
 
 /** The studio's database (the client is imported lazily so a memory-only caller never opens a connection). */
 export function dbStore(): ResearchStore {
@@ -38,7 +41,7 @@ export function dbStore(): ResearchStore {
     async getCache(key) {
       const { db, schema } = await client();
       const [r] = await db().select().from(schema.researchCache).where(eq(schema.researchCache.key, key));
-      return r ? { ...r, platform: r.platform as ResearchPlatform } : undefined;
+      return r ? { ...r, platform: r.platform as ResearchPlatform, fetchedAt: iso(r.fetchedAt)!, expiresAt: iso(r.expiresAt)! } : undefined;
     },
     async putCache(e) {
       const { db, schema } = await client();
@@ -69,7 +72,7 @@ export function dbStore(): ResearchStore {
     async getRun(id) {
       const { db, schema } = await client();
       const [r] = await db().select().from(schema.researchRuns).where(eq(schema.researchRuns.id, id));
-      return r ? { id: r.id, ideaJobId: r.ideaJobId ?? undefined, jobId: r.jobId ?? undefined, status: r.status as ResearchRunSummary['status'], request: r.request, topics: r.topics, coverage: r.coverage, itemIds: r.itemIds, reusedFromCache: r.reusedFromCache, limitations: r.limitations, startedAt: r.startedAt, finishedAt: r.finishedAt ?? r.startedAt } : undefined;
+      return r ? { id: r.id, ideaJobId: r.ideaJobId ?? undefined, jobId: r.jobId ?? undefined, status: r.status as ResearchRunSummary['status'], request: r.request, topics: r.topics, coverage: r.coverage, itemIds: r.itemIds, reusedFromCache: r.reusedFromCache, limitations: r.limitations, startedAt: iso(r.startedAt)!, finishedAt: iso(r.finishedAt ?? r.startedAt)! } : undefined;
     },
   };
 }

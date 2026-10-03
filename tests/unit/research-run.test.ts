@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RESEARCH_PLATFORMS, runStatusOf, emptyRun } from '@/domain/development';
 import { cacheKey, getResearchItems, memoryStore, planTopics, regionOf, researchSources, runResearch, type ResearchRequest } from '@/server/research';
+import { iso } from '@/server/research/store';
 import { GDELT_TIMING } from '@/server/research/providers/gdelt';
 import { resetSpacing } from '@/server/research/http';
 import { CONTRACTS } from '@/server/org/contracts';
@@ -108,6 +109,15 @@ describe('a link that is not a web address is not evidence', () => {
     const run = await runResearch(shortEn, { store, now: clock });
     const urls = (await getResearchItems(run.itemIds, store)).map((i) => i.url);
     expect(urls).toEqual(['https://ok.example/a']);
+  });
+});
+
+describe('dates from the database', () => {
+  it('Postgres timestamps become ISO 8601 like the providers write them', () => {
+    expect(iso('2026-10-03 04:43:44.024+00')).toBe('2026-10-03T04:43:44.024Z');
+    expect(iso('2026-10-03 07:43:44+03')).toBe('2026-10-03T04:43:44.000Z');
+    expect(iso('2026-10-02T12:00:00Z')).toBe('2026-10-02T12:00:00.000Z');
+    expect(iso(null)).toBeUndefined();
   });
 });
 

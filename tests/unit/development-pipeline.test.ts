@@ -271,6 +271,8 @@ describe('AUTO_IDEA: research off, research failing, a stage failing', () => {
     expect(fake.enqueued.filter((e) => !e.created).map((e) => e.key)).toEqual(['idea:idea-1:RESEARCH:1', 'idea:idea-1:AUDIENCE:1', 'idea:idea-1:CONCEPTS:1']);
     expect(fake.llm.filter((c) => c.agent === 'Audience Research Agent').length).toBe(calls);
     expect(fake.artifacts.filter((a) => a.stage === 'RESEARCH')).toHaveLength(1);
+    // a stage an earlier attempt finished is not handed off a second time
+    expect(fake.handoffs.map((h) => h.outputVersions?.stage ?? 'PROPOSAL')).toEqual(['RESEARCH', 'AUDIENCE', 'CONCEPTS', 'WRITING', 'EDITING', 'AUDIENCE_REVIEW', 'REVISION', 'PROPOSAL']);
   });
 });
 

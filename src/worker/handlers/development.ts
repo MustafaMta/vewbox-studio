@@ -43,11 +43,13 @@ interface Chain { deadline: number; boundMs: number; children: string[] }
 
 /** Queue one stage as a child (or adopt the child an earlier attempt queued under the same key) and wait for it. An
  *  adopted child that FAILED or was CANCELLED is run again, so a retry of the idea makes progress. */
-async function runChild(ctx: HandlerContext, chain: Chain, stage: Exclude<DevelopmentStage, 'PROPOSAL'>, payload: Record<string, unknown>): Promise<Job> {
+async function runChild(ctx: HandlerContext, chain: Chain, stage: Exclude<DevelopmentStage, 'PROPOSAL'>, payload: Record<string, unknown>): Promise<{ job: Job; adopted: boolean }> {
   const type = STAGE_JOB[stage];
   const req = { type, payload, parentId: ctx.job.id, idempotencyKey: `idea:${ctx.job.id}:${stage}:1`, priority: 1, maxAttempts: 2 };
   const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: `${stage} ${type}`, input: req });
   let job = r.job;
+  // a stage an earlier attempt finished: its result stands, and its handoff was already recorded
+  const adopted = !r.created && job.status === 'COMPLETED';
   chain.children.push(job.id);
   if (!r.created) {
     await ctx.event('info', `${stage}: adopted job ${job.id} (${job.status})`, { stage, jobId: job.id, status: job.status });
@@ -60,7 +62,7 @@ async function runChild(ctx: HandlerContext, chain: Chain, stage: Exclude<Develo
   const index = ORDER.indexOf(stage);
   for (;;) {
     await ctx.checkpoint();
-    if (isTerminalStatus(job.status) || job.status === 'AWAITING_REVIEW') return job;
+    if (isTerminalStatus(job.status) || job.status === 'AWAITING_REVIEW') return { job, adopted };
     if (Date.now() > chain.deadline) throw new StudioError('UNAVAILABLE', `The ${stage.toLowerCase().replace('_', ' ')} stage did not finish within ${Math.round(chain.boundMs / 60_000)} min (${type} ${job.id} is still ${job.status.toLowerCase()}); it keeps running — retry the idea to pick it up.`, { failureClass: 'INFRASTRUCTURE', stage, childJobId: job.id, children: [...chain.children] });
     await ctx.progress('GENERATING', { phase: stagePhase(stage), message: `${STAGE_LABEL[stage]}${job.progress?.message && job.progress.message !== STAGE_LABEL[stage] ? `: ${job.progress.message}` : ''}`, step: index + 1, total: ORDER.length, percent: null });
     await new Promise((res) => setTimeout(res, DEVELOPMENT_TIMING.pollMs));
@@ -113,7 +115,7 @@ export const autoIdea: Handler = async (ctx) => {
     await recordHandoff({ productionId: ideaJobId, stage: 'STORY', producerDepartment: 'STORY', receiverDepartment: 'STORY', artifactIds: [artifactId], outputVersions: { stage, version: a.version, agent: a.agentId }, validation: { ok: checks.every((x) => x.ok), checks }, jobId: ctx.job.id });
   };
   const must = async (stage: Exclude<DevelopmentStage, 'PROPOSAL' | 'RESEARCH'>, p: Record<string, unknown>): Promise<string> => {
-    const job = await runChild(ctx, chain, stage, p);
+    const { job, adopted } = await runChild(ctx, chain, stage, p);
     const artifactId = job.result?.artifactId as string | undefined;
     if (job.status !== 'COMPLETED' || !artifactId) {
       steps.push({ stage, status: 'failed', jobId: job.id, reason: job.error?.message ?? job.status.toLowerCase(), failureClass: failureOf(job) });
@@ -121,20 +123,22 @@ export const autoIdea: Handler = async (ctx) => {
       throw new StudioError(asStudioErrorCode(job.error?.code), `The ${stage.toLowerCase().replace('_', ' ')} stage failed: ${job.error?.message ?? job.status.toLowerCase()}`, { failureClass: failureOf(job), stage, childJobId: job.id, steps });
     }
     steps.push({ stage, status: 'done', jobId: job.id, artifactId });
-    await handoff(stage, artifactId);
+    if (!adopted) await handoff(stage, artifactId);
     return artifactId;
   };
 
   // 1) RESEARCH — off for this request or in Settings: skipped, an explicitly original concept; failed: recorded as
   //    UNAVAILABLE and the idea continues on craft
   let researchArtifactId: string;
+  let researchAdopted = false;
   const off = payload.preferences.research === 'OFF' ? 'research was switched off for this request' : state.settings.research?.enabled === false ? 'research is switched off in Settings' : undefined;
   if (off) {
     const a = await saveArtifact({ ideaJobId, stage: 'RESEARCH', agentId: ctx.agent.id, jobId: ctx.job.id, content: { run: emptyRun(`none-${ideaJobId}`, 'DISABLED', `Original concept — ${off}.`) } });
     researchArtifactId = a.id;
     steps.push({ stage: 'RESEARCH', status: 'skipped', artifactId: a.id, reason: off });
   } else {
-    const job = await runChild(ctx, chain, 'RESEARCH', { ideaJobId, kind: payload.kind, refresh: payload.refresh });
+    const { job, adopted } = await runChild(ctx, chain, 'RESEARCH', { ideaJobId, kind: payload.kind, refresh: payload.refresh });
+    researchAdopted = adopted;
     const artifactId = job.result?.artifactId as string | undefined;
     if (job.status === 'COMPLETED' && artifactId) {
       researchArtifactId = artifactId;
@@ -147,8 +151,8 @@ export const autoIdea: Handler = async (ctx) => {
       await ctx.event('warn', `research failed (${failureOf(job)}): ${why}; continuing with an original concept`, { childJobId: job.id });
     }
   }
-  await handoff('RESEARCH', researchArtifactId);
-  await ctx.activity('IDEA_STAGE_DONE', `Research ${steps[0].status}${steps[0].reason ? ` (${steps[0].reason.slice(0, 120)})` : ''}`, { stage: 'RESEARCH', artifactId: researchArtifactId });
+  if (!researchAdopted) await handoff('RESEARCH', researchArtifactId);
+  if (!researchAdopted) await ctx.activity('IDEA_STAGE_DONE', `Research ${steps[0].status}${steps[0].reason ? ` (${steps[0].reason.slice(0, 120)})` : ''}`, { stage: 'RESEARCH', artifactId: researchArtifactId });
 
   // 2)–6) the stages that must succeed
   const audienceArtifactId = await must('AUDIENCE', { ideaJobId, researchArtifactId });
