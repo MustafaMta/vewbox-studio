@@ -47,8 +47,9 @@ export function CharacterPage({ c }: { c: Character }) {
     <article className="pb-8" aria-labelledby="char-name">
       <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{T('nav.characters')}</Link>
       <JustCreated c={c} />
-      <div className="grid gap-8 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
-        <div id="image" className="max-w-[18rem] scroll-mt-24 md:max-w-none md:self-start lg:sticky lg:top-8"><ImagePanel c={c} s={s} /></div>
+      {/* the canonical image is the identity: the largest thing on the page (≈ 40 % of the content width on desktop) */}
+      <div className="grid gap-8 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
+        <div id="image" className="mx-auto w-full max-w-[24rem] scroll-mt-24 md:mx-0 md:max-w-none md:self-start lg:sticky lg:top-8"><ImagePanel c={c} s={s} /></div>
 
         <div className="min-w-0 space-y-12">
           <header id="about" className="scroll-mt-24">
