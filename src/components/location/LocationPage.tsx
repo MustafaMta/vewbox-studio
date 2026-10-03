@@ -1,144 +1,219 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import type { Location } from '@/domain/types';
-import { LOCATION_REF_ROLES, TIMES_OF_DAY, type LocationRefRole, type TimeOfDay } from '@/domain/vocabulary';
-import { useStudio } from '@/studio/store';
+import { useId, useMemo, useState } from 'react';
+import type { Location, LocationRef } from '@/domain/types';
+import type { LocationRefRole } from '@/domain/vocabulary';
+import { isActiveStatus } from '@/domain/jobs';
+import { useJobsFor, useStudio } from '@/studio/store';
+import { artVars } from '@/studio/presentation';
 import { assetById, productionHref } from '@/studio/selectors';
-import { T } from '@/lib/copy';
+import { posterOf } from '@/studio/selectors/poster';
 import { useToast } from '@/components/ui/toast';
-import { useTab } from '@/lib/hooks';
-import { Button, Checkbox, ConfirmDelete, Input, KV, Modal, Select, TabBar } from '@/components/ui/kit';
-import { Art, Block, Dots, Empty, Hero } from '@/components/ui/cinema';
-import { JobButton } from '@/components/ui/jobs';
-import { StageStatus } from '@/components/library/ProductionTile';
-import { LocationForm } from './LocationForm';
+import { useStartJob } from '@/components/ui/jobs';
+import { Button, Dialog, Input, MenuButton, MenuItem, MenuSeparator, Segmented, Skeleton, SkeletonRegion, StateWord, useConfirm } from '@/components/ui/kit';
+import { Frame, MediaTile, PosterCard } from '@/components/media';
 import { IconCheck, IconDelete, IconEdit, IconGenerate, IconPlus, IconUpload } from '@/components/ui/icons';
-import { words } from '@/lib/format';
+import { BackLink, CardHead, CastSection, nameLang, usable } from '@/components/character/parts';
+import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
 
-const TABS = ['overview', 'views', 'lighting', 'props', 'used'] as const;
+const ROLE_WORD: Record<LocationRefRole, string> = { MASTER: 'Master plate', VIEW: 'View', STATE: 'Lighting state' };
 
-/** ONE LOCATION — a wide plate under a wide header, then Overview · Views · Lighting & Variations · Props · Used In.
- *  Pictures and camera views first; the words after; nothing technical in the way. */
+/** The plate shown for a time of day: a master or lighting state drawn for that time; the master stands for its own
+ *  time (or the first time, when it does not say). */
+function platesByTime(l: Location): Map<string, LocationRef> {
+  const out = new Map<string, LocationRef>();
+  const lit = l.refs.filter((r) => r.role === 'MASTER' || r.role === 'STATE');
+  for (const r of lit) if (r.timeOfDay && !out.has(r.timeOfDay)) out.set(r.timeOfDay, r);
+  const master = l.refs.find((r) => r.assetId === l.masterAssetId) ?? l.refs.find((r) => r.role === 'MASTER');
+  if (master && !master.timeOfDay && l.lighting[0] && !out.has(l.lighting[0])) out.set(l.lighting[0], master);
+  return out;
+}
+
+/** ONE LOCATION (v5 §8.13; v5.1 §2 C7) — the plate hero at 2.39:1 with nothing over it, and under it the lighting
+ *  switch (crossfading the plates drawn for each time of day), the slate, the name and the actions; then what the place
+ *  is, its plates (master and views; make one the master, remove, upload, draw), its landmarks and props, and the
+ *  productions it appears in. Destructive actions sit behind More. Every write goes through the store's commands and
+ *  the LOCATION_PLATES job, as before. */
 export function LocationPage({ l }: { l: Location }) {
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
-  const [tab] = useTab(TABS, 'overview');
+  const confirm = useConfirm();
+  const { start, busy } = useStartJob();
+  const running = useJobsFor({ locationId: l.id, type: 'LOCATION_PLATES' }).find((j) => isActiveStatus(j.status));
+  const byTime = useMemo(() => platesByTime(l), [l]);
+  const times = [...new Set([...l.lighting, ...byTime.keys()])];
+  const firstLit = times.find((t) => byTime.has(t));
+  const [time, setTime] = useState<string | undefined>(firstLit);
+  const on = time && byTime.has(time) ? time : firstLit;
   const master = assetById(state, l.masterAssetId);
-  const usedBy = state.productions.filter((p) => p.locationIds.includes(l.id) || p.scenes.some((sc) => sc.locationId === l.id) || state.shows.find((s) => s.id === p.showId)?.locationIds.includes(l.id));
-  const shows = state.shows.filter((s) => s.locationIds.includes(l.id));
+  const [edit, setEdit] = useState(false);
+  const formId = useId();
+  const lang = nameLang(l.name);
+  const missing = times.filter((t) => !byTime.has(t));
+  const draw = (force = false) => void start('LOCATION_PLATES', { locationId: l.id, ...(force ? { force: true } : {}) }, { quiet: true });
+  const redraw = async () => { if (await confirm({ title: `Redraw ${l.name}?`, body: 'A new master plate is drawn from the description. The current plates stay in the studio’s files.', confirmLabel: 'Redraw the place', tone: 'default' })) draw(true); };
+  const remove = async () => {
+    if (!(await confirm({ title: `Delete ${l.name}?`, body: 'The place is removed from the studio. Finished shots keep their pictures.', confirmLabel: `Delete ${l.name}`, tone: 'danger' }))) return;
+    try { act('deleteLocation', l.id); toast.ok(`${l.name} was deleted.`); router.push('/locations'); } catch (e) { toast.bad((e as Error).message); }
+  };
+  const layers = [...new Map([...byTime.entries()].map(([t, r]) => [r.assetId, t])).entries()];
+
   return (
-    <>
-      <Hero backdropSrc={master?.src} art={<Art src={master?.src} ratio="wide" title={l.name} sample={master?.sample} unavailable={master?.unavailable} />}
-        eyebrow={<>{l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior')} · {T.dyn(`style.${l.style}`)}</>} title={l.name} titleAr={l.nameAr} description={l.description}
-        meta={<Dots items={[l.lighting.map(words).join(', '), `${l.refs.length} ${T('tab.views').toLowerCase()}`, `${usedBy.length + shows.length} ${T('tab.usedIn').toLowerCase()}`]} />}
-        actions={<><Modal title={`${T('btn.edit')}: ${l.name}`} size="lg" trigger={(open) => <Button variant="primary" icon={<IconEdit />} onClick={open}>{T('btn.edit')}</Button>}>{(close) => <LocationForm initial={l} onSaved={close} onCancel={close} />}</Modal><ConfirmDelete title={l.name} onDelete={() => { act('deleteLocation', l.id); toast.ok(T('toast.deleted')); router.push('/locations'); }} variant="ghost" icon={<IconDelete />}>{T('loc.deleteConfirm')}</ConfirmDelete></>}
-        back={{ href: '/locations', label: T('nav.locations') }} />
-
-      <TabBar ariaLabel={l.name} current={tab} hrefFor={(id) => `/locations/${l.id}?tab=${id}`} className="mb-6" tabs={[{ id: 'overview', label: T('tab.overview') }, { id: 'views', label: T('tab.views'), count: l.refs.filter((r) => r.role !== 'STATE').length }, { id: 'lighting', label: T('tab.lighting'), count: l.refs.filter((r) => r.role === 'STATE').length }, { id: 'props', label: T('tab.props'), count: l.props.length }, { id: 'used', label: T('tab.usedIn'), count: usedBy.length + shows.length }]} />
-
-      <div role="tabpanel" className="fade-in" key={tab}>
-        {tab === 'overview' && (
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div>
-              <Art src={master?.src} ratio="wide" title={l.name} sample={master?.sample} unavailable={master?.unavailable} />
-              <p className="mt-2 text-xs text-muted">{T('label.masterPlate')}</p>
-              <p className="lead mt-6 max-w-3xl text-[1.05rem] text-body" dir="auto">{l.description || '—'}</p>
-            </div>
-            <aside className="space-y-8">
-              <Block title={T('label.landmarks')}>{l.landmarks.length === 0 ? <p className="text-sm text-muted">—</p> : <ul className="space-y-1.5 text-sm">{l.landmarks.map((x) => <li key={x} className="flex gap-2" dir="auto"><span className="mt-2 size-1 flex-none rounded-full bg-accent" />{x}</li>)}</ul>}</Block>
-              <KV rows={[[T('label.kind'), l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior')], [T('label.style'), T.dyn(`style.${l.style}`)], [T('label.lighting'), l.lighting.map(words).join(' · ') || '—']]} />
-            </aside>
+    <article className="pc-page" aria-labelledby="loc-name">
+      <BackLink href="/locations" label="Locations" />
+      <header className="loc-hero">
+        <div className="loc-hero-plate" style={artVars(master) as React.CSSProperties}>
+          {layers.length > 0 ? layers.map(([assetId, t]) => {
+            const a = assetById(state, assetId);
+            return <div key={assetId} className="loc-layer" data-on={byTime.get(on ?? '')?.assetId === assetId || undefined}><Frame asset={usable(a) ? a : undefined} ratio="2.39/1" fit="cover" radius="none" alt={`${l.name}, ${timeWord(t).toLowerCase()}`} art={artVars(a)} title={l.name} titleLang={lang} priority /></div>;
+          }) : <div className="loc-layer" data-on><Frame ratio="2.39/1" radius="none" alt="" title={l.name} titleLang={lang} titleState="noImage" state={running ? 'drawing' : undefined} phase={running?.progress?.message} decorative /></div>}
+        </div>
+        {times.length > 0 && (
+          <div className="loc-switch">
+            <Segmented label="Lighting" value={on ?? ''} onChange={setTime} options={times.map((t) => ({ value: t, label: timeWord(t), disabled: !byTime.has(t) }))} />
+            {missing.length > 0 && <span className="t-meta">{missing.map(timeWord).join(', ')}: not drawn yet</span>}
           </div>
         )}
-        {tab === 'views' && <Views l={l} roles={['MASTER', 'VIEW']} title={T('loc.cameraViews')} />}
-        {tab === 'lighting' && (
-          <div className="space-y-10">
-            <Block title={T('label.lighting')} description={T('loc.lighting.hint')}>
-              <div className="flex flex-wrap gap-x-5 gap-y-2">{TIMES_OF_DAY.map((tod) => <Checkbox key={tod} label={words(tod)} checked={l.lighting.includes(tod)} onChange={(e) => act('updateLocation', l.id, { lighting: e.target.checked ? [...l.lighting, tod as TimeOfDay] : l.lighting.filter((x) => x !== tod) })} />)}</div>
-            </Block>
-            <Views l={l} roles={['STATE']} title={T('loc.states')} />
+        <div className="loc-hero-caption">
+          <div className="loc-hero-words">
+            <p className="t-meta char-slate"><span>{l.kind === 'INTERIOR' ? 'Interior' : 'Exterior'}</span><span>{STYLE_WORDS[l.style]}</span><span>{l.refs.length === 1 ? '1 plate' : `${l.refs.length} plates`}</span></p>
+            <h1 id="loc-name" className="t-hero"><bdi lang={lang}>{l.name}</bdi></h1>
+            {l.nameAr && <p className="t-body char-alt"><bdi lang="ar">{l.nameAr}</bdi></p>}
+            {running && <StateWord tone="running">{running.progress?.message || 'Drawing the plates'}</StateWord>}
           </div>
-        )}
-        {tab === 'props' && <Props l={l} />}
-        {tab === 'used' && (
-          <Block title={T('tab.usedIn')} count={usedBy.length + shows.length}>
-            {usedBy.length + shows.length === 0 ? <Empty title="—" /> : (
-              <ul className="grid-posters">
-                {shows.map((s) => { const a = assetById(state, s.posterAssetId) ?? assetById(state, s.coverAssetId); return <li key={s.id}><Link href={`/shows/${s.id}`} className="poster-link block"><Art src={a?.src} ratio="poster" title={s.title} sample={a?.sample} /><p className="poster-title" dir="auto">{s.title}</p><p className="poster-meta"><span>{T('kind.SHOW')}</span></p></Link></li>; })}
-                {usedBy.map((p) => { const a = assetById(state, p.posterAssetId) ?? assetById(state, p.coverAssetId); return <li key={p.id}><Link href={productionHref(p)} className="poster-link block"><Art src={a?.src} ratio={p.kind === 'MUSIC_VIDEO' ? 'square' : 'poster'} title={p.title} sample={a?.sample} /><p className="poster-title" dir="auto">{p.title}</p><p className="poster-meta"><span>{T.dyn(`kind.${p.kind}`)}</span></p><div className="mt-1"><StageStatus p={p} /></div></Link></li>; })}
-              </ul>
-            )}
-          </Block>
-        )}
-      </div>
-    </>
+          <div className="loc-hero-acts">
+            <Button variant="secondary" icon={<IconEdit />} onClick={() => setEdit(true)}>Edit</Button>
+            <Button variant={l.refs.length ? 'secondary' : 'primary'} icon={<IconGenerate />} loading={busy} disabled={Boolean(running)} onClick={() => draw()}>{l.refs.length ? 'Draw more plates' : 'Draw the plates'}</Button>
+            <MenuButton label={`More for ${l.name}`} iconOnly variant="secondary" align="end">
+              <MenuItem icon={<IconGenerate aria-hidden />} disabled={!l.masterAssetId || Boolean(running)} onClick={() => void redraw()} description="A fresh master plate from the description">Redraw the place</MenuItem>
+              <MenuSeparator />
+              <MenuItem icon={<IconDelete aria-hidden />} tone="danger" onClick={() => void remove()}>Delete {l.name}</MenuItem>
+            </MenuButton>
+          </div>
+        </div>
+      </header>
+
+      <CastSection id="about" title="The place">
+        {l.description ? <p className="t-prose char-prose" dir="auto">{l.description}</p> : <p className="t-body pc-empty-line">No description yet.</p>}
+      </CastSection>
+      <Plates l={l} />
+      <section className="pc-section loc-cols" aria-label="Landmarks and props">
+        <div className="card char-card">
+          <CardHead title="Landmarks" count={l.landmarks.length || undefined} action={<Button size="sm" variant="secondary" icon={<IconEdit />} onClick={() => setEdit(true)}>Edit</Button>} />
+          {l.landmarks.length === 0 ? <p className="t-body char-card-line">None written yet.</p> : <ul className="loc-list">{l.landmarks.map((x) => <li key={x}><span className="loc-list-text" dir="auto">{x}</span></li>)}</ul>}
+        </div>
+        <Props l={l} />
+      </section>
+      <AppearsIn l={l} />
+
+      <Dialog open={edit} onClose={() => setEdit(false)} size="lg" title={`Edit ${l.name}`} description="Saving does not change the plates: draw again to apply a new description."
+        footer={<><Button variant="quiet" onClick={() => setEdit(false)}>Cancel</Button><Button type="submit" form={formId} variant="primary">Save</Button></>}>
+        {edit && <LocationForm initial={l} formId={formId} footer={false} onSaved={() => setEdit(false)} />}
+      </Dialog>
+    </article>
   );
 }
 
-function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; title: string }) {
+function Plates({ l }: { l: Location }) {
   const { state, act, addFile } = useStudio();
   const toast = useToast();
-  const [role, setRole] = useState<LocationRefRole>(roles.includes('VIEW') ? 'VIEW' : roles[0]);
-  const refs = l.refs.filter((r) => roles.includes(r.role));
+  const [role, setRole] = useState<LocationRefRole>('VIEW');
+  const [uploading, setUploading] = useState(false);
   const onFile = async (file: File) => {
-    const r = await addFile(file, { label: `${l.name} — ${words(role)}`, tags: ['location'] });
-    if (!r.ok) { toast.bad(r.error); return; }
-    act('updateLocation', l.id, { refs: [...l.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id, label: words(role) }], masterAssetId: l.masterAssetId ?? r.asset.id });
-    toast.ok(T('media.added'));
+    setUploading(true);
+    try {
+      const r = await addFile(file, { label: `${l.name} — ${ROLE_WORD[role]}`, tags: ['location'] });
+      if (!r.ok) { toast.bad(r.error); return; }
+      act('updateLocation', l.id, { refs: [...l.refs, { id: `ref-${r.asset.id}`, role, assetId: r.asset.id, label: ROLE_WORD[role] }], masterAssetId: l.masterAssetId ?? r.asset.id });
+      toast.ok('Plate added.');
+    } finally { setUploading(false); }
   };
-  const actions = (
-    <div className="flex items-center gap-2">
-      <Select aria-label={T('loc.views')} value={role} onChange={(e) => setRole(e.target.value as LocationRefRole)} options={LOCATION_REF_ROLES.filter((r) => roles.includes(r)).map((r) => ({ value: r, label: words(r) }))} className="w-auto" />
-      <label className="btn btn-secondary btn-sm cursor-pointer"><IconUpload aria-hidden />{T('btn.upload')}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} /></label>
-      <JobButton type="LOCATION_PLATES" payload={{ locationId: l.id }} target={{ locationId: l.id }} size="sm" icon={<IconGenerate />}>{T('gen.plates')}</JobButton>
-      {/* D25: once a master exists, "Draw plates" builds on it; redrawing the place itself is a deliberate, separate act */}
-      {l.masterAssetId && <JobButton type="LOCATION_PLATES" payload={{ locationId: l.id, force: true }} target={{ locationId: l.id }} size="sm" variant="ghost" confirm={T('cast.loc.redrawConfirm')}>{T('cast.loc.redraw')}</JobButton>}
-    </div>
-  );
   return (
-    <Block title={title} count={refs.length} actions={actions}>
-      {refs.length === 0 ? <Empty title={T('empty.references')} /> : (
-        <ul className="grid-wide">
-          {refs.map((r) => {
+    <CastSection id="plates" title="Plates" count={l.refs.length || undefined} description="The master plate sets the place; views and lighting states follow it."
+      action={<span className="char-form-acts">
+        <Segmented label="Upload as" value={role} onChange={setRole} options={[{ value: 'VIEW' as LocationRefRole, label: 'View' }, { value: 'STATE' as LocationRefRole, label: 'Lighting' }, { value: 'MASTER' as LocationRefRole, label: 'Master' }]} />
+        <label className="btn btn-secondary btn-sm" aria-busy={uploading || undefined}><IconUpload aria-hidden />Upload<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} /></label>
+      </span>}>
+      {l.refs.length === 0 ? <p className="t-body pc-empty-line">No plates yet. Draw them from the description, or upload one.</p> : (
+        <ul className="pc-plates loc-plates" role="list">
+          {l.refs.map((r) => {
             const a = assetById(state, r.assetId);
+            const isMaster = l.masterAssetId === r.assetId;
             return (
-              <li key={r.id} className="group">
-                <Art src={a?.src} ratio="wide" title={r.label} sample={a?.sample} unavailable={a?.unavailable}>
-                  <span className="card-tools absolute end-2 bottom-2 flex gap-1">
-                    {l.masterAssetId !== r.assetId && <button type="button" className="btn btn-secondary btn-xs" onClick={() => act('updateLocation', l.id, { masterAssetId: r.assetId })}><IconCheck />{T('label.masterPlate')}</button>}
-                    <button type="button" className="btn btn-secondary btn-xs btn-icon" aria-label={`${T('btn.remove')} ${r.label}`} onClick={() => act('updateLocation', l.id, { refs: l.refs.filter((x) => x.id !== r.id) })}><IconDelete /></button>
-                  </span>
-                </Art>
-                <p className="poster-title text-sm">{r.label}</p>
-                <p className="poster-meta"><span>{words(r.role)}</span>{l.masterAssetId === r.assetId && <span className="text-accent">{T('label.masterPlate')}</span>}</p>
+              <li key={r.id}>
+                <MediaTile title={r.label || ROLE_WORD[r.role]} ratio="16/9" asset={usable(a) ? a : undefined} frameState={a?.unavailable ? 'unavailable' : undefined}
+                  meta={[isMaster ? (r.label === 'Master plate' ? null : 'Master plate') : ROLE_WORD[r.role], r.timeOfDay ? timeWord(r.timeOfDay) : null]} />
+                <div className="loc-tile-tools">
+                  {!isMaster && <Button size="sm" variant="secondary" icon={<IconCheck />} onClick={() => act('updateLocation', l.id, { masterAssetId: r.assetId })}>Make master</Button>}
+                  <Button size="sm" variant="quiet" icon={<IconDelete />} aria-label={`Remove ${r.label}`} onClick={() => act('updateLocation', l.id, { refs: l.refs.filter((x) => x.id !== r.id), masterAssetId: isMaster ? l.refs.find((x) => x.id !== r.id)?.assetId : l.masterAssetId })}>Remove</Button>
+                </div>
               </li>
             );
           })}
         </ul>
       )}
-    </Block>
+    </CastSection>
   );
 }
 
 function Props({ l }: { l: Location }) {
   const { act } = useStudio();
   const [draft, setDraft] = useState('');
-  const add = () => { const v = draft.trim(); if (!v) return; act('updateLocation', l.id, { props: [...l.props, v] }); setDraft(''); };
+  const add = () => { const v = draft.trim(); if (!v || l.props.includes(v)) return; act('updateLocation', l.id, { props: [...l.props, v] }); setDraft(''); };
   return (
-    <Block title={T('tab.props')} count={l.props.length} description={T('loc.props.hint')}>
-      <form className="mb-4 flex max-w-md gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={T('loc.addProp')} aria-label={T('loc.addProp')} />
-        <Button type="submit" variant="primary" icon={<IconPlus />} disabled={!draft.trim()}>{T('btn.add')}</Button>
+    <div className="card char-card">
+      <CardHead title="Props" count={l.props.length || undefined} />
+      {l.props.length === 0 ? <p className="t-body char-card-line">None yet.</p> : (
+        <ul className="loc-list">{l.props.map((p) => <li key={p}><span className="loc-list-text" dir="auto">{p}</span><Button size="sm" variant="quiet" aria-label={`Remove ${p}`} icon={<IconDelete />} onClick={() => act('updateLocation', l.id, { props: l.props.filter((x) => x !== p) })} /></li>)}</ul>
+      )}
+      <form className="loc-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
+        <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add a prop" aria-label="Add a prop" maxLength={200} />
+        <Button type="submit" variant="secondary" icon={<IconPlus />} disabled={!draft.trim()}>Add</Button>
       </form>
-      {l.props.length === 0 ? <Empty title={T('tab.props')} hint={T('loc.props.hint')} /> : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {l.props.map((p) => <li key={p} className="panel flex items-center justify-between gap-3 px-4 py-3 text-sm"><span dir="auto">{p}</span><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={`${T('btn.remove')} ${p}`} onClick={() => act('updateLocation', l.id, { props: l.props.filter((x) => x !== p) })} /></li>)}
+    </div>
+  );
+}
+
+function AppearsIn({ l }: { l: Location }) {
+  const { state } = useStudio();
+  const productions = state.productions.filter((p) => p.locationIds.includes(l.id) || p.scenes.some((sc) => sc.locationId === l.id) || state.shows.find((s) => s.id === p.showId)?.locationIds.includes(l.id));
+  const shows = state.shows.filter((s) => s.locationIds.includes(l.id));
+  const kind = (k: string) => (k === 'SHORT' ? 'Short' : k === 'MUSIC_VIDEO' ? 'Music video' : 'Episode');
+  return (
+    <CastSection id="appears" title="Appears in" count={productions.length + shows.length || undefined}>
+      {productions.length + shows.length === 0 ? <p className="t-body pc-empty-line">Not in a production yet.</p> : (
+        <ul className="char-posters" role="list">
+          {shows.map((s) => { const a = assetById(state, s.posterAssetId ?? s.coverAssetId); return <li key={s.id}><PosterCard href={`/shows/${s.id}`} asset={usable(a) ? a : undefined} title={s.title} meta="Show" /></li>; })}
+          {productions.map((p) => {
+            const a = posterOf(p, state.assets)?.asset;
+            const scenes = p.scenes.filter((sc) => sc.locationId === l.id).length;
+            return <li key={p.id}><PosterCard href={productionHref(p)} asset={usable(a) ? a : undefined} title={p.title} meta={`${kind(p.kind)}${scenes ? ` · ${scenes === 1 ? '1 scene' : `${scenes} scenes`}` : ''}`} /></li>;
+          })}
         </ul>
       )}
-    </Block>
+    </CastSection>
+  );
+}
+
+/** The location page while the studio's first snapshot loads: the 2.39:1 plate, the switch, the caption and the
+ *  actions at their real sizes. */
+export function LocationSkeleton() {
+  return (
+    <SkeletonRegion label="Opening the location…" className="pc-page pc-skeleton">
+      <span className="pc-back"><Skeleton.Line width="6rem" /></span>
+      <div className="loc-hero">
+        <Skeleton.Media ratio="2.39/1" className="loc-hero-plate" />
+        <div className="loc-switch"><Skeleton.Block width={96} height={36} radius="md" /></div>
+        <div className="loc-hero-caption">
+          <div className="loc-hero-words">
+            <div className="t-meta char-slate"><Skeleton.Line width="12rem" /></div>
+            <div className="t-hero"><Skeleton.Line size="title" width="16rem" /></div>
+          </div>
+          <div className="loc-hero-acts"><Skeleton.Block width={88} height={40} radius="pill" /><Skeleton.Block width={168} height={40} radius="pill" /><Skeleton.Block width={40} height={40} radius="pill" /></div>
+        </div>
+      </div>
+    </SkeletonRegion>
   );
 }

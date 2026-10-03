@@ -151,15 +151,21 @@
   /* --------------------------------------------------------------------------------------- the location page */
   .loc-hero { display: flex; flex-direction: column; }
   .loc-hero-plate { position: relative; inline-size: 100%; aspect-ratio: 2.39 / 1; overflow: hidden; border-radius: var(--r-lg); background: var(--art-ph, var(--surface-1)); }
-  .loc-hero-plate > .frame, .loc-hero-plate > .tcard { position: absolute; inset: 0; block-size: 100%; aspect-ratio: auto; border-radius: 0; transition: opacity var(--dur-3) var(--ease-out); }
-  .loc-hero-plate > .frame:not([data-on]) { opacity: 0; }
+  .loc-hero-plate > .loc-layer { position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-3) var(--ease-out); }
+  .loc-hero-plate > .loc-layer[data-on] { opacity: 1; }
+  .loc-layer > :is(.frame, .tcard) { block-size: 100%; aspect-ratio: auto; border-radius: 0; }
+  .pc-create-body[data-plate] { grid-template-columns: minmax(0, 720px) 300px; }
+  .pc-fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+  .loc-hero-words .char-slate, .loc-hero-words .t-hero { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .loc-hero-plate > .loc-layer { transition-duration: var(--dur-1); } }
   .loc-hero-caption { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; margin-block-start: 16px; }
   .loc-hero-words { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .loc-hero-words > * { margin: 0; }
   .loc-hero-acts { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 8px; }
   .loc-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-block-start: 12px; }
   .loc-switch .seg-wrap { flex-direction: row; align-items: center; gap: 12px; }
-  .loc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .loc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .loc-cols > .char-card { margin: 0; }
   .loc-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
   .loc-list > li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 44px; padding-block: 10px; border-block-start: 1px solid var(--line-strong); font-size: 14px; line-height: 20px; color: var(--text-1); }
   .loc-list > li:first-child { border-block-start: 0; }
