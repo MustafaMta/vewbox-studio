@@ -52,6 +52,19 @@ browser, with the evidence it produced. Defects found are listed with their fix 
   consent choice ("This is my voice" / "I have the speaker's permission") — no designed voice passed off as Iraqi ✓.
   A real Iraqi voice needs an authorised Iraqi recording (the producer's own, or decisions V3/V4).
 
+## A4 — Image Reference ("From a picture"), Cartoon, English — 2026-10-03
+
+- Reference: the approved Realistic image of A3 (`gen-655c17f72b`), put into the page's file input (same path as a
+  drop). Checked at upload: "size and sharpness checked; the face is not checked (no face detector is installed)" —
+  review finding 2 verified in the browser. Keep: face, hair and wardrobe. Name Salam. `char-1cc31bc31d`.
+- Chain: design (look left to the picture) → vision description → identity line «stylized 3D animated character, a man
+  aged about 60-70; … long wavy grey hair, top knot; brown eyes; light brown skin; full grey beard and mustache; glasses
+  (thin metal frame); wearing brown cardigan, grey tunic, black red dots pants; brown leather shoes» (accurate to the
+  picture) → canonical image `gen-efaaf6632b`, framing check ok.
+- Result: strong likeness to the reference (top knot, glasses, beard, cardigan, embroidered tunic, dotted trousers,
+  slippers), full body ✓. Style: a CG render, but only mildly stylised — closer to photoreal 3D than A1's cartoon
+  (partial style fidelity, see D10/FLUX comparison).
+
 ### Defects found in A1
 
 | # | Defect | Status |
