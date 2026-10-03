@@ -88,12 +88,10 @@ describe('waitingDecisions (B8)', () => {
     expect(decisionCounts(waitingDecisions(f.state, f.pipeline.productions, pointAt('karim'))).character).toBe(0);
     expect(decisionCounts(waitingDecisions(f.state, f.pipeline.productions, pointAt('abu-samir'))).character).toBe(0);
   });
-  it('a dialogue job whose recordings were replaced since still stands as the production’s lines item, on the production map', () => {
+  it('a dialogue job whose flagged recordings are all gone or replaced since is no longer a decision (nothing left to hear)', () => {
     const state = { ...f.state, assets: f.state.assets.filter((a) => !a.id.startsWith('rec-')) };
     const d2 = waitingDecisions(state, f.pipeline.productions, f.jobs);
-    const lines = d2.items.filter((x) => x.kind === 'lines');
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ id: 'lines:s1e1', lines: [], subject: { lineIds: [], jobIds: ['job-dialogue'] }, href: '/shows/last-sip/seasons/last-sip-s1/episodes/s1e1/production' });
+    expect(d2.items.filter((x) => x.kind === 'lines')).toHaveLength(0);
   });
   it('is incomplete while the pipeline has not answered; a finished production’s gate is not a decision', () => {
     expect(waitingDecisions(f.state, null, f.jobs).complete).toBe(false);

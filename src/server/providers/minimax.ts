@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { log } from '../log';
+import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** MINIMAX — the hosted side of the studio. Video (H3 on the v2 API, `/v2/video_generation` only), music, speech
  *  and voice cloning. Every call carries the request id into the logs; errors map
@@ -38,6 +39,7 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
   const apiKey = key(); // a missing key is NOT_CONFIGURED (terminal, actionable), never a retryable provider failure
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), init.timeoutMs ?? 60_000);
+  const unlink = followJobSignal(ctrl); // a stopped job aborts the request (src/server/jobs/context.ts)
   const url = `${base()}${path}`;
   try {
     const res = await fetch(url, { ...init, signal: ctrl.signal, headers: { authorization: `Bearer ${apiKey}`, ...(init.body && !(init.body instanceof FormData) ? { 'content-type': 'application/json' } : {}), ...(init.headers ?? {}) } });
@@ -63,9 +65,10 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     return json as T;
   } catch (e) {
     if (e instanceof StudioError) throw e; // MinimaxError and any studio-level refusal keep their code
+    if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     if ((e as Error).name === 'AbortError') throw new MinimaxError(`MiniMax ${path} timed out`, { status: 0, retryable: true });
     throw new MinimaxError(`MiniMax ${path}: ${(e as Error).message}`, { status: 0, retryable: true });
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); unlink(); }
 }
 
 // ------------------------------------------------------------------------------------------------- video (v2, H3)
@@ -126,13 +129,14 @@ export async function waitForVideo(taskId: string, opts: { intervalMs?: number; 
 export async function download(url: string, dest: string, opts: { timeoutMs?: number } = {}): Promise<{ bytes: number }> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 20 * 60_000);
+  const unlink = followJobSignal(ctrl);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
     if (!res.ok || !res.body) throw new MinimaxError(`download failed: HTTP ${res.status}`, { status: res.status, retryable: res.status >= 500 || res.status === 403 });
     const buf = Buffer.from(await res.arrayBuffer());
     await fs.writeFile(dest, buf);
     return { bytes: buf.length };
-  } finally { clearTimeout(t); }
+  } catch (e) { throw stopReasonOf(ctrl.signal) ?? e; } finally { clearTimeout(t); unlink(); }
 }
 
 /** Upload a local file so a request can refer to it as `mm_file://{id}` (7-day retention). */

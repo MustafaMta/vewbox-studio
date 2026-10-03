@@ -75,10 +75,14 @@ services:
       LIBRARY_ROOT: /data/library
       PUBLIC_ROOT: /app/public
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-2048}
+      # the address the port is published on: a LAN address needs STUDIO_PASSWORD (src/instrumentation.ts refuses otherwise)
+      STUDIO_BIND: ${WEB_BIND:-127.0.0.1}
+      STUDIO_ALLOW_OPEN_LAN: ${STUDIO_ALLOW_OPEN_LAN:-}
     volumes:
       - ${LIBRARY_DIR:-./var/library}:/data/library
     ports:
-      - "${WEB_PORT:-4200}:4200"
+      # loopback by default; WEB_BIND=0.0.0.0 (with STUDIO_PASSWORD) publishes it to the LAN
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-4200}:4200"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4200/api/health"]
       interval: 15s

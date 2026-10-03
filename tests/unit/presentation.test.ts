@@ -155,7 +155,8 @@ describe('§2.4 measured from the pixels', () => {
   });
 });
 
-describe('decoded by ffmpeg, measured at ingest', () => {
+// real ffmpeg decodes: generous time, so a busy machine (parallel dev servers, builds) never fails them spuriously
+describe('decoded by ffmpeg, measured at ingest', { timeout: 30_000 }, () => {
   it('a PNG on disk measures exactly as its pixels do', async () => {
     for (const [name, img] of [['figure.png', greyFigure()], ['key-art.png', keyArt()]] as const) {
       expect(await P.measurePresentation(writePng(img, name))).toEqual(P.presentationFromPixels(img));

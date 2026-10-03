@@ -8,11 +8,11 @@ import { useRootVarContribution } from './layout';
 import { MenuButton, MenuLink } from './Overlay';
 
 /** IN-PAGE NAVIGATION (docs/DESIGN-SYSTEM-V4.md §5.11) — TabBar, TabPanel, AnchorNav and Crumbs. Switching is
- *  instant: no fade on a panel, only the 2 px iris underline moves (§4.8). */
+ *  instant: no fade on a panel, only the 2 px light underline moves (§4.8). */
 
 export interface TabItem { id: string; label: ReactNode; count?: number; icon?: ReactNode; disabled?: boolean }
 
-/** 44 px, 14/20 500 muted; the selected tab is --fg 600 with a 2 px iris underline; counts are faint numbers, never
+/** 44 px, 14/20 500 muted; the selected tab is --fg 600 with a 2 px light underline; counts are faint numbers, never
  *  a chip. One Tab stop: ←/→, Home and End move between tabs and select (selection follows
  *  focus). Two forms:
  *  - `hrefFor`: tabs are links and the URL is the state (`?tab=`), so reload and Back behave (§7.4);

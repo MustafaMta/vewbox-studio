@@ -7,6 +7,7 @@ import { db, schema, sql } from '../db/client';
 import { log } from '../log';
 import { AGENTS, FAILURE_CLASSES, ORG_VERSION, PIPELINE, agentById, agentIdForJob, toolById, type AgentDef, type DepartmentId, type FailureClass, type PipelineStage } from './model';
 import { skillVersions } from './skills';
+import { fenced } from '../jobs/fence';
 
 /** THE RECORD OF WORK — every job runs as an agent and leaves an agent run (tool calls, outcome, failure class), the
  *  departments leave handoffs and QA reports, people leave approvals, and everything that happened is a studio event
@@ -181,7 +182,7 @@ export interface NewQaReport { productionId?: string; subjectKind: 'TAKE' | 'CUT
 export async function recordQaReport(r: NewQaReport): Promise<string> {
   const id = nid('qa');
   const inspector = agentById(r.inspectorId);
-  await db().insert(schema.qaReports).values({ id, productionId: r.productionId ?? null, subjectKind: r.subjectKind, subjectId: r.subjectId, inspectorId: r.inspectorId, checks: r.checks, failureClass: r.failureClass ?? null, decision: r.decision, evidenceAssetIds: r.evidenceAssetIds ?? [], notes: r.notes ?? null, jobId: r.jobId ?? null, createdAt: new Date().toISOString() });
+  await fenced('QA report', (tx) => tx.insert(schema.qaReports).values({ id, productionId: r.productionId ?? null, subjectKind: r.subjectKind, subjectId: r.subjectId, inspectorId: r.inspectorId, checks: r.checks, failureClass: r.failureClass ?? null, decision: r.decision, evidenceAssetIds: r.evidenceAssetIds ?? [], notes: r.notes ?? null, jobId: r.jobId ?? null, createdAt: new Date().toISOString() }));
   const failed = r.checks.filter((c) => !c.ok);
   await studioEvent({ departmentId: 'QA', agentId: r.inspectorId, productionId: r.productionId, kind: `QA_${r.decision}`, message: `${inspector?.name ?? r.inspectorId}: ${r.subjectKind.toLowerCase()} ${r.decision === 'ACCEPT' ? 'accepted' : r.decision === 'REJECT' ? 'rejected' : 'sent to review'}${failed.length ? ` (${failed.map((c) => c.name).join(', ')})` : ` (${r.checks.length} checks)`}`, data: { reportId: id, subjectId: r.subjectId, failureClass: r.failureClass }, jobId: r.jobId });
   return id;
