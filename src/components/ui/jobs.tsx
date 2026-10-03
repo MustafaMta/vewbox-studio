@@ -8,7 +8,8 @@ import { useStudio } from '@/studio/store';
 import { retryNeedsChange } from '@/studio/retry';
 import { useT } from './locale';
 import { useToast } from './toast';
-import { Button, Spinner, Status, cls } from './kit';
+import { Button, Spinner, Status, cls, useConfirm } from './kit';
+import { useErrorCopy } from './progress';
 import { IconGenerate, IconRetry, IconClose } from './icons';
 
 /** WHERE GENERATION HAPPENS — a button that starts a real job. While a job for the same target is active it shows
@@ -40,22 +41,30 @@ export function JobButton<K extends JobType>({ type, payload, children, icon, va
   const T = useT();
   const { jobs, cancelJob } = useStudio();
   const { start, busy } = useStartJob();
+  const ask = useConfirm();
+  const copyOf = useErrorCopy();
   const mine = jobs.filter((j) => j.type === type && (!target.productionId || j.productionId === target.productionId) && (!target.shotId || j.shotId === target.shotId) && (!target.characterId || j.characterId === target.characterId) && (!target.locationId || j.locationId === target.locationId));
   const active = mine.find((j) => isActiveStatus(j.status));
   const last = mine.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   if (active) {
     return (
       <span className={cls('inline-flex max-w-full items-center gap-2', className)}>
-        <Status tone="info" live className="max-w-[18rem] truncate" title={active.progress?.message}><Spinner className="me-1" />{active.progress?.message || T('jobs.inProgress')}{active.progress?.percent != null && active.progress.percent > 0 ? ` · ${active.progress.percent}%` : ''}{active.progress?.step && active.progress.total ? ` · ${active.progress.step}/${active.progress.total}` : ''}</Status>
+        <Status tone="info" live className="max-w-[18rem] truncate"><Spinner className="me-1" />{(active.progress?.phase && T.dyn(`jp.${active.progress.phase}`, '')) || T('jobs.inProgress')}{active.progress?.percent != null && active.progress.percent > 0 ? ` · ${active.progress.percent}%` : ''}{active.progress?.step && active.progress.total ? ` · ${active.progress.step}/${active.progress.total}` : ''}</Status>
         <Button size="xs" variant="ghost" icon={<IconClose />} aria-label={T('jobs.cancel')} title={T('jobs.cancel')} disabled={active.cancelRequested} onClick={() => void cancelJob(active.id)} />
       </span>
     );
   }
-  const onClick = () => { if (confirm && !window.confirm(confirm)) return; void start(type, payload, { idempotencyKey }); };
+  // replacing work that exists asks first, in the kit's ConfirmDialog (never window.confirm, §1.5)
+  const onClick = async () => {
+    if (confirm && !(await ask({ title: confirm, confirmLabel: children, tone: 'danger' }))) return;
+    void start(type, payload, { idempotencyKey });
+  };
+  // the failure in plain words; the engine's own message stays out of the product voice (§1.5, V4-06)
+  const failedCopy = last?.status === 'FAILED' ? copyOf(last.error) : null;
   return (
     <span className={cls('inline-flex max-w-full flex-wrap items-center gap-2', className)}>
-      <Button variant={variant} size={size} icon={icon ?? <IconGenerate />} onClick={onClick} loading={busy} disabled={disabled} title={title}>{children}</Button>
-      {last?.status === 'FAILED' && <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 text-xs text-bad" title={last.error?.message}><span className="max-w-[16rem] truncate">{last.error?.message ?? T('jobs.failed')}</span><RetryControl job={last} size="xs" /></span>}
+      <Button variant={variant} size={size} icon={icon ?? <IconGenerate />} onClick={() => void onClick()} loading={busy} disabled={disabled} title={title}>{children}</Button>
+      {last && failedCopy && <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 text-xs text-bad"><span className="max-w-[16rem] truncate">{failedCopy.title}</span><RetryControl job={last} size="xs" /></span>}
     </span>
   );
 }

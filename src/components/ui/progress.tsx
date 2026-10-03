@@ -6,7 +6,7 @@ import type { Job, JobError, JobStatus } from '@/domain/jobs';
 import type { StudioErrorCode } from '@/domain/errors';
 import { isActiveStatus, isTerminalStatus } from '@/domain/jobs';
 import { useT } from './locale';
-import { Button, Spinner, cls, type Tone } from './kit';
+import { Button, ErrorNotice, Spinner, cls, type Tone } from './kit';
 import { IconBad, IconCheck, IconClose, IconOpen, IconRetry, IconSettings } from './icons';
 import type { Key } from '@/lib/i18n';
 
@@ -37,12 +37,16 @@ export function PhaseStrip({ phases, label, className = '' }: { phases: Phase[];
 /* ---- error copy -------------------------------------------------------------------------------------------- */
 
 /** `consent`: the producer's consent statement for a recording (src/components/character/ConsentChoice.tsx) — a
- *  plain retry can never fix it, so nothing here offers one. */
-export interface ErrorCopy { code: string; title: string; hint: string; fix: { label: string; kind: 'retry' | 'settings' | 'reference' | 'usage' | 'job' | 'fields' | 'consent' | 'none' } }
+ *  plain retry can never fix it, so nothing here offers one. `detail` is the engine's own message: it is shown only
+ *  inside Details (docs/DESIGN-SYSTEM-V4.md §5.16, V4-06), never as the hint. */
+export interface ErrorCopy { code: string; title: string; hint: string; detail?: string; fix: { label: string; kind: 'retry' | 'settings' | 'reference' | 'usage' | 'job' | 'fields' | 'consent' | 'none' } }
+
+/** One code's plain words (title, why, the recovery's label) and its recovery kind. */
+export interface ErrorEntry { title: Key; hint: Key; fix: Key; kind: ErrorCopy['fix']['kind'] }
 
 /** Every StudioError code has its words and its one recovery (typed exhaustively: a new code that has none fails the
  *  type check instead of falling back to a generic Retry), plus CANCELLED, which jobs record. */
-export const ERROR_COPY: Record<StudioErrorCode | 'CANCELLED', { title: Key; hint: Key; fix: Key; kind: ErrorCopy['fix']['kind'] }> = {
+export const ERROR_COPY: Record<StudioErrorCode | 'CANCELLED', ErrorEntry> = {
   UNAVAILABLE: { title: 'err.UNAVAILABLE', hint: 'err.UNAVAILABLE.hint', fix: 'err.UNAVAILABLE.fix', kind: 'settings' },
   NOT_CONFIGURED: { title: 'err.NOT_CONFIGURED', hint: 'err.NOT_CONFIGURED.hint', fix: 'err.NOT_CONFIGURED.fix', kind: 'settings' },
   PROVIDER: { title: 'err.PROVIDER', hint: 'err.PROVIDER.hint', fix: 'err.PROVIDER.fix', kind: 'retry' },
@@ -57,15 +61,23 @@ export const ERROR_COPY: Record<StudioErrorCode | 'CANCELLED', { title: Key; hin
   CANCELLED: { title: 'err.CANCELLED', hint: 'err.CANCELLED.hint', fix: 'err.PROVIDER.fix', kind: 'retry' },
 };
 
-/** The StudioError code → plain words and the one recovery action. Unknown codes fall back to the engine's message
- *  and Retry. The engine's own message is kept as the hint when it is more specific than ours. */
+/** AUDIT D6 (docs/AUDIT-CODEBASE.md; DESIGN-SYSTEM-V4 §8.7): the table of known codes, typed by the StudioError
+ *  union, so a code without words — CONSENT_REQUIRED and ASSET_PROTECTED were the two — fails `tsc` instead of
+ *  falling back to a generic Retry. Same entries as ERROR_COPY (which adds CANCELLED). */
+export const KNOWN: Record<StudioErrorCode, ErrorEntry> = ERROR_COPY;
+
+const entryOf = (code: string): ErrorEntry | undefined => (ERROR_COPY as Record<string, ErrorEntry | undefined>)[code];
+
+/** The StudioError code → plain words in the interface language and the one recovery action. An unknown code is
+ *  "The step failed." with Retry. The engine's own message never becomes the words: it is `detail`, for Details. */
 export function useErrorCopy() {
   const T = useT();
   return (err?: JobError | { code: string; message?: string } | null): ErrorCopy => {
     const code = err?.code ?? 'UNKNOWN';
-    const k = (ERROR_COPY as Record<string, (typeof ERROR_COPY)[StudioErrorCode] | undefined>)[code];
-    if (!k) return { code, title: T('err.unknown'), hint: err?.message ?? '', fix: { label: T('err.PROVIDER.fix'), kind: 'retry' } };
-    return { code, title: T(k.title), hint: err?.message && err.message.length > 12 ? err.message : T(k.hint), fix: { label: T(k.fix), kind: k.kind } };
+    const k = entryOf(code);
+    const detail = err?.message?.trim() || undefined;
+    if (!k) return { code, title: T('err.unknown'), hint: T('kit.err.unknownHint'), detail, fix: { label: T('err.PROVIDER.fix'), kind: 'retry' } };
+    return { code, title: T(k.title), hint: T(k.hint), detail, fix: { label: T(k.fix), kind: k.kind } };
   };
 }
 
@@ -95,7 +107,9 @@ const PHASES: Array<{ id: string; key: Key; statuses: JobStatus[] }> = [
   { id: 'POSTPROCESSING', key: 'jp.POSTPROCESSING', statuses: ['POSTPROCESSING'] },
 ];
 
-/** The phases of one job as rows, from its real status (the worker's `progress.phase` wins when it names one). */
+/** The phases of one job as rows, from its real status (the worker's `progress.phase` wins when it names one). A
+ *  failed row says what happened in plain words; the worker's and the engine's own messages stay out of the rows
+ *  (they belong to Details, §5.16) — the step count is in the footer. */
 export function phaseRows(job: Job | undefined, T: ReturnType<typeof useT>): ProgressRow[] {
   const phase = job ? (job.progress?.phase && PHASES.some((p) => p.id === job.progress!.phase) ? job.progress.phase : PHASES.find((p) => p.statuses.includes(job.status))?.id) : 'QUEUED';
   const idx = Math.max(0, PHASES.findIndex((p) => p.id === phase));
@@ -104,7 +118,7 @@ export function phaseRows(job: Job | undefined, T: ReturnType<typeof useT>): Pro
   return PHASES.map((p, i) => ({
     id: p.id, label: T(p.key),
     state: done ? 'done' : i < idx ? 'done' : i === idx ? (failed ? 'failed' : 'current') : 'pending',
-    detail: i === idx && !done ? (failed ? job?.error?.message : job?.progress?.message) : undefined,
+    detail: i === idx && !done && failed ? T(entryOf(job?.status === 'CANCELLED' ? 'CANCELLED' : job?.error?.code ?? '')?.title ?? 'err.unknown') : undefined,
   }));
 }
 
@@ -166,17 +180,12 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
   );
 }
 
-/** The failure block: title, the engine's words, and the one recovery action. */
-export function FailureNotice({ copy, action, jobId }: { copy: ErrorCopy; action?: ReactNode; jobId?: string }) {
+/** The failure block (the error notice anatomy, §5.16): what happened, why in plain words, the one recovery action
+ *  (then the job), and the engine's own message only inside Details. */
+export function FailureNotice({ copy, action, jobId, kept }: { copy: ErrorCopy; action?: ReactNode; jobId?: string; /** what is kept, said plainly */ kept?: ReactNode }) {
   const T = useT();
   return (
-    <div role="alert" className="notice notice-bad">
-      <IconBad aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium">{copy.title}</p>
-        {copy.hint && <p className="mt-0.5 text-muted" dir="auto">{copy.hint}</p>}
-        <div className="mt-2 flex flex-wrap items-center gap-2">{action}{jobId && <Link href={`/production?job=${jobId}`} className="btn btn-quiet btn-sm">{T('err.openJob')}</Link>}</div>
-      </div>
-    </div>
+    <ErrorNotice title={copy.title} why={copy.hint} kept={kept} details={copy.detail}
+      action={action} alternatives={jobId ? <Link href={`/production?job=${jobId}`} className="btn btn-quiet btn-sm">{T('err.openJob')}</Link> : undefined} />
   );
 }

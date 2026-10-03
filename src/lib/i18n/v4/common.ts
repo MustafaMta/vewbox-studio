@@ -235,9 +235,9 @@ export const common = {
   'btn.refresh': ['Refresh', 'تحديث'],
   'status.title': ['Engines', 'المحرّكات'],
   'status.lead': ['What this studio can do right now, and where each engine runs.', 'ما يستطيع هذا الاستوديو فعله الآن وأين يعمل كل محرّك.'],
-  'status.video': ['Video (MiniMax)', 'الفيديو (MiniMax)'],
+  'status.video': ['Video (MiniMax)', 'الفيديو (MiniMax)'], // v4-lint: allow engine — a v3 key frozen by tests/unit/i18n-split.test.ts; its one reader is Settings (P3, V4-07), which moves to an engine-free key; Q1 deletes it
   'status.story': ['Story engine', 'محرّك القصة'],
-  'status.images': ['Images (ComfyUI)', 'الصور (ComfyUI)'],
+  'status.images': ['Images (ComfyUI)', 'الصور (ComfyUI)'], // v4-lint: allow engine — a v3 key frozen by tests/unit/i18n-split.test.ts; its one reader is Settings (P3, V4-07), which moves to an engine-free key; Q1 deletes it
   'status.voice': ['Voices', 'الأصوات'],
   'status.transcription': ['Transcription', 'التفريغ'],
   'status.music': ['Music', 'الموسيقى'],
