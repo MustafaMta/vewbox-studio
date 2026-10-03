@@ -93,6 +93,8 @@
   .btn-split > .btn + .btn::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--line-strong); }
   .btn-split > .btn-primary + .btn-primary::before { background: var(--split-on-primary); }
   .btn-split > .menu-wrap > .btn { border-radius: 0 var(--r-pill) var(--r-pill) 0; inline-size: 32px; padding: 0; }
+  .btn-split > .menu-wrap > .btn::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--line-strong); }
+  .btn-split > .btn-primary + .menu-wrap > .btn-primary::before { background: var(--split-on-primary); }
   /* a drawn state (the specimen) */
   .is-focus { outline: 2px solid var(--text-1); outline-offset: 2px; }
 
@@ -198,17 +200,17 @@
   /* choice cards: radio options you can see */
   /* a selectable tile (§6): surface and hairline; hover one step up; selected is a 1.5 px accent border and a
      filled radio dot — no ring, no tint; focus is the ring outside */
-  .choice, .tile-choice { position: relative; display: flex; flex-direction: column; cursor: pointer; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-1); text-align: start; transition: border-color var(--dur-1) var(--ease-enter), background-color var(--dur-1) var(--ease-enter); }
-  .choice:hover, .tile-choice:hover { background: var(--surface-1); border-color: var(--line-strong); }
-  .choice[data-selected='true'], .choice:has(input:checked), .tile-choice[data-selected='true'] { border-color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--text-1); }
+  .choice, .tile-choice { position: relative; display: flex; flex-direction: column; cursor: pointer; border: 0; border-radius: var(--r-md); background: var(--surface-1); text-align: start; transition: background-color var(--dur-1) var(--ease-out); }
+  .choice:hover, .tile-choice:hover { background: var(--surface-2); }
+  .choice[data-selected='true'], .choice:has(input:checked), .tile-choice[data-selected='true'] { box-shadow: inset 0 0 0 2px var(--text-1); }
   .choice:has(input:focus-visible), .tile-choice:has(input:focus-visible) { outline: 2px solid var(--text-1); outline-offset: 2px; }
   .tile-choice[aria-disabled='true'] { cursor: not-allowed; color: var(--text-disabled); }
-  .tile-choice[aria-disabled='true']:hover { background: var(--surface-1); border-color: var(--line); }
+  .tile-choice[aria-disabled='true']:hover { background: var(--surface-1); }
   .choice-tiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tile-min, 14rem)), 1fr)); }
-  /* the radio mark of a tile: an outlined circle, filled with the accent when chosen */
-  .radio-mark { display: inline-grid; place-items: center; inline-size: 18px; block-size: 18px; border-radius: 999px; border: 1.5px solid var(--line-control); flex: none; }
-  [data-selected='true'] > * > .radio-mark, [data-selected='true'] .radio-mark { border-color: var(--text-1); }
-  [data-selected='true'] .radio-mark::after { content: ''; inline-size: 8px; block-size: 8px; border-radius: 999px; background: var(--text-1); }
+  /* the mark at a choice's end: an 18 px ring; chosen, the light disc with a check */
+  .radio-mark { display: inline-grid; place-items: center; inline-size: 18px; block-size: 18px; flex: none; border-radius: var(--r-pill); border: 1.5px solid var(--line-control); }
+  [data-selected='true'] .radio-mark, .choice:has(input:checked) .radio-mark { border-color: var(--primary); background: var(--primary); }
+  [data-selected='true'] .radio-mark::after, .choice:has(input:checked) .radio-mark::after { content: ''; inline-size: 8px; block-size: 4px; margin-block-start: -2px; border-inline-start: 1.75px solid var(--on-primary); border-block-end: 1.75px solid var(--on-primary); transform: rotate(-45deg); }
 
   /* ---- lists & tables --------------------------------------------------------------------------------- */
   .rows > * + * { border-block-start: 1px solid var(--line); }
@@ -594,20 +596,22 @@
   .choice-tiles-v4 { --cols: 2; display: flex; flex-direction: column; gap: 8px; }
   .choice-tiles-v4[data-cols='3'] { --cols: 3; }
   @media (min-width: 768px) { .choice-tiles-v4 { display: grid; gap: 12px; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); } }
-  .choice-tile { position: relative; display: flex; align-items: center; gap: 12px; min-block-size: 64px; padding: 12px 16px; text-align: start; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-1); color: var(--text-1); cursor: pointer; transition: border-color var(--dur-1) var(--ease-enter), background-color var(--dur-1) var(--ease-enter); }
+  /* a choice tile: a level-1 card (surface-1, radius 14, no border); hover surface-2; selected = a 2 px text-1 ring inside
+     and the check in the light disc at the end; disabled: text-disabled with its reason */
+  .choice-tile { position: relative; display: flex; align-items: center; gap: 12px; min-block-size: 64px; padding: 12px 16px; border: 0; border-radius: var(--r-md); background: var(--surface-1); color: var(--text-1); font: inherit; text-align: start; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
   @media (min-width: 768px) { .choice-tile { align-items: flex-start; padding: 16px; } }
-  .choice-tile:hover:not(:disabled), .choice-tile.is-hover { background: var(--surface-1); border-color: var(--line-strong); }
-  .choice-tile[aria-checked='true'], .choice-tile.is-selected { border-color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--text-1); }
+  .choice-tile:is(:hover, .is-hover):not(:disabled) { background: var(--surface-2); }
+  .choice-tile:is([aria-checked='true'], .is-selected) { box-shadow: inset 0 0 0 2px var(--text-1); }
   .choice-tile:disabled { cursor: not-allowed; }
-  .choice-tile:disabled .choice-tile-title, .choice-tile:disabled .choice-tile-icon { color: var(--text-disabled); }
+  .choice-tile:disabled :is(.choice-tile-title, .choice-tile-icon) { color: var(--text-disabled); }
   .choice-tile-icon { display: grid; place-items: center; inline-size: 20px; block-size: 20px; flex: none; color: var(--text-2); }
-  .choice-tile-icon svg { inline-size: 20px; block-size: 20px; stroke-width: 1.5; }
-  .choice-tile[aria-checked='true'] .choice-tile-icon { color: var(--text-1); }
+  .choice-tile-icon svg { inline-size: 20px; block-size: 20px; stroke-width: 1.75; }
+  .choice-tile:is([aria-checked='true'], .is-selected) .choice-tile-icon { color: var(--text-1); }
   .choice-tile-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-inline-size: 0; }
-  .choice-tile-title { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-1); }
-  .choice-tile-hint { font-size: 13px; line-height: 20px; color: var(--text-2); }
-  .choice-tile[aria-checked='true'] .radio-mark, .choice-tile.is-selected .radio-mark { border-color: var(--text-1); }
-  .choice-tile[aria-checked='true'] .radio-mark::after, .choice-tile.is-selected .radio-mark::after { content: ''; inline-size: 8px; block-size: 8px; border-radius: var(--r-pill); background: var(--text-1); }
+  .choice-tile-title { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  .choice-tile-hint { font-size: 13px; line-height: 18px; color: var(--text-2); }
+  .choice-tile:is([aria-checked='true'], .is-selected) .radio-mark { border-color: var(--primary); background: var(--primary); }
+  .choice-tile:is([aria-checked='true'], .is-selected) .radio-mark::after { content: ''; inline-size: 8px; block-size: 4px; margin-block-start: -2px; border-inline-start: 1.75px solid var(--on-primary); border-block-end: 1.75px solid var(--on-primary); transform: rotate(-45deg); }
 
   /* ---- creation flows (§5.19) ---------------------------------------------------------------------------- */
   .creation-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-block-size: 40px; margin-block-end: 16px; }

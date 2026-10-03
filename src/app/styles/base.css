@@ -42,7 +42,7 @@
      target that is not a Tab stop (tabindex="-1": the skip link's target, a dialog's own box) draws no ring. */
   :focus-visible:not([tabindex='-1']) { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
   /* tiles: the ring stands 4 px off the picture so it never touches the art */
-  :is(.tile, .fig, .scard, .mtile-link, .poster-link, .dcard, .acard, .card-link):focus-visible { outline-offset: 3px !important; }
+  :is(.tile, .fig, .scard, .mtile-link, .poster-link, .dcard, .acard, .card-link, .mcard, .fcard, .start-card, .tool-card, .feat-thumb, .iplayer):focus-visible { outline-offset: 3px !important; }
   /* controls on art, in players and in the theatre: black gap · paper ring · black band (ring vs black 18.3:1,
      black vs white art 21:1) — the one box-shadow focus may use, because it is a band, not the ring */
   :is(.ibtn-art, .play-art, .on-art-chip, .play-on-art, .pdisc[data-tone='chip']):focus-visible,
@@ -78,7 +78,7 @@
   :where(.grid, .flex, .inline-grid, .inline-flex, [data-grid]) > :has(:is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip)) { min-inline-size: 0 !important; }
   /* keyboard focus scrolls an item fully into view; snapping would pull a partly hidden item back, so it rests while
      the strip holds focus */
-  :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
+  :is(.scrolls, [data-strip], .rail-list, .shelf-track, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
   @media (pointer: coarse), (max-width: 1023px) {
     :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip) {
       scrollbar-width: thin !important; scrollbar-color: var(--carbon-8) transparent !important; padding-block-end: 12px !important;

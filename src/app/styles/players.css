@@ -66,7 +66,9 @@
 
   /* ---- the play disc (cards, sections) ----------------------------------------------------------------------- */
   .pdisc { --pd: 40px; display: inline-grid; place-items: center; flex: none; inline-size: var(--pd); block-size: var(--pd); padding: 0; border: 0; border-radius: var(--r-pill); cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
-  .pdisc[data-size='28'] { --pd: 28px; } .pdisc[data-size='32'] { --pd: 32px; } .pdisc[data-size='56'] { --pd: 56px; }
+  .pdisc[data-size='28'] { --pd: 28px; } .pdisc[data-size='32'] { --pd: 32px; } .pdisc[data-size='36'] { --pd: 36px; } .pdisc[data-size='56'] { --pd: 56px; }
+  .pdisc[data-tone='secondary'] { background: var(--surface-2); color: var(--text-1); }
+  .pdisc[data-tone='secondary']:hover { background: var(--surface-3); }
   .pdisc svg { inline-size: calc(var(--pd) * 0.4); block-size: calc(var(--pd) * 0.4); fill: currentColor; }
   .pdisc[data-tone='chip'] { background: var(--chip-on-art); color: var(--text-1); }
   .pdisc[data-tone='chip']:hover { background: var(--black); }
@@ -101,6 +103,18 @@
   .ptransport .pt-time { flex: none; color: var(--text-2); }
   .ptransport .pt-seek { flex: 1; min-inline-size: 80px; }
   @media (max-width: 479px) { .ptransport .pvol-track { display: none; } }
+  /* the cutting room's transport: the same dock, more controls; the timecode in mono text-1; below 768 the seek track
+     takes its own row */
+  .pt-group { display: inline-flex; flex: none; align-items: center; gap: 4px; }
+  .pt-tc { flex: none; color: var(--text-1); }
+  .pt-tc-total { color: var(--text-3); }
+  .pt-mark { min-inline-size: 40px; padding-inline: 8px; }
+  .ptransport-edit { gap: 8px 12px; }
+  @media (max-width: 767px) {
+    .ptransport-edit { flex-wrap: wrap; block-size: auto; min-block-size: 52px; padding-block: 8px; }
+    .ptransport-edit > .pt-seek { order: -1; flex-basis: 100%; }
+    .ptransport-edit > .pt-nudge { display: none; }
+  }
 
   /* the audio row (§5.24): 64 high, surface-1, radius 14, padding 12 */
   .arow { display: flex; align-items: center; gap: 12px; min-block-size: 64px; padding: 12px; border-radius: var(--r-md); background: var(--surface-1); }
@@ -160,11 +174,7 @@
   .cplayer-box { position: relative; inline-size: 100%; max-block-size: 60vh; aspect-ratio: var(--cp-ratio, auto); }
   .cplayer-canvas[data-zoom='actual'] .cplayer-box { flex: none; max-inline-size: none; max-block-size: none; }
   .cplayer .pvideo { background: var(--canvas); }
-  .cplayer-bar { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; background: var(--surface-1); border-block-start: 1px solid var(--line); }
-  .cplayer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
-  .cplayer-group { display: inline-flex; align-items: center; gap: 2px; }
-  .cplayer-tc { color: var(--text-1); }
-  .cplayer-tc-total { color: var(--text-3); }
+  .cplayer > .ptransport { border-block-start: 1px solid var(--line); }
 
   /* ---- the theatre player ------------------------------------------------------------------------------------ */
   .tplayer { position: relative; background: var(--black); color: var(--text-1); }

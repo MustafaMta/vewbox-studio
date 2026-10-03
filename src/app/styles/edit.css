@@ -138,4 +138,14 @@
   .toolrow { display: inline-flex; align-items: center; gap: 2px; padding: 4px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: var(--shadow-overlay); }
   .toolrow .ebtn { block-size: 32px; }
   .toolrow-float { position: absolute; z-index: var(--z-raised); inset-inline: 0; inset-block-end: var(--s-12); inline-size: max-content; max-inline-size: calc(100% - 2 * var(--s-12)); margin-inline: auto; }
+
+  /* ---- picks (v5 §5.19): a closed vocabulary as drawn 44 × 26 previews; one radio group -------------------------- */
+  .picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .pick { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-block-size: 44px; padding: 8px; border: 0; border-radius: var(--r-sm); background: var(--surface-1); color: var(--text-2); font: inherit; font-size: 12px; line-height: 16px; font-weight: 500; text-align: start; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out); }
+  .pick:is(:hover, .is-hover):not(:disabled, [aria-checked='true']) { background: var(--surface-2); color: var(--text-1); }
+  .pick[aria-checked='true'] { background: var(--primary); color: var(--on-primary); }
+  .pick:disabled { color: var(--text-disabled); cursor: not-allowed; }
+  .pick:focus-visible { outline-offset: 2px; }
+  .pick-draw { display: block; line-height: 0; }
+  .pick-label { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

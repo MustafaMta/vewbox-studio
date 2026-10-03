@@ -42,6 +42,7 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
       const ep = prod(seg[5]);
       const epLabel = fill('Episode {n}', ep?.episodeNumber ?? '');
       if (seg[6] === 'shots') return [shot(ep, seg[7]), epLabel, name, area];
+      if (seg[6] === 'production') return ['Production', epLabel, name, area];
       const t1 = tab(FILM_TABS);
       return t1.length ? [...t1, epLabel, name, area] : [ep ? `${epLabel}: ${prodName(ep)}` : epLabel, name, area];
     }
@@ -52,6 +53,7 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
       const p = prod(seg[1]);
       if (!seg[1] || !p) return [area];
       if (seg[2] === 'shots') return [shot(p, seg[3]), prodName(p), area];
+      if (seg[2] === 'production') return ['Production', prodName(p), area];
       return [...tab(music ? MUSIC_TABS : FILM_TABS), prodName(p), area];
     }
     case 'characters': {

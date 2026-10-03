@@ -15,10 +15,11 @@
   @media (max-width: 639px) { .bleed { margin-inline: calc(-1 * var(--pad)); } }
 
   /* ---- the title card (§5.11): an object without art — the shape of the object, surface-1, radius 14, four
-     viewfinder corners (12 px arms, 1.5 px, inset 12), the state at the top start, the name at the bottom start.
+     viewfinder corners (12 px arms, 1.5 px, inset 8), the state at the top start and the name at the bottom start, 20 in,
+     clear of the arms on every ratio.
      Never larger than 20 px, never serif, never an empty card without a name. ---------------------------------------- */
-  .tcard { --tcard-inset: 16px; --corner: var(--line-control); position: relative; display: flex; flex-direction: column; justify-content: flex-end; inline-size: 100%; overflow: hidden; container-type: inline-size; padding: var(--tcard-inset); border-radius: var(--r-md); background: var(--surface-1); color: var(--text-2); }
-  .tcard::before { content: ''; position: absolute; inset: 12px; pointer-events: none;
+  .tcard { --tcard-inset: 20px; --corner: var(--line-control); position: relative; display: flex; flex-direction: column; justify-content: flex-end; inline-size: 100%; overflow: hidden; container-type: inline-size; padding: var(--tcard-inset); border-radius: var(--r-md); background: var(--surface-1); color: var(--text-2); }
+  .tcard::before { content: ''; position: absolute; inset: 8px; pointer-events: none;
     background:
       linear-gradient(var(--corner), var(--corner)) top left / 12px 1.5px no-repeat,
       linear-gradient(var(--corner), var(--corner)) top left / 1.5px 12px no-repeat,
@@ -30,7 +31,6 @@
       linear-gradient(var(--corner), var(--corner)) bottom right / 1.5px 12px no-repeat; }
   .tcard[data-radius='precise'] { border-radius: var(--r-xs); }
   .tcard[data-radius='none'] { border-radius: 0; }
-  .tcard-sm { --tcard-inset: 12px; }
   .tcard-state { position: absolute; inset-block-start: var(--tcard-inset); inset-inline: var(--tcard-inset); display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-3); }
   .tcard-num { position: absolute; inset-block-start: var(--tcard-inset); inset-inline-end: var(--tcard-inset); font-family: var(--font-mono); font-size: 13px; line-height: 18px; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .tcard .tcard-title { position: relative; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.005em; color: var(--text-2); }
@@ -39,7 +39,7 @@
   .tcard[data-size='lg'] .tcard-title { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; }
   @container (min-width: 320px) { .tcard[data-ratio='16/9'] .tcard-title { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; } }
   /* very small frames: the state words go; the name stays */
-  @container (max-width: 140px) { .tcard .tcard-state { display: none; } .tcard::before { inset: 8px; } }
+  @container (max-width: 140px) { .tcard .tcard-state { display: none; } .tcard::before { inset: 6px; } }
   @container (max-width: 200px) { .tcard .tcard-title { font-size: 13px; line-height: 18px; } }
 
   /* ---- the picture frame (§5.5) ------------------------------------------------------------------------------
@@ -106,7 +106,6 @@
   .mtile-link { display: flex; flex-direction: column; align-items: stretch; inline-size: 100%; padding: 0; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
   .mtile-link:focus-visible { outline-offset: 3px; }
   div.mtile-link { cursor: default; }
-  .mtile .tcard { --tcard-inset: 12px; }
   .mtile-title { margin-block-start: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.005em; color: var(--text-1); }
   .mtile[data-selected] .mtile-frame { outline: 2px solid var(--text-1); outline-offset: 3px; }
   .mtile-meta { margin-block-start: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 18px; color: var(--text-3); min-block-size: 18px; }
@@ -129,7 +128,6 @@
   .mcard { position: relative; display: block; inline-size: 100%; overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); color: var(--text-1); text-decoration: none; }
   .mcard .frame, .mcard .tcard { border-radius: 0; }
   .mcard .tcard-title, .fcard .tcard-title { visibility: hidden; }
-  .mcard .tcard { --tcard-inset: 20px; }
   .mcard:has(.tcard) .mcard-words { padding: 0 20px 20px; }
   .mcard .frame-phase { inset-block: 8px auto; }
   .mcard-words { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 2px; padding: 28px 14px 12px; background: var(--scrim-poster); pointer-events: none; }
@@ -147,6 +145,9 @@
   .fcard-frame { inline-size: 100%; aspect-ratio: 928 / 1664; border-radius: var(--r-md); }
   .fcard-name { display: block; margin-block-start: 12px; min-block-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fcard-state { display: flex; align-items: center; min-block-size: 22px; margin-block-start: 6px; }
+  .fcard-host { position: relative; container-type: inline-size; }
+  .fcard-has-disc .fcard-name { padding-inline-end: 44px; }
+  .fcard-disc { position: absolute; inset-inline-end: 0; inset-block-start: calc(100cqi * 1664 / 928 + 4px); }
   .fcard-state .t-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* the start card: the shelf's own shape, the viewfinder corners (16 px arms, 1.5 px, inset 12), a 40 px plus circle

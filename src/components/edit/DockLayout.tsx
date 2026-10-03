@@ -8,7 +8,7 @@ import { useFocusMode } from './FocusMode';
 import { useMediaQuery } from './useMediaQuery';
 
 /** THE DOCK LAYOUT (docs/DESIGN-SYSTEM-V4.md §4.1, §5.20, §6.6) — the cutting room's panes:
- *    ≥ 1280   [list 280] | [canvas 1fr] | [inspector 320], two splitters
+ *    ≥ 1280   [list 280] | [canvas 1fr] | [inspector 360], two splitters
  *    1024–1279  canvas | inspector; the list is a start drawer
  *    768–1023   the canvas alone; the list is a start drawer and the inspector an end drawer, opened from labelled buttons
  *    < 768      one pane; a segmented control switches List · Canvas · Details
@@ -19,7 +19,7 @@ import { useMediaQuery } from './useMediaQuery';
 
 export interface DockPanel { title: string; content: ReactNode }
 interface Layout { list: number; inspector: number; listCollapsed: boolean; inspectorCollapsed: boolean }
-const DEFAULT: Layout = { list: 280, inspector: 320, listCollapsed: false, inspectorCollapsed: false };
+const DEFAULT: Layout = { list: 280, inspector: 360, listCollapsed: false, inspectorCollapsed: false };
 const BOUNDS = { list: [200, 480], inspector: [260, 520] } as const;
 const keyOf = (id: string) => `vewbox.dock.${id}`;
 function load(id: string): Layout { try { return { ...DEFAULT, ...(JSON.parse(localStorage.getItem(keyOf(id)) ?? '{}') as Partial<Layout>) }; } catch { return DEFAULT; } }

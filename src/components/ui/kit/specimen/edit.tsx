@@ -13,6 +13,10 @@ import { Inspector, MIXED, shared, useMixedLabel } from '@/components/edit/Inspe
 import { FocusModeButton, FocusModeProvider } from '@/components/edit/FocusMode';
 import { VersionStack } from '@/components/edit/VersionStack';
 import { ToolButton, ToolRow } from '@/components/edit/ToolRow';
+import { FramingDraw, MoveDraw, Picks } from '@/components/edit/Picks';
+import { CAMERA_MOVES, FRAMINGS, type CameraMove, type Framing } from '@/domain/vocabulary';
+
+const words = (v: string) => v.charAt(0) + v.slice(1).toLowerCase().replace(/_/g, ' ');
 import { EPISODE, SONGS } from './data';
 import { Block, Figure as Cell, SpecSection } from './parts';
 
@@ -27,6 +31,8 @@ export function EditSpec() {
   const [selected, setSelected] = useState<string[]>(['s3']);
   const [win, setWin] = useState(0);
   const [version, setVersion] = useState('v2');
+  const [framing, setFraming] = useState<Framing>('MEDIUM');
+  const [move, setMove] = useState<CameraMove>('PUSH_IN');
   const total = clips[clips.length - 1].to;
   const dialogue = shots.flatMap((s, i) => (s.line ? [{ id: `d${s.id}`, from: clips[i].from + 0.3, to: clips[i].to - 0.4, text: s.line, lang: 'en' }] : []));
   // a programme longer than five minutes, for the dual-scale strip: the seven shots repeated as twelve scenes of 30 s
@@ -99,6 +105,13 @@ export function EditSpec() {
           <Cell><div className="spec-panel"><Inspector kind={`Shot ${shot.n}`} name={shot.purpose} sections={[{ id: 'd', title: 'Time', content: <p className="tc">{shot.d} s</p> }]} /></div></Cell>
           <Cell><div className="spec-panel"><Inspector count={Math.max(2, sel.length)} sections={[{ id: 'd', title: 'Time', content: <p className="tc">{dur === MIXED || sel.length < 2 ? mixed : `${String(dur)} s`}</p> }]} /></div></Cell>
           <Cell><div className="spec-panel"><Inspector /></div></Cell>
+        </div>
+      </Block>
+
+      <Block title="Picks: closed vocabularies chosen by their look">
+        <div data-room="cutting" data-density="compact" className="spec-stack">
+          <Picks label="Framing" value={framing} onChange={setFraming} draw={(f) => <FramingDraw f={f} />} options={FRAMINGS.map((f) => ({ value: f, label: words(f) }))} />
+          <Picks label="Camera move" value={move} onChange={setMove} draw={(m) => <MoveDraw m={m} />} options={CAMERA_MOVES.map((m) => ({ value: m, label: words(m), disabled: m === 'ORBIT', reason: m === 'ORBIT' ? 'Not with a still frame' : undefined }))} />
         </div>
       </Block>
 

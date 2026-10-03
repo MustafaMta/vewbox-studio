@@ -32,7 +32,7 @@ const track: Track = { id: 't', src: '/sample/audio/river-lights-sample.m4a', ti
 describe('every transport, seek bar, waveform, strip and timeline is laid out left to right', () => {
   const cases: Array<[string, ReactElement, RegExp]> = [
     ['inline player', h(InlinePlayer, { src: '/v.mp4' }), /class="ptransport" dir="ltr"/],
-    ['canvas player', h(CanvasPlayer, { src: '/v.mp4' }), /class="cplayer-bar" dir="ltr"/],
+    ['canvas player', h(CanvasPlayer, { src: '/v.mp4' }), /class="ptransport ptransport-edit" dir="ltr"/],
     ['theatre player', h(TheatrePlayer, { src: '/v.mp4' }), /class="tplayer-transport"[^>]*dir="ltr"/],
     ['song transport', h(SongTransport, { track, title: 'River Lights' }), /class="stransport" dir="ltr"/],
     ['player bar', h(PlayerBar, { track, persistent: true }), /class="playerbar-transport" dir="ltr"/],

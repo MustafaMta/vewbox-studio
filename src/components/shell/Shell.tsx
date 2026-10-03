@@ -15,6 +15,7 @@ import { Sidebar } from './Sidebar';
 import { BottomNav, PhoneBar } from './PhoneNav';
 import { RouteSkeleton } from './route-skeletons';
 import { usePathname } from 'next/navigation';
+import { isCuttingRoute } from '@/app/boot';
 import { ServerBar } from './ServerBar';
 import { CommandPalette } from './CommandPalette';
 import { ShortcutSheet } from './ShortcutSheet';
@@ -75,12 +76,14 @@ export function Shell({ children }: { children: ReactNode }) {
   // The boot script drew the same shape before the first paint (<html data-sidebar>); from here the shell keeps the
   // attribute current. The width animates only after the first frame, so loading never moves the column.
   const choice = useSidebarChoice();
-  const shape: SidebarShape = sidebarShape(choice, wide && room !== 'cutting');
+  // the cutting room is known from the route before the page declares its room (the boot uses the same pattern)
+  const cutting = room === 'cutting' || isCuttingRoute(pathname);
+  const shape: SidebarShape = sidebarShape(choice, wide && !cutting);
   useEffect(() => {
     const html = document.documentElement;
     // before hydration the server snapshot says "no choice, not wide": keep the boot's attribute until the client knows
-    html.setAttribute('data-sidebar', sidebarShape(readSidebarNow(), matchMedia('(min-width: 1280px)').matches && room !== 'cutting'));
-  }, [shape, room]);
+    html.setAttribute('data-sidebar', sidebarShape(readSidebarNow(), matchMedia('(min-width: 1280px)').matches && !cutting));
+  }, [shape, cutting]);
   const nav = shape === 'collapsed' ? 'rail' : 'sidebar';
   // the width animates ONLY while the producer toggles it (never on load, resize or a room change), so the content
   // column never slides on its own (§6.5)
