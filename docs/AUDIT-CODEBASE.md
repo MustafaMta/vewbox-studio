@@ -53,6 +53,22 @@ voice identity v2 merged during the audit (`56feb3c`, `bd6a326`), so every analy
 Refactors (F) come after the cleanup, in this order: `images.ts` (with C1), `org/model.ts`, `domain/actions.ts`,
 `CreateWizard.tsx`, `i18n.ts`.
 
+### Status of the top 10 (updated 2026-10-03)
+
+| Action | Status |
+|---|---|
+| 1 C1 | done `b24a332` (merge): secondary material is one pass per optional kind from the canonical image; sheet/view builders and the Multiple-Angles wiring removed; `ORG_VERSION` 9 |
+| 2 H4 | done `e5eec16` |
+| 3 H7 | done `0fbf87c`; pruning the merged agent worktrees waits for the producer's agreement |
+| 4 C4 + D2 | done `2eb63e7` |
+| 5 D1, D3, D4, D6 | done `b9aae8c`; v4 F2/F4 rebuild these surfaces on the same state |
+| 6 C2 | done `408a841` (part of C3) |
+| 7 H6 | done `3e2d53b` |
+| 8 A1–A5, E1, C6 | done `6a38c91` (part of C7) |
+| 9 G1 | done `7f33069` (288 keys); the dictionary split (F1) done by design v4 F0 `0d3cdb1` |
+| 10 B1–B5 | done `2234053` except B3 (the two identity-line builders) |
+| C9 MEDIA_PROBE | in progress with design v4 B1 (presentation metadata) |
+
 ## Do NOT remove (look dead to a static search, verified live)
 
 | Item | Why it stays |

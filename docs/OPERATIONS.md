@@ -7,7 +7,7 @@
 | `db` | postgres:17.6-alpine | 5432 | the authoritative studio: records, jobs, usage, continuity, metrics |
 | `web` | vewbox/web | **4200 (all interfaces)** | Next.js: pages, command API, uploads, media streaming, event stream |
 | `worker` | vewbox/worker | — | runs jobs: story engine, MiniMax video, images, voices, music, assembly |
-| `comfyui` | vewbox/comfyui | 8188 | GPU: Qwen-Image, local MiniMax H3, ACE-Step, MiniMax Music 3 (hidden behind the worker) |
+| `comfyui` | vewbox/comfyui | 8188 | GPU: Qwen-Image-2512 (characters from text), FLUX.2 [klein] 4B (characters from a picture), Qwen-Image-Edit-2511 (rollback for pictures, secondary material), Qwen3.5-4B (reads uploaded pictures), local MiniMax H3, ACE-Step, MiniMax Music 3 (hidden behind the worker) |
 | `tts` | vewbox/tts-indextts | 8020 | GPU: IndexTTS 2.5 voices (English, Arabic) |
 | `tts-habibi` | vewbox/tts-habibi | 8021 | GPU: Habibi-TTS IRQ voices (Iraqi Arabic) |
 | `tts-design` | vewbox/tts-design | 8022 | GPU: VoxCPM2 voice design from a description (EN, MSA); CPU: ECAPA speaker embeddings |
@@ -143,6 +143,17 @@ services unload on request. `GPU_VRAM_BUDGET_MB` (default 30000 on a 32 GB card)
 Watch the card with `nvidia-smi -l 2` on the host. Measured holds and waits are recorded as metrics
 (`gpu.wait_ms`, `gpu.hold_ms`, labelled by model family).
 
+Image models, whole card measured with `nvidia-smi` during the 2026-10-03 comparison (docs/research/FLUX-VS-QWEN.md):
+
+| Use | Engine | Card while drawing | Time per image |
+|---|---|---|---|
+| Character from text (Auto, Manual) | Qwen-Image-2512, quality mode | ≈ 31 GB (the card's limit) | ≈ 42 s warm |
+| Character from a picture (Image Reference) | FLUX.2 [klein] 4B distilled | ≈ 22 GB | ≈ 4 s warm |
+| Rollback for pictures | Qwen-Image-Edit-2511 (`CANONICAL_REFERENCE_ENGINE=qwen`) | ≈ 32 GB | ≈ 100 s |
+
+The FLUX.2 [klein] 4B Base weights (7.75 GB) were downloaded for the comparison only and are not used; they can be
+removed from the models volume.
+
 ## Storage
 
 | Volume / path | Contents | Backup |
@@ -157,9 +168,21 @@ Restore: `psql` the dump into a fresh `db`, put the library directory back, `doc
 
 ## Resetting
 
-Settings → **Reset sample data** returns the records to the bundled sample studio, removes added files from the
-library and clears the job history. **Start with an empty studio** does the same with no sample content. Both keep the
-interface settings. Model weights and the library directory itself stay.
+A new database starts as an empty studio. The bundled sample studio is a test fixture only: the server loads it
+(`POST /api/studio/reset {"kind":"sample"}`) only when it runs with `STUDIO_SAMPLE_FIXTURE=1`, which the browser
+tests set. Never run the browser tests against a studio whose work you want to keep: every test resets it. Point
+them at a copy (`DATABASE_URL` with another database name).
+
+To pause new work before maintenance, close the intake: new jobs are refused and workers stop claiming.
+
+```powershell
+pnpm exec tsx --env-file=.env --env-file=.env.local scripts/studio-intake.ts pause "maintenance"
+pnpm exec tsx --env-file=.env --env-file=.env.local scripts/studio-intake.ts status
+pnpm exec tsx --env-file=.env --env-file=.env.local scripts/studio-intake.ts resume
+```
+ A full cleanup goes through
+`scripts/studio-cleanup.ts plan`, which writes a manifest, and only then `execute` (a database dump first, files
+moved rather than deleted). Model weights stay.
 
 ## Updating models
 
