@@ -56,7 +56,7 @@ export const STYLE_MEDIUM: Record<Style, { lead: string; noun: string; identity:
 };
 
 /** The wave-2 negative plus the style's own "not this medium" words. */
-export const negativeFor = (style: Style) => `text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, ${STYLE_MEDIUM[style].negative}`;
+export const negativeFor = (style: Style) => `text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, ${STYLE_MEDIUM[style].negative}`;
 
 // --------------------------------------------------------------------------------------- English identity line
 

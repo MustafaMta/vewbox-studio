@@ -4,7 +4,7 @@ description: Designing an original character that can be drawn and voiced, and h
 license: Proprietary to this studio
 allowed-tools: story.structured_answer image.generate image.edit_with_references image.describe_reference
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
   models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
@@ -15,6 +15,9 @@ metadata:
 ## Designing a character
 
 - Design one original character: never a protected character, a real person or a recognisable franchise figure.
+- No logos, lettering, words, brand names or brand marks on clothing, shoes or props unless the producer wrote them:
+  the image model renders them literally, and a mark can resemble a real brand. Describe garments by cut, colour and
+  material instead.
 - Make every appearance field concrete enough to draw from without guessing, and write it in English (the image
   model reads English): build, face, hair, skin, eyes, and a complete default outfit as the wardrobe — every garment
   with its colour, and the footwear. Give one distinguishing detail that survives every shot.
