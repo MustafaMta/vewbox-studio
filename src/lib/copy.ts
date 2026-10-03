@@ -223,7 +223,6 @@ const COPY = {
   'meta.noArtist': 'No performer yet',
   // home
   // misc
-  'misc.player': 'Player',
   'misc.seek': 'Seek',
   'misc.play': 'Play',
   'misc.pause': 'Pause',
@@ -339,11 +338,8 @@ const COPY = {
   'preview.empty': 'No picture yet',
 
   // ---- design v4 (F2): the interface kit (docs/DESIGN-SYSTEM-V4.md §5.2, §5.10–5.11, §5.15–5.19) ------------------
-  'kit.optional': 'optional',
   'kit.dismiss': 'Dismiss',
   'kit.undo': 'Undo',
-  'kit.change': 'Change',
-  'kit.loading': 'Loading…',
   'kit.deleteAll': 'This removes it and everything that belongs to it.',
   'kit.err.unknownHint': 'The studio could not finish this step. What was finished before it is kept.',
   // status (§5.10)
@@ -372,13 +368,6 @@ const COPY = {
   'kit.crumbs.more': 'The rest of the path',
   // overlays (§5.17)
   // forms (§5.18)
-  'kit.errors.title': 'Check these fields before you continue',
-  'kit.chip.remove': 'Remove {label}',
-  'kit.drop.browse': 'Browse',
-  'kit.drop.replace': 'Replace',
-  'kit.save.saved': 'Saved',
-  'kit.save.saving': 'Saving…',
-  'kit.save.unsaved': 'Not saved — retrying',
   'kit.rec.consent': 'Whose voice is this?',
   'kit.rec.mine': 'This is my voice',
   'kit.rec.permission': 'I have the speaker’s permission',
@@ -606,14 +595,7 @@ const COPY = {
   'kit.spec.made.next': 'Open the story',
   // ---- media ---------------------------------------------------------------------------------------------------------
   // players
-  'player.audio': 'Audio',
   'player.video': 'Video',
-  'player.song': 'Song',
-  'player.volume': 'Volume',
-  'player.mute': 'Mute',
-  'player.unmute': 'Unmute',
-  'player.replay': 'Replay',
-  'player.loading': 'Loading the file…',
   'player.captions': 'Captions',
   'player.fullscreen': 'Fullscreen',
   'player.exitFullscreen': 'Exit fullscreen',
@@ -673,9 +655,6 @@ const COPY = {
   'media.player.fit': 'Fit',
   'media.player.actualSize': 'Actual size',
   'media.player.timecode': 'Timecode',
-  'media.player.failed': 'This clip didn’t load.',
-  'media.player.tryAgain': 'Try again',
-  'media.player.openFile': 'Open the file',
   'media.player.addNote': 'Add a note at the playhead',
   'media.player.notes': 'Notes on the timeline',
   'media.compare.label': 'Compare {a} and {b}',

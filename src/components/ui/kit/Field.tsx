@@ -1,17 +1,25 @@
 'use client';
 
 import { cloneElement, Fragment, isValidElement, useId, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
-import { IconClose, IconUpload } from '../icons';
+import { IconClose, IconUpload, IconWarn } from '../icons';
 import { Button, Spinner } from './Button';
 import { cls } from './cls';
 import { useMediaQuery, useRootVarContribution } from './layout';
+import { Progress } from './Loading';
 import { StateWord } from './Status';
 
-/** FORMS (docs/DESIGN-SYSTEM-V4.md §5.18) — v3's field: 40 px (compact 32), --line-field, focus as an iris border
- *  plus a 1 px inset (no glow), invalid in --bad, messages linked by aria-describedby, "optional" at the end of the
- *  label row. Added here: ErrorSummary, SettingsSummary, ChipInput, ShapedDropzone, FormFooter and SaveWord. The
- *  Recorder is in Recorder.tsx, Segmented and ChoiceTiles in Choice.tsx. */
+/** FORMS (docs/design/VISUAL-STANDARD-V5.1.md §5.15) — the field is 40 high (44 coarse), surface-1, a 1 px control
+ *  boundary, radius 10, padding 0 12, 14/20; hover a lighter boundary; focus the light boundary and the focus ring;
+ *  invalid the --bad boundary and the message 13/18 --bad with a 14 px icon, linked by aria-describedby; disabled on
+ *  the page tone. The label sits above (.label 12/16 500 text-2, 6 px), "optional" at the end of its row, the hint
+ *  under the control (13/18 text-3).
+ *
+ *    Field, Input, Textarea, Select (the native select, drawn as a field), Checkbox, Toggle
+ *    ErrorSummary, SettingsSummary, ChipInput, FormFooter, SaveWord
+ *    Dropzone        the upload area: drag a file in or click to choose (dragging is never the only way); drag-over
+ *                    is the light boundary; `progress` (0–1) shows the bar inside; `error` the --bad boundary and the
+ *                    message; `disabledReason` makes it inert and says why
+ *    ShapedDropzone  the drop target in the target's own frame (928:1664, 1:1, 16:9, 4:1), with its preview */
 
 type Described = { id?: string; 'aria-invalid'?: boolean; 'aria-describedby'?: string };
 
@@ -31,13 +39,13 @@ export function Field({ label, help, error, children, required, optional, classN
     content = cloneElement(child, extra);
   }
   return (
-    <div className={className}>
-      <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="label">{label}{required && <span aria-hidden className="ms-0.5 text-bad">*</span>}</label>
-        {optional ? <span className="field-optional">{T('kit.optional')}</span> : hint && <span className="text-xs text-faint">{hint}</span>}
+    <div className={cls('field', className)}>
+      <div className="field-label-row">
+        <label htmlFor={id} className="label">{label}{required && <span aria-hidden className="field-required">*</span>}</label>
+        {optional ? <span className="field-optional">optional</span> : hint && <span className="field-optional">{hint}</span>}
       </div>
       {content}
-      {error ? <p id={msgId} role="alert" className="help text-bad">{error}</p> : help ? <p id={msgId} className="help">{help}</p> : null}
+      {error ? <p id={msgId} role="alert" className="field-error"><IconWarn aria-hidden />{error}</p> : help ? <p id={msgId} className="help">{help}</p> : null}
     </div>
   );
 }
@@ -50,7 +58,8 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   const { className = '', dir = 'auto', ...rest } = props;
   return <textarea dir={dir} className={cls('textarea', className)} {...rest} />;
 }
-export function Select({ className = '', options, placeholder, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement> & { options: Array<{ value: string; label: string; disabled?: boolean }>; placeholder?: string }) {
+/** The native select, drawn as a field (its list is the system's own, so it works with every keyboard and reader). */
+export function Select({ className = '', options, placeholder, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement> & { options: ReadonlyArray<{ value: string; label: string; disabled?: boolean }>; placeholder?: string }) {
   return (
     <select className={cls('select', className)} {...rest}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
@@ -61,28 +70,25 @@ export function Select({ className = '', options, placeholder, ...rest }: React.
 export function Checkbox({ label, help, className = '', ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; help?: ReactNode }) {
   const id = useId();
   return (
-    <label htmlFor={rest.id ?? id} className={cls('flex cursor-pointer items-start gap-2.5', className)}>
-      <input id={rest.id ?? id} type="checkbox" className="check mt-0.5" {...rest} />
-      <span className="text-sm leading-snug"><span>{label}</span>{help && <span className="block text-xs text-muted">{help}</span>}</span>
+    <label htmlFor={rest.id ?? id} className={cls('check-row', className)}>
+      <input id={rest.id ?? id} type="checkbox" className="check" {...rest} />
+      <span className="check-text"><span>{label}</span>{help && <span className="check-help">{help}</span>}</span>
     </label>
   );
 }
+/** A switch: the label and an optional line at the start, the 40 × 24 track at the end (on: the light). */
 export function Toggle({ label, help, checked, onChange, disabled, name }: { label: ReactNode; help?: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; name?: string }) {
   return (
-    <label className="flex items-start justify-between gap-4">
-      <span className="text-sm"><span className="font-medium">{label}</span>{help && <span className="block text-xs text-muted">{help}</span>}</span>
-      <span className="relative inline-flex flex-none items-center">
-        <input type="checkbox" role="switch" name={name} aria-checked={checked} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
-        <span aria-hidden className="block h-6 w-10 rounded-full border border-line-field bg-input transition-colors peer-checked:border-accent-strong peer-checked:bg-accent-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--ring)]" />
-        <span aria-hidden className="absolute start-[3px] top-[3px] block size-[18px] rounded-full bg-ink-300 transition peer-checked:translate-x-4 peer-checked:bg-fg" />
-      </span>
+    <label className="toggle-row" data-disabled={disabled || undefined}>
+      <span className="check-text"><span className="toggle-label">{label}</span>{help && <span className="check-help">{help}</span>}</span>
+      <input type="checkbox" role="switch" name={name} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="toggle" />
     </label>
   );
 }
 
 /* ---- validation -------------------------------------------------------------------------------------------- */
 
-/** More than three errors earn a summary at the top of the form (§5.18). */
+/** More than three errors earn a summary at the top of the form. */
 export const needsErrorSummary = (n: number) => n > 3;
 
 /** The summary: each error is a link that moves focus to its field. Renders nothing for three errors or fewer
@@ -91,9 +97,9 @@ export function ErrorSummary({ errors, title, always, className = '' }: { errors
   if (!errors.length || (!always && !needsErrorSummary(errors.length))) return null;
   return (
     <div role="alert" className={cls('notice notice-bad error-summary', className)}>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium">{title ?? T('kit.errors.title')}</p>
-        <ul className="mt-1">
+      <div className="notice-main">
+        <p className="notice-title">{title ?? 'Check these fields before you continue'}</p>
+        <ul>
           {errors.map((e) => <li key={e.id}><a href={`#${e.id}`} onClick={(ev) => { ev.preventDefault(); document.getElementById(e.id)?.focus(); }}>{e.message}</a></li>)}
         </ul>
       </div>
@@ -112,8 +118,8 @@ export function SettingsSummary({ items, children, defaultOpen = false, classNam
   return (
     <div className={cls('settings-summary', className)}>
       <p className="settings-summary-line">
-        <span id={`${id}-s`} dir="auto">{shown.map((x, i) => <Fragment key={i}>{i > 0 && <span aria-hidden className="slate-sep"> · </span>}<span>{x}</span></Fragment>)}</span>
-        <span className="settings-summary-change"><span aria-hidden className="slate-sep"> · </span><button type="button" className="link-quiet" aria-expanded={open} aria-controls={`${id}-c`} aria-describedby={`${id}-s`} onClick={() => setOpen((o) => !o)}>{T('kit.change')}</button></span>
+        <span id={`${id}-s`}>{shown.map((x, i) => <Fragment key={i}>{i > 0 && <span aria-hidden className="slate-sep"> · </span>}<span>{x}</span></Fragment>)}</span>
+        <span className="settings-summary-change"><span aria-hidden className="slate-sep"> · </span><button type="button" className="link-quiet" aria-expanded={open} aria-controls={`${id}-c`} aria-describedby={`${id}-s`} onClick={() => setOpen((o) => !o)}>Change</button></span>
       </p>
       <div id={`${id}-c`} hidden={!open} className="settings-summary-controls">{children}</div>
     </div>
@@ -140,11 +146,11 @@ export function ChipInput({ value, onChange, placeholder, max, disabled, id, cla
   const commit = (raw: string) => { const next = addChips(value, raw, max); if (next.length !== value.length) onChange(next); setText(''); };
   const full = max !== undefined && value.length >= max;
   return (
-    <div className={cls('chip-input', className)} data-focus-within data-disabled={disabled || undefined} onClick={(e) => { if (e.target === e.currentTarget) input.current?.focus(); }}>
+    <div className={cls('chip-input', className)} data-disabled={disabled || undefined} onClick={(e) => { if (e.target === e.currentTarget) input.current?.focus(); }}>
       {value.map((v, i) => (
         <span key={`${v}-${i}`} className="filter-chip">
-          <span className="min-w-0 truncate" dir="auto">{v}</span>
-          <button type="button" className="filter-chip-x" disabled={disabled} aria-label={T.f('kit.chip.remove', { label: v })} onClick={() => onChange(value.filter((_, j) => j !== i))}><IconClose aria-hidden /></button>
+          <span className="filter-chip-text"><bdi>{v}</bdi></span>
+          <button type="button" className="filter-chip-x" disabled={disabled} aria-label={`Remove ${v}`} onClick={() => onChange(value.filter((_, j) => j !== i))}><IconClose aria-hidden /></button>
         </span>
       ))}
       <input
@@ -164,14 +170,13 @@ export function ChipInput({ value, onChange, placeholder, max, disabled, id, cla
 
 export type DropRatio = '928/1664' | '1/1' | '16/9' | '4/1';
 
-/** The drop target is the target frame (§5.18): 928:1664 for "From a picture", 1:1 for a sleeve, 16:9 for a plate
- *  photo, 4:1 for audio. *Browse* is always there (2.5.7: dragging is never the only way). Once a file is chosen the
- *  frame becomes its preview, with *Replace* and *Remove* under it. A refusal shows under the frame (role="alert")
- *  and the frame stays usable. */
-export function ShapedDropzone({ ratio, label, hint, accept, onFile, file, onRemove, error, busy, disabled, className = '' }: {
+/** The drop target is the target frame: 928:1664 for "From a picture", 1:1 for a sleeve, 16:9 for a plate photo, 4:1
+ *  for audio. *Browse* is always there (dragging is never the only way). Once a file is chosen the frame becomes its
+ *  preview, with *Replace* and *Remove* under it. A refusal shows under the frame (role="alert"). */
+export function ShapedDropzone({ ratio, label, hint, accept, onFile, file, onRemove, error, busy, progress, disabled, className = '' }: {
   ratio: DropRatio; label: ReactNode; hint?: ReactNode; accept: string; onFile: (f: File) => void;
   /** the chosen file: its name, and a preview src when there is one */ file?: { name: string; src?: string; kind?: 'image' | 'audio' | 'video'; meta?: ReactNode } | null;
-  onRemove?: () => void; error?: ReactNode; busy?: boolean; disabled?: boolean; className?: string;
+  onRemove?: () => void; error?: ReactNode; busy?: boolean; /** 0–1 while uploading */ progress?: number | null; disabled?: boolean; className?: string;
 }) {
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -193,55 +198,71 @@ export function ShapedDropzone({ ratio, label, hint, accept, onFile, file, onRem
           <video src={file.src} controls muted playsInline className="shaped-drop-img" aria-label={file.name} />
         ) : (
           <span className="shaped-drop-empty">
-            {busy ? <Spinner /> : <IconUpload aria-hidden className="size-5" />}
-            <span className="font-semibold text-fg">{label}</span>
-            {hint && <span className="caption">{hint}</span>}
-            <Button size="sm" onClick={browse} disabled={disabled || busy} aria-describedby={error ? `${id}-err` : undefined}>{T('kit.drop.browse')}</Button>
+            {busy ? <Spinner /> : <IconUpload aria-hidden />}
+            <span className="dropzone-title">{label}</span>
+            {hint && <span className="dropzone-hint">{hint}</span>}
+            {typeof progress === 'number' ? <Progress value={progress} label="Uploading" className="dropzone-progress" />
+              : <Button size="sm" onClick={browse} disabled={disabled || busy} aria-describedby={error ? `${id}-err` : undefined}>Browse</Button>}
           </span>
         )}
       </div>
-      <input ref={input} type="file" accept={accept} disabled={disabled} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+      <input ref={input} type="file" accept={accept} disabled={disabled} className="dropzone-input" tabIndex={-1} aria-hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
       {file && (
         <div className="shaped-drop-meta">
-          <span className="min-w-0 flex-1 truncate font-medium text-fg" dir="auto" title={file.name}>{file.name}</span>
-          {file.meta && <span className="num text-faint">{file.meta}</span>}
-          <span className="flex items-center gap-2">
-            <Button size="sm" onClick={browse} disabled={disabled || busy} loading={busy}>{T('kit.drop.replace')}</Button>
-            {onRemove && <Button size="sm" variant="quiet" onClick={onRemove} disabled={disabled || busy}>{T('btn.remove')}</Button>}
+          <span className="shaped-drop-name" title={file.name}><bdi>{file.name}</bdi></span>
+          {file.meta && <span className="shaped-drop-fact">{file.meta}</span>}
+          <span className="shaped-drop-acts">
+            <Button size="sm" onClick={browse} disabled={disabled || busy} loading={busy}>Replace</Button>
+            {onRemove && <Button size="sm" variant="quiet" onClick={onRemove} disabled={disabled || busy}>Remove</Button>}
           </span>
         </div>
       )}
-      {error && <p id={`${id}-err`} role="alert" className="help text-bad">{error}</p>}
+      {error && <p id={`${id}-err`} role="alert" className="field-error"><IconWarn aria-hidden />{error}</p>}
     </div>
   );
 }
 
-/** v3's upload area (kept until Q1; new code uses ShapedDropzone): click or drop a file. */
-export function Dropzone({ label, hint, accept, onFile, disabled, icon, busy, className = '', error, row }: { label: ReactNode; hint?: ReactNode; accept: string; onFile: (f: File) => void; disabled?: boolean; icon?: ReactNode; busy?: boolean; className?: string; error?: ReactNode; row?: boolean }) {
+/** The upload area: drag a file in, or click (or Enter / Space) to choose one. */
+export function Dropzone({ label, hint, accept, onFile, onFiles, multiple, disabled, disabledReason, icon, busy, progress, className = '', error, row }: {
+  label: ReactNode; hint?: ReactNode; accept: string;
+  onFile: (f: File) => void; /** several at once (with `multiple`) */ onFiles?: (fs: File[]) => void; multiple?: boolean;
+  disabled?: boolean; /** inert, and says why in the hint's place */ disabledReason?: string;
+  icon?: ReactNode; busy?: boolean; /** 0–1 while uploading: the bar replaces the hint */ progress?: number | null;
+  className?: string; error?: ReactNode; /** one 56 px row instead of the 120 px area */ row?: boolean;
+}) {
   const [over, setOver] = useState(false);
   const id = useId();
+  const off = Boolean(disabled || disabledReason);
+  const take = (list: FileList | null | undefined) => {
+    const files = Array.from(list ?? []);
+    if (!files.length || off) return;
+    if (multiple && onFiles) onFiles(files); else onFile(files[0]);
+  };
+  const uploading = typeof progress === 'number';
   return (
-    <div className={className}>
-      <label htmlFor={id} className={cls('dropzone', row && 'dropzone-row')} data-over={over || undefined} data-error={error ? 'true' : undefined} aria-disabled={disabled || undefined} aria-busy={busy || undefined}
-        onDragOver={(e) => { if (disabled) return; e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
-        onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f && !disabled) onFile(f); }}>
-        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-raised-2 text-muted [&>svg]:size-4">{busy ? <Spinner /> : icon}</span>
-        <span className={row ? 'flex min-w-0 flex-col' : 'contents'}>
-          <span className="text-[13.5px] font-semibold text-fg">{label}</span>
-          {hint && <span className="text-[12px] text-faint">{hint}</span>}
+    <div className={cls('dropzone-wrap', className)}>
+      <label htmlFor={id} className={cls('dropzone', row && 'dropzone-row')} data-over={over || undefined} data-error={error ? 'true' : undefined} data-busy={busy || uploading || undefined}
+        aria-disabled={off || undefined}
+        onDragOver={(e) => { if (off) return; e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); take(e.dataTransfer.files); }}>
+        {busy && !uploading ? <Spinner /> : icon ?? <IconUpload aria-hidden />}
+        <span className="dropzone-words">
+          <span className="dropzone-title">{label}</span>
+          {uploading ? <Progress value={progress} label="Uploading" count={`${Math.round((progress as number) * 100)}%`} phase="Uploading…" className="dropzone-progress" />
+            : (disabledReason ?? hint) && <span className="dropzone-hint">{disabledReason ?? hint}</span>}
         </span>
-        <input id={id} type="file" accept={accept} disabled={disabled} className="sr-only" aria-describedby={error ? `${id}-err` : undefined} onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+        <input id={id} type="file" accept={accept} multiple={multiple} disabled={off || busy || uploading} className="dropzone-input" aria-describedby={error ? `${id}-err` : undefined}
+          onChange={(e) => { take(e.target.files); e.target.value = ''; }} />
       </label>
-      {error && <p id={`${id}-err`} role="alert" className="help text-bad">{error}</p>}
+      {error && <p id={`${id}-err`} role="alert" className="field-error"><IconWarn aria-hidden />{error}</p>}
     </div>
   );
 }
 
 /* ---- footer and save state ---------------------------------------------------------------------------------- */
 
-/** The form's action row. On a phone it is a sticky 56 px footer on --page with a top hairline, and while it is
- *  there it adds 56 px to --bottom-bars so a focused field scrolls clear of it (fields keep
- *  scroll-margin-block-end: 72px). `start` sits at the start (a time estimate, a SaveWord). */
+/** The form's action row. On a phone it is a sticky 56 px footer on the page tone with a top line, and while it is
+ *  there it adds 56 px to --bottom-bars so a focused field scrolls clear of it. `start` sits at the start. */
 export function FormFooter({ children, start, className = '' }: { children: ReactNode; start?: ReactNode; className?: string }) {
   const phone = useMediaQuery('(max-width: 639px)');
   useRootVarContribution('--bottom-bars', 56, phone);
@@ -254,11 +275,11 @@ export function FormFooter({ children, start, className = '' }: { children: Reac
 }
 
 export type SaveState = 'saved' | 'saving' | 'unsaved';
-/** Autosave in words (§5.18): "Saved", "Saving…" or "Not saved — retrying", from the real write queue. */
+/** Autosave in words: "Saved", "Saving…" or "Not saved — retrying", from the real write queue. */
 export function SaveWord({ state, className = '' }: { state: SaveState; className?: string }) {
   return (
     <span role="status" aria-live="polite" className={className}>
-      <StateWord tone={state === 'saved' ? 'done' : state === 'saving' ? 'running' : 'waiting'}>{T(state === 'saved' ? 'kit.save.saved' : state === 'saving' ? 'kit.save.saving' : 'kit.save.unsaved')}</StateWord>
+      <StateWord tone={state === 'saved' ? 'done' : state === 'saving' ? 'running' : 'waiting'}>{state === 'saved' ? 'Saved' : state === 'saving' ? 'Saving…' : 'Not saved — retrying'}</StateWord>
     </span>
   );
 }

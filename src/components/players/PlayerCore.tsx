@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
-import { cls } from '@/components/ui/kit';
+import { cls } from '@/components/ui/kit/cls';
 import { IconRetry, IconOpen } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback, readVolume, writeVolume } from './coordinator';
 import type { SyncBus, SyncEvent } from './sync';
@@ -26,6 +25,7 @@ export function usePlayerCore({ src, fps, sync, muted: mutedInit, aspect, onEnde
   const [started, setStarted] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [buffered, setBuffered] = useState(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ratio, setRatio] = useState<string | undefined>(aspect);
@@ -42,7 +42,7 @@ export function usePlayerCore({ src, fps, sync, muted: mutedInit, aspect, onEnde
   useEffect(() => { if (!mutedInit) setVol(readVolume()); }, [mutedInit]);
   useEffect(() => { const v = video.current; if (v) { v.volume = volume; v.muted = muted; } }, [volume, muted]);
   useEffect(() => onOtherPlayback(owner, () => { if (!video.current?.muted) video.current?.pause(); }), [owner]);
-  useEffect(() => { setFailed(false); setReady(false); setStarted(false); setTime(0); setDuration(0); setRatio(aspect); setNatural(null); }, [src, aspect]);
+  useEffect(() => { setFailed(false); setReady(false); setStarted(false); setTime(0); setDuration(0); setBuffered(0); setRatio(aspect); setNatural(null); }, [src, aspect]);
   useEffect(() => { const on = () => setFull(document.fullscreenElement === wrap.current); document.addEventListener('fullscreenchange', on); return () => document.removeEventListener('fullscreenchange', on); }, []);
   // a smooth playhead while playing (timeupdate fires only ~4 times a second)
   useEffect(() => {
@@ -94,6 +94,7 @@ export function usePlayerCore({ src, fps, sync, muted: mutedInit, aspect, onEnde
     },
     onDurationChange: (e: React.SyntheticEvent<HTMLVideoElement>) => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0),
     onTimeUpdate: (e: React.SyntheticEvent<HTMLVideoElement>) => setTime(e.currentTarget.currentTime),
+    onProgress: (e: React.SyntheticEvent<HTMLVideoElement>) => { const v = e.currentTarget; const b = v.buffered; let end = 0; for (let i = 0; i < b.length; i++) if (b.start(i) <= v.currentTime + 0.5) end = Math.max(end, b.end(i)); setBuffered(end); },
     onPlay: (e: React.SyntheticEvent<HTMLVideoElement>) => { setPlaying(true); setStarted(true); emit('play', e.currentTarget.currentTime); },
     onPause: (e: React.SyntheticEvent<HTMLVideoElement>) => { setPlaying(false); emit('pause', e.currentTarget.currentTime); },
     onSeeked: (e: React.SyntheticEvent<HTMLVideoElement>) => { setTime(e.currentTarget.currentTime); if (e.currentTarget.paused) emit('seek', e.currentTarget.currentTime); },
@@ -101,7 +102,7 @@ export function usePlayerCore({ src, fps, sync, muted: mutedInit, aspect, onEnde
     onError: () => { setFailed(true); setPlaying(false); },
   };
 
-  return { video, wrap, id, playing, started, time, duration, ready, failed, ratio, natural, cc, hasCaptions, full, volume, muted, frame, play, pause, toggle, seek, step, nudge, setVolume, toggleMute, toggleCc, fullscreen, retry, videoProps };
+  return { video, wrap, id, playing, started, time, duration, buffered, ready, failed, ratio, natural, cc, hasCaptions, full, volume, muted, frame, play, pause, toggle, seek, step, nudge, setVolume, toggleMute, toggleCc, fullscreen, retry, videoProps };
 }
 export type PlayerCore = ReturnType<typeof usePlayerCore>;
 
@@ -118,12 +119,13 @@ export function coreKeys(c: PlayerCore, extra: ShortcutMap = {}): ShortcutMap {
   };
 }
 
-/** THE SEEK TRACK (§5.12): 4 px, 6 px while scrubbing, the 13 px thumb always visible on focus. `video`: ivory on
- *  white 28 % over a picture; `edit`: iris on `--ink-700` in the cutting room. Click or tap to seek is the pointer
- *  alternative to scrubbing; the arrows step one frame. Ticks (notes, in/out marks) sit on the track. */
-export function SeekBar({ time, duration, step, onSeek, label, tone = 'video', disabled, ticks, range, className }: { time: number; duration: number; step: number; onSeek: (t: number) => void; label: string; tone?: 'video' | 'edit' | 'quiet'; disabled?: boolean; ticks?: Array<{ at: number; label?: string; kind?: 'note' | 'mark' }>; range?: { from?: number; to?: number }; className?: string }) {
+/** THE SEEK TRACK (VISUAL-STANDARD-V5.1 §5.24): a 4 px track on surface-3, the played part text-1, the buffered part
+ *  #3A3A3A, a 12 px text-1 thumb shown on hover, focus and drag, a 24 px hit area. `docked` is the lobby transport;
+ *  `edit` the cutting room; `video` over a picture (theatre). Click or tap seeks; the arrows step one frame. Ticks (notes,
+ *  in/out marks) sit on the track. */
+export function SeekBar({ time, duration, buffered = 0, step, onSeek, label, tone = 'docked', disabled, ticks, range, className }: { time: number; duration: number; /** seconds loaded ahead */ buffered?: number; step: number; onSeek: (t: number) => void; label: string; tone?: 'docked' | 'video' | 'edit' | 'quiet'; disabled?: boolean; ticks?: Array<{ at: number; label?: string; kind?: 'note' | 'mark' }>; range?: { from?: number; to?: number }; className?: string }) {
   const pct = (x: number) => (duration ? (Math.min(Math.max(x, 0), duration) / duration) * 100 : 0);
-  const style = { '--p': `${pct(time)}%` } as CSSProperties;
+  const style = { '--p': `${pct(time)}%`, '--b': `${Math.max(pct(time), pct(buffered))}%` } as CSSProperties;
   return (
     <div className={cls('seekwrap', className)} data-tone={tone} dir="ltr">
       {range && (range.from !== undefined || range.to !== undefined) && (
@@ -146,11 +148,11 @@ export function TimeReadout({ time, duration, className }: { time: number; durat
 export function MediaFailure({ onRetry, fileHref, children }: { onRetry: () => void; fileHref?: string; children?: ReactNode }) {
   return (
     <div className="pfail" role="alert">
-      <p className="pfail-msg">{T('media.player.failed')}</p>
+      <p className="pfail-msg">This clip didn’t load.</p>
       {children}
       <div className="pfail-actions">
-        <button type="button" className="btn btn-secondary btn-sm pfail-btn" onClick={onRetry}><IconRetry aria-hidden />{T('media.player.tryAgain')}</button>
-        {fileHref && <a className="btn btn-quiet btn-sm pfail-btn" href={fileHref} target="_blank" rel="noreferrer"><IconOpen aria-hidden />{T('media.player.openFile')}</a>}
+        <button type="button" className="btn btn-secondary btn-sm pfail-btn" onClick={onRetry}><IconRetry aria-hidden />Try again</button>
+        {fileHref && <a className="btn btn-quiet btn-sm pfail-btn" href={fileHref} target="_blank" rel="noreferrer"><IconOpen aria-hidden />Open the file</a>}
       </div>
     </div>
   );

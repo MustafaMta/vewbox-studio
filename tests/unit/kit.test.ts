@@ -132,7 +132,7 @@ describe('status, states and overlays say it in words', () => {
     const out = html(h(Kit.ErrorNotice, { title: 'It failed.', why: 'Plain words.', details: 'RuntimeError: x at y' }));
     const [before, inside] = out.split('<details');
     expect(before).not.toContain('RuntimeError');
-    expect(inside).toContain('class="tc break-all');
+    expect(inside).toContain('class="notice-raw tc"');
     expect(inside).toContain('dir="ltr"');
   });
   it('PageEmpty shows one primary and at most two alternatives', () => {
