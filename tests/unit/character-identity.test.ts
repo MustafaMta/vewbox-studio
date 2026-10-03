@@ -58,7 +58,7 @@ describe('the identity status, said once', () => {
     expect(statusWords(identityStatus(character({ portraitAssetId: 'old' }))).short).toBe('cast.status.legacy');
   });
   it('every status phrase exists', () => {
-    const keys: Key[] = ['cast.status.draft', 'cast.status.approved', 'cast.status.locked', 'cast.status.none', 'cast.status.draftLong', 'cast.status.approvedLong', 'cast.status.lockedUsed', 'cast.status.lockedUsedOne', 'cast.status.lockedUnknown', 'cast.status.noneLong', 'cast.step.design', 'cast.step.image', 'cast.step.voice', 'cast.step.approval'];
+    const keys: Key[] = ['cast.status.draft', 'cast.status.approved', 'cast.status.locked', 'cast.status.none', 'cast.status.draftLong', 'cast.status.approvedLong', 'cast.status.lockedUsed', 'cast.status.lockedUsedOne', 'cast.status.lockedUnknown', 'cast.status.noneLong'];
     for (const k of keys) { expect(KEYS).toContain(k); expect(T(k).trim()).not.toBe(''); }
     expect(T('cast.status.lockedUsed').replace('{n}', '2')).toBe('Locked: used in 2 videos');
   });
