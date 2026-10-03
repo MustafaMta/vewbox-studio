@@ -215,7 +215,7 @@ test.describe('the global shortcuts (§7.5)', () => {
     await page.keyboard.press('Shift+Slash');
     const toggle = sheet(page).getByRole('switch', { name: /Single-key shortcuts/ });
     await expect(toggle).toBeChecked();
-    await toggle.click({ force: true });
+    await sheet(page).getByText('Single-key shortcuts', { exact: true }).click();
     await expect(toggle).not.toBeChecked();
     await page.keyboard.press('Escape');
     await expect(page.locator('html')).toHaveAttribute('data-keys', 'off');

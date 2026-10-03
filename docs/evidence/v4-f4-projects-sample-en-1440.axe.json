@@ -1,0 +1,8 @@
+[
+  {
+    "id": "heading-order",
+    "impact": "moderate",
+    "help": "Heading levels should only increase by one",
+    "nodes": 1
+  }
+]
