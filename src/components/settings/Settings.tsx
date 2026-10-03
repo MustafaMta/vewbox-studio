@@ -31,8 +31,9 @@ const CACHE = [1, 6, 12, 24, 48, 72, 168];
 
 export function SettingsPage() {
   const { state, act, saving, capabilities: caps, ready } = useStudio();
-  const { data: sources } = useLive<Sources>('/api/research/sources');
-  if (!ready) return <SettingsSkeleton />;
+  const { data: sources, error: sourcesError } = useLive<Sources>('/api/research/sources');
+  // the research rows carry each source's own words: wait for them (or their failure) so nothing moves when they come
+  if (!ready || (!sources && !sourcesError)) return <SettingsSkeleton />;
   const s = state.settings;
   const gen = s.generation ?? {};
   const research: ResearchSettings = s.research ?? { enabled: true };

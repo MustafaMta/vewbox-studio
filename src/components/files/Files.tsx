@@ -70,7 +70,7 @@ export function FilesPage() {
           <IconSearch aria-hidden />
           <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search files and owners" aria-label="Search files" />
         </label>
-        <Segmented label="Kind" value={kind} onChange={setKind} options={(['ALL', 'IMAGE', 'VIDEO', 'AUDIO', 'SUBTITLE'] as const).filter((k) => k === 'ALL' || counts[k] > 0).map((k) => ({ value: k, label: <>{KIND_LABEL[k]}<span className="t-ro pr-seg-count">{counts[k]}</span></> }))} />
+        <Segmented label="Kind" value={kind} onChange={setKind} options={(['ALL', 'IMAGE', 'VIDEO', 'AUDIO', 'SUBTITLE'] as const).filter((k) => k === 'ALL' || counts[k] > 0).map((k) => ({ value: k, label: <>{KIND_LABEL[k]}<span className="t-ro ctl-seg-count">{counts[k]}</span></> }))} />
         <Segmented label="Owner" value={owner} onChange={setOwner} options={[{ value: 'all', label: 'Everyone' }, { value: 'character', label: 'Characters' }, { value: 'location', label: 'Locations' }, { value: 'production', label: 'Productions' }, { value: 'other', label: 'Other' }]} />
       </div>
       <p className="t-meta fl-count" role="status">{q || kind !== 'ALL' || owner !== 'all' ? `${total} of ${state.assets.length} files` : `${state.assets.length} files`}</p>
@@ -167,7 +167,7 @@ function Preview({ asset: a, item, onClose }: { asset: Asset | null; item: FileI
     else if (a.kind === 'VIDEO') body = <VideoPlayer src={a.src} poster={a.poster} title={a.label} />;
     else if (a.kind === 'AUDIO') body = <AudioPlayer src={a.src} title={a.label} duration={a.durationSeconds} />;
     else if (a.kind === 'SUBTITLE') body = text === null ? <Skeleton.Text lines={6} /> : text ? <pre className="t-ro fl-subtext" dir="auto">{text}</pre> : <EmptyLine>The subtitles could not be read.</EmptyLine>;
-    else body = <div className="fl-pic"><Frame asset={a} src={a.src} ratio={item?.owner.kind === 'character' ? '928/1664' : a.width && a.height && a.height > a.width ? '2/3' : '16/9'} fit="contain" alt={a.label} judge priority radius="precise" art={artVars(a)} /></div>;
+    else body = <div className="fl-pic" data-shape={item?.owner.kind === 'character' ? 'figure' : undefined}><Frame asset={a} src={a.src} ratio={item?.owner.kind === 'character' ? '928/1664' : a.width && a.height && a.height > a.width ? '2/3' : '16/9'} fit="contain" alt={a.label} judge priority radius="precise" art={artVars(a)} /></div>;
   }
   return (
     <>

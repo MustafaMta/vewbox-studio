@@ -8,6 +8,7 @@ import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { Button, LinkButton, PanelCard, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
+import { PanelCardSkeleton } from '@/components/media/Skeletons';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
 import {
   agentStateWords, checksLine, departmentCodes, departmentName, departmentsInOrder, duration, failureWords, handoffTarget, jobWords, outcomeWords, percent, plural,
@@ -40,7 +41,7 @@ export function DepartmentPage({ id }: { id: string }) {
   const rec = recordOf(org.stats, team.map((a) => a.id));
   const stages = d.stages.map((s) => stageName(org, s)).join(' · ');
   const first = percent(rec.firstOk, rec.firsts);
-  const failures = data.recentRuns.filter((r) => r.failureClass);
+  const failures = data.recentRuns.filter((r) => r.outcome === 'FAILED' || r.failureClass);
   const planned = plannedRolesOf(d);
   return (
     <div className="cp dept">
@@ -63,8 +64,8 @@ export function DepartmentPage({ id }: { id: string }) {
 
       <DepartmentWork org={org} data={data} />
 
-      <Section id="failures" title="Failures" count={failures.length} description="Runs of this department that failed, with the class the studio gave each failure.">
-        {failures.length === 0 ? <EmptyLine>No run of this department failed in its recent record.</EmptyLine> : <RunRows runs={failures} org={org} label="Failures" />}
+      <Section id="failures" title="Failures" count={failures.length} description={`Failed runs among its latest ${data.recentRuns.length}, with the class the studio gave each failure.`}>
+        {failures.length === 0 ? <EmptyLine>None of its latest runs failed.</EmptyLine> : <RunRows runs={failures} org={org} label="Failures" />}
       </Section>
 
       <ToolsAndSkills tools={data.tools} skills={data.skills} agents={org.agents} />
@@ -232,7 +233,7 @@ export function DepartmentSkeleton() {
   return (
     <SkeletonRegion label="Reading the department’s record…" className="cp dept">
       <HeadSkeleton back kicker />
-      <div className="pcard cp-facts"><div className="pcard-grid" data-cols="4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="pcard-cell"><Skeleton.Line width="50%" /><Skeleton.Line width="70%" /><Skeleton.Line width="60%" /></div>)}</div></div>
+      <PanelCardSkeleton cells={4} className="cp-facts" />
       <div className="cp-section"><SectionHeadSkeleton width="12rem" /><div className="card dp-place"><Skeleton.Text lines={2} /></div></div>
       <div className="cp-section"><SectionHeadSkeleton width="11rem" /><div className="dp-members">{Array.from({ length: 3 }, (_, i) => <div key={i} className="card dp-agent"><Skeleton.Line width="30%" /><Skeleton.Line width="60%" /><Skeleton.Text lines={2} /></div>)}</div></div>
       <div className="cp-section"><SectionHeadSkeleton width="5rem" /><RowsSkeleton n={4} /></div>

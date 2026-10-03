@@ -1,4 +1,106 @@
 /* ============================================================================================================
-   PRODUCTION, SCREENING ROOM, SETTINGS, FILES — owned by P3 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   §6.14–6.16, §6.18. Empty until P3.
+   PRODUCTION, SETTINGS, FILES — owned by P-Studio (docs/design/PAGE-ENGINEERING-BRIEF.md; VISUAL-STANDARD-V5.1).
+   Layout only, on the kit and the page parts of studio.css (cp-*):
+     ctl-*  the control room (src/components/production/*): decisions, history, the job log, the engine room
+     st-*   Settings (src/components/settings/Settings.tsx): setting rows inside level-1 panels
+     fl-*   Files (src/components/files/Files.tsx): the bar, owner blocks, shaped grids, the preview
    ============================================================================================================ */
+@layer components {
+  /* ---- decisions: 4 across at ≥ 1280, 2 across from 640, a rail on phones (Home's rule) ------------------------- */
+  .ctl-decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin: 0; padding: 0; list-style: none; }
+  .ctl-decisions > * { display: flex; min-inline-size: 0; }
+  .ctl-decisions > * > .dcard { flex: 1; }
+  @media (min-width: 1280px) { .ctl-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 639px) {
+    .ctl-decisions { display: flex; gap: 12px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); overscroll-behavior-x: contain; padding-block-end: 8px; }
+    .ctl-decisions > * { flex: none; inline-size: 280px; scroll-snap-align: start; }
+  }
+  .ctl-gate-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: auto; }
+
+  /* ---- history and the job log ---------------------------------------------------------------------------------- */
+  .ctl-anchor { display: block; block-size: 0; }
+  .ctl-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 16px; max-inline-size: 100%; }
+  .ctl-filter .seg { max-inline-size: 100%; }
+  .ctl-seg-count { margin-inline-start: 6px; color: var(--text-3); }
+  .ctl-log { display: flex; flex-direction: column; gap: 20px; }
+  .ctl-error { display: flex; flex-direction: column; gap: 8px; }
+  .ctl-error > p { margin: 0; }
+  .ctl-well { margin: 0; padding: 12px; border-radius: var(--r-sm); background: var(--bg-page); color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ctl-log-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ctl-log-acts:empty { display: none; }
+  .ctl-log-h { margin: 0; }
+  .ctl-events { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .ctl-events > li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+  .ctl-events > li > .t-ro { color: var(--text-3); }
+  .ctl-events > li > .t-body { overflow-wrap: anywhere; }
+  .ctl-events > li[data-level='error'] > .t-body { color: var(--bad); }
+
+  /* ---- the engine room ------------------------------------------------------------------------------------------ */
+  .ctl-intake { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-block-size: 56px; padding: 12px 16px; margin-block-end: 16px; }
+  .ctl-engines { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .ctl-engines > * { display: flex; min-inline-size: 0; }
+  @media (min-width: 640px) { .ctl-engines { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+  @media (min-width: 1024px) { .ctl-engines { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .ctl-engine { display: flex; flex: 1; flex-direction: column; gap: 4px; min-inline-size: 0; padding: 16px; }
+  .ctl-engine-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 20px; }
+  .ctl-engine-does { margin-block-start: 2px; }
+  .ctl-engine-detail { min-block-size: 36px; margin-block-start: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .ctl-gpu { margin: 12px 0 0; }
+  .ctl-er-tabs { margin-block-start: 32px; }
+  .ctl-sub { margin: 24px 0 8px; }
+  .ctl-span { margin: 12px 0 0; }
+
+  /* TEMPORARY (change request to DS): kit.css's `.pcard-grid[data-cols='3']` outranks its own < 1024 rule, so a 3- or
+     4-column panel stays 3 across on phones; two across below 1024, as §5.9 says. Delete when the kit fixes it. */
+  @media (max-width: 1023px) { .cp .pcard-grid[data-cols] { --pcard-cols: 2; } }
+
+  /* ---- settings ------------------------------------------------------------------------------------------------- */
+  .settings .cp-section > :not(.shead) { max-inline-size: 880px; }
+  .st-panel { display: flex; flex-direction: column; padding: 4px 20px; }
+  .st-row { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; min-block-size: 64px; padding: 14px 0; }
+  .st-row + .st-row, .st-reason + .st-row { border-block-start: 1px solid var(--line-strong); }
+  .st-row-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+  .st-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  .st-control { display: flex; flex: none; justify-content: flex-end; inline-size: 320px; max-inline-size: 100%; }
+  .st-control > :is(select, .select, input) { inline-size: 100%; }
+  .st-row-toggle > label { flex: 1; min-inline-size: 0; }
+  .st-row[data-off] { opacity: 0.6; }
+  .st-src { margin-inline-start: 8px; vertical-align: middle; }
+  .st-reason { margin: 0; padding-block-end: 12px; }
+  @media (max-width: 639px) {
+    .st-panel { padding: 4px 16px; }
+    .st-row:not(.st-row-toggle) { flex-direction: column; align-items: stretch; }
+    .st-control { inline-size: 100%; justify-content: flex-start; }
+    .st-control > .seg, .st-control > .seg-wrap { max-inline-size: 100%; }
+  }
+
+  /* ---- files ---------------------------------------------------------------------------------------------------- */
+  .fl-upload { cursor: pointer; }
+  .fl-upload:focus-within { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  .fl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .fl-search { position: relative; display: flex; flex: 1 1 260px; min-inline-size: 0; max-inline-size: 420px; }
+  .fl-search > svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; inline-size: 16px; block-size: 16px; color: var(--text-3); transform: translateY(-50%); pointer-events: none; }
+  .fl-search > input { inline-size: 100%; padding-inline-start: 36px; }
+  .fl-bar .seg { max-inline-size: 100%; }
+  .fl-count { margin: 12px 0 0; }
+  .files .cp-section:first-of-type { margin-block-start: 24px; }
+  .fl-owner + .fl-owner { margin-block-start: 32px; }
+  .fl-owner-h { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; min-inline-size: 0; }
+  .fl-owner-n { color: var(--text-3); }
+  .fl-grid { display: grid; gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
+  .fl-grid[data-shape='wide'] { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .fl-grid[data-shape='figure'] { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }
+  .fl-grid > li { min-inline-size: 0; }
+  .fl-rows { margin-block-start: 16px; }
+  .fl-grid + .fl-rows, .fl-rows + .fl-rows { margin-block-start: 16px; }
+  .fl-sub-tag { color: var(--text-3); }
+  .fl-pic { margin-inline: auto; max-inline-size: 640px; }
+  .fl-pic[data-shape='figure'] { max-inline-size: 300px; }
+  .fl-subtext { margin: 0; max-block-size: 50vh; overflow: auto; padding: 12px; border-radius: var(--r-sm); background: var(--bg-page); color: var(--text-2); white-space: pre-wrap; }
+  .fl-belongs { margin: 16px 0 0; }
+  @media (max-width: 639px) {
+    .fl-search { max-inline-size: none; flex-basis: 100%; }
+    .fl-grid[data-shape='wide'] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+    .fl-grid[data-shape='figure'] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 12px; }
+  }
+}

@@ -12,6 +12,7 @@ import { useShell } from '@/components/shell/context';
 import type { Decision } from '@/components/shell/decisions';
 import { decisionCard, type DecisionCard as CardModel } from '@/components/home/model';
 import { Frame } from '@/components/media/Frame';
+import { DecisionCardSkeleton } from '@/components/media/Skeletons';
 import { ContentName, DecisionCard } from '@/components/media/Cards';
 import { Button, Drawer, PanelCard, Segmented, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
 import { RetryControl } from '@/components/ui/jobs';
@@ -53,12 +54,12 @@ function NeedsYou() {
     <Section id="needs-you" title="Needs you" count={decisions.count} countTone={decisions.count ? 'wait' : undefined}
       description={decisions.count ? 'Each decision with what you decide on. Nothing past these steps moves until you choose.' : undefined}>
       {cards.length === 0 ? <EmptyLine>Nothing waits for you.{decisions.complete ? '' : ' The pipeline has not answered yet, so approvals may still appear.'}</EmptyLine> : (
-        <ul className="pr-decisions" role="list" style={{ '--n': cards.length } as CSSProperties}>
+        <ul className="ctl-decisions" role="list" style={{ '--n': cards.length } as CSSProperties}>
           {cards.map(({ d, card }, i) => (
             <li key={d.id}>{d.kind === 'stage' ? <GateCard d={d} card={card} priority={i < 4} /> : (
               <DecisionCard href={card.href} kind={card.kindLabel} title={card.heading} titleLang={card.headingIsContent && /[؀-ۿ]/.test(card.heading) ? 'ar' : undefined}
                 description={card.body} verb={card.action} chip={card.chip} figure={card.picture?.figure} asset={card.picture?.asset} src={card.picture?.src}
-                art={artVars(card.picture?.asset)} priority={i < 4} className="pr-dcard" />
+                art={artVars(card.picture?.asset)} priority={i < 4} className="ctl-dcard" />
             )}</li>
           ))}
         </ul>
@@ -82,13 +83,13 @@ function GateCard({ d, card, priority }: { d: Decision; card: CardModel; priorit
     finally { setBusy(null); }
   };
   return (
-    <article className="dcard pr-dcard pr-gate" aria-labelledby={`gate-${d.id}`}>
+    <article className="dcard ctl-dcard ctl-gate" aria-labelledby={`gate-${d.id}`}>
       <Frame asset={card.picture?.asset} src={card.picture?.src} ratio="16/9" fit="cover" alt={card.picture?.alt ?? ''} title={d.title} radius="none" priority={priority} art={artVars(card.picture?.asset)} className="dcard-media" />
       <span className="dcard-body">
         <span className="dcard-kind t-label"><span className="dcard-dot" aria-hidden />{card.kindLabel}</span>
         <span id={`gate-${d.id}`}><ContentName className="t-card dcard-title">{card.heading}</ContentName></span>
         <span className="dcard-desc t-body">{card.body}</span>
-        <span className="pr-gate-acts">
+        <span className="ctl-gate-acts">
           <Button size="sm" loading={busy === 'APPROVED'} disabled={busy !== null} onClick={() => void decide('APPROVED')}>Approve</Button>
           <Button size="sm" variant="quiet" loading={busy === 'CHANGES'} disabled={busy !== null} onClick={() => void decide('CHANGES')}>Ask for changes</Button>
         </span>
@@ -116,9 +117,9 @@ function History() {
   return (
     <Section id="history" title="History" count={counts.all} description="Every job the studio finished, stopped or parked for review, newest first.">
       {/* the old /jobs address lands on #activity (src/components/shell/redirects.ts) */}
-      <span id="activity" className="pr-anchor" aria-hidden />
-      <div className="pr-filter">
-        <Segmented label="Show" value={filter} onChange={(v) => { setFilter(v); setLimit(12); }} options={HISTORY_FILTERS.map((f) => ({ value: f.value, label: <>{f.label}<span className="t-ro pr-seg-count">{counts[f.value]}</span></> }))} />
+      <span id="activity" className="ctl-anchor" aria-hidden />
+      <div className="ctl-filter">
+        <Segmented label="Show" value={filter} onChange={(v) => { setFilter(v); setLimit(12); }} options={HISTORY_FILTERS.map((f) => ({ value: f.value, label: <>{f.label}<span className="t-ro ctl-seg-count">{counts[f.value]}</span></> }))} />
       </div>
       {list.length === 0 ? <EmptyLine>{filter === 'all' ? 'The studio has not finished a job yet.' : 'No job in the record matches this filter.'}</EmptyLine> : (
         <>
@@ -152,7 +153,7 @@ function JobLog({ job }: { job: Job }) {
   const ms = elapsedMs(job, now);
   const made = (job.result?.assetId ?? job.result?.cutAssetId ?? job.result?.exportAssetId ?? job.result?.portraitAssetId ?? job.result?.openingFrameAssetId) as string | undefined;
   return (
-    <div className="pr-log">
+    <div className="ctl-log">
       <PanelCard columns={2} facts={[
         { label: 'State', value: <StateWord tone={o.tone}>{o.words}</StateWord> },
         { label: 'Attempts', value: `${job.attempts} of ${job.maxAttempts}` },
@@ -160,18 +161,18 @@ function JobLog({ job }: { job: Job }) {
         { label: job.finishedAt ? 'Took' : 'Running for', value: ms !== null ? <span className="t-ro t-ro-md">{clock(ms)}</span> : '—' },
       ]} />
       {job.error && (
-        <div className="pr-error">
+        <div className="ctl-error">
           <p className="t-title">{job.status === 'FAILED' ? 'Why it failed' : 'The last error'}</p>
-          <p className="t-ro pr-well" dir="auto">{job.error.code}: {job.error.message}</p>
+          <p className="t-ro ctl-well" dir="auto">{job.error.code}: {job.error.message}</p>
         </div>
       )}
-      <div className="pr-log-acts">
+      <div className="ctl-log-acts">
         {made && <Link href={`/assets?asset=${encodeURIComponent(made)}`} className="btn btn-secondary btn-sm">Open what it made</Link>}
         {(job.status === 'FAILED' || job.status === 'CANCELLED') && <RetryControl job={job} size="sm" />}
       </div>
-      <p className="t-label pr-log-h">Log</p>
-      {events === null ? <div aria-busy className="pr-events"><Skeleton.Text lines={4} /></div> : events.length === 0 ? <p className="t-body">No log lines were recorded.</p> : (
-        <ol className="pr-events">
+      <p className="t-label ctl-log-h">Log</p>
+      {events === null ? <div aria-busy className="ctl-events"><Skeleton.Text lines={4} /></div> : events.length === 0 ? <p className="t-body">No log lines were recorded.</p> : (
+        <ol className="ctl-events">
           {events.map((e) => <li key={e.id} data-level={e.level}><span className="t-ro">{new Date(e.at).toLocaleTimeString('en-GB')}</span><span className="t-body" dir="auto">{e.message}</span></li>)}
         </ol>
       )}
@@ -189,14 +190,14 @@ export function ControlRoomSkeleton() {
       <HeadSkeleton />
       <div className="cp-section">
         <SectionHeadSkeleton width="8rem" />
-        <div className="pr-decisions">
+        <div className="ctl-decisions">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="dcard pr-dcard"><Skeleton.Media ratio="16/9" className="dcard-media" /><span className="dcard-body"><span className="dcard-kind t-label"><Skeleton.Line width="50%" /></span><span className="t-card dcard-title"><Skeleton.Line width="70%" /></span><span className="dcard-desc t-body"><Skeleton.Text lines={2} /></span><Skeleton.Block width={120} height={32} radius="pill" className="dcard-verb" /></span></div>
+            <div key={i}><DecisionCardSkeleton className="ctl-dcard" /></div>
           ))}
         </div>
       </div>
       <div className="cp-section"><SectionHeadSkeleton width="9rem" /><RowsSkeleton n={1} /></div>
-      <div className="cp-section"><SectionHeadSkeleton width="6rem" /><div className="pr-filter"><Skeleton.Block width={420} height={36} radius="md" /></div><RowsSkeleton n={6} /></div>
+      <div className="cp-section"><SectionHeadSkeleton width="6rem" /><div className="ctl-filter"><Skeleton.Block width={420} height={36} radius="md" /></div><RowsSkeleton n={6} /></div>
       <EngineRoomSkeleton />
     </SkeletonRegion>
   );

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { SectionHead, Skeleton, cls } from '@/components/ui/kit';
 import { IconChevronLeft } from '@/components/ui/icons';
+import { SectionHeadSkeleton as SharedSectionHeadSkeleton } from '@/components/media/Skeletons';
 
 /** THE CONTROL PAGES' LAYOUT PARTS (Studio Company, its departments and agents, Production, Settings, Files) — layout
  *  only, on the kit: a page head (`.t-page` and one `.t-lead` line), a section with the kit's SectionHead, and a list of
@@ -83,8 +84,8 @@ export function HeadSkeleton({ back, kicker, lead = true }: { back?: boolean; ki
     </div>
   );
 }
-export function SectionHeadSkeleton({ width = '9rem' }: { width?: string }) {
-  return <div className="shead"><div className="shead-row"><div className="shead-start"><span className="t-section shead-title"><Skeleton.Line size="title" width={width} /></span></div></div></div>;
+export function SectionHeadSkeleton({ width = '9rem', description }: { width?: string; description?: boolean }) {
+  return <SharedSectionHeadSkeleton titleWidth={width} description={description} />;
 }
 export function RowsSkeleton({ n = 4 }: { n?: number }) {
   return (

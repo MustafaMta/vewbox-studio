@@ -6,6 +6,7 @@ import { stepsOf, useAgent } from '@/studio/org';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { Button, JobDot, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
+import { PanelCardSkeleton } from '@/components/media/Skeletons';
 import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
 import { RunRows, ToolsAndSkills } from './Department';
 import { agentStateWords, duration, failureWords, jobWords, percent, plural, resourceWords, shortWhen } from './model';
@@ -92,7 +93,7 @@ export function AgentSkeleton() {
   return (
     <SkeletonRegion label="Reading the agent’s record…" className="cp agent">
       <HeadSkeleton back kicker />
-      <div className="pcard cp-facts"><div className="pcard-grid" data-cols="4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="pcard-cell"><Skeleton.Line width="50%" /><Skeleton.Line width="70%" /><Skeleton.Line width="60%" /></div>)}</div></div>
+      <PanelCardSkeleton cells={4} className="cp-facts" />
       <div className="cp-section"><SectionHeadSkeleton width="9rem" /><div className="pcard"><Skeleton.Text lines={3} /></div></div>
       <div className="cp-section"><SectionHeadSkeleton width="5rem" /><RowsSkeleton n={5} /></div>
     </SkeletonRegion>

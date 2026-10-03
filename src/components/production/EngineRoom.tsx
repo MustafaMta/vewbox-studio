@@ -36,26 +36,26 @@ export function EngineRoom({ health }: { health: Health | null }) {
   const offline = engines ? ENGINES.filter((e) => engines[e.key] && !engines[e.key].ok).length : 0;
   const since = shortWhen(health?.intake?.since);
   return (
-    <Section id="engine-room" title="Engine room" description={engines ? (offline ? `${countWords(offline)} of ${ENGINES.length} engines are offline right now; work that needs them waits or fails with the reason.` : 'Every engine answers right now.') : 'Asking each engine whether it answers…'}
+    <Section id="engine-room" title="Engine room" description="What the studio runs on right now, and how it ran. An engine that is offline is said plainly; work that needs it waits or fails with the reason."
       action={<Button size="sm" onClick={reload}>Check again</Button>}>
       {health?.intake?.paused && (
-        <div className="card pr-intake" role="status">
+        <div className="card ctl-intake" role="status">
           <StateWord tone="idle">Intake paused</StateWord>
           <span className="t-meta">{since ? `Since ${since}` : 'Paused'}{health.intake.reason ? <> · <span dir="auto">{health.intake.reason}</span></> : null}</span>
         </div>
       )}
       {error && !engines ? <EmptyLine action={<Button size="sm" onClick={reload}>Try again</Button>}>The engines could not be asked: {error}</EmptyLine> : (
-        <ul className="pr-engines" role="list" aria-busy={!engines || undefined}>
+        <ul className="ctl-engines" role="list" aria-busy={!engines || undefined} aria-label={engines ? `${ENGINES.length - offline} of ${ENGINES.length} engines ready` : 'Engines'}>
           {ENGINES.map((e) => <li key={e.key}><EngineCard name={e.name} does={e.does} row={engines ? engines[e.key] : undefined} loading={!engines} /></li>)}
         </ul>
       )}
-      {engines?.gpu?.device && <p className="t-meta pr-gpu">Graphics card: <span dir="ltr">{engines.gpu.device.split(':').slice(0, 2).join(':').trim()}</span>{engines.gpu.vramFree && engines.gpu.vramTotal ? ` · ${Math.round(engines.gpu.vramFree / 1073741824)} of ${Math.round(engines.gpu.vramTotal / 1073741824)} GB free` : ''}</p>}
+      {!engines ? <p className="t-meta ctl-gpu"><Skeleton.Line width="16rem" /></p> : engines.gpu?.device && <p className="t-meta ctl-gpu">Graphics card: <span dir="ltr">{engines.gpu.device.split(':').slice(0, 2).join(':').trim()}</span>{engines.gpu.vramFree && engines.gpu.vramTotal ? ` · ${Math.round(engines.gpu.vramFree / 1073741824)} of ${Math.round(engines.gpu.vramTotal / 1073741824)} GB free` : ''}</p>}
 
-      <TabBar ariaLabel="The engine record" idBase="er" current={tab} onSelect={setTab} className="pr-er-tabs"
+      <TabBar ariaLabel="The engine record" idBase="er" current={tab} onSelect={setTab} className="ctl-er-tabs"
         tabs={[{ id: 'reliability', label: 'Reliability' }, { id: 'failures', label: 'Failure classes', count: rel?.failureClasses.length }, { id: 'models', label: 'Models', count: reg ? groupsOf(reg.models).length : undefined }, { id: 'timings', label: 'Job timings', count: met?.jobs.length }]} />
       <TabPanel idBase="er" id="reliability" current={tab} className="cp-tabpanel">
         {!rel ? <div className="pcard"><Skeleton.Text lines={3} /></div> : (
-          <PanelCard columns={3} className="pr-rel" facts={[
+          <PanelCard columns={3} className="ctl-rel" facts={[
             { label: 'First attempt succeeded', value: percent(rel.firstAttemptTechnical.ok, rel.firstAttemptTechnical.total) ?? '—', sub: `${rel.firstAttemptTechnical.ok} of ${rel.firstAttemptTechnical.total} runs` },
             { label: 'Takes accepted the first time', value: percent(rel.firstAttemptCreative.accepted, rel.firstAttemptCreative.total) ?? '—', sub: `${rel.firstAttemptCreative.accepted} of ${rel.firstAttemptCreative.total} takes` },
             { label: 'Jobs retried', value: percent(rel.retryRate.retried, rel.retryRate.jobs) ?? '—', sub: `${rel.retryRate.retried} of ${rel.retryRate.jobs} jobs` },
@@ -64,7 +64,7 @@ export function EngineRoom({ health }: { health: Health | null }) {
             { label: 'Time per accepted take', value: duration(rel.perAcceptedShot.meanMsPerAccepted) ?? '—', sub: rel.perAcceptedShot.meanAttemptsPerAccepted ? `${rel.perAcceptedShot.meanAttemptsPerAccepted.toFixed(2)} attempts each` : `${rel.perAcceptedShot.acceptedTakes} accepted takes` },
           ]} />
         )}
-        {rel && <p className="t-meta pr-span">Counted over {spanWords(rel.hours)}.</p>}
+        {rel && <p className="t-meta ctl-span">Counted over {spanWords(rel.hours)}.</p>}
       </TabPanel>
       <TabPanel idBase="er" id="failures" current={tab} className="cp-tabpanel">
         {!rel ? <RowsSkeleton n={3} /> : rel.failureClasses.length === 0 ? <EmptyLine>Nothing failed in {spanWords(rel.hours)}.</EmptyLine> : (
@@ -74,7 +74,7 @@ export function EngineRoom({ health }: { health: Health | null }) {
             </Rows>
             {rel.openEvents.length > 0 && (
               <>
-                <p className="t-label pr-sub">Latest failures</p>
+                <p className="t-label ctl-sub">Latest failures</p>
                 <Rows label="Latest failures">
                   {rel.openEvents.slice(0, 6).map((e) => (
                     <Row key={e.id} start={<StateWord tone={e.resolved ? 'done' : 'failed'}>{failureWords(e.failureClass)}</StateWord>} title={jobWords(e.jobType)}
@@ -102,14 +102,13 @@ export function EngineRoom({ health }: { health: Health | null }) {
   );
 }
 
-const countWords = (n: number) => ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'][n] ?? String(n);
 
 function EngineCard({ name, does, row, loading }: { name: string; does: string; row?: EngineHealth; loading: boolean }) {
   return (
-    <article className="card pr-engine" data-ok={row ? String(row.ok) : undefined} aria-busy={loading || undefined}>
-      <span className="pr-engine-top"><span className="t-card">{name}</span>{loading ? <Skeleton.Line width="4rem" /> : row ? <StateWord tone={row.ok ? 'done' : 'failed'}>{row.ok ? 'Ready' : 'Offline'}</StateWord> : <StateWord tone="idle">Not reported</StateWord>}</span>
-      <span className="t-body pr-engine-does">{does}</span>
-      <span className="t-meta pr-engine-detail" dir="auto" title={row?.detail}>{loading ? <Skeleton.Line width="80%" /> : row ? [row.where === 'hosted' ? 'Hosted' : row.where === 'local' ? 'On this machine' : null, row.model, row.detail].filter(Boolean).join(' · ') : 'The status check did not mention it.'}</span>
+    <article className="card ctl-engine" data-ok={row ? String(row.ok) : undefined} aria-busy={loading || undefined}>
+      <span className="ctl-engine-top"><span className="t-card">{name}</span>{loading ? <Skeleton.Line width="4rem" /> : row ? <StateWord tone={row.ok ? 'done' : 'failed'}>{row.ok ? 'Ready' : 'Offline'}</StateWord> : <StateWord tone="idle">Not reported</StateWord>}</span>
+      <span className="t-body ctl-engine-does">{does}</span>
+      <span className="t-meta ctl-engine-detail" dir="auto" title={row?.detail}>{loading ? <Skeleton.Line width="80%" /> : row ? [row.where === 'hosted' ? 'Hosted' : row.where === 'local' ? 'On this machine' : null, row.model, row.detail].filter(Boolean).join(' · ') : 'The status check did not mention it.'}</span>
     </article>
   );
 }
@@ -140,7 +139,7 @@ function Models({ reg }: { reg: Registry }) {
         })}
       </Rows>
       {groups.length > 8 && <Button size="sm" variant="quiet" className="cp-more" onClick={() => setAll((v) => !v)}>{all ? 'Show fewer' : `Show all ${groups.length}`}</Button>}
-      <p className="t-meta pr-span">{reg.models.length} model files and {reg.workflows.length} workflows on record.</p>
+      <p className="t-meta ctl-span">{reg.models.length} model files and {reg.workflows.length} workflows on record.</p>
     </>
   );
 }
@@ -149,7 +148,7 @@ export function EngineRoomSkeleton() {
   return (
     <div className="cp-section">
       <SectionHeadSkeleton width="9rem" />
-      <div className="pr-engines">{ENGINES.map((e) => <div key={e.key} className="card pr-engine"><Skeleton.Line width="40%" /><Skeleton.Line width="70%" /><Skeleton.Line width="85%" /></div>)}</div>
+      <div className="ctl-engines">{ENGINES.map((e) => <div key={e.key} className="card ctl-engine"><Skeleton.Line width="40%" /><Skeleton.Line width="70%" /><Skeleton.Line width="85%" /></div>)}</div>
     </div>
   );
 }

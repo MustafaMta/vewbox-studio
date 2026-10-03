@@ -177,20 +177,20 @@ function CompanyStage({ org, company: c, selection, onSelect, onOpen }: { org: O
         </svg>
 
         {c.edges.map((e) => { const g = geo(e); const bad = refusedOf(e); const dim = bright && !bright.edges.has(e.key) ? true : undefined; return (
-          <button key={`n-${e.key}`} type="button" tabIndex={-1} className="co-count" data-state={e.state} data-dim={dim} style={{ left: pct(g.mid.x, VIEW.w), top: pct(g.mid.y, VIEW.h) }}
+          <button key={`n-${e.key}`} type="button" tabIndex={-1} className="co-count" data-state={e.state} data-dim={dim} style={{ insetInlineStart: pct(g.mid.x, VIEW.w), insetBlockStart: pct(g.mid.y, VIEW.h) }}
             aria-label={edgeAria(org, e)} onClick={() => onSelect({ kind: 'edge', key: e.key })} onMouseEnter={() => setHover({ kind: 'edge', key: e.key })} onMouseLeave={() => setHover(null)}>
             {e.handoffs.length}{bad > 0 && <span className="co-count-bad">✕{bad}</span>}
           </button>
         ); })}
 
         {gates.map((g) => { const spot = GATE_SPOT[g.id]; if (!spot) return null; const waits = c.awaiting.some((a) => a.stage === g.id); const done = org.approvals.filter((a) => a.stage === g.id).length; return (
-          <span key={`you-${g.id}`} className="co-gate" data-waiting={waits || undefined} style={{ left: pct(spot.x, VIEW.w), top: pct(spot.y, VIEW.h) }}>
+          <span key={`you-${g.id}`} className="co-gate" data-waiting={waits || undefined} style={{ insetInlineStart: pct(spot.x, VIEW.w), insetBlockStart: pct(spot.y, VIEW.h) }}>
             <span className="co-gate-you">You</span>
             <span className="co-gate-words">{g.id === 'EDIT' ? 'approve the cut' : `approve the ${g.name.toLowerCase()}`}{waits ? ' · waits' : done ? ` · ${done} approved` : ''}</span>
           </span>
         ); })}
 
-        <button ref={(el) => { btns.current.ORCH = el; }} type="button" className="co-orch" style={{ left: '50%', top: pct(VIEW.cy, VIEW.h) }}
+        <button ref={(el) => { btns.current.ORCH = el; }} type="button" className="co-orch" style={{ insetInlineStart: '50%', insetBlockStart: pct(VIEW.cy, VIEW.h) }}
           tabIndex={focusId === 'ORCH' ? 0 : -1} aria-pressed={selection.kind === 'orchestrator'} onFocus={() => setFocusId('ORCH')}
           onClick={() => { setFocusId('ORCH'); onSelect({ kind: 'orchestrator' }); }}>
           <span className="co-orch-name">Studio Orchestrator</span>
@@ -244,7 +244,7 @@ function ProductionRings({ c }: { c: Company }) {
 
 /** A seat's button: the disc centre lands on the ring point whatever the label's placement. */
 function seatStyle(seat: Seat, disc: number): CSSProperties {
-  const base = { left: `${(seat.x / VIEW.w) * 100}%`, top: `${(seat.y / VIEW.h) * 100}%`, '--disc': `${disc}px` } as CSSProperties;
+  const base = { insetInlineStart: `${(seat.x / VIEW.w) * 100}%`, insetBlockStart: `${(seat.y / VIEW.h) * 100}%`, '--disc': `${disc}px` } as CSSProperties;
   if (seat.placement === 'below') return { ...base, flexDirection: 'column', transform: `translate(-50%, ${-(disc / 2 + 4)}px)` };
   if (seat.placement === 'above') return { ...base, flexDirection: 'column-reverse', transform: `translate(-50%, calc(-100% + ${disc / 2 + 4}px))` };
   const right = seat.side !== 'left';
@@ -460,7 +460,7 @@ function DepartmentRecords({ org }: { org: OrgResponse }) {
                     <>
                       <span><span className="t-ro t-ro-md">{r.runs}</span> {plural(r.runs, 'run')}</span>
                       {first && <span><span className="t-ro t-ro-md">{first}</span> first time</span>}
-                      {med && <span>median <span className="t-ro t-ro-md">{med}</span></span>}
+                      {med && <span>median {med}</span>}
                       {r.failed > 0 && <span className="co-bad"><span className="t-ro t-ro-md">{r.failed}</span> failed</span>}
                     </>
                   ) : <span>No runs in this period</span>}
