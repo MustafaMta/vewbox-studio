@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { T } from '@/lib/copy';
 import { useToast } from '../../toast';
-import { IconAuto, IconClose, IconDelete, IconDuplicate, IconEdit, IconKeyboard, IconManual, IconMore, IconPlus } from '../../icons';
+import { IconAuto, IconClose, IconDelete, IconDuplicate, IconEdit, IconManual, IconMore, IconPlus } from '../../icons';
 import { Button } from '../Button';
 import { Field, Input } from '../Field';
-import { CommandPalette, Dialog, Drawer, MenuButton, MenuItem, MenuSeparator, Popover, ShortcutSheet, useAsk, useConfirm, type PaletteEntry } from '../Overlay';
+import { Dialog, Drawer, MenuButton, MenuItem, MenuSeparator, Popover, useAsk, useConfirm } from '../Overlay';
 import { StateWord } from '../Status';
 import { Cell, SpecRow, SpecSection, Still } from './parts';
 
@@ -16,22 +16,7 @@ export function OverlaysSpec() {
   const ask = useAsk();
   const [dialog, setDialog] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [palette, setPalette] = useState(false);
-  const [sheet, setSheet] = useState(false);
-  const [singleKey, setSingleKey] = useState(true);
   const [answer, setAnswer] = useState<string | null>(null);
-  const entries: PaletteEntry[] = [
-    { id: 'recent-show', group: 'recent', label: T('kit.spec.pal.show'), text: T('kit.spec.pal.show'), onSelect: () => undefined },
-    { id: 'show', group: 'go', label: T('kit.spec.pal.show'), text: `${T('kit.spec.pal.show')} The Kite الطائرة الورقية`, onSelect: () => undefined },
-    { id: 'char', group: 'go', label: T('kit.spec.pal.char'), text: `${T('kit.spec.pal.char')} Amina أمينة`, onSelect: () => undefined },
-    { id: 'new-show', group: 'create', label: T('kit.spec.pal.newShow'), text: T('kit.spec.pal.newShow'), icon: <IconPlus aria-hidden className="size-4" />, onSelect: () => undefined },
-    { id: 'approve', group: 'decide', label: T('kit.spec.pal.approve'), text: T('kit.spec.pal.approve'), onSelect: () => undefined },
-    { id: 'contrast', group: 'settings', label: T('kit.spec.pal.contrast'), text: T('kit.spec.pal.contrast'), onSelect: () => undefined },
-  ];
-  const groups = [
-    { id: 'recent', label: T('kit.palette.recent') }, { id: 'go', label: T('kit.palette.go') }, { id: 'create', label: T('kit.palette.create') },
-    { id: 'decide', label: T('kit.palette.decide') }, { id: 'settings', label: T('kit.palette.settings') },
-  ];
   return (
     <SpecSection id="overlays" title={T('kit.spec.sec.overlays')} lead={T('kit.spec.overlays.lead')}>
       <SpecRow label={T('kit.spec.try')}>
@@ -39,8 +24,6 @@ export function OverlaysSpec() {
         <Button variant="danger" icon={<IconDelete />} onClick={async () => { const ok = await confirm({ title: T.f('kit.spec.confirm.title', { name: T('kit.spec.ph.title') }), body: T('kit.spec.confirm.body'), keep: T('kit.spec.confirm.keep') }); if (ok) toast.ok(T('toast.deleted')); }}>{T('kit.spec.open.confirm')}</Button>
         <Button onClick={async () => setAnswer(await ask({ title: T('kit.spec.ask.title'), label: T('kit.spec.ask.label'), confirmLabel: T('kit.spec.ask.confirm') }))}>{T('kit.spec.open.ask')}</Button>
         <Button onClick={() => setDrawer(true)}>{T('kit.spec.open.drawer')}</Button>
-        <Button onClick={() => setPalette(true)}>{T('kit.spec.open.palette')}</Button>
-        <Button icon={<IconKeyboard />} onClick={() => setSheet(true)}>{T('kit.shortcuts.title')}</Button>
         {answer !== null && <p className="caption basis-full" role="status">{T.f('kit.spec.ask.answer', { text: answer || '—' })}</p>}
       </SpecRow>
       <SpecRow label="Popover · MenuButton">
@@ -114,11 +97,6 @@ export function OverlaysSpec() {
           ))}
         </ol>
       </Drawer>
-      <CommandPalette open={palette} onClose={() => setPalette(false)} entries={entries} groups={groups} />
-      <ShortcutSheet open={sheet} onClose={() => setSheet(false)} singleKey={{ on: singleKey, onChange: setSingleKey }} scopes={[
-        { id: 'global', title: T('kit.shortcuts.global'), rows: [{ keys: ['Ctrl', 'K'], label: T('kit.palette.label') }, { keys: ['?'], label: T('kit.spec.sc.sheet') }, { keys: ['Ctrl', '\\'], label: T('kit.spec.sc.nav') }, { keys: ['Esc'], label: T('kit.spec.sc.esc') }] },
-        { id: 'player', title: T('kit.shortcuts.player'), rows: [{ keys: ['Space'], label: T('kit.spec.sc.play') }, { keys: ['←', '→'], label: T('kit.spec.sc.frame') }] },
-      ]} />
     </SpecSection>
   );
 }
