@@ -295,4 +295,14 @@ describe('Auto Idea', () => {
     expect(r.production.song?.sections.length).toBeGreaterThan(0);
     expect(r.production.song?.sections.every((x) => x.singerIds.length > 0)).toBe(true);
   });
+  it('an accepted Auto Idea carries its development intent in the brief (later story calls build within it)', () => {
+    const s = seed();
+    const base = sampleProposal(s, { kind: 'SHORT', preferences: {} });
+    const p = { ...base, mood: 'quiet, bittersweet', development: { ideaJobId: 'job-idea', audience: 'families', strategy: 'SHORT_FOCUSED', hook: 'a kite snaps loose in the first second', ending: 'she lets it go' } } as unknown as typeof base;
+    const r = acceptProposal(s, { kind: 'SHORT', aspect: 'WIDE_16_9', proposal: p, keepCast: [], keepLocations: [], preferences: {} });
+    expect(r.production.brief.development).toMatchObject({ ideaJobId: 'job-idea', audience: 'families', tone: 'quiet, bittersweet', hook: 'a kite snaps loose in the first second', ending: 'she lets it go', strategy: 'SHORT_FOCUSED' });
+    // a proposal without a development record (a written example) carries none
+    const plain = acceptProposal(s, { kind: 'SHORT', aspect: 'WIDE_16_9', proposal: base, keepCast: [], keepLocations: [], preferences: {} });
+    expect(plain.production.brief.development).toBeUndefined();
+  });
 });

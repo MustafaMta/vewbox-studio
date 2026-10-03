@@ -5,6 +5,7 @@ import { nid, now } from './ids';
 import { StudioError, consentRequired, missingReference } from './errors';
 import { canonical } from './hash';
 import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
+import { developmentIntentOf } from './development';
 import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage, voiceBuildLockProblem } from './rules';
 import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
@@ -805,7 +806,9 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
   }
   // the same library member can be offered twice by a proposal (two reasons, one person): one seat each
   castIds = Array.from(new Set(castIds)); locationIds = Array.from(new Set(locationIds));
-  const brief = { mode: 'AUTO_IDEA' as const, text: pr.premise, ideaTitle: pr.title, preferences: input.preferences, fromSampleProposal: pr.sample || undefined, proposalJobId: input.proposalJobId };
+  // the accepted idea's development intent travels with the brief: later story calls build within it (Auto Idea §4)
+  const development = developmentIntentOf(pr);
+  const brief = { mode: 'AUTO_IDEA' as const, text: pr.premise, ideaTitle: pr.title, preferences: input.preferences, fromSampleProposal: pr.sample || undefined, proposalJobId: input.proposalJobId, ...(development ? { development } : {}) };
   const common = { style: pr.style, language: pr.language, dialect: pr.dialect, aspect: input.aspect, targetSeconds: pr.durationSeconds, brief };
   const withStructure = (state: S, productionId: string, items: IdeaProposal['structure']) => items.reduce((acc, it) => {
     const r = addScene(acc, productionId, { title: it.title, timeOfDay: 'MORNING', characterIds: [], purpose: it.summary });
