@@ -88,7 +88,7 @@ test('the strip: every shot by scene; a shot plays the film from where it starts
   await expect(page.locator('.film-strip-shot')).toHaveCount(f!.shots.length);
   const labels = await page.locator('.film-strip-label').allTextContents();
   expect(labels).toEqual([...f!.scenes].sort((a, b) => a.number - b.number).map((s) => `Scene ${s.number}${s.title ? ` · ${s.title}` : ''}`));
-  const video = page.locator('.film-player-video');
+  const video = page.locator('.film-screen video');
   await video.evaluate((v: HTMLVideoElement) => new Promise((r) => (v.readyState >= 1 ? r(null) : v.addEventListener('loadedmetadata', () => r(null), { once: true }))));
   const last = page.locator('.film-strip-shot').last();
   const label = (await last.getAttribute('aria-label'))!;
@@ -96,10 +96,10 @@ test('the strip: every shot by scene; a shot plays the film from where it starts
   await last.click();
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThanOrEqual(Number(mm) * 60 + Number(ss));
   await expect(last).toHaveAttribute('aria-current', 'true');
-  const play = page.locator('.film-play');
-  await expect(play).toHaveAttribute('aria-label', `Pause ${f!.title}`);
+  const play = page.locator('.film-screen .pt-play');
+  await expect(play).toHaveAttribute('aria-label', 'Pause');
   await play.click();
-  await expect(play).toHaveAttribute('aria-label', `Play ${f!.title}`);
+  await expect(play).toHaveAttribute('aria-label', 'Play');
   // keyboard: the shot buttons show the focus ring
   await page.locator('.film-strip-shot').first().focus();
   await page.keyboard.press('Tab');

@@ -76,7 +76,9 @@ for (const size of SIZES) {
     await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
     await page.waitForSelector('main', { timeout: 120000 });
     await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
-    await page.waitForSelector(pg.ready, { timeout: 180000 });
+    // the dev server's unminified layout chunk can exceed webpack's 120 s chunk timeout at 1.5 Mbps (ChunkLoadError):
+    // one reload, as a producer would, then the page must come
+    await page.waitForSelector(pg.ready, { timeout: 150000 }).catch(async () => { console.log(`  ${pg.name} ${size.w}: reloaded once (dev chunk timeout)`); await page.reload({ waitUntil: 'commit' }); await page.waitForSelector(pg.ready, { timeout: 180000 }); });
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
     await page.waitForTimeout(1500);

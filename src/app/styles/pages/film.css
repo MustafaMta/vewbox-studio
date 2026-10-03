@@ -3,8 +3,8 @@
    docs/DESIGN-SYSTEM-V5.md §8.4–8.5 under docs/design/VISUAL-STANDARD-V5.1.md, on Home's reference (the producer's
    Krea standard). Layout only: every colour, radius, duration and type size is a token or a kit class. The skeletons
    (ShortsSkeleton, ShortSkeleton) use the same classes, so they have the pages' exact shapes.
-   The player block (.film-player, .film-transport) is a TEMPORARY page-local wrapper of the docked video chrome
-   (§5.24) until the kit's player chrome reaches main.
+   The player is the kit's InlinePlayer (hero, transport docked, 52 high); .film-player/.film-transport here only draw
+   the still (a film without a cut) and the skeleton at the player's exact size.
    ============================================================================================================ */
 @layer components {
   /* ------------------------------------------------------------------------------------------- the catalogue */
@@ -44,20 +44,9 @@
   .film-poster-cap { margin: 0; }
   .film-screen { grid-area: screen; min-inline-size: 0; }
 
-  .film-player { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); }
-  .film-player-pic { position: relative; inline-size: 100%; aspect-ratio: 16 / 9; background: var(--black); }
-  .film-player-video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; background: var(--black); cursor: pointer; }
-  .film-player[data-full] { border-radius: 0; }
-  .film-player[data-full] .film-player-pic { flex: 1; aspect-ratio: auto; }
   .film-transport { display: flex; flex: none; align-items: center; gap: 8px; block-size: var(--transport, 52px); padding: 0 12px; background: var(--surface-1); }
-  .film-play { inline-size: 36px; block-size: 36px; }
-  .film-play svg { inline-size: 16px; block-size: 16px; }
-  .film-time { margin-inline: 4px; color: var(--text-2); white-space: nowrap; }
-  .film-seek { flex: 1; }
-  .film-seek .seek { --seek-track: var(--surface-3); }
   .film-transport-note { padding-inline: 16px; }
   .film-transport-note .t-body { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .film-player-still .film-player-pic { border-radius: 0; }
 
   /* the strip: the cut's shots at their share of the running time, grouped by scene */
   .film-strip { grid-area: strip; display: flex; gap: 4px; min-inline-size: 0; }
@@ -122,7 +111,6 @@
     .film-back { display: none; }
     .film-stage { order: -1; margin-block-start: 0; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'screen' 'strip'; gap: 12px; }
     .film-poster { display: none; }
-    .film-player { border-radius: var(--r-md); }
     .film-head { margin-block-start: 16px; }
     .film-head-row { flex-direction: column; align-items: stretch; }
     .film-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

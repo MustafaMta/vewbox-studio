@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { useLive, useProductionPipeline } from '@/studio/org';
@@ -10,7 +10,7 @@ import { FigureCard, Frame, MediaTile } from '@/components/media';
 import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { IconChevronLeft, IconDownload, IconPlay } from '@/components/ui/icons';
 import { runtime } from '@/components/home/model';
-import { FilmPlayer, type FilmPlayerHandle } from './FilmPlayer';
+import { InlinePlayer, type PlayerHandle } from '@/components/players/InlinePlayer';
 import { SkLine } from './parts';
 import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, type FilmPage, type StripScene, type StripShot } from './model';
 
@@ -34,12 +34,22 @@ import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, t
 export function ShortPage({ p }: { p: Production }) {
   const { state } = useStudio();
   const film = useMemo(() => filmPage(p, state), [p, state]);
-  const player = useRef<FilmPlayerHandle>(null);
+  const player = useRef<PlayerHandle>(null);
   const [current, setCurrent] = useState<string | null>(null);
-  const onTime = useCallback((t: number) => {
-    const shot = film.strip.find((x) => t >= x.start && t < x.start + x.duration)?.id ?? null;
-    setCurrent((c) => (c === shot ? c : shot));
-  }, [film.strip]);
+  // the shot on screen, from the cut's own clock (marked in the strip)
+  const cutSrc = film.cut?.src;
+  useEffect(() => {
+    const v = player.current?.el();
+    if (!v) return;
+    const on = () => {
+      const t = v.currentTime;
+      const shot = film.strip.find((x) => t >= x.start && t < x.start + x.duration)?.id ?? null;
+      setCurrent((c) => (c === shot ? c : shot));
+    };
+    v.addEventListener('timeupdate', on);
+    v.addEventListener('seeked', on);
+    return () => { v.removeEventListener('timeupdate', on); v.removeEventListener('seeked', on); };
+  }, [film.strip, cutSrc]);
   const seek = useCallback((x: StripShot) => { player.current?.seek(x.start + 0.01); player.current?.play(); }, []);
 
   return (
@@ -53,7 +63,7 @@ export function ShortPage({ p }: { p: Production }) {
         </figure>
         <div className="film-screen">
           {film.cut ? (
-            <FilmPlayer ref={player} src={film.cut.src} poster={film.cut.poster} title={film.title} captions={film.cut.captions} onTime={onTime} />
+            <InlinePlayer ref={player} hero src={film.cut.src} poster={film.cut.poster} title={film.title} captions={film.cut.captions} aspect="16 / 9" maxHeight="none" className="film-player" />
           ) : (
             <div className="film-player film-player-still">
               <Frame asset={film.still?.asset} src={film.still?.src} ratio="16/9" fit="cover" radius="none" alt={film.still?.label ?? ''} art={artVars(film.still?.asset)}
