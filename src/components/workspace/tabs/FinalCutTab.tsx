@@ -110,7 +110,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
             <h2 id="ws-subs-h" className="t-title">Subtitles</h2>
             {subtitleFiles.length === 0 ? <p className="t-body">{shown ? 'No subtitle files were written with this cut.' : 'Written with the cut.'}</p> : (
               <ul className="ws-files" role="list">
-                {subtitleFiles.map((a) => <li key={a.id}><span className="ws-ro ws-file-name">{a.label}</span>{!a.unavailable && <a className="btn btn-quiet btn-sm" href={`${a.src}?download=1`} download><IconDownload aria-hidden />Download</a>}</li>)}
+                {subtitleFiles.map((a) => <li key={a.id}><span className="ws-file-name">{a.label}</span>{!a.unavailable && <a className="btn btn-quiet btn-sm" href={`${a.src}?download=1`} download><IconDownload aria-hidden />Download</a>}</li>)}
               </ul>
             )}
           </div>

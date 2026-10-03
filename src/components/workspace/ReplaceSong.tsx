@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
-import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Modal, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { splitLyrics } from '@/components/wizard/CreateWizard';

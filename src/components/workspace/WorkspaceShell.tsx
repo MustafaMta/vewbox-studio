@@ -10,7 +10,7 @@ import { artVars } from '@/studio/presentation';
 import { assetById, productionHref, shotLabel, showById, seasonById } from '@/studio/selectors';
 import { currentCutVersion } from '@/studio/selectors/cuts';
 import { Frame } from '@/components/media/Frame';
-import { SaveWord, cls } from '@/components/ui/kit';
+import { SaveWord } from '@/components/ui/kit';
 import { IconCheck, IconChevronDown, IconChevronLeft, IconFinalCut, IconPlay, IconStory } from '@/components/ui/icons';
 import { StudioLine, type StudioGate } from './gate';
 import { orderedShots, shotState, stagePills, workspaceHref, type WorkspaceTab, frameRatioOf, vocab } from './model';

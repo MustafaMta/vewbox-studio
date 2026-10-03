@@ -50,7 +50,6 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
   const gate = useStudioGate();
   const ratio = frameRatioOf(p);
   const scene = p.scenes.find((sc) => sc.id === shot.sceneId);
-  const loc = locationById(state, scene?.locationId);
   const { prev, next } = neighbours(p, shot.id);
   const running = activeShotJob(p, shot.id, jobs);
   const toHear = linesToHear(p, decisions.items, shot.id);
@@ -180,7 +179,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
           )}
         </section>
 
-        <Attempts p={p} shot={shot} jobs={jobsOf(p, jobs).filter((j) => j.type === 'GENERATE_TAKE' && j.shotId === shot.id)} />
+        <Attempts shot={shot} jobs={jobsOf(p, jobs).filter((j) => j.type === 'GENERATE_TAKE' && j.shotId === shot.id)} />
       </section>
 
       <aside className="ws-inspector" aria-label={`Shot ${shotLabel(p, shot)}: settings`}>
@@ -277,7 +276,7 @@ function StatusRow({ p, shot, running, paused }: { p: Production; shot: Shot; ru
 
 /** The shot's history, newest first: every take and every attempt that did not become one (cancelled, failed), each
  *  with what happened in words and, for a failure, what is kept and the one way to try again. */
-function Attempts({ p, shot, jobs }: { p: Production; shot: Shot; jobs: Job[] }) {
+function Attempts({ shot, jobs }: { shot: Shot; jobs: Job[] }) {
   const copyOf = useErrorCopy();
   const items = [
     ...shot.takes.map((t) => ({ at: t.createdAt, take: t, job: undefined as Job | undefined })),
@@ -364,7 +363,7 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
               const id = identityStatus(c);
               const voice = voiceTrackSource(c).kind !== 'NONE';
               return (
-                <button key={c.id} type="button" className="ws-ref-chip" aria-pressed={on} onClick={() => patch({ characterIds: on ? draft.characterIds.filter((x) => x !== c.id) : [...draft.characterIds, c.id] })}
+                <button key={c.id} type="button" className="chip ws-ref-chip" aria-pressed={on} onClick={() => patch({ characterIds: on ? draft.characterIds.filter((x) => x !== c.id) : [...draft.characterIds, c.id] })}
                   title={`${c.name} · ${id.kind === 'APPROVED' || id.kind === 'LOCKED' ? 'image approved' : id.kind === 'DRAFT' ? 'image not approved yet' : 'no image yet'} · ${voice ? 'voice ready' : 'no voice yet'}`}>
                   <FaceCircle name={c.name} asset={pic} size={24} decorative />
                   <span className="name"><bdi>{c.name}</bdi></span>
@@ -391,7 +390,7 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
             <span className="t-label">{label}</span>
             <span className="ws-slot-frame" data-ratio={frameRatioOf(p)}>
               <Frame asset={a} ratio={frameRatioOf(p)} fit="cover" alt="" decorative art={artVars(a)} title={a ? label : 'Not drawn'} titleState="notDrawn" radius="none" judge />
-              {a && <button type="button" className="ws-slot-x" aria-label={`Remove the ${label.toLowerCase().replace(' (optional)', '')}`} onClick={() => patch({ [key]: undefined } as Partial<Draft>)}><IconClose aria-hidden /></button>}
+              {a && <button type="button" className="btn btn-secondary btn-sm btn-icon ws-slot-x" aria-label={`Remove the ${label.toLowerCase().replace(' (optional)', '')}`} onClick={() => patch({ [key]: undefined } as Partial<Draft>)}><IconClose aria-hidden /></button>}
             </span>
           </div>
         ))}
@@ -435,7 +434,7 @@ function Dialogue({ p, shot, draft, patch, toHear, gate }: { p: Production; shot
                   <div className="ws-review">
                     <span className="badge badge-wait">Hear it again</span>
                     <span className="t-meta">{review === 'NOT_HEARD' ? 'The automatic check could not hear it back; listen and confirm it.' : 'It drifted from the script; listen and decide.'}</span>
-                    <GenButton gate={gate} engine="voice" type="DIALOGUE_AUDIO" payload={{ productionId: p.id, shotIds: [shot.id], force: true }} target={{ productionId: p.id }} variant="quiet" icon={<IconVoice aria-hidden />}>Record it again</GenButton>
+                    <GenButton gate={gate} engine="voice" type="DIALOGUE_AUDIO" payload={{ productionId: p.id, shotIds: [shot.id], force: true }} target={{ productionId: p.id }} variant="quiet" icon={<IconVoice aria-hidden />} compact>Record it again</GenButton>
                   </div>
                 )}
               </li>

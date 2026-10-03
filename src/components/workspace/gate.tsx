@@ -62,15 +62,15 @@ export function StudioLine({ gate, engines = ['video', 'images', 'voice'] }: { g
 
 /** A generation control in its real state: the kit's JobButton (it shows a running job's phase with Cancel, and a
  *  failure with its one recovery), disabled with the reason beside it while intake is paused or its engine is offline. */
-export function GenButton<K extends JobType>({ gate, engine, type, payload, target, children, icon, variant = 'secondary', size = 'sm', disabled, reason, confirm, className }: {
+export function GenButton<K extends JobType>({ gate, engine, type, payload, target, children, icon, variant = 'secondary', size = 'sm', disabled, reason, confirm, className, compact }: {
   gate: StudioGate; /** the engine the job needs; none for work the studio's own machine does (assembling, exporting) */ engine?: Engine; type: K; payload: JobPayload<K>; target: { productionId?: string; shotId?: string }; children: ReactNode; icon?: ReactNode;
-  variant?: 'primary' | 'secondary' | 'quiet'; size?: 'sm' | 'xs'; /** a reason of the page's own (a gate, missing frames) */ disabled?: boolean; reason?: string | null; confirm?: string; className?: string;
+  variant?: 'primary' | 'secondary' | 'quiet'; size?: 'sm' | 'xs'; /** a reason of the page's own (a gate, missing frames) */ disabled?: boolean; reason?: string | null; confirm?: string; className?: string; /** repeated in a list: the reason is said to assistive technology and in the tooltip, the page's studio line says it once */ compact?: boolean;
 }) {
   const why = (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
   return (
     <span className={cls('ws-gen', className)}>
       <JobButton type={type} payload={payload} target={target} variant={variant} size={size} icon={icon} disabled={Boolean(why) || disabled} title={why ?? undefined} confirm={confirm}>{children}</JobButton>
-      {why && <span className="ws-gen-why">{why}</span>}
+      {why && <span className={compact ? 'sr-only' : 'ws-gen-why'}>{why}</span>}
     </span>
   );
 }

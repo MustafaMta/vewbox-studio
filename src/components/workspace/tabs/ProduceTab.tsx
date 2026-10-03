@@ -76,8 +76,8 @@ export function ProduceTab({ p, gate }: { p: Production; gate: StudioGate }) {
                     {sh.takes.length === 0 && <li className="t-meta ws-takes-none">No takes yet</li>}
                   </ul>
                   <div className="ws-prod-acts">
-                    <GenButton gate={gate} engine="images" type="SHOT_FRAMES" payload={{ productionId: p.id, shotId: sh.id }} target={{ productionId: p.id, shotId: sh.id }} icon={<IconFrame aria-hidden />} variant="quiet">{sh.openingFrameAssetId ? 'Draw the frames again' : 'Draw the frames'}</GenButton>
-                    <GenButton gate={gate} engine="video" type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: sh.id }} target={{ productionId: p.id, shotId: sh.id }} icon={<IconTake aria-hidden />}>{sh.takes.length ? 'New take' : 'Film the first take'}</GenButton>
+                    <GenButton gate={gate} engine="images" type="SHOT_FRAMES" payload={{ productionId: p.id, shotId: sh.id }} target={{ productionId: p.id, shotId: sh.id }} icon={<IconFrame aria-hidden />} variant="quiet" compact>{sh.openingFrameAssetId ? 'Draw the frames again' : 'Draw the frames'}</GenButton>
+                    <GenButton gate={gate} engine="video" type="GENERATE_TAKE" payload={{ productionId: p.id, shotId: sh.id }} target={{ productionId: p.id, shotId: sh.id }} icon={<IconTake aria-hidden />} compact>{sh.takes.length ? 'New take' : 'Film the first take'}</GenButton>
                     <Link className="btn btn-quiet btn-sm" href={shotHref(p, sh.id)}>Open the shot</Link>
                   </div>
                 </li>

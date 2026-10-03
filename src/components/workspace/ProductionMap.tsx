@@ -95,7 +95,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
               <thead><tr><th scope="col">Scene</th><th scope="col" className="ws-num">Shots</th><th scope="col" className="ws-num">Planned</th><th scope="col" className="ws-num">Opening frames</th><th scope="col">Ready</th></tr></thead>
               <tbody>
                 {bd.rows.map((r) => (
-                  <tr key={r.sceneId}><td className="name"><bdi>{r.label}</bdi></td><td className="ws-num">{r.shots}</td><td className="ws-num">{runtime(r.seconds) ?? '0:00'}</td><td className="ws-num">{r.framed} / {r.shots}</td><td>{r.ready ? <StateWord tone="done">Yes</StateWord> : <StateWord tone="idle">{r.shots === 0 ? 'No shots' : `${r.shots - r.framed} without a frame`}</StateWord>}</td></tr>
+                  <tr key={r.sceneId}><td><span className="name"><bdi>{r.label}</bdi></span></td><td className="ws-num">{r.shots}</td><td className="ws-num">{runtime(r.seconds) ?? '0:00'}</td><td className="ws-num">{r.framed} / {r.shots}</td><td>{r.ready ? <StateWord tone="done">Yes</StateWord> : <StateWord tone="idle">{r.shots === 0 ? 'No shots' : `${r.shots - r.framed} without a frame`}</StateWord>}</td></tr>
                 ))}
               </tbody>
               <tfoot><tr><td>Total</td><td className="ws-num">{bd.total.shots}</td><td className="ws-num">{runtime(bd.total.seconds) ?? '0:00'} of {runtime(p.targetSeconds)}</td><td className="ws-num">{bd.total.framed} / {bd.total.shots}</td><td>{bd.total.ready ? <StateWord tone="done">Ready</StateWord> : <StateWord tone="idle">Not ready</StateWord>}</td></tr></tfoot>
