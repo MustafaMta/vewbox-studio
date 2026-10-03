@@ -366,7 +366,7 @@
   .notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 12px; }
   .notice-raw { margin-block-start: 8px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--bg-page); font-family: var(--font-mono); font-size: 12px; line-height: 18px; color: var(--text-3); overflow-wrap: anywhere; }
   :is(.notice-warn, .notice-gold, .notice-wait)::before { background: var(--wait); }
-  :is(.notice-warn, .notice-gold, .notice-wait) > svg { color: var(--wait); }
+  :is(.notice-warn, .notice-gold, .notice-wait) > svg { color: var(--text-2); }   /* tungsten is the bar, never the glyph (§3.1) */
   .notice-bad::before { background: var(--bad); } .notice-bad > svg { color: var(--bad); }
   .notice-ok::before { background: var(--ok); } .notice-ok > svg { color: var(--ok); }
 
@@ -519,7 +519,7 @@
 
   /* ---- forms (§5.15) ---------------------------------------------------------------------------------------------- */
   .field { min-inline-size: 0; }
-  .field + .field { margin-block-start: 20px; }
+  :where(form, .dialog-body, .creation-group, .field-stack) > .field + .field { margin-block-start: 20px; }
   .field-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .field-label-row > .label { margin-block-end: 6px; }
   .field-optional { font-size: 12px; line-height: 16px; color: var(--text-3); }
@@ -545,6 +545,7 @@
   .error-summary ul { margin: 4px 0 0; padding-inline-start: 18px; list-style: disc; }
   .error-summary a { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-control); text-underline-offset: 3px; }
   .error-summary a:hover { text-decoration-color: var(--text-1); }
+  .settings-summary-line .slate-sep { margin-inline: 6px; }
   .settings-summary-line { display: flex; flex-wrap: wrap; align-items: baseline; margin: 0; font-size: 13px; line-height: 20px; color: var(--text-2); }
   .link-quiet { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-control); text-underline-offset: 3px; border-radius: var(--r-xs); cursor: pointer; }
   .link-quiet:hover { text-decoration-color: var(--text-1); }
@@ -912,7 +913,7 @@
   .legacy-block { margin-block-end: 32px; }
   .legacy-block-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .media-note { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 12px; font-size: 12px; line-height: 16px; color: var(--text-3); text-align: center; }
-  .media-note svg { inline-size: 16px; block-size: 16px; color: var(--wait); }
+  .media-note svg { inline-size: 16px; block-size: 16px; color: var(--text-3); }
   .media-top img { object-position: 50% 0%; }
   .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
   .pick-grid-item { display: flex; inline-size: 100%; flex-direction: column; align-items: stretch; gap: 0; padding: 0; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
