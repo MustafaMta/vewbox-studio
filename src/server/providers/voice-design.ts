@@ -6,6 +6,7 @@ import { StudioError } from '@/domain/errors';
 import type { Language } from '@/domain/vocabulary';
 import { env } from '../env';
 import { log } from '../log';
+import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE VOICE-DESIGN SERVICE — docker/tts-design on the local GPU (:8022). VoxCPM2 designs a synthetic voice from a text
  *  description alone (English and MSA; no audio goes in, so the voice belongs to nobody — Rule V-DESIGN in
@@ -144,6 +145,7 @@ const route = (url: string) => url.replace(/^https?:\/\/[^/]+/, '');
 
 async function call(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  const unlink = followJobSignal(ctrl); // a stopped job aborts the request (src/server/jobs/context.ts)
   try {
     const res = await fetch(url, { ...init, signal: ctrl.signal });
     if (!res.ok) {
@@ -155,11 +157,12 @@ async function call(url: string, init: RequestInit, timeoutMs: number): Promise<
     return res;
   } catch (e) {
     if (e instanceof StudioError) throw e;
+    if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
     const why = cause?.code ?? cause?.message ?? (e as Error).message;
     const timedOut = (e as Error).name === 'AbortError' || /TIMEOUT/i.test(why);
     throw new StudioError('UNAVAILABLE', timedOut ? `${route(url)} did not answer in time (${why}); the voice-design engine may be loading.` : `${route(url)} is not reachable (${why}). Start the tts-design service.`);
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); unlink(); }
 }
 
 async function json<T>(res: Response, schema: z.ZodType<T>, what: string): Promise<T> {

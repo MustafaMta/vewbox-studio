@@ -5,6 +5,7 @@ import { StudioError, type StudioErrorCode } from '@/domain/errors';
 import type { FailureClass } from '@/server/org/model';
 import { env } from '../env';
 import { log } from '../log';
+import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
 
 /** COMFYUI AS AN ENGINE — workflows are JSON graphs built in code (src/server/workflows), submitted over HTTP,
  *  tracked through ComfyUI's job API and history, and their outputs fetched through /view. The worker never edits node
@@ -27,9 +28,16 @@ export interface ComfyProgress { node?: string; value?: number; max?: number; qu
 
 const baseUrl = () => env().COMFYUI_URL.replace(/\/$/, '');
 
-async function http<T>(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
+/** A stopped job (cancel, deadline, lost lease) aborts its ComfyUI calls with the job's reason; that reason is what
+ *  surfaces, not "not reachable". */
+const stopReason = (ctrl: AbortController): unknown => stopReasonOf(ctrl.signal);
+
+/** `detached`: not tied to the running job's signal — the calls that clean up after an abort (cancel, free) must
+ *  still go out once the job is aborted. */
+async function http<T>(path: string, init: RequestInit & { timeoutMs?: number; detached?: boolean } = {}): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), init.timeoutMs ?? 30_000);
+  const unlink = init.detached ? () => {} : followJobSignal(ctrl);
   try {
     const res = await fetch(`${baseUrl()}${path}`, { ...init, signal: ctrl.signal });
     if (!res.ok) {
@@ -40,11 +48,12 @@ async function http<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     return (ct.includes('application/json') ? await res.json() : await res.text()) as T;
   } catch (e) {
     if (e instanceof StudioError) throw e;
+    if (stopReason(ctrl)) throw stopReason(ctrl);
     throw new StudioError('UNAVAILABLE', `ComfyUI is not reachable at ${baseUrl()}: ${(e as Error).message}`);
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); unlink(); }
 }
 
-const postJson = (path: string, body: unknown) => http(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const postJson = (path: string, body: unknown, opts: { detached?: boolean } = {}) => http(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), ...opts });
 
 export async function health(): Promise<{ ok: boolean; version?: string; vramTotal?: number; vramFree?: number; device?: string }> {
   try {
@@ -69,19 +78,19 @@ export async function listModels(folder: string): Promise<string[]> {
 
 /** Drop every loaded model and free VRAM (used when the GPU switches family, and after an out-of-memory error). */
 export async function free(): Promise<void> {
-  await postJson('/free', { unload_models: true, free_memory: true });
+  await postJson('/free', { unload_models: true, free_memory: true }, { detached: true });
 }
 
 /** Cancel one prompt, pending or running, and nothing else. True when ComfyUI had something to cancel. */
 export async function cancelPrompt(promptId: string): Promise<boolean> {
   try {
-    const r = await http<{ cancelled?: boolean }>(`/api/jobs/${encodeURIComponent(promptId)}/cancel`, { method: 'POST' });
+    const r = await http<{ cancelled?: boolean }>(`/api/jobs/${encodeURIComponent(promptId)}/cancel`, { method: 'POST', detached: true });
     return Boolean(r?.cancelled);
   } catch (e) {
     if (!(e instanceof StudioError && (e.details?.status === 404 || e.details?.status === 405))) throw e;
     // ComfyUI without the jobs API: dequeue if pending, targeted interrupt if running (both no-ops otherwise)
-    await postJson('/queue', { delete: [promptId] }).catch(() => {});
-    await postJson('/interrupt', { prompt_id: promptId }).catch(() => {});
+    await postJson('/queue', { delete: [promptId] }, { detached: true }).catch(() => {});
+    await postJson('/interrupt', { prompt_id: promptId }, { detached: true }).catch(() => {});
     return true;
   }
 }
@@ -203,7 +212,8 @@ export async function promptState(promptId: string): Promise<PromptState> {
   if (jobsApi !== false) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 30_000);
-    const res = await fetch(`${baseUrl()}/api/jobs/${encodeURIComponent(promptId)}`, { signal: ctrl.signal }).catch((e: Error) => { throw new StudioError('UNAVAILABLE', `ComfyUI is not reachable at ${baseUrl()}: ${e.message}`); }).finally(() => clearTimeout(timer));
+    const unlink = followJobSignal(ctrl);
+    const res = await fetch(`${baseUrl()}/api/jobs/${encodeURIComponent(promptId)}`, { signal: ctrl.signal }).catch((e: Error) => { throw stopReason(ctrl) ?? new StudioError('UNAVAILABLE', `ComfyUI is not reachable at ${baseUrl()}: ${e.message}`); }).finally(() => { clearTimeout(timer); unlink(); });
     if (res.ok) {
       jobsApi = true;
       const j = await res.json() as { status?: string };
@@ -277,6 +287,8 @@ export interface RunOptions {
   pollMs?: number;
   /** listen to /ws for step progress (default true) */
   socket?: boolean;
+  /** stops the wait and cancels the prompt when aborted; default: the running job's signal (src/server/jobs/context.ts) */
+  signal?: AbortSignal;
   /** consecutive polls with the prompt absent everywhere before it is declared lost (default 3) */
   lostAfterPolls?: number;
 }
@@ -284,6 +296,8 @@ export interface RunOptions {
 /** Submit a graph (or adopt the one a previous attempt submitted) and wait for it. */
 export async function run(graph: Record<string, unknown>, opts: RunOptions = {}): Promise<ComfyRunResult> {
   const clientId = opts.clientId ?? crypto.randomUUID();
+  const signal = opts.signal ?? jobSignal();
+  if (signal?.aborted) throw signal.reason;
   const t0 = Date.now();
   const pollMs = opts.pollMs ?? 2000;
   let promptId: string | undefined;
@@ -330,12 +344,15 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
       await opts.onSubmitted?.(id);
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 120_000);
+      const unlink = followJobSignal(ctrl, signal);
       let res: Response;
       try {
         res = await fetch(`${baseUrl()}/prompt`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: graph, client_id: clientId, prompt_id: id }), signal: ctrl.signal });
       } catch (e) {
+        // stopped mid-submit: the prompt may have reached ComfyUI — cancel it by its id (a no-op if it did not)
+        if (stopReason(ctrl)) { await cancelPrompt(id).catch(() => false); throw stopReason(ctrl); }
         throw new StudioError('UNAVAILABLE', `ComfyUI is not reachable at ${baseUrl()}: ${(e as Error).message}`, { promptId: id });
-      } finally { clearTimeout(timer); }
+      } finally { clearTimeout(timer); unlink(); }
       const text = await res.text().catch(() => '');
       if (res.status === 400) throw classifyRejection(res.status, text);
       if (!res.ok) throw new StudioError(res.status >= 500 ? 'UNAVAILABLE' : 'PROVIDER', `ComfyUI /prompt: HTTP ${res.status} ${text.slice(0, 800)}`, { status: res.status, promptId: id });
@@ -348,7 +365,11 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
     let lastQueueReport = 0;
     for (;;) {
       if (await opts.shouldStop?.()) { await cancelPrompt(id).catch(() => false); throw new StudioError('CONFLICT', 'cancelled', { promptId: id }); }
-      const st = await promptState(id);
+      // the job was cancelled, passed its deadline or lost its lease: interrupt OUR prompt (pending: dequeued;
+      // running: interrupted — the GPU is freed for the next job) and stop with the job's reason (audit H5)
+      if (signal?.aborted) { await cancelPrompt(id).catch(() => false); log.info({ promptId: id }, 'ComfyUI prompt cancelled: the job was stopped'); throw signal.reason; }
+      let st: PromptState;
+      try { st = await promptState(id); } catch (e) { if (signal?.aborted) continue; throw e; }
       if (st === 'completed' || st === 'failed' || st === 'cancelled') {
         const hist = await http<Record<string, { outputs?: ComfyRunResult['outputs']; status?: { status_str?: string; messages?: unknown[] } }>>(`/history/${id}`);
         const h = hist[id];
@@ -376,7 +397,11 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
         }
       }
       if (Date.now() - t0 > timeout) { await cancelPrompt(id).catch(() => false); throw new ComfyError('TIMEOUT', `ComfyUI workflow ${id} did not finish within ${Math.round(timeout / 60000)} min; it was cancelled.`, { promptId: id }); }
-      await new Promise<void>((r) => { const t = setTimeout(r, pollMs); wake = () => { clearTimeout(t); r(); }; });
+      await new Promise<void>((r) => {
+        const done = () => { clearTimeout(t); signal?.removeEventListener('abort', done); r(); };
+        const t = setTimeout(done, pollMs); wake = done;
+        signal?.addEventListener('abort', done, { once: true });
+      });
       wake = undefined;
     }
   } finally {
@@ -389,11 +414,12 @@ export async function view(f: ComfyOutputFile): Promise<Buffer> {
   const sp = new URLSearchParams({ filename: f.filename, subfolder: f.subfolder ?? '', type: f.type ?? 'output' });
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 300_000);
+  const unlink = followJobSignal(ctrl);
   try {
     const res = await fetch(`${baseUrl()}/view?${sp}`, { signal: ctrl.signal });
     if (!res.ok) throw new StudioError('PROVIDER', `ComfyUI /view ${f.filename}: HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
-  } finally { clearTimeout(t); }
+  } catch (e) { throw stopReason(ctrl) ?? e; } finally { clearTimeout(t); unlink(); }
 }
 
 export function firstOutput(outputs: ComfyRunResult['outputs'], kind: 'images' | 'audio' | 'video' | 'gifs'): ComfyOutputFile | undefined {

@@ -313,6 +313,30 @@ export function addTake(s: S, productionId: string, shotId: string, input: NewTa
   return { state: { ...next, characters: recordTakeUsage(next.characters, updated, shotId, take.id, take.createdAt) }, take };
 }
 
+/** THE PRODUCER KEEPS A FLAGGED RECORDING (src/domain/line-review.ts): "I listened, keep this one" for one or more
+ *  dialogue lines whose recording the voice check flagged. The decision — who, when, KEPT — is written into each
+ *  line's CURRENT recording's provenance (`review`); nothing else changes, and a recording already kept is left as it
+ *  was. Refused for a line that does not exist or has no recording. Once every flagged line of a DIALOGUE_AUDIO job is
+ *  kept or recorded again, the server settles that job's review (src/server/jobs/reviews.ts). */
+export function keepLineRecordings(s: S, productionId: string, lines: Array<{ shotId: string; lineId: string }>, opts: { by?: string } = {}): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  if (!Array.isArray(lines) || lines.length === 0) throw new StudioError('INVALID', 'Name at least one line to keep.', { productionId });
+  const by = opts.by?.trim() || 'producer';
+  const at = now();
+  const keep = new Map<string, { shotId: string; lineId: string }>();
+  for (const l of lines) {
+    const sh = mustFind(p.shots, l.shotId, 'Shot');
+    const d = sh.dialogue.find((x) => x.id === l.lineId);
+    if (!d) throw new StudioError('NOT_FOUND', `Line ${l.lineId} not found in this shot.`, { shotId: l.shotId, lineId: l.lineId });
+    if (!d.audioAssetId) throw new StudioError('INVALID', 'This line has no recording to keep yet.', { shotId: l.shotId, lineId: l.lineId });
+    const a = mustFind(s.assets, d.audioAssetId, 'Asset');
+    if ((a.provenance as { review?: { decision?: string } } | undefined)?.review?.decision === 'KEPT') continue;
+    keep.set(a.id, { shotId: l.shotId, lineId: l.lineId });
+  }
+  if (keep.size === 0) return s;
+  return { ...s, assets: s.assets.map((a) => (keep.has(a.id) ? { ...a, provenance: { ...(a.provenance ?? {}), review: { decision: 'KEPT', by, at, ...keep.get(a.id)! } } } : a)) };
+}
+
 /** The studio drew (or redrew) a shot's frames. */
 export function setShotFrames(s: S, productionId: string, shotId: string, frames: { openingFrameAssetId?: string; endingFrameAssetId?: string }): S {
   return updateShot(s, productionId, shotId, frames);
