@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { ArtVars, Presentation } from '@/domain/presentation';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCheck } from '@/components/ui/icons';
 import { RATIO_VALUE, type FrameRatio, type Picture } from '../art';
@@ -65,7 +65,6 @@ interface ShellProps extends TileProps {
 }
 
 export function TileShell(p: ShellProps) {
-  const T = useT();
   const id = useId();
   const frame = (
     <Frame asset={p.asset} src={p.src} ratio={p.ratio} fit={p.fit} alt="" decorative title={p.title} titleLang={p.titleLang} titleState={p.titleState}
@@ -106,7 +105,6 @@ export function TileShell(p: ShellProps) {
 
 /** A loading tile: a ratio-true frame on the placeholder tone and two text bars; no shimmer (§5.5, §5.16). */
 export function TileSkeleton({ ratio = '16/9', lines = 2, className }: { ratio?: FrameRatio; lines?: 1 | 2 | 3; className?: string }) {
-  const T = useT();
   return (
     <div className={cls('mtile mtile-loading', className)} style={{ '--tile-r': String(1 / RATIO_VALUE[ratio]) } as CSSProperties} aria-busy="true" aria-label={T('media.loading')} role="status">
       <span className="mtile-skel-frame" style={{ aspectRatio: ratio.replace('/', ' / ') }} />

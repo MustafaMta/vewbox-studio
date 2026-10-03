@@ -6,7 +6,7 @@ import { useJobsFor, useStudio } from '@/studio/store';
 import { api } from '@/studio/api';
 import { assetById, primaryImageOf } from '@/studio/selectors';
 import { redrawsFromEarlierPicture } from '@/domain/identity';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Dropzone, Field, Modal, Status, Textarea } from '@/components/ui/kit';
 import { ImagePreview } from '@/components/ui/preview';
@@ -23,7 +23,6 @@ import { checkImageDims, checkImageFile, measureImage, refusalReasons } from './
  *  (the reason, and nothing to press), or no image yet (Draw). A drawing in progress shows the worker's own phase in
  *  the frame; a failed one says why, with Draw again. Approving a draft whose check failed asks for the reason. */
 export function ImagePanel({ c, s }: { c: Character; s: IdentityStatus }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const copyOf = useErrorCopy();
@@ -60,7 +59,7 @@ export function ImagePanel({ c, s }: { c: Character; s: IdentityStatus }) {
           <div>
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <Status tone={words.tone === 'warn' ? 'warn' : words.tone === 'ok' ? 'ok' : 'neutral'} className="!text-[13px]">{T(words.long)}</Status>
-              {s.version !== undefined && <span className="num text-xs text-faint">{T('cast.image.version')} {s.version}{s.approvedAt && s.kind === 'APPROVED' ? ` · ${fmtDate(s.approvedAt, T.locale)}` : ''}</span>}
+              {s.version !== undefined && <span className="num text-xs text-faint">{T('cast.image.version')} {s.version}{s.approvedAt && s.kind === 'APPROVED' ? ` · ${fmtDate(s.approvedAt)}` : ''}</span>}
             </p>
             {s.kind === 'NONE' && <p className="mt-1 text-[13px] leading-5 text-muted">{s.legacyPortrait ? T('cast.image.legacyHint') : T('cast.image.noneHint')}</p>}
             {s.kind === 'DRAFT' && <p className="mt-1 text-[13px] leading-5 text-muted">{T('cast.image.draftHint')}</p>}
@@ -94,7 +93,6 @@ export function ImagePanel({ c, s }: { c: Character; s: IdentityStatus }) {
  *  previous version and never shown) and can take a reference picture to guide the look (checked in the browser,
  *  then by the server). */
 export function RedrawDialog({ c }: { c: Character }) {
-  const T = useT();
   return (
     <Modal title={T('cast.redraw.title')} description={T('cast.redraw.lead')} trigger={(open) => <Button variant="secondary" icon={<IconGenerate />} onClick={open}>{T('cast.image.redraw')}</Button>}>
       {(close) => <RedrawForm c={c} close={close} />}
@@ -103,7 +101,6 @@ export function RedrawDialog({ c }: { c: Character }) {
 }
 
 function RedrawForm({ c, close }: { c: Character; close: () => void }) {
-  const T = useT();
   const { state, act, refresh, removeAsset } = useStudio();
   const { start, busy: starting } = useStartJob();
   const [busy, setBusy] = useState(false);

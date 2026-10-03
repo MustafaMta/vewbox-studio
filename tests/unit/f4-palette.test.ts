@@ -1,22 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { buildEntries, emptyView, fold, pushRecent, search, type PaletteInput } from '@/components/shell/palette';
 import { waitingDecisions } from '@/components/shell/decisions';
-import { t, tt, type Locale } from '@/lib/i18n';
 import { buildFixture } from '../../scripts/v4-fixture';
 
-/** docs/DESIGN-SYSTEM-V4.md §5.17 and §7.6: the command palette's groups, kind-first labels, bilingual matching,
- *  recent items, and Decide entries that open the card and never approve. Package F4. */
+/** docs/DESIGN-SYSTEM-V4.md §5.17 and §7.6: the command palette's groups, kind-first labels, matching a record's name
+ *  in either script (a show's Arabic title is content), recent items, and Decide entries that open the card and never
+ *  approve. Package F4. The interface is English-only (docs/DESIGN-SYSTEM-V5.md §9). */
 
-const input = (locale: Locale, more: Partial<PaletteInput> = {}): PaletteInput => {
-  const f = buildFixture('states', locale);
+const input = (more: Partial<PaletteInput> = {}): PaletteInput => {
+  const f = buildFixture('states');
   // a draft picture the producer can approve (the fixture's own draft, Layla, was filmed, so her look is locked)
   const nour = f.state.characters.find((c) => c.id === 'nour')!;
   nour.canonicalImage = { assetId: 'ref-nour-full-body', status: 'DRAFT', version: 1, generatedAt: '2026-10-03T08:00:00.000Z', check: { ok: true } };
-  const other: Locale = locale === 'ar' ? 'en' : 'ar';
   return {
-    state: f.state, locale, tr: (k) => t(locale, k), other: (k) => t(other, k), dyn: (k, fb) => tt(locale, k, fb),
+    state: f.state,
     decisions: waitingDecisions(f.state, f.pipeline.productions, f.jobs).items,
-    departments: [{ id: 'CASTING', name: 'Casting & Character Design', nameAr: 'اختيار وتصميم الشخصيات' }],
+    departments: [{ id: 'CASTING', name: 'Casting & Character Design' }],
     prefs: { contrastMore: false, reducedMotion: false, singleKeys: true }, ...more,
   };
 };
@@ -34,7 +33,7 @@ describe('fold', () => {
 });
 
 describe('the entries (§7.6)', () => {
-  const en = buildEntries(input('en'));
+  const en = buildEntries(input());
   it('come in the groups Go to · Create · Decide · Settings, in that order', () => {
     const order = [...new Set(en.map((e) => e.group))];
     expect(order).toEqual(['goto', 'create', 'decide', 'settings']);
@@ -58,7 +57,7 @@ describe('the entries (§7.6)', () => {
     expect(create.map(label)).toEqual(expect.arrayContaining(['New show · Let the studio propose', 'New show · Write it yourself', 'New short · Write it yourself', 'New music video · Let the studio propose', 'New location · Describe the place']));
     expect(create.find((e) => e.id === 'new:show:auto')?.action).toEqual({ type: 'go', href: '/new/show?method=auto' });
     expect(create.some((e) => e.id.startsWith('new:season'))).toBe(false);
-    const inShow = buildEntries(input('en', { currentShowId: 'last-sip' })).filter((e) => e.group === 'create');
+    const inShow = buildEntries(input({ currentShowId: 'last-sip' })).filter((e) => e.group === 'create');
     expect(inShow.find((e) => e.id === 'new:season:last-sip:manual')?.action).toEqual({ type: 'go', href: '/new/season?show=last-sip&method=manual' });
   });
   it('decide: every waiting approval opens its card — none approves', () => {
@@ -66,25 +65,19 @@ describe('the entries (§7.6)', () => {
     expect(decide.map(label)).toEqual(['Approve · Story of Paper Boats', 'Approve · Picture of Nour']);
     expect(decide.map((e) => e.action)).toEqual([{ type: 'go', href: '/production#needs-you' }, { type: 'go', href: '/characters/nour' }]);
   });
-  it('settings: contrast, motion, language (in its own script), single keys, the sheet', () => {
-    expect(en.filter((e) => e.group === 'settings').map((e) => e.name)).toEqual(['Contrast: More', 'Reduce motion: On', 'Language: العربية', 'Single-key shortcuts: Off', 'Help & shortcuts']);
-    const flipped = buildEntries(input('en', { prefs: { contrastMore: true, reducedMotion: true, singleKeys: false } })).filter((e) => e.group === 'settings');
-    expect(flipped.map((e) => e.action)).toEqual([{ type: 'contrast', value: 'standard' }, { type: 'motion', value: false }, { type: 'language', value: 'ar' }, { type: 'keys', value: true }, { type: 'sheet' }]);
-  });
-  it('are written natively in Arabic, with the Arabic names', () => {
-    const ar = buildEntries(input('ar'));
-    expect(ar.map(label)).toContain('مسلسل · آخر رشفة');
-    expect(ar.filter((e) => e.group === 'decide')[0].kind).toBe('اعتمد');
-    expect(ar.find((e) => e.id === 'setting:language')?.name).toBe('اللغة: English');
+  it('settings: contrast, motion, single keys, the sheet — no language setting', () => {
+    expect(en.filter((e) => e.group === 'settings').map((e) => e.name)).toEqual(['Contrast: More', 'Reduce motion: On', 'Single-key shortcuts: Off', 'Help & shortcuts']);
+    const flipped = buildEntries(input({ prefs: { contrastMore: true, reducedMotion: true, singleKeys: false } })).filter((e) => e.group === 'settings');
+    expect(flipped.map((e) => e.action)).toEqual([{ type: 'contrast', value: 'standard' }, { type: 'motion', value: false }, { type: 'keys', value: true }, { type: 'sheet' }]);
+    expect(en.some((e) => /language|arabic/i.test(`${e.name} ${e.words ?? ''}`))).toBe(false);
   });
 });
 
 describe('search', () => {
-  const en = buildEntries(input('en'));
-  const ar = buildEntries(input('ar'));
-  it('matches the name in either language, whatever the interface language', () => {
+  const en = buildEntries(input());
+  it('matches a record by its name and by its Arabic title (content)', () => {
     expect(search(en, 'رشفة').map((e) => e.id)).toContain('show:last-sip');
-    expect(search(ar, 'last sip').map((e) => e.id)).toContain('show:last-sip');
+    expect(search(en, 'last sip').map((e) => e.id)).toContain('show:last-sip');
     expect(search(en, 'cafe')[0].id).toBe('location:cafe');
   });
   it('keeps the group order and puts the best match of each group first', () => {
@@ -101,7 +94,7 @@ describe('search', () => {
 });
 
 describe('before anything is typed', () => {
-  const en = buildEntries(input('en'));
+  const en = buildEntries(input());
   it('shows the recent items first, then what waits, then the pages', () => {
     const v = emptyView(en, ['character:karim', 'gone:item', 'show:last-sip']);
     expect(v.recent.map((e) => e.id)).toEqual(['character:karim', 'show:last-sip']);

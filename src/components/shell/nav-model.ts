@@ -1,4 +1,4 @@
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 
 /** THE STUDIO'S NAVIGATION, as data (docs/DESIGN-SYSTEM-V4.md §7.1) — three groups and a footer, in the same order in
  *  the sidebar, the rail and the phone's menu sheet (WCAG 3.2.3). Pure, so the order, the areas and the current item

@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCaptions, IconExitFullscreen, IconFullscreen, IconPause, IconPlay } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -19,7 +19,6 @@ import { useShortcutScope } from './useShortcutScope';
 
 export const TheatrePlayer = forwardRef<PlayerHandle, { src: string; poster?: string; fps?: number | null; title?: string; captions?: CaptionTrack[]; notes?: Array<{ at: number; text: string }>; onAddNote?: (t: number) => void; onLights?: (down: boolean) => void; fileHref?: string; className?: string }>(
   function TheatrePlayer({ src, poster, fps, title, captions, notes, onAddNote, onLights, fileHref, className }, ref) {
-    const T = useT();
     const c = usePlayerCore({ src, fps });
     const [down, setDown] = useState(false);
     const [solid, setSolid] = useState(false);

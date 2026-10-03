@@ -51,7 +51,7 @@ describe('the automatic plan (contract §2)', () => {
     const on = runCommand(s, cmd('updateSettings', [{ voice: { allowDesignedIraqi: true } }])).state;
     expect(on.settings.voice).toEqual({ allowDesignedIraqi: true });
     expect(designedIraqiOn(on.settings)).toBe(true);
-    expect(runCommand(on, cmd('updateSettings', [{ uiLanguage: 'ar' }])).state.settings.voice).toEqual({ allowDesignedIraqi: true });
+    expect(runCommand(on, cmd('updateSettings', [{ reducedMotion: true }])).state.settings.voice).toEqual({ allowDesignedIraqi: true });
     expect(designedIraqiOn({ voice: { allowDesignedIraqi: false } })).toBe(false);
   });
   it('a consented recording is the voice; one without consent is named (CONSENT_REQUIRED), never designed over; an English clip is not an Iraqi recording', () => {

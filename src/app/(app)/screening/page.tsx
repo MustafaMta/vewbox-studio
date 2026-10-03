@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useStudio } from '@/studio/store';
 import { assetById, productionHref, showById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { PageHeader } from '@/components/ui/page';
 import { Empty } from '@/components/ui/cinema';
 import { Badge, Status } from '@/components/ui/kit';
@@ -14,7 +14,6 @@ import { fmtAgo, fmtBytes, fmtSeconds, ratioCss } from '@/lib/format';
 /** THE SCREENING ROOM — every production with an assembled cut, newest first, with its exports to download. A
  *  production without a real cut is not here; a sample cut is marked as such. */
 export default function ScreeningPage() {
-  const T = useT();
   const { state } = useStudio();
   const items = state.productions.filter((p) => p.cutAssetId && assetById(state, p.cutAssetId)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return (
@@ -32,7 +31,7 @@ export default function ScreeningPage() {
                 <div className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11.5px] text-faint" dir="auto">{p.kind === 'EPISODE' && show ? `${show.title} · ${T('misc.episodeOf')} ${p.episodeNumber}` : T.dyn(`kind.${p.kind}`)} · {fmtSeconds(cut.durationSeconds)} · {fmtAgo(cut.createdAt ?? p.updatedAt, T.locale)}</p>
+                      <p className="text-[11.5px] text-faint" dir="auto">{p.kind === 'EPISODE' && show ? `${show.title} · ${T('misc.episodeOf')} ${p.episodeNumber}` : T.dyn(`kind.${p.kind}`)} · {fmtSeconds(cut.durationSeconds)} · {fmtAgo(cut.createdAt ?? p.updatedAt)}</p>
                       <h2 className="bi mt-0.5 text-[17px] font-semibold text-fg" dir="auto"><span>{p.title}</span>{p.titleAr && <span className="bi-ar" dir="rtl">{p.titleAr}</span>}</h2>
                     </div>
                     <div className="flex items-center gap-2">{cut.sample ? <Badge tone="warn">{T('label.sample')}</Badge> : <Status tone="ok">{T('screening.cut')}</Status>}<Link href={`${productionHref(p)}?tab=final`} className="btn btn-subtle btn-sm">{T('btn.open')}</Link></div>

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, primaryImageSrc, productionHref, progressOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { CastStack } from '@/components/ui/page';
 import { IconDuration } from '@/components/ui/icons';
 import { fmtSeconds } from '@/lib/format';
@@ -13,7 +13,6 @@ import { fmtSeconds } from '@/lib/format';
 /** SHORTS: a poster, the length on the art, the cast and where it stands along the lower edge. (Owned by P1b; split
  *  out of library/Cards.tsx by F0 unchanged.) */
 export function ShortCard({ p, menu }: { p: Production; menu?: ReactNode }) {
-  const T = useT();
   const { state } = useStudio();
   const poster = assetById(state, p.posterAssetId); const cover = assetById(state, p.coverAssetId);
   const art = poster ?? cover;

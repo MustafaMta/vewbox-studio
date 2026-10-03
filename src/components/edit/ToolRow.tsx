@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 
 /** THE TOOL ROW (docs/DESIGN-SYSTEM-V4.md §5.20) — floating at the bottom of the canvas on `--raised-2` with the float
@@ -9,7 +9,6 @@ import { cls } from '@/components/ui/kit';
  *  toolbar: one Tab stop, the arrow keys move along it (in the reading direction). Children are `ToolButton`s. */
 
 export function ToolRow({ children, label, floating = true, className }: { children: ReactNode; label?: string; floating?: boolean; className?: string }) {
-  const T = useT();
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const xs = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
     const i = xs.indexOf(document.activeElement as HTMLButtonElement); if (i < 0) return;

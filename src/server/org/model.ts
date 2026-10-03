@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 11;
+export const ORG_VERSION = 12;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -60,19 +60,15 @@ export interface SkillDef {
 
 /** A delegated step: real work an agent does inside another agent's job. `where` is the source file whose
  *  `step(ctx, '<agent>', '<id>…', fn)` call performs it (a test scans for it). */
-export interface StepDef { id: string; name: string; nameAr: string; where: string }
+export interface StepDef { id: string; name: string; where: string }
 
 export interface AgentDef {
   id: string;
   name: string;
-  /** the UI's Arabic (Modern Standard Arabic): name, role and the responsibility paragraph */
-  nameAr: string;
   department: DepartmentId;
   role: string;
-  roleAr: string;
   /** one honest paragraph: what the code does when this agent runs */
   description: string;
-  descriptionAr: string;
   /** for agents that call the language model (story.structured_answer): injected into the system prompt of every
    *  call they make (src/server/org/skills.ts agentPrompt); for the others it is documentation of the rules their
    *  code applies — the API says which (`instructionsReachModel`) */
@@ -96,15 +92,13 @@ export interface AgentDef {
 }
 
 /** A role the studio would need but nobody executes yet (R2): listed muted on its department page, never staffed. */
-export interface PlannedRole { id: string; department: DepartmentId; name: string; nameAr: string; would: string; /** why it is not implemented */ reason: string; reasonAr: string; phase: string }
+export interface PlannedRole { id: string; department: DepartmentId; name: string; would: string; /** why it is not implemented */ reason: string; phase: string }
 
 export interface DepartmentDef {
   id: DepartmentId;
   name: string;
-  nameAr: string;
   directorId: string;
   responsibility: string;
-  responsibilityAr: string;
   stages: PipelineStage[];
   order: number;
 }
@@ -209,10 +203,7 @@ const S = (text: string) => text.replace(/\s+/g, ' ').trim();
 const STEP_ONLY = { jobTypes: [] as JobType[], limits: { timeoutMs: 60_000, maxAttempts: 1, resource: 'NONE' as ResourceFamily } };
 const W = (file: string) => `src/worker/${file}`;
 
-/** An agent as written below; its Arabic comes from AGENTS_AR (one place, for review by an Arabic reader). */
-type AgentBase = Omit<AgentDef, 'nameAr' | 'roleAr' | 'descriptionAr' | 'steps'> & { steps: Array<Omit<StepDef, 'nameAr'>> };
-
-const AGENTS_BASE: AgentBase[] = [
+export const AGENTS: AgentDef[] = [
   // Executive Office
   { id: 'executive-producer', name: 'Executive Producer', department: 'EXECUTIVE', role: 'Director: feasibility before anything is generated',
     description: 'Runs the feasibility preflight before a take is generated, before scenes are planned and before a new character’s portrait or voice is queued: the plan resolves (scene, place, cast), the prompt has words, duration and reference counts are inside MiniMax H3’s limits, every speaker has a recording, a continuation has its source, a character is not locked and has the reference it needs. A failed check refuses the work with its failure class before any engine is called.',
@@ -435,62 +426,6 @@ const AGENTS_BASE: AgentBase[] = [
     steps: [{ id: 'failure-classification', name: 'Failure classification', where: 'src/worker/index.ts' }] },
 ];
 
-/** The organisation's Arabic (Modern Standard Arabic, for the UI): agent name, role and responsibility paragraph. */
-const AGENTS_AR: Record<string, { name: string; role: string; description: string }> = {
-  'executive-producer': { name: 'المنتج التنفيذي', role: 'المدير: الجدوى قبل أي توليد', description: 'يُجري فحص الجدوى قبل توليد أي لقطة، وقبل تخطيط المشاهد، وقبل وضع صورة شخصية جديدة أو صوتها في الطابور: أن تكتمل الخطة (المشهد والمكان والممثلون)، وأن يحوي الوصف كلمات، وأن تبقى المدة وعدد المراجع ضمن حدود MiniMax H3، وأن يكون لكل متحدث تسجيل، وأن يتوفر مصدر اللقطة المتصلة، وألا تكون الشخصية مقفلة وأن يتوفر لها المرجع اللازم. أي فحص فاشل يرفض العمل بفئة إخفاقه قبل استدعاء أي محرك.' },
-  'production-coordinator': { name: 'منسق الإنتاج', role: 'تشغيل الإنتاج عبر مهامه', description: 'ينفّذ مهمة الإنتاج: يضع في الطابور إطارًا افتتاحيًا ولقطة مصوّرة لكل لقطة بلا لقطة مقبولة كمهام فرعية دائمة بمفاتيح عدم التكرار، ويتبنّى المهام الفرعية العاملة بعد إعادة التشغيل، ويولّد أولى لقطات كل مشهد لم يثبت بعد وحدها لقطةً تجريبية ولا يضع بقية لقطات المشهد في الطابور إلا بعد اجتيازها فحوصها، ولا يضع اللقطة المتصلة في الطابور إلا بعد قبول اللقطة التي تكملها، ثم يضع التجميع في الطابور حين تكتمل اللقطات. لا يبدأ قبل الموافقة على القصة.' },
-  'head-of-story': { name: 'رئيس قسم القصة', role: 'المدير: تطوير القصة', description: 'ينفّذ اقتراح الفكرة بوصفه تطويرًا قائمًا على البحث: كل مرحلة مهمة فرعية دائمة بمفتاح عدم التكرار يتولاها وكيلها — بحث الاتجاهات، وتحليل الجمهور، وثلاثة مفاهيم، والمسودة الأولى، ومراجعتا محرر القصة وتجربة الجمهور، ومراجعة واحدة على الأكثر — ثم يجمع المقترح مع ملف التطوير (التغطية لكل منصة، والمصادر، والأنماط، والمفاهيم، والمراجعات)، ويسلّم كل مرحلة مع فحوصها؛ وفشل البحث لا يُفشل الفكرة. وينفّذ تطوير القصة (الجملة المختصرة والملخص وتقسيم المشاهد بالغرض والهدف العاطفي وحالتي الدخول والخروج، وشخصيات وأماكن جديدة بتصاميم كاملة)، ويكتب النتيجة في الاستوديو ويسجّل تسليم القصة.' },
-  screenwriter: { name: 'كاتب السيناريو', role: 'السيناريو والحوار', description: 'ينفّذ كتابة السيناريو: أحداث كل مشهد وجمله على دفعات من أربعة مشاهد، بلغة الإنتاج ولهجته مع ترجمة إنجليزية (يملأ استدعاء ترجمة ثانٍ أي ترجمة ناقصة)، ويسجّل تسليم السيناريو. وينفّذ كتابة الفكرة: المفهوم المختار مقترحًا كاملًا وفق استراتيجية الصيغة (القصة العربية تُكتب بلهجتها أولًا ثم تُترجم)، مع الافتتاحية والنهاية وبضعة أسطر تحدد النبرة؛ ومع المراجعتين، المراجعة الواحدة مع بيان ما آلت إليه كل ملاحظة.' },
-  'trend-research': { name: 'وكيل بحث الاتجاهات', role: 'ما يشاهده الجمهور الآن من مصادر مسموح بها', description: 'ينفّذ بحث الفكرة: يخطط ثلاثة مواضيع على الأكثر من الطلب (الصيغة، والنوع — نوع المسلسل نفسه عند استكماله — والاهتمام المقيس)، ويستعلم كل منصة بترتيب المنتج (تيك توك، إنستغرام، فيسبوك، يوتيوب، ثم الأخبار وويكيبيديا) عبر طريق الوصول المسموح به فقط، مع الذاكرة المؤقتة أولًا، ويسجّل التشغيل: تغطية كل منصة مع السبب حين لم تُبلَغ، والعناصر بروابطها وتواريخها وبالمقاييس التي أعادها المصدر فقط. لا يُكشط شيء ولا يُختلق شيء.' },
-  'audience-research': { name: 'وكيل أبحاث الجمهور', role: 'تحويل الأدلة إلى أنماط سردية', description: 'ينفّذ تحليل الجمهور: يقرأ أدلة التشغيل ويكتب الجمهور ومن أربعة إلى ستة أنماط سردية، يستشهد كل منها بالعناصر التي يقوم عليها، مع فصل ما قيس عمّا هو تفسير. ثم في الكود: يُحذف الاستشهاد بعنصر غير موجود، ويُزال أي رقم لا يرد في مقاييس عنصر مستشهد به ويُخفَّض النمط إلى تفسير فقط، ويوسم النمط بلا أدلة بأنه معرفة حرفية، وتذكر التحفظات أن المشاهدات تقيس الانتشار لا الجودة.' },
-  'creative-concept': { name: 'وكيل المفاهيم الإبداعية', role: 'ثلاثة مفاهيم أصيلة والاختيار بينها', description: 'ينفّذ تطوير المفاهيم: ثلاثة مفاهيم متمايزة مبنية على أنماط الجمهور وعلى تاريخ المسلسل عند استكمال موسم أو حلقة — لكل منها افتتاحيته وسبب نجاحه والأنماط التي يستخدمها وما الجديد فيه ومخاطره — ثم الاختيار مع مبرّره. ثم في الكود: يُفحص كل مفهوم مقابل كل عنوان مبحوث (تشابه الكلمات) وكل صانع محتوى وكل سلسلة معروفة؛ لا يُختار مفهوم راسب أبدًا (وجولة أخرى إن رسبت الثلاثة)، ويسمّي المبرّر الأنماط التي يبني عليها.' },
-  'story-editor': { name: 'محرر القصة', role: 'مراجعة الصنعة في المسودة', description: 'ينفّذ مراجعة محرر القصة: يقيّم المسودة على معايير الصيغة (الوضوح والشخصية والصراع والتطور والنهاية والحوار والاستمرارية مع المسلسل وملاءمة الأغنية والأصالة) ويسرد المشكلات مع حلولها. ويضيف الاستوديو فحوصه — حجم البنية المناسب للصيغة، وكتابة القصة العربية بلهجتها فعلًا، والحفاظ على لغة المسلسل وشخصياته العائدة وخيوطه المفتوحة، وأغنية الفيديو الموسيقي بمقاطعها الموسومة، وأصالة العنوان — وأي مشكلة كبرى تعني المراجعة.' },
-  'audience-experience': { name: 'وكيل تجربة الجمهور', role: 'تجربة المشاهد للمسودة', description: 'ينفّذ مراجعة الجمهور (يحدد الطلب المراجِع): يقرأ المسودة كما يراها المشاهد لحظة بلحظة — هل تستحق الثواني الأولى الانتباه، والفضول، والعاطفة، والإيقاع، وهل تُروى القصة بصريًا، وهل تُثمر النهاية — ويشير إلى حيل الاستبقاء المتلاعبة والتحولات الاعتباطية والنهايات المعلّقة بلا داعٍ. ويضيف الاستوديو فحوصه (افتتاحية يقدّمها المشهد الأول، ونهاية، وعدد مشاهد الفيلم القصير قياسًا بثوانيه)؛ وأي مشكلة كبرى تعني المراجعة.' },
-  'continuity-writer': { name: 'كاتب الاستمرارية', role: 'سجل قصة المسلسل', description: 'ينفّذ تسجيل الاستمرارية بعد مونتاج الحلقة: تُضاف الأحداث التي يجب أن تحترمها الحلقات اللاحقة والعلاقات المتغيرة والخيوط المفتوحة إلى الخط الزمني لسجل المسلسل، وإعادة المونتاج تستبدل مدخلاتها.' },
-  'casting-director': { name: 'مدير اختيار الممثلين', role: 'المدير: من في فريق التمثيل وكيف يُصنع', description: 'ينفّذ تصميم الشخصية (ملف مظهر وصوت كامل من موجز أو اسم أو ورقة جزئية، وتبقى حقول المنتج كما هي) وإنشاء الشخصية (سلسلة التصميم ثم صورة أمامية واحدة كاملة الجسم ثم الصوت كمهام فرعية دائمة بمفاتيح عدم التكرار — ومن صورة: تُقرأ الصورة أولًا ويُعطى التصميم عمرها الظاهر وجنسها وملابسها الظاهرة فلا يناقضها — وتنتهي «بانتظار موافقتك»: لا تصبح الصورة هوية الشخصية إلا بموافقة المنتج، والمواد الثانوية لا تُصنع أثناء الإنشاء بل عند الطلب فقط؛ ويُبلَّغ عن كل خطوة منجزةً أو متجاوَزةً مع سببها أو فاشلةً مع فئتها).' },
-  'character-designer': { name: 'مصمم الشخصيات', role: 'الصورة المعتمدة للشخصية', description: 'ينفّذ رسم الشخصية: صورة أمامية واحدة كاملة الجسم هي الصورة المعتمدة — من سطر الهوية الإنجليزي (Qwen-Image-2512 بجودة عالية)، أو من الصورة المرجعية التي رفعها المنتج بعد قراءتها (موضع الوجه ووصف بنموذج Qwen3.5-4B يُكتب منه سطر الهوية؛ وعند الإنشاء من صورة تتم هذه القراءة قبل التصميم وتُحفظ مع الصورة ويُعاد استخدامها) ثم إعادة رسمها بأسلوب الإنتاج (Qwen-Image-Edit-2511)؛ الصورة التي لا يظهر فيها الجسم كاملًا تُرسم مرة أخرى ثم تُترك للمنتج مع السبب، وتنتظر الصورة موافقة المنتج. ويرسم عند الطلب فقط موادَّ ثانوية اختيارية — ورقة تعابير أو الزيّ أو صورة مقرّبة — كلٌّ منها بمرور واحد من Qwen-Image-Edit-2511 مرجعه الوحيد الصورة المعتمدة، وتُحفظ بدرجة «ثانوية»: لا تدخل في الإنشاء ولا تكون الهوية، ولا تُرسم أي زاوية أخرى.' },
-  'voice-casting': { name: 'وكيل اختيار الأصوات', role: 'هوية صوتية ثابتة: مصمَّمة أو بموافقة', description: 'ينفّذ تصميم الصوت (ثلاثة أصوات اصطناعية مرشّحة من وصف نصي، يُقاس كل منها — معدل خطأ الأحرف وشدة الصوت والذروة الحقيقية والتشبّع ومدة لا تتجاوز 11.5 ثانية — ويُسمع عبر محرك النطق مع درجة تشابه ECAPA، ثم يختار المنتج أحدها)، وبناء الصوت (من تسجيل مرجعي بموافقة، أو من مرشّح تصميم مختار، أو تلقائيًا: تسجيل بموافقة وإلا صوت إنجليزي أو بالفصحى مصمَّم من ملف الشخصية، موسوم بأنه اصطناعي ومختار بالقياسات وفق القاعدة V-DESIGN، والصوت العراقي من تسجيل عراقي بموافقة فقط؛ ثم نطق جملة إثبات بالمعاملات التي ستُثبَّت والاستماع إليها وقياسها، وكتابة الإثبات والهوية دفعة واحدة) ومعاينة الصوت (جملة واحدة بصوت الشخصية يُستمَع إليها وتُقاس). لا تُسجَّل الطبيعية واللهجة إلا من استماع شخص.' },
-  'character-continuity': { name: 'وكيل استمرارية الشخصيات', role: 'مراجع الهوية لكل لقطة', description: 'يسلّم الصور المعتمدة لشخصيات كل لقطة إلى وكيل تهيئة المراجع عند توليدها (تسليم الهوية)، ويفحص الصورة المرجعية المرفوعة قبل رسم الشخصية منها.' },
-  'art-director': { name: 'المدير الفني', role: 'المدير: مراجعة تسليم الأماكن', description: 'يراجع لوحات المكان قبل تسليمها إلى ما قبل الإنتاج: يجب أن توجد لوحة رئيسية وزاوية واحدة على الأقل، ويحمل تسليم مرحلة الشخصيات والعالم النتيجة.' },
-  'environment-artist': { name: 'فنان البيئات', role: 'لوحات المواقع', description: 'ينفّذ لوحات الموقع: اللوحة الرئيسية خالية من الناس، وزاوية معاكسة وزاوية نحو المَعلم مرسومتان منها، وحتى ثلاث حالات لأوقات اليوم.' },
-  'world-continuity': { name: 'استمرارية العالم', role: 'سجل العالم: نسخ مثبَّتة وأماكن يُعاد استخدامها عند العودة', description: 'يحفظ سجل العالم: سجلًا منظَّمًا ذا نسخ متتابعة لكل مسلسل (أو لكل فيلم قصير وفيديو موسيقي) يضم الشخصيات بصورها المعتمدة وهوياتها الصوتية، والعلاقات، والأماكن بلوحاتها ومعمارها ومخططها، والإكسسوارات، والأزياء، والخط الزمني للقصة، والإضاءة والطقس، وحالة كل مشهد عند نهايته، وقواعد العالم، وسياسة الصوت. يكتب نسخة جديدة كلما تغيّر العالم (بعد تطوير القصة وخطة اللقطات وتسجيل استمرارية الحلقة)؛ ويثبّت الإنتاج عند أول تشغيل له على النسخة التي وُوفق على قصته بها، ولا ينقله إلى نسخة أحدث إلا إذا لم يتغير شيء مما صُوِّر؛ ويعطي كل لقطة لوحة المكان التي يختارها السجل (إطارًا مرجعيًا من لقطة معتمدة قبل اللوحة المرسومة، بمعرّفه) والصور المعتمدة المثبَّتة، ويسجّل ما قرأته اللقطة؛ ويضيف الإطارات المرجعية للأماكن من المونتاج المعتمد، فيُصوَّر المكان عند العودة إليه على ما رآه الجمهور.' },
-  'film-director': { name: 'مخرج الفيلم', role: 'المدير: خطة اللقطات', description: 'ينفّذ تخطيط اللقطات: استدعاء منظَّم لكل مشهد يُنتج لقطات بغرض وتمركز وتأطير وحركة كاميرا ومدة وتوزيع للجمل وحالات استمرارية ووصف للتوليد؛ وفي الفيديو الموسيقي يوزّع الغناء على المقاطع وينسخه إلى اللقطات. ويسجّل تسليم خطة اللقطات.' },
-  'storyboard-artist': { name: 'فنان القصة المصورة', role: 'الإطارات الافتتاحية', description: 'ينفّذ تحضير الإطارات: الإطار الافتتاحي للقطة (والختامي عند الطلب) من لوحة المكان وصور شخصيتين على الأكثر، ويسجّل تسليم القصة المصورة حين يكتمل إطار كل لقطة.' },
-  'shot-planner': { name: 'مخطط اللقطات', role: 'ملاءمة توقيت المشهد', description: 'يلائم لقطات المشهد المخطَّطة مع ميزانية مدته: إذا قصرت الخطة عن 90٪ من الميزانية تُمدَّد كل لقطة بالنسبة نفسها (بثوانٍ كاملة، من 3 إلى 10 ثوانٍ للقطة).' },
-  'minimax-video-specialist': { name: 'أخصائي فيديو MiniMax', role: 'المدير: لقطة MiniMax H3', description: 'ينفّذ توليد الفيديو: يسجّل جمل اللقطة الناقصة أولًا (الصوت أولًا)، ويحدد المدة من الكلمات، ويبني طلب MiniMax H3 (وصف بالجمل الحرفية والصور والصوت والموجِّهات والبذرة)، ويشغّله تحت حجز بطاقة الرسوميات أو عبر الواجهة المستضافة، ويسجّل اللقطة المصوّرة بمصدر موثّق بالكامل.' },
-  'reference-conditioning': { name: 'وكيل تهيئة المراجع', role: 'اختيار مراجع اللقطة', description: 'يختار ما يُهيَّأ عليه MiniMax H3 للقطة: الإطار الافتتاحي (والختامي) المرسوم إطارًا أول وأخيرًا، أو الإطار الافتتاحي ومراجع الهوية ولوحة المكان صورًا مرجعية، وعينات أصوات المتحدثين مراجع صوتية حين لا يكون للقطة مسار صوتي مسجَّل.' },
-  'dialogue-director': { name: 'مدير الحوار', role: 'المدير: الحوار المسجَّل', description: 'ينفّذ تسجيل الحوار: يسجّل كل جملة بلا تسجيل حالي بالصوت المثبَّت لشخصيتها، ويستمع إلى كل جملة، ويعيد توليد الجملة المنحرفة مرة واحدة ويعلّم الباقي للمراجعة، ويسجّل تسليم تحضير الصوت.' },
-  'music-director': { name: 'مدير الموسيقى', role: 'الأغاني', description: 'ينفّذ توليد الأغنية: يؤلّف من الوصف الموسيقي والكلمات (ACE-Step 1.5 افتراضيًا، أو MiniMax Music 3 محليًا، أو الواجهة المستضافة مع مفتاح)، ويفصل المسارات، ويضع الأسطر المكتوبة على الصوت المغنّى، ويسجّل تسليم تحضير الصوت.' },
-  'singing-performance': { name: 'وكيل أداء الغناء', role: 'من يغني كل مقطع', description: 'ينفّذ تخطيط اللقطات بخيار الأداء فقط في الفيديو الموسيقي: يحاذي الكلمات مع مسار الصوت، ويوزّع كل مقطع على مغنّيه (منفرد، ثنائي، متناوب، جماعي، موسيقي)، وينسخ التوزيع إلى اللقطات حسب نافذة الأغنية.' },
-  'iraqi-specialist': { name: 'أخصائي اللهجة العراقية', role: 'تحضير الجمل للأصوات العراقية', description: 'يحضّر جملة الشخصية العراقية قبل نطقها: يتبع المحرك ولغة التحقق كتابة الجملة (العربية إلى المحرك العراقي، واللاتينية أو المختلطة إلى IndexTTS مع تسمية البديل).' },
-  'audio-engineer': { name: 'مهندس الصوت', role: 'خطة مزج المونتاج', description: 'يبني خطة المزج المصنَّفة للمونتاج أو التصدير: صوت واحد معتمد لكل مقطع زمني بإزاحات دقيقة بالعينة (الأغنية الأصلية في الفيديو الموسيقي مع كتم اللقطات، وصوت اللقطات نفسها في الفيلم، والجمل المسجَّلة تحت اللقطات الصامتة فقط)، وهدف علو الصوت، ورفض أي مصدر يُوجَّه مرتين.' },
-  'video-editor': { name: 'محرر الفيديو', role: 'المدير: المونتاج', description: 'ينفّذ تجميع المونتاج: يصل اللقطات المختارة بدقة الإطار (مع حذف بدايات اللقطات المتصلة)، ويحاذي المؤدين في الفيديو الموسيقي مع الأغنية بالتأخر المقيس، ويصيّر المزج ونسخة المراجعة، ويسجّل تسليم المونتاج.' },
-  'export-engineer': { name: 'مهندس التصدير', role: 'ملفات التسليم', description: 'ينفّذ تصدير المونتاج المعتمد: يصيّر ملف التسليم بالترميز والحجم المختارين ومعالجة الترجمة المختارة، ولا يُسجَّل الملف إلا بعد اجتيازه التحقق.' },
-  'subtitle-specialist': { name: 'أخصائي الترجمة', role: 'إشارات الترجمة', description: 'يكتب إشارات ترجمة المونتاج أو التصدير: إشارة لكل جملة منطوقة في نافذتها (مقيسة حين تحمل اللقطة توقيت الجمل)، وإشارة لكل سطر من الأغنية على توقيت الصوت في الفيديو الموسيقي، بالعربية أو الإنجليزية أو كلتيهما.' },
-  'quality-director': { name: 'مدير الجودة', role: 'المدير: بوابات الموافقة وتسليم الجودة', description: 'يحرس البوابتين البشريتين (لا يُنتَج شيء لقصة لم يوافق عليها أحد، ولا يُصدَّر مونتاج لم يوافق عليه أحد) وبوابة اللقطة التجريبية لكل مشهد (تجتاز أولى لقطاته فحوصها قبل توليد بقيته)، ويراجع تسليم ضمان الجودة إلى ما بعد الإنتاج: كل لقطة مختارة فُحصت ولم تُرفض أي منها.' },
-  'technical-media-inspector': { name: 'مفتش الوسائط التقني', role: 'سلامة الملفات', description: 'ينفّذ فحص الملف (ffprobe وفك ترميز كامل لملف مخزَّن، ويُعلَّم الملف التالف غير متاح) ويتحقق من كل مونتاج وتصدير منجز (الأطوال ضمن إطار واحد، ومعدل الإطارات، والحجم، والطوابع الزمنية، والمقاطع السوداء)، ويسجّل تقرير جودة في الحالتين.' },
-  'audio-sync-inspector': { name: 'مفتش تزامن الصوت', role: 'سماع الكلام وفحص الأغاني', description: 'يفرّغ كل لقطة متكلمة ويقارنها بالسيناريو (تغطية لا تقل عن 0.7 مع ذكر معدل خطأ الكلمات، ووضع الجمل على اللقطة)، ويفحص طول الأغنية الجديدة ومساراتها ووضع كلماتها، ويُبلغ عن جملة إثبات الصوت.' },
-  'visual-quality-inspector': { name: 'مفتش الجودة البصرية', role: 'فحوص الصورة المقيسة', description: 'يجري الفحوص المقيسة على كل لقطة جديدة (قابلية فك الترميز، والمدة، والحجم، ومسار الصوت، والإطارات السوداء والمتجمدة، والوميض، والصمت، وذروة الصوت)، وأي فحص فاشل يرفض اللقطة بفئة تلف المخرجات.' },
-  'reliability-engineer': { name: 'مهندس الموثوقية', role: 'تصنيف الإخفاقات', description: 'يصنّف كل مهمة فاشلة في فئات إخفاق الاستوديو، ويقرر هل تُسمح إعادة المحاولة دون تغيير (إخفاقات البنية التحتية والمزوّد والموارد فقط)، ويفتح حدث الموثوقية الذي يغلقه نجاح لاحق.' },
-};
-
-/** Arabic names of the delegated steps, by step id. */
-const STEPS_AR: Record<string, string> = {
-  'take-preflight': 'فحص جدوى اللقطة', 'plan-preflight': 'فحص جدوى خطة اللقطات', 'character-preflight': 'فحص جدوى خطوة الشخصية',
-  'identity-handoff': 'تسليم الهوية للقطة', 'reference-picture-check': 'فحص الصورة المرجعية قبل الرسم', 'plate-handoff-review': 'مراجعة تسليم اللوحات',
-  'reference-read': 'قراءة الصورة المرجعية قبل التصميم',
-  'timing-fit': 'ملاءمة توقيت المشهد', 'reference-selection': 'اختيار مراجع اللقطة', 'line-preparation': 'تحضير الجملة قبل النطق',
-  'mix-plan': 'خطة مزج المونتاج', 'subtitle-cues': 'إشارات ترجمة المونتاج', 'story-gate': 'بوابة الموافقة على القصة', 'pilot-gate': 'بوابة اللقطة التجريبية للمشهد', 'cut-gate': 'بوابة الموافقة على المونتاج',
-  'qa-handoff-review': 'مراجعة تسليم ضمان الجودة', 'file-validation': 'التحقق من الملف المنجز', 'take-speech-check': 'فحص كلام اللقطة', 'song-check': 'فحص الأغنية',
-  'voice-proof-check': 'فحص جملة إثبات الصوت', 'picture-check': 'فحص صورة اللقطة', 'people-check': 'عدّ الأشخاص على الشاشة كل نصف ثانية', 'failure-classification': 'تصنيف الإخفاق',
-  'world-sync': 'نسخة جديدة من سجل العالم بعد تغيّر القصة', 'world-pin': 'تثبيت سجل العالم للإنتاج', 'world-read': 'قراءة سجل العالم للقطة', 'establish-locations': 'الإطارات المرجعية للأماكن من المونتاج المعتمد',
-};
-
-export const AGENTS: AgentDef[] = AGENTS_BASE.map((a) => {
-  const ar = AGENTS_AR[a.id];
-  return { ...a, nameAr: ar?.name ?? '', roleAr: ar?.role ?? '', descriptionAr: ar?.description ?? '', steps: a.steps.map((s) => ({ ...s, nameAr: STEPS_AR[s.id] ?? '' })) };
-});
-
 /** Steps declared above that are not wired yet (a test asserts exactly these are absent from the code, so none is
  *  forgotten; wiring one means removing it from this list). Empty since the wave-2 fixer's branch merged and the
  *  character, voice and image handlers were wired. */
@@ -500,7 +435,7 @@ export const PENDING_STEPS: ReadonlyArray<{ agentId: string; stepId: string }> =
 
 const LATER = 'a later phase (Shows, Shorts, Music Videos)';
 
-const PLANNED_BASE: Array<Omit<PlannedRole, 'nameAr' | 'reasonAr'>> = [
+export const PLANNED_ROLES: PlannedRole[] = [
   { id: 'studio-director', department: 'EXECUTIVE', name: 'Studio Director', would: 'Hold the creative standard across departments.', reason: 'Creative direction is the producer’s own, given through the story and cut approval gates; no code makes creative calls.', phase: 'not planned as an agent' },
   { id: 'world-designer', department: 'WORLD', name: 'World Designer', would: 'Design new places with layout, landmarks and props from the story’s needs.', reason: 'Part of the Head of Story’s develop call today (new places come with full designs).', phase: LATER },
   { id: 'set-designer', department: 'WORLD', name: 'Set Designer', would: 'Keep each place’s layout record current.', reason: 'Layouts are written once by the develop call and edited by hand; nothing maintains them.', phase: LATER },
@@ -522,41 +457,16 @@ const PLANNED_BASE: Array<Omit<PlannedRole, 'nameAr' | 'reasonAr'>> = [
   { id: 'lipsync-inspector', department: 'QA', name: 'Lip-Sync Inspector', would: 'Measure mouth motion against the spoken windows.', reason: 'Needs a measured lip-sync check; the Audio-Sync Inspector proves the words were spoken, not the lips.', phase: 'when a lip-sync measurement exists' },
 ];
 
-/** Arabic name and reason of every planned role. */
-const PLANNED_AR: Record<string, { name: string; reason: string }> = {
-  'studio-director': { name: 'مدير الاستوديو', reason: 'التوجيه الإبداعي من صلاحية المنتج نفسه عبر بوابتي الموافقة على القصة والمونتاج، ولا يتخذ أي كود قرارات إبداعية.' },
-  'world-designer': { name: 'مصمم العالم', reason: 'جزء من استدعاء التطوير لدى رئيس قسم القصة حاليًا، فالأماكن الجديدة تأتي بتصاميم كاملة.' },
-  'set-designer': { name: 'مصمم الديكور', reason: 'تُكتب مخططات الأماكن مرة واحدة في استدعاء التطوير وتُعدَّل يدويًا، ولا شيء يحدّثها.' },
-  'props-designer': { name: 'مصمم الإكسسوارات', reason: 'لا توجد الإكسسوارات إلا في استمرارية اللقطات التي تكتبها خطة مخرج الفيلم، ولا يوجد متتبّع لها.' },
-  cinematographer: { name: 'مدير التصوير', reason: 'جزء من استدعاء خطة اللقطات الواحد لدى مخرج الفيلم حاليًا.' },
-  'production-planner': { name: 'مخطط الإنتاج', reason: 'جزء من فحص الجدوى لدى المنتج التنفيذي، ولا يُحسب تقدير للمدة بعد.' },
-  'production-director': { name: 'مدير الإنتاج', reason: 'تُفرض الخطة بفحص الجدوى وبطلب أخصائي الفيديو، ولا يوجد كود إشرافي.' },
-  'motion-director': { name: 'مدير الحركة', reason: 'يُطبَّق موجِّه الاستمرار داخل مهمة اللقطة لدى أخصائي الفيديو.' },
-  'performance-director': { name: 'مدير الأداء', reason: 'تحدده خطة اللقطات وتوزيع الغناء، ولا شيء يفحصه في الصورة.' },
-  'rendering-engineer': { name: 'مهندس التصيير', reason: 'يقوم به حجز بطاقة الرسوميات وعميل ComfyUI داخل كل مهمة، لا وكيل.' },
-  'sound-director': { name: 'مدير الصوت', reason: 'سياسة المزج كود يشغّله مهندس الصوت في خطوته، ولا يوجد توجيه صوتي إضافي.' },
-  'voice-engineer': { name: 'مهندس الأصوات', reason: 'قفل الصوت ومراجعاته قواعد في الكود ومن عمل وكيل اختيار الأصوات.' },
-  'post-director': { name: 'مدير ما بعد الإنتاج', reason: 'الموافقة على المونتاج من صلاحية المنتج، ومهمة محرر الفيديو وبوابات مدير الجودة تغطي الباقي.' },
-  'continuity-editor': { name: 'محرر الاستمرارية', reason: 'يحتاج نموذج رؤية، ولا يوجد فحص آلي للانتقالات بين اللقطات.' },
-  'audio-mixing-engineer': { name: 'مهندس المزج الصوتي', reason: 'دُمج في مهندس الصوت (خطة المزج) وفي تصيير محرر الفيديو.' },
-  colorist: { name: 'مصحح الألوان', reason: 'المطابقة مرشّح ffmpeg ثابت داخل التجميع (bt709 وyuv420p)، وليست تصحيحًا لونيًا.' },
-  'character-consistency-inspector': { name: 'مفتش اتساق الشخصيات', reason: 'يحتاج فحصًا آليًا للهوية (docs/research/CHARACTER-IMAGE-V2.md).' },
-  'world-continuity-inspector': { name: 'مفتش استمرارية العالم', reason: 'يحتاج فحصًا آليًا للبيئة.' },
-  'lipsync-inspector': { name: 'مفتش مزامنة الشفاه', reason: 'يحتاج قياسًا لمزامنة الشفاه؛ ومفتش تزامن الصوت يثبت نطق الكلمات لا حركة الشفاه.' },
-};
-
-export const PLANNED_ROLES: PlannedRole[] = PLANNED_BASE.map((r) => ({ ...r, nameAr: PLANNED_AR[r.id]?.name ?? '', reasonAr: PLANNED_AR[r.id]?.reason ?? '' }));
-
 export const DEPARTMENTS: DepartmentDef[] = [
-  { id: 'EXECUTIVE', name: 'Executive Office', nameAr: 'المكتب التنفيذي', directorId: 'executive-producer', responsibility: 'Feasibility before generation, and running a production through its jobs.', responsibilityAr: 'التحقق من الجدوى قبل التوليد، وتشغيل الإنتاج عبر مهامه.', stages: [], order: 0 },
-  { id: 'STORY', name: 'Story Development', nameAr: 'تطوير القصة', directorId: 'head-of-story', responsibility: 'Research-driven proposals (permitted trend research, audience patterns, original concepts, editorial and audience reviews), story development, script and dialogue; the show’s story bible.', responsibilityAr: 'المقترحات القائمة على البحث (بحث الاتجاهات من مصادر مسموح بها، وأنماط الجمهور، ومفاهيم أصيلة، ومراجعتا التحرير والجمهور)، وتطوير القصة والسيناريو والحوار، وسجل قصة المسلسل.', stages: ['STORY', 'SCRIPT'], order: 1 },
-  { id: 'CASTING', name: 'Casting & Character Design', nameAr: 'اختيار وتصميم الشخصيات', directorId: 'casting-director', responsibility: 'Characters: design, the canonical front full-body image and the voice; the identity references every shot uses.', responsibilityAr: 'الشخصيات: التصميم والصورة الأمامية المعتمدة كاملة الجسم والصوت، ومراجع الهوية التي تستخدمها كل لقطة.', stages: ['CAST_WORLD'], order: 2 },
-  { id: 'WORLD', name: 'World Building & Art Direction', nameAr: 'بناء العالم والتوجيه الفني', directorId: 'art-director', responsibility: 'Places: plates, views and time-of-day states, reviewed before hand-off.', responsibilityAr: 'الأماكن: اللوحات والزوايا وحالات أوقات اليوم، تُراجَع قبل التسليم.', stages: ['CAST_WORLD'], order: 3 },
-  { id: 'PREPRODUCTION', name: 'Pre-Production', nameAr: 'ما قبل الإنتاج', directorId: 'film-director', responsibility: 'Scenes into timed shots with continuity states and opening frames.', responsibilityAr: 'تحويل المشاهد إلى لقطات محددة التوقيت مع حالات الاستمرارية والإطارات الافتتاحية.', stages: ['STORYBOARD', 'SHOT_PLAN'], order: 4 },
-  { id: 'VIDEO', name: 'Video Production', nameAr: 'إنتاج الفيديو', directorId: 'minimax-video-specialist', responsibility: 'MiniMax H3 takes with complete provenance; MiniMax is the only video engine.', responsibilityAr: 'لقطات MiniMax H3 بمصدر موثّق بالكامل؛ وMiniMax هو محرك الفيديو الوحيد.', stages: ['VIDEO'], order: 5 },
-  { id: 'SOUND', name: 'Sound & Music', nameAr: 'الصوت والموسيقى', directorId: 'dialogue-director', responsibility: 'Recorded dialogue, Iraqi line preparation, songs and stems, the mix plan.', responsibilityAr: 'الحوار المسجَّل وتحضير الجمل العراقية والأغاني والمسارات المنفصلة وخطة المزج.', stages: ['AUDIO_PREP'], order: 6 },
-  { id: 'POST', name: 'Post-Production', nameAr: 'ما بعد الإنتاج', directorId: 'video-editor', responsibility: 'The cut, subtitles and the validated export.', responsibilityAr: 'المونتاج والترجمة والتصدير المُتحقَّق منه.', stages: ['EDIT', 'EXPORT'], order: 7 },
-  { id: 'QA', name: 'Quality Assurance', nameAr: 'ضمان الجودة', directorId: 'quality-director', responsibility: 'Independent inspection (picture, speech, files), the approval gates and failure classification.', responsibilityAr: 'فحص مستقل (الصورة والكلام والملفات)، وبوابات الموافقة، وتصنيف الإخفاقات.', stages: ['QA'], order: 8 },
+  { id: 'EXECUTIVE', name: 'Executive Office', directorId: 'executive-producer', responsibility: 'Feasibility before generation, and running a production through its jobs.', stages: [], order: 0 },
+  { id: 'STORY', name: 'Story Development', directorId: 'head-of-story', responsibility: 'Research-driven proposals (permitted trend research, audience patterns, original concepts, editorial and audience reviews), story development, script and dialogue; the show’s story bible.', stages: ['STORY', 'SCRIPT'], order: 1 },
+  { id: 'CASTING', name: 'Casting & Character Design', directorId: 'casting-director', responsibility: 'Characters: design, the canonical front full-body image and the voice; the identity references every shot uses.', stages: ['CAST_WORLD'], order: 2 },
+  { id: 'WORLD', name: 'World Building & Art Direction', directorId: 'art-director', responsibility: 'Places: plates, views and time-of-day states, reviewed before hand-off.', stages: ['CAST_WORLD'], order: 3 },
+  { id: 'PREPRODUCTION', name: 'Pre-Production', directorId: 'film-director', responsibility: 'Scenes into timed shots with continuity states and opening frames.', stages: ['STORYBOARD', 'SHOT_PLAN'], order: 4 },
+  { id: 'VIDEO', name: 'Video Production', directorId: 'minimax-video-specialist', responsibility: 'MiniMax H3 takes with complete provenance; MiniMax is the only video engine.', stages: ['VIDEO'], order: 5 },
+  { id: 'SOUND', name: 'Sound & Music', directorId: 'dialogue-director', responsibility: 'Recorded dialogue, Iraqi line preparation, songs and stems, the mix plan.', stages: ['AUDIO_PREP'], order: 6 },
+  { id: 'POST', name: 'Post-Production', directorId: 'video-editor', responsibility: 'The cut, subtitles and the validated export.', stages: ['EDIT', 'EXPORT'], order: 7 },
+  { id: 'QA', name: 'Quality Assurance', directorId: 'quality-director', responsibility: 'Independent inspection (picture, speech, files), the approval gates and failure classification.', stages: ['QA'], order: 8 },
 ];
 
 /** Which agent executes a job type. */

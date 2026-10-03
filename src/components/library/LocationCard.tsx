@@ -4,13 +4,12 @@ import Link from 'next/link';
 import type { Location } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { IconArrowRight } from '@/components/ui/icons';
 
 /** LOCATIONS: a wide plate, the name of the place, what kind of place it is and how many views it has. (Owned by
  *  P2; split out of library/Cards.tsx by F0 unchanged.) */
 export function LocationCard({ l }: { l: Location }) {
-  const T = useT();
   const { state } = useStudio();
   const plate = assetById(state, l.masterAssetId);
   return (

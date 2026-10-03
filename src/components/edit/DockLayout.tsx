@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls, Menu, MenuItem, Segmented } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight, IconClose, IconReplay } from '@/components/ui/icons';
 import { useShortcutScope } from '@/components/players/useShortcutScope';
@@ -30,7 +30,6 @@ const clampW = (k: 'list' | 'inspector', w: number) => Math.round(Math.max(BOUND
 
 /** A docked panel: the 40 px header and a vertically scrolling body. */
 export function Panel({ title, onCollapse, actions, children, className, collapseLabel }: { title: string; onCollapse?: () => void; actions?: ReactNode; children: ReactNode; className?: string; collapseLabel?: string }) {
-  const T = useT();
   const id = useId();
   return (
     <section className={cls('dock-panel', className)} aria-labelledby={`${id}-h`}>
@@ -45,7 +44,6 @@ export function Panel({ title, onCollapse, actions, children, className, collaps
 }
 
 function Splitter({ panel, title, width, onWidth, onToggle }: { panel: 'list' | 'inspector'; title: string; width: number; onWidth: (w: number) => void; onToggle: () => void }) {
-  const T = useT();
   const drag = useRef<{ x: number; w: number; rtl: boolean } | null>(null);
   // the separator grows its panel when it moves away from it: toward the inline end for the list, the start for the inspector
   const grow = (e: { currentTarget: Element }) => { const rtl = getComputedStyle(e.currentTarget).direction === 'rtl'; return (panel === 'list') !== rtl ? 1 : -1; };
@@ -67,7 +65,6 @@ function Splitter({ panel, title, width, onWidth, onToggle }: { panel: 'list' | 
 }
 
 function Drawer({ side, title, open, onClose, children }: { side: 'start' | 'end'; title: string; open: boolean; onClose: () => void; children: ReactNode }) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const d = ref.current; if (!d) return; if (open && !d.open) d.showModal(); else if (!open && d.open) d.close(); }, [open]);
   return (
@@ -84,7 +81,6 @@ function Drawer({ side, title, open, onClose, children }: { side: 'start' | 'end
 }
 
 export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, tools, className }: { id: string; list?: DockPanel; canvas: ReactNode; canvasTitle: string; inspector?: DockPanel; footer?: ReactNode; /** the workspace's own controls in the layout bar (the focus-mode button) */ tools?: ReactNode; className?: string }) {
-  const T = useT();
   const focus = useFocusMode();
   const three = useMediaQuery('(min-width: 1280px)');
   const two = useMediaQuery('(min-width: 1024px)');

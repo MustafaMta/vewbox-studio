@@ -6,7 +6,7 @@ import { LYRIC_KINDS, type LyricKind } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
 import { castOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
@@ -23,7 +23,6 @@ import { fmtSeconds, words } from '@/lib/format';
  *  lyrics as sections that read as one group each: the section's name, its time range and who sings it on one line,
  *  the words beneath in their own script. The section being sung lights up; select one to edit it. */
 export function SongLyricsTab({ p, track }: { p: Production; track: Track | null }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const player = usePlayer();

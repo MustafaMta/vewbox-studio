@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { IconClose } from './icons';
 import { OverlayHost } from './kit/Overlay';
 
@@ -26,7 +26,6 @@ const Ctx = createContext<Api | null>(null);
 const EXIT_MS = 160;
 
 function ToastItem({ t, onGone }: { t: Toast; onGone: (id: number) => void }) {
-  const T = useT();
   const [hold, setHold] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const remaining = useRef<number | null>(toastDuration(t));

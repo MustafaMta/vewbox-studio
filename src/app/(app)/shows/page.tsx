@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { search } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { LinkButton, Menu, MenuItem, MenuLink, Select } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
@@ -17,7 +17,6 @@ import { IconDelete, IconEdit, IconPlus, IconShows } from '@/components/ui/icons
 
 /** SHOWS — the series library: wide key art, the numbers, the cast, the progress. One action: Add show. */
 export default function ShowsPage() {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();

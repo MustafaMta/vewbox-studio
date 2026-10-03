@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconMinus, IconPlus } from '@/components/ui/icons';
 import { FaceCircle } from '@/components/media/FaceCircle';
@@ -34,7 +34,6 @@ function groupsOf(lines: LyricLine[]) {
 }
 
 export function LyricView({ lines, time, onSeek, edit, className, height = 360 }: { lines: LyricLine[]; time: number; onSeek?: (t: number) => void; edit?: LyricEdit; className?: string; height?: number }) {
-  const T = useT();
   const box = useRef<HTMLDivElement>(null);
   const [focusI, setFocusI] = useState(0);
   const [detached, setDetached] = useState(false);

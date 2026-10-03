@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { BrandTile } from '@/components/ui/brand';
 import {
   IconAssets, IconCharacters, IconCollapse, IconExpand, IconHelp, IconLocations, IconMusicVideos, IconPlus, IconProduce, IconScreening, IconSettings, IconShorts, IconShows, IconStudio,
@@ -33,7 +33,6 @@ const noSubscribe = () => () => {};
 export const useModLabel = () => useSyncExternalStore(noSubscribe, () => (isMac(navigator.platform) ? '⌘' : 'Ctrl'), () => 'Ctrl');
 
 function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
-  const T = useT();
   const pathname = usePathname() ?? '/';
   const { decisions } = useShell();
   const Icon = NAV_ICONS[item.icon];
@@ -52,7 +51,6 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
 
 /** The three groups, in order. */
 export function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
-  const T = useT();
   const id = useId();
   return (
     <div className="shell-groups">
@@ -69,7 +67,6 @@ export function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
 /** The footer: Settings, then Help & shortcuts in the same place on every page (WCAG 3.2.6), the save state and the
  *  connection, and (sidebar and rail only) Collapse. */
 export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNavigate?: () => void; collapse?: boolean; rail?: boolean }) {
-  const T = useT();
   const { openShortcuts, toggleNav, nav } = useShell();
   const mod = useModLabel();
   const toggleName = T(nav === 'rail' ? 'shell.expand.long' : 'shell.collapse.long');
@@ -95,7 +92,6 @@ export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNav
 
 /** The brand row: the monochrome glyph (and the wordmark in the sidebar) goes home. */
 export function BrandLink({ onNavigate }: { onNavigate?: () => void }) {
-  const T = useT();
   return (
     <Link href={HOME} className="shell-brand" aria-label={T('shell.homeLink')} onClick={onNavigate} data-tip={T('app.name')}>
       <BrandTile />
@@ -105,7 +101,6 @@ export function BrandLink({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function NewButton({ onNavigate, className = '' }: { onNavigate?: () => void; className?: string }) {
-  const T = useT();
   return (
     <Link href="/new" className={`btn btn-secondary shell-new ${className}`} onClick={onNavigate} aria-label={T('nav.new')} data-tip={T('nav.new')}>
       <IconPlus aria-hidden /><span className="shell-label">{T('nav.new')}</span>
@@ -117,7 +112,6 @@ type Tip = { text: string; y: number; x: number };
 
 /** The sidebar, or the rail: the shell says which (`nav`). */
 export function Sidebar() {
-  const T = useT();
   const { nav } = useShell();
   const [tip, setTip] = useState<Tip | null>(null);
   const hide = useRef<ReturnType<typeof setTimeout> | null>(null);

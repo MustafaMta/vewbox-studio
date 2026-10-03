@@ -7,7 +7,7 @@ import type { Language, Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, assignmentsOf, primaryImageOf, search } from '@/studio/selectors';
 import { appearanceLock } from '@/domain/rules';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { LinkButton, Menu, MenuItem, MenuLink, Select, Status } from '@/components/ui/kit';
 import { ArtRow } from '@/components/ui/cinema';
@@ -26,7 +26,6 @@ type Sort = 'recent' | 'name' | 'mostUsed';
  *  role beneath and one line of state (identity: Draft · Approved · Locked, and the voice). Search; filters for style,
  *  where they belong, language, usage and identity; sort; grid or list. An empty studio is invited in three ways. */
 export default function CharactersPage() {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -71,7 +70,7 @@ export default function CharactersPage() {
                 const s = identityStatus(c); const w = statusWords(s); const a = assignmentsOf(state, c.id);
                 const homeName = a.shows[0]?.title ?? a.productions.find((p) => !p.showId)?.title ?? '—';
                 return <ArtRow key={c.id} href={`/characters/${c.id}`} src={assetById(state, primaryImageOf(c))?.src} ratio="portrait" title={c.name} titleAr={c.nameAr}
-                  cells={[c.role, homeName, `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`, c.voice.identity || c.voice.selectedSampleId ? T('cast.card.voice') : T('cast.card.noVoice')]}
+                  cells={[c.role, homeName, `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`, c.voice.identity || c.voice.selectedSampleId ? T('cast.card.voice') : T('cast.card.noVoice')]}
                   status={<Status tone={w.tone === 'warn' ? 'warn' : w.tone === 'ok' ? 'ok' : 'neutral'}>{s.kind === 'LOCKED' && s.lock.reason === 'USED' ? (s.videos === 1 ? T('cast.card.inVideo') : T('cast.card.inVideos').replace('{n}', String(s.videos))) : T(w.short)}</Status>} menu={menuFor(c)} />;
               })}
             </ul>
@@ -85,7 +84,6 @@ export default function CharactersPage() {
 /** The empty directory (§9.4): the three ways in, as portrait-shaped frames set in type — no fake faces. Each opens
  *  the creation page on that method. */
 function CastingCall() {
-  const T = useT();
   const ways = [
     { start: 'describe', title: T('cast.start.describe'), hint: T('cast.start.describe.hint') },
     { start: 'sheet', title: T('cast.start.sheet'), hint: T('cast.start.sheet.hint') },

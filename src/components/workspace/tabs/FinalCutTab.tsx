@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, shotHref, shotLabel } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Card, Details, Field, Notice, SampleMark, Select, Status, Thumb } from '@/components/ui/kit';
 import { JobButton, useStartJob } from '@/components/ui/jobs';
@@ -17,7 +17,6 @@ import { StageGate, useStageApproved } from '@/components/studio/Approve';
 /** FINAL CUT — the chosen takes in order with the sound under them, then export. The assembled cut shown for the
  *  sample episode is a sample clip; when there is none, the sequence below is the cut, described. */
 export function FinalCutTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const cut = assetById(state, p.cutAssetId);

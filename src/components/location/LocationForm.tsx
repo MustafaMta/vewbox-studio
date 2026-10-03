@@ -4,14 +4,13 @@ import { useState } from 'react';
 import type { Location } from '@/domain/types';
 import { STYLES, TIMES_OF_DAY, type Style, type TimeOfDay } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, Segmented, Select, Textarea } from '@/components/ui/kit';
 import { words } from '@/lib/format';
 
 /** THE LOCATION FORM — a place described well enough to draw: what it is, what stands where, how it is lit. */
 export function LocationForm({ initial, defaultStyle, onSaved, onCancel }: { initial?: Location; defaultStyle?: Style; onSaved: (id: string) => void; onCancel?: () => void }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const [d, setD] = useState({ name: initial?.name ?? '', nameAr: initial?.nameAr ?? '', kind: initial?.kind ?? 'INTERIOR', style: initial?.style ?? defaultStyle ?? state.settings.defaults.style, description: initial?.description ?? '', landmarks: initial?.landmarks.join('\n') ?? '', props: initial?.props.join('\n') ?? '', lighting: initial?.lighting ?? (['MORNING', 'NIGHT'] as TimeOfDay[]) });

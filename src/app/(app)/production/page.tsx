@@ -6,7 +6,7 @@ import { useStudio } from '@/studio/store';
 import { approveStage, useLive, useOrg, useReliability } from '@/studio/org';
 import { ReliabilityTable } from '@/components/studio/people';
 import { productionHref, showById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader, Section } from '@/components/ui/page';
 import { Button, Notice, type Tone } from '@/components/ui/kit';
@@ -25,7 +25,6 @@ const TONE: Record<string, Tone> = { DONE: 'ok', AWAITING_APPROVAL: 'gold', REJE
  *  inside it), then every production's position in the pipeline as a phase strip, then everything the studio is
  *  running or has run. */
 export default function ProductionPage() {
-  const T = useT();
   const { state } = useStudio();
   const toast = useToast();
   const { data: org } = useOrg();
@@ -48,7 +47,7 @@ export default function ProductionPage() {
               <li key={p.id}>
                 <Notice tone="gold" title={<span dir="auto"><Link href={productionHref(p)} className="hover:underline">{p.title}</Link> · {T.dyn(`pipeline.${stage.id}`, stage.id)}</span>}
                   action={<span className="flex flex-wrap items-center gap-2"><Button size="sm" variant="secondary" loading={busy === `${p.id}:${stage.id}`} onClick={() => void decide(p.id, stage.id, 'APPROVED')}>{T('studio.approve')}</Button><Button size="sm" variant="quiet" disabled={busy !== null} onClick={() => void decide(p.id, stage.id, 'CHANGES')}>{T('studio.requestChanges')}</Button><Link href={productionHref(p)} className="btn btn-quiet btn-sm">{T('btn.open')}</Link></span>}>
-                  {T('studio.awaitingApproval')}{stage.at ? ` · ${fmtAgo(stage.at, T.locale)}` : ''}
+                  {T('studio.awaitingApproval')}{stage.at ? ` · ${fmtAgo(stage.at)}` : ''}
                 </Notice>
               </li>
             ))}
@@ -66,12 +65,12 @@ export default function ProductionPage() {
                 <li key={p.id} className="card p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11.5px] text-faint" dir="auto">{p.kind === 'EPISODE' && show ? `${show.title} · ${T('misc.episodeOf')} ${p.episodeNumber}` : T.dyn(`kind.${p.kind}`)} · {fmtAgo(p.updatedAt, T.locale)}</p>
+                      <p className="text-[11.5px] text-faint" dir="auto">{p.kind === 'EPISODE' && show ? `${show.title} · ${T('misc.episodeOf')} ${p.episodeNumber}` : T.dyn(`kind.${p.kind}`)} · {fmtAgo(p.updatedAt)}</p>
                       <Link href={productionHref(p)} className="bi text-[16px] font-semibold text-fg hover:underline" dir="auto"><span>{p.title}</span>{p.titleAr && <span className="bi-ar" dir="rtl">{p.titleAr}</span>}</Link>
                     </div>
                     <StageStatus p={p} />
                   </div>
-                  <PhaseStrip className="mt-3" label={T('studio.pipeline')} phases={stages.map((s) => ({ id: s.id, name: T.dyn(`pipeline.${s.id}`, s.id), status: T.dyn(`studio.stage.${s.status}`), tone: TONE[s.status] ?? 'neutral', time: s.at ? fmtAgo(s.at, T.locale) : undefined, title: s.failed.length ? s.failed.join(', ') : undefined }))} />
+                  <PhaseStrip className="mt-3" label={T('studio.pipeline')} phases={stages.map((s) => ({ id: s.id, name: T.dyn(`pipeline.${s.id}`, s.id), status: T.dyn(`studio.stage.${s.status}`), tone: TONE[s.status] ?? 'neutral', time: s.at ? fmtAgo(s.at) : undefined, title: s.failed.length ? s.failed.join(', ') : undefined }))} />
                 </li>
               );
             })}

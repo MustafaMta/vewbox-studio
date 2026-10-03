@@ -34,7 +34,7 @@ describe('v4-lint refuses', () => {
     ['physical', C, "<b style={{ left: '50%' }} />"],
     ['physical', S, '.x { margin-left: 4px; }'],
     ['physical', S, '.x { text-align: left; }'],
-    ['engine', 'src/lib/i18n/v4/cast.ts', "  'voice.x': ['MiniMax clone', 'استنساخ MiniMax'],"],
+    ['engine', 'src/lib/copy.ts', "  'voice.x': 'MiniMax clone',"],
     ['engine', C, '<p className="hint">Rendered by ComfyUI on the GPU</p>'],
   ])('%s in %s: %s', (rule, file, text) => {
     expect(rules(file, text)).toContain(rule);
@@ -54,16 +54,16 @@ describe('v4-lint accepts', () => {
     [S, '.x { background: color-mix(in srgb, var(--accent) 32%, transparent); }'],
     ['src/app/styles/tokens.css', ':root { --ink-950: #0d0c0b; --accent-soft: rgb(169 159 245 / 0.12); }'],
     ['src/components/players/TheatrePlayer.tsx', '<div className="backdrop-blur-md" />'],
-    [S, "html[dir='rtl'] [dir='auto'] { text-align: right; } /* v4-lint: allow physical — match-parent is dropped by Chromium */"],
-    ['src/lib/i18n/v4/cast.ts', "  'voice.engine.minimax': ['Hosted voice clone', 'استنساخ مستضاف'],"],
+    [S, ".ar-block { text-align: right; } /* v4-lint: allow physical — a multi-line Arabic content block aligns to its own start */"],
+    ['src/lib/copy.ts', "  'voice.engine.minimax': 'Hosted voice clone',"],
   ])('%s: %s', (file, text) => {
     expect(rules(file, text)).toEqual([]);
   });
 });
 
 describe('the files F0 and F1 own', () => {
-  it('pass the lint (tokens, base, type, fonts, the title shell, the split dictionary module)', () => {
-    const found = lintPaths(['src/app/styles/tokens.css', 'src/app/styles/base.css', 'src/app/styles/type.css', 'src/app/fonts.ts', 'src/app/boot.ts', 'src/app/globals.css', 'src/components/shell', 'src/lib/i18n.ts']) as Array<Finding & { file: string; text: string }>;
+  it('pass the lint (tokens, base, type, fonts, the title shell, the English copy module)', () => {
+    const found = lintPaths(['src/app/styles/tokens.css', 'src/app/styles/base.css', 'src/app/styles/type.css', 'src/app/fonts.ts', 'src/app/boot.ts', 'src/app/globals.css', 'src/components/shell', 'src/lib/copy.ts']) as Array<Finding & { file: string; text: string }>;
     expect(found.map((f) => `${f.file}:${f.line} ${f.rule} ${f.text}`)).toEqual([]);
   });
 });

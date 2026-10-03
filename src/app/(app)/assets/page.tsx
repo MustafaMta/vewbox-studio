@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { AssetKind } from '@/domain/types';
 import { assetById, type AssetView } from '@/studio/selectors';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Empty } from '@/components/ui/cinema';
 import { Button, Input, Modal, Notice, Segmented, Thumb } from '@/components/ui/kit';
@@ -17,7 +17,6 @@ import { fmtBytes, fmtSeconds } from '@/lib/format';
 /** THE ASSET LIBRARY — every picture, clip and sound the studio holds, by kind. Bundled items are sample content;
  *  files you add here are checked and stored in the studio library on the server. */
 export default function AssetsPage() {
-  const T = useT();
   const { state, addFile, removeAsset } = useStudio();
   const toast = useToast();
   const [kind, setKind] = useState<AssetKind | 'ALL'>('ALL');
@@ -48,7 +47,6 @@ export default function AssetsPage() {
 }
 
 function AssetTile({ a, onDelete }: { a: AssetView; onDelete?: () => void }) {
-  const T = useT();
   const ratio = a.width && a.height && a.height > a.width ? 'aspect-[3/4]' : 'aspect-video';
   return (
     <li className="tile">

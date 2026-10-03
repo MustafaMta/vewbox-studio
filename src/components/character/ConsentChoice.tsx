@@ -6,7 +6,7 @@ import type { Character, VoiceSample } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
 import { isConsentedUpload } from '@/domain/voice-identity';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Segmented } from '@/components/ui/kit';
 import { IconCheck } from '@/components/ui/icons';
@@ -24,7 +24,6 @@ export function recordingNeedingConsent(c: Pick<Character, 'voice'>, sampleId?: 
  *  (confirmVoiceConsent), and only once that statement is saved on the server is the work asked for again — the failed
  *  job retried with the change named, or the caller's own restart (`onConfirmed`). */
 export function ConsentChoice({ characterId, sampleId, job, onConfirmed }: { characterId: string; sampleId?: unknown; job?: Job; onConfirmed?: () => void | Promise<void> }) {
-  const T = useT();
   const toast = useToast();
   const { state, act, saving, retryJob } = useStudio();
   const c = state.characters.find((x) => x.id === characterId);

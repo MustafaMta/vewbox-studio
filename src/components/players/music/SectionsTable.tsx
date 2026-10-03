@@ -1,6 +1,6 @@
 'use client';
 
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPlay } from '@/components/ui/icons';
 import { FaceCircle } from '@/components/media/FaceCircle';
@@ -17,7 +17,6 @@ import { fmtClock } from '../time';
 export interface SectionRow { id: string; name: string; singer?: { name: string; lang?: string; asset?: Picture | null; src?: string | null } | null; shotsDone: number; shotsTotal: number; from: number; to: number }
 
 function Pips({ done, total }: { done: number; total: number }) {
-  const T = useT();
   return (
     <span className="pips">
       <span className="pips-row" aria-hidden>{Array.from({ length: total }, (_, i) => <span key={i} data-done={i < done || undefined} />)}</span>
@@ -27,7 +26,6 @@ function Pips({ done, total }: { done: number; total: number }) {
 }
 
 export function SectionsTable({ rows, time, onPlayFrom, version, duration, className }: { rows: SectionRow[]; time?: number; onPlayFrom?: (row: SectionRow) => void; version?: number; duration?: number; className?: string }) {
-  const T = useT();
   const live = time === undefined ? -1 : rows.findIndex((r) => time >= r.from && time < r.to);
   const shots = rows.reduce((n, r) => n + r.shotsTotal, 0);
   const total = duration ?? rows.reduce((m, r) => Math.max(m, r.to), 0);

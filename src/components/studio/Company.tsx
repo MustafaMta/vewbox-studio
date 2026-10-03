@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { agentName, deptName, type OrgAgent, type OrgDepartment, type OrgResponse } from '@/studio/org';
+import { type OrgAgent, type OrgDepartment, type OrgResponse } from '@/studio/org';
 import { RING, VIEW, deriveCompany, edgeGeometry, seats, teamOrder, type Company, type CompanyEdge, type NodeState, type Seat } from '@/studio/company';
 import { useStudio } from '@/studio/store';
-import { useT, type TFn } from '@/components/ui/locale';
+import { T, type TFn } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCharacters, IconChevronRight, IconFinalCut, IconLocations, IconProduce, IconShield, IconSound, IconStory, IconStoryboard, IconStudio } from '@/components/ui/icons';
 import { fmtAgo } from '@/lib/format';
@@ -33,7 +33,6 @@ export function useCompany(org: OrgResponse | null): Company | null {
   return useMemo(() => (org ? deriveCompany(org, ids) : null), [org, key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export function useRtl(): boolean { return useT().locale === 'ar'; }
 const prefersReducedMotion = () => typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || document.documentElement.getAttribute('data-motion') === 'reduce');
 
 /** The department's agents in the response, director first. */
@@ -45,7 +44,7 @@ export const teamOf = (org: Pick<OrgResponse, 'agents'>, d: OrgDepartment): OrgA
 /** A seat's one-line state: idle with its headcount, working with the agent's name, waiting, blocked. */
 export function nodeStateLine(T: TFn, org: OrgResponse, c: Company, d: OrgDepartment): { state: NodeState; text: string } {
   const st = c.nodeState(d.id);
-  if (st === 'working') { const id = Array.from(c.workingAgents.get(d.id) ?? [])[0]; const a = org.agents.find((x) => x.id === id); return { state: st, text: a ? T.f('co.node.working', { agent: agentName(a, T.locale) }) : T('orch.node.active') }; }
+  if (st === 'working') { const id = Array.from(c.workingAgents.get(d.id) ?? [])[0]; const a = org.agents.find((x) => x.id === id); return { state: st, text: a ? T.f('co.node.working', { agent: a.name }) : T('orch.node.active') }; }
   if (st === 'waiting') return { state: st, text: T('co.node.waiting') };
   if (st === 'blocked') { const b = c.blocked.find((x) => x.department === d.id); return { state: st, text: T.dyn(`studio.stage.${b?.status ?? 'INVALID'}`) }; }
   return { state: st, text: `${T('orch.node.idle')} · ${T.p('co.agents', teamOf(org, d).length)}` };
@@ -55,7 +54,7 @@ export function nodeStateLine(T: TFn, org: OrgResponse, c: Company, d: OrgDepart
 function nodeAria(T: TFn, org: OrgResponse, c: Company, d: OrgDepartment): string {
   const line = nodeStateLine(T, org, c, d).text;
   const recent = c.edgesOf(d.id).reduce((n, e) => n + e.recentCount, 0);
-  return `${deptName(d, T.locale)}. ${line}. ${recent ? T.p('co.handoffsRecent', recent) : T('co.noRecentHandoffs')}.`;
+  return `${d.name}. ${line}. ${recent ? T.p('co.handoffsRecent', recent) : T('co.noRecentHandoffs')}.`;
 }
 
 /** The orchestrator's state line: idle, coordinating n productions, waiting for you, blocked. */
@@ -73,8 +72,6 @@ export function orchestratorLine(T: TFn, c: Company): string {
 interface StageProps { org: OrgResponse; company: Company; selection: Selection; onSelect: (s: Selection) => void; onOpen: (deptId: string) => void; lastKnown?: string | null }
 
 export function CompanyStage({ org, company: c, selection, onSelect, onOpen, lastKnown }: StageProps) {
-  const T = useT();
-  const rtl = useRtl();
   const frame = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(760);
   useEffect(() => {
@@ -86,7 +83,7 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
   const large = width >= 700;
   const disc = large ? 56 : 48;
   const orch = large ? 136 : 112;
-  const seatList = useMemo(() => seats(rtl), [rtl]);
+  const seatList = useMemo(() => seats(), []);
   const seatOf = (id: string) => seatList.find((x) => x.id === id)!;
   const depts = RING.map((id) => org.departments.find((d) => d.id === id)).filter((d): d is OrgDepartment => Boolean(d));
 
@@ -97,8 +94,8 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
   const move = (id: string) => { setFocusId(id); btns.current[id]?.focus(); };
   const onKeyDown = (e: React.KeyboardEvent) => {
     const i = order.indexOf(focusId);
-    const nextKey = rtl ? 'ArrowLeft' : 'ArrowRight';
-    const prevKey = rtl ? 'ArrowRight' : 'ArrowLeft';
+    const nextKey = 'ArrowRight';
+    const prevKey = 'ArrowLeft';
     const n = depts.length;
     const step = (dir: 1 | -1) => (i <= 0 ? (dir === 1 ? order[1] : order[n]) : order[((i - 1 + dir + n) % n) + 1]);
     if (e.key === nextKey || e.key === 'ArrowDown') { e.preventDefault(); move(step(1)); }
@@ -187,7 +184,7 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
         <button ref={(el) => { btns.current.ORCH = el; }} type="button" className="co-orch" style={{ left: '50%', top: `${(VIEW.cy / VIEW.h) * 100}%`, '--orch': `${orch}px` } as CSSProperties}
           tabIndex={focusId === 'ORCH' ? 0 : -1} aria-pressed={selection.kind === 'orchestrator'} aria-label={`${T('orch.title')}. ${orchestratorLine(T, c)}.`}
           onClick={() => { setFocusId('ORCH'); onSelect({ kind: 'orchestrator' }); }} onFocus={() => { setFocusId('ORCH'); setKbd('ORCH'); }} onBlur={() => setKbd(null)}>
-          <ProductionRings c={c} size={orch} rtl={rtl} />
+          <ProductionRings c={c} size={orch} />
           <span className="co-orch-disc">
             <span className="co-orch-title">{T('orch.title')}</span>
             <span className="co-orch-state">{orchestratorLine(T, c)}</span>
@@ -204,7 +201,7 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
           return (
             <button key={d.id} ref={(el) => { btns.current[d.id] = el; }} type="button" className="co-node" data-state={line.state} data-placement={seat.placement}
               data-dim={bright && !bright.nodes.has(d.id) ? true : undefined}
-              style={seatStyle(seat, disc, rtl)} tabIndex={focusId === d.id ? 0 : -1} aria-pressed={selected} aria-label={nodeAria(T, org, c, d)}
+              style={seatStyle(seat, disc)} tabIndex={focusId === d.id ? 0 : -1} aria-pressed={selected} aria-label={nodeAria(T, org, c, d)}
               onClick={() => { setFocusId(d.id); onSelect({ kind: 'dept', id: d.id }); }} onDoubleClick={() => onOpen(d.id)}
               onMouseEnter={() => setHover({ kind: 'dept', id: d.id })} onMouseLeave={() => setHover(null)}
               onFocus={() => { setFocusId(d.id); setKbd(d.id); }} onBlur={() => setKbd(null)}>
@@ -213,7 +210,7 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
                 <TeamDots team={team} directorId={d.directorId} working={working} disc={disc} towards={Math.atan2(VIEW.cy - seat.y, VIEW.cx - seat.x)} />
               </span>
               <span className="co-label" style={labelStyle(seat, s, disc)}>
-                <span className="co-name" dir="auto">{deptName(d, T.locale)}</span>
+                <span className="co-name" dir="auto">{d.name}</span>
                 <span className="co-state">{line.text}</span>
               </span>
             </button>
@@ -226,14 +223,14 @@ export function CompanyStage({ org, company: c, selection, onSelect, onOpen, las
 }
 
 /** Where a seat's button sits: the disc centre lands on the orbit point whatever the label's placement. */
-function seatStyle(seat: Seat, disc: number, rtl: boolean): CSSProperties {
+function seatStyle(seat: Seat, disc: number): CSSProperties {
   const left = `${(seat.x / VIEW.w) * 100}%`; const top = `${(seat.y / VIEW.h) * 100}%`;
   const base = { left, top, '--disc': `${disc}px` } as CSSProperties & Record<string, string>;
   if (seat.placement === 'below') return { ...base, flexDirection: 'column', transform: `translate(-50%, ${-(disc / 2 + 4)}px)` };
   if (seat.placement === 'above') return { ...base, flexDirection: 'column-reverse', transform: `translate(-50%, calc(-100% + ${disc / 2 + 4}px))` };
   // beside: the disc on the side nearer the centre, the words growing away from it
   const right = seat.side !== 'left';
-  return { ...base, flexDirection: right === !rtl ? 'row' : 'row-reverse', transform: right ? `translate(${-(disc / 2 + 4)}px, -50%)` : `translate(calc(-100% + ${disc / 2 + 4}px), -50%)` };
+  return { ...base, flexDirection: right ? 'row' : 'row-reverse', transform: right ? `translate(${-(disc / 2 + 4)}px, -50%)` : `translate(calc(-100% + ${disc / 2 + 4}px), -50%)` };
 }
 
 /** A label's measure: 9.5rem at most, less where the stage edge is nearer (the stage pads 24 px around the frame). */
@@ -263,12 +260,12 @@ export function TeamDots({ team, directorId, working, disc, towards }: { team: O
 
 /** One 2 px ring per production in flight (at most three), 6 px apart outside the orchestrator: the track in the
  *  hairline, the arc the share of stages done — the accent for a production with a job running. */
-function ProductionRings({ c, size, rtl }: { c: Company; size: number; rtl: boolean }) {
+function ProductionRings({ c, size }: { c: Company; size: number }) {
   const rings = c.inFlight.slice(0, 3);
   if (!rings.length) return null;
   const box = size + 2 * (6 * 3 + 4);
   return (
-    <svg className="co-rings" width={box} height={box} viewBox={`0 0 ${box} ${box}`} aria-hidden focusable="false" style={rtl ? { transform: 'translate(-50%, -50%) scaleX(-1)' } : undefined}>
+    <svg className="co-rings" width={box} height={box} viewBox={`0 0 ${box} ${box}`} aria-hidden focusable="false">
       {rings.map((p, k) => {
         const r = size / 2 + 6 * (k + 1); const circ = 2 * Math.PI * r; const frac = Math.max(0, Math.min(1, p.done / p.total));
         return (
@@ -284,7 +281,6 @@ function ProductionRings({ c, size, rtl }: { c: Company; size: number; rtl: bool
 
 /** What the lines mean, under the stage. */
 export function EdgeLegend() {
-  const T = useT();
   const sw = (cl: string, extra?: ReactNode) => <svg width="22" height="8" viewBox="0 0 22 8" aria-hidden><path d="M1 4 H21" className={cl} />{extra}</svg>;
   return (
     <ul className="co-legend" aria-label={T('co.legend')}>
@@ -298,14 +294,13 @@ export function EdgeLegend() {
 
 /** The stage while the organisation loads: the orbit and nine empty seats, no shimmer. */
 export function StageSkeleton() {
-  const rtl = useRtl();
   return (
     <div className="co-stage" aria-busy>
       <div className="co-frame">
         <svg className="co-lines" viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} aria-hidden>
           <ellipse className="co-orbit" cx={VIEW.cx} cy={VIEW.cy} rx={VIEW.rx} ry={VIEW.ry} vectorEffect="non-scaling-stroke" />
           <circle cx={VIEW.cx} cy={VIEW.cy} r={80} fill="none" stroke="var(--line)" vectorEffect="non-scaling-stroke" />
-          {seats(rtl).map((p) => <circle key={p.id} cx={p.x} cy={p.y} r={36} fill="none" stroke="var(--line)" vectorEffect="non-scaling-stroke" />)}
+          {seats().map((p) => <circle key={p.id} cx={p.x} cy={p.y} r={36} fill="none" stroke="var(--line)" vectorEffect="non-scaling-stroke" />)}
         </svg>
       </div>
     </div>
@@ -317,8 +312,6 @@ export function StageSkeleton() {
 /** The company as a spine (< 768 px, or "View as list"): the orchestrator's panel, then the departments in production
  *  order joined by a line that lights where a handoff passed in the last 90 minutes. Rows never truncate. */
 export function CompanySpine({ org, company: c, orchestrator }: { org: OrgResponse; company: Company; orchestrator: ReactNode }) {
-  const T = useT();
-  const rtl = useRtl();
   const depts = RING.map((id) => org.departments.find((d) => d.id === id)).filter((d): d is OrgDepartment => Boolean(d));
   const litBetween = (a: string, b: string) => c.edges.some((e) => e.recentCount > 0 && ((e.from === a && e.to === b) || (e.from === b && e.to === a)));
   return (
@@ -335,13 +328,13 @@ export function CompanySpine({ org, company: c, orchestrator }: { org: OrgRespon
             return (
               <li key={d.id} data-lit-above={i > 0 && litBetween(depts[i - 1].id, d.id) ? true : undefined} data-state={line.state}>
                 <Link href={`/studio/departments/${d.id}`} className="co-spine-row" aria-label={nodeAria(T, org, c, d)}>
-                  <span className="co-disc co-disc-sm"><Icon className="co-icon" /><TeamDots team={team} directorId={d.directorId} working={c.workingAgents.get(d.id) ?? new Set()} disc={40} towards={rtl ? Math.PI : 0} /></span>
+                  <span className="co-disc co-disc-sm"><Icon className="co-icon" /><TeamDots team={team} directorId={d.directorId} working={c.workingAgents.get(d.id) ?? new Set()} disc={40} towards={0} /></span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold leading-5 text-fg" dir="auto">{deptName(d, T.locale)}</span>
+                    <span className="block text-[15px] font-semibold leading-5 text-fg" dir="auto">{d.name}</span>
                     <span className="co-state mt-0.5">{line.text}</span>
-                    {far.map((e) => <span key={e.key} className="mt-0.5 block text-xs text-faint">→ {deptName(org.departments.find((x) => x.id === e.to) ?? d, T.locale)} · {fmtAgo(e.latest.createdAt, T.locale)}</span>)}
+                    {far.map((e) => <span key={e.key} className="mt-0.5 block text-xs text-faint">→ {(org.departments.find((x) => x.id === e.to) ?? d).name} · {fmtAgo(e.latest.createdAt)}</span>)}
                   </span>
-                  <IconChevronRight aria-hidden className="size-4 flex-none text-faint rtl:rotate-180" />
+                  <IconChevronRight aria-hidden className="size-4 flex-none text-faint" />
                 </Link>
               </li>
             );
@@ -354,9 +347,8 @@ export function CompanySpine({ org, company: c, orchestrator }: { org: OrgRespon
 
 /** The latest handoffs across the company, as rows on the ground. */
 export function RecentHandoffs({ org, limit = 8 }: { org: OrgResponse; limit?: number }) {
-  const T = useT();
   const { state } = useStudio();
-  const name = (id: string | null) => { const d = org.departments.find((x) => x.id === id); return d ? deptName(d, T.locale) : '—'; };
+  const name = (id: string | null) => { const d = org.departments.find((x) => x.id === id); return d ? d.name : '—'; };
   const rows = [...org.handoffs].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
   return (
     <section aria-labelledby="co-recent-h" className="mt-[var(--section)]">
@@ -370,7 +362,7 @@ export function RecentHandoffs({ org, limit = 8 }: { org: OrgResponse; limit?: n
               <span className="text-muted">{T.dyn(`pipeline.${h.stage}`, h.stage)}</span>
               {p && <span className="text-muted" dir="auto">{p.title}</span>}
               {h.validation.checks.length > 0 && <span className="text-faint">{T.f('co.checksPassed', { ok: passed, n: h.validation.checks.length })}</span>}
-              <span className="num ms-auto text-xs text-faint">{fmtAgo(h.createdAt, T.locale)}</span>
+              <span className="num ms-auto text-xs text-faint">{fmtAgo(h.createdAt)}</span>
             </li>
           ); })}
         </ol>

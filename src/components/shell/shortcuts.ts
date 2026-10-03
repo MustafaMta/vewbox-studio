@@ -1,4 +1,4 @@
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 
 /** KEYBOARD SHORTCUTS (docs/DESIGN-SYSTEM-V4.md §7.5, §5.12, §5.14, §6.6) — which key does what, and when the global
  *  layer must stay out of the way. Pure: tests/unit/f4-shortcuts.test.ts.

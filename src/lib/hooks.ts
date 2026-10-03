@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type EngineStatus } from '@/studio/api';
 import { useConfirm } from '@/components/ui/kit/Overlay';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 
 /** Live engine health, read once on mount and again on demand (Check again), for the preflight of a GPU button.
  *  `status` stays null until the first answer: nothing is gated on a guess. */
@@ -39,7 +39,6 @@ export function useTab<T extends string>(all: readonly T[], fallback: T): [T, (t
 export function useUnsavedGuard(dirty: boolean, message: string) {
   const confirm = useConfirm();
   const router = useRouter();
-  const T = useT();
   const discard = T('btn.discard');
   useEffect(() => {
     if (!dirty) return;

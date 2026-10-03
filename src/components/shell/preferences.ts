@@ -3,10 +3,10 @@
 import { useSyncExternalStore } from 'react';
 
 /** INTERFACE PREFERENCES (docs/DESIGN-SYSTEM-V4.md §4.9) — kept in this browser under the `vewbox.ui` key that the
- *  language and motion settings already used, and applied to <html> as attributes so CSS and any component can read
- *  them without parsing storage. src/app/boot.ts applies the same attributes before the first paint; this module keeps
- *  them current afterwards. Language and Reduce motion stay studio settings (the store); they are mirrored here only
- *  so the boot can apply them before the snapshot arrives.
+ *  motion setting already used, and applied to <html> as attributes so CSS and any component can read them without
+ *  parsing storage. src/app/boot.ts applies the same attributes before the first paint; this module keeps them current
+ *  afterwards. Reduce motion stays a studio setting (the store); it is mirrored here only so the boot can apply it
+ *  before the snapshot arrives.
  *
  *    <html data-contrast="more|standard">   absent = follow the system (tokens.css: prefers-contrast)
  *    <html data-cutting-density="comfortable">   absent = compact (the cutting room's default; <Room> applies it)
@@ -17,7 +17,6 @@ import { useSyncExternalStore } from 'react';
 export type Contrast = 'more' | 'standard';
 export type NavShape = 'rail' | 'sidebar';
 export interface UiPrefs {
-  locale?: 'en' | 'ar';
   motion?: boolean;
   contrast?: Contrast;
   density?: 'compact' | 'comfortable';
@@ -36,7 +35,6 @@ export function parsePrefs(raw: string | null | undefined): UiPrefs {
   const shape = (x: unknown): NavShape | undefined => (x === 'rail' || x === 'sidebar' ? x : undefined);
   const nav = u.nav && typeof u.nav === 'object' ? (u.nav as Record<string, unknown>) : {};
   return {
-    locale: u.locale === 'ar' ? 'ar' : u.locale === 'en' ? 'en' : undefined,
     motion: typeof u.motion === 'boolean' ? u.motion : undefined,
     contrast: u.contrast === 'more' || u.contrast === 'standard' ? u.contrast : undefined,
     density: u.density === 'comfortable' || u.density === 'compact' ? u.density : undefined,

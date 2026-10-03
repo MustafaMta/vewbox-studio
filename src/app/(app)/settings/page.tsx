@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
 import { JOB_LABELS, type JobType } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader, Section } from '@/components/ui/page';
-import { Button, ConfirmButton, Field, Segmented, Select, Status, Toggle } from '@/components/ui/kit';
+import { Button, ConfirmButton, Field, Select, Status, Toggle } from '@/components/ui/kit';
 import { IconRetry } from '@/components/ui/icons';
 import { aspectLabel, dialectLabel } from '@/lib/format';
 
@@ -22,7 +22,6 @@ const fmtGb = (b?: number | null) => (b ? `${(b / 1073741824).toFixed(b > 10 * 1
 /** MODELS AND RELIABILITY — the registry rows (what weights exist and whether their engine sees them) and job
  *  outcomes with timings, straight from the database. Nothing here is estimated. */
 function RegistryPanels() {
-  const T = useT();
   const [reg, setReg] = useState<RegistryBody | null>(null);
   const [met, setMet] = useState<MetricsBody | null>(null);
   const [open, setOpen] = useState(false);
@@ -57,7 +56,7 @@ function RegistryPanels() {
           {met && met.jobs.length === 0 && <p className="px-5 py-3 text-[12.5px] text-muted">{T('reliability.none')}</p>}
           {met?.jobs.map((j) => (
             <div key={j.type} className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5">
-              <p className="text-[13px] font-medium text-fg">{JOB_LABELS[j.type as JobType]?.[T.locale] ?? j.type}</p>
+              <p className="text-[13px] font-medium text-fg">{JOB_LABELS[j.type as JobType] ?? j.type}</p>
               <p className="num text-[12.5px] text-muted">{j.completed} {T('reliability.completed')} · {j.failed} {T('reliability.failed')} · {j.cancelled} {T('reliability.cancelled')}{j.running ? ` · ${j.running} ${T('reliability.running')}` : ''} · {T('reliability.attempts')} {j.meanAttempts.toFixed(2)} · p50 {fmtMs(j.p50Ms)}</p>
             </div>
           ))}
@@ -76,7 +75,6 @@ function RegistryPanels() {
 /** SETTINGS — the interface, defaults for new projects, the engines (what runs where, live), and the studio's data:
  *  what it holds, how it began, and the one way to empty it. */
 export default function SettingsPage() {
-  const T = useT();
   const { state, act, startEmpty, seeded, connected } = useStudio();
   const toast = useToast();
   const s = state.settings;
@@ -84,7 +82,7 @@ export default function SettingsPage() {
   const empty = state.productions.length + state.characters.length + state.locations.length + state.shows.length === 0;
   const files = state.assets.filter((a) => !a.sample).length;
   const holds = T.f('settings.data.holds', { productions: state.productions.length, characters: state.characters.length, locations: state.locations.length, files });
-  const began = seeded?.at ? T.f(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty', { date: new Date(seeded.at).toLocaleDateString(T.locale === 'ar' ? 'ar-IQ' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' }) }) : null;
+  const began = seeded?.at ? T.f(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty', { date: new Date(seeded.at).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }) }) : null;
   const [status, setStatus] = useState<StatusBody | null>(null);
   const [checking, setChecking] = useState(false);
   const check = () => { setChecking(true); fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then(setStatus).catch(() => setStatus(null)).finally(() => setChecking(false)); };
@@ -95,8 +93,6 @@ export default function SettingsPage() {
       <PageHeader title={T('nav.settings')} subtitle={T('settings.lead')} className="mb-0" />
       <Section title={T('settings.interface')}>
         <div className="card space-y-5 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[13.5px] font-medium text-fg">{T('label.interfaceLanguage')}</span><Segmented label={T('label.interfaceLanguage')} value={s.uiLanguage} onChange={(v) => set({ uiLanguage: v })} options={[{ value: 'en', label: 'English' }, { value: 'ar', label: 'العربية' }]} /></div>
-          <div className="divider" />
           <Toggle label={T('settings.motion')} help={T('settings.motion.hint')} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
         </div>
       </Section>
@@ -105,7 +101,7 @@ export default function SettingsPage() {
           <Field label={T('label.style')}><Select value={s.defaults.style} onChange={(e) => set({ defaults: { ...s.defaults, style: e.target.value as typeof s.defaults.style } })} options={STYLES.map((x) => ({ value: x, label: T.dyn(`style.${x}`) }))} /></Field>
           <Field label={T('label.aspect')}><Select value={s.defaults.aspect} onChange={(e) => set({ defaults: { ...s.defaults, aspect: e.target.value as typeof s.defaults.aspect } })} options={ASPECTS.map((x) => ({ value: x, label: aspectLabel(x) }))} /></Field>
           <Field label={T('label.language')}><Select value={s.defaults.language} onChange={(e) => set({ defaults: { ...s.defaults, language: e.target.value as typeof s.defaults.language } })} options={LANGUAGES.map((x) => ({ value: x, label: x === 'EN' ? T('label.english') : T('label.arabic') }))} /></Field>
-          <Field label={T('label.dialect')}><Select value={s.defaults.dialect} onChange={(e) => set({ defaults: { ...s.defaults, dialect: e.target.value as typeof s.defaults.dialect } })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x, T.locale) }))} /></Field>
+          <Field label={T('label.dialect')}><Select value={s.defaults.dialect} onChange={(e) => set({ defaults: { ...s.defaults, dialect: e.target.value as typeof s.defaults.dialect } })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} /></Field>
         </div>
       </Section>
       <Section id="generation" title={T('status.title')} description={T('status.lead')} action={<Button size="sm" icon={<IconRetry />} loading={checking} onClick={check}>{T('btn.refresh')}</Button>}>

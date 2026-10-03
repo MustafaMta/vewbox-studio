@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCompare } from '@/components/ui/icons';
 
@@ -12,7 +12,6 @@ import { IconCompare } from '@/components/ui/icons';
 export interface Version { id: string; n: number; note?: string }
 
 export function VersionStack({ versions, current, onPick, onCompare, className }: { versions: Version[]; current?: string; onPick?: (id: string) => void; onCompare?: (a: string, b: string) => void; className?: string }) {
-  const T = useT();
   const [comparing, setComparing] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const toggle = (id: string) => {

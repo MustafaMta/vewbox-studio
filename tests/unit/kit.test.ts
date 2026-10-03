@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createElement as h, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { STUDIO_ERROR_CODES } from '@/domain/errors';
-import { KEYS, t } from '@/lib/i18n';
+import { KEYS, T } from '@/lib/copy';
 import { ENGINE_NAMES } from '../../scripts/v4-lint.mjs';
 import * as Kit from '@/components/ui/kit';
 import * as Page from '@/components/ui/page';
@@ -126,7 +126,7 @@ describe('choices and tabs render as one radiogroup / tablist with one Tab stop'
 describe('status, states and overlays say it in words', () => {
   it('StateWord carries its tone; IdentityState uses the contract words', () => {
     expect(html(h(Kit.StateWord, { tone: 'waiting', children: 'Waiting for you' }))).toContain('data-tone="waiting"');
-    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain(t('en', 'kit.identity.draft'));
+    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain(T('kit.identity.draft'));
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 2 }))).toContain('Locked · in 2 videos');
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 1 }))).toContain('Locked · in 1 video');
     expect(html(h(Kit.StageWord, { stage: 'PRODUCE' }))).toContain('Producing');
@@ -171,22 +171,20 @@ describe('every v3 export still works (re-export shims until Q1, §8.2 rule 6)',
   });
 });
 
-describe('AUDIT D6 — every StudioError code has plain words in both languages and its own recovery', () => {
+describe('AUDIT D6 — every StudioError code has plain words and its own recovery', () => {
   it('KNOWN is the table of every code (typed Record<StudioErrorCode, …>), including CONSENT_REQUIRED and ASSET_PROTECTED', () => {
     for (const code of STUDIO_ERROR_CODES) { expect(KNOWN[code], code).toBeTruthy(); expect(KNOWN[code]).toBe(ERROR_COPY[code]); }
     expect(KNOWN.CONSENT_REQUIRED.kind).toBe('consent');
     expect(KNOWN.ASSET_PROTECTED.kind).toBe('usage');
   });
-  it('the words exist in English and Arabic, differ between them, and name no engine', () => {
+  it('the words exist and name no engine', () => {
     const engine = new RegExp(`\\b(${ENGINE_NAMES.join('|')})`, 'i');
     for (const [code, e] of Object.entries(ERROR_COPY)) {
       for (const k of [e.title, e.hint, e.fix]) {
         expect(KEYS, `${code}: ${k}`).toContain(k);
-        const en = t('en', k); const ar = t('ar', k);
-        expect(en.trim(), `${code} ${k} en`).not.toBe('');
-        expect(ar, `${code} ${k} ar`).toMatch(/[؀-ۿ]/);
-        expect(ar).not.toBe(en);
-        expect(`${en} ${ar}`, `${code} ${k}`).not.toMatch(engine);
+        const en = T(k);
+        expect(en.trim(), `${code} ${k}`).not.toBe('');
+        expect(en, `${code} ${k}`).not.toMatch(engine);
       }
     }
   });
@@ -194,8 +192,8 @@ describe('AUDIT D6 — every StudioError code has plain words in both languages 
     let copy: ErrorCopy | null = null;
     const Probe = () => { copy = useErrorCopy()({ code: 'CONSENT_REQUIRED', message: 'Recording sample-3 has no consent statement (MiniMax clone refused)' }); return null; };
     html(h(Probe));
-    expect(copy!.title).toBe(t('en', 'err.CONSENT_REQUIRED'));
-    expect(copy!.hint).toBe(t('en', 'err.CONSENT_REQUIRED.hint'));
+    expect(copy!.title).toBe(T('err.CONSENT_REQUIRED'));
+    expect(copy!.hint).toBe(T('err.CONSENT_REQUIRED.hint'));
     expect(copy!.detail).toContain('no consent statement');
     expect(copy!.fix.kind).toBe('consent');
     const out = html(h(FailureNotice, { copy: copy! }));
@@ -205,7 +203,7 @@ describe('AUDIT D6 — every StudioError code has plain words in both languages 
     let unknown: ErrorCopy | null = null;
     const Probe2 = () => { unknown = useErrorCopy()({ code: 'ECONNRESET', message: 'socket hang up' }); return null; };
     html(h(Probe2));
-    expect(unknown!.title).toBe(t('en', 'err.unknown'));
+    expect(unknown!.title).toBe(T('err.unknown'));
     expect(unknown!.hint).not.toContain('socket');
     expect(unknown!.fix.kind).toBe('retry');
   });

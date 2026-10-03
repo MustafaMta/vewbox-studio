@@ -97,12 +97,12 @@ export async function syncOrg(): Promise<{ departments: number; agents: number; 
   }
   await db().transaction(async (tx) => {
     for (const d of DEPARTMENTS) {
-      const plannedRoles = PLANNED_ROLES.filter((r) => r.department === d.id).map((r) => ({ id: r.id, name: r.name, nameAr: r.nameAr, would: r.would, reason: r.reason, reasonAr: r.reasonAr, phase: r.phase }));
-      const r: typeof schema.departments.$inferInsert = { id: d.id, name: d.name, nameAr: d.nameAr, directorId: d.directorId, responsibility: d.responsibility, responsibilityAr: d.responsibilityAr, stages: d.stages, order: d.order, plannedRoles, orgVersion: ORG_VERSION, updatedAt: now };
+      const plannedRoles = PLANNED_ROLES.filter((r) => r.department === d.id).map((r) => ({ id: r.id, name: r.name, would: r.would, reason: r.reason, phase: r.phase }));
+      const r: typeof schema.departments.$inferInsert = { id: d.id, name: d.name, directorId: d.directorId, responsibility: d.responsibility, stages: d.stages, order: d.order, plannedRoles, orgVersion: ORG_VERSION, updatedAt: now };
       await tx.insert(schema.departments).values(r).onConflictDoUpdate({ target: schema.departments.id, set: r });
     }
     for (const a of AGENTS) {
-      const r: typeof schema.agents.$inferInsert = { id: a.id, name: a.name, nameAr: a.nameAr, departmentId: a.department, role: a.role, roleAr: a.roleAr, description: a.description, descriptionAr: a.descriptionAr, steps: a.steps, payloadRoutes: a.payloadRoutes ?? [], systemInstructions: a.systemInstructions, model: a.model, skills: a.skills, tools: a.tools, inputSchema: a.inputSchema, outputSchema: a.outputSchema, limits: a.limits, version: a.version, qualityRequirements: a.qualityRequirements, jobTypes: a.jobTypes, orgVersion: ORG_VERSION, updatedAt: now };
+      const r: typeof schema.agents.$inferInsert = { id: a.id, name: a.name, departmentId: a.department, role: a.role, description: a.description, steps: a.steps, payloadRoutes: a.payloadRoutes ?? [], systemInstructions: a.systemInstructions, model: a.model, skills: a.skills, tools: a.tools, inputSchema: a.inputSchema, outputSchema: a.outputSchema, limits: a.limits, version: a.version, qualityRequirements: a.qualityRequirements, jobTypes: a.jobTypes, orgVersion: ORG_VERSION, updatedAt: now };
       await tx.insert(schema.agents).values(r).onConflictDoUpdate({ target: schema.agents.id, set: r });
     }
     for (const t of TOOLS) { const r: typeof schema.tools.$inferInsert = { id: t.id, name: t.name, description: t.description, version: t.version, inputSchema: t.inputSchema, outputSchema: t.outputSchema, permissions: t.permissions, timeoutMs: t.timeoutMs, resource: t.resource, vramMb: t.vramMb ?? null, errors: t.errors, orgVersion: ORG_VERSION, updatedAt: now }; await tx.insert(schema.tools).values(r).onConflictDoUpdate({ target: schema.tools.id, set: r }); }
@@ -139,9 +139,9 @@ export async function readOrg(): Promise<OrgSnapshot> {
   ]);
   return {
     version: deps[0]?.orgVersion ?? ORG_VERSION,
-    departments: deps.map((d) => ({ id: d.id as DepartmentDef['id'], name: d.name, nameAr: d.nameAr ?? '', directorId: d.directorId, responsibility: d.responsibility, responsibilityAr: d.responsibilityAr ?? '', stages: d.stages as DepartmentDef['stages'], order: d.order, plannedRoles: d.plannedRoles ?? [] })),
+    departments: deps.map((d) => ({ id: d.id as DepartmentDef['id'], name: d.name, directorId: d.directorId, responsibility: d.responsibility, stages: d.stages as DepartmentDef['stages'], order: d.order, plannedRoles: (d.plannedRoles ?? []).map((r) => ({ id: r.id, name: r.name, would: r.would, reason: r.reason, phase: r.phase })) })),
     agents: ags.map((a) => {
-      const def: AgentDef = { id: a.id, name: a.name, nameAr: a.nameAr ?? '', department: a.departmentId as AgentDef['department'], role: a.role, roleAr: a.roleAr ?? '', description: a.description, descriptionAr: a.descriptionAr ?? '', systemInstructions: a.systemInstructions, model: a.model, skills: a.skills, tools: a.tools, inputSchema: a.inputSchema, outputSchema: a.outputSchema, limits: a.limits as AgentDef['limits'], version: a.version, qualityRequirements: a.qualityRequirements, jobTypes: a.jobTypes as AgentDef['jobTypes'], payloadRoutes: (a.payloadRoutes ?? []) as AgentDef['payloadRoutes'], steps: a.steps ?? [] };
+      const def: AgentDef = { id: a.id, name: a.name, department: a.departmentId as AgentDef['department'], role: a.role, description: a.description, systemInstructions: a.systemInstructions, model: a.model, skills: a.skills, tools: a.tools, inputSchema: a.inputSchema, outputSchema: a.outputSchema, limits: a.limits as AgentDef['limits'], version: a.version, qualityRequirements: a.qualityRequirements, jobTypes: a.jobTypes as AgentDef['jobTypes'], payloadRoutes: (a.payloadRoutes ?? []) as AgentDef['payloadRoutes'], steps: (a.steps ?? []).map((s) => ({ id: s.id, name: s.name, where: s.where })) };
       return { ...def, instructionsReachModel: callsModel(def) };
     }),
     tools: tls.map((t) => ({ id: t.id, name: t.name, description: t.description, version: t.version, inputSchema: t.inputSchema, outputSchema: t.outputSchema, permissions: t.permissions, timeoutMs: t.timeoutMs, resource: t.resource as ToolDef['resource'], vramMb: t.vramMb ?? undefined, errors: t.errors, contract: contractJsonSchema(t.id) })),

@@ -49,17 +49,14 @@ describe('waitingDecisions', () => {
 
 describe('page titles the shell adds (§7.3)', () => {
   const f = buildFixture('states');
-  const title = (lang: 'en' | 'ar', pathname: string, waiting?: number) => documentTitle({ pathname, state: f.state, locale: lang, waiting });
+  const title = (pathname: string, waiting?: number) => documentTitle({ pathname, state: f.state, waiting });
   it('Production carries the waiting decisions in front, only when there are some', () => {
-    expect(title('en', '/production', 3)).toBe('(3) Production · Vewbox Studio');
-    expect(title('ar', '/production', 2)).toBe('(2) الإنتاج · استوديو فيوبوكس');
-    expect(title('en', '/production', 0)).toBe('Production · Vewbox Studio');
-    expect(title('en', '/shows', 3)).toBe('Shows · Vewbox Studio');
+    expect(title('/production', 3)).toBe('(3) Production · Vewbox Studio');
+    expect(title('/production', 0)).toBe('Production · Vewbox Studio');
+    expect(title('/shows', 3)).toBe('Shows · Vewbox Studio');
   });
   it('names the dev-only kit pages', () => {
-    expect(title('en', '/kit')).toBe('Interface kit · Vewbox Studio');
-    expect(title('en', '/kit-media')).toBe('Media kit · Vewbox Studio');
-    expect(title('ar', '/kit')).toBe('مجموعة الواجهة · استوديو فيوبوكس');
-    expect(title('ar', '/kit-media')).toBe('مجموعة الوسائط · استوديو فيوبوكس');
+    expect(title('/kit')).toBe('Interface kit · Vewbox Studio');
+    expect(title('/kit-media')).toBe('Media kit · Vewbox Studio');
   });
 });

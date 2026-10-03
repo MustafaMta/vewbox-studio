@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useT } from '../../locale';
+import { T } from '@/lib/copy';
 import { useToast } from '../../toast';
 import { IconAuto, IconClose, IconDelete, IconDuplicate, IconEdit, IconKeyboard, IconManual, IconMore, IconPlus } from '../../icons';
 import { Button } from '../Button';
@@ -11,7 +11,6 @@ import { StateWord } from '../Status';
 import { Cell, SpecRow, SpecSection, Still } from './parts';
 
 export function OverlaysSpec() {
-  const T = useT();
   const toast = useToast();
   const confirm = useConfirm();
   const ask = useAsk();

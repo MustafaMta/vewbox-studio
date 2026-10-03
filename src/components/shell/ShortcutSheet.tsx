@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Toggle } from '@/components/ui/kit';
 import { SHORTCUT_SCOPES, type KeyName } from './shortcuts';
 import { usePrefs, writePrefs } from './preferences';
@@ -12,7 +12,6 @@ import { useModLabel } from './Sidebar';
  *  shortcuts in the navigation. The shortcuts by scope (Global · Player · Storyboard · Timeline), with the on/off
  *  preference for single-key shortcuts (WCAG 2.1.4). Key combinations are written left to right in both languages. */
 export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const T = useT();
   return (
     <ShellDialog open={open} onClose={onClose} title={T('shell.keys.title')} placement="center" width={720} className="keys-dialog">
       <SheetBody />
@@ -21,14 +20,12 @@ export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () =>
 }
 
 function Keys({ combo }: { combo: KeyName[] }) {
-  const T = useT();
   const mod = useModLabel();
   const name = (k: KeyName) => (k === 'Mod' ? mod : k === 'Space' ? T('shell.key.space') : k === 'Click' ? T('shell.key.click') : k === 'Scroll' ? T('shell.key.scroll') : k);
   return <span className="keys-combo">{combo.map((k, i) => <Fragment key={i}>{i > 0 && <span aria-hidden>+</span>}<kbd className="shell-kbd">{name(k)}</kbd></Fragment>)}</span>;
 }
 
 function SheetBody() {
-  const T = useT();
   const prefs = usePrefs();
   const on = prefs.keys !== false;
   return (

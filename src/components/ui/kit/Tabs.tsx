@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { cls } from './cls';
 import { isRtl, rovingIndex, rovingStep } from './focus';
 import { useRootVarContribution } from './layout';
@@ -67,7 +67,6 @@ export function sectionInView(tops: ReadonlyArray<{ id: string; top: number }>, 
  *  section in view gets aria-current="true" (scrollspy). Jumps respect scroll-padding (§2.1). On a phone it is a
  *  row of chips that scrolls sideways. */
 export function AnchorNav({ items, label, className = '', sticky = true }: { items: ReadonlyArray<{ id: string; label: ReactNode }>; label?: string; className?: string; sticky?: boolean }) {
-  const T = useT();
   const [current, setCurrent] = useState<string | null>(items[0]?.id ?? null);
   // while it sticks, its height joins --sticky-extra, so a jump to a section lands below it (scroll-padding, §2.1)
   const nav = useRef<HTMLElement>(null);
@@ -110,7 +109,6 @@ export function AnchorNav({ items, label, className = '', sticky = true }: { ite
 /** Deep paths: Show › Season 1 › Episode 3 › Shot 12. The last item is the current page (no link). On a phone the
  *  middle collapses into a "…" menu. The separators mirror in Arabic. */
 export function Crumbs({ items, className = '' }: { items: ReadonlyArray<{ href?: string; label: string }>; className?: string }) {
-  const T = useT();
   const last = items.length - 1;
   const item = (it: { href?: string; label: string }, i: number) => (
     <li key={i}>

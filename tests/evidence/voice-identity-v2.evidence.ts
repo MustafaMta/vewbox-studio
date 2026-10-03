@@ -116,7 +116,7 @@ describe('voice identity v2 — real engines', () => {
   it('A: AUTOMATIC English, B: AUTOMATIC MSA, C: DESIGN, D: Iraqi refusal, E: the designed-Iraqi experiment', async () => {
     fs.mkdirSync(OUT, { recursive: true });
     fs.mkdirSync(env().LIBRARY_ROOT, { recursive: true });
-    mem.state = emptyStudio({ uiLanguage: 'en', reducedMotion: false, defaults: { style: 'REALISTIC', language: 'EN', dialect: 'IRAQI_BAGHDADI', aspect: 'WIDE_16_9' } });
+    mem.state = emptyStudio({ reducedMotion: false, defaults: { style: 'REALISTIC', language: 'EN', dialect: 'IRAQI_BAGHDADI', aspect: 'WIDE_16_9' } });
     const report: Record<string, unknown> = {
       createdAt: new Date().toISOString(),
       harness: 'tests/evidence/voice-identity-v2.evidence.ts (vitest.evidence.config.ts)',

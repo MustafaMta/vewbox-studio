@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { Stage } from '@/domain/vocabulary';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconClose, IconShield } from '../icons';
 import { cls } from './cls';
 
@@ -34,7 +34,6 @@ export function StatusStrip({ href, children, className = '' }: { href: string; 
  *  pickers, cast rows). `videos` is how many videos the locked identity appeared in, when that is known. */
 export type Identity = 'draft' | 'approved' | 'locked' | 'none';
 export function IdentityState({ state, videos, className = '' }: { state: Identity; videos?: number; className?: string }) {
-  const T = useT();
   if (state === 'draft') return <StateWord tone="waiting" className={className}>{T('kit.identity.draft')}</StateWord>;
   if (state === 'approved') return <StateWord tone="done" className={className}>{T('kit.identity.approved')}</StateWord>;
   if (state === 'locked') {
@@ -51,14 +50,12 @@ export function IdentityState({ state, videos, className = '' }: { state: Identi
 /** A production's stage in words (§5.10), then the pipeline's sub-state when it is true: "Storyboard · Waiting for
  *  you", "Producing · Running · drawing shot 7 of 20", "Story · Refused by QA". The tone follows the sub-state. */
 export function StageWord({ stage, sub, tone, className = '' }: { stage: Stage; sub?: ReactNode; tone?: StateTone; className?: string }) {
-  const T = useT();
   const t: StateTone = tone ?? (stage === 'COMPLETE' ? 'done' : 'idle');
   return <StateWord tone={t} className={className}>{T.dyn(`kit.stage.${stage}`)}{sub ? <> · {sub}</> : null}</StateWord>;
 }
 
 /** The pipeline's sub-states in words, for StageWord's `sub`. */
 export function useStageSub() {
-  const T = useT();
   return {
     waiting: T('kit.sub.waiting'),
     running: (what?: string) => (what ? `${T('kit.state.running')} · ${what}` : T('kit.state.running')),
@@ -69,7 +66,6 @@ export function useStageSub() {
 /** A filter that is on, under the catalogue bar: a 32 px pill on --raised-2, the label, and × (a 24 × 24 target)
  *  that removes it. */
 export function FilterChip({ children, onRemove, className = '' }: { children: ReactNode; onRemove: () => void; className?: string }) {
-  const T = useT();
   const label = typeof children === 'string' ? children : '';
   return (
     <span className={cls('filter-chip', className)}>
@@ -102,6 +98,5 @@ export function Status({ tone = 'neutral', children, live, title, className = ''
 }
 /** The one word on every bundled picture, clip and sound: this is sample content. */
 export function SampleMark({ className = '' }: { className?: string }) {
-  const T = useT();
   return <span className={cls('mark', className)}>{T('label.sample')}</span>;
 }

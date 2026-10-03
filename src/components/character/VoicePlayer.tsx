@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay } from '@/components/ui/icons';
 import { usePlayer, useTrackState, fmtClock, type Track } from '@/components/players/PlayerProvider';
@@ -15,7 +15,6 @@ import { peaksFor } from '@/components/players/Waveform';
 export function VoicePlayer({ track, name, detail, source, compact, selected, action, unavailableText, className = '' }: {
   track: Track | null; name: string; detail?: ReactNode; source?: 'SAMPLE' | 'UPLOADED' | 'GENERATED'; compact?: boolean; selected?: boolean; action?: ReactNode; unavailableText?: string; className?: string;
 }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   const busy = st.mine && p.status === 'loading' && !p.playing;
@@ -53,7 +52,6 @@ export function VoicePlayer({ track, name, detail, source, compact, selected, ac
 /** The waveform as a seek slider: the peaks come from the decoded file; while they load (or if the file cannot be
  *  decoded) a plain line stands in, still seekable — nothing is invented. */
 function Wave({ track, bars, height, className = '', label }: { track: Track; bars: number; height: number; className?: string; label: string }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   const canvas = useRef<HTMLCanvasElement>(null);

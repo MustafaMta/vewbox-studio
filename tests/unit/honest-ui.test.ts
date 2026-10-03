@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { STUDIO_ERROR_CODES } from '@/domain/errors';
-import { KEYS, t } from '@/lib/i18n';
+import { KEYS, T } from '@/lib/copy';
 import { saveStateOf } from '@/studio/save-state';
 import { briefOriginKey } from '@/studio/selectors';
 import { ERROR_COPY, RecoveryAction, type ErrorCopy } from '@/components/ui/progress';
@@ -20,8 +20,8 @@ describe('D1 — the shell says "saved" only when nothing is waiting', () => {
     // a failure that left nothing behind (the queue drained on the next attempt) is saved
     expect(saveStateOf({ pending: 0, inflight: 0, failures: 2 })).toBe('saved');
   });
-  it('the three phrases exist in both languages', () => {
-    for (const k of ['app.saved', 'app.saving', 'app.unsaved'] as const) { expect(t('en', k)).toBeTruthy(); expect(t('ar', k)).toBeTruthy(); }
+  it('the three phrases exist (the shell reads shell.save.*)', () => {
+    for (const k of ['shell.save.saved', 'shell.save.saving', 'shell.save.unsaved'] as const) expect(T(k)).toBeTruthy();
   });
 });
 
@@ -30,15 +30,14 @@ describe('D3 — a proposal the story engine wrote is never labelled a sample', 
     expect(briefOriginKey({ mode: 'AUTO_IDEA' })).toBe('story.autoIdea');
     expect(briefOriginKey({ mode: 'AUTO_IDEA', fromSampleProposal: true })).toBe('story.autoIdea.example');
     expect(briefOriginKey({ mode: 'MANUAL' })).toBe('story.manual');
-    expect(t('en', 'story.autoIdea')).not.toMatch(/sample|example/i);
-    expect(t('en', 'story.autoIdea.example')).toMatch(/example/i);
+    expect(T('story.autoIdea')).not.toMatch(/sample|example/i);
+    expect(T('story.autoIdea.example')).toMatch(/example/i);
   });
 });
 
 describe('D4 — the written example does not claim the studio is unconnected', () => {
   it('no "once it is connected"', () => {
-    expect(t('en', 'auto.sampleBody')).not.toMatch(/connected/i);
-    expect(t('ar', 'auto.sampleBody')).not.toContain('عند الاتصال');
+    expect(T('auto.sampleBody')).not.toMatch(/connected/i);
   });
 });
 

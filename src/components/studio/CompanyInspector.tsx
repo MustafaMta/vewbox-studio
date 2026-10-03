@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { agentName, agentRole, approveStage, deptName, deptResponsibility, type OrgDepartment, type OrgResponse } from '@/studio/org';
+import { approveStage, type OrgDepartment, type OrgResponse } from '@/studio/org';
 import { pipelineNeighbours, type Company, type CompanyEdge } from '@/studio/company';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { JOB_LABELS, type JobType } from '@/domain/jobs';
-import { useT, type TFn } from '@/components/ui/locale';
+import { T, type TFn } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, LinkButton, Notice, Status, cls } from '@/components/ui/kit';
 import { AgentStatus, Monogram } from './people';
@@ -19,7 +19,6 @@ import { fmtAgo } from '@/lib/format';
  *  hands to, and what it is doing; a connection lists the handoffs behind it — the accessible twin of every line
  *  on the stage. Its content swaps with a short fade. */
 export function CompanyInspector({ org, company: c, selection, onSelect, error, onRetry, className = '' }: { org: OrgResponse; company: Company; selection: Selection; onSelect: (s: Selection) => void; error?: string | null; onRetry?: () => void; className?: string }) {
-  const T = useT();
   const key = selection.kind === 'orchestrator' ? 'o' : selection.kind === 'dept' ? `d-${selection.id}` : `e-${selection.key}`;
   // the content swap fades in over --t-slow; a one-off animation (no CSS animation left on the element), and none
   // on first render or under reduced motion
@@ -53,7 +52,6 @@ const Row = ({ label, n, children }: { label: string; n: number; children?: Reac
 /** The orchestrator: the state sentence, the three counted rows, the recent decisions; with nothing in production,
  *  how the company works and the two ways to begin. */
 export function OrchestratorView({ org, c, compact }: { org: OrgResponse; c: Company; compact?: boolean }) {
-  const T = useT();
   const toast = useToast();
   const { state } = useStudio();
   const [busy, setBusy] = useState<string | null>(null);
@@ -92,7 +90,7 @@ export function OrchestratorView({ org, c, compact }: { org: OrgResponse; c: Com
           {c.blocked.length > 0 && <ul className="mt-2 space-y-2">{c.blocked.map((b) => { const p = prod(b.productionId); const d = org.departments.find((x) => x.id === b.department); return (
             <li key={`${b.productionId}-${b.stage}`} className="text-sm">
               <p className="text-fg"><bdi>{p?.title ?? b.productionId}</bdi> · <span className="text-bad">{stageName(b.stage)}</span></p>
-              <p className="text-xs text-faint">{d ? deptName(d, T.locale) : b.department}{b.failed.length ? ` · ${b.failed.join(', ')}` : ''}</p>
+              <p className="text-xs text-faint">{d ? d.name : b.department}{b.failed.length ? ` · ${b.failed.join(', ')}` : ''}</p>
               {p && <Link href={productionHref(p)} className="mt-1 inline-block text-xs font-medium text-muted hover:text-fg hover:underline">{T('btn.open')}</Link>}
             </li>
           ); })}</ul>}
@@ -102,7 +100,7 @@ export function OrchestratorView({ org, c, compact }: { org: OrgResponse; c: Com
         <div className="mt-4">
           <h3 className="text-[13px] font-semibold text-fg">{T('co.recentDecisions')}</h3>
           <ul className="mt-2 space-y-1.5 text-sm">{org.approvals.slice(0, 5).map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center gap-x-2"><Status tone={a.decision === 'APPROVED' ? 'ok' : 'warn'}>{a.decision === 'APPROVED' ? T('gate.approved') : T('studio.requestChanges')}</Status><bdi className="text-fg">{prod(a.productionId)?.title ?? a.productionId}</bdi><span className="text-faint">{stageName(a.stage)}</span><span className="num ms-auto text-xs text-faint">{fmtAgo(a.createdAt, T.locale)}</span></li>
+            <li key={a.id} className="flex flex-wrap items-center gap-x-2"><Status tone={a.decision === 'APPROVED' ? 'ok' : 'warn'}>{a.decision === 'APPROVED' ? T('gate.approved') : T('studio.requestChanges')}</Status><bdi className="text-fg">{prod(a.productionId)?.title ?? a.productionId}</bdi><span className="text-faint">{stageName(a.stage)}</span><span className="num ms-auto text-xs text-faint">{fmtAgo(a.createdAt)}</span></li>
           ))}</ul>
         </div>
       )}
@@ -125,17 +123,16 @@ export function edgeWords(T: TFn, e: CompanyEdge | undefined): { tone: 'neutral'
   if (!e) return { tone: 'neutral', text: T('co.edge.none') };
   if (e.state === 'refused') return { tone: 'bad', text: T('co.edge.refused') };
   if (e.state === 'waiting') return { tone: 'warn', text: T('co.edge.waiting') };
-  if (e.state === 'recent') return { tone: 'info', text: T.f('co.edge.recent', { ago: fmtAgo(e.latest.createdAt, T.locale) }) };
-  return { tone: 'ok', text: T.f('co.edge.used', { ago: fmtAgo(e.latest.createdAt, T.locale) }) };
+  if (e.state === 'recent') return { tone: 'info', text: T.f('co.edge.recent', { ago: fmtAgo(e.latest.createdAt) }) };
+  return { tone: 'ok', text: T.f('co.edge.used', { ago: fmtAgo(e.latest.createdAt) }) };
 }
 
 function DepartmentView({ org, c, d, onSelect }: { org: OrgResponse; c: Company; d: OrgDepartment; onSelect: (s: Selection) => void }) {
-  const T = useT();
   const { state } = useStudio();
   const team = teamOf(org, d);
   const director = org.agents.find((a) => a.id === d.directorId);
   const place = pipelineNeighbours(org, d.id);
-  const name = (id: string) => { const x = org.departments.find((y) => y.id === id); return x ? deptName(x, T.locale) : id; };
+  const name = (id: string) => { const x = org.departments.find((y) => y.id === id); return x ? x.name : id; };
   const edgeOf = (from: string, to: string) => c.edges.find((e) => e.from === from && e.to === to);
   const runningJobs = org.jobs.filter((j) => team.some((a) => (a.jobTypes as string[]).includes(j.type)) && !['QUEUED', 'FAILED', 'COMPLETED', 'CANCELLED', 'AWAITING_REVIEW'].includes(j.status));
   const link = (id: string, edge: CompanyEdge | undefined, gate: boolean) => { const w = edgeWords(T, edge); return (
@@ -147,16 +144,16 @@ function DepartmentView({ org, c, d, onSelect }: { org: OrgResponse; c: Company;
   return (
     <div>
       <p className="eyebrow">{T('co.dept.eyebrow')}</p>
-      <h2 className="h2 mt-1" dir="auto">{deptName(d, T.locale)}</h2>
-      <p className="mt-1 text-sm text-muted" dir="auto">{deptResponsibility(d, T.locale)}</p>
-      {director && <p className="mt-2 text-sm text-muted">{T('studio.director')}: <Link href={`/studio/agents/${director.id}`} className="font-medium text-fg hover:underline" dir="auto">{agentName(director, T.locale)}</Link></p>}
+      <h2 className="h2 mt-1" dir="auto">{d.name}</h2>
+      <p className="mt-1 text-sm text-muted" dir="auto">{d.responsibility}</p>
+      {director && <p className="mt-2 text-sm text-muted">{T('studio.director')}: <Link href={`/studio/agents/${director.id}`} className="font-medium text-fg hover:underline" dir="auto">{director.name}</Link></p>}
 
       <h3 className="mt-5 text-[13px] font-semibold text-fg">{T('co.team')} <span className="num font-medium text-faint">{team.length}</span></h3>
       <ul className="rows mt-1">{team.map((a) => (
         <li key={a.id}>
           <Link href={`/studio/agents/${a.id}`} className="flex items-center gap-3 py-2 hover:text-fg">
             <Monogram name={a.name} size={28} director={a.id === d.directorId} />
-            <span className="min-w-0 flex-1"><span className="block text-sm font-medium text-fg" dir="auto">{agentName(a, T.locale)}</span><span className="block text-xs text-faint" dir="auto">{agentRole(a, T.locale)}</span></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-medium text-fg" dir="auto">{a.name}</span><span className="block text-xs text-faint" dir="auto">{a.role}</span></span>
             <AgentStatus stat={org.stats.find((s) => s.agentId === a.id)} className="flex-none" />
           </Link>
         </li>
@@ -170,7 +167,7 @@ function DepartmentView({ org, c, d, onSelect }: { org: OrgResponse; c: Company;
       <h3 className="mt-5 text-[13px] font-semibold text-fg">{T('co.currentWork')}</h3>
       {runningJobs.length === 0 ? <p className="mt-1 text-sm text-muted">{T('co.nothingAssigned')}</p> : (
         <ul className="mt-1 space-y-1.5 text-sm">{runningJobs.slice(0, 5).map((j) => { const p = j.productionId ? state.productions.find((x) => x.id === j.productionId) : undefined; return (
-          <li key={j.id} className="flex flex-wrap items-center gap-x-2"><Status tone="info" live>{JOB_LABELS[j.type as JobType]?.[T.locale] ?? j.type}</Status>{p && <bdi className="text-muted">{p.title}</bdi>}{j.progress?.message && <span className="basis-full text-xs text-faint" dir="auto">{j.progress.message}</span>}</li>
+          <li key={j.id} className="flex flex-wrap items-center gap-x-2"><Status tone="info" live>{JOB_LABELS[j.type as JobType] ?? j.type}</Status>{p && <bdi className="text-muted">{p.title}</bdi>}{j.progress?.message && <span className="basis-full text-xs text-faint" dir="auto">{j.progress.message}</span>}</li>
         ); })}</ul>
       )}
       <LinkButton href={`/studio/departments/${d.id}`} variant="primary" className="mt-5">{T('co.openDept')}</LinkButton>
@@ -179,9 +176,8 @@ function DepartmentView({ org, c, d, onSelect }: { org: OrgResponse; c: Company;
 }
 
 function EdgeView({ org, e, onSelect }: { org: OrgResponse; e: CompanyEdge; onSelect: (s: Selection) => void }) {
-  const T = useT();
   const { state } = useStudio();
-  const name = (id: string) => { const x = org.departments.find((y) => y.id === id); return x ? deptName(x, T.locale) : id; };
+  const name = (id: string) => { const x = org.departments.find((y) => y.id === id); return x ? x.name : id; };
   return (
     <div>
       <p className="eyebrow">{T('co.edge.eyebrow')}</p>
@@ -190,7 +186,7 @@ function EdgeView({ org, e, onSelect }: { org: OrgResponse; e: CompanyEdge; onSe
       <h3 className="mt-5 text-[13px] font-semibold text-fg">{T('co.lastHandoffs')}</h3>
       <ol className="rows mt-1">{e.handoffs.slice(0, 5).map((h) => { const p = state.productions.find((x) => x.id === h.productionId); const ok = h.qualityStatus === 'VALIDATED'; const passed = h.validation.checks.filter((x) => x.ok).length; const failed = h.validation.checks.filter((x) => !x.ok); return (
         <li key={h.id} className="py-2.5 text-sm">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><Status tone={ok ? 'ok' : 'bad'}>{ok ? T('orch.accepted') : T('orch.refused')}</Status><bdi className="text-fg">{p?.title ?? h.productionId}</bdi><span className="num ms-auto text-xs text-faint">{fmtAgo(h.createdAt, T.locale)}</span></div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><Status tone={ok ? 'ok' : 'bad'}>{ok ? T('orch.accepted') : T('orch.refused')}</Status><bdi className="text-fg">{p?.title ?? h.productionId}</bdi><span className="num ms-auto text-xs text-faint">{fmtAgo(h.createdAt)}</span></div>
           <p className="mt-0.5 text-xs text-faint">{T.dyn(`pipeline.${h.stage}`, h.stage)}{h.validation.checks.length ? ` · ${T.f('co.checksPassed', { ok: passed, n: h.validation.checks.length })}` : ''}</p>
           {failed.length > 0 && <p className="mt-0.5 text-xs text-bad" dir="auto">{failed.map((x) => `${x.name}${x.detail ? `: ${x.detail}` : ''}`).join(' · ')}</p>}
           {p && <Link href={productionHref(p)} className="mt-1 inline-block text-xs font-medium text-muted hover:text-fg hover:underline">{T('co.openProduction')}</Link>}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconChevronDown, IconClose, IconMore, IconSearch } from '../icons';
 import { Button, type ButtonSize, type ButtonVariant, variantClass } from './Button';
 import { cls } from './cls';
@@ -58,7 +58,6 @@ export interface DialogProps {
 }
 
 function Shell({ open, onClose, title, description, size = 'md', children, footer, busy, role, className = '', returnFocus, kind }: DialogProps & { kind: 'dialog' | 'drawer' }) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   const present = usePresence(open);
@@ -133,7 +132,6 @@ export interface AskOptions extends Omit<ConfirmOptions, 'tone'> {
 
 /** The confirm a page renders itself (useConfirm renders this for you). */
 export function ConfirmDialog({ open, onConfirm, onCancel, title, body, keep, confirmLabel, cancelLabel, tone = 'danger', busy, children, confirmDisabled }: ConfirmOptions & { open: boolean; onConfirm: () => void; onCancel: () => void; busy?: boolean; children?: ReactNode; confirmDisabled?: boolean }) {
-  const T = useT();
   return (
     <Dialog open={open} onClose={onCancel} title={title} size="sm" busy={busy} role="alertdialog"
       footer={<>
@@ -157,7 +155,6 @@ const OverlayCtx = createContext<OverlayApi | null>(null);
 /** Hosts the dialogs useConfirm and useAsk open. Mounted once by ToastProvider (src/components/ui/toast.tsx), so
  *  every page under the root layout has it. */
 export function OverlayHost({ children }: { children: ReactNode }) {
-  const T = useT();
   const [queue, setQueue] = useState<Pending[]>([]);
   const [text, setText] = useState('');
   const current = queue[0];
@@ -380,7 +377,6 @@ export function CommandPalette({ open, onClose, entries, groups, placeholder, fi
   open: boolean; onClose: () => void; entries: readonly PaletteEntry[]; groups: ReadonlyArray<{ id: string; label: ReactNode }>; placeholder?: string;
   filter?: (entries: readonly PaletteEntry[], query: string) => PaletteEntry[];
 }) {
-  const T = useT();
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const id = useId();
@@ -444,7 +440,6 @@ export interface ShortcutScope { id: string; title: ReactNode; rows: ReadonlyArr
 /** `?` (§5.17, §7.5): the shortcuts by scope (Global · Player · Storyboard · Timeline) with the single-key
  *  preference. Keys are set LTR in `kbd`. */
 export function ShortcutSheet({ open, onClose, scopes, singleKey }: { open: boolean; onClose: () => void; scopes: readonly ShortcutScope[]; singleKey?: { on: boolean; onChange: (v: boolean) => void } }) {
-  const T = useT();
   const id = useId();
   return (
     <Dialog open={open} onClose={onClose} title={T('kit.shortcuts.title')} size="md">
@@ -472,7 +467,6 @@ export function ShortcutSheet({ open, onClose, scopes, singleKey }: { open: bool
 
 /** An icon-only overflow menu on a native <details> (v3). New code uses MenuButton. */
 export function Menu({ label, children, className = '', align = 'end' }: { label?: string; children: ReactNode; className?: string; align?: 'start' | 'end' }) {
-  const T = useT();
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const el = ref.current; if (!el) return;

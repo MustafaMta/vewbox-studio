@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { cssRatio, type FrameRatio } from './art';
 
@@ -37,7 +37,6 @@ export interface TitleCardProps {
 }
 
 export function TitleCard({ title, lang, ratio = '16/9', state, stateLabel, number, size = 'auto', small, decorative, radius = 'media', className, style, children }: TitleCardProps) {
-  const T = useT();
   const label = stateLabel ?? (state ? T(STATE_KEY[state]) : null);
   const live = state === 'drawing';
   return (

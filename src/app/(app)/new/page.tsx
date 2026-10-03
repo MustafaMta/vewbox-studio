@@ -2,7 +2,7 @@
 
 import { useStudio } from '@/studio/store';
 import { assetSrc, primaryImageSrc } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { PageHeader } from '@/components/ui/page';
 import { StartCard } from '@/components/library/StartCard';
 import { IconCharacters, IconLocations, IconMusicVideos, IconShorts, IconShows } from '@/components/ui/icons';
@@ -10,7 +10,6 @@ import { IconCharacters, IconLocations, IconMusicVideos, IconShorts, IconShows }
 /** NEW… — the five things the studio starts, as pictures: a show, a short, a music video, a character, a location.
  *  Choosing one opens its own page. */
 export default function NewPage() {
-  const T = useT();
   const { state } = useStudio();
   const art = (id: string) => assetSrc(state, id);
   const firstPortrait = state.characters.map((c) => primaryImageSrc(state, c)).find(Boolean);

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Children, isValidElement, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { prefersReducedMotion } from '@/components/players/prefs';
@@ -17,7 +17,6 @@ const FOCUSABLE = 'a[href], button, summary, input, select, textarea, [tabindex]
 type Item = 'still' | 'poster' | 'sleeve' | 'figure' | 'keyart' | 'plate' | 'face';
 
 export function Rail({ title, count, controls, seeAll, item = 'still', children, className, headingLevel = 2 }: { title: ReactNode; count?: number; controls?: ReactNode; seeAll?: { href: string; label?: string }; item?: Item; children: ReactNode; className?: string; headingLevel?: 2 | 3 }) {
-  const T = useT();
   const id = useId();
   const list = useRef<HTMLUListElement>(null);
   const current = useRef(0);

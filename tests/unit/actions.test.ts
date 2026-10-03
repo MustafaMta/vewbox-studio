@@ -144,8 +144,8 @@ describe('characters, settings, attention', () => {
     expect(s.productions.every((p) => !p.castIds.includes('layla') && p.shots.every((sh) => !sh.characterIds.includes('layla')) && p.scenes.every((sc) => !sc.characterIds.includes('layla')))).toBe(true);
   });
   it('settings merge defaults', () => {
-    const s = updateSettings(seed(), { uiLanguage: 'ar', defaults: { style: 'ANIME' } as never });
-    expect(s.settings.uiLanguage).toBe('ar');
+    const s = updateSettings(seed(), { reducedMotion: true, defaults: { style: 'ANIME' } as never });
+    expect(s.settings.reducedMotion).toBe(true);
     expect(s.settings.defaults.style).toBe('ANIME');
     expect(s.settings.defaults.aspect).toBe('WIDE_16_9');
   });
@@ -153,9 +153,9 @@ describe('characters, settings, attention', () => {
 
 describe('empty studio and assets', () => {
   it('an empty studio keeps only the settings', () => {
-    const s = emptyStudio({ ...seed().settings, uiLanguage: 'ar' });
+    const s = emptyStudio({ ...seed().settings, reducedMotion: true });
     expect(s.shows).toEqual([]); expect(s.productions).toEqual([]); expect(s.characters).toEqual([]); expect(s.locations).toEqual([]); expect(s.assets).toEqual([]);
-    expect(s.settings.uiLanguage).toBe('ar');
+    expect(s.settings.reducedMotion).toBe(true);
   });
   it('an uploaded asset is never sample and is served from the library', () => {
     const r = addAsset(seed(), { kind: 'IMAGE', src: '/api/media/up-1', label: 'me.png', tags: ['added'], mimeType: 'image/png', bytes: 12, sample: false, origin: 'UPLOAD', id: 'up-1' });

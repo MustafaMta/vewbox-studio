@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, nextStep, productionHref, progressOf, seasonById, showById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { TabBar } from '@/components/ui/kit';
@@ -29,7 +29,6 @@ type Tab = (typeof FILM_TABS)[number];
 const ALIAS: Record<string, Tab> = { cast: 'characters' };
 
 export function FilmWorkspace({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const [rawTab] = useTab([...FILM_TABS, 'cast'] as const, 'overview');
@@ -49,7 +48,7 @@ export function FilmWorkspace({ p }: { p: Production }) {
     <>
       <Hero backdropSrc={cover?.src} art={<Art src={poster?.src ?? cover?.src} ratio={poster ? 'poster' : vertical ? 'vertical' : 'wide'} title={p.title} sample={(poster ?? cover)?.sample} />}
         eyebrow={eyebrow} title={p.title} titleAr={p.titleAr} description={p.synopsis || p.logline}
-        meta={<><StageStatus p={p} /><span className="text-faint" aria-hidden>·</span><Dots items={[T.dyn(`style.${p.style}`), `${p.language}${p.dialect ? ` · ${dialectLabel(p.dialect, T.locale)}` : ''}`, aspectShort(p.aspect), `${fmtSeconds(pr.runtime || p.targetSeconds)}${pr.runtime ? ` ${T('misc.of')} ${fmtSeconds(p.targetSeconds)}` : ''}`, pr.shots ? `${pr.shots} ${T('label.shots').toLowerCase()}` : null]} /></>}
+        meta={<><StageStatus p={p} /><span className="text-faint" aria-hidden>·</span><Dots items={[T.dyn(`style.${p.style}`), `${p.language}${p.dialect ? ` · ${dialectLabel(p.dialect)}` : ''}`, aspectShort(p.aspect), `${fmtSeconds(pr.runtime || p.targetSeconds)}${pr.runtime ? ` ${T('misc.of')} ${fmtSeconds(p.targetSeconds)}` : ''}`, pr.shots ? `${pr.shots} ${T('label.shots').toLowerCase()}` : null]} /></>}
         actions={p.stage !== 'COMPLETE' && <Link href={`${base}?tab=${nextTab}`} className="btn btn-primary">{T.dyn(next.key)}<IconChevronRight className="rtl:rotate-180" /></Link>}
         back={back} />
 

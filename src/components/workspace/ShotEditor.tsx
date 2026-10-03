@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { Production, Shot } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, assetSrc, castOf, locationById, primaryImageSrc, productionHref, seasonById, shotHref, shotLabel, showById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Crumbs } from '@/components/ui/nav';
@@ -21,7 +21,6 @@ import { fmtSeconds, ratioClass, words, ratioCss } from '@/lib/format';
 /** THE SHOT EDITOR — one shot, full width: the picture large on the start side (the chosen take, or the opening
  *  frame), its takes and frames beneath; what happens in it on the end side. Save is explicit; leaving with edits asks. */
 export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
-  const T = useT();
   const { state, act, addFile } = useStudio();
   const toast = useToast();
   const router = useRouter();

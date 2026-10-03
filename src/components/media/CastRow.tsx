@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { PlayDisc } from '@/components/players/PlayDisc';
 import type { Track } from '@/components/players/PlayerProvider';
@@ -31,7 +31,6 @@ export interface CastMember {
 }
 
 function Cell({ m }: { m: CastMember }) {
-  const T = useT();
   const body = (
     <>
       <FaceCircle name={m.name} asset={m.asset} src={m.src} size={88} lang={m.nameLang} ring={m.ring} decorative />
@@ -49,7 +48,6 @@ function Cell({ m }: { m: CastMember }) {
 }
 
 export function CastGrid({ members, leadIds, className }: { members: CastMember[]; leadIds?: string[]; className?: string }) {
-  const T = useT();
   const leads = leadIds?.length ? members.filter((m) => leadIds.includes(m.id)) : [];
   const groups = leads.length && leads.length < members.length
     ? [{ label: T('media.cast.leads'), xs: leads }, { label: T('media.cast.supporting'), xs: members.filter((m) => !leadIds!.includes(m.id)) }]
@@ -67,7 +65,6 @@ export function CastGrid({ members, leadIds, className }: { members: CastMember[
 }
 
 export function CastRow({ members, max = 6, moreHref, className }: { members: CastMember[]; max?: number; moreHref?: string; className?: string }) {
-  const T = useT();
   const shown = members.slice(0, max);
   const rest = members.length - shown.length;
   return (

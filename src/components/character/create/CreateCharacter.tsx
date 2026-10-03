@@ -9,7 +9,7 @@ import { isStudioError } from '@/domain/errors';
 import { useStudio } from '@/studio/store';
 import { api, type StartedJob } from '@/studio/api';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useEngineStatus, useUnsavedGuard } from '@/lib/hooks';
 import { Crumbs } from '@/components/ui/nav';
@@ -42,7 +42,6 @@ const writeDraft = (d: Partial<Draft>) => { try { sessionStorage.setItem(KEY, JS
  *  keeps what was made and offers the one action that fixes it. Leaving is safe: the choice, the brief and the
  *  running job survive a reload (sessionStorage) and the work goes on. When done, the profile takes over. */
 export function CreateCharacter() {
-  const T = useT();
   const router = useRouter();
   const sp = useSearchParams();
   const toast = useToast();
@@ -238,7 +237,7 @@ export function CreateCharacter() {
           {startError && <Notice tone="bad" title={T('gen.failed')}>{startError}</Notice>}
           <div key={start} className="fade-in">
             {start === 'describe' && <DescribeStart value={describe} onChange={setDescribe} recording={recording} onRecording={setRecording} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
-            {start === 'sheet' && <SheetStart value={sheet} onChange={setSheet} step={sheetStep} onStep={setSheetStep} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} language={header.language} styleWord={T.dyn(`style.${header.style}`)} languageWord={header.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(header.dialect, T.locale)})` : T('label.english')} />}
+            {start === 'sheet' && <SheetStart value={sheet} onChange={setSheet} step={sheetStep} onStep={setSheetStep} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} language={header.language} styleWord={T.dyn(`style.${header.style}`)} languageWord={header.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(header.dialect)})` : T('label.english')} />}
             {start === 'picture' && <PictureStart value={picture} onChange={setPicture} onSubmit={submitPicture} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
           </div>
         </div>

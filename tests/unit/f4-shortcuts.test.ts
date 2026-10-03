@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SHORTCUT_SCOPES, isTextField, shortcutFor } from '@/components/shell/shortcuts';
-import { t } from '@/lib/i18n';
+import { T } from '@/lib/copy';
 
 /** docs/DESIGN-SYSTEM-V4.md §7.5: the global shortcuts never fire while typing; single keys can be turned off
  *  (WCAG 2.1.4) and leave players and strips their own keys. Package F4. */
@@ -62,9 +62,9 @@ describe('shortcutFor', () => {
 });
 
 describe('the shortcut sheet’s content (§5.17)', () => {
-  it('has the four scopes, every label in both languages', () => {
+  it('has the four scopes, every label named', () => {
     expect(SHORTCUT_SCOPES.map((s) => s.id)).toEqual(['global', 'player', 'storyboard', 'timeline']);
-    for (const s of SHORTCUT_SCOPES) for (const k of [s.label, s.hint, ...s.rows.map((r) => r.label)]) { expect(t('en', k)).toBeTruthy(); expect(t('ar', k)).toMatch(/[؀-ۿ]/); }
+    for (const s of SHORTCUT_SCOPES) for (const k of [s.label, s.hint, ...s.rows.map((r) => r.label)]) expect(T(k)).toBeTruthy();
   });
   it('lists the global shortcuts of §7.5', () => {
     expect(SHORTCUT_SCOPES[0].rows.map((r) => r.keys.map((c) => c.join('+')).join(' / '))).toEqual(['Mod+K', '?', 'Mod+\\', 'F', 'Esc']);

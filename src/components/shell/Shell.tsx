@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExt
 import { useRootVarContribution } from './root-vars';
 import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { SyncErrors } from '@/components/ui/jobs';
 import { ShellContext, type RoomName, type ShellApi } from './context';
 import { waitingDecisions, type PipelineRow } from './decisions';
@@ -38,7 +38,6 @@ function useMedia(q: string): boolean {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const T = useT();
   const { ready, state, jobs, stream } = useStudio();
   const prefs = usePrefs();
   const wide = useMedia('(min-width: 1024px)');

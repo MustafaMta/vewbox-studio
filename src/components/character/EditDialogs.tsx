@@ -5,7 +5,7 @@ import type { Character } from '@/domain/types';
 import { DIALECTS, PACES, PITCHES, SEXES, STYLES, type Dialect, type Language, type Sex, type Style } from '@/domain/vocabulary';
 import { voiceLock } from '@/domain/rules';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Modal, Segmented, Select, Textarea } from '@/components/ui/kit';
 import { IconEdit } from '@/components/ui/icons';
@@ -21,14 +21,12 @@ import { AGE_BANDS, ageBandOf, BAND_AGE, type AgeBand } from './sheetModel';
 function useSave(c: Character) {
   const { act } = useStudio();
   const toast = useToast();
-  const T = useT();
   return (patch: Partial<Omit<Character, 'id' | 'createdAt' | 'usage'>>, close: () => void) => {
     try { act('updateCharacter', c.id, patch); toast.ok(T('toast.saved')); close(); } catch (e) { toast.bad((e as Error).message); }
   };
 }
 
 export function DetailsDialog({ c }: { c: Character }) {
-  const T = useT();
   return (
     <Modal title={T('cast.edit.details')} description={T('cast.edit.detailsHint')} trigger={(open) => <Button size="sm" variant="secondary" icon={<IconEdit />} onClick={open}>{T('cast.edit.details')}</Button>}>
       {(close) => <DetailsForm c={c} close={close} />}
@@ -37,7 +35,6 @@ export function DetailsDialog({ c }: { c: Character }) {
 }
 
 function DetailsForm({ c, close }: { c: Character; close: () => void }) {
-  const T = useT();
   const save = useSave(c);
   const vlock = voiceLock(c);
   const [d, setD] = useState({ name: c.name, nameAr: c.nameAr ?? '', role: c.role, personality: c.personality, language: c.language as Language, dialect: (c.dialect ?? 'IRAQI_BAGHDADI') as Dialect });
@@ -61,7 +58,7 @@ function DetailsForm({ c, close }: { c: Character; close: () => void }) {
       <div>
         <div className="flex flex-wrap items-end gap-4">
           <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={d.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: T('label.english'), disabled: vlock.locked }, { value: 'AR' as Language, label: T('label.arabic'), disabled: vlock.locked }]} /></div>
-          {d.language === 'AR' && <Field label={T('label.dialect')} className="min-w-[11rem]"><Select value={d.dialect} disabled={vlock.locked} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x, T.locale) }))} /></Field>}
+          {d.language === 'AR' && <Field label={T('label.dialect')} className="min-w-[11rem]"><Select value={d.dialect} disabled={vlock.locked} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} /></Field>}
         </div>
         <p className="help">{vlock.locked ? T('cast.edit.languageLocked') : T('cast.edit.languageHint')}</p>
       </div>
@@ -72,7 +69,6 @@ function DetailsForm({ c, close }: { c: Character; close: () => void }) {
 
 /** The written look: style, sex, age and the look fields. Disabled (with the reason) once the character is locked. */
 export function LookDialog({ c, locked, describedBy }: { c: Character; locked: boolean; describedBy?: string }) {
-  const T = useT();
   return (
     <Modal title={T('cast.edit.look')} description={T('cast.edit.lookHint')} size="lg" trigger={(open) => <Button size="sm" variant="quiet" icon={<IconEdit />} onClick={open} disabled={locked} aria-describedby={locked ? describedBy : undefined}>{T('cast.edit.look')}</Button>}>
       {(close) => <LookForm c={c} close={close} />}
@@ -81,7 +77,6 @@ export function LookDialog({ c, locked, describedBy }: { c: Character; locked: b
 }
 
 function LookForm({ c, close }: { c: Character; close: () => void }) {
-  const T = useT();
   const save = useSave(c);
   const [d, setD] = useState({ style: c.style as Style, sex: c.sex as Sex, ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, wardrobe: c.wardrobe, distinguishing: c.distinguishing.join(', ') });
   const [exact, setExact] = useState(false);
@@ -115,7 +110,6 @@ function LookForm({ c, close }: { c: Character; close: () => void }) {
 
 /** How the voice should feel: pitch, pace, timbre, notes. Held once the voice is preserved. */
 export function VoiceTraitsDialog({ c, locked }: { c: Character; locked: boolean }) {
-  const T = useT();
   return (
     <Modal title={T('cast.edit.voiceTraits')} trigger={(open) => <Button size="sm" variant="quiet" icon={<IconEdit />} onClick={open} disabled={locked} aria-describedby={locked ? 'voice-lock' : undefined}>{T('btn.edit')}</Button>}>
       {(close) => <VoiceTraitsForm c={c} close={close} />}
@@ -124,7 +118,6 @@ export function VoiceTraitsDialog({ c, locked }: { c: Character; locked: boolean
 }
 
 function VoiceTraitsForm({ c, close }: { c: Character; close: () => void }) {
-  const T = useT();
   const save = useSave(c);
   const [d, setD] = useState({ pitch: c.voice.pitch, pace: c.voice.pace, timbre: c.voice.timbre, notes: c.voice.notes });
   const set = (p: Partial<typeof d>) => setD((x) => ({ ...x, ...p }));

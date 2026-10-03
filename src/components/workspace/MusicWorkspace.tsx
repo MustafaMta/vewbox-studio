@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, nextStep, productionHref, progressOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useTab } from '@/lib/hooks';
 import { TabBar } from '@/components/ui/kit';
 import { Art, Dots, Hero } from '@/components/ui/cinema';
@@ -37,7 +37,6 @@ export function trackOf(p: Production, src: string | undefined, artworkSrc?: str
 }
 
 export function MusicWorkspace({ p }: { p: Production }) {
-  const T = useT();
   const { state } = useStudio();
   const [rawTab] = useTab([...MUSIC_TABS, 'story', 'cast', 'characters', 'locations'] as const, 'overview');
   const tab: Tab = (ALIAS[rawTab] ?? rawTab) as Tab;

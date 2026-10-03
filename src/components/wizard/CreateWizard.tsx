@@ -11,7 +11,7 @@ import { nid } from '@/domain/actions';
 import { splitLyrics } from '@/domain/lyrics';
 import { assetSrc, primaryImageSrc, productionHref, seasonById, showById } from '@/studio/selectors';
 import { SAMPLE_VARIANTS, sampleProposal } from '@/domain/proposals';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { AddTile, Button, ChoiceCards, Details, Dropzone, Field, Input, Modal, Notice, PickGrid, Segmented, Select, Textarea } from '@/components/ui/kit';
 import { Art, Dots } from '@/components/ui/cinema';
@@ -37,7 +37,6 @@ const REQ_KIND: Record<WizardKind, AutoIdeaRequest['kind']> = { show: 'SHOW', se
  *  MANUAL BRIEF needs a title or a short description, nothing else; look, people and (for a music video) the song
  *  are optional steps with defaults. */
 export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; showId?: string; seasonId?: string }) {
-  const T = useT();
   const { state, jobs, startJob } = useStudio();
   const show = showById(state, showId);
   const season = seasonById(state, seasonId);
@@ -124,7 +123,6 @@ export function CreateWizard({ kind, showId, seasonId }: { kind: WizardKind; sho
 
 /** The optional preferences. Each one starts at "let the studio decide". */
 function Preferences({ kind, prefs, setPrefs, inheritsFromShow }: { kind: WizardKind; prefs: IdeaPreferences; setPrefs: (p: IdeaPreferences) => void; inheritsFromShow: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const set = (p: Partial<IdeaPreferences>) => setPrefs({ ...prefs, ...p });
   const durations = DURATIONS[kind === 'music-video' ? 'MUSIC_VIDEO' : kind === 'short' ? 'SHORT' : 'EPISODE'];
@@ -136,7 +134,7 @@ function Preferences({ kind, prefs, setPrefs, inheritsFromShow }: { kind: Wizard
       <div className="grid gap-5 sm:grid-cols-2">
         <div><p className="label">{T('label.style')}</p><Segmented label={T('label.style')} value={prefs.style ?? 'AUTO'} onChange={(v) => set({ style: v === 'AUTO' ? undefined : (v as Style) })} options={[{ value: 'AUTO', label: auto }, ...STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))]} /></div>
         <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={prefs.language ?? 'AUTO'} onChange={(v) => set({ language: v === 'AUTO' ? undefined : (v as Language), dialect: v === 'EN' ? undefined : prefs.dialect })} options={[{ value: 'AUTO', label: auto }, { value: 'EN', label: T('label.english') }, { value: 'AR', label: T('label.arabic') }]} /></div>
-        {prefs.language !== 'EN' && <Field label={T('label.dialect')}><Select value={prefs.dialect ?? ''} onChange={(e) => set({ dialect: (e.target.value || undefined) as Dialect | undefined })} placeholder={auto} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d, T.locale) }))} /></Field>}
+        {prefs.language !== 'EN' && <Field label={T('label.dialect')}><Select value={prefs.dialect ?? ''} onChange={(e) => set({ dialect: (e.target.value || undefined) as Dialect | undefined })} placeholder={auto} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
         <div><p className="label">{T('label.duration')}</p><Segmented label={T('label.duration')} value={prefs.durationSeconds ? String(prefs.durationSeconds) : 'AUTO'} onChange={(v) => set({ durationSeconds: v === 'AUTO' ? undefined : Number(v) })} options={[{ value: 'AUTO', label: auto }, ...durations.map((d) => ({ value: String(d), label: fmtSeconds(d) }))]} /></div>
         <Field label={T('auto.mood')} hint={T('wizard.optional')} help={T('auto.moodHelp')}><Input value={prefs.mood ?? ''} onChange={(e) => set({ mood: e.target.value || undefined })} /></Field>
         {kind === 'music-video' && <div><p className="label">{T('wizard.concept')}</p><Segmented label={T('wizard.concept')} value={prefs.concept ?? 'AUTO'} onChange={(v) => set({ concept: v === 'AUTO' ? undefined : (v as IdeaPreferences['concept']) })} options={[{ value: 'AUTO', label: T('auto.decide') }, { value: 'PERFORMANCE', label: T('mv.concept.PERFORMANCE') }, { value: 'NARRATIVE', label: T('mv.concept.NARRATIVE') }, { value: 'MIXED', label: T('mv.concept.MIXED') }]} /></div>}
@@ -156,7 +154,6 @@ function Preferences({ kind, prefs, setPrefs, inheritsFromShow }: { kind: Wizard
 
 /** THE REVIEW — the whole proposal, editable, before anything exists. */
 function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, onAnother, proposalJobId }: { kind: WizardKind; showId?: string; seasonId?: string; proposal: IdeaProposal; setProposal: (p: IdeaProposal) => void; prefs: IdeaPreferences; onBack: () => void; onAnother?: () => void; proposalJobId?: string }) {
-  const T = useT();
   const router = useRouter();
   const toast = useToast();
   const { state, act } = useStudio();
@@ -189,7 +186,7 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
           <Field label={T('auto.mood')}><Input value={proposal.mood} onChange={(e) => set({ mood: e.target.value })} /></Field>
           <Field label={T('label.style')}><Select value={proposal.style} onChange={(e) => set({ style: e.target.value as Style })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></Field>
           <Field label={T('label.language')}><Select value={proposal.language} onChange={(e) => set({ language: e.target.value as Language, dialect: e.target.value === 'AR' ? proposal.dialect ?? state.settings.defaults.dialect : undefined })} options={[{ value: 'EN', label: T('label.english') }, { value: 'AR', label: T('label.arabic') }]} /></Field>
-          {proposal.language === 'AR' && <Field label={T('label.dialect')}><Select value={proposal.dialect ?? 'IRAQI_BAGHDADI'} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d, T.locale) }))} /></Field>}
+          {proposal.language === 'AR' && <Field label={T('label.dialect')}><Select value={proposal.dialect ?? 'IRAQI_BAGHDADI'} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
           <Field label={`${T('label.duration')} (${T('label.seconds')})`}><Input type="number" min={5} max={3600} value={proposal.durationSeconds} onChange={(e) => set({ durationSeconds: Number(e.target.value) || 5 })} /></Field>
           {kind !== 'episode' && <Field label={T('label.aspect')}><Select value={aspect} onChange={(e) => setAspect(e.target.value as Aspect)} options={ASPECTS.map((a) => ({ value: a, label: aspectLabel(a) }))} /></Field>}
           {isMV && <Field label={T('wizard.concept')}><Select value={proposal.concept ?? 'PERFORMANCE'} onChange={(e) => set({ concept: e.target.value as IdeaProposal['concept'] })} options={(['PERFORMANCE', 'NARRATIVE', 'MIXED'] as const).map((c) => ({ value: c, label: T.dyn(`mv.concept.${c}`) }))} /></Field>}
@@ -269,7 +266,6 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
 /** A season by hand: a title or a line about it. The season inherits the show's language, cast and world; its
  *  episodes are developed from the show's continuity (and this arc) when they are created. */
 function ManualSeason({ showId, onBack }: { showId: string; onBack: () => void }) {
-  const T = useT();
   const router = useRouter();
   const toast = useToast();
   const { state, act } = useStudio();
@@ -287,7 +283,6 @@ function ManualSeason({ showId, onBack }: { showId: string; onBack: () => void }
 }
 
 function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?: string; seasonId?: string; onBack: () => void }) {
-  const T = useT();
   const router = useRouter();
   const toast = useToast();
   const { state, act, addFile } = useStudio();
@@ -406,7 +401,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
             {isMV && <div><p className="label">{T('wizard.concept')}</p><ChoiceCards name="concept" columns={3} value={concept} onChange={setConcept} options={[{ value: 'PERFORMANCE', label: T('mv.concept.PERFORMANCE'), hint: T('mv.concept.PERFORMANCE.hint'), icon: <IconMusicVideos /> }, { value: 'NARRATIVE', label: T('mv.concept.NARRATIVE'), hint: T('mv.concept.NARRATIVE.hint'), icon: <IconStory /> }, { value: 'MIXED', label: T('mv.concept.MIXED'), hint: T('mv.concept.MIXED.hint'), icon: <IconVersions /> }]} /></div>}
             <div className="grid gap-5 sm:grid-cols-2">
               <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={language} onChange={setLanguage} options={[{ value: 'EN', label: T('label.english') }, { value: 'AR', label: T('label.arabic') }]} /></div>
-              {language === 'AR' && <Field label={T('label.dialect')}><Select value={dialect} onChange={(e) => setDialect(e.target.value as Dialect)} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d, T.locale) }))} /></Field>}
+              {language === 'AR' && <Field label={T('label.dialect')}><Select value={dialect} onChange={(e) => setDialect(e.target.value as Dialect)} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
               <div>
                 <p className="label">{T('label.duration')}</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -456,7 +451,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
                 <p className="eyebrow">{T.dyn(`kind.${prodKind}`)}{genre ? ` · ${genre}` : ''}</p>
                 <p className="mt-1 text-2xl font-semibold text-fg" dir="auto">{finalTitle || '—'}</p>
                 {(text || logline) && <p className="mt-2 text-sm text-muted" dir="auto">{logline || text}</p>}
-                <p className="mt-3 text-sm text-muted"><Dots items={[T.dyn(`style.${style}`), `${language}${language === 'AR' ? ` · ${dialectLabel(dialect, T.locale)}` : ''}`, aspectLabel(aspect).split(' · ')[0], fmtSeconds(duration), isMV ? T.dyn(`mv.concept.${concept}`) : null]} /></p>
+                <p className="mt-3 text-sm text-muted"><Dots items={[T.dyn(`style.${style}`), `${language}${language === 'AR' ? ` · ${dialectLabel(dialect)}` : ''}`, aspectLabel(aspect).split(' · ')[0], fmtSeconds(duration), isMV ? T.dyn(`mv.concept.${concept}`) : null]} /></p>
                 <dl className="kv mt-4">
                   {isMV && <><dt>{T('wizard.song')}</dt><dd>{songMode === 'UPLOAD' ? upload?.name : songMode === 'GENERATE' ? `${T('song.generated')} · ${splitLyrics(lyrics, duration).length} ${T('mv.sections')}` : T('manual.songLater')}</dd></>}
                   <dt>{isMV ? T('step.performers') : T('label.cast')}</dt><dd>{castNames.length ? castNames.join(', ') : '—'}</dd>

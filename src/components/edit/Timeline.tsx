@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconFit, IconZoomIn, IconZoomOut } from '@/components/ui/icons';
 import { Waveform } from '@/components/players/Waveform';
@@ -23,7 +23,6 @@ export interface TimelineLine { id: string; from: number; to: number; text: stri
 const STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 
 export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [], music, selected = [], onSelect, onTrim, className }: { duration: number; fps?: number; time: number; onSeek: (t: number) => void; clips: TimelineClip[]; dialogue?: TimelineLine[]; music?: { src: string; label?: string } | null; selected?: string[]; onSelect?: (ids: string[]) => void; onTrim?: (id: string, edge: 'start' | 'end', t: number) => void; className?: string }) {
-  const T = useT();
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [pps, setPps] = useState<number | null>(null);

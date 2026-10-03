@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 
 /** THE INSPECTOR (docs/DESIGN-SYSTEM-V4.md §5.20) — contextual: its header names the selection (kind and name), and its
@@ -16,10 +16,9 @@ export function shared<T>(xs: T[]): T | typeof MIXED | undefined {
   return xs.every((x) => Object.is(x, xs[0])) ? xs[0] : MIXED;
 }
 /** The placeholder a field shows for a mixed value. */
-export function useMixedLabel() { const T = useT(); return T('media.inspector.mixed'); }
+export function useMixedLabel() { return T('media.inspector.mixed'); }
 
 export function Inspector({ kind, name, nameLang, count, sections = [], details, empty, className }: { kind?: ReactNode; name?: ReactNode; nameLang?: string; count?: number; sections?: Array<{ id: string; title: ReactNode; content: ReactNode }>; details?: ReactNode; empty?: ReactNode; className?: string }) {
-  const T = useT();
   const none = !name && !count;
   return (
     <div className={cls('insp', className)}>

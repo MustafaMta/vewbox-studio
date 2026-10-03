@@ -101,9 +101,10 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 9)', () => {
+describe('the studio organisation (ORG_VERSION 12)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
-    expect(ORG_VERSION).toBe(11);
+    // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
+    expect(ORG_VERSION).toBe(12);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -199,18 +200,19 @@ describe('the studio organisation (ORG_VERSION 9)', () => {
       expect(ids.has(r.id), `${r.id} is staffed`).toBe(false);
       expect(DEPARTMENTS.some((d) => d.id === r.department)).toBe(true);
       expect(r.would.length).toBeGreaterThan(10); expect(r.reason.length).toBeGreaterThan(10); expect(r.phase.length).toBeGreaterThan(3);
-      expect(r.nameAr).toMatch(/[؀-ۿ]/); expect(r.reasonAr).toMatch(/[؀-ۿ]/);
     }
     expect(new Set(PLANNED_ROLES.map((r) => r.id)).size).toBe(PLANNED_ROLES.length);
   });
 
-  it('the organisation has Arabic for every name, role, responsibility and step', () => {
-    const ar = /[؀-ۿ]/;
-    for (const d of DEPARTMENTS) { expect(d.nameAr, d.id).toMatch(ar); expect(d.responsibilityAr, d.id).toMatch(ar); }
+  it('the organisation is named in English only: names, roles, responsibilities and steps (the interface is English-only)', () => {
+    const latinOnly = (s: string) => !/[^\p{Script=Latin}\P{L}]/u.test(s);
+    for (const d of DEPARTMENTS) { expect(latinOnly(d.name), d.id).toBe(true); expect(latinOnly(d.responsibility), d.id).toBe(true); expect(Object.keys(d).some((k) => k.endsWith('Ar')), d.id).toBe(false); }
     for (const a of AGENTS) {
-      expect(a.nameAr, a.id).toMatch(ar); expect(a.roleAr, a.id).toMatch(ar); expect(a.descriptionAr, a.id).toMatch(ar);
-      for (const s of a.steps) expect(s.nameAr, `${a.id}/${s.id}`).toMatch(ar);
+      expect(latinOnly(a.name) && latinOnly(a.role) && latinOnly(a.description), a.id).toBe(true);
+      expect(Object.keys(a).some((k) => k.endsWith('Ar')), a.id).toBe(false);
+      for (const s of a.steps) { expect(latinOnly(s.name), `${a.id}/${s.id}`).toBe(true); expect(Object.keys(s)).not.toContain('nameAr'); }
     }
+    for (const r of PLANNED_ROLES) expect(Object.keys(r).some((k) => k.endsWith('Ar')), r.id).toBe(false);
   });
 
   it('the pipeline is a DAG whose stages belong to the departments that own them', () => {

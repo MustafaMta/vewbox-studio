@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconAddNote, IconBack5, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -21,7 +21,6 @@ export interface Marks { in?: number; out?: number }
 
 export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: string; fps?: number | null; title?: string; sync?: SyncBus; aspect?: string; marks?: Marks; onMarks?: (m: Marks) => void; onAddNote?: (t: number) => void; fileHref?: string; className?: string }>(
   function CanvasPlayer({ src, poster, fps, title, sync, aspect, marks: given, onMarks, onAddNote, fileHref, className }, ref) {
-    const T = useT();
     const c = usePlayerCore({ src, fps, sync, aspect });
     const [own, setOwn] = useState<Marks>({});
     const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');

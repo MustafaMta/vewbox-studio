@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import { PACES, PITCHES, SEXES, type Language, type Sex } from '@/domain/vocabulary';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Details, Field, Input, Segmented, Textarea, cls } from '@/components/ui/kit';
 import { IconCheck, IconGenerate } from '@/components/ui/icons';
 import { AGE_BANDS, SHEET_STEPS, sheetAge, sheetStepProblem, type AgeBand, type SheetStep, type SheetValues } from '../sheetModel';
@@ -20,7 +20,6 @@ export function SheetStart({ value, onChange, step, onStep, onCreate, busy, draw
   value: SheetValues; onChange: (v: SheetValues) => void; step: SheetStep; onStep: (s: SheetStep) => void; onCreate: (draw: boolean) => void; busy?: boolean;
   drawDisabledReason?: string | null; onCancel: () => void; settings: ReactNode; language: Language; styleWord: string; languageWord: string;
 }) {
-  const T = useT();
   const [touched, setTouched] = useState(false);
   const top = useRef<HTMLDivElement>(null);
   const set = (p: Partial<SheetValues>) => onChange({ ...value, ...p });
@@ -51,7 +50,7 @@ export function SheetStart({ value, onChange, step, onStep, onCreate, busy, draw
           <div className="space-y-5 fade-in">
             <div className="grid gap-5 md:grid-cols-2">
               <Field label={T('label.name')} error={touched && problem ? `${T('label.name')} — ${T('char.form.needName')}` : null}><Input value={value.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} autoComplete="off" /></Field>
-              {(language === 'AR' || T.locale === 'ar') && <Field label={T('label.nameAr')} hint={language === 'AR' ? T('char.form.nameArHint') : T('wizard.optional')}><Input value={value.nameAr} dir="rtl" onChange={(e) => set({ nameAr: e.target.value })} maxLength={80} /></Field>}
+              {language === 'AR' && <Field label={T('label.nameAr')} hint={language === 'AR' ? T('char.form.nameArHint') : T('wizard.optional')}><Input value={value.nameAr} dir="rtl" onChange={(e) => set({ nameAr: e.target.value })} maxLength={80} /></Field>}
             </div>
             <Field label={T('cast.edit.description')} hint={<span className="num" dir="ltr">{value.role.length} / 200</span>} help={T('char.form.roleHelp')}><Input value={value.role} onChange={(e) => set({ role: e.target.value })} placeholder={T('char.form.rolePh')} maxLength={200} /></Field>
             <div className="flex flex-wrap gap-x-6 gap-y-4">

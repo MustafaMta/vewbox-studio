@@ -1,7 +1,7 @@
 'use client';
 
 import { Children, Fragment, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconBad, IconInfo, IconOk, IconWarn } from '../icons';
 import { Spinner } from './Button';
 import { cls } from './cls';
@@ -56,7 +56,6 @@ export function LoadingFrame({ ratio = '16/9', lines = 2, phase, label, classNam
 
 /** A spinner always comes with its sentence: "Loading the studio…". */
 export function LoadingLine({ children, className = '' }: { children?: ReactNode; className?: string }) {
-  const T = useT();
   return <p role="status" className={cls('loading-line', className)}><Spinner />{children ?? T('kit.loading')}</p>;
 }
 
@@ -66,7 +65,6 @@ export function LoadingLine({ children, className = '' }: { children?: ReactNode
 export function ErrorNotice({ title, why, kept, action, alternatives, details, live = true, className = '' }: {
   title: ReactNode; why?: ReactNode; kept?: ReactNode; action?: ReactNode; alternatives?: ReactNode; details?: string | null; live?: boolean; className?: string;
 }) {
-  const T = useT();
   return (
     <div role={live ? 'alert' : undefined} className={cls('notice notice-bad error-notice', className)}>
       <IconBad aria-hidden />
@@ -94,7 +92,6 @@ export function PartialLine({ items, className = '' }: { items: ReadonlyArray<Re
 
 /** The neutral SAMPLE badge on bundled media (§5.16). */
 export function SampleBadge({ className = '' }: { className?: string }) {
-  const T = useT();
   return <Badge className={className}>{T('label.sample')}</Badge>;
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconClose } from '@/components/ui/icons';
 import { SharedVolume } from './Controls';
@@ -19,7 +19,6 @@ import { useRootVarContribution } from './rootVars';
  *  audio source; close stops it. */
 
 export function PlayerBar({ track, show = true, persistent, placement = 'fixed', shape = 'square', mode, onClose, className }: { track: Track; show?: boolean; /** shown even before this track is loaded (play starts it) */ persistent?: boolean; /** `inline`: drawn in the flow (the specimen page) */ placement?: 'fixed' | 'inline'; shape?: 'square' | 'poster' | 'wide' | 'figure'; mode?: ReactNode; onClose?: () => void; className?: string }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   const visible = show && (st.mine || Boolean(persistent));

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { Button } from './Button';
 import { cls } from './cls';
 import { useSessionDraft } from './session';
@@ -20,7 +20,6 @@ import { StateWord } from './Status';
 export function InlineNote({ storageKey, label, submitLabel, onSubmit, onCancel, placeholder, className = '' }: {
   storageKey: string | null; label: ReactNode; submitLabel: ReactNode; onSubmit: (text: string) => Promise<void> | void; onCancel: () => void; placeholder?: string; className?: string;
 }) {
-  const T = useT();
   const id = useId();
   const [text, setText, clear] = useSessionDraft<string>(storageKey, '');
   const [busy, setBusy] = useState(false);
@@ -64,7 +63,6 @@ export function ApprovalCard({ id, media, kind, title, provenance, ask, onApprov
   /** the decision was already made: the card starts as the "Approved · Undo" line */ approved?: boolean;
   headingLevel?: 2 | 3; className?: string;
 }) {
-  const T = useT();
   const hid = useId();
   const [state, setState] = useState<CardState>(approved ? 'approved' : 'idle');
   const [error, setError] = useState<string | null>(null);

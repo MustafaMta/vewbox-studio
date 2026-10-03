@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { IconClose } from '@/components/ui/icons';
 
 /** THE SHELL'S DIALOG — the one place the shell's overlays (the command palette, the shortcut sheet, the phone's menu
@@ -33,7 +33,6 @@ export interface ShellDialogProps {
 }
 
 export function ShellDialog({ open, onClose, title, label, placement = 'center', width = 560, initialFocus, className = '', footer, children, id }: ShellDialogProps) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const headingId = useId();

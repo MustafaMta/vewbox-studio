@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { STYLES } from '@/domain/vocabulary';
-import { useT } from '../../locale';
+import { T } from '@/lib/copy';
 import { Button } from '../Button';
 import { Segmented } from '../Choice';
 import { Checkbox, ChipInput, ErrorSummary, Field, FormFooter, Input, SaveWord, Select, SettingsSummary, ShapedDropzone, Textarea, Toggle } from '../Field';
@@ -10,7 +10,6 @@ import { Recorder } from '../Recorder';
 import { Cell, SpecRow, SpecSection } from './parts';
 
 export function FormsSpec() {
-  const T = useT();
   const [marks, setMarks] = useState<string[]>([T('kit.spec.chip1'), T('kit.spec.chip2')]);
   const [style, setStyle] = useState('CARTOON');
   const [previews, setPreviews] = useState(true);

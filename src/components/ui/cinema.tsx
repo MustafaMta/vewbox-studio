@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { cls } from './kit';
 import { IconChevronLeft } from './icons';
 
@@ -14,7 +14,6 @@ export const RATIO: Record<Ratio, string> = { poster: 'aspect-[2/3]', square: 'a
 
 /** A picture in its frame; with no picture, the title set as type — never a fake image. */
 export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children, top }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode; /** faces first: crop from the top (portraits) */ top?: boolean }) {
-  const T = useT();
   void sample;
   const r = (RATIO as Record<string, string>)[ratio] ?? ratio;
   return (

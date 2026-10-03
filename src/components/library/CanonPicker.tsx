@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetSrc, primaryImageSrc } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { AddTile, Button, Modal, PickGrid } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';
 import { CharacterForm } from '@/components/character/CharacterForm';
@@ -18,7 +18,6 @@ export function CanonPicker({ castIds, locationIds, inheritedCast = [], inherite
   castIds: string[]; locationIds: string[]; inheritedCast?: string[]; inheritedLocations?: string[]; style?: Style;
   onChange: (patch: { castIds?: string[]; locationIds?: string[] }) => void; compact?: boolean; only?: 'cast' | 'locations';
 }) {
-  const T = useT();
   const { state } = useStudio();
   const chosenCast = state.characters.filter((c) => castIds.includes(c.id) || inheritedCast.includes(c.id));
   const chosenLocs = state.locations.filter((l) => locationIds.includes(l.id) || inheritedLocations.includes(l.id));
@@ -65,7 +64,6 @@ export function CanonPicker({ castIds, locationIds, inheritedCast = [], inherite
 /** The picker dialog: every character or location as a checkable picture, plus "Create new" which opens the form
  *  inside the same dialog and selects what it creates. */
 export function Picker({ kind, style, selected, locked = [], onChange, label }: { kind: 'cast' | 'locations'; style?: Style; selected: string[]; locked?: string[]; onChange: (ids: string[]) => void; label?: string }) {
-  const T = useT();
   const { state } = useStudio();
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);

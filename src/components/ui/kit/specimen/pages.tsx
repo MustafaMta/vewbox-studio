@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useT } from '../../locale';
+import { T } from '@/lib/copy';
 import { IconPlus, IconRetry } from '../../icons';
 import { ApprovalCard } from '../ApprovalCard';
 import { Button, LinkButton } from '../Button';
@@ -17,7 +17,6 @@ import { TabBar } from '../Tabs';
 import { Cell, Slot, SpecRow, SpecSection } from './parts';
 
 export function StatesSpec() {
-  const T = useT();
   return (
     <SpecSection id="states" title={T('kit.spec.sec.states')} lead={T('kit.spec.states.lead')}>
       <SpecRow label="PageEmpty">
@@ -62,11 +61,9 @@ export function StatesSpec() {
 }
 
 function Paper() {
-  const T = useT();
   return <div className="paper prose-copy p-5" dir="auto">{T('kit.spec.approval.excerpt')}</div>;
 }
 function Frames() {
-  const T = useT();
   return (
     <div>
       <div className="kit-spec-frames">
@@ -81,7 +78,6 @@ function Frames() {
 }
 
 export function ApprovalSpec() {
-  const T = useT();
   const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
   return (
     <SpecSection id="approval" title={T('kit.spec.sec.approval')} lead={T('kit.spec.approval.lead')}>
@@ -97,7 +93,6 @@ export function ApprovalSpec() {
 }
 
 export function HeadersSpec() {
-  const T = useT();
   const hero = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState('storyboard');
@@ -134,7 +129,6 @@ export function HeadersSpec() {
 }
 
 export function CreationSpec() {
-  const T = useT();
   const methods = useMethodOptions();
   const [method, setMethod] = useState<CreationMethod>('auto');
   const [brief, setBrief] = useState('');

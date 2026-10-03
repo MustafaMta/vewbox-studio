@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconChevronDown, IconChevronRight, IconPlay } from '@/components/ui/icons';
 import type { Picture } from './art';
@@ -39,7 +39,6 @@ export interface EpisodeData {
 }
 
 export function EpisodeCard({ e }: { e: EpisodeData }) {
-  const T = useT();
   return (
     <StillCard title={e.title} titleLang={e.titleLang} href={e.href} asset={e.asset} src={e.src} number={e.number} titleState="notMade"
       kindLabel={T.f('media.episode', { n: e.number })} synopsis={e.synopsis} duration={e.duration} menu={e.menu}
@@ -48,7 +47,6 @@ export function EpisodeCard({ e }: { e: EpisodeData }) {
 }
 
 export function EpisodeRow({ e, onPlay }: { e: EpisodeData; onPlay?: () => void }) {
-  const T = useT();
   const label = T.f('media.episode', { n: e.number });
   return (
     <div className="ep-row" data-playable={onPlay ? '' : undefined}>
@@ -76,7 +74,6 @@ export function EpisodeRow({ e, onPlay }: { e: EpisodeData; onPlay?: () => void 
 export interface SeasonOption { id: string; number: number; title?: string; episodes: number }
 
 export function SeasonPicker({ seasons, value, onChange, count, onPropose, onWrite, className }: { seasons: SeasonOption[]; value: string; onChange: (id: string) => void; count?: ReactNode; onPropose?: () => void; onWrite?: () => void; className?: string }) {
-  const T = useT();
   const id = useId();
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);

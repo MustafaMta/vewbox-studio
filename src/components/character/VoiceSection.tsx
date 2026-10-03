@@ -9,7 +9,7 @@ import { voiceLock } from '@/domain/rules';
 import { useJobsFor, useStudio } from '@/studio/store';
 import { api, type StartedJob } from '@/studio/api';
 import { assetById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T, type TFn } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Details, Dropzone, Field, Input, KV, Segmented, Status, Textarea, cls } from '@/components/ui/kit';
 import { FactList } from '@/components/ui/page';
@@ -26,7 +26,7 @@ import { checkAudioDuration, checkAudioFile, measureAudio, type AudioVerdict } f
 import { ConsentChoice } from './ConsentChoice';
 
 /** The engine, in words a producer can read. */
-export function engineName(identity: Character['voice']['identity'], T: ReturnType<typeof useT>): string {
+export function engineName(identity: Character['voice']['identity'], T: TFn): string {
   if (!identity) return '—';
   if (identity.provider === 'MINIMAX') return T('voice.engine.minimax');
   const m = identity.model.toLowerCase();
@@ -34,7 +34,7 @@ export function engineName(identity: Character['voice']['identity'], T: ReturnTy
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const useLang = (c: Character) => { const T = useT(); return `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`; };
+const useLang = (c: Character) => { return `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`; };
 
 /** THE VOICE IDENTITY (DESIGN-SYSTEM-V3 §9.7; docs/CONTRACTS-VOICE-IDENTITY-V2.md) — the voice you can hear: the proof
  *  line in a real player, its origin said on it ("Studio-designed synthetic voice — not a real person" / "Recording —
@@ -44,7 +44,6 @@ const useLang = (c: Character) => { const T = useT(); return `${c.language === '
  *  Recording (recorded here or dropped, with the speaker's consent). Previews are listened to, never cloned from. Once
  *  the character has spoken in a video the voice is held, said once. */
 export function VoiceSection({ c }: { c: Character }) {
-  const T = useT();
   const { state } = useStudio();
   const identity = c.voice.identity;
   const vlock = voiceLock(c);
@@ -113,7 +112,6 @@ export function VoiceSection({ c }: { c: Character }) {
 
 /** The origin every voice carries: designed (a synthetic voice, not a real person), a recording (whose), or hosted. */
 function OriginLabel({ c }: { c: Character }) {
-  const T = useT();
   const { state } = useStudio();
   const id = c.voice.identity; if (!id) return null;
   const origin = voiceOrigin(c);
@@ -125,7 +123,6 @@ function OriginLabel({ c }: { c: Character }) {
 /** Measured vs listened (contract v2 §4): the numbers in plain words, then the producer's own listening — or the
  *  plain statement that nobody has listened yet, with "I listened". */
 function Evaluation({ c }: { c: Character }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const m = voiceMeasures(c);
@@ -174,7 +171,6 @@ function Evaluation({ c }: { c: Character }) {
 
 /** Speak any text with the pinned voice, inline; the take appears under "Takes" with its phase. */
 function PreviewLine({ c }: { c: Character }) {
-  const T = useT();
   const { startJob } = useStudio();
   const toast = useToast();
   const running = useJobsFor({ characterId: c.id, type: 'VOICE_PREVIEW' }).find((j) => isActiveStatus(j.status));
@@ -197,7 +193,6 @@ type Method = 'AUTOMATIC' | 'DESIGN' | 'RECORDING';
 
 /** Create or replace the voice: Automatic, Design a voice, or a Recording. */
 function CreateVoice({ c, open }: { c: Character; open: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const identity = c.voice.identity;
   const iraqi = c.dialect === 'IRAQI_BAGHDADI';
@@ -241,7 +236,6 @@ function useLatest(c: Character, type: string): { running?: Job; last?: Job } {
 /** Start a job; a refusal is said in a toast — except CONSENT_REQUIRED (the server refused a build from a recording
  *  without a consent statement), which the panel answers with the consent choice instead (consentNeeded). */
 function useLaunch() {
-  const T = useT();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [consentNeeded, setConsentNeeded] = useState<{ sampleId?: unknown } | null>(null);
@@ -258,14 +252,12 @@ function useLaunch() {
 }
 
 function JobPhase({ job }: { job: Job }) {
-  const T = useT();
   return <Status tone="info" live className="max-w-full truncate" title={job.progress?.message}>{job.progress?.phase ? `${T.dyn(`jp.${job.progress.phase}`)} · ` : ''}{job.progress?.message || T('jobs.inProgress')}</Status>;
 }
 
 /** AUTOMATIC — one action. English and Modern Standard Arabic are designed from the profile; an Iraqi voice is cloned
  *  only from an Iraqi recording (or, with the experiment switch on, from a designed seed that stays unverified). */
 function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: boolean; experiment: boolean }) {
-  const T = useT();
   const { startJob } = useStudio();
   const copyOf = useErrorCopy();
   const { run, busy, consentNeeded } = useLaunch();
@@ -292,7 +284,6 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
  *  sentence, each with a real player and its measured numbers → choose one. A designed voice is synthetic and belongs
  *  to nobody; a description that names a real person is refused by the service. */
 function Design({ c }: { c: Character }) {
-  const T = useT();
   const { state, startJob } = useStudio();
   const copyOf = useErrorCopy();
   const { run, busy } = useLaunch();
@@ -337,7 +328,6 @@ function Design({ c }: { c: Character }) {
  *  a file; the browser measures the length, the studio checks speech, loudness and language; the voice is built from
  *  the chosen recording. */
 function Recording({ c }: { c: Character }) {
-  const T = useT();
   const { state, refresh, act } = useStudio();
   const toast = useToast();
   const identity = c.voice.identity;
@@ -416,7 +406,6 @@ function Recording({ c }: { c: Character }) {
 /** Record in the browser (MediaRecorder): start, a running clock, stop — at most 30 seconds. The recording is then
  *  checked exactly like a dropped file. Hidden where the browser cannot record. */
 function Recorder({ onFile, disabled }: { onFile: (f: File) => void; disabled?: boolean }) {
-  const T = useT();
   const [supported, setSupported] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'asking' | 'recording'>('idle');
   const [seconds, setSeconds] = useState(0);
@@ -449,7 +438,6 @@ function Recorder({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
 /** "Build voice from …": VOICE_BUILD `{ characterId, mode: 'REFERENCE', referenceSampleId }` from a recording you
  *  uploaded; never from a generated line. Disabled with the reason when there is nothing to build from. */
 function BuildVoice({ c, from, locked }: { c: Character; from?: VoiceSample; locked: boolean }) {
-  const T = useT();
   const { startJob } = useStudio();
   const copyOf = useErrorCopy();
   const { run, busy, consentNeeded } = useLaunch();

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { nextStep, productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Menu, MenuItem, MenuLink, Status, type Tone } from '@/components/ui/kit';
 import { IconDelete, IconDuplicate, IconOpen } from '@/components/ui/icons';
@@ -17,12 +17,10 @@ import { IconDelete, IconDuplicate, IconOpen } from '@/components/ui/icons';
 const STAGE_TONE: Record<Production['stage'], Tone> = { STORY: 'neutral', CAST_AND_WORLD: 'neutral', STORYBOARD: 'info', PRODUCE: 'info', FINAL_CUT: 'warn', COMPLETE: 'ok' };
 
 export function StageStatus({ p, className = '' }: { p: Production; className?: string }) {
-  const T = useT();
   return <Status tone={STAGE_TONE[p.stage]} className={className}>{T.dyn(`stage.${p.stage}`)}</Status>;
 }
 
 export function ProductionMenu({ p }: { p: Production }) {
-  const T = useT();
   const { act } = useStudio();
   const router = useRouter();
   const toast = useToast();

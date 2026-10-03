@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { DIALECTS, STYLES, type Dialect, type Language } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Field, Segmented, Select } from '@/components/ui/kit';
 import { dialectLabel } from '@/lib/format';
 
@@ -14,13 +14,12 @@ export interface HeaderValues { forId: string; style: (typeof STYLES)[number]; l
  *  Arabic (Iraqi Baghdadi)  Change". Change opens the four controls in place. Intent comes first; configuration waits
  *  until it is wanted. */
 export function SettingsSummary({ value, onChange, disabled }: { value: HeaderValues; onChange: (v: HeaderValues) => void; disabled?: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const [open, setOpen] = useState(false);
   const set = (p: Partial<HeaderValues>) => onChange({ ...value, ...p });
   const homes = [...state.shows.map((s) => ({ value: `show:${s.id}`, label: s.title })), ...state.productions.filter((p) => !p.showId).map((p) => ({ value: `p:${p.id}`, label: p.title }))];
   const home = homes.find((h) => h.value === value.forId);
-  const langWords = value.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(value.dialect, T.locale)})` : T('label.english');
+  const langWords = value.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(value.dialect)})` : T('label.english');
   return (
     <div className="min-w-0">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] leading-5 text-muted">
@@ -37,7 +36,7 @@ export function SettingsSummary({ value, onChange, disabled }: { value: HeaderVa
           </Field>
           <div><p className="label">{T('label.style')}</p><Segmented label={T('label.style')} value={value.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></div>
           <div><p className="label">{T('label.language')}</p><Segmented label={T('label.language')} value={value.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: T('label.english') }, { value: 'AR' as Language, label: T('label.arabic') }]} /></div>
-          {value.language === 'AR' && <Field label={T('label.dialect')} className="min-w-[11rem]"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d, T.locale) }))} /></Field>}
+          {value.language === 'AR' && <Field label={T('label.dialect')} className="min-w-[11rem]"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
         </fieldset>
       )}
     </div>

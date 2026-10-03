@@ -3,11 +3,11 @@
 import type { Asset, Character } from '@/domain/types';
 import { isActiveStatus } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Details, Status } from '@/components/ui/kit';
 import { useStartJob } from '@/components/ui/jobs';
 import { IconGenerate } from '@/components/ui/icons';
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 import { CharacterImage } from './CharacterImage';
 import { materialByTier, secondaryJobs } from './identity';
 import { SECONDARY_KINDS, secondaryPayload, type SecondaryKind } from './contract';
@@ -25,7 +25,6 @@ const DRAW_KEY: Record<SecondaryKind, Key> = { EXPRESSION: 'cast.secondary.drawE
  *  is being made, or — while the look may still change and the canonical image exists — when it can be requested.
  *  Raw outputs never appear. */
 export function SecondaryMaterial({ c, locked }: { c: Character; locked: boolean }) {
-  const T = useT();
   const { state, jobs } = useStudio();
   const m = materialByTier(c, state.assets);
   const running = SECONDARY_KINDS.flatMap((k) => secondaryJobs(c.id, k, jobs).filter((j) => isActiveStatus(j.status)).map((j) => ({ kind: k, job: j })));
@@ -61,7 +60,6 @@ function Tile({ a, name, label }: { a: Asset; name: string; label: string }) {
 }
 
 function DrawSecondary({ c, kind }: { c: Character; kind: SecondaryKind }) {
-  const T = useT();
   const { start, busy } = useStartJob();
   return <Button size="sm" variant="quiet" icon={<IconGenerate />} loading={busy} onClick={() => void start('CHARACTER_REFS', secondaryPayload(c.id, [kind]), { quiet: true })}>{T(DRAW_KEY[kind])}</Button>;
 }

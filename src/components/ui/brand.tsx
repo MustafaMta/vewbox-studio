@@ -1,6 +1,6 @@
 'use client';
 
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 
 /** THE VEWBOX GLYPH — a lens opened by a V: the frame you view through. In the product it is monochrome ivory on a
  *  `--raised-2` tile (docs/DESIGN-SYSTEM-V4.md §2.5, V4-08): the work stays the brightest, most colourful thing on
@@ -21,7 +21,6 @@ export function BrandTile({ className = '' }: { className?: string }) {
 
 /** The tile and the wordmark. */
 export function VewboxLogo({ className = '' }: { className?: string }) {
-  const T = useT();
   return (
     <span className={`brand-logo ${className}`}>
       <BrandTile />

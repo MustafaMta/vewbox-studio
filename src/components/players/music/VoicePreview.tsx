@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { PlayDisc } from '../PlayDisc';
 import { usePlayer, useTrackState, type Track } from '../PlayerProvider';
@@ -14,7 +14,6 @@ import { Waveform } from '../Waveform';
  *  voice", "Recording — kitchen take 2"); no engine or model name ever appears (V4-10). */
 
 export function VoicePreview({ track, name, line, lineLang, origin, className }: { track: Track; name: string; line?: string; lineLang?: string; origin?: ReactNode; className?: string }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   const progress = st.duration ? st.time / st.duration : 0;
