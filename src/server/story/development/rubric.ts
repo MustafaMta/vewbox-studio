@@ -4,6 +4,7 @@ import type { IdeaContext } from './context';
 import { checkOriginality, tokens } from './originality';
 import { structureBounds } from './strategy';
 import type { ReviewOut } from './schemas';
+import { lifeTimelineIssues, storyTexts, type LifeOf } from './timeline';
 
 /** THE REVIEW RUBRIC (contract §2) — which criteria apply to a format, the checks the studio computes itself (they
  *  are issues like the reviewer's, marked CODE), and the verdict rule: a MAJOR issue — the reviewer's or the code's —
@@ -39,12 +40,20 @@ const overlap = (a: string, b: string) => { const x = new Set(tokens(a)); const 
 
 export interface DraftForReview { proposal: Omit<IdeaProposal, 'development'>; hook: string; ending: string; sampleLines?: Array<{ speaker: string; line: string; gloss?: string }>; gloss?: { logline?: string; premise?: string; structure?: Array<{ title: string; summary: string }> } }
 
+/** The people of a draft with their ages: a studio character's real age (the draft may misstate it), a new one's as
+ *  written. */
+export function draftPeople(d: Pick<DraftForReview, 'proposal'>, c: Pick<IdeaContext, 'mustCast' | 'library'>): LifeOf[] {
+  const known = new Map([...c.mustCast, ...c.library.characters].map((x) => [x.id, x.ageYears]));
+  return d.proposal.cast.map((x) => ({ name: x.name, ageYears: (x.characterId ? known.get(x.characterId) : undefined) ?? x.ageYears }));
+}
+
 /** The checks the studio computes on a draft, per reviewer. */
-export function codeChecks(reviewer: Reviewer, d: DraftForReview, c: IdeaContext, items: ResearchItem[]): ReviewIssue[] {
+export function codeChecks(reviewer: Reviewer, d: DraftForReview, c: IdeaContext, items: ResearchItem[], year = new Date().getUTCFullYear()): ReviewIssue[] {
   const out: ReviewIssue[] = [];
   const p = d.proposal;
   const add = (criterion: ReviewCriterion, severity: ReviewIssue['severity'], where: string, note: string, fix: string) => out.push({ criterion, severity, where, note, fix, source: 'CODE' });
   if (reviewer === 'STORY_EDITOR') {
+    out.push(...lifeTimelineIssues(storyTexts(d), draftPeople(d, c), year));
     const b = structureBounds(c);
     if (p.structure.length < b.min || p.structure.length > b.max) add('PACING', 'MINOR', 'structure', `${p.structure.length} ${b.unit} for this format (expected ${b.min}–${b.max}).`, `Restructure into ${b.min}–${b.max} ${b.unit}.`);
     if (c.language === 'AR' && !ARABIC.test(`${p.logline} ${p.premise}`)) add('DIALOGUE', 'MAJOR', 'logline and premise', 'The story is written in English, not in the Arabic dialect it is for.', 'Write the logline, premise and structure in the dialect first, then the English gloss.');

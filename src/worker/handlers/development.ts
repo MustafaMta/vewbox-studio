@@ -14,7 +14,8 @@ import { artifactOfJob, artifactsOf, loadArtifact, loadArtifacts, saveArtifact, 
 import { getResearchItems, planTopics, querySource, storeEvidence, type ResearchRequest, type SourceResult } from '@/server/research';
 import { ideaContext, type IdeaRequest } from '@/server/story/development/context';
 import { analyseAudience, developConcepts, reviewDraft, writeDraft, type DraftContent } from '@/server/story/development/engine';
-import { needsRevision } from '@/server/story/development/rubric';
+import { draftPeople, needsRevision } from '@/server/story/development/rubric';
+import { lifeTimelineIssues, storyTexts } from '@/server/story/development/timeline';
 import { buildDossier } from '@/server/story/development/dossier';
 import { stageChecks, type BasedOn } from '@/server/story/development/checks';
 
@@ -179,7 +180,10 @@ export const autoIdea: Handler = async (ctx) => {
   steps.push({ stage: 'PROPOSAL', status: 'done', reason: `proposal ${proposalId}` });
   const items = research.content.run.itemIds.length ? await getResearchItems(research.content.run.itemIds) : [];
   const dossier = buildDossier({ c, research, items, audience: as<AudienceAnalysis>(arts.find((a) => a.id === audienceArtifactId)), concepts: as<ConceptSet>(arts.find((a) => a.id === conceptsArtifactId)), drafts, reviews: reviewArts, steps });
-  const proposal: IdeaProposal = { ...final.content.proposal, development: dossier };
+  // the studio's own life-timeline check on the final draft: the revision is not re-reviewed, so what it introduced
+  // is shown to the producer (D20)
+  const openIssues = lifeTimelineIssues(storyTexts(final.content), draftPeople(final.content, c), new Date().getUTCFullYear());
+  const proposal: IdeaProposal = { ...final.content.proposal, development: { ...dossier, ...(openIssues.length ? { openIssues } : {}) } };
   await db().insert(schema.proposals).values({ id: proposalId, jobId: ideaJobId, request: payload, proposal, createdAt: new Date().toISOString() });
   const checks = [
     { name: 'research-recorded', ok: dossier.research.coverage.length === RESEARCH_PLATFORMS.length, detail: `${dossier.research.status}: ${dossier.research.itemIds.length} source(s)` },

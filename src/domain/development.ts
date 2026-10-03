@@ -209,6 +209,9 @@ export interface DevelopmentDossier {
   gloss?: { title?: string; logline?: string; premise?: string; hook?: string; ending?: string; structure?: Array<{ title: string; summary: string }> };
   /** "Original concept — no trend research was used" when research was off, or the reason it was unavailable. */
   note?: string;
+  /** What the studio's own checks still find in the FINAL draft (the revision is not re-reviewed): shown to the
+   *  producer before anything is made, never fixed silently (D20: a character tied to a year before they were 16). */
+  openIssues?: ReviewIssue[];
 }
 
 /** What production departments receive with an accepted Auto Idea (on `Brief.development`): the intent they must not

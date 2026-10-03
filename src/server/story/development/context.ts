@@ -11,7 +11,8 @@ import { showContinuity } from '../engine';
 
 export interface IdeaRequest { kind: IdeaKind; showId?: string; seasonId?: string; preferences: IdeaPreferences; brief?: string; refresh?: boolean }
 
-export interface CastSummary { id: string; name: string; nameAr?: string; role: string; sex: string; ageYears: number; look: string; personality: string; language: string; dialect?: string; hasImage: boolean }
+/** `bornAbout`: the year of birth the age implies, so the writers can keep the years of a life consistent (D20). */
+export interface CastSummary { id: string; name: string; nameAr?: string; role: string; sex: string; ageYears: number; bornAbout: number; look: string; personality: string; language: string; dialect?: string; hasImage: boolean }
 export interface PlaceSummary { id: string; name: string; nameAr?: string; kind: string; description: string }
 
 export interface IdeaContext {
@@ -42,7 +43,7 @@ export interface IdeaContext {
   refresh?: boolean;
 }
 
-export const castSummary = (c: Character): CastSummary => ({ id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, look: [c.build, c.face, c.hair, c.wardrobe].filter(Boolean).join('; ').slice(0, 240), personality: c.personality.slice(0, 200), language: c.language, dialect: c.dialect, hasImage: Boolean(primaryImageOf(c)) });
+export const castSummary = (c: Character): CastSummary => ({ id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, bornAbout: new Date().getUTCFullYear() - c.ageYears, look: [c.build, c.face, c.hair, c.wardrobe].filter(Boolean).join('; ').slice(0, 240), personality: c.personality.slice(0, 200), language: c.language, dialect: c.dialect, hasImage: Boolean(primaryImageOf(c)) });
 export const placeSummary = (l: Location): PlaceSummary => ({ id: l.id, name: l.name, nameAr: l.nameAr, kind: l.kind, description: l.description.slice(0, 240) });
 
 export function ideaContext(s: StudioState, ideaJobId: string, req: IdeaRequest): IdeaContext {

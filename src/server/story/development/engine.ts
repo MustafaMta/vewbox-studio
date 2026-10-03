@@ -12,6 +12,7 @@ import { resolveDraft } from './resolve';
 import { codeChecks, criteriaFor, finaliseReview, type DraftForReview, type Reviewer } from './rubric';
 import { AudienceOutSchema, ConceptsOutSchema, DraftOutSchema, ReviewOutSchema, type DraftOut } from './schemas';
 import { continuityRules, ENGAGEMENT_RULES, languageRules, ORIGINALITY_RULES, STRATEGY_RULES, structureBounds } from './strategy';
+import { TIMELINE_RULES } from './timeline';
 
 /** THE DEVELOPMENT ENGINE — one structured model call per stage (the local qwen3:14b through the studio's LLM
  *  provider, or the configured hosted model), each validated against its schema with repair rounds, then checked in
@@ -72,7 +73,7 @@ Return JSON: { "audience": "...", "patterns": [ ... ], "cautions": [ ... ] }`;
 
 // ------------------------------------------------------------------------------------------- 3. concepts
 
-const rulesFor = (c: IdeaContext) => [STRATEGY_RULES[c.strategy], ENGAGEMENT_RULES, ORIGINALITY_RULES, languageRules(c.language, c.dialect), direction(c), continuityRules(c)].filter(Boolean).join('\n\n');
+const rulesFor = (c: IdeaContext) => [STRATEGY_RULES[c.strategy], ENGAGEMENT_RULES, ORIGINALITY_RULES, TIMELINE_RULES, languageRules(c.language, c.dialect), direction(c), continuityRules(c)].filter(Boolean).join('\n\n');
 const continuityContext = (c: IdeaContext) => (c.continuity ? `SHOW CONTEXT: ${compact(c.continuity)}` : '');
 const avoidList = (items: ResearchItem[]) => Array.from(new Set(items.flatMap((i) => [i.title, i.creator].filter((x): x is string => Boolean(x))))).slice(0, 40);
 

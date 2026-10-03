@@ -13,6 +13,7 @@ import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, 
 import { agentPrompt } from '../org/skills';
 import type { PictureFacts } from '../workflows/canonical-image';
 import { intentDirective } from './development/intent';
+import { TIMELINE_RULES } from './development/timeline';
 
 /** The accepted Auto Idea's development intent (audience, tone, hook, ending) as fixed instructions for every later
  *  story call of that production — developing, scripting and planning never rewrite what the producer accepted. */
@@ -41,7 +42,7 @@ const STYLE_RULES = (style: Style) => { const d = styleDirection(style); return 
 const compact = (v: unknown) => JSON.stringify(v);
 
 function castSummary(c: Character) {
-  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(primaryImageOf(c)) };
+  return { id: c.id, name: c.name, nameAr: c.nameAr, role: c.role, sex: c.sex, ageYears: c.ageYears, bornAbout: new Date().getUTCFullYear() - c.ageYears, species: c.species, look: [c.build, c.face, c.hair, c.eyes && `${c.eyes} eyes`, c.skin && `${c.skin} skin`].filter(Boolean).join('; '), wardrobe: c.wardrobe, distinguishing: c.distinguishing, personality: c.personality, language: c.language, dialect: c.dialect, voice: `${c.voice.pitch} ${c.voice.pace} ${c.voice.timbre}`.trim(), hasAppearance: Boolean(primaryImageOf(c)) };
 }
 function locationSummary(l: Location) {
   return { id: l.id, name: l.name, nameAr: l.nameAr, kind: l.kind, description: l.description, landmarks: l.landmarks, props: l.props, lighting: l.lighting, layout: l.layout };
@@ -366,7 +367,7 @@ If the story needs people or places that do not exist yet, create them in newCha
 ${p.kind === 'MUSIC_VIDEO' && p.song ? `The song (${p.song.title}, ${p.song.durationSeconds}s): caption "${p.song.caption}". Sections: ${compact(p.song.sections.map((x) => ({ kind: x.kind, from: x.from, to: x.to, text: x.textAr || x.text })))}. Scenes should map onto song sections.` : ''}
 Return JSON: { logline, synopsis (3–6 paragraphs, present tense), genre, mood, titleAr?, newCharacters: [{name, role, sex, design:{build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, ageYears, nameAr?, canon:{heightCm?, accessories[]?, visualRestrictions[]?, agePresentation?, speech?}}}], newLocations: [{name, design:{description, kind, landmarks[], props[], lighting[], nameAr?, layout:{geography?, architecture?, materials[]?, cameraZones[]?, entrances[]?, spatial?}}}], scenes: [{title, locationName, timeOfDay, characterNames[], purpose, emotionalObjective, entryState, exitState, targetSeconds}] }.
 timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NIGHT. locationName must match an attached, library or new location exactly; characterNames likewise.`;
-  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}${intentBlock(p)}`, opts), { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(DevelopSchema, messages, { ...opts, maxTokens: 8000, temperature: 0.8 });
   opts.onResult?.(r.result);
   return r.data;
@@ -388,7 +389,7 @@ Scenes to write (keep sceneId): ${compact(sceneCards)}
 Each scene plays for about ${perScene} seconds, so 2–6 beats per scene; a beat is one piece of action (what we see, present tense, specific and filmable in a few seconds) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
 If a scene already has beats, improve and complete them rather than discarding what is there.
 Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }] }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
-  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}${intentBlock(p)}`, opts), { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
   opts.onResult?.(r.result);
   // Arabic that landed in the English slot moves to textAr; the English gloss is then asked for separately
@@ -473,7 +474,7 @@ Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, 
 Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"]}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot."},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
 Every continuity.characters entry must use the key "characterName" with the exact character name. relationToPrevious ∈ CONTINUATION (same moment continues), CUT (new angle in the same scene), STORY_TRANSITION (time or place changes). Use null for nothing; never omit required keys.
 framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
-  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}${intentBlock(p)}`, opts), { role: 'user', content: user }];
+  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
   // a scene's running time needs enough shots at ≤ maxShot seconds each; a one-shot scene is sent back for more
   const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
   const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
