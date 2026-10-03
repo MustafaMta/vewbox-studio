@@ -1,5 +1,7 @@
 /** THE ICON SET — one vocabulary for the whole studio, re-exported from lucide so a swap is one file.
- *  Every icon is decorative unless given an aria-label by its caller; the button or link around it carries the name. */
+ *  Every icon is decorative unless given an aria-label by its caller; the button or link around it carries the name.
+ *  Owned by F2. The set below is shared and read-only; each package adds its own icons in src/components/ui/icons/<pkg>.ts
+ *  (docs/DESIGN-SYSTEM-V4.md §8.2 rule 4), re-exported at the end of this file. */
 export {
   House as IconHome, Clapperboard as IconShows, Film as IconShorts, Music as IconMusicVideos, Users as IconCharacters, MapPin as IconLocations,
   Images as IconAssets, ListOrdered as IconQueue, Settings as IconSettings, CircleCheck as IconReview, MoreHorizontal as IconMore, Plus as IconPlus,
@@ -14,3 +16,12 @@ export {
   LayoutGrid as IconGrid, List as IconList, Menu as IconMenu, RotateCcw as IconReplay, Captions as IconCaptions, ImagePlus as IconImageAdd, SlidersHorizontal as IconPreferences, Shuffle as IconShuffle, ShieldCheck as IconShield, Film as IconFilm, ArrowRightLeft as IconSwap, Disc3 as IconDisc, Tv as IconTv, ArrowRight as IconArrowRight, Wand as IconWand,
   Building2 as IconStudio, Bot as IconAgent, Workflow as IconPipeline, Activity as IconActivity, BookOpen as IconSkill, Wrench as IconTool, Gauge as IconReliability, CircleDot as IconDot,
 } from 'lucide-react';
+
+export * from './icons/kit';
+export * from './icons/media';
+export * from './icons/shell';
+export * from './icons/shows';
+export * from './icons/film';
+export * from './icons/music';
+export * from './icons/cast';
+export * from './icons/studio';

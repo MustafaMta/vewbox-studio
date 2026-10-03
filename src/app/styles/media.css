@@ -1,0 +1,74 @@
+/* ============================================================================================================
+   MEDIA — owned by F3 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   Pictures in frames, posters, grids, placeholders, scrims, the banner header, tiles, the film strip, faces.
+   Split out of src/app/globals.css by F0 unchanged. (`.mark`, `.hero-plain`, `.scrim-strong`: deleted in Q1.)
+   ============================================================================================================ */
+@layer components {
+  /* the word that sits on every bundled picture */
+  .mark { display: inline-flex; align-items: center; block-size: 20px; padding: 0 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0; backdrop-filter: blur(4px); }
+
+  /* ---- media ------------------------------------------------------------------------------------------ */
+  .media { position: relative; background: var(--media); border-radius: var(--r-media); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--fg-faint); }
+  .media img, .media video { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+  .media-contain img, .media-contain video { object-fit: contain; }
+  .media-empty { background: var(--input); color: var(--fg-faint); border: 1px solid var(--line); }
+  .thumb { background: var(--media); border-radius: var(--r-media); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--fg-faint); }
+  .thumb img, .thumb video { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+  /* a picture in its frame: the object of every library. Hover lightens the frame; the picture eases to 1.02 */
+  .poster { display: block; position: relative; border-radius: var(--r-media); overflow: hidden; background: var(--input); border: 1px solid var(--line); transition: border-color var(--t) var(--ease); }
+  .poster img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; transition: transform var(--t-media) var(--ease-inout); }
+  a:hover > .poster, a:focus-visible > .poster, .poster-link:hover .poster, .poster-link:focus-visible .poster { border-color: var(--line-strong); }
+  .poster-link:hover .poster img { transform: scale(1.02); }
+  /* on a picture or a clip the focus ring is white */
+  .poster:focus-visible, .media:focus-visible, .vplayer:focus-visible, .poster-link:focus-visible > .poster { outline: 2px solid #fff; outline-offset: 2px; }
+  .poster-card:has(.poster-link:focus-visible) .poster { box-shadow: 0 0 0 2px #fff; }
+  .poster-title { margin-block-start: 10px; font-weight: 600; font-size: 15px; line-height: 20px; color: var(--fg); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .poster-meta { margin-block-start: 2px; font-size: 12px; line-height: 16px; color: var(--fg-faint); display: flex; flex-wrap: wrap; gap: 0.15rem 0.5rem; align-items: center; }
+  html[dir='rtl'] .poster-meta { font-size: 13px; line-height: 20px; }
+  .poster-meta > span + span::before { content: '·'; margin-inline-end: 0.5rem; color: var(--ink-500); }
+  .grid-posters { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr)); gap: 1.25rem 1rem; }
+  .grid-portraits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr)); gap: 1.25rem 1rem; }
+  @media (max-width: 639px) { .grid-portraits { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .grid-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1.25rem 1rem; }
+  .grid-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr)); gap: 1rem; }
+  .grid-shows { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 1.25rem; }
+  /* an honest placeholder: the title set as type on the field tone — no gradient, no fake picture */
+  .poster-text { display: flex; align-items: flex-end; padding: 0.85rem; background: var(--input); color: var(--fg-faint); font-family: var(--font-display); font-weight: 500; font-size: 16px; line-height: 1.25; letter-spacing: -0.01em; }
+  html[dir='rtl'] .poster-text { letter-spacing: 0; }
+  /* the art scrim: a title set on a picture's lower edge */
+  .scrim { position: absolute; inset: 0; background: linear-gradient(to top, var(--ink-950) 0%, color-mix(in srgb, var(--ink-950) 35%, transparent) 55%, transparent 100%); }
+  .scrim-strong { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.1) 60%, rgba(0, 0, 0, 0.2) 100%); }
+  /* the banner header: a wide picture bleeding to the edges, fading into the canvas; the words on its lower edge */
+  .hero { position: relative; isolation: isolate; }
+  .hero-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+  .hero-backdrop img { inline-size: 100%; block-size: 100%; object-fit: cover; opacity: 0.55; }
+  .hero-wide .hero-backdrop img { opacity: 0.5; }
+  .hero-backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 20%, transparent) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 55%, var(--bg) 100%); }
+  .hero-plain { background: linear-gradient(180deg, var(--surface), var(--bg)); }
+  /* a tile: picture on top, one line of words, one status */
+  .tile { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); overflow: hidden; transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); }
+  .tile:hover { border-color: var(--line-strong); background: var(--input); }
+  .tile:has(a:focus-visible), .tile:has(button:focus-visible) { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tile-body { padding: 0.8rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; min-inline-size: 0; }
+  .tile-title { font-weight: 600; font-size: 0.9rem; line-height: 1.3; color: var(--fg); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tile-meta { font-size: 0.75rem; color: var(--fg-faint); display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; align-items: center; }
+  .tile-meta > span + span::before { content: '·'; margin-inline-end: 0.5rem; color: var(--ink-500); }
+  .tile-cover { position: relative; }
+  .card-tools { opacity: 0; transition: opacity var(--t) var(--ease); }
+  .tile:hover .card-tools, .tile:focus-within .card-tools, .card-tools:has([open]), .poster-card:hover .card-tools, .poster-card:focus-within .card-tools, .card-hover:hover .card-tools, .card-hover:focus-within .card-tools { opacity: 1; }
+  @media (hover: none) { .card-tools { opacity: 1; } }
+  /* the film strip: shots as a horizontal sequence */
+  .filmstrip { display: flex; gap: 0.75rem; overflow-x: auto; padding-block: 0.75rem; scroll-snap-type: x proximity; }
+  .filmstrip > * { scroll-snap-align: start; flex: none; }
+  .strip-rail { block-size: 6px; background: repeating-linear-gradient(90deg, var(--line-strong) 0 8px, transparent 8px 16px); border-radius: 3px; opacity: 0.6; }
+  /* a stack of round faces */
+  .stack-face { display: grid; place-items: center; inline-size: 1.75rem; block-size: 1.75rem; overflow: hidden; border-radius: 999px; border: 2px solid var(--raised); background: var(--ink-700); color: var(--fg-body); font-size: 0.625rem; font-weight: 600; }
+  .stack-face + .stack-face { margin-inline-start: -0.5rem; }
+  .stack-face img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+}
+
+/* F1 → F3 handover (outside the layer, so it outranks tokens.css). tokens.css paints the art wash as .hero::before
+   (§2.1), running --wash-end (420 px) down from the hero's top — over whatever follows a hero shorter than that,
+   because .hero is a positioned, isolated layer. The legacy banner header (ui/cinema.tsx Hero, with its own
+   backdrop) takes no wash; F3's heroes replace it, and this rule goes with it. */
+.hero:has(> .hero-backdrop)::before { content: none; }

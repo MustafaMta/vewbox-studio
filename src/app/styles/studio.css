@@ -1,0 +1,90 @@
+/* ============================================================================================================
+   THE STUDIO COMPANY — owned by P3 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   The company diagram, its seats, edges and the phone spine; monograms (v3 §9.1, kept by v4 V4-13).
+   Split out of src/app/globals.css by F0 unchanged.
+   ============================================================================================================ */
+@layer components {
+  /* ---- the Studio Company (§9.1) ----------------------------------------------------------------------
+     A sunken stage, one orbit, the orchestrator at the centre and nine seats. Lines exist only for recorded
+     handoffs; state is said by ring weight and colour and in words — no halo, no pulse ring, no transform. */
+  .org-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; font-size: 12px; color: var(--fg-faint); }
+  .org-legend > span { display: inline-flex; align-items: center; gap: 0.45rem; }
+  .org-legend > span::before { content: ''; inline-size: 6px; block-size: 6px; border-radius: 999px; background: var(--c, var(--fg-faint)); }
+  .co-layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+  @media (min-width: 1280px) { .co-layout { grid-template-columns: minmax(0, 1fr) 22rem; } .co-inspector { position: sticky; top: 24px; max-block-size: calc(100dvh - 48px); overflow-y: auto; } }
+  .co-inspector { padding: 20px; }
+  .co-stage { position: relative; border-radius: var(--r-4); border: 1px solid var(--line); background: var(--sunken); padding: 24px; }
+  .co-stage[data-dimmed] .co-frame { opacity: 0.55; }
+  .co-lastknown { position: absolute; inset-block-start: 12px; inset-inline-start: 16px; font-size: 12px; color: var(--warn); }
+  .co-frame { position: relative; aspect-ratio: 1000 / 775; }
+  .co-frame:focus-within { outline: none; }
+  .co-lines { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; overflow: visible; pointer-events: none; }
+  .co-orbit { fill: none; stroke: var(--line-soft); stroke-width: 1px; }
+  .co-lines [data-dim], .co-node[data-dim] { opacity: 0.35; }
+  .co-edge-g, .co-node, .co-assign { transition: opacity var(--t-slow) var(--ease); }
+  .co-edge { fill: none; stroke: var(--edge); stroke-width: 1px; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--t) var(--ease), stroke-width var(--t) var(--ease); }
+  .co-edge[data-state='recent'] { stroke: var(--edge-lit); stroke-width: 1.5px; }
+  .co-edge[data-state='waiting'] { stroke: var(--edge-wait); stroke-width: 1.5px; stroke-dasharray: 4 3; }
+  .co-edge.co-arrow[data-state='waiting'] { stroke-dasharray: none; }
+  .co-edge[data-state='refused'] { stroke: var(--edge-bad); stroke-width: 1.5px; }
+  .co-edge[data-selected] { stroke: var(--fg); stroke-width: 2px; }
+  .co-edge-hit { fill: none; stroke: transparent; stroke-width: 12px; pointer-events: stroke; cursor: pointer; }
+  .co-assign { fill: none; stroke: var(--edge-lit); stroke-width: 1px; opacity: 0.6; }
+  .co-travel { fill: none; stroke: var(--accent); stroke-width: 2px; stroke-linecap: round; animation: co-travel var(--t-travel) var(--ease-inout) 1 both; }
+  @keyframes co-travel { from { stroke-dashoffset: var(--from); } to { stroke-dashoffset: var(--to); } }
+  /* a seat: the disc, the team dots, the name and the state line; the focus ring wraps disc and words together */
+  .co-node { position: absolute; display: flex; align-items: center; gap: 12px; padding: 4px; margin: 0; border: 0; border-radius: var(--r-3); background: transparent; color: inherit; font: inherit; cursor: pointer; z-index: 2; }
+  .co-node[data-placement='above'], .co-node[data-placement='below'] { gap: 14px; }
+  .co-node:hover, .co-node:focus-visible, .co-node[aria-pressed='true'] { z-index: 4; }
+  .co-node:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .co-disc { position: relative; display: grid; place-items: center; inline-size: var(--disc, 56px); block-size: var(--disc, 56px); border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--fg-muted); flex: none; transition: border-color var(--t) var(--ease), color var(--t) var(--ease); }
+  .co-disc-sm { --disc: 40px; }
+  .co-icon { inline-size: 20px; block-size: 20px; stroke-width: 1.5; }
+  .co-disc-sm .co-icon { inline-size: 18px; block-size: 18px; }
+  .co-node:hover .co-disc { border-color: var(--fg-faint); }
+  .co-node:hover .co-name { color: var(--fg); }
+  [data-state='working'] > .co-disc, [data-state='working'] .co-spine-row > .co-disc { border: 1.5px solid var(--accent); color: var(--fg); }
+  [data-state='waiting'] > .co-disc, [data-state='waiting'] .co-spine-row > .co-disc { border: 1.5px solid var(--warn); }
+  [data-state='blocked'] > .co-disc, [data-state='blocked'] .co-spine-row > .co-disc { border: 1.5px solid var(--bad); }
+  .co-node[aria-pressed='true'] .co-disc::after { content: ''; position: absolute; inset: -7px; border-radius: 999px; border: 2px solid var(--accent); pointer-events: none; }
+  .co-dot { position: absolute; border-radius: 999px; background: var(--ink-550); pointer-events: none; }
+  .co-dot[data-director] { background: var(--fg-faint); }
+  .co-dot[data-working] { background: var(--accent); animation: breathe 2s ease-in-out infinite; }
+  .co-label { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; inline-size: max-content; }
+  .co-name { font-size: 13px; line-height: 18px; font-weight: 600; color: var(--fg); }
+  html[dir='rtl'] .co-name { font-size: 14px; line-height: 21px; }
+  .co-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-muted); }
+  html[dir='rtl'] .co-state { font-size: 13px; line-height: 20px; }
+  [data-state='working'] .co-state::before { content: ''; inline-size: 6px; block-size: 6px; border-radius: 999px; background: var(--accent); flex: none; animation: breathe 2s ease-in-out infinite; }
+  [data-state='waiting'] .co-state { color: var(--warn); }
+  [data-state='blocked'] .co-state { color: var(--bad); }
+  /* the orchestrator: a raised disc, its name and state; production rings outside it */
+  .co-orch { position: absolute; transform: translate(-50%, -50%); inline-size: var(--orch, 136px); block-size: var(--orch, 136px); border-radius: 999px; padding: 0; margin: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; z-index: 3; }
+  .co-orch:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; border-radius: 999px; }
+  .co-orch-disc { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; inline-size: 100%; block-size: 100%; padding: 14px; border-radius: 999px; background: var(--raised-2); border: 1px solid var(--line-strong); text-align: center; transition: border-color var(--t) var(--ease); }
+  .co-orch:hover .co-orch-disc { border-color: var(--fg-faint); }
+  .co-orch-title { font-size: 13px; line-height: 16px; font-weight: 600; color: var(--fg); }
+  .co-orch-state { font-size: 12px; line-height: 16px; color: var(--fg-muted); }
+  html[dir='rtl'] .co-orch-title { font-size: 14px; line-height: 20px; } html[dir='rtl'] .co-orch-state { font-size: 13px; line-height: 18px; }
+  .co-rings { position: absolute; inset-block-start: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; overflow: visible; }
+  .co-caption { margin-block-start: 8px; text-align: center; font-size: 13px; line-height: 20px; color: var(--fg-faint); }
+  .co-legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-block-start: 12px; font-size: 12px; line-height: 16px; color: var(--fg-faint); }
+  html[dir='rtl'] .co-legend { font-size: 13px; line-height: 20px; }
+  .co-legend > li { display: inline-flex; align-items: center; gap: 8px; }
+  .co-sw { fill: none; stroke-width: 1.5px; stroke-linecap: round; }
+  .co-sw-used { stroke: var(--edge); stroke-width: 1px; } .co-sw-recent { stroke: var(--edge-lit); } .co-sw-wait { stroke: var(--edge-wait); stroke-dasharray: 4 3; } .co-sw-bad { stroke: var(--edge-bad); }
+  /* the phone spine: seats in production order on one line that lights where a handoff just passed */
+  .co-spine { display: flex; flex-direction: column; }
+  .co-spine > li { position: relative; }
+  .co-spine > li:not(:first-child)::before, .co-spine > li:not(:last-child)::after { content: ''; position: absolute; inset-inline-start: 19.5px; border-inline-start: 1px solid var(--line); block-size: calc(50% - 20px); }
+  .co-spine > li::before { inset-block-start: 0; } .co-spine > li::after { inset-block-end: 0; }
+  .co-spine > li[data-lit-above]::before, .co-spine > li:has(+ li[data-lit-above])::after { border-color: var(--edge-lit); }
+  .co-spine-row { display: flex; align-items: center; gap: 24px; min-block-size: 64px; padding-block: 10px; padding-inline-end: 4px; border-radius: var(--r-2); }
+  .co-spine-row:hover { background: var(--input); }
+  /* a person's monogram: initials on the field tone; the director's carries a 1.5 px ivory ring */
+  .monogram { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--input); color: var(--fg-muted); font-weight: 600; letter-spacing: 0; line-height: 1; border: 1px solid var(--line); }
+  .monogram-director { border: 1.5px solid var(--fg); color: var(--fg-body); }
+  .mini-node { display: inline-grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--fg-muted); flex: none; }
+  .mini-node svg { inline-size: 16px; block-size: 16px; stroke-width: 1.5; }
+  .mini-node[data-current] { inline-size: 40px; block-size: 40px; border: 2px solid var(--accent); color: var(--fg); }
+}

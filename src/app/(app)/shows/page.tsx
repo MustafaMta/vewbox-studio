@@ -11,7 +11,7 @@ import { LinkButton, Menu, MenuItem, MenuLink, Select } from '@/components/ui/ki
 import { Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
 import { LibraryBar, NoMatches } from '@/components/library/Library';
-import { ShowCard } from '@/components/library/Cards';
+import { ShowCard } from '@/components/library/ShowCard';
 import { sortItems } from '@/components/library/ProductionTile';
 import { IconDelete, IconEdit, IconPlus, IconShows } from '@/components/ui/icons';
 

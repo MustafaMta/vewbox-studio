@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { useT } from '@/components/ui/locale';
+import { DocumentTitle } from '@/components/shell/DocumentTitle';
 import { MobileBar, SideNav } from '@/components/ui/nav';
 import { VewboxLogo } from '@/components/ui/brand';
 import { IconPlus } from '@/components/ui/icons';
@@ -19,6 +21,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const running = jobs.filter((j) => isActiveStatus(j.status)).length;
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
+      {/* every route's own <title> (§7.3); it reads the search params, so it waits in its own boundary */}
+      <Suspense fallback={null}><DocumentTitle /></Suspense>
       <SyncErrors />
       <a href="#main" className="sr-only-focusable fixed start-3 top-3 z-50 rounded-[var(--r-2)] bg-primary px-3 py-2 text-[13px] font-semibold text-on-primary">{T('nav.skip')}</a>
       <aside className="sticky top-0 hidden h-dvh flex-col border-e border-line bg-bg lg:flex">

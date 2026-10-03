@@ -1,0 +1,101 @@
+/* ============================================================================================================
+   TYPE — owned by F1 (docs/DESIGN-SYSTEM-V4.md §3, §8.2 rule 2, §8.3).
+   The type scale (§3.3): px sizes, one interface family per script (Inter, IBM Plex Sans Arabic), no uppercase and
+   no tracking above 0 on any label; Arabic sizes and line heights run taller so the diacritics clear, and Arabic
+   never goes below 13 px. Phone sizes apply below 640 px. The title voice (.t-*) sets content names only.
+   ============================================================================================================ */
+@layer components {
+  /* ---- the interface voice ----------------------------------------------------------------------------- */
+  .display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: var(--fg); }
+  html[dir='rtl'] .display { letter-spacing: 0; line-height: 1.4; font-weight: 600; }
+  /* page titles with no art (Studio Company): 40/44, phone 30/34; Arabic 36/52, phone 28/42 */
+  .display-xl { font-family: var(--font-display); font-size: 30px; line-height: 34px; font-weight: 500; letter-spacing: -0.025em; color: var(--fg); }
+  @media (min-width: 640px) { .display-xl { font-size: 40px; line-height: 44px; } }
+  html[dir='rtl'] .display-xl { font-size: 28px; line-height: 42px; font-weight: 600; letter-spacing: 0; }
+  @media (min-width: 640px) { html[dir='rtl'] .display-xl { font-size: 36px; line-height: 52px; } }
+  /* every other art-less page title: 30/36, phone 26/32; Arabic 28/42, phone 24/38 */
+  .h1, .page-title { font-family: var(--font-display); font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.02em; color: var(--fg); }
+  @media (min-width: 640px) { .h1, .page-title { font-size: 30px; line-height: 36px; } }
+  html[dir='rtl'] .h1, html[dir='rtl'] .page-title { font-size: 24px; line-height: 38px; font-weight: 600; letter-spacing: 0; }
+  @media (min-width: 640px) { html[dir='rtl'] .h1, html[dir='rtl'] .page-title { font-size: 28px; line-height: 42px; } }
+  /* sections, dialog titles, the inspector title, rail headings: 20/28, phone 18/26; Arabic 19/30, phone 18/28 */
+  .h2, .section-title { font-family: var(--font-display); font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--fg); }
+  @media (min-width: 640px) { .h2, .section-title { font-size: 20px; line-height: 28px; } }
+  html[dir='rtl'] .h2, html[dir='rtl'] .section-title { font-size: 18px; line-height: 28px; letter-spacing: 0; }
+  @media (min-width: 640px) { html[dir='rtl'] .h2, html[dir='rtl'] .section-title { font-size: 19px; line-height: 30px; } }
+  /* row and node names, card titles in panels: 16/22 (Arabic 16/26) */
+  .h3 { font-size: 16px; line-height: 22px; font-weight: 600; color: var(--fg); }
+  html[dir='rtl'] .h3 { line-height: 26px; letter-spacing: 0; }
+  /* the one purpose line; hero loglines: 16/26, phone 15/24; Arabic 16/28 */
+  .lead { font-size: 15px; line-height: 24px; color: var(--fg-muted); max-inline-size: var(--measure-lead); }
+  @media (min-width: 640px) { .lead { font-size: 16px; line-height: 26px; } }
+  html[dir='rtl'] .lead { font-size: 16px; line-height: 28px; }
+  /* the kind line on art-less pages (never on heroes, where the slate is used) */
+  .eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--fg-muted); }
+  .kicker { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg-faint); }
+  html[dir='rtl'] .eyebrow, html[dir='rtl'] .kicker { font-size: 13px; line-height: 20px; }
+  /* hints, timestamps, the "Episode 3" label */
+  .caption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
+  html[dir='rtl'] .caption { font-size: 13px; line-height: 20px; }
+  /* synopses, personality, bible: 15/26, 68ch (Arabic 16/30) */
+  .prose-copy { font-size: 15px; line-height: 26px; color: var(--fg-body); max-inline-size: var(--measure-prose); }
+  html[dir='rtl'] .prose-copy { font-size: 16px; line-height: 30px; }
+  /* the slate (§3.4): one line of facts under a title or a tile — kind · year · count · runtime · … · status, last.
+     Hero 13/20 muted (on art: --on-art-muted); tile and compact header 12/16 (.slate-sm). The separators are the
+     Slate component's (F3), in --ink-500 and aria-hidden. */
+  .slate { font-size: 13px; line-height: 20px; font-weight: 400; color: var(--fg-muted); }
+  .slate-sm { font-size: 12px; line-height: 16px; }
+  .slate-on-art { color: var(--on-art-muted); }
+  html[dir='rtl'] .slate { font-size: 14px; line-height: 22px; }
+  html[dir='rtl'] .slate-sm { font-size: 13px; line-height: 20px; }
+  /* the lyric view (§5.13): 20/32, phone 17/28; Arabic 22/38, phone 19/32. The active line changes weight and
+     colour only — never size, blur or scale */
+  .lyric { font-size: 17px; line-height: 28px; font-weight: 400; color: var(--fg-muted); transition: color var(--t-fast) var(--ease); }
+  @media (min-width: 640px) { .lyric { font-size: 20px; line-height: 32px; } }
+  html[dir='rtl'] .lyric { font-size: 19px; line-height: 32px; }
+  @media (min-width: 640px) { html[dir='rtl'] .lyric { font-size: 22px; line-height: 38px; } }
+  .lyric[aria-current='true'], .lyric[data-active] { font-weight: 600; color: var(--fg); }
+  /* numbers and machine text */
+  .mono { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; }
+  /* timecodes (00:01:12:08) and ids inside Details: always left to right, in both languages */
+  .tc { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+  .num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
+  .break-all { word-break: break-all; }
+  .bi { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.6em; }
+  .bi > .bi-ar { font-weight: 500; color: var(--fg-muted); font-size: 0.85em; }
+  .h1 .bi-ar, .display .bi-ar { font-weight: 600; }
+  /* a quiet line that isolates mixed-script content so punctuation stays at its end */
+  .bdi { unicode-bidi: isolate; }
+  /* the cutting room's compact density sets the body size of everything inside it (13/20; Arabic 14/22) */
+  [data-density='compact'] { font-size: var(--body-fs); line-height: var(--body-lh); }
+
+  /* ---- the title voice (§3.2): content names only — show, short, music video, song, character and place names in
+     heroes, title cards and the theatre's "Now screening"; never labels, buttons, section headings, tabs, numbers or
+     body copy. T0 (today): Inter at its display optical size (the bundled file's opsz axis runs 14–32) with IBM Plex
+     Sans Arabic 700; the title spike swaps --font-title-latin / --font-title-arabic, nothing else. Arabic is never
+     tracked; a name tagged lang="ar" in an English page takes the Arabic weight and no tracking too. --------------- */
+  .t-hero, .t-hero-sm, .t-card-lg, .t-card { font-family: var(--font-title); font-weight: var(--title-weight); font-variation-settings: 'opsz' 32; color: var(--fg); text-wrap: balance; overflow-wrap: break-word; }
+  /* Show and Short heroes; theatre "Now screening": 64/64, phone 40/44; Arabic 52/72, phone 34/50 */
+  .t-hero { font-size: 40px; line-height: 44px; letter-spacing: var(--title-tracking); }
+  @media (min-width: 640px) { .t-hero { font-size: 64px; line-height: 64px; } }
+  /* Music video (song title), Character name, Location name: 48/52, phone 34/38; Arabic 40/60, phone 30/46 */
+  .t-hero-sm { font-size: 34px; line-height: 38px; letter-spacing: -0.025em; }
+  @media (min-width: 640px) { .t-hero-sm { font-size: 48px; line-height: 52px; } }
+  /* a title card in a 16:9 tile ≥ 320 px wide; empty-state cards: 24/28, phone 20/24; Arabic 22/34, phone 19/30 */
+  .t-card-lg { font-size: 20px; line-height: 24px; letter-spacing: -0.02em; }
+  @media (min-width: 640px) { .t-card-lg { font-size: 24px; line-height: 28px; } }
+  /* a title card in poster, sleeve, figure and still tiles: 18/22, phone 16/20; Arabic 17/28, phone 15/24 */
+  .t-card { font-size: 16px; line-height: 20px; letter-spacing: -0.015em; }
+  @media (min-width: 640px) { .t-card { font-size: 18px; line-height: 22px; } }
+  html[dir='rtl'] :is(.t-hero, .t-hero-sm, .t-card-lg, .t-card), :is(.t-hero, .t-hero-sm, .t-card-lg, .t-card):lang(ar) { font-weight: var(--title-weight-ar); letter-spacing: 0; }
+  html[dir='rtl'] .t-hero { font-size: 34px; line-height: 50px; }
+  html[dir='rtl'] .t-hero-sm { font-size: 30px; line-height: 46px; }
+  html[dir='rtl'] .t-card-lg { font-size: 19px; line-height: 30px; }
+  html[dir='rtl'] .t-card { font-size: 15px; line-height: 24px; }
+  @media (min-width: 640px) {
+    html[dir='rtl'] .t-hero { font-size: 52px; line-height: 72px; }
+    html[dir='rtl'] .t-hero-sm { font-size: 40px; line-height: 60px; }
+    html[dir='rtl'] .t-card-lg { font-size: 22px; line-height: 34px; }
+    html[dir='rtl'] .t-card { font-size: 17px; line-height: 28px; }
+  }
+}

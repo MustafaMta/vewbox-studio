@@ -10,7 +10,7 @@ import { Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
 import { LibraryBar, NoMatches } from '@/components/library/Library';
 import { sortItems } from '@/components/library/ProductionTile';
-import { LocationCard } from '@/components/library/Cards';
+import { LocationCard } from '@/components/library/LocationCard';
 import { IconLocations, IconPlus } from '@/components/ui/icons';
 
 /** LOCATIONS — wide plates that say what each place is; one action: Add location. */

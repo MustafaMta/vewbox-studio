@@ -1,0 +1,25 @@
+/* ============================================================================================================
+   SHELL — owned by F4 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   The sidebar navigation (§5.1). Split out of src/app/globals.css by F0; F1 dims the idle items to --fg-nav (§2.1,
+   one step under muted, still 7.1:1 on the ground).
+   ============================================================================================================ */
+@layer components {
+  /* ---- navigation ------------------------------------------------------------------------------------- */
+  /* navigation (§6): the sidebar sits on the ground; 36 px items; the current one is one step up with a 2 px accent
+     marker on the start edge, its icon in the text colour (not the accent) */
+  .nav-group { padding-inline: 12px; margin-block-end: 6px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg-faint); }
+  html[dir='rtl'] .nav-group { font-size: 13px; line-height: 20px; }
+  .nav-link { position: relative; display: flex; align-items: center; gap: 10px; block-size: 36px; padding: 0 12px; border-radius: var(--r-2); font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-nav); transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+  html[dir='rtl'] .nav-link { font-size: 14.5px; }
+  .nav-link svg { inline-size: 18px; block-size: 18px; flex: none; color: var(--fg-faint); stroke-width: 1.5; transition: color var(--t-fast) var(--ease); }
+  .nav-link:hover { background: var(--input); color: var(--fg); }
+  .nav-link:hover svg { color: var(--fg-body); }
+  .nav-link[aria-current='page'] { background: var(--raised-2); color: var(--fg); }
+  .nav-link[aria-current='page'] svg { color: var(--fg); }
+  .nav-link[aria-current='page']::before { content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 50%; translate: 0 -50%; block-size: 16px; inline-size: 2px; border-radius: 2px; background: var(--accent); }
+}
+
+/* F1 → F4 handover (outside the layer, so it outranks tokens.css). §2.1 drops --sticky-top to 0 from 768 px, where
+   F4's 80 px rail replaces the top bar; until the rail lands, today's shell keeps its top bar up to 1024 px, and the
+   sticky rows (tabs) must keep sitting under it there. F4: delete this rule with the bar. */
+@media (min-width: 768px) and (max-width: 1023px) { :root { --sticky-top: var(--mobilebar-h); } }
