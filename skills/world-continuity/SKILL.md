@@ -48,7 +48,10 @@ metadata:
   architecture and fixed props; only light, weather, time and movable things change, and the shots say how.
   The planner receives what was established there.
 - Storyboard frames are drawn from the plate (image 1) and the characters' canonical images (following images), with
-  each character's identity line in the guidance.
+  each character's identity line in the guidance. Like a take, a frame reads the production's World Bible revision
+  (pinned, else the latest): the plate is the one `choosePlate` picks — an established frame at the scene's time of
+  day, else the drawn plate for that time, an established frame of another time, the master — and each character is
+  its pinned canonical image.
 
 ## Bibles
 

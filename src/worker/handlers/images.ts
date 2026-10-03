@@ -5,7 +5,9 @@ import type { ToolRunner } from '@/server/org/tools';
 import { step } from './step';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot } from '@/domain/types';
+import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot, WorldRead } from '@/domain/types';
+import { overlayWorld } from '@/domain/world';
+import { worldOfProduction } from '@/server/world';
 import type { TimeOfDay } from '@/domain/vocabulary';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
@@ -430,18 +432,24 @@ export const locationPlates: Handler = async (ctx) => {
 
 // -------------------------------------------------------------------------------------------------- shot frames
 
-export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnType<typeof readState>>['state'], p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string> {
+type State = Awaited<ReturnType<typeof readState>>['state'];
+
+/** The references of a storyboard frame, from the studio state with the production's World Bible laid over it
+ *  (`overlayWorld`): the place by the plate `choosePlate` picked (`read.location` — an established frame at the scene's
+ *  time of day, else the drawn plate for that time, an established frame of another time, the master), else (no bible
+ *  read) the location's own plate for the time of day or its master; then up to two characters by their primary image
+ *  (the pinned canonical image in the overlay, else a legacy portrait); a lone character's legacy face crop as the
+ *  third picture. Pure. */
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; notes: string[]; people: Character[]; plate?: { assetId: string; why: string } } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
-  const cast = castOf(state, p); const world = worldOf(state, p);
-  const loc = world.find((l) => l.id === scene?.locationId);
+  const cast = castOf(state, p);
+  const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
-  // references: the location plate for this time of day (or the master) first, then up to two characters — each by
-  // its primary image (the canonical front full-body image, else a legacy portrait); a lone character with a legacy
-  // face crop also gets it as the third picture
-  const plate = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
+  const own = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
+  const plate = read?.location && read.location.locationId === loc?.id ? { assetId: read.location.assetId, why: read.location.why } : (own?.assetId ?? loc?.masterAssetId) ? { assetId: (own?.assetId ?? loc?.masterAssetId)!, why: own?.role === 'STATE' ? 'the location’s plate for this time of day (no World Bible read)' : 'the location’s master plate (no World Bible read)' } : undefined;
   const refs: Asset[] = [];
   const notes: string[] = [];
-  const plateAsset = byId(plate?.assetId ?? loc?.masterAssetId);
+  const plateAsset = byId(plate?.assetId);
   if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(`image ${refs.length} is the exact place (keep its architecture, layout and props)`); }
   const people = sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
   for (const c of people.slice(0, 2)) {
@@ -452,6 +460,29 @@ export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnTy
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
     if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); notes.push(`image ${refs.length} is the same person's face, close up`); }
   }
+  return { refs, notes, people, plate: usableImage(plateAsset) ? plate : undefined };
+}
+
+/** The production's World Bible revision (pinned, else the latest) laid over the studio for this shot — the plate
+ *  and the pinned canonical images a take of it is filmed against (take.ts reads the same overlay). Without a bible
+ *  (the database unreachable) the location's own plates are used, and the event says so. */
+async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ state: State; read?: WorldRead }> {
+  try {
+    const view = await worldOfProduction(state, p, { jobId: ctx.job.id });
+    return overlayWorld(state, view.revision.bible, p, sh, { id: view.revision.id, number: view.revision.number, pinned: view.pinned });
+  } catch (e) {
+    await ctx.event('warn', `shot ${sh.number}: the World Bible could not be read (${(e as Error).message}); the location’s own plates are used`, { shotId: sh.id });
+    return { state };
+  }
+}
+
+export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string> {
+  const world = await frameWorld(ctx, studio, p, sh);
+  const state = world.state;
+  const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
+  const cast = castOf(state, p);
+  const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
+  const { refs, notes, people, plate } = frameReferences(state, p, sh, world.read);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
@@ -461,7 +492,7 @@ export async function drawShotFrame(ctx: HandlerContext, state: Awaited<ReturnTy
   const own = continuityLine(sh, cast);
   const carried = relation === 'CUT' && previous && !opts.ending ? continuityLine(previous, cast) : '';
   const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
-  const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id) } });
+  const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: r.id } : { openingFrameAssetId: r.id }], 'worker');
   return r.id;
 }
