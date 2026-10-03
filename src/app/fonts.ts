@@ -1,21 +1,36 @@
-import localFont from 'next/font/local';
+import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from 'next/font/google';
 
-/** THE INTERFACE FACES — owned by F1 (docs/DESIGN-SYSTEM-V4.md §3.1, §8.3); moved out of src/app/layout.tsx by F0.
- *  Fonts ship with the application (src/app/fonts, SIL Open Font License, licences beside the files) and are served
- *  from this origin: the studio makes no request to a font service, so it works on a closed network and contacts
- *  nothing outside itself. Inter variable (`opsz` 14–32, `wght` 100–900) for Latin, IBM Plex Sans Arabic 400–700 for
- *  Arabic. The title voice is a token over these two faces (`--font-title`, §3.2); a new face is the title spike's
- *  decision, not this file's. */
-export const inter = localFont({ src: './fonts/InterVariable.woff2', weight: '100 900', display: 'swap', variable: '--font-inter', fallback: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] });
-export const plexArabic = localFont({
-  src: [
-    { path: './fonts/IBMPlexSansArabic-Regular.ttf', weight: '400' },
-    { path: './fonts/IBMPlexSansArabic-Medium.ttf', weight: '500' },
-    { path: './fonts/IBMPlexSansArabic-SemiBold.ttf', weight: '600' },
-    { path: './fonts/IBMPlexSansArabic-Bold.ttf', weight: '700' },
-  ],
-  display: 'swap', variable: '--font-plex-arabic', fallback: ['Noto Sans Arabic', 'Segoe UI', 'system-ui', 'sans-serif'],
+/** THE FACES — owned by DS (docs/DESIGN-SYSTEM-V5.md §3.1; §11.2 DS-1). Three voices, three families, all SIL Open
+ *  Font License, through `next/font/google`: the files are downloaded once when the app is built (or first compiled
+ *  in development) and served from this origin with the app's own assets, so the studio makes no request to a font
+ *  service at runtime and works on a closed network. The Google-distributed builds are used as they are: IBM Plex's
+ *  Reserved Font Name forbids renaming or subsetting it ourselves (§3.1 licence notes).
+ *
+ *    title      Newsreader (opsz 6–72, wght 200–800, italic) — content names and page titles
+ *    interface  IBM Plex Sans (wdth 75–100, wght 100–700)
+ *    readout    IBM Plex Mono (400 · 500) — the production's numbers
+ *
+ *  The website is English-only (the producer's decision of 2026-10-03): no interface face for another script is
+ *  loaded. The work itself is not English-only — a character called أبو سلام, a line of Iraqi dialogue, a lyric, a
+ *  subtitle — so every stack (tokens.css: --font-ui, --font-title, --font-mono) falls back to the operating system's
+ *  own Arabic faces (Segoe UI and Tahoma on Windows, Geeza Pro / SF Arabic on macOS and iOS, Noto on Android and
+ *  Linux). Each face here declares a CSS variable on <html> (`fontVariables`). Weights are §3.2's: titles 500,
+ *  interface 400 / 500 / 600 (700 for the rare bold), readouts 400 / 500. Inter is gone (v4's face; audit 14).
+ *  `display: swap`: a missing download degrades to a readable page, never to invisible text. `adjustFontFallback`
+ *  is off: next/font's metric-matched fallback is a local Arial, which would also draw every Arabic glyph ahead of the
+ *  system's proper Arabic faces; the token stacks name those faces instead. */
+export const newsreader = Newsreader({
+  subsets: ['latin', 'latin-ext'], style: ['normal', 'italic'], axes: ['opsz'], display: 'swap',
+  variable: '--font-newsreader', adjustFontFallback: false,
+});
+export const plexSans = IBM_Plex_Sans({
+  subsets: ['latin', 'latin-ext'], axes: ['wdth'], display: 'swap',
+  variable: '--font-plex-sans', adjustFontFallback: false,
+});
+export const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'], weight: ['400', '500'], display: 'swap',
+  variable: '--font-plex-mono', adjustFontFallback: false,
 });
 
-/** The class names that declare `--font-inter` and `--font-plex-arabic` on <html>. */
-export const fontVariables = `${inter.variable} ${plexArabic.variable}`;
+/** The class names that declare the three `--font-*` variables on <html>. */
+export const fontVariables = [newsreader, plexSans, plexMono].map((f) => f.variable).join(' ');

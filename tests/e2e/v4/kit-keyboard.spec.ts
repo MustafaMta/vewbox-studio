@@ -5,7 +5,18 @@ import { openKit } from './kit-helpers';
  *  roving focus in Tabs, Segmented and ChoiceTiles (mirrored in Arabic), the Dialog's focus trap and focus return,
  *  the ConfirmDialog behind useConfirm, the Menu's Esc, and a Toast that stays while it has focus.
  *  Run: $env:STUDIO_URL='http://localhost:4221'; pnpm exec playwright test tests/e2e/v4 --project=desktop
- *  Read-only: no reset, no write API (kit-helpers answers every write in the browser). */
+ *  Read-only: no reset, no write API (kit-helpers answers every write in the browser).
+ *
+ *  Why every test ends by removing its routes (DS-1, the failure of `TabBar in Arabic` on the integrated main): the
+ *  page asks for /api/studio more than once — React's dev Strict Mode runs the store's first effect twice and the
+ *  event stream's `hello` schedules one more snapshot — and kit-helpers answers each with `await route.fetch()`. The
+ *  page is ready after the first answer; a test as short as the Arabic TabBar one can finish while a later snapshot is
+ *  still in flight, and when the server is slow (the full suite, after the shell specs) that pending `route.fetch`
+ *  rejects with "Test ended" inside the route callback, which Playwright reports as the test's own failure although
+ *  every assertion passed. Reproduced with a route.fetch held open at the end of a test; fixed by awaiting
+ *  `unrouteAll({ behavior: 'ignoreErrors' })` after each test, as Playwright's message recommends. */
+
+test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 
 test.describe('roving focus', () => {
   test('TabBar: one Tab stop; ←/→, Home, End move and select; the disabled tab is skipped; no wrap', async ({ page }) => {
@@ -201,7 +212,7 @@ test.describe('the specimen page', () => {
     await contrast.getByRole('radio', { name: 'More' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-contrast', 'more');
     const muted = await page.locator('.text-muted').first().evaluate((el) => getComputedStyle(el).color);
-    expect(muted).toBe('rgb(221, 214, 203)'); // --fg-muted is raised to --ink-200 (tokens.css)
+    expect(muted).toBe('rgb(216, 212, 204)'); // --fg-muted is raised to body text, --carbon-11 (tokens.css, DS-1)
     await contrast.getByRole('radio', { name: 'As the system' }).click();
     await expect(page.locator('html')).not.toHaveAttribute('data-contrast', /.+/);
   });

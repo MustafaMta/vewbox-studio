@@ -1,42 +1,103 @@
 /* ============================================================================================================
-   BASE — owned by F1 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   The document: font, size and colour for both scripts, focus, selection, scrollbars, reduced motion and the
-   Arabic minimum sizes. Split out of src/app/globals.css by F0; F1 sets the interface and mono faces from their
-   tokens (--font-ui, --font-mono).
+   BASE — owned by DS (docs/DESIGN-SYSTEM-V5.md §3.2, §4, §5.0, §5.6, §9, §10; §11.2 DS-1).
+   The document, and the rules every page inherits and no page may undo. The website is English-only and always left
+   to right (the producer's decision of 2026-10-03); content the producer writes stays in its own language:
+
+     F1  FOCUS — one ring: a 2 px paper outline 2 px outside the control, never a box-shadow, never suppressed by a
+         selected state; drawn inside the control where an outside ring would be clipped (scroll containers, tab
+         rows, menus, full-width rows); kept clear of every fixed bar by the scroll padding in tokens.css (QA F1).
+     F3  STRIPS — a horizontal strip says that it scrolls: a thin visible scrollbar, a 40 px end fade (a mask) and,
+         where §5.6 asks, an "n of m" readout (QA F3).
+     CONTENT — a user-authored string (an Arabic name, a line of Iraqi dialogue, a lyric) is set in its own direction,
+         isolated, inside the LTR interface (.content-text with dir="auto") — and nothing else sets a direction.
+
+   How "no page may undo" is enforced for F1 and F3: they are declared `!important` inside `@layer base`, the first
+   layer. An important declaration in an earlier layer beats every normal declaration and every important one in a
+   later layer or outside the layers, so no component sheet (`@layer components`), Tailwind utility (`@layer
+   utilities`), page sheet or inline style can override them; the only way is another important rule in @layer base,
+   and scripts/v5-lint.mjs refuses `@layer base`, `!important`, a strip selector and a scrollbar or mask setting in
+   any sheet but this one (rules "strip" and "focus").
    ============================================================================================================ */
 
-/* ---- base ---------------------------------------------------------------------------------------------- */
-/* in the base layer, so a component's own focus treatment (fields) is never outranked by the global ring */
 @layer base {
-  html { background: var(--bg); color: var(--fg-body); font-family: var(--font-ui); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-feature-settings: 'cv11', 'ss01'; font-optical-sizing: auto; }
-  html[dir='rtl'] { font-family: var(--font-arabic); font-size: 15px; line-height: 1.7333; letter-spacing: 0; }
-  html[dir='rtl'] .font-latin { font-family: var(--font-sans); }
-  html[dir='rtl'] .mono { font-family: var(--font-mono); }
-  body { min-height: 100dvh; background: var(--bg); color: var(--fg-body); overflow-wrap: break-word; line-height: inherit; }
+  /* ---- the document ------------------------------------------------------------------------------------ */
+  /* the 14 px root stays (rem-based Tailwind spacing is unchanged, §4.3); body text is 15/24 (§3.3) */
+  html { background: var(--page); color: var(--fg-body); font-family: var(--font-ui); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-kerning: normal; font-optical-sizing: auto; -webkit-text-size-adjust: 100%; }
+  body { min-height: 100dvh; background: var(--page); color: var(--fg-body); font-size: var(--body-fs); line-height: var(--body-lh); overflow-wrap: break-word; }
   main { min-width: 0; }
-  [dir='auto'], .arabic, :lang(ar) { font-family: var(--font-arabic); }
-  /* text that picks its own direction still lines up with the page: English in an Arabic page sits on the right
-     (text-align: match-parent would say this, but Chromium drops it) */
-  html[dir='rtl'] [dir='auto'] { text-align: right; } /* v4-lint: allow physical — the logical form (match-parent) is dropped by Chromium */
-  :lang(ar) .mono, [dir='auto'] .mono, :lang(ar) .tc, [dir='auto'] .tc { font-family: var(--font-mono); }
   h1, h2, h3, h4 { text-wrap: balance; color: var(--fg); }
   p { text-wrap: pretty; }
-  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--r-1); }
-  ::selection { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+  ::selection { background: var(--selection); color: var(--on-paper); }
   img, video { max-inline-size: 100%; }
+  /* vertical scroll areas: a quiet, thin scrollbar */
   ::-webkit-scrollbar { inline-size: 11px; block-size: 11px; }
-  ::-webkit-scrollbar-thumb { background: var(--ink-700); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--ink-600); background-clip: content-box; }
+  ::-webkit-scrollbar-thumb { background: var(--carbon-6); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--carbon-7); background-clip: content-box; }
   ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ---- F1 · focus (§5.0, §10; QA B1, F1) --------------------------------------------------------------------
+     Every focused control reads as three rings: the control, a 2 px band of the ground, the 2 px paper ring (17.3:1
+     on the page; on a paper-filled control the dark band separates paper from paper). States own box-shadow; focus
+     owns outline, so no selected segment, pick, pipeline pill, outline row or chosen take can hide it. A focus
+     target that is not a Tab stop (tabindex="-1": the skip link's target, a dialog's own box) draws no ring. */
+  :focus-visible:not([tabindex='-1']) { outline: 2px solid var(--paper) !important; outline-offset: 2px !important; }
+  /* tiles: the ring stands 4 px off the picture so it never touches the art */
+  :is(.tile, .fig, .scard, .mtile-link, .poster-link):focus-visible { outline-offset: 4px !important; }
+  /* controls on art, in players and in the theatre: black gap · paper ring · black band (ring vs black 18.3:1,
+     black vs white art 21:1) — the one box-shadow focus may use, because it is a band, not the ring */
+  :is(.ibtn-art, .play-art, .on-art-chip, .play-on-art, .pdisc[data-tone='chip']):focus-visible,
+  /* (v4 containers on art, until DS-2 moves them to .on-art: the tile tools over a portrait) */
+  :is(.on-art, [data-on-art], .player, .iplayer, .tplayer, .ctl, .card-tools) :focus-visible { box-shadow: 0 0 0 6px var(--carbon-0) !important; }
+  /* INSET: where a ring outside the control would be clipped — inside a scroll container (it clips both axes), a
+     tab row, a menu, a tree or a list box, and on rows that run the full width of a panel — the ring is drawn just
+     inside the control's own edge. A paper-filled control there gets an ink ring 4 px in, so it still shows. */
+  :is([role='tablist'], [role='menu'], [role='menubar'], [role='listbox'], [role='tree'], [role='grid'], [data-focus-inset], .tabs, .anchor-nav, .overflow-auto, .overflow-y-auto, .overflow-x-auto, .tl-scroll, .dock-panel-body, .lyrics-scroll, .shell-nav) :focus-visible:not([tabindex='-1']),
+  :is([data-focus-inset], .focus-inset, [role='tab'], [role='menuitem'], [role='menuitemradio'], [role='menuitemcheckbox'], [role='option'], [role='treeitem'], [role='row']):focus-visible:not([tabindex='-1']) { outline-offset: -2px !important; }
+  :is([role='tablist'], [role='menu'], [role='listbox'], [role='tree'], [data-focus-inset], .tabs, .anchor-nav, .overflow-auto, .overflow-y-auto, .overflow-x-auto) :is([aria-pressed='true'], [aria-checked='true'], .on, .btn-primary, [data-paper]):focus-visible:not([tabindex='-1']),
+  :is([data-focus-inset], .focus-inset):is([aria-pressed='true'], [aria-checked='true'], .on, .btn-primary, [data-paper]):focus-visible { outline-color: var(--on-paper) !important; outline-offset: -4px !important; }
+  /* the skip link floats over the shell's own text: it keeps a band of the page around its ring */
+  :is(.skip-link, .skip):focus-visible { box-shadow: 0 0 0 6px var(--page) !important; }
+  /* a box that clips its content (rounded cards, a player in a card) still shows the ring of a control flush with its
+     edge: while something inside has focus it clips with an 8 px margin instead (overflow: clip keeps the content
+     clipped, the margin lets the ring and its black band through) */
+  :is(.overflow-hidden, .card, .poster-card, [data-clips]):has(:focus-visible) { overflow: clip !important; overflow-clip-margin: 8px !important; }
+  /* a field: the paper ring around the whole search pill or field row while its input has focus (§5.10) */
+  :is(.search, [data-focus-within]):focus-within { outline: 2px solid var(--paper) !important; outline-offset: 2px !important; }
+  :is(.search, [data-focus-within]) :is(input, textarea):focus-visible { outline-color: transparent !important; }
+
+  /* ---- F3 · strips (§5.6; QA M15, M17, F3) ----------------------------------------------------------------
+     A strip opts in with `.scrolls` or `data-strip` (the v4 strips are listed until DS-2 moves them over). On touch
+     and below 1024 px it shows a thin scrollbar in --carbon-8 (3.6:1), a 40 px end fade made with a mask (not a
+     painted gradient), and snap. The fade is lifted while a control inside has focus, so a ring at the faded end is
+     never masked; 8 px of padding on every side (given back by a negative margin on the inline axis only: on the block
+     axis a following sibling would be pulled over the ring) and an 8 px scroll padding leave room for an outside ring,
+     and a focused item scrolls fully into view with its ring. The "n of m" readout is `.strip-pos` (type.css), placed in the section head by the page. */
+  :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip) { overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; scroll-padding-inline: 8px; padding: 8px !important; margin-inline: -8px !important; margin-block: 0 !important; }
+  /* a strip scrolls inside itself and never widens the page (audit problem 6): a grid or flex item that holds one may
+     shrink below the strip's content */
+  :where(.grid, .flex, .inline-grid, .inline-flex, [data-grid]) > :has(:is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip)) { min-inline-size: 0 !important; }
+  /* keyboard focus scrolls an item fully into view; snapping would pull a partly hidden item back, so it rests while
+     the strip holds focus */
+  :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
+  @media (pointer: coarse), (max-width: 1023px) {
+    :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip) {
+      scrollbar-width: thin !important; scrollbar-color: var(--carbon-8) transparent !important; padding-block-end: 12px !important;
+      -webkit-mask-image: linear-gradient(90deg, black calc(100% - 40px), transparent) !important; mask-image: linear-gradient(90deg, black calc(100% - 40px), transparent) !important; }
+    :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip):is(:focus-visible, :has(:focus-visible)) { -webkit-mask-image: none !important; mask-image: none !important; }
+  }
+
+  /* ---- CONTENT (the one content rule) ------------------------------------------------------------------------
+     The website is English and left to right; the work is not always English. A user-authored string — a
+     character's name (أبو سلام), a line of Iraqi dialogue, a lyric, a subtitle, a script — is rendered with
+     `class="content-text" dir="auto"`: the browser takes its direction from its own first strong letter, and the
+     isolate keeps it from reordering the interface text, numbers and punctuation around it. That is correct text
+     rendering, not a right-to-left mode: nothing else in the product sets a direction. */
+  .content-text { unicode-bidi: isolate; }
 }
-/* reduced motion (§8): no transforms, travel, zoom or scale; loops stop; short opacity changes may stay */
+
+/* reduced motion (§4.7): no transforms, travel, zoom or scale; loops stop; the running dot is static (its word carries it) */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
 html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-motion='reduce'] *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-/* Arabic never goes below 13 px and its lines run taller so the diacritics clear (§4) */
-@layer utilities {
-  html[dir='rtl'] .text-sm { font-size: 14px; line-height: 22px; }
-  html[dir='rtl'] .text-xs { font-size: 13px; line-height: 20px; }
-}
 
 .sr-only { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .sr-only-focusable:not(:focus) { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
