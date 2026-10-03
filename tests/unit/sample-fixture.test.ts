@@ -10,17 +10,18 @@ const fake = vi.hoisted(() => ({ replaced: [] as string[] }));
 vi.mock('@/server/studio/seed', async (orig) => ({ ...(await orig<typeof import('@/server/studio/seed')>()), replaceStudio: async (kind: string) => { fake.replaced.push(kind); return { version: 2, hash: 'h' }; } }));
 vi.mock('@/server/studio/engine', () => ({ readState: async () => ({ state: { assets: [] }, version: 1, hash: 'h' }), notifyJobs: async () => undefined }));
 vi.mock('@/server/jobs/queue', () => ({ clearJobs: async () => ({ removed: 0, running: 0 }) }));
-vi.mock('@/server/media', () => ({ removeFile: async () => undefined }));
+vi.mock('@/server/media', () => ({ removeFile: async () => undefined, libraryRoot: () => '/nowhere' }));
 
 import { POST } from '@/app/api/studio/reset/route';
 
 const reset = (kind: string) => POST(new Request('http://studio.test/api/studio/reset', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind }) }), undefined);
 const flag = process.env.STUDIO_SAMPLE_FIXTURE;
-beforeEach(() => { fake.replaced = []; delete process.env.STUDIO_SAMPLE_FIXTURE; });
-afterEach(() => { if (flag === undefined) delete process.env.STUDIO_SAMPLE_FIXTURE; else process.env.STUDIO_SAMPLE_FIXTURE = flag; });
+// a test server (src/server/test-guard.ts): reset is allowed, on a database that is not the live one
+beforeEach(() => { fake.replaced = []; delete process.env.STUDIO_SAMPLE_FIXTURE; vi.stubEnv('VEWBOX_ALLOW_RESET', '1'); vi.stubEnv('DATABASE_URL', 'postgres://u:p@127.0.0.1:1/vewbox_test'); });
+afterEach(() => { vi.unstubAllEnvs(); if (flag === undefined) delete process.env.STUDIO_SAMPLE_FIXTURE; else process.env.STUDIO_SAMPLE_FIXTURE = flag; });
 
 describe('POST /api/studio/reset', () => {
-  it('refuses the sample studio on a live server (NOT_CONFIGURED) and changes nothing', async () => {
+  it('refuses the sample studio on a server without STUDIO_SAMPLE_FIXTURE=1 (NOT_CONFIGURED) and changes nothing', async () => {
     const res = await reset('sample');
     expect(res.status).toBe(424);
     expect(((await res.json()) as { error: { code: string; message: string } }).error).toMatchObject({ code: 'NOT_CONFIGURED', message: expect.stringContaining('STUDIO_SAMPLE_FIXTURE=1') });
@@ -33,7 +34,7 @@ describe('POST /api/studio/reset', () => {
     expect(fake.replaced).toEqual(['sample']);
   });
 
-  it('empties the studio whatever the flag (Settings → Start with an empty studio)', async () => {
+  it('empties a test studio whatever the fixture flag', async () => {
     expect((await reset('empty')).status).toBe(200);
     expect(fake.replaced).toEqual(['empty']);
   });
