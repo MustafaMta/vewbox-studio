@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useRootVarContribution } from './root-vars';
 import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
 import { useT } from '@/components/ui/locale';
@@ -24,7 +25,7 @@ import { ShortcutSheet } from './ShortcutSheet';
  *  The navigation's shape: the 240 sidebar at ≥ 1024 in the lobby, the 80 rail at 768–1023 and in the cutting room;
  *  Ctrl/⌘ \ (or Collapse) chooses the other shape for this kind of room, remembered in this browser. Until the shell
  *  has mounted, the shape the boot script chose (`html[data-nav-boot]`) is drawn, so a collapsed rail never flashes
- *  open. Pages talk to the shell through <Room>, useRoom(), useStickyExtra(), useBottomBars(), usePaletteEntries()
+ *  open. Pages talk to the shell through <Room>, useRoom(), usePaletteEntries(), useUrlState()
  *  and <LastKnown />. */
 
 /** How long the event stream must stay down before the ServerBar says so (its first retry comes after 1 s). */
@@ -36,9 +37,6 @@ function useMedia(q: string): boolean {
   return useSyncExternalStore(sub, () => matchMedia(q).matches, () => false);
 }
 
-const setRootVar = (name: string, px: number) => { const s = document.documentElement.style; if (px > 0) s.setProperty(name, `${px}px`); else s.removeProperty(name); };
-const total = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0);
-
 export function Shell({ children }: { children: ReactNode }) {
   const T = useT();
   const { ready, state, jobs, stream } = useStudio();
@@ -47,16 +45,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // ---- the room, the lights, the bars ---------------------------------------------------------------------------
+  // ---- the room and the lights -------------------------------------------------------------------------------------
   const [room, setRoom] = useState<RoomName>('lobby');
   const [lightsDown, setLightsDown] = useState(false);
   useEffect(() => { if (room !== 'theatre') setLightsDown(false); }, [room]);
-  const [bars, setBars] = useState<{ top: Record<string, number>; bottom: Record<string, number> }>({ top: {}, bottom: {} });
-  const setBar = useCallback((edge: 'top' | 'bottom', owner: string, px: number) => setBars((b) => {
-    if ((b[edge][owner] ?? 0) === px) return b;
-    const next = { ...b[edge] }; if (px > 0) next[owner] = px; else delete next[owner];
-    return { ...b, [edge]: next };
-  }), []);
 
   // ---- the server bar: only once the stream has stayed down past a quick reconnect --------------------------------
   const [serverDown, setServerDown] = useState(false);
@@ -66,13 +58,10 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [stream.state]);
 
+  // its height joins --sticky-extra on <html> (the kit's sum of contributions, §2.1 amendment; root-vars.ts), and
+  // the column moves its sticky rows under it (--server-bar-h, styles/shell.css)
   const [serverBarH, setServerBarH] = useState(0);
-  // the sums go on <html>, where tokens.css's scroll-padding reads them (WCAG 2.4.11)
-  const top = total(bars.top) + (serverDown ? serverBarH || 40 : 0);
-  const bottom = total(bars.bottom);
-  useLayoutEffect(() => { setRootVar('--sticky-extra', top); }, [top]);
-  useLayoutEffect(() => { setRootVar('--bottom-bars', bottom); }, [bottom]);
-  useEffect(() => () => { setRootVar('--sticky-extra', 0); setRootVar('--bottom-bars', 0); }, []);
+  useRootVarContribution('--sticky-extra', serverBarH || 40, serverDown);
 
   // ---- what waits for the producer --------------------------------------------------------------------------------
   const { data: pipe } = useLive<{ productions: PipelineRow[] }>('/api/studio/org/pipeline');
@@ -112,8 +101,8 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [openPalette, openShortcuts]);
 
-  const api: ShellApi = useMemo(() => ({ room, setRoom, lightsDown, setLightsDown, setBar, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown }),
-    [room, lightsDown, setBar, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown]);
+  const api: ShellApi = useMemo(() => ({ room, setRoom, lightsDown, setLightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown }),
+    [room, lightsDown, nav, toggleNav, openPalette, openShortcuts, decisions, serverDown]);
 
   const density = room === 'cutting' ? (prefs.density === 'comfortable' ? 'comfortable' : 'compact') : undefined;
   return (

@@ -367,6 +367,13 @@ test.describe('the phone (< 768)', () => {
     await expect(bar.locator('.mobile-area')).toHaveText('Characters');
     expect(Math.round((await bar.boundingBox())!.height)).toBe(56);
     await expect(nav(page)).toBeHidden();
+    // the bar is the page's banner landmark: its brand link, New… and the menu are inside a landmark
+    await expect(page.getByRole('banner')).toHaveCount(1);
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Vewbox Studio, go to Shows' })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('link', { name: 'New…' })).toBeVisible();
+    const region = (await new AxeBuilder({ page }).withRules(['region']).analyze()).violations.flatMap((v) => v.nodes.map((n) => n.target.join(' ')));
+    expect(region.filter((t) => /mobile-bar|mobile-brand|mobile-action/.test(t))).toEqual([]);
+    expect(await seriousOrCritical(page)).toEqual([]);
     const menu = bar.getByRole('button', { name: 'Open menu' });
     await menu.click();
     const sheetDialog = page.locator('dialog#mobile-menu');

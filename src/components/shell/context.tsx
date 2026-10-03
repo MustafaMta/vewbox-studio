@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, useId, useLayoutEffect } from 'react';
+import { createContext, useContext } from 'react';
 import type { Decisions } from './decisions';
+import { useRootVarContribution } from './root-vars';
 
-/** What the shell offers the pages inside it (docs/DESIGN-SYSTEM-V4.md §2.3, §4.1, §5.1, §5.12). Use the hooks below;
+/** What the shell offers the pages inside it (docs/DESIGN-SYSTEM-V4.md §2.3, §4.1, §5.1, §5.12). Use the hooks;
  *  the context itself is the shell's. */
 
 export type RoomName = 'lobby' | 'cutting' | 'theatre';
@@ -14,8 +15,6 @@ export interface ShellApi {
   /** theatre: dim the navigation (and the page's own chrome marked `data-lights-dim`) while the film plays */
   lightsDown: boolean;
   setLightsDown: (down: boolean) => void;
-  /** heights of sticky bars under `--sticky-top` and of fixed bars at the bottom, by owner */
-  setBar: (edge: 'top' | 'bottom', owner: string, px: number) => void;
   /** the navigation's shape now, and the toggle (Ctrl/⌘ \) */
   nav: 'rail' | 'sidebar';
   toggleNav: () => void;
@@ -38,22 +37,11 @@ export function useShell(): ShellApi {
 /** The shell, or null outside it (a component that may also render elsewhere, e.g. a kit specimen). */
 export const useShellMaybe = (): ShellApi | null => useContext(ShellContext);
 
-/** A sticky bar under the navigation's top bar (a compact header, sticky tabs) says how tall it is while it is shown;
- *  the shell adds every such height into `--sticky-extra`, so `scroll-padding` keeps a focused element clear of them
- *  (WCAG 2.4.11). Pass 0 (or unmount) when the bar is not shown. */
-export function useStickyExtra(px: number): void { useBar('top', px); }
+/** A sticky bar under `--sticky-top` (a compact header, sticky tabs) adds its height to `--sticky-extra` while it is
+ *  shown, so scroll-padding keeps a focused element clear of it (WCAG 2.4.11). The same as the kit's
+ *  `useRootVarContribution('--sticky-extra', px)` (§2.1 amendment); prefer that one in kit and page code. */
+export function useStickyExtra(px: number, active = true): void { useRootVarContribution('--sticky-extra', px, active); }
 
-/** A fixed bar at the bottom (the player bar, a sticky form footer) says how tall it is while shown; the shell adds
- *  them into `--bottom-bars` (toasts and scroll-padding stay above it). */
-export function useBottomBars(px: number): void { useBar('bottom', px); }
-
-function useBar(edge: 'top' | 'bottom', px: number) {
-  const shell = useShellMaybe();
-  const id = useId();
-  const set = shell?.setBar;
-  useLayoutEffect(() => {
-    if (!set) return;
-    set(edge, id, px);
-    return () => set(edge, id, 0);
-  }, [set, edge, id, px]);
-}
+/** A fixed bar at the bottom (the player bar, a sticky form footer) adds its height to `--bottom-bars`. The same as
+ *  the kit's `useRootVarContribution('--bottom-bars', px)`. */
+export function useBottomBars(px: number, active = true): void { useRootVarContribution('--bottom-bars', px, active); }

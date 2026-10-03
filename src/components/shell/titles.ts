@@ -89,7 +89,8 @@ export function titleParts({ pathname, search, state, locale, org }: TitleInput)
     case 'projects': return [T('projects.title')];
     case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : tt(locale, `wizard.new.${seg[1]}`, seg[1])] : [T('nav.new')];
     // the dev-only specimen pages of the interface kit (F2) and the media kit (F3)
-    case 'kit': return [T('shell.title.kit')];
+    // F2's own key names the kit page (kit.page.title, on main); this branch falls back to the shell's copy of it
+    case 'kit': return [tt(locale, 'kit.page.title', T('shell.title.kit'))];
     case 'kit-media': return [T('shell.title.kitMedia')];
     default: return [];
   }
