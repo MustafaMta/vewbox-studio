@@ -1,23 +1,25 @@
 'use client';
 
-import { useId, useRef, useState, type ReactNode } from 'react';
-import { IconCheck, IconClose, IconWarn } from '../icons';
+import { useId, useState, type ReactNode } from 'react';
+import { IconCheck, IconPlus, IconWarn } from '../icons';
 import { Button, type ButtonSize } from './Button';
 import { cls } from './cls';
 import { Field, Input } from './Field';
+import { ConfirmDialog, Dialog } from './Overlay';
 
-/** v3 PARTS KEPT UNTIL Q1 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 6) — moved here from ui/kit.tsx unchanged so every page
- *  renders as before until its package migrates: Card → tone groups, Modal / ConfirmButton / ConfirmDelete → Dialog
- *  and useConfirm, Thumb / PickGrid / AddTile → F3's Frame and tiles. New code does not use them. */
+/** LEGACY NAMES, KIT IMPLEMENTATION — the v3 parts pages written before the redesign still import. Each now draws with
+ *  the one v5.1 implementation: Card → the level-1 card; Modal → Dialog; ConfirmButton → ConfirmDialog; ConfirmDelete →
+ *  a Dialog that deletes once the title is typed back; Thumb → the media frame look; PickGrid → toggles with the card
+ *  check; AddTile → the start card's look. New code uses the kit directly; these go when their last page migrates. */
 
 export function Card({ children, className = '', as: As = 'section', padded = true, ...rest }: { children: ReactNode; className?: string; as?: 'section' | 'div' | 'article' | 'li'; padded?: boolean } & React.HTMLAttributes<HTMLElement>) {
-  return <As className={cls('panel', padded && 'p-4 sm:p-5', className)} {...rest}>{children}</As>;
+  return <As className={cls('card', padded && 'card-pad', className)} {...rest}>{children}</As>;
 }
 export function Details({ summary, children, open, className = '' }: { summary: ReactNode; children: ReactNode; open?: boolean; className?: string }) {
   return (
     <details className={cls('details', className)} open={open}>
       <summary>{summary}</summary>
-      <div className="mt-3">{children}</div>
+      <div className="details-body">{children}</div>
     </details>
   );
 }
@@ -25,107 +27,77 @@ export function KV({ rows }: { rows: Array<[ReactNode, ReactNode]> }) {
   return <dl className="kv">{rows.map(([k, v], i) => (<div key={i} className="contents"><dt>{k}</dt><dd dir="auto">{v}</dd></div>))}</dl>;
 }
 
-/** A destructive action behind a native confirm dialog (v3; ConfirmDialog / useConfirm is v4). */
+/** A destructive action behind the kit's confirm dialog. */
 export function ConfirmButton({ onConfirm, label, title, message, confirmLabel, variant = 'danger', size = 'sm', icon, className = '', disabled, ...rest }: {
   onConfirm: () => void; label: ReactNode; title: ReactNode; message?: ReactNode; confirmLabel?: ReactNode; variant?: 'danger' | 'secondary' | 'ghost'; size?: ButtonSize; icon?: ReactNode; className?: string; disabled?: boolean;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'type' | 'children' | 'disabled' | 'className' | 'title'>) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const id = useId();
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <Button variant={variant} size={size} icon={icon} className={className} disabled={disabled} onClick={() => ref.current?.showModal()} {...rest}>{label}</Button>
-      <dialog ref={ref} className="dlg w-[min(92vw,26rem)]" aria-labelledby={`${id}-h`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <div className="p-5">
-          <h2 id={`${id}-h`} className="h2" dir="auto">{title}</h2>
-          {message && <p className="mt-2 text-sm text-muted">{message}</p>}
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => ref.current?.close()}>Cancel</Button>
-            <Button variant="destructive" onClick={() => { ref.current?.close(); onConfirm(); }}>{confirmLabel ?? 'Delete'}</Button>
-          </div>
-        </div>
-      </dialog>
+      <Button variant={variant} size={size} icon={icon} className={className} disabled={disabled} onClick={() => setOpen(true)} {...rest}>{label}</Button>
+      <ConfirmDialog open={open} title={title} body={message} confirmLabel={confirmLabel ?? 'Delete'} onCancel={() => setOpen(false)} onConfirm={() => { setOpen(false); onConfirm(); }} />
     </>
   );
 }
 
-/** A dialog that deletes only when the title is typed back (v3). */
+/** A dialog that deletes only when the title is typed back. */
 export function ConfirmDelete({ title, onDelete, label, children, size = 'sm', variant = 'danger', icon }: { title: string; onDelete: () => void; label?: ReactNode; children?: ReactNode; size?: ButtonSize; variant?: 'danger' | 'ghost' | 'secondary'; icon?: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const id = useId();
+  const ok = typed.trim() === title.trim();
+  const done = () => { setOpen(false); onDelete(); };
   return (
     <>
-      <Button variant={variant} size={size} icon={icon} onClick={() => { setTyped(''); ref.current?.showModal(); }}>{label ?? 'Delete'}</Button>
-      <dialog ref={ref} className="dlg w-[min(92vw,26rem)]" aria-labelledby={`${id}-h`} onClose={() => setTyped('')}>
-        <form method="dialog" className="p-5" onSubmit={(e) => { e.preventDefault(); ref.current?.close(); onDelete(); }}>
-          <h2 id={`${id}-h`} className="h2">{'Delete'}: <span dir="auto">{title}</span></h2>
-          <p className="mt-2 text-sm text-muted">{children ?? 'This removes it and everything that belongs to it.'}</p>
-          <Field label={'Type the title to confirm'} className="mt-4" htmlFor={`${id}-i`}>
+      <Button variant={variant} size={size} icon={icon} onClick={() => { setTyped(''); setOpen(true); }}>{label ?? 'Delete'}</Button>
+      <Dialog open={open} onClose={() => setOpen(false)} size="sm" role="alertdialog" title={<>Delete <bdi>{title}</bdi>?</>}
+        description={children ?? 'This removes it and everything that belongs to it.'}
+        footer={<><Button variant="quiet" onClick={() => setOpen(false)}>Cancel</Button><Button variant="destructive" disabled={!ok} onClick={done}>Delete</Button></>}>
+        <form onSubmit={(e) => { e.preventDefault(); if (ok) done(); }}>
+          <Field label="Type the title to confirm" htmlFor={`${id}-i`}>
             <Input id={`${id}-i`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" placeholder={title} />
           </Field>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => ref.current?.close()}>Cancel</Button>
-            <Button type="submit" variant="destructive" disabled={typed.trim() !== title.trim()}>Delete</Button>
-          </div>
         </form>
-      </dialog>
+      </Dialog>
     </>
   );
 }
 
-/** A modal for a form on a native dialog (v3; Dialog is v4): opens on the trigger, closes on success. */
+/** A form in the kit's Dialog: opens from the trigger, `close` for the form's success. */
 export function Modal({ trigger, title, description, children, size }: { trigger: (open: () => void) => ReactNode; title: ReactNode; description?: ReactNode; children: (close: () => void) => ReactNode; size?: 'sm' | 'md' | 'lg' }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const id = useId();
   const [open, setOpen] = useState(false);
-  const close = () => ref.current?.close();
-  const width = size === 'lg' ? '56rem' : size === 'sm' ? '26rem' : '34rem';
+  const close = () => setOpen(false);
   return (
     <>
-      {trigger(() => { setOpen(true); ref.current?.showModal(); })}
-      {/* below 640 px the same dialog is a bottom sheet (.sheet) */}
-      <dialog ref={ref} className="dlg sheet w-[min(94vw,var(--w))] overflow-hidden" style={{ '--w': width } as React.CSSProperties} aria-labelledby={`${id}-h`} onClose={() => setOpen(false)}>
-        <div className="flex max-h-[88dvh] flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3.5">
-            <div className="min-w-0"><h2 id={`${id}-h`} className="h2">{title}</h2>{description && <p className="mt-0.5 text-sm text-muted">{description}</p>}</div>
-            <Button variant="ghost" size="sm" aria-label={'Close'} onClick={close} icon={<IconClose />} />
-          </div>
-          <div className="min-h-0 overflow-y-auto p-5">{open && children(close)}</div>
-        </div>
-      </dialog>
+      {trigger(() => setOpen(true))}
+      <Dialog open={open} onClose={close} title={title} description={description} size={size ?? 'md'}>{open && children(close)}</Dialog>
     </>
   );
 }
 
-/** A picture (or a video's poster) in a fixed ratio on the media floor; an empty one says so quietly (v3). */
+/** A picture (or a video's poster) in a fixed ratio on the media ground; an empty one says so quietly. */
 export function Thumb({ src, alt, kind, className = '', ratio = 'aspect-video', contain, poster, sample: _sample, empty, unavailable }: { src?: string | null; alt: string; kind?: 'IMAGE' | 'VIDEO' | 'AUDIO'; className?: string; ratio?: string; contain?: boolean; poster?: string; sample?: boolean; empty?: ReactNode; unavailable?: boolean }) {
-  if (unavailable) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><UnavailableNote /></div>;
-  if (!src) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="text-xs">{empty ?? <NoPictureYet />}</span></div>;
+  if (unavailable) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="media-note" title="The record exists but its file is missing from the studio library."><IconWarn aria-hidden />File not available</span></div>;
+  if (!src) return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="media-note">{empty ?? 'No picture yet'}</span></div>;
   if (kind === 'VIDEO') return <div className={cls('media', contain && 'media-contain', ratio, className)}><video src={src} poster={poster} muted playsInline preload="metadata" aria-label={alt} /></div>;
-  if (kind === 'AUDIO') return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="text-2xl">♪</span></div>;
+  if (kind === 'AUDIO') return <div className={cls('media media-empty', ratio, className)} role="img" aria-label={alt}><span className="media-note">Audio</span></div>;
   // eslint-disable-next-line @next/next/no-img-element
   return <div className={cls('media', contain && 'media-contain', ratio, className)}><img src={src} alt={alt} loading="lazy" decoding="async" /></div>;
 }
 
-function NoPictureYet() { return <>No picture yet</>; }
-
-function UnavailableNote() {
-  return <span className="flex flex-col items-center gap-1 px-3 text-center text-xs" title={'The record exists but its file is missing from the studio library: it was removed from the library folder, or the volume was replaced.'}><IconWarn className="size-4 text-warn" aria-hidden />File not available</span>;
-}
-
-/** A row of checkable picture chips, for choosing people or places (v3). */
+/** Pictures to choose several of (people, places): toggles with the card check. */
 export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', empty, extra }: { items: Array<{ id: string; label: string; labelAr?: string; src?: string; sub?: string }>; selected: string[]; onToggle: (id: string) => void; ratio?: string; empty?: ReactNode; extra?: ReactNode }) {
   if (items.length === 0 && !extra) return <>{empty}</>;
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(6.25rem,1fr))] gap-3">
+    <ul className="pick-grid">
       {items.map((it) => {
         const on = selected.includes(it.id);
         return (
           <li key={it.id}>
-            <button type="button" aria-pressed={on} onClick={() => onToggle(it.id)} className={cls('group relative w-full overflow-hidden rounded-[var(--r-3)] border text-start transition-colors', on ? 'border-accent shadow-[inset_0_0_0_0.5px_var(--accent)]' : 'border-line hover:border-line-strong')}>
-              <Thumb src={it.src} alt="" ratio={ratio} className={cls('rounded-none', ratio === 'aspect-[4/5]' && '[&_img]:object-top')} />
-              <span className="block px-2 py-1.5"><span className="block truncate text-sm font-medium" dir="auto">{it.label}</span>{it.sub && <span className="block truncate text-xs text-muted">{it.sub}</span>}</span>
-              <span aria-hidden className={cls('absolute end-2 top-2 grid size-5 place-items-center rounded-full border', on ? 'border-accent-strong bg-accent-strong text-accent-fg' : 'border-white/70 bg-black/30')}>{on && <IconCheck className="size-3.5" />}</span>
+            <button type="button" aria-pressed={on} onClick={() => onToggle(it.id)} className="pick-grid-item">
+              <span className="pick-grid-pic"><Thumb src={it.src} alt="" ratio={ratio} className={ratio === 'aspect-[4/5]' ? 'media-top' : undefined} />{on && <span className="card-check" aria-hidden><IconCheck /></span>}</span>
+              <span className="pick-grid-name"><bdi>{it.label}</bdi></span>
+              {it.sub && <span className="pick-grid-sub">{it.sub}</span>}
             </button>
           </li>
         );
@@ -135,7 +107,13 @@ export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', em
   );
 }
 
-/** A tile that starts something new inline (v3). */
+/** Start something new inline, in the start card's look. */
 export function AddTile({ onClick, children, ratio = 'aspect-[4/5]' }: { onClick: () => void; children: ReactNode; ratio?: string }) {
-  return <button type="button" onClick={onClick} className={cls('flex w-full flex-col items-center justify-center gap-1 rounded-[var(--r-3)] border border-dashed border-line-field bg-input text-sm text-muted transition-colors hover:border-faint hover:text-fg', ratio)}>{children}</button>;
+  return (
+    <button type="button" onClick={onClick} className={cls('start-card add-tile', ratio)}>
+      <span className="corners" aria-hidden />
+      <span className="start-plus" aria-hidden><IconPlus /></span>
+      <span className="start-title">{children}</span>
+    </button>
+  );
 }

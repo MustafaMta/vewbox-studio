@@ -34,7 +34,7 @@
   .tcard-state { position: absolute; inset-block-start: var(--tcard-inset); inset-inline: var(--tcard-inset); display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-3); }
   .tcard-num { position: absolute; inset-block-start: var(--tcard-inset); inset-inline-end: var(--tcard-inset); font-family: var(--font-mono); font-size: 13px; line-height: 18px; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .tcard .tcard-title { position: relative; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.005em; color: var(--text-2); }
-  .tcard .tcard-title { direction: ltr; text-align: left; }
+  .tcard .tcard-title { direction: ltr; text-align: start; }
   .tcard .tcard-title > bdi { unicode-bidi: isolate; }
   .tcard[data-size='lg'] .tcard-title { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; }
   @container (min-width: 320px) { .tcard[data-ratio='16/9'] .tcard-title { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; } }
@@ -121,7 +121,7 @@
   .card-check { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); }
   .card-check svg { inline-size: 14px; block-size: 14px; }
   :is(.mcard, .fcard)[aria-disabled='true'] { cursor: not-allowed; }
-  :is(.mcard, .fcard)[aria-disabled='true'] .frame > img { transform: none !important; }
+  :is(.mcard, .fcard)[aria-disabled='true']:is(:hover, .is-hover) .frame > img { transform: none; }
 
   /* the media card: the picture with its words on it — title 14/18 500 text-1, meta 13/18 at 72 %, over the poster
      scrim, padding 28 14 12; radius 14, surface-1 under the picture */
@@ -423,10 +423,10 @@
   .media { position: relative; background: var(--black); border-radius: var(--r-md); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--text-3); }
   .media img, .media video { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
   .media-contain img, .media-contain video { object-fit: contain; }
-  .media-empty { background: var(--surface-1); color: var(--text-3); border: 1px solid var(--line); }
+  .media-empty { background: var(--surface-1); color: var(--text-3); }
   .thumb { background: var(--black); border-radius: var(--r-md); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--text-3); }
   .thumb img, .thumb video { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
-  .poster { display: block; position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--surface-1); border: 1px solid var(--line); transition: border-color var(--dur-2) var(--ease-enter); }
+  .poster { display: block; position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--surface-1); }
   .poster img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; transition: transform var(--dur-3) var(--ease-inout); }
   a:hover > .poster, a:focus-visible > .poster, .poster-link:hover .poster, .poster-link:focus-visible .poster { border-color: var(--line-strong); }
   .poster-link:hover .poster img { transform: scale(1.02); }
@@ -449,8 +449,8 @@
   .hero-wide .hero-backdrop img { opacity: 0.5; }
   .hero-backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--bg-page) 20%, transparent) 0%, color-mix(in srgb, var(--bg-page) 55%, transparent) 55%, var(--bg-page) 100%); }
   .hero-plain { background: linear-gradient(180deg, var(--surface-1), var(--bg-page)); }
-  .tile { display: flex; flex-direction: column; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; transition: border-color var(--dur-1) var(--ease-enter), background-color var(--dur-1) var(--ease-enter); }
-  .tile:hover { border-color: var(--line-strong); background: var(--surface-1); }
+  .tile { display: flex; flex-direction: column; background: var(--surface-1); border-radius: var(--r-md); overflow: hidden; transition: background-color var(--dur-1) var(--ease-out); }
+  .tile:hover { background: var(--surface-2); }
   .tile:has(a:focus-visible), .tile:has(button:focus-visible) { outline: 2px solid var(--text-1); outline-offset: 2px; }
   .tile-body { padding: 0.8rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; min-inline-size: 0; }
   .tile-meta { font-size: 0.75rem; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; align-items: center; }
