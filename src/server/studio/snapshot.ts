@@ -57,6 +57,13 @@ export function assetFromRow(a: AssetRowRead, posterOf: (posterAssetId: string) 
 /** Where the browser loads a picture's display-size thumbnail from (src/app/api/media/[id]/route.ts, `?thumb=1`). */
 export const thumbSrc = (assetId: string) => `/api/media/${assetId}?thumb=1`;
 
+type TakeRowRead = typeof schema.takes.$inferSelect;
+
+/** A take as the domain holds it, from its row (the inverse of persist.ts `takeRow`; tested as a round trip). */
+export function takeFromRow(t: TakeRowRead): Take {
+  return { id: t.id, label: t.label, assetId: t.assetId, createdAt: t.createdAt, note: undef(t.note), status: t.status as Take['status'], provider: undef(t.provider) as Take['provider'], model: undef(t.model), requestId: undef(t.requestId), prompt: undef(t.prompt), params: undef(t.params), seed: undef(t.seed), references: undef(t.references), width: undef(t.width), height: undef(t.height), durationSeconds: undef(t.durationSeconds), fps: undef(t.fps), generationMs: undef(t.generationMs), costUsd: undef(t.costUsd), qa: undef(t.qa), rejectionReason: undef(t.rejectionReason), jobId: undef(t.jobId), codeVersion: undef(t.codeVersion), workflowVersion: undef(t.workflowVersion), thumbnailAssetId: undef(t.thumbnailAssetId), trimStartFrames: undef(t.trimStartFrames), soundtrack: undef(t.soundtrack), relation: undef(t.relation) as Take['relation'], continuesTakeId: undef(t.continuesTakeId), rating: undef(t.rating) as Take['rating'], ratingReason: undef(t.ratingReason), ratedBy: undef(t.ratedBy), ratedAt: undef(t.ratedAt) };
+}
+
 export function usageFromRow(u: UsageRowRead): VideoUsage {
   return { productionId: u.productionId, productionTitle: u.productionTitle, shotId: u.shotId, shotLabel: u.shotLabel, takeId: u.takeId, takeLabel: u.takeLabel, recordedAt: u.recordedAt, status: u.status as VideoUsage['status'], canonicalImageVersion: undef(u.canonicalImageVersion) };
 }
@@ -104,7 +111,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
 
   const takesByShot = new Map<string, Take[]>();
   for (const t of takeRows) {
-    const take: Take = { id: t.id, label: t.label, assetId: t.assetId, createdAt: t.createdAt, note: undef(t.note), status: t.status as Take['status'], provider: undef(t.provider) as Take['provider'], model: undef(t.model), requestId: undef(t.requestId), prompt: undef(t.prompt), params: undef(t.params), seed: undef(t.seed), references: undef(t.references), width: undef(t.width), height: undef(t.height), durationSeconds: undef(t.durationSeconds), fps: undef(t.fps), generationMs: undef(t.generationMs), costUsd: undef(t.costUsd), qa: undef(t.qa), rejectionReason: undef(t.rejectionReason), jobId: undef(t.jobId), codeVersion: undef(t.codeVersion), workflowVersion: undef(t.workflowVersion), thumbnailAssetId: undef(t.thumbnailAssetId), trimStartFrames: undef(t.trimStartFrames), soundtrack: undef(t.soundtrack), relation: undef(t.relation) as Take['relation'], continuesTakeId: undef(t.continuesTakeId), rating: undef(t.rating) as Take['rating'], ratingReason: undef(t.ratingReason), ratedBy: undef(t.ratedBy), ratedAt: undef(t.ratedAt) };
+    const take = takeFromRow(t);
     hashes.takes.set(t.id, h(take));
     takesByShot.set(t.shotId, [...(takesByShot.get(t.shotId) ?? []), take]);
   }

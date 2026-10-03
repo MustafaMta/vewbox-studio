@@ -1,8 +1,9 @@
 import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
-import type { Job, JobType } from '@/domain/jobs';
+import type { Job, JobProgress, JobStatus, JobType } from '@/domain/jobs';
 import { JOB_TYPES } from '@/domain/jobs';
+import { runPhaseLabel, runPhaseOf, type RunPhase } from '@/domain/phases';
 import { isStudioError } from '@/domain/errors';
 import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
@@ -14,7 +15,7 @@ import { step } from './handlers/step';
 import { gpuLease } from './gpu';
 import type { FailureClass } from '@/server/org/model';
 import { syncRegistry } from '@/server/registry';
-import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
+import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
 import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
 
@@ -61,6 +62,18 @@ async function run(job: Job, lane: Lane) {
   let runId = '';
   await record('start run', async () => { runId = await startRun(job, agent.id); });
   const label = JOB_LABELS[job.type]?.en ?? job.type;
+  // THE RUN'S PHASES (B9): startRun recorded QUEUED and PREPARING; every later progress report that moves the job
+  // to another phase (GENERATING, CHECKING, FINISHING) is appended to the run as a timed event and announced, so
+  // a status row can say how long each phase took and what to expect next time
+  let lastPhase: RunPhase | null = 'PREPARING';
+  const phaseChanged = async (status: JobStatus, progress: JobProgress) => {
+    const phase = runPhaseOf(status, progress.phase);
+    if (!phase || phase === lastPhase) return;
+    lastPhase = phase;
+    const at = new Date().toISOString();
+    await record('record phase', async () => { if (runId) await recordRunPhase(runId, { phase, at, message: progress.message?.slice(0, 200) }); });
+    await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_PHASE', message: `${agent.name}: ${runPhaseLabel(job.type, phase).toLowerCase()} — ${label}`, data: { phase, label: runPhaseLabel(job.type, phase), shotId: job.shotId, runId, attempt: job.attempts }, jobId: job.id });
+  };
   const ctx: HandlerContext = {
     job, log: jl, workerId, agent, runId,
     tool: runId ? makeToolRunner(agent, runId, jl) : (_id, fn) => fn(),
@@ -68,7 +81,7 @@ async function run(job: Job, lane: Lane) {
     delegate: runId ? makeDelegator(job, runId, jl) : (_agentId, _purpose, fn) => fn((_id, f) => f()),
     activity: (kind, message, data, opts) => studioEvent({ departmentId: opts?.departmentId ?? agent.department, agentId: opts?.agentId ?? agent.id, productionId: opts?.productionId ?? job.productionId, kind, message, data, jobId: job.id }),
     checkpoint: async () => { if (cancelRequested) throw new Cancelled(); },
-    progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; throw new Cancelled(); } },
+    progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; throw new Cancelled(); } await phaseChanged(status, progress); },
     event: (level, message, data) => addEvent(job.id, level, message, data),
     gpu: gpuLease,
   };
