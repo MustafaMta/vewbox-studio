@@ -14,7 +14,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-presentation-probe-'));
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 const fake = vi.hoisted(() => ({
-  assets: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, enqueued: [] as Array<Record<string, unknown>>,
+  assets: [] as Asset[], commands: [] as Array<{ name: string; args: unknown[] }>, enqueued: [] as Array<Record<string, unknown>>,
   files: new Map<string, string>(), stored: {} as Record<string, unknown>, enqueueFails: false,
 }));
 
