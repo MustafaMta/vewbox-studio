@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { ArtVars, Presentation } from '@/domain/presentation';
-import { T } from '@/lib/copy';
 import { IconImageOff } from '@/components/ui/icons';
-import { cls } from '@/components/ui/kit';
+import { cls } from '@/components/ui/kit/cls';
 import { artStyle, cssRatio, dimsLight, objectPosition, type FrameRatio, type Picture } from './art';
 import { TitleCard, type TitleState } from './TitleCard';
 
@@ -61,7 +60,7 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
   const baseSrc = plainSrc ?? (asset as { thumb?: { src?: string } } | null | undefined)?.thumb?.src ?? asset?.src ?? null;
   // one quiet retry before a picture is called unavailable (a dropped request on a slow network is not a missing file)
   const [retry, setRetry] = useState(0);
-  const src = baseSrc && retry ? `retry=` : baseSrc;
+  const src = baseSrc && retry ? `${baseSrc}${baseSrc.includes('?') ? '&' : '?'}retry=${retry}` : baseSrc;
   const pres = presentation ?? asset?.presentation ?? null;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -110,7 +109,7 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
         data-light={dimsLight(pres, judge) || undefined} style={fit === 'cover' ? { objectPosition: position ?? objectPosition(pres, focal) } : undefined}
         onLoad={(e) => reveal(e.currentTarget)} onError={fail} />
       {state === 'drawing' && (
-        <span className="frame-phase" role="status"><span className="m-tally" aria-hidden />{phase ?? T('media.state.drawing')}</span>
+        <span className="frame-phase" role="status"><span className="m-tally" aria-hidden />{phase ?? 'Drawing…'}</span>
       )}
       {children}
     </div>

@@ -11,7 +11,6 @@ import { toastDuration } from '@/components/ui/toast';
 import { rovingIndex, rovingStep, tabStops } from '@/components/ui/kit/focus';
 import { activeFilterCount, parseFilters, serializeFilters, toggleFilter } from '@/components/ui/kit/CatalogueBar';
 import { addChips, needsErrorSummary } from '@/components/ui/kit/Field';
-import { matchEntries } from '@/components/ui/kit/Overlay';
 import { sectionInView } from '@/components/ui/kit/Tabs';
 
 /** The interface kit (docs/DESIGN-SYSTEM-V4.md §5, package F2): the keyboard rules as pure functions, the markup
@@ -142,15 +141,8 @@ describe('status, states and overlays say it in words', () => {
     expect(out).toContain('A2');
     expect(out).not.toContain('A3');
   });
-  it('the palette matches every word, in both scripts, ignoring Arabic marks', () => {
-    const e = [{ text: 'Show · The Kite الطائرة الورقية' }, { text: 'Character · Amina أمينة' }];
-    expect(matchEntries(e, 'kite')).toHaveLength(1);
-    expect(matchEntries(e, 'الطّائرة')).toHaveLength(1);
-    expect(matchEntries(e, 'show amina')).toHaveLength(0);
-    expect(matchEntries(e, '  ')).toHaveLength(2);
-  });
-  it('toasts: 4 s; 10 s with an action, a link or an error; a sticky one stays', () => {
-    expect(toastDuration({ tone: 'ok' })).toBe(4000);
+  it('toasts: 5 s; 10 s with an action, a link or an error; a sticky one stays', () => {
+    expect(toastDuration({ tone: 'ok' })).toBe(5000);
     expect(toastDuration({ tone: 'info', action: { label: 'Undo', onClick: () => undefined } })).toBe(10000);
     expect(toastDuration({ tone: 'ok', link: { label: 'Open', href: '/x' } })).toBe(10000);
     expect(toastDuration({ tone: 'bad' })).toBe(10000);

@@ -49,6 +49,7 @@
 
   /* on art */
   --chip-on-art: rgb(0 0 0 / .72);
+  --text-on-scrim: rgb(245 245 244 / .72);   /* a media card's meta line over the poster scrim */
   --art-ph: var(--surface-1);   /* set inline per frame from presentation.dominant */
   --art-edge: var(--surface-1); /* set inline per figure: presentation.edge */
   --overlay: rgb(0 0 0 / .64);  /* behind dialogs and sheets */
