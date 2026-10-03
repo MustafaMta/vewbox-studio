@@ -404,14 +404,21 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
  *  recording to hear, and — when the automatic check could not hear it back or it drifted from the script — the
  *  review waiting on it with the way to record it again. */
 function Dialogue({ p, shot, draft, patch, toHear, gate }: { p: Production; shot: Shot; draft: Draft; patch: (x: Partial<Draft>) => void; toHear: Map<string, 'NOT_HEARD' | 'DRIFTED'>; gate: ReturnType<typeof useStudioGate> }) {
-  const { state } = useStudio();
+  const { state, act } = useStudio();
+  const toast = useToast();
   const cast = castOf(state, p);
+  const keep = (ids: string[]) => {
+    try { act('keepLineRecordings', p.id, ids.map((lineId) => ({ shotId: shot.id, lineId })), { by: 'producer' }); toast.ok(ids.length === 1 ? 'Recording kept.' : `${ids.length} recordings kept.`); }
+    catch (e) { toast.bad((e as Error).message); }
+  };
+  const flagged = [...toHear.keys()].filter((id) => draft.dialogue.some((d) => d.id === id));
   const speakers = draft.characterIds.length ? cast.filter((c) => draft.characterIds.includes(c.id)) : cast;
   const setLine = (id: string, x: Partial<ShotDialogue>) => patch({ dialogue: draft.dialogue.map((d) => (d.id === id ? { ...d, ...x } : d)) });
   const arabic = p.language === 'AR';
   return (
     <fieldset className="ws-fieldset">
       <legend className="t-label">Dialogue</legend>
+      {flagged.length > 1 && <div className="ws-review"><span className="t-meta">{flagged.length} lines wait to be heard again.</span><Button size="sm" onClick={() => keep(flagged)}>Keep all {flagged.length} recordings</Button></div>}
       {draft.dialogue.length === 0 ? <p className="t-meta">No lines in this shot.</p> : (
         <ul className="ws-dlg" role="list">
           {draft.dialogue.map((d) => {
@@ -434,6 +441,7 @@ function Dialogue({ p, shot, draft, patch, toHear, gate }: { p: Production; shot
                   <div className="ws-review">
                     <span className="badge badge-wait">Hear it again</span>
                     <span className="t-meta">{review === 'NOT_HEARD' ? 'The automatic check could not hear it back; listen and confirm it.' : 'It drifted from the script; listen and decide.'}</span>
+                    {audio && <Button size="sm" onClick={() => keep([d.id])}>Keep this recording</Button>}
                     <GenButton gate={gate} engine="voice" type="DIALOGUE_AUDIO" payload={{ productionId: p.id, shotIds: [shot.id], force: true }} target={{ productionId: p.id }} variant="quiet" icon={<IconVoice aria-hidden />} compact>Record it again</GenButton>
                   </div>
                 )}

@@ -135,6 +135,8 @@ test('the inspector: framing, references, dialogue with voices and the line to h
   const line = page.locator('.ws-dlg-line').first();
   await expect(line.locator('.badge')).toHaveText('Hear it again');
   await expect(line.getByRole('button', { name: /^Hear / })).toBeVisible();
+  await line.getByRole('button', { name: 'Keep this recording' }).click();
+  await expect.poll(() => commands.map((c) => c.name)).toContain('keepLineRecordings');
   await expect(page.locator('.ws-exclusion')).toBeVisible();
 });
 

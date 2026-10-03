@@ -56,7 +56,8 @@ for (const size of SIZES) {
     await page.waitForSelector('.ws', { timeout: 240000 });
     const skeletonSeen = await page.evaluate(() => Boolean(document.querySelector('.ws-skeleton')));
     await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
-    await page.waitForSelector(`.ws:not(.ws-skeleton) ${pg.ready}`, { timeout: 240000 });
+    try { await page.waitForSelector(`.ws:not(.ws-skeleton) ${pg.ready}`, { timeout: 360000 }); }
+    catch { failed++; report.push({ page: pg.name, size: `${size.w}×${size.h}`, error: 'not ready in 6 minutes on the throttled line' }); console.log(`${pg.name} ${size.w}×${size.h}: ✗ not ready in 6 minutes on the throttled line`); await ctx.close(); continue; }
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
     await page.evaluate(() => document.fonts.ready);
