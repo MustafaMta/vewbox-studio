@@ -150,7 +150,6 @@ const COPY = {
   // libraries
   'lib.addShow': 'Add Show',
   'lib.addShort': 'Add Short',
-  'lib.addMusicVideo': 'Add Music Video',
   'lib.addCharacter': 'Add Character',
   'lib.addLocation': 'Add Location',
   'lib.voiceSelected': 'voice chosen',
@@ -179,7 +178,6 @@ const COPY = {
   'empty.shows.hint': 'A show holds seasons and episodes that share a cast and a world.',
   'empty.shorts': 'No shorts yet.',
   'empty.shorts.hint': 'A short is one film, from idea to final cut.',
-  'empty.musicVideos': 'No music videos yet.',
   'empty.musicVideos.hint': 'A music video starts with its song.',
   'empty.characters': 'No characters yet.',
   'empty.locations': 'No locations yet.',
