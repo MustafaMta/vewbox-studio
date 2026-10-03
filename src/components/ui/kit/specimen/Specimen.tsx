@@ -1,22 +1,24 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
-import { Button, LinkButton } from '../Button';
+import { useEffect, useRef, useState } from 'react';
 import { Segmented } from '../Choice';
 import { useMediaQuery } from '../layout';
-import { MenuButton, MenuItem } from '../Overlay';
-import { PageHeader } from '../PageHeader';
 import { AnchorNav } from '../Tabs';
 import { CardsSpec } from './cards';
 import { ButtonsSpec, ChoicesSpec, NavigationSpec, StatusSpec } from './controls';
-import { FormsSpec } from './forms';
+import { EditSpec } from './edit';
+import { FeedbackSpec, StatesSpec } from './feedback';
+import { FormsSpec, SearchSpec } from './forms';
+import { MediaSpec } from './media';
 import { OverlaysSpec } from './overlays';
-import { ApprovalSpec, CreationSpec, HeadersSpec, StatesSpec } from './pages';
+import { ApprovalSpec, CreationSpec, HeadersSpec } from './pages';
+import { PlayersSpec } from './players';
 import { SpecSection } from './parts';
 
-/** THE /kit SPECIMEN (docs/DESIGN-SYSTEM-V4.md §8.5 F2; dev only): every kit component in every state, the
- *  More-contrast and compact-density demonstrations F1 left to this page, then F3's media sections. */
+/** THE /kit SPECIMEN (development only) — the single reference for every engineer: every shared component in every
+ *  state at its real size, on the tokens of docs/design/VISUAL-STANDARD-V5.1.md, with the approved Home as the visual
+ *  reference. Sections: foundations · cards and shelves · buttons · status · navigation · forms · search and filters ·
+ *  choices · overlays · feedback · states · media · players · cutting room · approval · headers · creation flow. */
 
 type Contrast = 'system' | 'standard' | 'more';
 
@@ -31,101 +33,79 @@ function useContrastOverride(): [Contrast, (c: Contrast) => void] {
   return [c, setC];
 }
 
-export function KitSpecimen({ media }: { media?: ReactNode }) {
+const SECTIONS = [
+  ['foundations', 'Foundations'], ['cards', 'Cards and shelves'], ['buttons', 'Buttons'], ['status', 'Status'], ['navigation', 'Navigation'],
+  ['forms', 'Forms'], ['search', 'Search and filters'], ['choices', 'Choices'], ['overlays', 'Overlays'], ['feedback', 'Feedback'],
+  ['states', 'Empty and error'], ['media', 'Media'], ['players', 'Players'], ['edit', 'Cutting room'], ['approval', 'Approval'],
+  ['headers', 'Headers'], ['creation', 'Creation flow'],
+] as const;
+
+export function KitSpecimen() {
+  const root = useRef<HTMLDivElement>(null);
   const [contrast, setContrast] = useContrastOverride();
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const osMore = useMediaQuery('(prefers-contrast: more)');
-  const effective = contrast === 'more' || (contrast === 'system' && osMore) ? T('kit.spec.contrast.more') : T('kit.spec.contrast.standard');
-  // the page names itself until the shell's title table has a /kit entry (F4, src/components/shell/titles.ts)
-  const docTitle = `${T('kit.page.title')} · ${T('app.name')}`;
-  useEffect(() => { document.title = docTitle; }, [docTitle]);
-  const sections = [
-    ['preferences', T('kit.spec.sec.preferences')], ['cards', 'Cards and shelves'], ['buttons', T('kit.spec.sec.buttons')], ['status', T('kit.spec.sec.status')], ['navigation', T('kit.spec.sec.navigation')],
-    ['forms', T('kit.spec.sec.forms')], ['choices', T('kit.spec.sec.choices')], ['overlays', T('kit.spec.sec.overlays')], ['states', T('kit.spec.sec.states')],
-    ['approval', T('kit.spec.sec.approval')], ['headers', T('kit.spec.sec.headers')], ['creation', T('kit.spec.sec.creation')],
-  ] as const;
+  useEffect(() => { document.title = 'Interface kit · Vewbox Studio'; }, []);
+  // a specimen page is captured whole (a full-page screenshot never scrolls lazy pictures into view): load them all
+  useEffect(() => {
+    const el = root.current; if (!el) return;
+    const eager = () => el.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((i) => { i.loading = 'eager'; });
+    eager();
+    const mo = new MutationObserver(eager); mo.observe(el, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
   return (
-    <div className="kit-spec" data-density={density === 'compact' ? 'compact' : undefined}>
-      <PageHeader
-        back={{ href: '/shows', label: T('nav.shows') }}
-        eyebrow={T('kit.spec.eyebrow')}
-        title={T('kit.page.title')}
-        count={sections.length}
-        subtitle={T('kit.spec.lead')}
-        primary={<LinkButton href="#buttons" variant="primary">{T('kit.spec.start')}</LinkButton>}
-        secondary={<Button onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')} aria-pressed={density === 'compact'}>{T('kit.spec.density.compact')}</Button>}
-        more={<MenuButton label={T('nav.more')} iconOnly variant="quiet"><MenuItem onClick={() => setContrast('more')}>{T('kit.spec.pal.contrast')}</MenuItem><MenuItem onClick={() => setContrast('system')}>{T('kit.spec.contrast.system')}</MenuItem></MenuButton>}
-      />
-      <AnchorNav items={sections.map(([id, label]) => ({ id, label }))} />
-
-      <SpecSection id="preferences" title={T('kit.spec.sec.preferences')} lead={T('kit.spec.preferences.lead')}>
+    <div ref={root} className="kit-spec" data-density={density === 'compact' ? 'compact' : undefined}>
+      <header className="kit-spec-head">
+        <h1 className="t-page">Interface kit</h1>
+        <p className="t-lead">Every shared component in every state, at its real size. Pages compose these and add nothing of their own; a missing part is a request to the design system.</p>
         <div className="kit-spec-prefs">
-          <div className="flex flex-col items-start gap-2">
-            <span className="label">{T('kit.spec.contrast')}</span>
-            <Segmented label={T('kit.spec.contrast')} value={contrast} onChange={setContrast} options={[
-              { value: 'system', label: T('kit.spec.contrast.system') }, { value: 'standard', label: T('kit.spec.contrast.standard') }, { value: 'more', label: T('kit.spec.contrast.more') },
-            ]} />
-            <p className="help" role="status">{osMore ? T('kit.spec.contrast.osOn') : T('kit.spec.contrast.osOff')} {T.f('kit.spec.contrast.now', { value: effective })}</p>
-          </div>
-          <div className="flex flex-col items-start gap-2">
-            <span className="label">{T('kit.spec.density')}</span>
-            <Segmented label={T('kit.spec.density')} value={density} onChange={setDensity} options={[{ value: 'comfortable', label: T('kit.spec.density.comfortable') }, { value: 'compact', label: T('kit.spec.density.compact') }]} />
-            <p className="help">{T('kit.spec.density.hint')}</p>
-          </div>
+          <Segmented label="Contrast" value={contrast} onChange={setContrast} options={[{ value: 'system', label: osMore ? 'System (more)' : 'System' }, { value: 'standard', label: 'Standard' }, { value: 'more', label: 'More contrast' }]} />
+          <Segmented label="Density" value={density} onChange={setDensity} options={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} />
         </div>
-        <div className="kit-spec-pair">
-          <DensitySample label={T('kit.spec.density.comfortable')} />
-          <DensitySample label={T('kit.spec.density.compact')} compact />
-        </div>
-        <div className="kit-spec-pair">
-          {/* the page as it is now (the switch above, or the system), beside a sample that is always More */}
-          <ContrastSample label={T.f('kit.spec.contrast.now', { value: effective })} />
-          <ContrastSample label={T('kit.spec.contrast.more')} more />
-        </div>
-      </SpecSection>
-
+      </header>
+      <AnchorNav items={SECTIONS.map(([id, label]) => ({ id, label }))} />
+      <Foundations />
       <CardsSpec />
       <ButtonsSpec />
       <StatusSpec />
       <NavigationSpec />
       <FormsSpec />
+      <SearchSpec />
       <ChoicesSpec />
       <OverlaysSpec />
+      <FeedbackSpec />
       <StatesSpec />
+      <MediaSpec />
+      <PlayersSpec />
+      <EditSpec />
       <ApprovalSpec />
       <HeadersSpec />
       <CreationSpec />
-      {media}
     </div>
   );
 }
 
-/** The same controls at both densities, side by side. */
-function DensitySample({ label, compact }: { label: string; compact?: boolean }) {
+const SURFACES = [['--bg-nav', 'Sidebar, bars'], ['--bg-page', 'Page'], ['--surface-1', 'Cards, fields'], ['--surface-2', 'Hover, menus, chips'], ['--surface-3', 'Hover on surface-2'], ['--primary', 'The one primary']] as const;
+const TEXT = [['--text-1', 'Titles, primary text'], ['--text-2', 'Secondary text'], ['--text-3', 'Meta, labels'], ['--text-disabled', 'Disabled (with a reason)']] as const;
+const STATE = [['--wait', 'Waiting for you (dot, count, badge)'], ['--ok', 'Done'], ['--bad', 'Failed']] as const;
+const TYPE = [['t-display', 'Display 56/60'], ['t-hero', 'Hero 40/44'], ['t-page', 'Page 32/40'], ['t-section', 'Section 22/28'], ['t-title', 'Title 16/22'], ['t-card', 'Card 15/20'], ['t-lead', 'Lead 16/24'], ['t-body', 'Body 14/20'], ['t-meta', 'Meta 13/18'], ['t-label', 'Label 12/16'], ['t-ro', 'Readout 0:56 · 1920×1080']] as const;
+const RADII = [['--r-xs', '6'], ['--r-sm', '10'], ['--r-md', '14'], ['--r-lg', '20'], ['--r-pill', 'pill']] as const;
+
+function Foundations() {
   return (
-    <div className="kit-spec-sample" data-density={compact ? 'compact' : 'comfortable'}>
-      <p className="caption">{label}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button variant="primary">{T('btn.save')}</Button>
-        <Button>{T('btn.edit')}</Button>
-        <Button size="sm">{T('btn.duplicate')}</Button>
+    <SpecSection id="foundations" title="Foundations" lead="A neutral charcoal ladder where the only colour is the work; one sans (Geist) with its mono for readouts; one radius family; space, not lines.">
+      <div className="kit-spec-swatches">
+        {[...SURFACES, ...TEXT, ...STATE].map(([v, use]) => (
+          <div key={v} className="kit-spec-swatch"><span className="kit-spec-chip" style={{ background: `var(${v})` }} /><span className="t-label">{v}</span><span className="t-meta">{use}</span></div>
+        ))}
       </div>
-      <input className="input mt-3" aria-label={`${T('label.title')} (${label})`} defaultValue={T('kit.spec.ph.title')} dir="auto" />
-      <p className="mt-3 text-body">{T('kit.spec.density.body')}</p>
-    </div>
-  );
-}
-
-/** The text and boundary roles under each contrast setting, side by side. The "More" sample sets the same roles
- *  F1's html[data-contrast='more'] rule sets (tokens.css), on this sample only. */
-function ContrastSample({ label, more }: { label: string; more?: boolean }) {
-  return (
-    <div className={more ? 'kit-spec-sample kit-spec-more' : 'kit-spec-sample'}>
-      <p className="caption">{label}</p>
-      <p className="mt-3 text-fg">{T('kit.spec.contrast.fg')}</p>
-      <p className="text-muted">{T('kit.spec.contrast.muted')}</p>
-      <p className="text-faint">{T('kit.spec.contrast.faint')}</p>
-      <input className="input mt-3" aria-label={`${T('label.title')} (${label})`} placeholder={T('kit.spec.ph.title')} dir="auto" />
-    </div>
+      <div className="kit-spec-type">
+        {TYPE.map(([c, name]) => <p key={c} className={c}>{name}</p>)}
+      </div>
+      <div className="kit-spec-radii">
+        {RADII.map(([v, px]) => <span key={v} className="kit-spec-radius" style={{ borderRadius: `var(${v})` }}><span className="t-label">{px}</span></span>)}
+      </div>
+    </SpecSection>
   );
 }
