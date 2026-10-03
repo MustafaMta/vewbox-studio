@@ -650,3 +650,23 @@ CUT / STORY_TRANSITION) next to the existing technical success rate.
   https://docs.comfy.org/tutorials/partner-nodes/minimax/minimax-h3/workflow;
   https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md;
   https://platform.minimax.io/docs/guides/pricing-paygo.md.
+
+---
+
+## 8. Implementation status (P0 + P1, 2026-10-03)
+
+Implemented and unit-tested; measured runs in `docs/evidence/minimax-p1/README.md` (E4/E6 subset, the P0.2
+continuation, an E3 subset). P0.1 frames snap up, 124–362 (`minimax-h3.ts` `h3FrameCount`); P0.2 the tail guide
+carries its sound (`H3Guide.audioFromVideo`) — except into a shot without lines when the previous take speaks in its
+tail (measured: H3 kept talking; `shot-pack.ts` `speechInTail`); P0.3 `stripDialogueTags`, planner writes no tags;
+P0.4 speech check and MV lag read after the head; P0.5 hosted refuses guides and frame+reference mixes
+(NOT_CONFIGURED / UNSUPPORTED_CAPABILITY) and the take handler lowers the request; P0.6 preflight on the shot pack
+(frames, picture budget, guides counted and fitted, identity from canonical images; DRAFT stays a warning, per the
+identity contract); P0.7 Ref2VA anchors first/last frame at 0 / −1. P1: `src/server/production/shot-pack.ts`
+(relation, identity references on every shot, opening, graph, hosted lowering), `h3ReferencePrompt` + `lintH3Prompt`
+(grammar verified in the tokenizer and the installed template; dialogue form and vocabulary from MiniMax-H3
+`skills/h3-prompt-writing/references/ref-en.txt`), the pilot gate in PRODUCE (`pilot-gate`, Quality Director),
+continuations queued only after an accepted predecessor, no opening frame for a continuation, CUT frames drawn with
+the previous shot's state, `takes.relation` / `takes.continues_take_id` (migration 0008, not applied). Not done: the
+persisted ShotPack and STALE chains (§3.6), overlap blend and join QA in assembly, E5/E7–E12, P2 (World Bible),
+P3 (audio timeline).
