@@ -3,7 +3,7 @@ import { seed } from '@/domain/sample';
 import { addAsset, addVoiceDesign, addVoiceRecording, addVoiceSample, confirmVoiceConsent, recordVoiceListening, setVoiceIdentity, updateCharacter, updateVoiceDesign, updateVoiceSample, type VoiceDesignRecordInput, type VoiceIdentityInput } from '@/domain/actions';
 import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
-import { CALIBRATION_TEXT, DESIGN_GATES, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, PREVIEW_SENTENCES, automaticVoicePlan, candidateGate, castNames, describeVoiceFromProfile, descriptionProblem, designedSeedProblem, rankDesignCandidates, rankingFor, tagDesignId, voiceLabels, withListening } from '@/domain/voice-identity';
+import { CALIBRATION_TEXT, DESIGN_GATES, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, PREVIEW_SENTENCES, automaticVoicePlan, candidateGate, designedIraqiOn, castNames, describeVoiceFromProfile, descriptionProblem, designedSeedProblem, rankDesignCandidates, rankingFor, tagDesignId, voiceLabels, withListening } from '@/domain/voice-identity';
 import { REFERENCE_RULES } from '@/server/media/voice-check';
 import type { Character, StudioState, VoiceDesignCandidate, VoiceIdentity } from '@/domain/types';
 
@@ -22,7 +22,7 @@ const fresh = (s: StudioState, id: string, language: 'EN' | 'AR', dialect?: 'MSA
 /** nour (unused) with a stored three-candidate design and a stored proof line. */
 function withDesign(opts: { language?: 'EN' | 'AR'; dialect?: 'MSA' | 'IRAQI_BAGHDADI'; allowIraqi?: boolean; durations?: number[] } = {}) {
   let s = fresh(seed(), 'nour', opts.language ?? 'EN', opts.dialect);
-  if (opts.allowIraqi) s = { ...s, settings: { ...s.settings, generation: { ...(s.settings.generation ?? {}), allowDesignedIraqi: true } } };
+  if (opts.allowIraqi) s = { ...s, settings: { ...s.settings, voice: { allowDesignedIraqi: true } } };
   const durations = opts.durations ?? [9.6, 9.3, 8.5];
   const candidates: VoiceDesignCandidate[] = durations.map((d, k) => ({ index: k + 1, seed: 100 + k, assetId: `gen-seed-${k + 1}`, sha256: sha(k + 1), durationSeconds: d, nativeAssetId: `gen-native-${k + 1}`, nativeSha256: sha(10 + k), measured: { durationSeconds: d, lufs: -20, truePeakDbtp: -1, clippedSamples: 0 }, gate: { ok: false, reasons: ['not measured yet'] } }));
   for (const c of candidates) {
@@ -45,7 +45,14 @@ describe('the automatic plan (contract §2)', () => {
     const iraqi = ch(fresh(s, 'nour', 'AR', 'IRAQI_BAGHDADI'), 'nour');
     expect(automaticVoicePlan(iraqi, s.assets)).toEqual({ kind: 'REFUSE', code: 'MISSING_REFERENCE', message: IRAQI_NEEDS_RECORDING });
     expect(IRAQI_NEEDS_RECORDING).toBe('Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.');
-    expect(automaticVoicePlan(iraqi, s.assets, { generation: { allowDesignedIraqi: true } })).toEqual({ kind: 'DESIGN', experiment: true });
+    expect(automaticVoicePlan(iraqi, s.assets, { voice: { allowDesignedIraqi: true } })).toEqual({ kind: 'DESIGN', experiment: true });
+    // the switch lives at settings.voice.allowDesignedIraqi, off by default, set with updateSettings
+    expect(designedIraqiOn(s.settings)).toBe(false);
+    const on = runCommand(s, cmd('updateSettings', [{ voice: { allowDesignedIraqi: true } }])).state;
+    expect(on.settings.voice).toEqual({ allowDesignedIraqi: true });
+    expect(designedIraqiOn(on.settings)).toBe(true);
+    expect(runCommand(on, cmd('updateSettings', [{ uiLanguage: 'ar' }])).state.settings.voice).toEqual({ allowDesignedIraqi: true });
+    expect(designedIraqiOn({ voice: { allowDesignedIraqi: false } })).toBe(false);
   });
   it('a consented recording is the voice; one without consent is named (CONSENT_REQUIRED), never designed over; an English clip is not an Iraqi recording', () => {
     let s = fresh(seed(), 'nour', 'AR', 'IRAQI_BAGHDADI');
@@ -171,7 +178,7 @@ describe('Rule V-DESIGN on the identity (setVoiceIdentity)', () => {
     expect(pinned).toMatchObject({ status: 'REVIEW', dialectStatus: 'UNVERIFIED' });
     expect(voiceLabels(pinned)).toEqual([DESIGN_LABEL, 'Iraqi dialect not yet verified by a native listener', 'naturalness not yet judged by a listener']);
     // switched off since the design: refused with the contract's sentence
-    const off = { ...iraqi, settings: { ...iraqi.settings, generation: { allowDesignedIraqi: false } } };
+    const off = { ...iraqi, settings: { ...iraqi.settings, voice: { allowDesignedIraqi: false } } };
     expect(() => setVoiceIdentity(off, 'nour', designed(1, { language: 'AR', dialect: 'IRAQI_BAGHDADI' }))).toThrow(IRAQI_NEEDS_RECORDING);
   });
 });

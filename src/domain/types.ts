@@ -655,8 +655,12 @@ export interface GenerationSettings {
   llmProvider?: string;
   /** Which voice engine new identities use. */
   voiceProvider?: 'LOCAL_TTS' | 'MINIMAX';
+}
+
+/** Voice settings (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). */
+export interface VoiceSettings {
   /** EXPERIMENT (default off): an Iraqi character without an Iraqi recording may get a designed Arabic seed spoken by
-   *  the Iraqi engine — always `dialectStatus: UNVERIFIED` and identity status REVIEW (contract v2 §2). */
+   *  the Iraqi engine — always `dialectStatus: UNVERIFIED` and identity status REVIEW. */
   allowDesignedIraqi?: boolean;
 }
 
@@ -665,6 +669,7 @@ export interface Settings {
   reducedMotion: boolean;
   defaults: { style: Style; language: Language; dialect: Dialect; aspect: Aspect };
   generation?: GenerationSettings;
+  voice?: VoiceSettings;
 }
 
 export interface StudioState {

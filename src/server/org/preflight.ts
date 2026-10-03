@@ -2,7 +2,7 @@ import type { Asset, Character, Production, Shot, StudioState } from '@/domain/t
 import type { JobType } from '@/domain/jobs';
 import { orderedShots } from '@/domain/timeline';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
-import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, isConsentedUpload, isIraqi } from '@/domain/voice-identity';
+import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
@@ -173,7 +173,7 @@ export function preflightCharacter(state: StudioState, c: Character, type: JobTy
   if (type === 'VOICE_DESIGN') {
     const lockProblem = voiceBuildLockProblem(c, undefined);
     add('voice-unlocked', !lockProblem, 'INCONSISTENT_PLAN', lockProblem ?? undefined);
-    const iraqiRefused = isIraqi(c) && !state.settings.generation?.allowDesignedIraqi;
+    const iraqiRefused = isIraqi(c) && !designedIraqiOn(state.settings);
     add('design-language', !iraqiRefused, 'MISSING_REFERENCE', iraqiRefused ? IRAQI_NEEDS_RECORDING : isIraqi(c) ? 'Iraqi designed-seed experiment (dialect unverified, REVIEW)' : `${c.language === 'AR' ? 'MSA' : 'English'} design`);
     const description = typeof payload.description === 'string' ? payload.description : undefined;
     if (description !== undefined) {
@@ -195,7 +195,7 @@ export function designChoiceProblem(state: StudioState, c: Character, designId: 
   const a = state.assets.find((x) => x.id === cand.assetId);
   if (!a || a.kind !== 'AUDIO' || a.unavailable) return `candidate ${cand.index}'s seed file is missing from the library`;
   if (!cloneEligible(cand)) return `candidate ${cand.index} cannot be a voice reference (${cand.durationSeconds.toFixed(2)} s, ${cand.measured.clippedSamples ?? 0} clipped samples; a reference is at most 11.5 s with none)`;
-  if (isIraqi(c) && !state.settings.generation?.allowDesignedIraqi) return IRAQI_NEEDS_RECORDING;
+  if (isIraqi(c) && !designedIraqiOn(state.settings)) return IRAQI_NEEDS_RECORDING;
   return null;
 }
 

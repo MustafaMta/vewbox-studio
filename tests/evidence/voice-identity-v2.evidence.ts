@@ -161,10 +161,10 @@ describe('voice identity v2 — real engines', () => {
     save();
 
     // E — the allowDesignedIraqi experiment (switched on for this run only): screened on the four probe lines
-    mem.state = { ...mem.state, settings: { ...mem.state.settings, generation: { ...(mem.state.settings.generation ?? {}), allowDesignedIraqi: true } } };
+    mem.state = { ...mem.state, settings: { ...mem.state.settings, voice: { allowDesignedIraqi: true } } };
     const zahra = addCharacter(profile({ name: 'Zahra', role: 'Pharmacist', sex: 'FEMALE', ageYears: 30, language: 'AR', dialect: 'IRAQI_BAGHDADI', pitch: 'MID', pace: 'MEASURED', timbre: 'warm', personality: 'kind' }));
     runs.push(await runJob('E-iraqi-experiment', 'AUTOMATIC Iraqi build with allowDesignedIraqi ON (experiment: dialect unverified, REVIEW)', 'VOICE_BUILD', voiceBuild, { characterId: zahra, mode: 'AUTOMATIC' }, 'ev-E'));
-    mem.state = { ...mem.state, settings: { ...mem.state.settings, generation: { ...(mem.state.settings.generation ?? {}), allowDesignedIraqi: false } } };
+    mem.state = { ...mem.state, settings: { ...mem.state.settings, voice: { allowDesignedIraqi: false } } };
     save();
 
     // the files a listener needs, and what each character ended with

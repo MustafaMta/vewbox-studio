@@ -47,6 +47,9 @@ export const rankingFor = (c: { language: Language; dialect?: Dialect }): Design
 
 export const isIraqi = (c: { language: Language; dialect?: Dialect }) => c.language === 'AR' && c.dialect === 'IRAQI_BAGHDADI';
 
+/** The experiment switch (Settings → `voice.allowDesignedIraqi`, default off). */
+export const designedIraqiOn = (settings: Pick<Settings, 'voice'> | undefined): boolean => settings?.voice?.allowDesignedIraqi === true;
+
 export function previewSentencesFor(c: { language: Language; dialect?: Dialect }): readonly string[] {
   return c.language === 'EN' ? PREVIEW_SENTENCES.EN : isIraqi(c) ? PREVIEW_SENTENCES.IRAQI : PREVIEW_SENTENCES.MSA;
 }
@@ -77,7 +80,7 @@ export type AutomaticVoicePlan =
  *  (CONSENT_REQUIRED names it); otherwise English and MSA are DESIGNED from the profile, and an Iraqi voice is refused
  *  with the contract's sentence — unless the `allowDesignedIraqi` experiment is on. A voice locked by its chosen
  *  recording alone is held to that recording (finding 8). Pure. */
-export function automaticVoicePlan(c: Character, assets: Asset[], settings?: Pick<Settings, 'generation'>): AutomaticVoicePlan {
+export function automaticVoicePlan(c: Character, assets: Asset[], settings?: Pick<Settings, 'voice'>): AutomaticVoicePlan {
   const iraqi = isIraqi(c);
   const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
   const fits = (s: VoiceSample) => isCloneSource(s) && usableRecordingAsset(byId(s.assetId)) && (!iraqi || iraqiRecording(s));
@@ -93,7 +96,7 @@ export function automaticVoicePlan(c: Character, assets: Asset[], settings?: Pic
   const consented = recordings.find(isConsentedUpload);
   if (consented) return { kind: 'UPLOAD', sampleId: consented.id, label: consented.label };
   if (recordings.length) return { kind: 'REFUSE', code: 'CONSENT_REQUIRED', message: consentMessage(recordings[0]), sampleId: recordings[0].id };
-  if (iraqi) return settings?.generation?.allowDesignedIraqi ? { kind: 'DESIGN', experiment: true } : { kind: 'REFUSE', code: 'MISSING_REFERENCE', message: IRAQI_NEEDS_RECORDING };
+  if (iraqi) return designedIraqiOn(settings) ? { kind: 'DESIGN', experiment: true } : { kind: 'REFUSE', code: 'MISSING_REFERENCE', message: IRAQI_NEEDS_RECORDING };
   return { kind: 'DESIGN', experiment: false };
 }
 

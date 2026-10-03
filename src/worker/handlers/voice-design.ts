@@ -7,7 +7,7 @@ import type { JobPayloadParsed } from '@/domain/jobs';
 import type { CommandSpec } from '@/server/studio/engine';
 import type { VoiceDesignMeasurementPatch, VoiceDesignRecordInput } from '@/domain/actions';
 import { voiceBuildLockProblem } from '@/domain/rules';
-import { CALIBRATION_TEXT, DESIGN_CANDIDATES, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, MSA_ACCENT_PENDING, IRAQI_DIALECT_PENDING, NATURALNESS_PENDING, candidateGate, castNames, cloneEligible, describeVoiceFromProfile, descriptionProblem, isIraqi, previewSentencesFor, rankDesignCandidates, rankingFor } from '@/domain/voice-identity';
+import { CALIBRATION_TEXT, DESIGN_CANDIDATES, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, MSA_ACCENT_PENDING, IRAQI_DIALECT_PENDING, NATURALNESS_PENDING, candidateGate, castNames, cloneEligible, describeVoiceFromProfile, descriptionProblem, designedIraqiOn, isIraqi, previewSentencesFor, rankDesignCandidates, rankingFor } from '@/domain/voice-identity';
 import { commands, readState } from '@/server/studio/engine';
 import { adoptFile, assetFromStored, removeFile } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
@@ -205,8 +205,14 @@ export function designNotes(c: Pick<Character, 'language' | 'dialect'>): string[
   return [DESIGN_LABEL, ...(c.language === 'AR' ? [isIraqi(c) ? IRAQI_DIALECT_PENDING : MSA_ACCENT_PENDING] : []), NATURALNESS_PENDING];
 }
 
-/** The candidates as a job result reads them. */
-export const designSummary = (r: VoiceDesignRecord) => r.candidates.map((x) => ({ index: x.index, seed: x.seed, assetId: x.assetId, nativeAssetId: x.nativeAssetId, sha256: x.sha256, durationSeconds: x.durationSeconds, measured: x.measured, gate: x.gate, previews: x.previews ?? [], similarityMean: x.similarityMean, letterCoverageMean: x.letterCoverageMean, cerMean: x.cerMean }));
+/** The candidates as a job result reads them: the flat fields the voice panel reads (`assetId` plays at
+ *  /api/media/{assetId}; `duration`, `cer`, `coverage`, `lufs`, `passed`, `reasons`), and everything measured beside them. */
+export const designSummary = (r: VoiceDesignRecord) => r.candidates.map((x) => ({
+  index: x.index, assetId: x.assetId, seed: x.seed, duration: x.durationSeconds, durationSeconds: x.durationSeconds,
+  cer: x.measured.cer, coverage: x.measured.coverage, lufs: x.measured.lufs, passed: x.gate.ok, reasons: x.gate.reasons,
+  nativeAssetId: x.nativeAssetId, sha256: x.sha256, measured: x.measured, gate: x.gate, previews: x.previews ?? [],
+  similarityMean: x.similarityMean, letterCoverageMean: x.letterCoverageMean, cerMean: x.cerMean,
+}));
 
 // ---------------------------------------------------------------------------------------------------- VOICE_DESIGN
 
@@ -221,7 +227,7 @@ export const voiceDesign: Handler = async (ctx) => {
   const lock = voiceBuildLockProblem(c, undefined);
   if (lock) throw new StudioError('VOICE_LOCKED', `${lock} (voice design).`, { characterId: c.id });
   const iraqi = isIraqi(c);
-  if (iraqi && !state.settings.generation?.allowDesignedIraqi) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: c.id });
+  if (iraqi && !designedIraqiOn(state.settings)) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: c.id });
   const speech: LineSpeech = { speed: speedForPace(c.voice.pace), emotionAlpha: 1, seed: Math.floor(Math.random() * 2 ** 31) };
   const record = await designAndMeasure(ctx, c, { mode: 'DESIGN', description: p.description, text: p.text, seed: p.seed, n: p.n, experiment: iraqi, speech });
   const ranked = rankDesignCandidates(record.candidates, rankingFor(c));

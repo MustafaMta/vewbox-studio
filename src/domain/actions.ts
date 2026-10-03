@@ -6,7 +6,7 @@ import { StudioError, consentRequired, missingReference } from './errors';
 import { canonical } from './hash';
 import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
 import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage, voiceBuildLockProblem } from './rules';
-import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
+import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
 
 export { nid } from './ids';
@@ -492,7 +492,7 @@ export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput)
     if (a.kind !== 'AUDIO' || a.sample || !a.sha256) throw new StudioError('INVALID', 'A design seed is a stored audio file with its sha256.', { characterId: id, assetId: a.id });
     const problem = designedSeedProblem(c, { designId: identity.designId, assetId: a.id, fileSha256: identity.seedSha256, assetSha256: a.sha256 });
     if (problem) throw new StudioError('INVALID', `Rule V-DESIGN: ${problem}.`, { characterId: id, designId: identity.designId, assetId: a.id });
-    if (isIraqi(identity) && !s.settings.generation?.allowDesignedIraqi) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id, designId: identity.designId });
+    if (isIraqi(identity) && !designedIraqiOn(s.settings)) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id, designId: identity.designId });
     const record = c.voice.designs!.find((d) => d.id === identity.designId)!;
     design = { record, candidate: record.candidates.find((x) => x.assetId === a.id)! };
   } else if (identity.referenceAssetId) {
@@ -539,7 +539,7 @@ export function addVoiceDesign(s: S, id: string, input: VoiceDesignRecordInput):
     if (a.kind !== 'AUDIO' || a.origin !== 'GENERATED' || a.sha256 !== cand.sha256 || a.provenance?.designId !== input.id) throw new StudioError('INVALID', `Rule V-DESIGN: candidate ${cand.index}'s stored file does not match the record (it must be this design's generated audio with the same sha256).`, { characterId: id, designId: input.id, assetId: a.id });
   }
   if (isIraqi(input)) {
-    if (!s.settings.generation?.allowDesignedIraqi) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id });
+    if (!designedIraqiOn(s.settings)) throw missingReference(IRAQI_NEEDS_RECORDING, { characterId: id });
     if (input.experiment !== 'DESIGNED_IRAQI') throw new StudioError('INVALID', 'An Iraqi design is the designed-seed experiment and says so.', { characterId: id });
   }
   const record: VoiceDesignRecord = { ...input, label: DESIGN_LABEL, createdAt: input.createdAt ?? now() };
@@ -849,5 +849,6 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
 // ---------------------------------------------------------------------------------------------------- settings
 
 export function updateSettings(s: S, patch: Partial<Settings>): S {
-  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) } } };
+  const voice = patch.voice || s.settings.voice ? { voice: { ...(s.settings.voice ?? {}), ...(patch.voice ?? {}) } } : {};
+  return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) }, ...voice } };
 }

@@ -131,7 +131,7 @@ const ctxFor = (job: Partial<Job> & { payload: Record<string, unknown> }): Handl
 /** nour, unused, with no voice at all, speaking a language */
 const fresh = (language: 'EN' | 'AR', dialect?: 'MSA' | 'IRAQI_BAGHDADI', allowDesignedIraqi = false) => {
   const s = seed();
-  fake.state = { ...s, settings: { ...s.settings, generation: { ...(s.settings.generation ?? {}), allowDesignedIraqi } }, characters: s.characters.map((c) => (c.id === 'nour' ? { ...c, language, dialect, usage: { known: true, videos: [] }, voice: { pitch: 'LOW', pace: 'MEASURED', timbre: 'warm', notes: '', samples: [] } } : c)) };
+  fake.state = { ...s, settings: { ...s.settings, voice: { allowDesignedIraqi } }, characters: s.characters.map((c) => (c.id === 'nour' ? { ...c, language, dialect, usage: { known: true, videos: [] }, voice: { pitch: 'LOW', pace: 'MEASURED', timbre: 'warm', notes: '', samples: [] } } : c)) };
 };
 const seedPath = (assetId: string) => `/lib/audio/${assetId}.wav`;
 
@@ -257,6 +257,8 @@ describe('DESIGN (manual): VOICE_DESIGN → the producer chooses → VOICE_BUILD
     expect(fake.designs[0]).toMatchObject({ description: 'A bright, quick young woman, about 25, friendly' });
     expect(d).toMatchObject({ recommended: 2, awaitingReview: false, notes: [DESIGN_LABEL, 'naturalness not yet judged by a listener'] });
     expect(d.candidates.map((x) => x.previews.length)).toEqual([2, 2, 2]);
+    // the flat fields the voice panel reads (src/components/character/contract.ts designResultOf)
+    expect(d.candidates[0]).toMatchObject({ index: 1, assetId: expect.stringMatching(/^gen-/), duration: 9.6, durationSeconds: 9.6, cer: 0, coverage: 1, lufs: -20.1, passed: true, reasons: [] });
     expect(ch('nour').voice.identity).toBeUndefined();
     const rec = ch('nour').voice.designs![0];
     expect(rec).toMatchObject({ mode: 'DESIGN', descriptionSource: 'PRODUCER' });

@@ -54,7 +54,7 @@ describe('preflightCharacter', () => {
     const voiceless: StudioState = { ...s, characters: s.characters.map((c) => (c.id === 'layla' ? { ...c, usage: { known: true, videos: [] }, voice: { ...c.voice, samples: [], selectedSampleId: undefined, identity: undefined } } : c)) };
     const refused = preflightCharacter(voiceless, ch(voiceless, 'layla'), 'VOICE_BUILD', { mode: 'AUTOMATIC' });
     expect(refused.checks.find((c) => c.name === 'automatic-voice-source')).toMatchObject({ ok: false, failureClass: 'MISSING_REFERENCE', detail: 'Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.' });
-    const experiment: StudioState = { ...voiceless, settings: { ...voiceless.settings, generation: { allowDesignedIraqi: true } } };
+    const experiment: StudioState = { ...voiceless, settings: { ...voiceless.settings, voice: { allowDesignedIraqi: true } } };
     expect(preflightCharacter(experiment, ch(experiment, 'layla'), 'VOICE_BUILD', { mode: 'AUTOMATIC' }).checks.find((c) => c.name === 'automatic-voice-source')).toMatchObject({ ok: true, detail: expect.stringMatching(/experiment/) });
     s = upload(s, 'up-rec', 'AUDIO');
     s = addVoiceRecording(s, 'nour', 'up-rec', 'take');
