@@ -46,7 +46,7 @@ vi.mock('@/server/jobs/queue', () => ({
 vi.mock('@/server/env', () => ({ env: () => ({ MINIMAX_API_KEY: '' }) }));
 
 import { seed } from '@/domain/sample';
-import { addAsset, setCharacterAppearance, addVoiceRecording } from '@/domain/actions';
+import { addAsset, setCanonicalImage, addVoiceRecording } from '@/domain/actions';
 import { CHAIN_TIMING, createCharacter as handler } from '@/worker/handlers/character';
 import type { HandlerContext } from '@/worker/handlers';
 import type { CreateCharacterResult } from '@/domain/jobs';
@@ -61,12 +61,14 @@ const ctxFor = (payload: Record<string, unknown>, id = 'job-cc'): HandlerContext
 });
 
 const sheet = { name: 'Rafid', role: 'Night bus driver', sex: 'MALE', ageYears: 52, build: 'heavy', face: 'broad', hair: 'grey', skin: 'olive', eyes: 'brown', wardrobe: 'blue uniform', personality: 'patient', distinguishing: ['a scar'], style: 'REALISTIC', language: 'AR', dialect: 'IRAQI_BAGHDADI' } as const;
-const drawPortrait = (payload: Record<string, unknown>) => { const c = fake.state.characters.find((x) => x.id === payload.characterId)!; fake.state = addAsset(fake.state, { id: `gen-portrait-${c.id}`, kind: 'IMAGE', src: '/api/media/p', label: 'portrait', tags: [], sample: false, origin: 'GENERATED', width: 1024, height: 1280 }).state; fake.state = setCharacterAppearance(fake.state, c.id, { portraitAssetId: `gen-portrait-${c.id}`, refs: [{ id: 'r', role: 'FACE', assetId: `gen-portrait-${c.id}` }] }); };
+/** What CHARACTER_APPEARANCE does now (contract v2): one canonical image, a DRAFT awaiting the producer's approval. */
+const drawPortrait = (payload: Record<string, unknown>) => { const c = fake.state.characters.find((x) => x.id === payload.characterId)!; fake.state = addAsset(fake.state, { id: `gen-canonical-${c.id}`, kind: 'IMAGE', src: '/api/media/p', label: 'canonical image', tags: [], sample: false, origin: 'GENERATED', width: 928, height: 1664 }).state; fake.state = setCanonicalImage(fake.state, c.id, { assetId: `gen-canonical-${c.id}`, seed: 1, referenceAssetId: c.pendingReference?.assetId, identityLine: 'Identity: x.', check: { ok: true, notes: ['full body in frame'] } }); };
+const DRAWN = 'canonical image drawn — awaiting your approval';
 
 beforeEach(() => { fake.state = seed(); fake.jobs.clear(); fake.enqueued = []; fake.events = []; fake.retried = []; fake.outcomes = { CHARACTER_APPEARANCE: { status: 'COMPLETED', result: {}, effect: drawPortrait }, CHARACTER_REFS: { status: 'COMPLETED', result: { refs: 5 } } }; });
 
 describe('CREATE_CHARACTER', () => {
-  it('MANUAL with a complete sheet: the record and its seat are written in one batch; appearance and sheet run as keyed children; the voice is skipped with the reason', async () => {
+  it('MANUAL with a complete sheet: the record and its seat are written in one batch; the canonical image runs as a keyed child (no sheet: contract v2); the voice is skipped with the reason; the result awaits approval', async () => {
     const before = fake.state.characters.length;
     const show = fake.state.shows[0];
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, showId: show.id, voice: { mode: 'AUTOMATIC' } }));
@@ -74,15 +76,15 @@ describe('CREATE_CHARACTER', () => {
     const c = fake.state.characters.find((x) => x.name === 'Rafid')!;
     expect(c).toMatchObject({ dialect: 'IRAQI_BAGHDADI', style: 'REALISTIC', usage: { known: true, videos: [] } });
     expect(fake.state.shows[0].castIds).toContain(c.id);
-    expect(r).toMatchObject({ characterId: c.id, awaitingReview: false });
+    expect(r).toMatchObject({ characterId: c.id, awaitingReview: false, awaitingApproval: true, canonicalAssetId: `gen-canonical-${c.id}`, message: expect.stringMatching(/awaiting your approval$/) });
     expect(r!.steps).toEqual([
       { step: 'design', status: 'skipped', reason: 'the sheet was complete' },
-      { step: 'appearance', status: 'done', jobId: 'character_appearance-1' },
-      { step: 'sheet', status: 'done', jobId: 'character_refs-2' },
+      { step: 'appearance', status: 'done', jobId: 'character_appearance-1', reason: DRAWN },
       // an Iraqi character without an Iraqi recording: the contract's sentence (v2 §2), no designed voice in its place
       { step: 'voice', status: 'skipped', reason: 'no voice yet: Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.' },
     ]);
-    expect(fake.enqueued.map((e) => [e.type, e.key, e.parentId])).toEqual([['CHARACTER_APPEARANCE', 'create:job-cc:appearance', 'job-cc'], ['CHARACTER_REFS', 'create:job-cc:sheet', 'job-cc']]);
+    expect(fake.enqueued.map((e) => [e.type, e.key, e.parentId])).toEqual([['CHARACTER_APPEARANCE', 'create:job-cc:appearance', 'job-cc']]);
+    expect(fake.state.characters.find((x) => x.id === c.id)!.canonicalImage).toMatchObject({ status: 'DRAFT', version: 1 });
     expect(fake.enqueued.every((e) => e.payload.characterId === c.id)).toBe(true);
   });
   it('a restart of the same job adopts the record it wrote and the children it queued: nothing runs twice', async () => {
@@ -91,9 +93,9 @@ describe('CREATE_CHARACTER', () => {
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet }));
     expect(fake.state.characters).toHaveLength(n);
     expect(fake.enqueued).toHaveLength(queued);
-    expect(r!.steps.filter((s) => s.status === 'done')).toHaveLength(2);
+    expect(r!.steps.filter((s) => s.status === 'done')).toHaveLength(1);
     expect(fake.events.some((e) => /already written by an earlier attempt/.test(e.message))).toBe(true);
-    expect(fake.events.filter((e) => /adopted job/.test(e.message))).toHaveLength(2);
+    expect(fake.events.filter((e) => /adopted job/.test(e.message))).toHaveLength(1);
   });
   it('AUTO (a name alone or a brief) runs the design child first and takes the character it made; a failed design creates nothing and fails the job with its class', async () => {
     const before = fake.state.characters.length;
@@ -136,7 +138,7 @@ describe('CREATE_CHARACTER', () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'COMPLETED', result: {}, effect: (payload) => { pendingWhenDrawn = fake.state.characters.find((x) => x.id === payload.characterId)!.pendingReference?.assetId; drawPortrait(payload); } };
     const r = await createCharacter(ctxFor({ mode: 'REFERENCE', profile: sheet, referenceAssetId: 'up-face' }));
     expect(pendingWhenDrawn).toBe('up-face');
-    expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'sheet:done', 'voice:skipped']);
+    expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'voice:skipped']);
   });
   it('REFERENCE: the look is the picture’s — design runs only for who the character is, with the look marker in its brief; a sheet with role, sex, age and personality needs no design', async () => {
     fake.state = addAsset(fake.state, { id: 'up-face', kind: 'IMAGE', src: '/api/media/up-face', label: 'face', tags: [], sample: false, origin: 'UPLOAD', width: 1024, height: 1280, provenance: { validation: { ok: true, width: 1024, height: 1280, reasons: [] } } }).state;
@@ -151,14 +153,13 @@ describe('CREATE_CHARACTER', () => {
     expect(rana).toMatchObject({ hair: '', face: '', wardrobe: '', skin: '', eyes: '', build: '' }); // nothing invented
     expect(r!.steps[0]).toMatchObject({ step: 'design', status: 'skipped', reason: expect.stringMatching(/look follows the picture/) });
   });
-  it('a failed appearance keeps the record and reports the step; the sheet is skipped; the job awaits review (partial success, never fabricated)', async () => {
+  it('a failed image keeps the record and reports the step; the job awaits review (partial success, never fabricated)', async () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'FAILED', error: { code: 'UNAVAILABLE', message: 'ComfyUI is not reachable', details: { failureClass: 'INFRASTRUCTURE' } } };
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, draw: true }));
     expect(fake.state.characters.some((x) => x.name === 'Rafid')).toBe(true);
     expect(r!.steps).toEqual([
       { step: 'design', status: 'skipped', reason: 'the sheet was complete' },
       { step: 'appearance', status: 'failed', jobId: 'character_appearance-1', reason: 'ComfyUI is not reachable', failureClass: 'INFRASTRUCTURE' },
-      { step: 'sheet', status: 'skipped', reason: 'no portrait to draw the views from' },
       { step: 'voice', status: 'skipped', reason: 'no voice requested' },
     ]);
     expect(r!.awaitingReview).toBe(true);
@@ -171,7 +172,7 @@ describe('CREATE_CHARACTER', () => {
     fake.state = addAsset(fake.state, { id: 'up-voice', kind: 'AUDIO', src: '/api/media/up-voice', label: 'v', tags: [], sample: false, origin: 'UPLOAD' }).state;
     fake.state = addVoiceRecording(fake.state, c.id, 'up-voice', 'ref', { consent: { statement: 'SPEAKER_PERMISSION', by: 'PRODUCER', at: '2026-10-03T00:00:00.000Z' } });
     const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, draw: false, voice: { mode: 'AUTOMATIC' } }));
-    expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:skipped', 'sheet:skipped', 'voice:done']);
+    expect(r!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:skipped', 'voice:done']);
     expect(fake.enqueued.at(-1)).toMatchObject({ type: 'VOICE_BUILD', key: 'create:job-cc:voice', payload: { characterId: c.id, mode: 'AUTOMATIC' } });
   });
   it('the voice step of an English character with no recording runs the AUTOMATIC build (a designed voice); a recording without consent fails the step with its reason', async () => {
@@ -197,7 +198,7 @@ describe('CREATE_CHARACTER', () => {
     fake.outcomes.CHARACTER_APPEARANCE = { status: 'COMPLETED', result: {}, effect: drawPortrait };
     const again = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet }));
     expect(fake.retried).toEqual(['character_appearance-1']);
-    expect(again!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'sheet:done', 'voice:skipped']);
+    expect(again!.steps.map((s) => `${s.step}:${s.status}`)).toEqual(['design:skipped', 'appearance:done', 'voice:skipped']);
     expect(again!.awaitingReview).toBe(false);
     expect(fake.events.some((e) => /had failed; running it again/.test(e.message))).toBe(true);
   });

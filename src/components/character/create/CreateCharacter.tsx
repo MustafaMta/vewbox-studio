@@ -94,7 +94,11 @@ export function CreateCharacter() {
   useEffect(() => {
     if (!parentId) { setPolled(null); return; }
     let on = true;
-    const tick = () => api.job(parentId).then((r) => { if (on) setPolled(r.job); }).catch(() => { /* the store's copy still updates */ });
+    // a remembered job the server no longer has (removed by a reset or a cleanup) is forgotten, never shown as running
+    const tick = () => api.job(parentId).then((r) => { if (on) setPolled(r.job); }).catch((e: unknown) => {
+      if (on && isStudioError(e) && e.code === 'NOT_FOUND') { setParentId(null); setPolled(null); writeDraft({ ...readDraft(), jobId: undefined }); }
+      /* otherwise the store's copy still updates */
+    });
     tick();
     const t = setInterval(() => { if (parent && isTerminalStatus(parent.status) && !Object.keys(retries).length) return; tick(); }, 3000);
     return () => { on = false; clearInterval(t); };

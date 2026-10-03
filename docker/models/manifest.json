@@ -19,9 +19,9 @@
         { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "folder": "vae", "bytes": 253806246, "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f", "license": "Apache-2.0" },
         { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "folder": "text_encoders", "bytes": 9384670680, "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4", "license": "Apache-2.0" },
         { "repo": "Comfy-Org/Qwen-Image-Edit_ComfyUI", "file": "split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors", "folder": "diffusion_models", "bytes": 20533762817, "sha256": "c9fdc158e46d3b61ef75f21ae866ca2fe808bf4a53643120d1c1e87c19280a4e", "license": "Apache-2.0" },
-        { "repo": "lightx2v/Qwen-Image-Edit-2511-Lightning", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "folder": "loras", "license": "Apache-2.0" },
+        { "repo": "lightx2v/Qwen-Image-Edit-2511-Lightning", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "folder": "loras", "bytes": 849608296, "sha256": "22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f", "license": "Apache-2.0" },
         { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors", "folder": "diffusion_models", "bytes": 20430679144, "sha256": "5dc80554d5d83390046a2f4a94ece06afb7700bf7b0aaf8bde9769793875876b", "license": "Apache-2.0" },
-        { "repo": "lightx2v/Qwen-Image-2512-Lightning", "file": "Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors", "folder": "loras", "license": "Apache-2.0" }
+        { "repo": "lightx2v/Qwen-Image-2512-Lightning", "file": "Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors", "folder": "loras", "bytes": 849608296, "sha256": "b48fb1a8edd939354579c1cf0b403c92f28879b32dddbaaa91b9d424bfc72081", "license": "Apache-2.0" }
       ]
     },
     {
@@ -30,6 +30,13 @@
       "files": [
         { "repo": "Comfy-Org/mediapipe", "file": "detection/mediapipe_face_fp32.safetensors", "folder": "detection", "bytes": 5423900, "sha256": "a98c4806081d40eba35102a0f6dc0000c2e1388b72cf24e691703d0605bd888a", "license": "Apache-2.0" },
         { "repo": "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA", "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors", "folder": "loras", "bytes": 295140688, "sha256": "42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765", "license": "Apache-2.0" }
+      ]
+    },
+    {
+      "name": "images-vlm",
+      "purpose": "Qwen3.5-4B (Apache-2.0) as a vision-language model inside core ComfyUI (CLIPLoader → TextGenerate): describes the producer's uploaded picture in Image Reference mode so the canonical character image's identity line is read from the picture, not invented (docs/CONTRACTS-IDENTITY-PACK.md v2 §2). ~9.3 GB. Fetch on its own: MODEL_GROUPS=images-vlm.",
+      "files": [
+        { "repo": "Comfy-Org/Qwen3.5", "revision": "5d50a2252bf1bcd49e5fee9b5f296986d442682b", "file": "text_encoders/qwen3.5_4b_bf16.safetensors", "folder": "text_encoders", "bytes": 9319828320, "sha256": "9fb3ae42003750fe2d16350259a3ec07761d6d13a8e2b244a6e22fa9d8050841", "license": "Apache-2.0" }
       ]
     },
     {

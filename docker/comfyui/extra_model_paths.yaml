@@ -10,3 +10,10 @@ vewbox:
   model_patches: model_patches
   embeddings: embeddings
   upscale_models: upscale_models
+  # Every folder a loader node reads must be listed here, or ComfyUI looks only inside /opt/comfyui/models/<folder>
+  # (found 2026-10-03: the MediaPipe file sat in /models/detection while LoadMediaPipeFaceLandmarker listed nothing).
+  detection: detection
+  clip_vision: clip_vision
+  controlnet: controlnet
+  style_models: style_models
+  background_removal: background_removal

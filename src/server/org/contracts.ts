@@ -69,16 +69,17 @@ export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, Chara
 
 // ------------------------------------------------------------------------------------------------ ComfyUI graphs
 
-/** image.generate / image.edit_with_references: the API-format graph that is submitted. */
+/** image.generate / image.edit_with_references / image.describe_reference: the API-format graph that is submitted. */
 export const ComfyGraphInput = z.looseObject({
   graph: z.record(z.string(), z.looseObject({ class_type: z.string().min(1), inputs: z.record(z.string(), z.unknown()) })),
   label: z.string().optional(),
 });
 const comfyFile = z.looseObject({ filename: z.string().min(1), subfolder: z.string().optional(), type: z.string().optional() });
-/** comfy.run(): the prompt id, the history outputs per node, the timings and the structural workflow version. */
+/** comfy.run(): the prompt id, the history outputs per node (files, or the text of a PreviewAny node: face boxes, a
+ *  description), the timings and the structural workflow version. */
 export const ComfyRunOutput = z.looseObject({
   promptId: z.string().min(1),
-  outputs: z.record(z.string(), z.looseObject({ images: z.array(comfyFile).optional(), audio: z.array(comfyFile).optional(), video: z.array(comfyFile).optional(), gifs: z.array(comfyFile).optional() })),
+  outputs: z.record(z.string(), z.looseObject({ images: z.array(comfyFile).optional(), audio: z.array(comfyFile).optional(), video: z.array(comfyFile).optional(), gifs: z.array(comfyFile).optional(), text: z.array(z.string()).optional() })),
   ms: z.number(), engineMs: z.number().optional(), workflowVersion: z.string(),
 });
 
@@ -214,6 +215,7 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'story.structured_answer': { input: StructuredAnswerInput, output: StructuredAnswerOutput, outputFor: (i) => { const t = (i as { task?: StoryTask } | undefined)?.task; return t ? STORY_OUTPUT[t] : undefined; } },
   'image.generate': { input: ComfyGraphInput, output: ComfyRunOutput },
   'image.edit_with_references': { input: ComfyGraphInput, output: ComfyRunOutput },
+  'image.describe_reference': { input: ComfyGraphInput, output: ComfyRunOutput },
   'video.minimax_generate': { input: VideoGenerateInput, output: VideoGenerateOutput },
   'speech.synthesize': { input: SynthesizeInput, output: SynthesizeOutput },
   'speech.clone_voice': { input: CloneVoiceInput, output: CloneVoiceOutput },

@@ -1,0 +1,2860 @@
+{
+  "startedAt": "2026-10-03T00:23:33.681Z",
+  "records": [
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "L0",
+      "seed": 910001,
+      "file": "cartoon/c1-kite-maker-L0-s0.png",
+      "wallMs": 24453,
+      "engineMs": 23841,
+      "vramPeakMiB": 31242,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 91.7,
+        "marginsPct": {
+          "top": 4.8,
+          "bottom": 3.4,
+          "left": 20.2,
+          "right": 19.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "L0",
+      "seed": 910002,
+      "file": "cartoon/c1-kite-maker-L0-s1.png",
+      "wallMs": 6096,
+      "engineMs": 6003,
+      "vramPeakMiB": 29880,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.5,
+        "marginsPct": {
+          "top": 5.6,
+          "bottom": 3.9,
+          "left": 19.4,
+          "right": 18.8
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "L1",
+      "seed": 910001,
+      "file": "cartoon/c1-kite-maker-L1-s0.png",
+      "wallMs": 7122,
+      "engineMs": 6277,
+      "vramPeakMiB": 31684,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 91.6,
+        "marginsPct": {
+          "top": 5,
+          "bottom": 3.4,
+          "left": 20.5,
+          "right": 19.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "L1",
+      "seed": 910002,
+      "file": "cartoon/c1-kite-maker-L1-s1.png",
+      "wallMs": 7124,
+      "engineMs": 6072,
+      "vramPeakMiB": 30243,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.8,
+        "marginsPct": {
+          "top": 6.3,
+          "bottom": 3.9,
+          "left": 19.7,
+          "right": 19.1
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "Q1",
+      "seed": 910001,
+      "file": "cartoon/c1-kite-maker-Q1-s0.png",
+      "wallMs": 42591,
+      "engineMs": 41918,
+      "vramPeakMiB": 30224,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 91.1,
+        "marginsPct": {
+          "top": 4.8,
+          "bottom": 4.1,
+          "left": 20.8,
+          "right": 19.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c1-kite-maker",
+      "arm": "Q1",
+      "seed": 910002,
+      "file": "cartoon/c1-kite-maker-Q1-s1.png",
+      "wallMs": 42678,
+      "engineMs": 41832,
+      "vramPeakMiB": 30224,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.5,
+        "marginsPct": {
+          "top": 5.3,
+          "bottom": 4.2,
+          "left": 20.2,
+          "right": 18.5
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; slim, slightly stooped build; short grey hair; dark brown eyes; warm tan skin; wearing a patchwork jacket of brown, teal, ochre and brick-red squares over a beige T-shirt, olive trousers, tan leather sandals; full white beard; round wire glasses; a large brass wristwatch on his own left wrist; a bright red patch on his own right elbow only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "brass watch, his left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red patch, his right elbow",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "CARTOON",
+      "key": "c1-kite-maker-head-cut",
+      "file": "controls/c1-kite-maker-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge"
+        ],
+        "heightPct": 95.9,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 3.9,
+          "left": 20.2,
+          "right": 19.8
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "CARTOON",
+      "key": "c1-kite-maker-feet-cut",
+      "file": "controls/c1-kite-maker-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 94.4,
+        "marginsPct": {
+          "top": 5.5,
+          "bottom": 0.2,
+          "left": 20.4,
+          "right": 19.6
+        }
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "L0",
+      "seed": 920002,
+      "file": "cartoon/c2-girl-L0-s0.png",
+      "wallMs": 9162,
+      "engineMs": 8178,
+      "vramPeakMiB": 31345,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.8,
+        "marginsPct": {
+          "top": 6.1,
+          "bottom": 4.1,
+          "left": 24.2,
+          "right": 25.6
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "L0",
+      "seed": 920003,
+      "file": "cartoon/c2-girl-L0-s1.png",
+      "wallMs": 6108,
+      "engineMs": 6026,
+      "vramPeakMiB": 29911,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 88.9,
+        "marginsPct": {
+          "top": 6.7,
+          "bottom": 4.4,
+          "left": 26.4,
+          "right": 26.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "L1",
+      "seed": 920002,
+      "file": "cartoon/c2-girl-L1-s0.png",
+      "wallMs": 7150,
+      "engineMs": 6296,
+      "vramPeakMiB": 31288,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.4,
+        "marginsPct": {
+          "top": 6.6,
+          "bottom": 4.1,
+          "left": 24.2,
+          "right": 25.3
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "L1",
+      "seed": 920003,
+      "file": "cartoon/c2-girl-L1-s1.png",
+      "wallMs": 7103,
+      "engineMs": 6053,
+      "vramPeakMiB": 29795,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 88.6,
+        "marginsPct": {
+          "top": 7,
+          "bottom": 4.4,
+          "left": 26.4,
+          "right": 26.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "Q1",
+      "seed": 920002,
+      "file": "cartoon/c2-girl-Q1-s0.png",
+      "wallMs": 42610,
+      "engineMs": 41986,
+      "vramPeakMiB": 29988,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.9,
+        "marginsPct": {
+          "top": 4.8,
+          "bottom": 4.2,
+          "left": 24.2,
+          "right": 25.6
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "CARTOON",
+      "key": "c2-girl",
+      "arm": "Q1",
+      "seed": 920003,
+      "file": "cartoon/c2-girl-Q1-s1.png",
+      "wallMs": 42610,
+      "engineMs": 41870,
+      "vramPeakMiB": 29895,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.1,
+        "marginsPct": {
+          "top": 6.4,
+          "bottom": 4.5,
+          "left": 26.4,
+          "right": 26.7
+        }
+      },
+      "notes": {
+        "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a girl of about 10; small build; black, in two long braids hair; amber eyes; light brown skin; wearing an olive T-shirt, blue denim overalls, white sneakers with red laces; freckles; a red string bracelet on her own right wrist; the overalls torn open at her own left knee. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+        "sided": [
+          {
+            "detail": "red bracelet, her right wrist",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "torn knee, her left",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "CARTOON",
+      "key": "c2-girl-head-cut",
+      "file": "controls/c2-girl-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge"
+        ],
+        "heightPct": 95.3,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 4.5,
+          "left": 24.2,
+          "right": 25.4
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "CARTOON",
+      "key": "c2-girl-feet-cut",
+      "file": "controls/c2-girl-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 92.5,
+        "marginsPct": {
+          "top": 7.3,
+          "bottom": 0.2,
+          "left": 24.2,
+          "right": 25.4
+        }
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "L0",
+      "seed": 930003,
+      "file": "anime/a1-student-L0-s0.png",
+      "wallMs": 9198,
+      "engineMs": 8600,
+      "vramPeakMiB": 30874,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90,
+        "marginsPct": {
+          "top": 6.9,
+          "bottom": 3.1,
+          "left": 23.3,
+          "right": 25.3
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "L0",
+      "seed": 930004,
+      "file": "anime/a1-student-L0-s1.png",
+      "wallMs": 6125,
+      "engineMs": 6045,
+      "vramPeakMiB": 30107,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 92.7,
+        "marginsPct": {
+          "top": 4.7,
+          "bottom": 2.7,
+          "left": 21.6,
+          "right": 22.2
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "L1",
+      "seed": 930003,
+      "file": "anime/a1-student-L1-s0.png",
+      "wallMs": 7131,
+      "engineMs": 6293,
+      "vramPeakMiB": 30813,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.7,
+        "marginsPct": {
+          "top": 7.2,
+          "bottom": 3.1,
+          "left": 23.6,
+          "right": 25.3
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "L1",
+      "seed": 930004,
+      "file": "anime/a1-student-L1-s1.png",
+      "wallMs": 7102,
+      "engineMs": 6071,
+      "vramPeakMiB": 30301,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 91.4,
+        "marginsPct": {
+          "top": 5.6,
+          "bottom": 3,
+          "left": 20.8,
+          "right": 23.3
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "Q1",
+      "seed": 930003,
+      "file": "anime/a1-student-Q1-s0.png",
+      "wallMs": 42761,
+      "engineMs": 42085,
+      "vramPeakMiB": 30322,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.9,
+        "marginsPct": {
+          "top": 5.8,
+          "bottom": 3.3,
+          "left": 23.3,
+          "right": 25
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a1-student",
+      "arm": "Q1",
+      "seed": 930004,
+      "file": "anime/a1-student-Q1-s1.png",
+      "wallMs": 42511,
+      "engineMs": 41944,
+      "vramPeakMiB": 30208,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.6,
+        "marginsPct": {
+          "top": 3.3,
+          "bottom": 3.1,
+          "left": 20.5,
+          "right": 23.9
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a teenage girl of about 17; slender build; shoulder-length teal bob hair; violet eyes; fair skin; wearing a navy sailor school uniform with a red neckerchief and a pleated navy skirt, black knee socks, brown loafers; a white hair clip on her own left side of the head; a black school bag on a strap over her own right shoulder. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "hair clip, her left",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "bag strap, her right shoulder",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "ANIME",
+      "key": "a1-student-head-cut",
+      "file": "controls/a1-student-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge"
+        ],
+        "heightPct": 96.4,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 3.4,
+          "left": 23.5,
+          "right": 25.2
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "ANIME",
+      "key": "a1-student-feet-cut",
+      "file": "controls/a1-student-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 91.9,
+        "marginsPct": {
+          "top": 8,
+          "bottom": 0.2,
+          "left": 23.4,
+          "right": 25.2
+        }
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "L0",
+      "seed": 940004,
+      "file": "anime/a2-courier-L0-s0.png",
+      "wallMs": 9144,
+      "engineMs": 8108,
+      "vramPeakMiB": 30719,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.6,
+        "marginsPct": {
+          "top": 3.4,
+          "bottom": 3,
+          "left": 20.5,
+          "right": 19.4
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "L0",
+      "seed": 940005,
+      "file": "anime/a2-courier-L0-s1.png",
+      "wallMs": 6090,
+      "engineMs": 6015,
+      "vramPeakMiB": 29975,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 92.2,
+        "marginsPct": {
+          "top": 4.5,
+          "bottom": 3.3,
+          "left": 20.8,
+          "right": 19.1
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "L1",
+      "seed": 940004,
+      "file": "anime/a2-courier-L1-s0.png",
+      "wallMs": 7142,
+      "engineMs": 6260,
+      "vramPeakMiB": 30692,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.8,
+        "marginsPct": {
+          "top": 3.3,
+          "bottom": 3,
+          "left": 20.2,
+          "right": 19.4
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "L1",
+      "seed": 940005,
+      "file": "anime/a2-courier-L1-s1.png",
+      "wallMs": 7100,
+      "engineMs": 6061,
+      "vramPeakMiB": 29489,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 91.6,
+        "marginsPct": {
+          "top": 5.2,
+          "bottom": 3.3,
+          "left": 21.1,
+          "right": 19.4
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "Q1",
+      "seed": 940004,
+      "file": "anime/a2-courier-Q1-s0.png",
+      "wallMs": 42640,
+      "engineMs": 42103,
+      "vramPeakMiB": 29648,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 94.4,
+        "marginsPct": {
+          "top": 2.7,
+          "bottom": 3,
+          "left": 19.7,
+          "right": 18.8
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "ANIME",
+      "key": "a2-courier",
+      "arm": "Q1",
+      "seed": 940005,
+      "file": "anime/a2-courier-Q1-s1.png",
+      "wallMs": 42647,
+      "engineMs": 42005,
+      "vramPeakMiB": 29644,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.1,
+        "marginsPct": {
+          "top": 3.4,
+          "bottom": 3.4,
+          "left": 14.6,
+          "right": 18.8
+        }
+      },
+      "notes": {
+        "prompt": "2D anime character design, cel-shaded illustration with clean line art and flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: 2D anime character, a man of about 30; athletic build; spiky black hair; dark grey eyes; tan skin; wearing an orange bomber jacket over a black T-shirt, grey cargo trousers, yellow sneakers; a scar through his own right eyebrow; a white star patch on the left sleeve of the jacket only. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+        "sided": [
+          {
+            "detail": "scar, his right eyebrow",
+            "pictureSide": "left"
+          },
+          {
+            "detail": "star patch, his left sleeve",
+            "pictureSide": "right"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "ANIME",
+      "key": "a2-courier-head-cut",
+      "file": "controls/a2-courier-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge"
+        ],
+        "heightPct": 96.6,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 3.3,
+          "left": 20,
+          "right": 19.3
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "ANIME",
+      "key": "a2-courier-feet-cut",
+      "file": "controls/a2-courier-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 96.3,
+        "marginsPct": {
+          "top": 3.6,
+          "bottom": 0.2,
+          "left": 20.2,
+          "right": 19.4
+        }
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "L0",
+      "seed": 950005,
+      "file": "realistic/r1-pharmacist-L0-s0.png",
+      "wallMs": 9143,
+      "engineMs": 8272,
+      "vramPeakMiB": 30723,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 88.3,
+        "marginsPct": {
+          "top": 7.7,
+          "bottom": 4.1,
+          "left": 26.1,
+          "right": 25.6
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "L0",
+      "seed": 950006,
+      "file": "realistic/r1-pharmacist-L0-s1.png",
+      "wallMs": 6123,
+      "engineMs": 6040,
+      "vramPeakMiB": 29524,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.7,
+        "marginsPct": {
+          "top": 6.7,
+          "bottom": 3.6,
+          "left": 24.4,
+          "right": 24.4
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "L1",
+      "seed": 950005,
+      "file": "realistic/r1-pharmacist-L1-s0.png",
+      "wallMs": 7133,
+      "engineMs": 6279,
+      "vramPeakMiB": 30727,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 88.1,
+        "marginsPct": {
+          "top": 7.8,
+          "bottom": 4.1,
+          "left": 26.1,
+          "right": 25.6
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "L1",
+      "seed": 950006,
+      "file": "realistic/r1-pharmacist-L1-s1.png",
+      "wallMs": 7115,
+      "engineMs": 6085,
+      "vramPeakMiB": 30287,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.8,
+        "marginsPct": {
+          "top": 6.6,
+          "bottom": 3.6,
+          "left": 24.4,
+          "right": 24.4
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "Q1",
+      "seed": 950005,
+      "file": "realistic/r1-pharmacist-Q1-s0.png",
+      "wallMs": 42613,
+      "engineMs": 42172,
+      "vramPeakMiB": 30257,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.8,
+        "marginsPct": {
+          "top": 7.7,
+          "bottom": 2.5,
+          "left": 26.1,
+          "right": 25.3
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist",
+      "arm": "Q1",
+      "seed": 950006,
+      "file": "realistic/r1-pharmacist-Q1-s1.png",
+      "wallMs": 42665,
+      "engineMs": 42086,
+      "vramPeakMiB": 30257,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 89.5,
+        "marginsPct": {
+          "top": 6.6,
+          "bottom": 3.9,
+          "left": 24.7,
+          "right": 24.4
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 45; medium build; greying black, tied in a low bun hair; brown eyes; light olive skin; wearing a white lab coat over a burgundy blouse, black trousers, black flats; rectangular black glasses; a silver wristwatch on her own left wrist; a blue ID badge clipped to the lab coat over her own right chest. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "silver watch, her left wrist",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "blue badge, her right chest",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist-head-cut",
+      "file": "controls/r1-pharmacist-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge"
+        ],
+        "heightPct": 95.3,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 4.5,
+          "left": 26.2,
+          "right": 25.4
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "REALISTIC",
+      "key": "r1-pharmacist-feet-cut",
+      "file": "controls/r1-pharmacist-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 90.9,
+        "marginsPct": {
+          "top": 8.9,
+          "bottom": 0.2,
+          "left": 26.2,
+          "right": 25.4
+        }
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "L0",
+      "seed": 960006,
+      "file": "realistic/r2-mechanic-L0-s0.png",
+      "wallMs": 9183,
+      "engineMs": 8278,
+      "vramPeakMiB": 30837,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.3,
+        "marginsPct": {
+          "top": 4.4,
+          "bottom": 2.3,
+          "left": 22.5,
+          "right": 20.8
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "L0",
+      "seed": 960007,
+      "file": "realistic/r2-mechanic-L0-s1.png",
+      "wallMs": 6120,
+      "engineMs": 6053,
+      "vramPeakMiB": 29541,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.3,
+        "marginsPct": {
+          "top": 7,
+          "bottom": 2.7,
+          "left": 22.2,
+          "right": 20.8
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "L1",
+      "seed": 960006,
+      "file": "realistic/r2-mechanic-L1-s0.png",
+      "wallMs": 7140,
+      "engineMs": 6301,
+      "vramPeakMiB": 30662,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.3,
+        "marginsPct": {
+          "top": 4.4,
+          "bottom": 2.3,
+          "left": 22.5,
+          "right": 20.5
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "L1",
+      "seed": 960007,
+      "file": "realistic/r2-mechanic-L1-s1.png",
+      "wallMs": 7102,
+      "engineMs": 6089,
+      "vramPeakMiB": 30212,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 90.3,
+        "marginsPct": {
+          "top": 7,
+          "bottom": 2.7,
+          "left": 22.2,
+          "right": 20.5
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "Q1",
+      "seed": 960006,
+      "file": "realistic/r2-mechanic-Q1-s0.png",
+      "wallMs": 42560,
+      "engineMs": 42238,
+      "vramPeakMiB": 30353,
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 94.8,
+        "marginsPct": {
+          "top": 4.8,
+          "bottom": 0.3,
+          "left": 23,
+          "right": 20.5
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "text",
+      "style": "REALISTIC",
+      "key": "r2-mechanic",
+      "arm": "Q1",
+      "seed": 960007,
+      "file": "realistic/r2-mechanic-Q1-s1.png",
+      "wallMs": 42676,
+      "engineMs": 42058,
+      "vramPeakMiB": 30270,
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 93,
+        "marginsPct": {
+          "top": 6.7,
+          "bottom": 0.3,
+          "left": 22.5,
+          "right": 20.5
+        }
+      },
+      "notes": {
+        "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a man of about 28; stocky build; short curly dark-brown hair; hazel eyes; medium brown skin; wearing faded blue coveralls, black work boots; trimmed stubble beard; a silver stud in his own left ear; a white name patch on the coveralls over his own left chest; a red rag hanging from his own right hip pocket. Seen from the front: the character's own right side is on the left of the picture and their own left side is on the right of the picture. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+        "sided": [
+          {
+            "detail": "ear stud, his left ear",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "name patch, his left chest",
+            "pictureSide": "right"
+          },
+          {
+            "detail": "red rag, his right hip",
+            "pictureSide": "left"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "control",
+      "style": "REALISTIC",
+      "key": "r2-mechanic-head-cut",
+      "file": "controls/r2-mechanic-head-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the head touches or leaves the top edge",
+          "the figure fills the whole height: no margin"
+        ],
+        "heightPct": 97.3,
+        "marginsPct": {
+          "top": 0.2,
+          "bottom": 2.5,
+          "left": 22.5,
+          "right": 20.7
+        }
+      }
+    },
+    {
+      "phase": "control",
+      "style": "REALISTIC",
+      "key": "r2-mechanic-feet-cut",
+      "file": "controls/r2-mechanic-feet-cut.png",
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 94.8,
+        "marginsPct": {
+          "top": 5,
+          "bottom": 0.2,
+          "left": 22.4,
+          "right": 20.7
+        }
+      }
+    },
+    {
+      "phase": "reference-read",
+      "style": "CARTOON",
+      "key": "ir1-headshot-to-cartoon",
+      "wallMs": 19029,
+      "engineMs": 18701,
+      "vramPeakMiB": 10717,
+      "notes": {
+        "vlmText": "{\n  \"ageRange\": \"30-40\",\n  \"sex\": \"female\",\n  \"build\": \"not visible\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"medium\",\n    \"texture\": \"straight\",\n    \"style\": \"loose, pulled back\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark, natural\",\n  \"glasses\": \"black, rectangular frames\",\n  \"marks\": [\n    \"small mole on left cheek\",\n    \"small mole on right cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"lab coat\",\n      \"colour\": \"white\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"collared shirt\",\n      \"colour\": \"maroon\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    \"earring in right ear\"\n  ],\n  \"notVisible\": [\n    \"body\",\n    \"hands\",\n    \"feet\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"low\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"medium\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "faceBoxes": [
+          {
+            "x": 232.13796997070312,
+            "y": 119.18359375,
+            "width": 562.2047424316406,
+            "height": 679.5428466796875,
+            "score": 0.9488498568534851
+          }
+        ]
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "CARTOON",
+      "key": "ir1-headshot-to-cartoon",
+      "arm": "upload+face",
+      "file": "reference/ir1-headshot-to-cartoon-face.png",
+      "wallMs": 120988,
+      "engineMs": 120225,
+      "vramPeakMiB": 30915,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 87.8,
+        "marginsPct": {
+          "top": 7.3,
+          "bottom": 4.8,
+          "left": 25,
+          "right": 24.2
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-photo-headshot.png",
+        "uploadNote": "a photographic head-and-shoulders picture: no body, no shoes visible",
+        "description": {
+          "ageRange": "30-40",
+          "sex": "female",
+          "build": "not visible",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "dark brown",
+            "length": "medium",
+            "texture": "straight",
+            "style": "loose, pulled back"
+          },
+          "facialHair": "none",
+          "eyes": "brown",
+          "eyebrows": "dark, natural",
+          "glasses": "black, rectangular frames",
+          "marks": [
+            "small mole on left cheek",
+            "small mole on right cheek"
+          ],
+          "clothing": [
+            {
+              "item": "lab coat",
+              "colour": "white",
+              "pattern": "solid"
+            },
+            {
+              "item": "collared shirt",
+              "colour": "maroon",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "not visible",
+          "accessories": [
+            "earring in right ear"
+          ],
+          "notVisible": [
+            "body",
+            "hands",
+            "feet"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "low",
+            "skinTone": "high",
+            "faceShape": "medium",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "accessories": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"30-40\",\n  \"sex\": \"female\",\n  \"build\": \"not visible\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"medium\",\n    \"texture\": \"straight\",\n    \"style\": \"loose, pulled back\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark, natural\",\n  \"glasses\": \"black, rectangular frames\",\n  \"marks\": [\n    \"small mole on left cheek\",\n    \"small mole on right cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"lab coat\",\n      \"colour\": \"white\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"collared shirt\",\n      \"colour\": \"maroon\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    \"earring in right ear\"\n  ],\n  \"notVisible\": [\n    \"body\",\n    \"hands\",\n    \"feet\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"low\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"medium\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: stylized 3D animated character, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; no facial hair; black, rectangular frames; small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear.",
+        "lowConfidence": [],
+        "notVisible": [
+          "body",
+          "hands",
+          "feet",
+          "footwear"
+        ],
+        "faceBoxes": [
+          {
+            "x": 232.13796997070312,
+            "y": 119.18359375,
+            "width": 562.2047424316406,
+            "height": 679.5428466796875,
+            "score": 0.9488498568534851
+          }
+        ],
+        "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; no facial hair; black, rectangular frames; small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition."
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "CARTOON",
+      "key": "ir1-headshot-to-cartoon",
+      "arm": "upload",
+      "file": "reference/ir1-headshot-to-cartoon-noface.png",
+      "wallMs": 68011,
+      "engineMs": 67231,
+      "vramPeakMiB": 31492,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 93.1,
+        "marginsPct": {
+          "top": 4.7,
+          "bottom": 2.2,
+          "left": 34,
+          "right": 33.7
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-photo-headshot.png",
+        "uploadNote": "a photographic head-and-shoulders picture: no body, no shoes visible",
+        "description": {
+          "ageRange": "30-40",
+          "sex": "female",
+          "build": "not visible",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "dark brown",
+            "length": "medium",
+            "texture": "straight",
+            "style": "loose, pulled back"
+          },
+          "facialHair": "none",
+          "eyes": "brown",
+          "eyebrows": "dark, natural",
+          "glasses": "black, rectangular frames",
+          "marks": [
+            "small mole on left cheek",
+            "small mole on right cheek"
+          ],
+          "clothing": [
+            {
+              "item": "lab coat",
+              "colour": "white",
+              "pattern": "solid"
+            },
+            {
+              "item": "collared shirt",
+              "colour": "maroon",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "not visible",
+          "accessories": [
+            "earring in right ear"
+          ],
+          "notVisible": [
+            "body",
+            "hands",
+            "feet"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "low",
+            "skinTone": "high",
+            "faceShape": "medium",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "accessories": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"30-40\",\n  \"sex\": \"female\",\n  \"build\": \"not visible\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"medium\",\n    \"texture\": \"straight\",\n    \"style\": \"loose, pulled back\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark, natural\",\n  \"glasses\": \"black, rectangular frames\",\n  \"marks\": [\n    \"small mole on left cheek\",\n    \"small mole on right cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"lab coat\",\n      \"colour\": \"white\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"collared shirt\",\n      \"colour\": \"maroon\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    \"earring in right ear\"\n  ],\n  \"notVisible\": [\n    \"body\",\n    \"hands\",\n    \"feet\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"low\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"medium\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: stylized 3D animated character, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; no facial hair; black, rectangular frames; small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear.",
+        "lowConfidence": [],
+        "notVisible": [
+          "body",
+          "hands",
+          "feet",
+          "footwear"
+        ],
+        "faceBoxes": [
+          {
+            "x": 232.13796997070312,
+            "y": 119.18359375,
+            "width": 562.2047424316406,
+            "height": 679.5428466796875,
+            "score": 0.9488498568534851
+          }
+        ],
+        "prompt": "Redraw the person in image 1 as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; no facial hair; black, rectangular frames; small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition."
+      }
+    },
+    {
+      "phase": "reference-read",
+      "style": "REALISTIC",
+      "key": "ir2-photo-to-realistic",
+      "wallMs": 18254,
+      "engineMs": 17967,
+      "vramPeakMiB": 29414,
+      "notes": {
+        "vlmText": "{\n  \"ageRange\": \"25-35\",\n  \"sex\": \"male\",\n  \"build\": \"average\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"short\",\n    \"texture\": \"wavy\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"short beard and mustache\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark\",\n  \"glasses\": \"none\",\n  \"marks\": [],\n  \"clothing\": [\n    {\n      \"item\": \"denim shirt\",\n      \"colour\": \"blue\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    {\n      \"item\": \"earring\",\n      \"side\": \"right\"\n    }\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"legs\",\n    \"full body\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": {\n      \"item\": \"high\",\n      \"side\": \"high\"\n    },\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "faceBoxes": [
+          {
+            "x": 298.2854919433594,
+            "y": 295.7620849609375,
+            "width": 402.2983703613281,
+            "height": 493.1898193359375,
+            "score": 0.9582412838935852
+          }
+        ]
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "REALISTIC",
+      "key": "ir2-photo-to-realistic",
+      "arm": "upload+face",
+      "file": "reference/ir2-photo-to-realistic-face.png",
+      "wallMs": 119925,
+      "engineMs": 119551,
+      "vramPeakMiB": 30803,
+      "framing": {
+        "ok": false,
+        "reasons": [
+          "the feet touch or leave the bottom edge"
+        ],
+        "heightPct": 91.9,
+        "marginsPct": {
+          "top": 8.1,
+          "bottom": 0,
+          "left": 12.4,
+          "right": 18.8
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-photo-fullbody.png",
+        "uploadNote": "a photographic full-length picture",
+        "description": {
+          "ageRange": "25-35",
+          "sex": "male",
+          "build": "average",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "dark brown",
+            "length": "short",
+            "texture": "wavy",
+            "style": "messy"
+          },
+          "facialHair": "short beard and mustache",
+          "eyes": "brown",
+          "eyebrows": "dark",
+          "glasses": "none",
+          "marks": [],
+          "clothing": [
+            {
+              "item": "denim shirt",
+              "colour": "blue",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "not visible",
+          "accessories": [
+            "earring right"
+          ],
+          "notVisible": [
+            "hands",
+            "legs",
+            "full body"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "medium",
+            "skinTone": "high",
+            "faceShape": "medium",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"25-35\",\n  \"sex\": \"male\",\n  \"build\": \"average\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"short\",\n    \"texture\": \"wavy\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"short beard and mustache\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark\",\n  \"glasses\": \"none\",\n  \"marks\": [],\n  \"clothing\": [\n    {\n      \"item\": \"denim shirt\",\n      \"colour\": \"blue\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    {\n      \"item\": \"earring\",\n      \"side\": \"right\"\n    }\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"legs\",\n    \"full body\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": {\n      \"item\": \"high\",\n      \"side\": \"high\"\n    },\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: photorealistic real person, a man aged about 25-35; average build; oval face; short wavy dark brown hair, messy; brown eyes; light skin; short beard and mustache; wearing blue denim shirt; accessories: earring right.",
+        "lowConfidence": [],
+        "notVisible": [
+          "hands",
+          "legs",
+          "full body",
+          "footwear"
+        ],
+        "faceBoxes": [
+          {
+            "x": 298.2854919433594,
+            "y": 295.7620849609375,
+            "width": 402.2983703613281,
+            "height": 493.1898193359375,
+            "score": 0.9582412838935852
+          }
+        ],
+        "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 25-35; average build; oval face; short wavy dark brown hair, messy; brown eyes; light skin; short beard and mustache; wearing blue denim shirt; accessories: earring right. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear."
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "REALISTIC",
+      "key": "ir2-photo-to-realistic",
+      "arm": "upload",
+      "file": "reference/ir2-photo-to-realistic-noface.png",
+      "wallMs": 67300,
+      "engineMs": 66891,
+      "vramPeakMiB": 31857,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 88.6,
+        "marginsPct": {
+          "top": 7.7,
+          "bottom": 3.8,
+          "left": 26.4,
+          "right": 26.7
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-photo-fullbody.png",
+        "uploadNote": "a photographic full-length picture",
+        "description": {
+          "ageRange": "25-35",
+          "sex": "male",
+          "build": "average",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "dark brown",
+            "length": "short",
+            "texture": "wavy",
+            "style": "messy"
+          },
+          "facialHair": "short beard and mustache",
+          "eyes": "brown",
+          "eyebrows": "dark",
+          "glasses": "none",
+          "marks": [],
+          "clothing": [
+            {
+              "item": "denim shirt",
+              "colour": "blue",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "not visible",
+          "accessories": [
+            "earring right"
+          ],
+          "notVisible": [
+            "hands",
+            "legs",
+            "full body"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "medium",
+            "skinTone": "high",
+            "faceShape": "medium",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"25-35\",\n  \"sex\": \"male\",\n  \"build\": \"average\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"short\",\n    \"texture\": \"wavy\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"short beard and mustache\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark\",\n  \"glasses\": \"none\",\n  \"marks\": [],\n  \"clothing\": [\n    {\n      \"item\": \"denim shirt\",\n      \"colour\": \"blue\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    {\n      \"item\": \"earring\",\n      \"side\": \"right\"\n    }\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"legs\",\n    \"full body\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": {\n      \"item\": \"high\",\n      \"side\": \"high\"\n    },\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: photorealistic real person, a man aged about 25-35; average build; oval face; short wavy dark brown hair, messy; brown eyes; light skin; short beard and mustache; wearing blue denim shirt; accessories: earring right.",
+        "lowConfidence": [],
+        "notVisible": [
+          "hands",
+          "legs",
+          "full body",
+          "footwear"
+        ],
+        "faceBoxes": [
+          {
+            "x": 298.2854919433594,
+            "y": 295.7620849609375,
+            "width": 402.2983703613281,
+            "height": 493.1898193359375,
+            "score": 0.9582412838935852
+          }
+        ],
+        "prompt": "Redraw the person in image 1 as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 25-35; average build; oval face; short wavy dark brown hair, messy; brown eyes; light skin; short beard and mustache; wearing blue denim shirt; accessories: earring right. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear."
+      }
+    },
+    {
+      "phase": "reference-read",
+      "style": "ANIME",
+      "key": "ir3-anime-to-anime",
+      "wallMs": 19819,
+      "engineMs": 19529,
+      "vramPeakMiB": 29190,
+      "notes": {
+        "vlmText": "{\n  \"ageRange\": \"20-30\",\n  \"sex\": \"male\",\n  \"build\": \"athletic\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"black\",\n    \"length\": \"short\",\n    \"texture\": \"spiky\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"thick\",\n  \"glasses\": \"none\",\n  \"marks\": [\n    \"scratch on left cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"jacket\",\n      \"colour\": \"orange\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"pants\",\n      \"colour\": \"grey\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"shoes\",\n      \"colour\": \"yellow\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"yellow sneakers\",\n  \"accessories\": [\n    \"patch on right sleeve\"\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"face\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"high\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"high\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "faceBoxes": [
+          {
+            "x": 399.6922302246094,
+            "y": 123.35830688476562,
+            "width": 110.96389770507812,
+            "height": 156.85556030273438,
+            "score": 0.6731557846069336
+          }
+        ]
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "ANIME",
+      "key": "ir3-anime-to-anime",
+      "arm": "upload+face",
+      "file": "reference/ir3-anime-to-anime-face.png",
+      "wallMs": 119815,
+      "engineMs": 119101,
+      "vramPeakMiB": 30779,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 85,
+        "marginsPct": {
+          "top": 7.8,
+          "bottom": 7.2,
+          "left": 18.5,
+          "right": 20.5
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-anime.png",
+        "uploadNote": "an anime drawing",
+        "description": {
+          "ageRange": "20-30",
+          "sex": "male",
+          "build": "athletic",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "black",
+            "length": "short",
+            "texture": "spiky",
+            "style": "messy"
+          },
+          "facialHair": "none",
+          "eyes": "brown",
+          "eyebrows": "thick",
+          "glasses": "none",
+          "marks": [
+            "scratch on left cheek"
+          ],
+          "clothing": [
+            {
+              "item": "jacket",
+              "colour": "orange",
+              "pattern": "solid"
+            },
+            {
+              "item": "pants",
+              "colour": "grey",
+              "pattern": "solid"
+            },
+            {
+              "item": "shoes",
+              "colour": "yellow",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "yellow sneakers",
+          "accessories": [
+            "patch on right sleeve"
+          ],
+          "notVisible": [
+            "hands",
+            "face"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "high",
+            "skinTone": "high",
+            "faceShape": "high",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "accessories": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"20-30\",\n  \"sex\": \"male\",\n  \"build\": \"athletic\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"black\",\n    \"length\": \"short\",\n    \"texture\": \"spiky\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"thick\",\n  \"glasses\": \"none\",\n  \"marks\": [\n    \"scratch on left cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"jacket\",\n      \"colour\": \"orange\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"pants\",\n      \"colour\": \"grey\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"shoes\",\n      \"colour\": \"yellow\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"yellow sneakers\",\n  \"accessories\": [\n    \"patch on right sleeve\"\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"face\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"high\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"high\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: 2D anime character, a man aged about 20-30; athletic build; oval face; short spiky black hair, messy; brown eyes; light skin; no facial hair; scratch on left cheek; wearing orange jacket, grey pants, yellow shoes; accessories: patch on right sleeve; yellow sneakers.",
+        "lowConfidence": [],
+        "notVisible": [
+          "hands",
+          "face"
+        ],
+        "faceBoxes": [
+          {
+            "x": 399.6922302246094,
+            "y": 123.35830688476562,
+            "width": 110.96389770507812,
+            "height": 156.85556030273438,
+            "score": 0.6731557846069336
+          }
+        ],
+        "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a 2D anime character (cel-shaded illustration with clean line art and flat colours, not 3D): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: 2D anime character, a man aged about 20-30; athletic build; oval face; short spiky black hair, messy; brown eyes; light skin; no facial hair; scratch on left cheek; wearing orange jacket, grey pants, yellow shoes; accessories: patch on right sleeve; yellow sneakers. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition."
+      }
+    },
+    {
+      "phase": "reference",
+      "style": "ANIME",
+      "key": "ir3-anime-to-anime",
+      "arm": "upload",
+      "file": "reference/ir3-anime-to-anime-noface.png",
+      "wallMs": 68170,
+      "engineMs": 67209,
+      "vramPeakMiB": 31678,
+      "framing": {
+        "ok": true,
+        "reasons": [],
+        "heightPct": 85,
+        "marginsPct": {
+          "top": 8,
+          "bottom": 7,
+          "left": 17.7,
+          "right": 21.1
+        }
+      },
+      "notes": {
+        "upload": "var/image-v2/fixtures/upload-anime.png",
+        "uploadNote": "an anime drawing",
+        "description": {
+          "ageRange": "20-30",
+          "sex": "male",
+          "build": "athletic",
+          "skinTone": "light",
+          "faceShape": "oval",
+          "hair": {
+            "colour": "black",
+            "length": "short",
+            "texture": "spiky",
+            "style": "messy"
+          },
+          "facialHair": "none",
+          "eyes": "brown",
+          "eyebrows": "thick",
+          "glasses": "none",
+          "marks": [
+            "scratch on left cheek"
+          ],
+          "clothing": [
+            {
+              "item": "jacket",
+              "colour": "orange",
+              "pattern": "solid"
+            },
+            {
+              "item": "pants",
+              "colour": "grey",
+              "pattern": "solid"
+            },
+            {
+              "item": "shoes",
+              "colour": "yellow",
+              "pattern": "solid"
+            }
+          ],
+          "footwear": "yellow sneakers",
+          "accessories": [
+            "patch on right sleeve"
+          ],
+          "notVisible": [
+            "hands",
+            "face"
+          ],
+          "confidence": {
+            "ageRange": "medium",
+            "sex": "high",
+            "build": "high",
+            "skinTone": "high",
+            "faceShape": "high",
+            "facialHair": "high",
+            "eyebrows": "high",
+            "glasses": "high",
+            "marks": "high",
+            "footwear": "high",
+            "accessories": "high",
+            "notVisible": "high"
+          }
+        },
+        "vlmText": "{\n  \"ageRange\": \"20-30\",\n  \"sex\": \"male\",\n  \"build\": \"athletic\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"black\",\n    \"length\": \"short\",\n    \"texture\": \"spiky\",\n    \"style\": \"messy\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"thick\",\n  \"glasses\": \"none\",\n  \"marks\": [\n    \"scratch on left cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"jacket\",\n      \"colour\": \"orange\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"pants\",\n      \"colour\": \"grey\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"shoes\",\n      \"colour\": \"yellow\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"yellow sneakers\",\n  \"accessories\": [\n    \"patch on right sleeve\"\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"face\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"high\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"high\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```",
+        "identityLine": "Identity: 2D anime character, a man aged about 20-30; athletic build; oval face; short spiky black hair, messy; brown eyes; light skin; no facial hair; scratch on left cheek; wearing orange jacket, grey pants, yellow shoes; accessories: patch on right sleeve; yellow sneakers.",
+        "lowConfidence": [],
+        "notVisible": [
+          "hands",
+          "face"
+        ],
+        "faceBoxes": [
+          {
+            "x": 399.6922302246094,
+            "y": 123.35830688476562,
+            "width": 110.96389770507812,
+            "height": 156.85556030273438,
+            "score": 0.6731557846069336
+          }
+        ],
+        "prompt": "Redraw the person in image 1 as a 2D anime character (cel-shaded illustration with clean line art and flat colours, not 3D): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: 2D anime character, a man aged about 20-30; athletic build; oval face; short spiky black hair, messy; brown eyes; light skin; no facial hair; scratch on left cheek; wearing orange jacket, grey pants, yellow shoes; accessories: patch on right sleeve; yellow sneakers. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition."
+      }
+    },
+    {
+      "phase": "style-check",
+      "key": "vlm",
+      "wallMs": 107948,
+      "engineMs": 102528,
+      "vramPeakMiB": 10920,
+      "notes": {
+        "rows": [
+          {
+            "key": "c1_kite_maker_L0_910001",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-L0-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_L0_910002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-L0-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_L1_910001",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-L1-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_L1_910002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-L1-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_Q1_910001",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-Q1-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_Q1_910002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c1-kite-maker-Q1-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/c1-kite-maker-head-cut.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c1_kite_maker_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/c1-kite-maker-feet-cut.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_L0_920002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-L0-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_L0_920003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-L0-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_L1_920002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-L1-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_L1_920003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-L1-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_Q1_920002",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-Q1-s0.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_Q1_920003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/cartoon/c2-girl-Q1-s1.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/c2-girl-head-cut.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "c2_girl_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/c2-girl-feet-cut.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_L0_930003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-L0-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_L0_930004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-L0-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_L1_930003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-L1-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_L1_930004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-L1-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_Q1_930003",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-Q1-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_Q1_930004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a1-student-Q1-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/a1-student-head-cut.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a1_student_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/a1-student-feet-cut.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_L0_940004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-L0-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_L0_940005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-L0-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_L1_940004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-L1-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_L1_940005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-L1-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_Q1_940004",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-Q1-s0.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_Q1_940005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/anime/a2-courier-Q1-s1.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/a2-courier-head-cut.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "a2_courier_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/a2-courier-feet-cut.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r1_pharmacist_L0_950005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-L0-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "photograph",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n    \"medium\": \"photograph\",\n    \"fullBody\": true,\n    \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r1_pharmacist_L0_950006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-L0-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r1_pharmacist_L1_950005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-L1-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n    \"medium\": \"3d_render\",\n    \"fullBody\": true,\n    \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r1_pharmacist_L1_950006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-L1-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r1_pharmacist_Q1_950005",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-Q1-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r1_pharmacist_Q1_950006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r1-pharmacist-Q1-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r1_pharmacist_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/r1-pharmacist-head-cut.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "photograph",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\n    \"medium\": \"photograph\",\n    \"fullBody\": true,\n    \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r1_pharmacist_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/r1-pharmacist-feet-cut.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\n    \"medium\": \"3d_render\",\n    \"fullBody\": true,\n    \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_L0_960006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-L0-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_L0_960007",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-L0-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_L1_960006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-L1-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "r2_mechanic_L1_960007",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-L1-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_Q1_960006",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-Q1-s0.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_Q1_960007",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/realistic/r2-mechanic-Q1-s1.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_head_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/r2-mechanic-head-cut.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "r2_mechanic_feet_cut",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/controls/r2-mechanic-feet-cut.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": false,
+            "judgedFullBody": true,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\n  \"medium\": \"3d_render\",\n  \"fullBody\": true,\n  \"figures\": 1\n}\n```"
+          },
+          {
+            "key": "ir1_headshot_to_cartoon_upload_face_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir1-headshot-to-cartoon-face.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "ir1_headshot_to_cartoon_upload_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir1-headshot-to-cartoon-noface.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "ir2_photo_to_realistic_upload_face_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir2-photo-to-realistic-face.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": false,
+            "fullBodyOk": false,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": false, \"figures\": 1}\n```"
+          },
+          {
+            "key": "ir2_photo_to_realistic_upload_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir2-photo-to-realistic-noface.png",
+            "expectedMedium": "photograph",
+            "judgedMedium": "3d_render",
+            "mediumOk": false,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "ir3_anime_to_anime_upload_face_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir3-anime-to-anime-face.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "ir3_anime_to_anime_upload_",
+            "file": "D:/volexar-studio/volexar-studio/.claude/worktrees/agent-ae17e8fcdbcc65fa4/var/image-v2/canonical/reference/ir3-anime-to-anime-noface.png",
+            "expectedMedium": "2d_drawing",
+            "judgedMedium": "2d_drawing",
+            "mediumOk": true,
+            "expectFullBody": true,
+            "judgedFullBody": true,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"2d_drawing\", \"fullBody\": true, \"figures\": 1}\n```"
+          },
+          {
+            "key": "wave2_gen_36fad8a686",
+            "file": "D:/volexar-studio/volexar-studio/var/backups/phase0-cleanup-20261002-2347/library/image/2026/10/gen-36fad8a686.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": false,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": false, \"figures\": 1}\n```"
+          },
+          {
+            "key": "wave2_gen_8aa12b8831",
+            "file": "D:/volexar-studio/volexar-studio/var/backups/phase0-cleanup-20261002-2347/library/image/2026/10/gen-8aa12b8831.png",
+            "expectedMedium": "3d_render",
+            "judgedMedium": "3d_render",
+            "mediumOk": true,
+            "expectFullBody": false,
+            "judgedFullBody": false,
+            "fullBodyOk": true,
+            "figures": 1,
+            "text": "```json\n{\"medium\": \"3d_render\", \"fullBody\": false, \"figures\": 1}\n```"
+          }
+        ],
+        "mediumAccuracy": "38/56",
+        "fullBodyAccuracy": "43/56"
+      }
+    }
+  ],
+  "comfy": {
+    "ok": true,
+    "version": "0.38.1",
+    "vramTotal": 34190458880,
+    "vramFree": 32259440640,
+    "device": "cuda:0 NVIDIA GeForce RTX 5090 : cudaMallocAsync"
+  }
+}
