@@ -13,7 +13,7 @@ vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h' }));
 vi.mock('@/server/world', () => ({ worldOfProduction: async () => { throw new Error('unused'); } }));
 
 import { deriveWorld, overlayWorld, withEstablished, worldScopeOf } from '@/domain/world';
-import { frameReferences } from '@/worker/handlers/images';
+import { frameReferences, peopleExpected } from '@/worker/handlers/images';
 import { fixture, shotOf } from './continuity-fixture';
 
 const NOW = '2026-10-03T00:00:00.000Z';
@@ -56,6 +56,12 @@ describe('storyboard frames read the World Bible', () => {
     expect(forward.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 2 on the left and the person of image 3 on the right, and nobody else');
     const alone = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!] });
     expect(alone.notes.join(' ')).toContain('exactly one person is in the picture, the person of image 2, and nobody else');
+  });
+  it('D30: a frame is counted against the shot’s people unless its action brings in others', () => {
+    expect(peopleExpected({ action: 'Najm steps into frame and gestures toward the photo.' }, ['a', 'b'])).toBe(2);
+    expect(peopleExpected({ action: 'Elias squints at the radio.' }, ['a'])).toBe(1);
+    expect(peopleExpected({ action: 'The market fills with customers as she sets up.' }, ['a'])).toBeUndefined();
+    expect(peopleExpected({ action: 'An empty workshop at night.' }, [])).toBeUndefined();
   });
   it('each character is its pinned canonical image (a redraw after the pin does not reach the frame)', () => {
     const { state, p } = fixture();

@@ -22,7 +22,7 @@ import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
-  referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
+  qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
 import { continuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
@@ -547,9 +547,43 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const own = continuityLine(sh, cast);
   const carried = relation === 'CUT' && previous && !opts.ending ? continuityLine(previous, cast) : '';
   const prompt = framePrompt(p, sh, cast, loc, scene) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
-  const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
-  await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: r.id } : { openingFrameAssetId: r.id }], 'worker');
-  return r.id;
+  const label = `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`;
+  // D30: the prompt alone did not hold the number of people (two strangers in 2 of 10 frames); the vision model
+  // counted 10/10 frames right, the portrait on the wall excluded — so the frame is counted and drawn once more
+  const expected = peopleExpected(sh, people);
+  let kept: Drawn | undefined; let counted: number | undefined;
+  for (let attempt = 0; attempt < 2 && !kept; attempt++) {
+    const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+    if (expected === undefined) { kept = r; break; }
+    counted = await countPeople(ctx, r.id, label);
+    if (counted === undefined || counted === expected || attempt === 1) kept = r;
+    else await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${r.id}) holds ${counted} people where the shot has ${expected}; drawing it once more`, { shotId: sh.id, assetId: r.id, expected, counted });
+    await ctx.checkpoint();
+  }
+  if (expected !== undefined && counted !== undefined && counted !== expected) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+  await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
+  return kept!.id;
+}
+
+/** How many people a frame should hold: the shot's people — unless its action brings in others (a crowd, customers,
+ *  passers-by), which the studio does not count. */
+export function peopleExpected(sh: Pick<Shot, 'action'>, people: unknown[]): number | undefined {
+  if (!people.length) return undefined;
+  if (/\b(crowd|people|customers|passers?-?by|strangers|children|guests|audience|others|everyone|onlookers|patrons|workers|soldiers)\b/i.test(sh.action)) return undefined;
+  return people.length;
+}
+
+const PEOPLE_COUNT_PROMPT = 'How many people are physically present in this picture? Count every person, child or figure standing or sitting in the room, even when partly hidden. Do not count people who only appear in a photograph, portrait, poster or painting on the wall. Answer with the number only.';
+
+/** The people physically in a picture, counted by Qwen3.5-4B (10/10 on the Short's frames, wall portraits excluded);
+ *  undefined when the vision model is not installed or answers no number. */
+async function countPeople(ctx: HandlerContext, assetId: string, label: string): Promise<number | undefined> {
+  if (!(await comfy.listModels('text_encoders').catch(() => [] as string[])).includes(MODELS.vlm)) return undefined;
+  const a = (await readState()).state.assets.find((x) => x.id === assetId);
+  if (!usableImage(a)) return undefined;
+  const run = await runGraph(ctx, qwenVlmText({ items: [{ key: 'people', image: await comfy.uploadInput(assetFile(a)), prompt: PEOPLE_COUNT_PROMPT }], maxLength: 16 }), { label: `${label}: counting the people`, tool: 'image.describe_reference' });
+  const n = Number(/\d+/.exec(comfy.textOutput(run.outputs, vlmOutput('people')) ?? '')?.[0]);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export const shotFrames: Handler = async (ctx) => {
