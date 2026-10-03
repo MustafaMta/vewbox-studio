@@ -3,6 +3,11 @@ import { defineConfig, devices, type Project } from '@playwright/test';
 /** BROWSER TESTS against the running studio (web + database). One worker: every test resets the shared sample
  *  studio through the API, so tests must not overlap. Set BASE_URL to test a production build or the Docker stack.
  *
+ *  The sample studio is a test fixture: the server loads it (POST /api/studio/reset {"kind":"sample"}) only when it
+ *  runs with STUDIO_SAMPLE_FIXTURE=1. The server started here gets it; a server you started yourself (or one that is
+ *  reused on :4200) needs it in its environment, e.g. `$env:STUDIO_SAMPLE_FIXTURE='1'; pnpm dev`. Without it every
+ *  test fails at its first reset with the server's NOT_CONFIGURED answer.
+ *
  *  The `journeys` project (tests/e2e/journeys, the wave-2 acceptance scenarios) runs only through
  *  scripts/qa-journeys.mjs (QA_JOURNEYS=1): it drives real generation when QA_GPU=1 (`@gpu` titles), needs the
  *  worker, and one scenario waits for an operator restart (QA_RESTART=1). Long timeouts, strictly serial. */
@@ -26,7 +31,7 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
-  webServer: process.env.STUDIO_URL ? undefined : { command: 'pnpm dev', url: 'http://localhost:4200/api/health', reuseExistingServer: true, timeout: 180_000 },
+  webServer: process.env.STUDIO_URL ? undefined : { command: 'pnpm dev', env: { STUDIO_SAMPLE_FIXTURE: '1' }, url: 'http://localhost:4200/api/health', reuseExistingServer: true, timeout: 180_000 },
   use: { baseURL: process.env.STUDIO_URL || 'http://localhost:4200', trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, grepInvert: /@mobile/, testIgnore: /journeys[\\/]/ },

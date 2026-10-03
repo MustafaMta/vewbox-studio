@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Asset, StudioState } from '@/domain/types';
-import { seed } from '@/domain/sample';
+import { emptyStudio } from '@/domain/actions';
+import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { type Command, type CommandArgs, type CommandName, type CommandResult, runCommand } from '@/domain/commands';
 import { newSeed } from '@/domain/ids';
 import { hashState } from '@/domain/hash';
@@ -22,8 +23,8 @@ interface Api {
   state: StudioState;
   /** True once the first snapshot has arrived. Pages render a skeleton until then. */
   ready: boolean;
-  /** True when the studio differs from the last seed (sample or empty). */
-  modified: boolean;
+  /** How this studio began: the kind of its last seed or reset (empty, or sample in a test run) and when. */
+  seeded: { kind: string | null; at: string | null } | null;
   /** The event stream is open and the last batch was accepted. */
   connected: boolean;
   version: number;
@@ -37,7 +38,7 @@ interface Api {
   addFile: (file: File, meta: { label?: string; tags?: string[]; expect?: Asset['kind'] }) => Promise<AddFileResult>;
   /** Remove an asset and its file. Refused for a picture a used character's appearance rests on. */
   removeAsset: (id: string) => Promise<{ ok: true } | { ok: false; protectedBy: string; error: string }>;
-  reset: () => Promise<void>;
+  /** Settings → "Start with an empty studio": removes every record and added file on the server. */
   startEmpty: () => Promise<void>;
   refresh: () => Promise<void>;
   jobs: Job[];
@@ -55,10 +56,11 @@ const Ctx = createContext<Api | null>(null);
 const clientId = () => { try { let id = sessionStorage.getItem('vewbox.client'); if (!id) { id = newSeed(); sessionStorage.setItem('vewbox.client', id); } return id; } catch { return newSeed(); } };
 
 export function StudioProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<StudioState>(seed);
+  // the empty studio until the first snapshot arrives (pages show a skeleton meanwhile); never the sample fixture
+  const [state, setState] = useState<StudioState>(() => emptyStudio(DEFAULT_SETTINGS));
   const [ready, setReady] = useState(false);
   const [version, setVersion] = useState(0);
-  const [seedVersion, setSeedVersion] = useState(0);
+  const [seeded, setSeeded] = useState<Api['seeded']>(null);
   const [connected, setConnected] = useState(false);
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [lastError, setLastError] = useState<Api['lastError']>(null);
@@ -88,7 +90,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const snap = await api.snapshot();
       let s = snap.state;
       for (const c of [...inflight.current, ...pending.current]) { try { s = runCommand(s, c).state; } catch { /* the server will say */ } }
-      applyLocal(s); bumpVersion(snap.version); setSeedVersion(snap.seeded?.version ?? 0); setCapabilities(snap.capabilities); setReady(true);
+      applyLocal(s); bumpVersion(snap.version); setSeeded(snap.seeded ? { kind: snap.seeded.kind, at: snap.seeded.at } : null); setCapabilities(snap.capabilities); setReady(true);
     } catch (e) { raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'The studio server cannot be reached.'); }
   }, [applyLocal, bumpVersion, raise]);
 
@@ -190,7 +192,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [applyLocal]);
 
-  const reset = useCallback(async () => { pending.current = []; await api.reset('sample'); await refresh(); await loadJobs(); }, [refresh, loadJobs]);
   const startEmpty = useCallback(async () => { pending.current = []; await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs]);
 
   const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
@@ -204,9 +205,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const retryJob = useCallback(async (id: string, changeMade?: string) => { try { const j = await api.retryJob(id, changeMade); setJobs((js) => mergeJob(js, j)); return j; } catch (e) { raise((e as { code?: string }).code ?? 'UNAVAILABLE', (e as Error).message); throw e; } }, [raise]);
 
   const clearError = useCallback(() => setLastError(null), []);
-  const modified = ready && version !== seedVersion;
 
-  const value = useMemo<Api>(() => ({ state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, modified, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, reset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
+  const value = useMemo<Api>(() => ({ state, ready, seeded, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

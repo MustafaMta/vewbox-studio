@@ -73,14 +73,18 @@ function RegistryPanels() {
   );
 }
 
-/** SETTINGS — the interface, defaults for new projects, the engines (what runs where, live), and the sample data. */
+/** SETTINGS — the interface, defaults for new projects, the engines (what runs where, live), and the studio's data:
+ *  what it holds, how it began, and the one way to empty it. */
 export default function SettingsPage() {
   const T = useT();
-  const { state, act, reset, startEmpty, modified, connected } = useStudio();
+  const { state, act, startEmpty, seeded, connected } = useStudio();
   const toast = useToast();
   const s = state.settings;
   const set = (patch: Parameters<typeof act<'updateSettings'>>[1]) => act('updateSettings', patch);
   const empty = state.productions.length + state.characters.length + state.locations.length + state.shows.length === 0;
+  const files = state.assets.filter((a) => !a.sample).length;
+  const holds = T('settings.data.holds').replace('{productions}', String(state.productions.length)).replace('{characters}', String(state.characters.length)).replace('{locations}', String(state.locations.length)).replace('{files}', String(files));
+  const began = seeded?.at ? T(seeded.kind === 'sample' ? 'settings.data.began.sample' : 'settings.data.began.empty').replace('{date}', new Date(seeded.at).toLocaleDateString(T.locale === 'ar' ? 'ar-IQ' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' })) : null;
   const [status, setStatus] = useState<StatusBody | null>(null);
   const [checking, setChecking] = useState(false);
   const check = () => { setChecking(true); fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then(setStatus).catch(() => setStatus(null)).finally(() => setChecking(false)); };
@@ -120,9 +124,9 @@ export default function SettingsPage() {
       <RegistryPanels />
       <Section id="data" title={T('settings.data')} description={T('settings.data.hint')}>
         <div className="card space-y-4 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {empty ? <Status tone="neutral">{T('settings.data.empty')}</Status> : modified ? <Status tone="info">{T('settings.data.modified')}</Status> : <Status tone="ok">{T('settings.data.pristine')}</Status>}
-            <ConfirmButton variant="secondary" label={T('btn.reset')} title={T('btn.reset')} message={T('settings.resetConfirm')} confirmLabel={T('btn.reset')} onConfirm={() => { void reset().then(() => toast.ok(T('toast.reset'))); }} />
+          <div className="space-y-1">
+            {empty ? <Status tone="neutral">{T('settings.data.empty')}</Status> : <p className="text-[13.5px] text-body">{holds}</p>}
+            {began && <p className="text-[12.5px] text-muted">{began}</p>}
           </div>
           <div className="divider" />
           <div className="flex flex-wrap items-center justify-between gap-3">

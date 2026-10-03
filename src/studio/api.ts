@@ -86,7 +86,8 @@ export const api = {
   /** Live engine health (GET /api/status), for gating a GPU button before it is pressed. */
   status: () => fetch('/api/status', { cache: 'no-store' }).then((r) => parse<EngineStatus>(r)),
   deleteAsset: (id: string) => fetch(`/api/assets/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => parse<{ ok: true }>(r)),
-  reset: (kind: 'sample' | 'empty') => fetch('/api/studio/reset', jsonInit('POST', { kind })).then((r) => parse<{ version: number; hash: string }>(r)),
+  /** Empty the studio (the sample studio is a test fixture the browser never asks for). */
+  reset: (kind: 'empty') => fetch('/api/studio/reset', jsonInit('POST', { kind })).then((r) => parse<{ version: number; hash: string }>(r)),
   jobs: (q: { productionId?: string; active?: boolean; limit?: number } = {}) => {
     const sp = new URLSearchParams();
     if (q.productionId) sp.set('productionId', q.productionId);

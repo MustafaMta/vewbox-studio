@@ -4,8 +4,9 @@ import { sql } from './db/client';
 import { log } from './log';
 import { syncOrg } from './org/registry';
 
-/** START-UP — migrations, then the sample seed on an empty database. Idempotent; the web server and the worker
- *  both call it, serialised by an advisory lock so two processes starting together do not race. */
+/** START-UP — migrations, then an empty studio on an empty database (src/server/studio/seed.ts), then the
+ *  organisation. Idempotent; the web server and the worker both call it, serialised by an advisory lock so two
+ *  processes starting together do not race. */
 
 const g = globalThis as unknown as { __vewboxBooted?: Promise<void> };
 

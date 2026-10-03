@@ -11,9 +11,15 @@ import type { Job, JobEvent, JobType } from '../../src/domain/jobs';
 
 export const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
 
+/** The sample studio is a test fixture: the server loads it only when it runs with STUDIO_SAMPLE_FIXTURE=1
+ *  (playwright.config.ts starts its server that way; a reused server must have been started with it). */
 export async function resetStudio(kind: 'sample' | 'empty' = 'sample') {
   const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind, keepSettings: false }) });
-  if (!r.ok) throw new Error(`reset failed: ${r.status}`);
+  if (!r.ok) {
+    const body = (await r.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+    const hint = body?.error?.code === 'NOT_CONFIGURED' ? ' — start the studio server with STUDIO_SAMPLE_FIXTURE=1 to run the browser tests' : '';
+    throw new Error(`reset failed: ${r.status} ${body?.error?.message ?? ''}${hint}`);
+  }
 }
 
 /** The authoritative state, straight from the server. */

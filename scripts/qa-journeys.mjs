@@ -10,6 +10,9 @@
 //   --grep      only the tests whose title matches.
 //   --yes       required: every test RESETS the live database to the sample studio.
 //
+// The sample studio is a test fixture: the studio server must run with STUDIO_SAMPLE_FIXTURE=1 or every reset is
+// refused (NOT_CONFIGURED), e.g. `$env:STUDIO_SAMPLE_FIXTURE='1'; pnpm dev`.
+//
 // Evidence: screenshots under docs/evidence/qa/, the Playwright report under playwright-report/journeys/, traces
 // and videos of failures under test-results/.
 import { spawnSync } from 'node:child_process';
@@ -28,7 +31,7 @@ const grep = opt('grep', '');
 const rest = args.filter((a) => a !== '--');
 
 if (!yes) {
-  console.error('The journeys reset the live database to the sample studio before every test. Re-run with --yes when that is intended.');
+  console.error('The journeys reset the live database to the sample studio before every test (the server must run with STUDIO_SAMPLE_FIXTURE=1). Re-run with --yes when that is intended.');
   process.exit(2);
 }
 

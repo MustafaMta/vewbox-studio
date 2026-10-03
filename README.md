@@ -34,7 +34,7 @@ pnpm worker                       # the job worker
 | `pnpm test` | unit tests: reducers, rules, story schemas, access gate |
 | `pnpm test:api` | live HTTP contracts and negative paths against a running studio (`STUDIO_URL`, default :4200) |
 | `pnpm test:worker` | queue leases, retries, idempotency and the MiniMax client, against the live database |
-| `pnpm e2e` | Playwright through the real interface, desktop, phone and Arabic (needs `pnpm exec playwright install chromium` once) |
+| `pnpm e2e` | Playwright through the real interface, desktop, phone and Arabic (needs `pnpm exec playwright install chromium` once; the tests load the sample studio, which the server allows only with `STUDIO_SAMPLE_FIXTURE=1` — the server Playwright starts has it, a reused one must be started with it) |
 | `node scripts/check-comfy-nodes.mjs` | verifies the running ComfyUI exposes every node and model the workflows use |
 
 ## What is here
@@ -42,7 +42,7 @@ pnpm worker                       # the job worker
 ```
 src/app/            pages (Screening Room UI) and /api route handlers
 src/components/     the interface: kit, library, show, wizard, workspace, character, location, players, jobs
-src/domain/         the studio's types, vocabularies, pure actions and rules, commands, job contracts, timeline, sample studio
+src/domain/         the studio's types, vocabularies, pure actions and rules, commands, job contracts, timeline, the sample studio (a test fixture)
 src/studio/         the browser store (optimistic commands over the API, live updates) and selectors
 src/server/         env, database (Drizzle + Postgres), studio engine, media library, job queue, providers (MiniMax,
                     ComfyUI, LLMs, speech), story engine and prompts, ComfyUI workflow templates, ffmpeg and assembly
