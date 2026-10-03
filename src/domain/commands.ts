@@ -15,7 +15,7 @@ export const COMMANDS = {
   setStage: A.setStage, markStepDone: A.markStepDone, recordExport: A.recordExport, setCut: A.setCut,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
-  selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio,
+  selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio,
   setSong: A.setSong, updateSong: A.updateSong,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
@@ -129,8 +129,14 @@ const CanonicalImageSchema = z.object({
 });
 const ApproveOptions = z.object({ override: z.boolean().optional(), reason: short(1000).optional() });
 
+/** The producer's judgement on a take (docs/CONTRACTS-REDESIGN-BACKEND.md B5): GOOD, REJECTED or null (withdrawn),
+ *  then an optional `{ reason, by }`. */
+const TakeRatingSchema = z.enum(['GOOD', 'REJECTED']).nullable();
+const RateOptions = z.object({ reason: short(1000).optional(), by: short(80).optional() });
+
 /** Tuples of positional args, by command. */
 export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[]>>> = {
+  rateTake: z.tuple([id, id, id, TakeRatingSchema]).rest(RateOptions.optional()),
   setCanonicalImage: z.tuple([id, CanonicalImageSchema]),
   approveCanonicalImage: z.tuple([id, z.number().int().min(1)]).rest(ApproveOptions.optional()),
   setAssetTier: z.tuple([id, z.enum(['CANONICAL', 'SECONDARY', 'RAW']).nullable()]),

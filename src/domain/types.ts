@@ -36,8 +36,14 @@ export interface Asset {
   /** Pictures only: how the image presents itself (docs/DESIGN-SYSTEM-V4.md §2.4), measured from its pixels once
    *  at ingest (src/server/media/presentation.ts). Absent means neutral. */
   presentation?: Presentation;
+  /** Pictures only: the display-size JPEG derived beside the original (docs/CONTRACTS-REDESIGN-BACKEND.md B7):
+   *  long side ≤ 960 px, ≤ 120 KB for a figure and ≤ 160 KB for a still. `src` is what an <img> loads
+   *  (`/api/media/{id}?thumb=1`); absent until made — the page then loads the original. */
+  thumb?: AssetThumb;
   createdAt: string;
 }
+
+export interface AssetThumb { src: string; /** library path of the derived file, beside the original */ path: string; width: number; height: number; bytes: number }
 
 export interface Show {
   id: string;
@@ -138,7 +144,16 @@ export interface Take {
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
   soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
+  /** THE PRODUCER'S JUDGEMENT (docs/CONTRACTS-REDESIGN-BACKEND.md B5), apart from `status` (the inspectors' and the
+   *  older rejectTake's verdict): GOOD or REJECTED with an optional reason, who gave it and when. Written only by
+   *  `rateTake`; a REJECTED take is kept (never deleted) and cannot be chosen for the cut. */
+  rating?: TakeRating;
+  ratingReason?: string;
+  ratedBy?: string;
+  ratedAt?: string;
 }
+
+export type TakeRating = 'GOOD' | 'REJECTED';
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
 
@@ -332,9 +347,34 @@ export interface Production {
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
   genre?: string;
   mood?: string;
-  /** The assembled cut, when one has been rendered, and every export made from it. */
+  /** The assembled cut, when one has been rendered, and every export made from it. Earlier cuts stay in the
+   *  library: `cutVersionsOf` (src/studio/selectors/cuts.ts) lists them in order. */
   cutAssetId?: string;
   exports?: ExportRecord[];
+  /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
+   *  made when there is no key art (`posterAssetId`); it carries no text — the page renders the title. */
+  framePosterAssetId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A SCREENING ROOM NOTE (docs/CONTRACTS-REDESIGN-BACKEND.md B2). Kept apart from the studio state (its own table and
+ *  routes under /api/notes), exposed beside the snapshot. Times are seconds into the cut; the pin is 0–1. */
+export interface CutNote {
+  id: string;
+  productionId: string;
+  cutAssetId?: string;
+  cutVersion?: number;
+  timecode: number;
+  rangeEnd?: number;
+  pin?: { x: number; y: number };
+  drawingAssetId?: string;
+  text: string;
+  author: string;
+  status: 'open' | 'resolved';
+  /** *Send to shot*: the shot whose notes received this text, and the take that later answered it */
+  sentToShotId?: string;
+  producedTakeId?: string;
   createdAt: string;
   updatedAt: string;
 }
