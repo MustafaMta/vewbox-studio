@@ -4,6 +4,7 @@ import { JOB_TYPES } from '@/domain/jobs';
 import type { Language } from '@/domain/vocabulary';
 import { isCommandName } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
+import { nonHumanSpecies } from '@/domain/identity';
 import type { StartedJob } from '@/studio/api';
 
 /** THE CONTRACTS, AS THE FRONTEND CODES AGAINST THEM — docs/CONTRACTS-CHARACTER-VOICE.md §1.1, §1.2, §1.4 and
@@ -157,7 +158,8 @@ export const designedIraqiAllowed = (settings: unknown): boolean => (settings as
  *  language model), as the starting text of a design the producer may edit. Personality text is left out on purpose:
  *  it can name people, and the server refuses a description that names anyone. */
 export function voiceDescriptionOf(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'species'> & { voice: Pick<Character['voice'], 'pitch' | 'pace' | 'timbre'> }): string {
-  const who = c.species ? c.species : `${c.sex === 'FEMALE' ? 'woman' : 'man'} of about ${c.ageYears}`;
+  const species = nonHumanSpecies(c.species);
+  const who = species ? species : `${c.sex === 'FEMALE' ? 'woman' : 'man'} of about ${c.ageYears}`;
   const pitch = { LOW: 'a low', MID: 'a middle', HIGH: 'a high' }[c.voice.pitch];
   const pace = { SLOW: 'slow, unhurried', MEASURED: 'measured', QUICK: 'quick' }[c.voice.pace];
   const parts = [`A ${who}`, `${pitch} voice`, `${pace} delivery`, c.voice.timbre.trim() ? c.voice.timbre.trim().toLowerCase() : '', c.language === 'AR' ? 'speaking Modern Standard Arabic' : 'speaking English'];

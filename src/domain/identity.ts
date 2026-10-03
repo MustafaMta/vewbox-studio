@@ -37,6 +37,14 @@ export function primaryImageSourceOf(c: Pick<Character, 'canonicalImage' | 'port
   return c.portraitAssetId ? 'PORTRAIT' : null;
 }
 
+/** A species only when the character is NOT human: "Human", "person", «إنسان» and the like mean no species (the design
+ *  model writes "Human" for ordinary people, and every display then showed "Human" instead of sex and age). */
+const HUMAN = /^(human( being)?|humans?|person|people|man|woman|boy|girl|إنسان|انسان|بشري|بشر|رجل|امرأة|إمرأة)$/i;
+export function nonHumanSpecies(species: string | undefined | null): string | undefined {
+  const s = species?.trim();
+  return s && !HUMAN.test(s) ? s : undefined;
+}
+
 /** The character whose canonical image this picture is, if any. */
 export function canonicalImageOwner(s: Pick<StudioState, 'characters'>, assetId: string): Character | undefined {
   return s.characters.find((c) => c.canonicalImage?.assetId === assetId);

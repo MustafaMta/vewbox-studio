@@ -7,6 +7,7 @@ import type { CharacterInput } from '@/domain/actions';
 import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
+import { nonHumanSpecies } from '@/domain/identity';
 import { performanceFor, shotWindows } from '@/domain/timeline';
 import { command, commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -84,7 +85,7 @@ export const designCharacter: Handler = async (ctx) => {
   await ctx.checkpoint();
   // the producer's fields win over the model's; the voice profile too
   const input: CharacterInput = {
-    name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, style, sex: given.sex ?? d.sex, species: given.species ?? d.species, ageYears: given.ageYears ?? d.ageYears,
+    name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, style, sex: given.sex ?? d.sex, species: nonHumanSpecies(given.species ?? d.species), ageYears: given.ageYears ?? d.ageYears,
     build: given.build || d.build, face: given.face || d.face, hair: given.hair || d.hair, skin: given.skin || d.skin, eyes: given.eyes || d.eyes, wardrobe: given.wardrobe || d.wardrobe, personality: given.personality || d.personality,
     distinguishing: given.distinguishing?.length ? given.distinguishing : d.distinguishing, language, dialect, canon: given.canon,
     notes: given.notes ?? (line ? `Designed by Casting from the brief: “${line.slice(0, 200)}”` : 'Designed by Casting from the written profile.'),

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Character } from '@/domain/types';
+import { nonHumanSpecies } from '@/domain/identity';
 import { useStudio } from '@/studio/store';
 import { assetById, assignmentsOf, productionHref } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
@@ -88,7 +89,8 @@ function Look({ c, locked }: { c: Character; locked: boolean }) {
   const { state } = useStudio();
   const fromPicture = lookFromReference(c, state.assets);
   const look = (v: string) => lookFieldText(v, fromPicture, T('char.look.fromReference'));
-  const who = c.species ? words(c.species) : `${c.sex === 'FEMALE' ? T('label.female') : T('label.male')} · ${c.ageYears}`;
+  const species = nonHumanSpecies(c.species);
+  const who = `${c.sex === 'FEMALE' ? T('label.female') : T('label.male')} · ${c.ageYears}${species ? ` · ${words(species)}` : ''}`;
   return (
     <section aria-labelledby="look-h">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2"><h2 id="look-h" className="section-title">{T('cast.profile.look')}</h2><LookDialog c={c} locked={locked} describedBy="identity-lock" /></div>
