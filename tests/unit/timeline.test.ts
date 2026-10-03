@@ -16,6 +16,16 @@ describe('timeline', () => {
     for (let i = 1; i < ordered.length; i++) expect(ordered[i].from).toBe(ordered[i - 1].to);
   });
 
+  it('a music video’s windows are its windows on the song, as the cut plays them: the producer’s songWindow wins, gaps are run over', () => {
+    const p = { ...mv, shots: mv.shots.map((sh, i) => (i === 1 ? { ...sh, songWindow: { from: mv.shots[0].durationSeconds + 2, to: mv.shots[0].durationSeconds + 6 } } : sh)) };
+    const w = shotWindows(p);
+    const [a, b, c] = [w.get(p.shots[0].id)!, w.get(p.shots[1].id)!, w.get(p.shots[2].id)!];
+    // shot 1 runs on over the 2 s nobody covers; shot 2 starts where the producer put it and runs on to shot 3
+    expect(a).toEqual({ from: 0, to: mv.shots[0].durationSeconds + 2 });
+    expect(b).toEqual({ from: mv.shots[0].durationSeconds + 2, to: c.from });
+    expect(c).toEqual(p.shots[2].songWindow ?? c);
+  });
+
   it('maps a window to the section that owns most of it and to its singers', () => {
     const song = mv.song!;
     const verse = song.sections.find((x) => x.kind === 'VERSE')!;

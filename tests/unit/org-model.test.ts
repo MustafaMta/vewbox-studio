@@ -110,7 +110,9 @@ describe('the studio organisation (ORG_VERSION 7)', () => {
     const directors = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.directorId]));
     expect(directors).toEqual({ EXECUTIVE: 'executive-producer', STORY: 'head-of-story', CASTING: 'casting-director', WORLD: 'art-director', PREPRODUCTION: 'film-director', VIDEO: 'minimax-video-specialist', SOUND: 'dialogue-director', POST: 'video-editor', QA: 'quality-director' });
     for (const d of DEPARTMENTS) expect(AGENTS.find((a) => a.id === d.directorId)!.department, `${d.id} director`).toBe(d.id);
-    expect(AGENTS).toHaveLength(29);
+    // 30 since World Continuity was staffed (the World Bible: sync, pin, per-take read, established frames)
+    expect(AGENTS).toHaveLength(30);
+    expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations']);
   });
 
   it('every job type is executed by exactly one agent; a payload route narrows PLAN_SHOTS to the singing agent', () => {
@@ -183,7 +185,8 @@ describe('the studio organisation (ORG_VERSION 7)', () => {
   });
 
   it('planned roles are listed, explained, in Arabic too, and never staffed', () => {
-    expect(PLANNED_ROLES).toHaveLength(22);
+    expect(PLANNED_ROLES).toHaveLength(21);
+    expect(PLANNED_ROLES.some((r) => r.id === 'world-continuity')).toBe(false);
     const ids = new Set(AGENTS.map((a) => a.id));
     for (const r of PLANNED_ROLES) {
       expect(ids.has(r.id), `${r.id} is staffed`).toBe(false);

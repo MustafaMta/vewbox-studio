@@ -126,23 +126,35 @@ export async function joinSpeech(lines: Array<{ file: string; durationSeconds: n
   return { file: out, durationSeconds: total, windows };
 }
 
-/** The ffmpeg arguments of a tail clip: the last `frames` frames of a clip of `totalFrames` frames, picture and sound
- *  bounded to exactly frames/fps seconds (the sound would otherwise run to the end of the input, a few ms past the
- *  picture), mono 48 kHz PCM in a .mov. Pure, so the shape is tested. */
-export function tailClipArgs(video: string, out: string, frames: number, totalFrames: number, fps = 24): string[] {
-  const startFrame = Math.max(0, totalFrames - frames);
-  const n = Math.min(frames, totalFrames || frames);
+/** The ffmpeg arguments of a tail clip: the last `frames` frames before `endFrame` (default: the clip's end) of a
+ *  clip of `totalFrames` frames, picture and sound bounded to exactly frames/fps seconds (the sound would otherwise
+ *  run to the end of the input, a few ms past the picture), mono 48 kHz PCM in a .mov. Pure, so the shape is tested. */
+export function tailClipArgs(video: string, out: string, frames: number, totalFrames: number, fps = 24, endFrame?: number): string[] {
+  const end = endFrame !== undefined && endFrame > 0 ? (totalFrames ? Math.min(endFrame, totalFrames) : endFrame) : totalFrames;
+  const startFrame = Math.max(0, end - frames);
+  const n = Math.min(frames, end || frames);
   return ['-y', '-v', 'error', '-ss', (startFrame / fps).toFixed(6), '-i', video, '-t', (n / fps).toFixed(6), '-frames:v', String(n), '-vf', `fps=${fps}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '12', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '1', out];
 }
 
 /** The last `frames` frames of a clip as a small video WITH its audio, for a continuation guide: both streams are
- *  anchored together at frame 0 of the next take (the template's continuation idiom). */
-export async function tailClip(video: string, out: string, frames: number, fps = 24): Promise<string> {
+ *  anchored together at frame 0 of the next take (the template's continuation idiom). `endFrame`: where the previous
+ *  shot's window ends in its take (the audio timeline) — the guide is what the audience sees last, not the take's
+ *  own last frames when the cut leaves those out. */
+export async function tailClip(video: string, out: string, frames: number, fps = 24, endFrame?: number): Promise<string> {
   const p = await ffprobe(video);
   const total = p.frames ?? Math.round((p.durationSeconds ?? 0) * fps);
   const mov = out.replace(/\.mp4$/, '.mov');
-  await ffmpeg(tailClipArgs(video, mov, frames, total, fps));
+  await ffmpeg(tailClipArgs(video, mov, frames, total, fps, endFrame));
   return mov;
+}
+
+/** The ffmpeg arguments that write frame `frame` of a clip as a PNG (an established plate of a place). */
+export function frameAtArgs(video: string, out: string, frame: number, fps = 24): string[] {
+  return ['-y', '-v', 'error', '-ss', (Math.max(0, frame) / fps).toFixed(6), '-i', video, '-an', '-frames:v', '1', '-update', '1', out];
+}
+export async function frameAt(video: string, out: string, frame: number, fps = 24): Promise<string> {
+  await ffmpeg(frameAtArgs(video, out, frame, fps));
+  return out;
 }
 
 /** The last frame of a clip as a PNG (the hosted continuation: the previous take's closing frame becomes the next
