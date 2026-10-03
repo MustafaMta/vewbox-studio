@@ -3,6 +3,12 @@
  *  below were moved here from src/lib/i18n.ts unchanged (tests/unit/i18n-split.test.ts proves every key and both
  *  languages survived). New keys go here only, under the `film.` prefix. Deleting old keys is Q1's job. */
 export const film = {
+  // D23: what the script writer and the shot planner read, editable by the producer
+  'film.scene.purpose': ['What the scene is for', 'غاية المشهد'],
+  'film.scene.purposeHelp': ['The script and the shot plan are written from this. Correct it before writing the script.', 'يُكتب النص وخطة اللقطات انطلاقاً من هذا. صحّحه قبل كتابة النص.'],
+  'film.brief.promiseHelp': ['The story’s promise: how it opens and how it ends. Every later step of the story keeps to it.', 'وعد القصة: كيف تبدأ وكيف تنتهي. تلتزم به كل خطوة لاحقة من القصة.'],
+  'film.brief.hook': ['The opening', 'البداية'],
+  'film.brief.ending': ['The ending', 'النهاية'],
   // next steps
   'next.writeStory': ['Write the story', 'اكتب القصة'],
   'next.chooseCast': ['Choose the cast', 'اختر الشخصيات'],

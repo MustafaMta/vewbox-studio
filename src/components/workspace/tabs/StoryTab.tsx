@@ -22,9 +22,12 @@ export function StoryTab({ p }: { p: Production }) {
   const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p); const world = worldOf(state, p);
-  const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, briefText: p.brief.text });
+  const dev = p.brief.development;
+  const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, briefText: p.brief.text, hook: dev?.hook ?? '', ending: dev?.ending ?? '' });
   useUnsavedGuard(dirty, T('shot.leave'));
-  const save = () => { act('updateProduction', p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText } }); toast.ok(T('toast.saved')); };
+  // D23: the hook and the ending of an Auto Idea travel into every later prompt as the story's promise, so they are
+  // the producer's to correct like the rest of the brief
+  const save = () => { act('updateProduction', p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText, ...(dev ? { development: { ...dev, hook: draft.hook.trim(), ending: draft.ending.trim() } } : {}) } }); toast.ok(T('toast.saved')); };
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -60,6 +63,14 @@ export function StoryTab({ p }: { p: Production }) {
           <h2 className="h3 mb-2 flex items-center gap-2">{p.brief.mode === 'AUTO_IDEA' ? <IconAuto className="size-4 text-accent-text" /> : <IconManual className="size-4 text-accent-text" />}{T('story.brief')}</h2>
           <p className="mb-2 text-xs text-muted">{T(briefOriginKey(p.brief))}{p.brief.mode === 'AUTO_IDEA' && p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}</p>
           <Textarea value={draft.briefText} onChange={(e) => patch({ briefText: e.target.value })} rows={5} aria-label={T('story.brief')} />
+          {dev && (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs text-muted">{T('film.brief.promiseHelp')}</p>
+              <Field label={T('film.brief.hook')}><Textarea value={draft.hook} onChange={(e) => patch({ hook: e.target.value })} rows={3} /></Field>
+              <Field label={T('film.brief.ending')}><Textarea value={draft.ending} onChange={(e) => patch({ ending: e.target.value })} rows={3} /></Field>
+              {dirty && <Button size="sm" variant="primary" onClick={save}>{T('btn.save')}</Button>}
+            </div>
+          )}
         </section>
       </aside>
     </div>
@@ -101,6 +112,8 @@ export function SceneEditor({ p, scene, cast, locations }: { p: Production; scen
         <Select aria-label={T('label.timeOfDay')} value={scene.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value as TimeOfDay })} options={TIMES_OF_DAY.map((t) => ({ value: t, label: words(t) }))} className="w-auto" />
         <Menu label={`${T('label.scene')} ${scene.number}`}><MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('label.scene')} ${scene.number}?`)) { act('deleteScene', p.id, scene.id); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem></Menu>
       </div>
+      {/* D23: what the scene is for — the script writer and the shot planner read it, so the producer must see and edit it */}
+      <Field label={T('film.scene.purpose')} help={T('film.scene.purposeHelp')} className="mb-4"><Textarea value={scene.purpose ?? ''} onChange={(e) => set({ purpose: e.target.value })} rows={2} /></Field>
       <fieldset className="mb-4">
         <legend className="mb-1.5 text-xs font-medium text-muted">{T('story.present')}</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-1.5">{cast.map((c) => <Checkbox key={c.id} label={c.name} checked={scene.characterIds.includes(c.id)} onChange={(e) => set({ characterIds: e.target.checked ? [...scene.characterIds, c.id] : scene.characterIds.filter((x) => x !== c.id) })} />)}{cast.length === 0 && <span className="text-xs text-faint">{T('empty.cast')}</span>}</div>
