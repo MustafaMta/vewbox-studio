@@ -1,23 +1,24 @@
 /* ============================================================================================================
    BASE — owned by F1 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
    The document: font, size and colour for both scripts, focus, selection, scrollbars, reduced motion and the
-   Arabic minimum sizes. Split out of src/app/globals.css by F0 unchanged.
+   Arabic minimum sizes. Split out of src/app/globals.css by F0; F1 sets the interface and mono faces from their
+   tokens (--font-ui, --font-mono).
    ============================================================================================================ */
 
 /* ---- base ---------------------------------------------------------------------------------------------- */
 /* in the base layer, so a component's own focus treatment (fields) is never outranked by the global ring */
 @layer base {
-  html { background: var(--bg); color: var(--fg-body); font-family: var(--font-sans); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-feature-settings: 'cv11', 'ss01'; font-optical-sizing: auto; }
+  html { background: var(--bg); color: var(--fg-body); font-family: var(--font-ui); font-size: 14px; line-height: 1.5715; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-feature-settings: 'cv11', 'ss01'; font-optical-sizing: auto; }
   html[dir='rtl'] { font-family: var(--font-arabic); font-size: 15px; line-height: 1.7333; letter-spacing: 0; }
   html[dir='rtl'] .font-latin { font-family: var(--font-sans); }
-  html[dir='rtl'] .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  html[dir='rtl'] .mono { font-family: var(--font-mono); }
   body { min-height: 100dvh; background: var(--bg); color: var(--fg-body); overflow-wrap: break-word; line-height: inherit; }
   main { min-width: 0; }
   [dir='auto'], .arabic, :lang(ar) { font-family: var(--font-arabic); }
   /* text that picks its own direction still lines up with the page: English in an Arabic page sits on the right
      (text-align: match-parent would say this, but Chromium drops it) */
   html[dir='rtl'] [dir='auto'] { text-align: right; } /* v4-lint: allow physical — the logical form (match-parent) is dropped by Chromium */
-  :lang(ar) .mono, [dir='auto'] .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  :lang(ar) .mono, [dir='auto'] .mono, :lang(ar) .tc, [dir='auto'] .tc { font-family: var(--font-mono); }
   h1, h2, h3, h4 { text-wrap: balance; color: var(--fg); }
   p { text-wrap: pretty; }
   :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--r-1); }
