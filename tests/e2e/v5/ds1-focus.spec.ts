@@ -67,7 +67,7 @@ async function measure(page: Page, n: number): Promise<Stop | null> {
   await page.evaluate(async () => {
     const el = document.activeElement; if (!el) return;
     let last = ''; let same = 0; const t0 = performance.now();
-    while (same < 3 && performance.now() - t0 < 1500) { await new Promise((r) => requestAnimationFrame(() => r(null))); const r = el.getBoundingClientRect(); const k = `,`; same = k === last ? same + 1 : 0; last = k; }
+    while (same < 3 && performance.now() - t0 < 1500) { await new Promise((done) => requestAnimationFrame(() => done(null))); const r = el.getBoundingClientRect(); const k = `${r.x},${r.y}`; same = k === last ? same + 1 : 0; last = k; }
   });
   const info = await page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
