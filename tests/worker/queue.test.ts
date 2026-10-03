@@ -181,3 +181,49 @@ describe('queue hardening (audit H4, step 3)', () => {
     await requestCancel(next.job.id);
   });
 });
+describe('fenced result writes (audit C1, step 5)', () => {
+  it('a reclaimed attempt cannot add a take, an asset or a QA report; the owner can; the refusal is recorded on the job', async () => {
+    const { command, commands } = await import('@/server/studio/engine');
+    const { runInJobScope } = await import('@/server/jobs/context');
+    const { isFencedWrite } = await import('@/server/jobs/fence');
+    const { recordQaReport } = await import('@/server/org/runs');
+    const { listEvents } = await import('@/server/jobs/queue');
+    // a fixture production with one shot and one asset, written outside any job (no fence)
+    const assetId = `up-fence-${Math.random().toString(36).slice(2, 10)}`;
+    const [, prod] = await commands([
+      { name: 'addAsset', args: [{ id: assetId, kind: 'VIDEO', src: `/api/media/${assetId}`, label: 'fence', tags: [], sample: false, origin: 'UPLOAD', provenance: { path: `video/2026/10/${assetId}.mp4` } }] },
+      { name: 'addProduction', args: [{ kind: 'SHORT', title: 'Fence test', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'x' }, castIds: [], locationIds: [] }] },
+    ]) as [unknown, { production: { id: string } }];
+    const productionId = prod.production.id;
+    const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
+    const { shot } = await command('addShot', [productionId, { sceneId: scene.id, purpose: '', action: '', framing: 'WIDE', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [], dialogue: [], transition: 'CUT' }]);
+    // attempt 1 on worker A went quiet; attempt 2 on worker B owns the job now
+    const { job } = await enqueue({ type: 'MEDIA_PROBE', payload: { assetId }, maxAttempts: 3, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+    made.push(job.id);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'test-worker-b', heartbeatAt: new Date().toISOString(), attempts: 2 }).where(eq(schema.jobs.id, job.id));
+    const stale = { jobId: job.id, signal: new AbortController().signal, lease: { workerId: 'test-worker-a', attempt: 1 } };
+    const owner = { jobId: job.id, signal: new AbortController().signal, lease: { workerId: 'test-worker-b', attempt: 2 } };
+    const takesOf = async () => (await (await import('@/server/studio/engine')).readState()).state.productions.find((p) => p.id === productionId)!.shots[0].takes;
+
+    const refused = await runInJobScope(stale, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'stale take' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refused)).toBe(true);
+    expect(refused).toMatchObject({ code: 'CONFLICT', details: { reason: 'LEASE_LOST', failureClass: 'INFRASTRUCTURE' } });
+    expect(await takesOf()).toHaveLength(0);
+    const refusedAsset = await runInJobScope(stale, () => command('addAsset', [{ kind: 'IMAGE', src: '/x', label: 'x', tags: [], sample: false, origin: 'GENERATED' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refusedAsset)).toBe(true);
+    const refusedQa = await runInJobScope(stale, () => recordQaReport({ subjectKind: 'TAKE', subjectId: 'x', inspectorId: 'take-inspector', checks: [], decision: 'ACCEPT', jobId: job.id })).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(refusedQa)).toBe(true);
+    await new Promise((r) => setTimeout(r, 200)); // the refusal event is written after the rollback
+    expect((await listEvents(job.id)).some((ev) => /refused: attempt 1 on test-worker-a no longer holds the lease/.test(ev.message))).toBe(true);
+
+    // the owner writes; once the job is finished (lease released) even the owner is refused
+    await runInJobScope(owner, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'owner take' }]));
+    expect((await takesOf()).map((t) => t.label)).toEqual(['owner take']);
+    await complete(job.id, { ok: true }, 'COMPLETED', owner.lease);
+    const late = await runInJobScope(owner, () => command('addTake', [productionId, shot.id, { assetId, provider: 'MINIMAX', label: 'late take' }])).then(() => null, (e: unknown) => e);
+    expect(isFencedWrite(late)).toBe(true);
+    expect(await takesOf()).toHaveLength(1);
+
+    await commands([{ name: 'deleteProduction', args: [productionId] }, { name: 'deleteAsset', args: [assetId] }]);
+  });
+});

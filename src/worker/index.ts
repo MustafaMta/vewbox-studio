@@ -13,6 +13,7 @@ import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbe
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
+import { isFencedWrite } from '@/server/jobs/fence';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { step } from './handlers/step';
 import { gpuLease } from './gpu';
@@ -129,7 +130,8 @@ async function run(job: Job, lane: Lane) {
     const ms = Date.now() - t0;
     // stopped by its signal: the reason decides the outcome, whatever the provider reported on the way out
     const e = jobCtrl.signal.aborted ? jobCtrl.signal.reason : thrown;
-    if (leaseLost || e instanceof LeaseLost) {
+    // a lost lease, seen by the heartbeat, a progress write or a fenced result write (src/server/jobs/fence.ts)
+    if (leaseLost || e instanceof LeaseLost || isFencedWrite(e)) {
       // another worker reclaimed this job: its attempt owns the record now; only this run is closed
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost: another worker reclaimed the job; this attempt’s writes were refused', ms }));
       jl.warn('lease lost; this attempt stopped without writing the job');
