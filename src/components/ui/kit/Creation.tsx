@@ -113,7 +113,7 @@ export function ReviewActions({ onCreate, onAnother, onPreferences, creating, an
   );
 }
 
-/** Manual, multi-step: "① Identity ─ ② Look ─ ③ Voice". The current step is iris, done steps are ok. On a phone it
+/** Manual, multi-step: "① Identity ─ ② Look ─ ③ Voice". The current step is light, done steps are ok. On a phone it
  *  reads "Step 2 of 3 · Look". */
 export function Stepper({ steps, current, className = '' }: { steps: ReadonlyArray<{ id: string; label: ReactNode }>; current: number; className?: string }) {
   return (

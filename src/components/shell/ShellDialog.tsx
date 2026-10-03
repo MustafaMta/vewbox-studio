@@ -6,11 +6,8 @@ import { IconClose } from '@/components/ui/icons';
 /** THE SHELL'S DIALOG — the one place the shell's overlays (the command palette, the shortcut sheet, the phone's menu
  *  sheet) meet the dialog primitive. Built on the native <dialog> with showModal(): the browser traps focus inside,
  *  makes the page behind inert, closes on Esc, and puts focus back on the control that opened it (kept here too, for
- *  the browsers that do not). Styled per docs/DESIGN-SYSTEM-V4.md §5.17 (styles/shell.css `.shell-dialog`).
- *
- *  F2 builds the kit's Dialog (src/components/ui/kit/Overlay.tsx) in parallel. When both have merged, this file is
- *  the only one to change: render F2's Dialog here with the same props, and the palette, the sheet and the menu
- *  follow. Nothing else in the shell touches <dialog>. */
+ *  the browsers that do not). Drawn with the kit's one modal surface (kit.css `dialog.dlg`, VISUAL-STANDARD-V5.1 §5.17);
+ *  shell.css only places the palette high up and the full-screen menu. Nothing else in the shell touches <dialog>. */
 
 export interface ShellDialogProps {
   open: boolean;
@@ -62,19 +59,23 @@ export function ShellDialog({ open, onClose, title, label, placement = 'center',
   // a click on the dimmed backdrop (the dialog box itself, outside its panel) closes it
   const onPointerDown = (e: React.PointerEvent<HTMLDialogElement>) => { if (e.target === ref.current) ref.current?.close(); };
 
+  // the kit's modal surface (kit.css `dialog.dlg`): a centred dialog, the palette high up, or a sheet; the full-screen
+  // placement keeps the page ground
+  const kind = placement === 'sheet' ? 'sheet' : placement === 'full' ? 'shell-dialog-full' : 'dialog';
   return (
-    <dialog ref={ref} id={id} className={`shell-dialog ${className}`} data-placement={placement} style={placement === 'full' || placement === 'sheet' ? undefined : ({ '--dlg-w': `${width}px` } as React.CSSProperties)}
+    <dialog ref={ref} id={id} className={`dlg ${kind} shell-dialog ${className}`} data-placement={placement} data-bare={title ? undefined : ''}
+      style={placement === 'full' || placement === 'sheet' ? undefined : ({ '--dlg-w': `${width}px` } as React.CSSProperties)}
       aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : label} onPointerDown={onPointerDown}>
-      <div className="shell-dialog-panel">
-        {placement === 'sheet' && <span className="sheet-handle" aria-hidden />}
+      <div className="dialog-frame">
+        <span className="sheet-handle" aria-hidden />
         {title && (
-          <div className="shell-dialog-head">
-            <h2 id={headingId} className="h2">{title}</h2>
-            <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={'Close'} onClick={() => ref.current?.close()}><IconClose aria-hidden /></button>
-          </div>
+          <header className="dialog-head">
+            <h2 id={headingId} className="t-title dialog-title">{title}</h2>
+            <button type="button" className="btn btn-quiet btn-icon btn-sm dialog-close" aria-label="Close" onClick={() => ref.current?.close()}><IconClose aria-hidden /></button>
+          </header>
         )}
-        <div className="shell-dialog-body">{open && children}</div>
-        {footer && <div className="shell-dialog-foot">{footer}</div>}
+        <div className="dialog-body">{open && children}</div>
+        {footer && <div className="dialog-foot">{footer}</div>}
       </div>
     </dialog>
   );

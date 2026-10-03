@@ -146,36 +146,15 @@
   .shell[data-lights='down'] :is(.shell-nav, .phone-bar, .bottom-nav, [data-lights-dim]) { opacity: 0.15; transition-duration: var(--t-lights); }
   .shell[data-lights='down'] :is(.shell-nav, .phone-bar, .bottom-nav, [data-lights-dim]):is(:hover, :focus-within) { opacity: 1; transition-duration: var(--dur-1); }
 
-  /* ---- the shell's dialogs (ShellDialog.tsx; §5.17) ----------------------------------------------------------- */
-  .shell-dialog { inline-size: fit-content; block-size: fit-content; max-inline-size: none; max-block-size: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--text-2); overflow: visible; }
-  .shell-dialog::backdrop { background: var(--overlay); animation: shell-fade var(--dur-3) var(--ease-out); }
-  .shell-dialog-panel { position: relative; display: flex; flex-direction: column; inline-size: min(var(--dlg-w, 560px), calc(100vw - 32px)); max-block-size: calc(100dvh - 48px); overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--shadow-modal); }
-  .shell-dialog[open] .shell-dialog-panel { animation: shell-dialog-in var(--dur-3) var(--ease-enter) both; }
-  .shell-dialog[data-placement='top'] { margin-block: 15vh auto; margin-inline: auto; }
-  .shell-dialog[data-placement='top'] .shell-dialog-panel { max-block-size: 70vh; }
-  .shell-dialog-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 8px 24px; }
-  .shell-dialog-head .h2 { font-size: 16px; line-height: 22px; font-weight: 500; letter-spacing: -0.01em; }
-  .shell-dialog-body { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; }
-  .shell-dialog-foot { flex: none; padding: 12px 24px 24px; }
-  .shell-dialog[data-placement='full'] { inline-size: 100%; block-size: 100dvh; margin: 0; }
-  .shell-dialog[data-placement='full'] .shell-dialog-panel { inline-size: 100%; block-size: 100%; max-block-size: 100dvh; border-radius: 0; background: var(--bg-page); box-shadow: none; }
-  /* the sheet: bottom, full width, top radius 20, a handle, at most 88 % of the screen */
-  .shell-dialog[data-placement='sheet'] { inline-size: 100%; max-inline-size: 100%; margin: auto 0 0; }
-  .shell-dialog[data-placement='sheet'] .shell-dialog-panel { inline-size: 100%; max-block-size: 88svh; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px)); border-radius: var(--r-lg) var(--r-lg) 0 0; }
-  .shell-dialog[data-placement='sheet'] .shell-dialog-head { padding: 4px 0 12px 4px; }
-  .shell-dialog[data-placement='sheet'][open] .shell-dialog-panel, .shell-dialog[data-placement='full'][open] .shell-dialog-panel { animation: shell-sheet-in var(--dur-4) var(--ease-enter) both; }
-  .sheet-handle { position: absolute; inset-block-start: 8px; inset-inline-start: 50%; translate: -50% 0; inline-size: 36px; block-size: 4px; border-radius: var(--r-pill); background: var(--line-control); }
-  @media (min-width: 640px) { .shell-dialog[data-placement='sheet'] { inline-size: min(560px, 100%); margin-inline: auto; } }
-  @media (max-width: 639.98px) {
-    /* a dialog becomes a sheet; the palette stays at the top, above the on-screen keyboard */
-    .shell-dialog[data-placement='center'] { inline-size: 100%; margin-block: auto 0; margin-inline: 0; }
-    .shell-dialog[data-placement='center'] .shell-dialog-panel { inline-size: 100%; max-block-size: 88svh; border-radius: var(--r-lg) var(--r-lg) 0 0; padding-block-end: env(safe-area-inset-bottom, 0px); }
-    .shell-dialog[data-placement='center'][open] .shell-dialog-panel { animation-name: shell-sheet-in; }
-    .shell-dialog[data-placement='top'] { inline-size: 100%; margin-block: 0 auto; margin-inline: 0; }
-    .shell-dialog[data-placement='top'] .shell-dialog-panel { inline-size: 100%; max-block-size: 85dvh; border-radius: 0 0 var(--r-lg) var(--r-lg); }
-    .shell-dialog-head { padding-inline: 20px 12px; }
-  }
-  html:has(.shell-dialog[open]) { overflow: hidden; }
+  /* ---- the shell's dialogs (ShellDialog.tsx): the kit's modal surface; here only what differs ----------------- */
+  /* a dialog without a visible title (the palette) draws its own body */
+  .shell-dialog[data-bare] .dialog-body { padding: 0; }
+  /* the palette sits high up (15vh), and at the top edge on phones, above the on-screen keyboard */
+  dialog.dlg.shell-dialog[data-placement='top'] { margin-block: 15vh auto; max-block-size: 70vh; }
+  @media (max-width: 639px) { dialog.dlg.dialog.shell-dialog[data-placement='top'] { margin-block: 0 auto; max-block-size: 85dvh; border-radius: 0 0 var(--r-lg) var(--r-lg); } }
+  /* the full-screen menu: the page ground, no radius, no shadow */
+  dialog.dlg.shell-dialog-full { inline-size: 100%; max-inline-size: 100%; block-size: 100dvh; max-block-size: 100dvh; margin: 0; border-radius: 0; background: var(--bg-page); box-shadow: none; }
+  .shell-dialog-full .dialog-frame { block-size: 100%; }
 
   /* ---- the command palette (§5.15): a 48 px field, rows 48 high ------------------------------------------------ */
   .palette { display: flex; flex-direction: column; min-block-size: 0; max-block-size: inherit; }
@@ -225,5 +204,3 @@
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes shell-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes shell-dialog-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes shell-sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
