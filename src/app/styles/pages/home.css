@@ -119,7 +119,8 @@
   .home-fact > .home-fact-v { display: flex; align-items: center; gap: var(--s-8); min-block-size: 1lh; margin-block-start: var(--s-4); color: var(--text-1); }
   .home-fact-v > .sk-line { margin-block: auto; }
   .home-fact-2 { min-block-size: 1lh; color: var(--text-2); }
-  .home-fact :is(.home-fact-v, .home-fact-2) { overflow-wrap: anywhere; }
+  /* one line each on a wide panel (the full words in the title); phones let them wrap */
+  .home-fact-v > span, .home-fact-2 { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .home-dot[data-tone='ok'] { background: var(--ok); }
   .home-dot[data-tone='bad'] { background: var(--bad); }
   .home-dot[data-tone='running'] { background: var(--text-1); animation: home-pulse 1.6s ease-in-out infinite; }
@@ -161,6 +162,7 @@
     .home-starts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-12); }
     .home-action { block-size: 104px; }
     .home .home-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-20) var(--s-16); padding: var(--s-16); }
+    .home-fact-v > span, .home-fact-2 { white-space: normal; }
   }
 
   @media (prefers-reduced-motion: reduce) {

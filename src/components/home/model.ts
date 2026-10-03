@@ -358,8 +358,9 @@ export function studioFacts(x: { health: Health | null; engines: Engines | null;
     ? { key: 'company', label: 'Company', value: `${org.departments.length} ${plural(org.departments.length, 'department')} · ${org.agents} ${plural(org.agents, 'agent')}` }
     : { key: 'company', label: 'Company', value: failed.org ? unknown : null };
   const pictures = engines ? Boolean(engines.images?.ok && engines.video?.ok) : undefined;
+  const voices = Boolean(engines?.voice?.ok);
   const enginesFact: StudioFact = engines
-    ? { key: 'engines', label: 'Engines', value: `${engineWords('Picture and video', pictures)} · ${engineWords('Voices', engines.voice?.ok)}` }
+    ? { key: 'engines', label: 'Engines', value: pictures === voices ? `Picture, video and voices ${voices ? 'ready' : 'offline'}` : `${engineWords('Picture and video', pictures)} · ${engineWords('Voices', voices)}` }
     : { key: 'engines', label: 'Engines', value: failed.engines ? unknown : null };
   const h = org?.handoffs[0];
   const dept = (id: string) => org?.departments.find((d) => d.id === id)?.name ?? id;

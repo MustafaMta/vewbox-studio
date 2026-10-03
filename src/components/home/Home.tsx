@@ -272,8 +272,8 @@ function StudioPanel({ facts }: { facts: StudioFact[] }) {
             <dt className="t-label">{f.label}</dt>
             {f.value === null
               ? <dd className="home-fact-v"><Skeleton.Line size="body" width="72%" /></dd>
-              : <dd className="home-fact-v">{f.tone && <i className="home-dot" data-tone={f.tone} aria-hidden />}{f.value}</dd>}
-            <dd className="home-fact-2">{f.second ?? ''}</dd>
+              : <dd className="t-body home-fact-v" title={f.value}>{f.tone && <i className="home-dot" data-tone={f.tone} aria-hidden />}<span>{f.value}</span></dd>}
+            <dd className="t-body home-fact-2">{f.second ?? ''}</dd>
           </div>
         ))}
       </dl>

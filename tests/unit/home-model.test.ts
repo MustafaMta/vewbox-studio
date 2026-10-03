@@ -216,7 +216,9 @@ describe('start actions and the studio panel', () => {
     expect(facts[0]).toMatchObject({ value: 'Paused', tone: 'idle' });
     expect(facts[0].second).toMatch(/^since 3 Oct, \d\d:\d\d$/);
     expect(facts[1].value).toBe('9 departments · 35 agents');
-    expect(facts[2].value).toBe('Picture and video offline · Voices offline');
+    expect(facts[2].value).toBe('Picture, video and voices offline');
+    const mixed = studioFacts({ health: null, engines: { video: { ok: true }, images: { ok: true }, voice: { ok: false } }, org: null, running: 0 });
+    expect(mixed[2].value).toBe('Picture and video ready · Voices offline');
     expect(facts[3].value).toBe('Post-Production · export made and validated');
     expect(facts[3].second).toMatch(/^3 Oct, \d\d:\d\d$/);
   });
