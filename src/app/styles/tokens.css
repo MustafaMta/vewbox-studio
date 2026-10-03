@@ -1,0 +1,105 @@
+/* ============================================================================================================
+   TOKENS — owned by F1 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   Every colour, radius, duration, layout and type role is a token here; components never hard-code one
+   (scripts/v4-lint.mjs). The v2 and v3 names stay as aliases so every existing utility keeps resolving.
+   Split out of src/app/globals.css by F0 unchanged; F1 brings it to §2.1 exactly.
+   ============================================================================================================ */
+
+:root {
+  /* the warm neutral ladder (hue ≈ 40°, chroma ≤ 0.012) */
+  --ink-1000: #070706;  /* media floor under every picture and clip */
+  --ink-975: #090908;   /* sunken: the company stage floor */
+  --ink-950: #0d0c0b;   /* ground */
+  --ink-900: #141312;   /* panel, inspector, dialogs' body */
+  --ink-850: #1a1917;   /* field fill, hover on a row */
+  --ink-800: #22201e;   /* menus, toasts, selected segment */
+  --ink-700: #2e2b28;   /* hairline */
+  --ink-600: #4a4640;   /* strong hairline, idle node ring */
+  --ink-550: #736c63;   /* control boundary and idle edge, ≥ 3:1 */
+  --ink-500: #625d55;   /* disabled text, decorative separators */
+  --ink-400: #8f877b;   /* faint text, ≥ 4.5:1 on every surface */
+  --ink-300: #ada597;   /* muted text */
+  --ink-200: #ddd6cb;   /* body text */
+  --ink-100: #f3eee6;   /* ivory: titles, primary fill */
+  /* the one accent: iris (the brand's violet, lifted and softened for the warm ground) */
+  --iris-600: #6c5fe0; --iris-500: #8b7ff0; --iris-400: #a99ff5; --iris-300: #cbc4fa;
+  --violet-700: var(--iris-600); --violet-600: var(--iris-600); --violet-500: var(--iris-500);
+  --violet-400: var(--iris-400); --violet-300: var(--iris-300);           /* legacy aliases */
+
+  /* roles: surfaces */
+  --bg: var(--ink-950); --sunken: var(--ink-975); --media: var(--ink-1000);
+  --surface: var(--ink-900); --raised: var(--ink-900); --raised-2: var(--ink-800); --input: var(--ink-850);
+  /* roles: lines */
+  --line-soft: #211f1d;              /* list separators (decorative) */
+  --line: var(--ink-700);            /* panel edges */
+  --line-strong: var(--ink-600);     /* menus, idle node ring */
+  --line-field: var(--ink-550);      /* every input, select, segmented, checkbox, dropzone boundary */
+  /* roles: text */
+  --fg: var(--ink-100); --fg-body: var(--ink-200); --fg-muted: var(--ink-300); --fg-faint: var(--ink-400);
+  --fg-disabled: var(--ink-500);     /* disabled controls only, exempt from 1.4.3 */
+  --fg-on-art: #ffffff; --fg-on-art-muted: var(--ink-200);
+  /* roles: action */
+  --primary: var(--ink-100); --primary-hover: #ffffff; --primary-active: #e4ded3; --on-primary: var(--ink-950);
+  --ivory: var(--primary); --ivory-hover: var(--primary-hover); --on-ivory: var(--on-primary);   /* legacy names */
+  --accent: var(--iris-400);                         /* marks, focus, live, link hover */
+  --accent-strong: var(--iris-500);                  /* progress fill, checked radio/checkbox fill */
+  --accent-soft: rgba(169, 159, 245, 0.12);          /* selected list row tint, never a card */
+  --accent-line: rgba(169, 159, 245, 0.50);          /* selected tile border at rest */
+  --ring: var(--iris-400);
+  /* roles: status (semantic, never decorative) */
+  --ok: #62c995; --ok-soft: rgba(98, 201, 149, 0.12);       /* done, verified */
+  --warn: #e2b55f; --warn-soft: rgba(226, 181, 95, 0.12);   /* waiting for you, provisional */
+  --bad: #f07f74; --bad-soft: rgba(240, 127, 116, 0.12);    /* failed, refused, blocked */
+  --info: var(--accent); --info-soft: var(--accent-soft);   /* running = live = the accent */
+  /* v2 company accents fold into the system (aliases kept until every component is migrated) */
+  --gold: var(--warn); --gold-soft: var(--warn-soft); --gold-line: rgba(226, 181, 95, 0.45); --gold-text: var(--warn);
+  --teal: var(--accent); --teal-soft: var(--accent-soft); --teal-line: var(--accent-line);
+  /* the company diagram */
+  --edge: var(--ink-550);            /* a handoff path that has been used (3.5:1 on --sunken) */
+  --edge-lit: var(--accent);         /* handed off in the last 90 min / travelling now */
+  --edge-wait: var(--warn);          /* handed to a person for a decision (dashed) */
+  --edge-bad: var(--bad);            /* refused at the receiving end */
+  /* overlays and elevation, no glow */
+  --overlay: rgba(5, 5, 4, 0.74);
+  --shadow-1: none; --shadow-2: none;
+  --shadow-3: 0 24px 64px -16px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--line-strong);
+  --halo-violet: none; --halo-gold: none; --halo-teal: none;    /* retired */
+  /* shape */
+  --r-1: 6px; --r-2: 8px; --r-3: 12px; --r-4: 16px; --r-media: 8px; --r-pill: 999px;
+  /* motion (§8) */
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms; --t-media: 480ms; --t-travel: 1200ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  /* layout */
+  --sticky-top: 56px; --gutter: 16px; --section: 40px;
+  color-scheme: dark;
+}
+@media (min-width: 640px) { :root { --gutter: 24px; } }
+@media (min-width: 1024px) { :root { --sticky-top: 0px; --gutter: 40px; --section: 48px; } }
+
+@theme inline {
+  --color-ink-1000: var(--ink-1000); --color-ink-975: var(--ink-975); --color-ink-950: var(--ink-950); --color-ink-900: var(--ink-900); --color-ink-850: var(--ink-850); --color-ink-800: var(--ink-800); --color-ink-700: var(--ink-700); --color-ink-600: var(--ink-600); --color-ink-550: var(--ink-550); --color-ink-500: var(--ink-500); --color-ink-400: var(--ink-400); --color-ink-300: var(--ink-300); --color-ink-200: var(--ink-200); --color-ink-100: var(--ink-100);
+  --color-iris-600: var(--iris-600); --color-iris-500: var(--iris-500); --color-iris-400: var(--iris-400); --color-iris-300: var(--iris-300);
+  --color-violet-700: var(--violet-700); --color-violet-600: var(--violet-600); --color-violet-500: var(--violet-500); --color-violet-400: var(--violet-400); --color-violet-300: var(--violet-300);
+  --color-bg: var(--bg); --color-surface: var(--surface); --color-raised: var(--raised); --color-raised-2: var(--raised-2); --color-input: var(--input);
+  --color-elev: var(--raised); --color-surface-2: var(--raised-2); --color-surface-3: var(--raised-2);
+  --color-line: var(--line); --color-line-strong: var(--line-strong); --color-line-field: var(--line-field);
+  --color-fg: var(--fg); --color-body: var(--fg-body); --color-muted: var(--fg-muted); --color-faint: var(--fg-faint); --color-disabled: var(--fg-disabled);
+  --color-primary: var(--primary); --color-on-primary: var(--on-primary);
+  --color-ivory: var(--primary); --color-on-ivory: var(--on-primary);
+  --color-accent: var(--accent); --color-accent-strong: var(--accent-strong); --color-accent-fg: var(--on-primary); --color-accent-soft: var(--accent-soft); --color-accent-text: var(--accent);
+  --color-ok: var(--ok); --color-ok-soft: var(--ok-soft); --color-warn: var(--warn); --color-warn-soft: var(--warn-soft); --color-bad: var(--bad); --color-bad-soft: var(--bad-soft); --color-info: var(--info); --color-info-soft: var(--info-soft);
+  --color-media: var(--media); --color-edge: var(--edge);
+  --color-gold: var(--gold); --color-gold-soft: var(--gold-soft); --color-teal: var(--teal); --color-teal-soft: var(--teal-soft);
+  --color-line-soft: var(--line-soft); --color-sunken: var(--sunken); --color-gold-text: var(--gold-text); --color-on-art: var(--fg-on-art); --color-on-art-muted: var(--fg-on-art-muted);
+  /* one family per script: Latin glyphs always come from Inter, Arabic glyphs from IBM Plex Sans Arabic, in both
+     interface languages (a Latin word inside an Arabic page is set in Inter, an Arabic name in an English page in
+     Plex) */
+  --font-sans: var(--font-inter, 'Inter'), var(--font-plex-arabic, 'IBM Plex Sans Arabic'), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-inter, 'Inter'), var(--font-plex-arabic, 'IBM Plex Sans Arabic'), ui-sans-serif, system-ui, -apple-system, 'SF Pro Display', sans-serif;
+  --font-arabic: var(--font-inter, 'Inter'), var(--font-plex-arabic, 'IBM Plex Sans Arabic'), 'Noto Sans Arabic', system-ui, sans-serif;
+  --radius-1: var(--r-1); --radius-2: var(--r-2); --radius-3: var(--r-3); --radius-4: var(--r-4); --radius-media: var(--r-media);
+  --shadow-1: var(--shadow-1); --shadow-2: var(--shadow-2); --shadow-3: var(--shadow-3);
+  /* the small sizes are set in px so the 14 px root never shrinks them below the type scale (§4) */
+  --text-sm: 13px; --text-sm--line-height: 20px;
+  --text-xs: 12px; --text-xs--line-height: 16px;
+}

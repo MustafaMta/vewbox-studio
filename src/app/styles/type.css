@@ -1,0 +1,40 @@
+/* ============================================================================================================
+   TYPE — owned by F1 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   The type scale (§3.3). Split out of src/app/globals.css by F0 unchanged.
+   ============================================================================================================ */
+@layer components {
+  /* ---- type ------------------------------------------------------------------------------------------ */
+  /* the type scale (§4): px sizes, one family per script, no uppercase and no tracking above 0 on any label; Arabic
+     sizes and line heights run taller so the diacritics clear */
+  .display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: var(--fg); }
+  html[dir='rtl'] .display { letter-spacing: 0; line-height: 1.4; font-weight: 600; }
+  .display-xl { font-family: var(--font-display); font-size: 30px; line-height: 34px; font-weight: 500; letter-spacing: -0.025em; color: var(--fg); }
+  @media (min-width: 640px) { .display-xl { font-size: 40px; line-height: 44px; } }
+  html[dir='rtl'] .display-xl { font-size: 36px; line-height: 52px; font-weight: 600; letter-spacing: 0; }
+  .h1, .page-title { font-family: var(--font-display); font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.02em; color: var(--fg); }
+  @media (min-width: 640px) { .h1, .page-title { font-size: 30px; line-height: 36px; } }
+  html[dir='rtl'] .h1, html[dir='rtl'] .page-title { font-size: 28px; line-height: 42px; font-weight: 600; letter-spacing: 0; }
+  .h2, .section-title { font-family: var(--font-display); font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--fg); }
+  @media (min-width: 640px) { .h2, .section-title { font-size: 20px; line-height: 28px; } }
+  html[dir='rtl'] .h2, html[dir='rtl'] .section-title { font-size: 19px; line-height: 30px; letter-spacing: 0; }
+  .h3 { font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.005em; color: var(--fg); }
+  html[dir='rtl'] .h3 { line-height: 26px; letter-spacing: 0; }
+  .lead { font-size: 15px; line-height: 24px; color: var(--fg-muted); max-inline-size: 64ch; }
+  @media (min-width: 640px) { .lead { font-size: 16px; line-height: 26px; } }
+  html[dir='rtl'] .lead { font-size: 16px; line-height: 28px; }
+  .eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--fg-muted); }
+  .kicker { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg-faint); }
+  html[dir='rtl'] .eyebrow, html[dir='rtl'] .kicker { font-size: 13px; line-height: 20px; }
+  .caption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
+  html[dir='rtl'] .caption { font-size: 13px; line-height: 20px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
+  .break-all { word-break: break-all; }
+  .prose-copy { font-size: 15px; line-height: 26px; color: var(--fg-body); max-inline-size: 68ch; }
+  html[dir='rtl'] .prose-copy { font-size: 16px; line-height: 30px; }
+  .bi { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.6em; }
+  .bi > .bi-ar { font-weight: 500; color: var(--fg-muted); font-size: 0.85em; }
+  .h1 .bi-ar, .display .bi-ar { font-weight: 600; }
+  /* a quiet line that isolates mixed-script content so punctuation stays at its end */
+  .bdi { unicode-bidi: isolate; }
+}

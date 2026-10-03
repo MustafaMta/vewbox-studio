@@ -1,0 +1,45 @@
+/* ============================================================================================================
+   PLAYERS — owned by F3 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
+   Transport buttons, seek and volume sliders, controls on video, the play button on a picture.
+   Split out of src/app/globals.css by F0 unchanged.
+   ============================================================================================================ */
+@layer components {
+  /* a round transport control: play in ivory, the rest quiet; nothing scales */
+  .transport { display: inline-grid; place-items: center; inline-size: 2.75rem; block-size: 2.75rem; border-radius: 999px; background: var(--raised-2); color: var(--fg); border: 1px solid var(--line); transition: background-color var(--t) var(--ease); }
+  .transport svg { inline-size: 1.15rem; block-size: 1.15rem; }
+  .transport:hover { background: var(--ink-700); }
+  .transport-primary { background: var(--primary); color: var(--on-primary); border-color: transparent; inline-size: 3.25rem; block-size: 3.25rem; }
+  .transport-primary:hover { background: var(--primary-hover); }
+  .transport-primary svg { inline-size: 1.4rem; block-size: 1.4rem; }
+  .transport-sm { inline-size: 2.375rem; block-size: 2.375rem; }
+  .transport-sm svg { inline-size: 1rem; block-size: 1rem; }
+  .transport-xs { inline-size: 2rem; block-size: 2rem; }
+  .transport-xs svg { inline-size: 0.875rem; block-size: 0.875rem; }
+  .transport[aria-pressed='true'] { background: var(--ink-700); color: var(--fg); border-color: var(--line-strong); }
+  .transport-primary[aria-pressed='true'] { background: var(--primary); color: var(--on-primary); }
+  .transport:focus-visible, .play-on-art:focus-visible, .vbtn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  /* the seek bar and volume slider: a thin track, the played part in violet, a white thumb */
+  .seek { -webkit-appearance: none; appearance: none; inline-size: 100%; block-size: 1.25rem; background: transparent; cursor: pointer; --p: 0%; --seek-fill: var(--fg); --seek-track: rgba(255, 255, 255, 0.14); }
+  .seek::-webkit-slider-runnable-track { block-size: 4px; border-radius: 999px; background: linear-gradient(to right, var(--seek-fill) var(--p), var(--seek-track) var(--p)); }
+  .seek::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; inline-size: 13px; block-size: 13px; border-radius: 999px; background: #fff; margin-block-start: -4.5px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: transform 120ms var(--ease); }
+  .seek::-moz-range-track { block-size: 4px; border-radius: 999px; background: var(--seek-track); }
+  .seek::-moz-range-progress { block-size: 4px; border-radius: 999px; background: var(--seek-fill); }
+  .seek::-moz-range-thumb { inline-size: 13px; block-size: 13px; border: 0; border-radius: 999px; background: #fff; }
+  .seek:disabled { cursor: default; opacity: 0.45; }
+  .seek:focus-visible { outline: none; }
+  .seek:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--ring); }
+  .seek:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--ring); }
+  .seek-light { --seek-fill: #fff; --seek-track: rgba(255, 255, 255, 0.28); }
+  /* a control on a video: white on the picture, a soft disc on hover */
+  .vbtn { display: inline-grid; place-items: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: 999px; color: rgba(255, 255, 255, 0.92); transition: background-color var(--t) var(--ease); }
+  .vbtn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+  .vbtn:disabled { opacity: 0.4; }
+  .vbtn svg { inline-size: 1.05rem; block-size: 1.05rem; }
+  .vbtn[aria-pressed='true'] { background: rgba(255, 255, 255, 0.18); }
+  @media (hover: none) { .vcontrols { opacity: 1 !important; pointer-events: auto !important; } }
+  .vplayer:focus-within .vcontrols { opacity: 1; pointer-events: auto; }
+  /* the play button that sits on a picture */
+  .play-on-art { display: inline-grid; place-items: center; inline-size: 2.5rem; block-size: 2.5rem; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; backdrop-filter: blur(8px); transition: background-color var(--t) var(--ease); }
+  .play-on-art:hover { background: rgba(0, 0, 0, 0.75); }
+  .play-on-art svg { inline-size: 1rem; block-size: 1rem; }
+}
