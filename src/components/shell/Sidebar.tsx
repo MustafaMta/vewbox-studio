@@ -3,23 +3,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from 'react';
-import { BrandTile } from '@/components/ui/brand';
+import { VewboxGlyph } from '@/components/ui/brand';
 import {
-  IconAssets, IconCharacters, IconCollapse, IconExpand, IconHelp, IconHome, IconLocations, IconMore, IconMusicVideos, IconPlus, IconProduce, IconScreening, IconSearch, IconSettings, IconShorts, IconShows, IconStudio,
+  IconAssets, IconCharacters, IconHelp, IconHome, IconLocations, IconMore, IconMusicVideos, IconPanel, IconProduce, IconScreening, IconSearch, IconSettings, IconShorts, IconShows, IconStudio,
 } from '@/components/ui/icons';
 import { HOME, NAV_GROUPS, SETTINGS_ITEM, isActive, type NavIcon, type NavItem } from './nav-model';
 import { useShell } from './context';
-import { ConnectionState, SaveState } from './SaveState';
 import { isMac } from './shortcuts';
 
-/** THE SIDEBAR (the v5.1 shell: one compact left sidebar, the producer's decision after the Krea reference) — one
- *  navigation in two shapes, chosen by the shell (`data-nav` on .shell; styles/shell.css):
- *  - expanded (≥ 1024, the default): brand row, New and Search, the primary places, the Production group, and the
- *    footer — Settings, Help & shortcuts, the connection and the save state only while they are abnormal, Collapse;
- *  - collapsed, an icon rail (768–1023 always; ≥ 1024 by Ctrl/⌘ \ or Collapse, remembered per room kind): the same
- *    items as icons, each named in a tooltip on hover and on focus (`data-tip`; one shared tooltip, fixed, so the
- *    scrolling rail never clips it; Esc dismisses it, and the pointer can move onto it, WCAG 1.4.13).
- *  Below 768 the phone's top bar and bottom bar carry the same places (PhoneNav.tsx). */
+/** THE SIDEBAR (docs/design/VISUAL-STANDARD-V5.1.md §5.1) — the studio's one navigation at ≥ 1024, on --bg-nav, full
+ *  height and sticky, no border. Expanded 240 / collapsed 64; the shape is <html data-sidebar>, drawn by the boot
+ *  script before the first paint and kept by the shell (Ctrl/⌘ \ or the brand row's button; remembered as
+ *  `vb.sidebar`). Top to bottom: the brand row (mark, Vewbox, collapse) · Search (opens the command palette) · Home,
+ *  Shows, Shorts, Music Videos, Characters, Studio Company · Workspace: Locations, Production (the one needs-you count),
+ *  Screening Room, Files · the footer: the studio's state, Settings, Help & shortcuts.
+ *  Collapsed, every item is a 40 × 40 icon named by a tooltip to its right (400 ms, then 0 while moving between
+ *  items; Esc dismisses it; the pointer may move onto it, WCAG 1.4.13). Below 1024 the phone's bars replace it. */
 
 type IconC = ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
 export const NAV_ICONS: Record<NavIcon | 'more', IconC> = {
@@ -44,76 +43,83 @@ export function NavLink({ item, onNavigate, className = 'nav-item' }: { item: Na
   const Icon = NAV_ICONS[item.icon];
   return (
     <Link href={item.href} className={className} aria-current={isActive(pathname, item.href, item.also) ? 'page' : undefined} onClick={onNavigate}
-      aria-label={n > 0 ? `${item.label}, ${needsYouLabel(n)}` : undefined} data-tip={item.label}>
-      <span className="nav-icon" aria-hidden><Icon aria-hidden />{n > 0 && <span className="nav-badge num" />}</span>
+      aria-label={n > 0 ? `${item.label}, ${needsYouLabel(n)}` : undefined} data-tip={n > 0 ? `${item.label} · ${n} waiting` : item.label}>
+      <span className="nav-icon" aria-hidden><Icon aria-hidden />{n > 0 && <span className="nav-dot" />}</span>
       <span className="nav-label">{item.label}</span>
-      {n > 0 && <span className="nav-count num" aria-hidden>{n}</span>}
+      {n > 0 && <span className="nav-count" aria-hidden>{n}</span>}
+    </Link>
+  );
+}
+
+/** The studio's state in one line: a 6 px dot and the words; it links to the Studio Company (or the engine room). */
+export function StudioStateItem({ onNavigate, className = 'nav-item' }: { onNavigate?: () => void; className?: string }) {
+  const { studio } = useShell();
+  return (
+    <Link href={studio.href} className={`${className} nav-state`} data-tone={studio.tone} onClick={onNavigate} data-tip={studio.words}>
+      <span className="nav-icon" aria-hidden><span className="nav-state-dot" /></span>
+      <span className="nav-label">{studio.words}</span>
     </Link>
   );
 }
 
 type Tip = { text: string; y: number; x: number };
 
-/** The sidebar, or the rail: the shell says which (`nav`). */
 export function Sidebar() {
-  const { nav, toggleNav, openPalette, openShortcuts, serverDown } = useShell();
+  const { nav, toggleNav, openPalette, openShortcuts } = useShell();
   const mod = useModLabel();
   const [tip, setTip] = useState<Tip | null>(null);
-  const hide = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancel = () => { if (hide.current) clearTimeout(hide.current); hide.current = null; };
-  const later = () => { cancel(); hide.current = setTimeout(() => setTip(null), 150); };
+  const showing = useRef(false); showing.current = tip !== null;
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
+  const later = () => { cancel(); timer.current = setTimeout(() => setTip(null), 120); };
   useEffect(() => { if (nav !== 'rail') setTip(null); }, [nav]);
   useEffect(() => cancel, []);
-  const show = (target: EventTarget | null) => {
+  const show = (target: EventTarget | null, now = false) => {
     cancel();
     if (target instanceof Element && target.closest('.rail-tip')) return; // the pointer moved onto the tooltip itself
     const el = target instanceof Element ? target.closest<HTMLElement>('[data-tip]') : null;
     if (nav !== 'rail' || !el?.dataset.tip) { setTip(null); return; }
     const r = el.getBoundingClientRect();
-    setTip({ text: el.dataset.tip, y: r.top + r.height / 2, x: r.right + 8 });
+    const next = { text: el.dataset.tip, y: r.top + r.height / 2, x: r.right + 8 };
+    // 400 ms before the first tooltip; none while moving from one item to the next
+    if (now || showing.current) setTip(next); else timer.current = setTimeout(() => setTip(next), 400);
   };
   const toggleName = nav === 'rail' ? 'Expand the sidebar' : 'Collapse the sidebar';
   return (
-    <nav className="shell-nav" aria-label="Studio" data-focus-inset
-      onFocus={(e) => show(e.target)} onBlur={() => setTip(null)} onMouseOver={(e) => show(e.target)} onMouseLeave={later} onScroll={() => setTip(null)}
+    <nav className="shell-nav" aria-label="Studio"
+      onFocus={(e) => show(e.target, true)} onBlur={() => setTip(null)} onMouseOver={(e) => show(e.target)} onMouseLeave={later} onScroll={() => setTip(null)}
       onKeyDown={(e) => { if (e.key === 'Escape' && tip) { e.stopPropagation(); setTip(null); } }}>
-      <Link href={HOME} className="nav-brand" aria-label="Vewbox Studio, Home" data-tip="Home">
-        <BrandTile /><span className="nav-wordmark" aria-hidden>Vewbox Studio</span>
-      </Link>
-
-      <div className="nav-actions">
-        <Link href="/new" className="nav-new" data-tip="New" aria-label="New">
-          <IconPlus aria-hidden /><span className="nav-label" aria-hidden>New</span>
+      <div className="nav-brand-row">
+        <Link href={HOME} className="nav-brand" aria-label="Vewbox Studio, Home" data-tip="Home">
+          <VewboxGlyph size={22} /><span className="nav-wordmark" aria-hidden>Vewbox</span>
         </Link>
-        <button type="button" className="nav-search" onClick={openPalette} aria-label="Search the studio" aria-keyshortcuts="Control+K Meta+K" data-tip={`Search · ${mod}+K`}>
-          <IconSearch aria-hidden />
+        <button type="button" className="nav-collapse" onClick={toggleNav} aria-keyshortcuts="Control+\ Meta+\" aria-label={toggleName} aria-expanded={nav !== 'rail'} data-tip={`${toggleName} · ${mod}+\\`}>
+          <IconPanel aria-hidden />
         </button>
       </div>
+
+      <button type="button" className="nav-search" onClick={openPalette} aria-label="Search the studio" aria-keyshortcuts="Control+K Meta+K" data-tip={`Search · ${mod} K`}>
+        <IconSearch aria-hidden /><span className="nav-search-label" aria-hidden>Search</span><kbd className="kbd" aria-hidden>{mod} K</kbd>
+      </button>
 
       <div className="nav-groups">
         {NAV_GROUPS.map((g) => (
           <div key={g.id} className="nav-group" role="group" aria-label={g.label ?? 'Places'}>
-            {g.label && <p className="nav-group-label" aria-hidden>{g.label}</p>}
+            {g.label && <p className="nav-group-label" aria-hidden><span>{g.label}</span></p>}
             <ul role="list">{g.items.map((item) => <li key={item.href}><NavLink item={item} /></li>)}</ul>
           </div>
         ))}
       </div>
 
       <div className="nav-foot">
-        {serverDown && <ConnectionState />}
-        <SaveState onlyWhenAbnormal focusable={nav === 'rail'} />
+        <StudioStateItem />
         <NavLink item={SETTINGS_ITEM} />
         <button type="button" className="nav-item" onClick={openShortcuts} aria-keyshortcuts="Shift+?" data-tip="Help & shortcuts">
           <span className="nav-icon" aria-hidden><IconHelp aria-hidden /></span>
           <span className="nav-label">Help &amp; shortcuts</span>
         </button>
-        <button type="button" className="nav-item nav-collapse" onClick={toggleNav} aria-keyshortcuts="Control+\ Meta+\" aria-label={toggleName} data-tip={`${toggleName} · ${mod}+\\`}>
-          <span className="nav-icon" aria-hidden>{nav === 'rail' ? <IconExpand aria-hidden /> : <IconCollapse aria-hidden />}</span>
-          <span className="nav-label" aria-hidden>Collapse</span>
-          <kbd className="nav-kbd" aria-hidden>{mod}+\</kbd>
-        </button>
       </div>
-      {tip && <div className="rail-tip" aria-hidden style={{ insetBlockStart: tip.y, insetInlineStart: tip.x }} onMouseEnter={cancel} onMouseLeave={() => setTip(null)}>{tip.text}</div>}
+      {tip && <div className="rail-tip" role="presentation" style={{ insetBlockStart: tip.y, insetInlineStart: tip.x }} onMouseEnter={cancel} onMouseLeave={() => setTip(null)}>{tip.text}</div>}
     </nav>
   );
 }

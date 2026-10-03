@@ -67,6 +67,7 @@ export function ShellDialog({ open, onClose, title, label, placement = 'center',
     <dialog ref={ref} id={id} className={`shell-dialog ${className}`} data-placement={placement} style={placement === 'full' || placement === 'sheet' ? undefined : ({ '--dlg-w': `${width}px` } as React.CSSProperties)}
       aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : label} onPointerDown={onPointerDown}>
       <div className="shell-dialog-panel">
+        {placement === 'sheet' && <span className="sheet-handle" aria-hidden />}
         {title && (
           <div className="shell-dialog-head">
             <h2 id={headingId} className="h2">{title}</h2>

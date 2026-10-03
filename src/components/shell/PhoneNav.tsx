@@ -3,83 +3,73 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BrandTile } from '@/components/ui/brand';
+import { VewboxGlyph } from '@/components/ui/brand';
 import { IconHelp, IconPlus, IconSearch } from '@/components/ui/icons';
-import { HOME, PHONE_TABS, areaLabel, currentTab, type PhoneTab } from './nav-model';
+import { HOME, PHONE_TABS, currentTab } from './nav-model';
 import { useShell } from './context';
 import { ShellDialog } from './ShellDialog';
-import { NAV_ICONS, NavLink, needsYouLabel, useNeedsYou } from './Sidebar';
+import { NAV_ICONS, NavLink, StudioStateItem, needsYouLabel, useNeedsYou } from './Sidebar';
 
-/** THE PHONE'S NAVIGATION (below 768 px). Two bars on the page ground:
- *  - the top bar (56, sticky): the mark (Home), the name of the area the page belongs to, Search and New;
- *  - the bottom bar (64 + the safe area, fixed, `data-bottom-nav` so tokens.css pads the scroll for it): Home ·
- *    Productions · Characters · Studio · More. Productions opens a sheet of Shows | Shorts | Music Videos; More holds
- *    Locations, Production (with the needs-you count, which also badges the More tab), Screening Room, Files,
- *    Settings and Help & shortcuts. The places and their order come from nav-model.ts. */
+/** THE PHONE AND TABLET NAVIGATION (docs/design/VISUAL-STANDARD-V5.1.md §5.2; below 1024 px). Two bars on --bg-nav:
+ *  - the top bar (56, sticky, no border): the mark and "Vewbox" (Home); Search and New as 40 px quiet icon buttons.
+ *    No hamburger: everything lives in the bottom bar and More.
+ *  - the bottom bar (64 + the safe area, fixed, a 1 px top edge; `data-bottom-nav`, so tokens.css pads the scroll for
+ *    it): Home · Productions · Characters · Studio · More. Productions opens Shows (Shows | Shorts | Music Videos are a
+ *    segmented control at the top of those pages); More opens a sheet with Locations, Production (the count, which
+ *    also badges the More tab), Screening Room, Files, Settings, Help & shortcuts and the studio's state. */
 
 export function PhoneBar() {
-  const pathname = usePathname() ?? '/';
   const { openPalette } = useShell();
-  const area = areaLabel(pathname);
   return (
     <header className="phone-bar">
-      <Link href={HOME} className="phone-brand" aria-label="Vewbox Studio, Home"><BrandTile /></Link>
-      <p className="phone-area">{area ?? 'Vewbox Studio'}</p>
+      <Link href={HOME} className="phone-brand" aria-label="Vewbox Studio, Home"><VewboxGlyph size={22} /><span aria-hidden>Vewbox</span></Link>
       <button type="button" className="phone-action" aria-label="Search the studio" onClick={openPalette}><IconSearch aria-hidden /></button>
       <Link href="/new" className="phone-action" aria-label="New"><IconPlus aria-hidden /></Link>
     </header>
   );
 }
 
-function SheetTab({ tab, current, count, onOpen }: { tab: Extract<PhoneTab, { items: unknown }>; current: boolean; count: number; onOpen: () => void }) {
-  const Icon = NAV_ICONS[tab.icon];
-  return (
-    <button type="button" className="bottom-tab" aria-haspopup="dialog" onClick={onOpen} data-current={current || undefined}
-      aria-label={count > 0 ? `${tab.label}, ${needsYouLabel(count)}` : undefined}>
-      <span className="bottom-tab-icon" aria-hidden><Icon aria-hidden />{count > 0 && <span className="nav-badge" />}</span>
-      <span className="bottom-tab-label">{tab.label}</span>
-    </button>
-  );
-}
-
 export function BottomNav() {
   const pathname = usePathname() ?? '/';
   const { openShortcuts } = useShell();
-  const [sheet, setSheet] = useState<'productions' | 'more' | null>(null);
-  useEffect(() => { setSheet(null); }, [pathname]);
+  const [more, setMore] = useState(false);
+  useEffect(() => { setMore(false); }, [pathname]);
   const tab = currentTab(pathname);
   const needs = useNeedsYou({ needsYou: true });
-  const close = () => setSheet(null);
-  const open = sheet ? PHONE_TABS.find((t) => t.id === sheet) : undefined;
+  const close = () => setMore(false);
   return (
     <nav className="bottom-nav" aria-label="Studio" data-bottom-nav>
       <ul role="list">
-        {PHONE_TABS.map((t) => (
-          <li key={t.id}>
-            {'item' in t ? (
-              <Link href={t.item.href} className="bottom-tab" aria-current={tab === t.id ? 'page' : undefined}>
-                <span className="bottom-tab-icon" aria-hidden>{(() => { const Icon = NAV_ICONS[t.icon]; return <Icon aria-hidden />; })()}</span>
-                <span className="bottom-tab-label">{t.label}</span>
-              </Link>
-            ) : (
-              <SheetTab tab={t} current={tab === t.id} count={t.id === 'more' ? needs : 0} onOpen={() => setSheet(t.id)} />
-            )}
-          </li>
-        ))}
-      </ul>
-      <ShellDialog open={open !== undefined} onClose={close} title={open?.label} placement="sheet" className="phone-sheet">
-        {open && 'items' in open && (
-          <ul role="list" className="sheet-list">
-            {open.items.map((item) => <li key={item.href}><NavLink item={item} onNavigate={close} className="nav-item sheet-item" /></li>)}
-            {open.id === 'more' && (
-              <li>
-                <button type="button" className="nav-item sheet-item" onClick={() => { close(); openShortcuts(); }}>
-                  <span className="nav-icon" aria-hidden><IconHelp aria-hidden /></span><span className="nav-label">Help &amp; shortcuts</span>
+        {PHONE_TABS.map((t) => {
+          const Icon = NAV_ICONS[t.icon];
+          return (
+            <li key={t.id}>
+              {'item' in t ? (
+                <Link href={t.item.href} className="bottom-tab" aria-current={tab === t.id ? 'page' : undefined}>
+                  <span className="bottom-tab-icon" aria-hidden><Icon aria-hidden /></span>
+                  <span className="bottom-tab-label">{t.label}</span>
+                </Link>
+              ) : (
+                <button type="button" className="bottom-tab" aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore(true)} data-current={tab === t.id || undefined}
+                  aria-label={needs > 0 ? `${t.label}, ${needsYouLabel(needs)}` : undefined}>
+                  <span className="bottom-tab-icon" aria-hidden><Icon aria-hidden />{needs > 0 && <span className="bottom-badge">{needs}</span>}</span>
+                  <span className="bottom-tab-label">{t.label}</span>
                 </button>
-              </li>
-            )}
-          </ul>
-        )}
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <ShellDialog open={more} onClose={close} title="More" placement="sheet" className="phone-sheet">
+        <ul role="list" className="sheet-list">
+          {PHONE_TABS.flatMap((t) => ('items' in t ? t.items : [])).map((item) => <li key={item.href}><NavLink item={item} onNavigate={close} className="nav-item sheet-item" /></li>)}
+          <li>
+            <button type="button" className="nav-item sheet-item" onClick={() => { close(); openShortcuts(); }}>
+              <span className="nav-icon" aria-hidden><IconHelp aria-hidden /></span><span className="nav-label">Help &amp; shortcuts</span>
+            </button>
+          </li>
+          <li className="sheet-state"><StudioStateItem onNavigate={close} className="nav-item sheet-item" /></li>
+        </ul>
       </ShellDialog>
     </nav>
   );

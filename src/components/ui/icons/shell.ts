@@ -4,8 +4,8 @@
 export {
   Projector as IconScreening,
   CircleQuestionMark as IconHelp,
-  PanelLeftClose as IconCollapse,
-  PanelLeftOpen as IconExpand,
+  PanelLeft as IconPanel,
+  ImageOff as IconImageOff,
   CloudOff as IconOffline,
   Keyboard as IconKeyboard,
   CornerDownLeft as IconEnter,
