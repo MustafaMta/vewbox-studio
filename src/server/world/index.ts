@@ -117,6 +117,15 @@ export async function establishFromApprovedCut(state: StudioState, p: Production
   return { added: frames.length, revision, reason: `${frames.length} frame(s) established` };
 }
 
+/** The producer's audio policy for a world (how the cut treats speech and songs), as a new revision by a person.
+ *  A production follows it at its next pin check (a policy change never changes a filmed picture: it is safe). */
+export async function setAudioPolicy(state: StudioState, p: Production, audio: WorldRevision['bible']['audio'], by: string): Promise<WorldRevision> {
+  const scope = worldScopeOf(p);
+  const now = new Date().toISOString();
+  const { revision } = await appendRevision(scope, (latest) => ({ ...deriveWorld(state, scope, latest?.bible, now), audio }), { author: { kind: 'HUMAN', id: by }, reason: `audio policy: dialogue ${audio.dialogue}, song bed ${audio.songBed}` });
+  return revision;
+}
+
 /** Every approved cut in a production's world registers what it establishes (a cut approved since the last run). */
 export async function establishApprovedCuts(state: StudioState, p: Production, opts: { jobId?: string }): Promise<Array<{ productionId: string; added: number; reason: string }>> {
   const out: Array<{ productionId: string; added: number; reason: string }> = [];

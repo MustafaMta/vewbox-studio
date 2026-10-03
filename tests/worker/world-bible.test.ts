@@ -21,8 +21,8 @@ const enqueued = vi.hoisted(() => [] as Array<Record<string, unknown>>);
 // nothing is queued from this suite, not even into the scratch database
 vi.mock('@/server/jobs/queue', async (orig) => ({ ...(await orig<typeof import('@/server/jobs/queue')>()), enqueue: async (r: Record<string, unknown>) => { enqueued.push(r); return { job: { id: 'not-queued' }, created: true }; } }));
 
-const lib = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-world-lib-'));
-const ff = (...args: string[]) => execFileSync('ffmpeg', ['-y', '-v', 'error', ...args]);
+let lib = '';
+const ff =(...args: string[]) => execFileSync('ffmpeg', ['-y', '-v', 'error', ...args]);
 const NOW = new Date().toISOString();
 
 describe.skipIf(!scratch)('World Bible + audio timeline on a scratch database', () => {
@@ -42,6 +42,7 @@ describe.skipIf(!scratch)('World Bible + audio timeline on a scratch database', 
   const ctx = (type: Job['type'], payload: Record<string, unknown>) => ({ job: { id: `job-${type}-${Date.now()}`, type, status: 'PREPARING', attempts: 0, payload } as unknown as Job, tool: (_id: string, fn: () => unknown) => fn(), gpu: (_f: string, _mb: number, fn: () => unknown) => fn(), checkpoint: async () => {}, progress: async () => {}, activity: async () => {}, event: async () => {} }) as never;
 
   beforeAll(async () => {
+    lib = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-world-lib-'));
     process.env.DATABASE_URL = url; process.env.LIBRARY_ROOT = lib; process.env.TMP_ROOT = path.join(lib, 'tmp');
     m = {
       db: await import('@/server/db/client'), env: await import('@/server/env'), migrate: await import('@/server/db/migrate'), snap: await import('@/server/studio/snapshot'), persist: await import('@/server/studio/persist'), engine: await import('@/server/studio/engine'),
@@ -91,7 +92,7 @@ describe.skipIf(!scratch)('World Bible + audio timeline on a scratch database', 
       assets: [image('wb-canon-c1'), image('wb-canon-c1-v2'), image('wb-canon-c2'), image('wb-plate-master'), image('wb-plate-dusk'), image('wb-plate-street'), image('wb-plate-master-2'), clip('wb-v11', 5), clip('wb-v12', 158 / 24), clip('wb-v13', 5)],
     });
   }, 300_000);
-  afterAll(async () => { await m?.db.closeDb(); fs.rmSync(lib, { recursive: true, force: true }); });
+  afterAll(async () => { await m?.db.closeDb(); if (lib) fs.rmSync(lib, { recursive: true, force: true }); });
 
   it('revisions are appended per scope, numbered under its lock, and nothing new writes nothing', async () => {
     const s = await read();
@@ -198,4 +199,13 @@ describe.skipIf(!scratch)('World Bible + audio timeline on a scratch database', 
     const reads = await m.store.worldReads({ takeId: 'take-of-wb-e2s2' });
     expect(reads).toEqual([expect.objectContaining({ revisionId: pin.view.revision.id, pinned: true, read: expect.objectContaining({ location: expect.objectContaining({ why: expect.stringMatching(/the light is set by the prompt/) }) }) })]);
   }, 120_000);
+
+  it('the producer’s audio policy is a revision by a person; the productions follow it (it changes no filmed picture)', async () => {
+    const s = await read();
+    const r = await m.world.setAudioPolicy(s, prod(s, ids.e2), { dialogue: 'RECORDED_VOICE', songBed: 'INSTRUMENTAL_WHEN_AVAILABLE' }, 'producer');
+    expect(r).toMatchObject({ author: { kind: 'HUMAN', id: 'producer' }, changes: [{ op: 'UPDATE', path: 'audio' }] });
+    const e1 = await m.world.ensurePin(s, prod(s, ids.e1), { by: 'test' });
+    expect(e1).toMatchObject({ action: 'REPINNED', view: { revision: { bible: { audio: { dialogue: 'RECORDED_VOICE' } } } } });
+    expect((await m.world.worldOfProduction(s, prod(s, ids.e1))).revision.id).toBe(r.id);
+  });
 });
