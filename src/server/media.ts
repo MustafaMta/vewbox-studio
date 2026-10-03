@@ -6,11 +6,13 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileTypeFromBuffer } from 'file-type';
 import { StudioError } from '@/domain/errors';
-import type { Asset, AssetKind, AssetTier } from '@/domain/types';
+import type { Asset, AssetKind, AssetThumb, AssetTier } from '@/domain/types';
 import type { Presentation } from '@/domain/presentation';
 import { env } from './env';
 import { log } from './log';
 import { measurePresentation } from './media/presentation';
+import { isFigureLike, makeThumbnail, thumbPathFor } from './media/thumbs';
+import { thumbSrc } from './studio/snapshot';
 
 const execFileP = promisify(execFile);
 
@@ -118,8 +120,24 @@ export async function sha256File(file: string): Promise<string> {
 }
 
 /** `presentation`: a picture's measured presentation (src/server/media/presentation.ts); `presentationError` when the
- *  measure was tried and failed (the file is stored all the same: a picture without it is shown neutral). */
-export interface StoredFile { relPath: string; absPath: string; bytes: number; mime: string; kind: AssetKind; ext: string; sha256: string; probe?: Probe; presentation?: Presentation; presentationError?: string }
+ *  measure was tried and failed (the file is stored all the same: a picture without it is shown neutral). `thumb`: the
+ *  display-size JPEG written beside the picture (src/server/media/thumbs.ts), absent when it could not be made. */
+export interface StoredFile { relPath: string; absPath: string; bytes: number; mime: string; kind: AssetKind; ext: string; sha256: string; probe?: Probe; presentation?: Presentation; presentationError?: string; thumb?: Omit<AssetThumb, 'src'> }
+
+/** THE THUMBNAIL AT INGEST (docs/CONTRACTS-REDESIGN-BACKEND.md B7): every picture the library takes in gets its
+ *  display-size JPEG beside it, once, here. The original is only read. A failure is logged and leaves the field empty
+ *  (scripts/presentation-backfill.ts fills it later); it never fails the ingest. */
+async function thumbAtIngest(kind: AssetKind, relPath: string, absPath: string, probe: Probe | undefined, presentation: Presentation | undefined): Promise<Pick<StoredFile, 'thumb'>> {
+  if (kind !== 'IMAGE') return {};
+  const rel = thumbPathFor(relPath);
+  try {
+    const made = await makeThumbnail(absPath, resolveLibrary(rel), { width: probe?.width, height: probe?.height, pixFmt: probe?.pixFmt, figure: isFigureLike({ width: probe?.width, height: probe?.height }), presentation });
+    return { thumb: { path: rel, ...made } };
+  } catch (e) {
+    log.warn({ file: path.basename(absPath), err: (e as Error).message.split('\n')[0] }, 'picture thumbnail could not be made at ingest');
+    return {};
+  }
+}
 
 /** THE INGEST CALL (docs/DESIGN-SYSTEM-V4.md §2.4): every picture the library takes in — an upload, a drawn image, a
  *  poster frame, an established frame — is measured once, here, as it is stored. A failure is logged and leaves the
@@ -153,7 +171,8 @@ export async function storeBuffer(assetId: string, buf: Buffer, opts: { declared
   }
   await fsp.rename(tmp, absPath);
   const sha = await sha256File(absPath);
-  return { relPath, absPath, bytes: buf.length, mime, kind, ext, sha256: sha, probe, ...await presentationAtIngest(kind, absPath, probe) };
+  const presentation = await presentationAtIngest(kind, absPath, probe);
+  return { relPath, absPath, bytes: buf.length, mime, kind, ext, sha256: sha, probe, ...presentation, ...await thumbAtIngest(kind, relPath, absPath, probe, presentation.presentation) };
 }
 
 /** Move a file the worker produced (already on disk, e.g. an ffmpeg output) into the library. */
@@ -170,7 +189,8 @@ export async function adoptFile(assetId: string, srcAbs: string, opts: { expectK
   if (kind !== 'IMAGE' && kind !== 'SUBTITLE') { const d = await decodeCheck(srcAbs); if (!d.ok) throw new StudioError('INVALID', `The file does not decode cleanly: ${d.error}`); }
   try { await fsp.rename(srcAbs, absPath); } catch { await fsp.copyFile(srcAbs, absPath); await fsp.rm(srcAbs, { force: true }); }
   const st = await fsp.stat(absPath);
-  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: await sha256File(absPath), probe, ...await presentationAtIngest(kind, absPath, probe) };
+  const presentation = await presentationAtIngest(kind, absPath, probe);
+  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: await sha256File(absPath), probe, ...presentation, ...await thumbAtIngest(kind, relPath, absPath, probe, presentation.presentation) };
 }
 
 export async function removeFile(rel: string): Promise<void> {
@@ -186,5 +206,9 @@ export function assetFromStored(id: string, stored: StoredFile, meta: { label: s
     provenance: { ...(meta.provenance ?? {}), path: stored.relPath, probe: stored.probe }, jobId: meta.jobId,
     ...(meta.tier ? { tier: meta.tier } : {}),
     ...(stored.presentation ? { presentation: stored.presentation } : {}),
+    ...(stored.thumb ? { thumb: { src: thumbSrc(id), ...stored.thumb } } : {}),
   };
 }
+
+/** Remove a picture's derived thumbnail (the original is handled by `removeFile`). */
+export async function removeThumb(relPath: string): Promise<void> { await removeFile(thumbPathFor(relPath)); }

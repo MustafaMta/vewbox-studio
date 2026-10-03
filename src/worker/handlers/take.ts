@@ -412,7 +412,7 @@ export const generateTake: Handler = async (ctx) => {
   // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
   await recordWorldRead({ productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id, takeId: r.take.id });
   // a screening note sent to this shot (B2) now has the take it asked for
-  try { const n = await recordProducedTake(sh.id, r.take.id); if (n) await ctx.event('info', `${n} screening note(s) sent to this shot record this take`, { takeId: r.take.id }); } catch (e) { ctx.log.warn({ err: (e as Error).message }, 'could not record the take on its screening notes'); }
+  try { const n = await recordProducedTake(sh.id, r.take.id); if (n) await ctx.event('info', `${n} screening note(s) sent to this shot record this take`, { takeId: r.take.id }); } catch (e) { await ctx.event('warn', `could not record the take on its screening notes: ${(e as Error).message.split('\n')[0]}`, { takeId: r.take.id }).catch(() => undefined); }
   await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
