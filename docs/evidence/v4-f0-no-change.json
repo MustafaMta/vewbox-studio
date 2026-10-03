@@ -1,0 +1,27 @@
+{
+  "what": "DESIGN-SYSTEM-V4 §8.5 F0 acceptance: the 18 audit routes captured before and after the F0 splits (CSS, i18n, Cards, fonts/boot, icons) at 1440 EN show no visible difference",
+  "captured": "2026-10-03",
+  "command": "node scripts/capture-evidence.mjs --set audit --fixture sample --motion reduce --device desktop --lang en (before: commit c077dc0; after: commit b6be85a); pixel diff per channel sum > 24",
+  "compiledCss": "the browser's compiled rule set before and after the CSS split is the same multiset (1,317 rules); every rule outside @layer components keeps its order; inside it only whole sheets moved, and no element carries two classes whose relative order flipped while setting the same property",
+  "noise": "a second 'before' run against the first: 17 of 18 identical; Settings differs (it reads live /api/registry and /api/metrics)",
+  "routes": [
+    { "route": "/shows", "changedPixels": 0 },
+    { "route": "/shorts", "changedPixels": 0 },
+    { "route": "/music-videos", "changedPixels": 0 },
+    { "route": "/characters", "changedPixels": 0 },
+    { "route": "/characters/abu-samir", "changedPixels": 0 },
+    { "route": "/characters/new", "changedPixels": 0 },
+    { "route": "/locations", "changedPixels": 0 },
+    { "route": "/locations/new", "changedPixels": 0 },
+    { "route": "/studio", "changedPixels": 1241, "note": "one department label wrapped at a different point in one run; three re-captures after F0 were identical to the 'before' capture, and the label measures the same with the pre-split stylesheet checked out: a ResizeObserver timing artefact of the live diagram, not the split" },
+    { "route": "/studio/departments/CASTING", "changedPixels": 0 },
+    { "route": "/studio/agents/casting-director", "changedPixels": 0 },
+    { "route": "/production", "changedPixels": 0 },
+    { "route": "/screening", "changedPixels": 0 },
+    { "route": "/settings", "changedPixels": null, "note": "live registry/metrics data (differs between two 'before' runs as well)" },
+    { "route": "/new", "changedPixels": 0 },
+    { "route": "/new/show", "changedPixels": 0 },
+    { "route": "/assets", "changedPixels": 0 },
+    { "route": "/jobs", "changedPixels": 0 }
+  ]
+}

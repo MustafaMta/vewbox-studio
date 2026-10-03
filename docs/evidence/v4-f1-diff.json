@@ -1,0 +1,18 @@
+{
+  "what": "DESIGN-SYSTEM-V4 §8.5 F1 acceptance: 6 existing routes, EN and AR, at 1440/834/390, before (F0 complete, commit 421e10a) and after F1 (commits d5e928e, 1e2eeae); the files are docs/evidence/v4-f1-<page>-<before|after>-<lang>-<width>.png",
+  "command": "node scripts/capture-evidence.mjs --set f1 --fixture states --state before|after --motion reduce --device desktop,tablet,phone --lang en,ar",
+  "intendedChanges": [
+    "idle sidebar items one step dimmer: --fg-nav #a39b8e instead of --fg-muted #ada597 (7.11:1 on the ground); the current item is unchanged",
+    ".h3 loses its -0.005em tracking (§3.3 sets none): sub-pixel glyph shifts in 16 px headings, no layout change",
+    "Arabic below 640 px follows §3.3's phone sizes: page title 28/42 -> 24/38, section heading 19/30 -> 18/28, display-xl 36/52 -> 28/42; Arabic phone pages are 4-16 px shorter, everything under a heading moves up by that much"
+  ],
+  "unchanged": "page height and layout at 1440 and 834 in both languages and at 390 in English; the legacy hero (no wash), the sticky tabs under the top bar at 834",
+  "pairs": [
+    { "page": "shows",      "en-1440": "nav only", "ar-1440": "nav only", "en-834": "identical", "ar-834": "identical", "en-390": "identical", "ar-390": "Arabic phone heading sizes (1116 -> 1112 px tall)" },
+    { "page": "show",       "en-1440": "nav only", "ar-1440": "nav only", "en-834": "identical", "ar-834": "identical", "en-390": "identical", "ar-390": "Arabic phone heading sizes (3215 -> 3202)" },
+    { "page": "characters", "en-1440": "nav only", "ar-1440": "nav only", "en-834": "identical", "ar-834": "identical", "en-390": "identical", "ar-390": "Arabic phone heading sizes (1890 -> 1886)" },
+    { "page": "character",  "en-1440": "nav + .h3 tracking", "ar-1440": "nav only", "en-834": ".h3 tracking", "ar-834": "identical", "en-390": ".h3 tracking", "ar-390": "Arabic phone heading sizes (4413 -> 4397)" },
+    { "page": "studio",     "en-1440": "nav + .h3 tracking", "ar-1440": "nav only", "en-834": "194 px of live organisation data", "ar-834": "210 px of live organisation data", "en-390": ".h3 tracking", "ar-390": "Arabic phone heading sizes (1491 -> 1479)" },
+    { "page": "new-show",   "en-1440": "nav only", "ar-1440": "nav only", "en-834": "anti-aliasing inside the fading form card (no visible difference side by side)", "ar-834": "identical", "en-390": "identical", "ar-390": "not captured: the dev server reached its time limit during the last capture" }
+  ]
+}
