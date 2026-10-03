@@ -6,8 +6,9 @@ import type { Asset, Character, StudioState } from '@/domain/types';
 import { assetById, primaryImageOf } from '@/studio/selectors';
 import { FigureCard } from '@/components/media';
 import { SectionHead } from '@/components/ui/kit';
-import { IconChevronLeft, IconPause, IconPlay } from '@/components/ui/icons';
-import { usePlayer, useTrackState, type Track } from '@/components/players/PlayerProvider';
+import { IconChevronLeft } from '@/components/ui/icons';
+import { PlayDisc } from '@/components/players/PlayDisc';
+import type { Track } from '@/components/players/PlayerProvider';
 import { voiceTrackSource } from './identity';
 
 /** THE CAST PAGES' PARTS — small compositions of the shared kit for the casting directory, the profile and the
@@ -35,28 +36,12 @@ export function figureOf(s: StudioState, c: Character): Asset | undefined {
   return usable(a) ? a : undefined;
 }
 
-/** The 36 px voice disc: plays the character's one voice on the shared player (never two sounds at once). Charcoal at
- *  rest, the off-white primary while it plays. It is never inside a link. (The kit's PlayDisc has no 36 size yet.) */
-export function VoiceDisc({ track, name, className }: { track: Track; name: string; className?: string }) {
-  const p = usePlayer();
-  const st = useTrackState(track);
-  return (
-    <button type="button" className={`btn btn-icon pc-disc ${st.playing ? 'btn-primary' : 'btn-secondary'}${className ? ` ${className}` : ''}`}
-      aria-label={`${st.playing ? 'Pause' : 'Play'} ${name}’s voice`} aria-pressed={st.playing} aria-busy={st.loading || undefined}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); p.toggle(track); }}>
-      {st.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}
-    </button>
-  );
-}
-
 /** A character in the casting directory: the kit's FigureCard (the whole figure on its own field, the name, "Needs
- *  approval" only when waited on) with the voice disc at the end of the name row, as the card's sibling. */
+ *  approval" only when waited on) with the kit's 36 px voice disc in its `disc` slot, outside the link. */
 export function CastCard({ c, asset, track, waiting, priority }: { c: Character; asset?: Asset; track: Track | null; waiting: boolean; priority?: boolean }) {
   return (
-    <div className="pc-fig" data-voice={track ? '' : undefined}>
-      <FigureCard href={`/characters/${encodeURIComponent(c.id)}`} name={c.name} nameLang={nameLang(c.name)} asset={asset} waiting={waiting} priority={priority} />
-      {track && <VoiceDisc track={track} name={c.name} />}
-    </div>
+    <FigureCard href={`/characters/${encodeURIComponent(c.id)}`} name={c.name} nameLang={nameLang(c.name)} asset={asset} waiting={waiting} priority={priority}
+      disc={track ? <PlayDisc track={track} size={36} tone="secondary" labelPlay={`Play ${c.name}’s voice`} labelPause={`Pause ${c.name}’s voice`} /> : undefined} />
   );
 }
 

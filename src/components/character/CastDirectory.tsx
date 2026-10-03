@@ -38,7 +38,7 @@ export function useWaitingCharacters(): Set<string> {
 
 export function NewCharacterSplit() {
   return (
-    <div className="btn-split pc-split">
+    <div className="btn-split">
       <Link className="btn btn-primary" href="/characters/new">New character</Link>
       <MenuButton label="More ways to create a character" iconOnly icon={<IconChevronDown aria-hidden />} variant="primary" align="end">
         <MenuLink href="/characters/new?start=describe" description="Describe them in one line; the studio drafts the rest">Auto</MenuLink>

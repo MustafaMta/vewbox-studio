@@ -434,7 +434,7 @@ function Recorder({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
   return (
     <div>
       {phase === 'recording'
-        ? <Button variant="secondary" onClick={() => rec.current?.stop()}>Stop · <span className="vrow-time" aria-live="polite">{fmtSeconds(seconds)}</span></Button>
+        ? <Button variant="secondary" onClick={() => rec.current?.stop()}>Stop · <span className="arow-time" aria-live="polite">{fmtSeconds(seconds)}</span></Button>
         : <Button variant="secondary" disabled={disabled} loading={phase === 'asking'} onClick={() => void start()}>Record</Button>}
       {error && <p role="alert" className="help">{error}</p>}
     </div>

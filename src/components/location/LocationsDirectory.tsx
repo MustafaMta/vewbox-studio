@@ -15,7 +15,7 @@ import { CastSection, PageHead } from '@/components/character/parts';
  *  default, Manual from its menu. Search appears once the board is larger than six. */
 export function NewLocationSplit() {
   return (
-    <div className="btn-split pc-split">
+    <div className="btn-split">
       <Link className="btn btn-primary" href="/locations/new">New location</Link>
       <MenuButton label="More ways to create a location" iconOnly icon={<IconChevronDown aria-hidden />} variant="primary" align="end">
         <MenuLink href="/locations/new" description="Describe the place in one line; the studio draws the plates">Auto</MenuLink>

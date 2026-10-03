@@ -44,7 +44,7 @@ test.describe('the casting directory', () => {
     // the figure is never cropped: contain on its field, at 928:1664
     const fit = await page.locator('.pc-grid .fcard-frame img').first().evaluate((i) => getComputedStyle(i).objectFit);
     expect(fit).toBe('contain');
-    const discs = page.locator('.pc-grid .pc-disc');
+    const discs = page.locator('.pc-grid .pdisc');
     expect(await discs.count()).toBeGreaterThan(0);
     expect(await discs.count()).toBeLessThanOrEqual(snap.state.characters.length);
     expect((await discs.first().boundingBox())!.width).toBe(36);
@@ -79,8 +79,7 @@ test.describe('the casting directory', () => {
     await first.focus();
     await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab'); await page.waitForTimeout(400);
     const ring = await first.evaluate((e) => { const cs = getComputedStyle(e); return { style: cs.outlineStyle, width: cs.outlineWidth, offset: cs.outlineOffset, fv: e.matches(':focus-visible') }; });
-    // v5.1 §5: a 2 px ring outside the card (the kit's base rule sets the offset; §5 asks 3 px — change request filed)
-    expect(ring.style).toBe('solid'); expect(ring.width).toBe('2px'); expect(parseFloat(ring.offset)).toBeGreaterThanOrEqual(2); expect(ring.fv).toBe(true);
+    expect(ring).toEqual({ style: 'solid', width: '2px', offset: '3px', fv: true });
     const href = await first.getAttribute('href');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(new RegExp(`${href}$`));
@@ -151,7 +150,7 @@ test.describe('the character profile', () => {
     await expect(page.getByText(/^Locked · /)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Redraw', exact: true })).toHaveCount(0);
-    await expect(page.locator('.char-main > .char-voice .vrow')).toHaveCount(1);
+    await expect(page.locator('.char-main > .char-voice .arow')).toHaveCount(1);
     await expect(page.locator('#appears .char-posters .mcard').first()).toHaveAttribute('href', /^\/(shorts|music-videos|shows)\//);
     expect(await page.locator('#appears .char-frames .mcard').count()).toBeGreaterThan(0);
     // the More menu holds "Edit the look", disabled with its reason

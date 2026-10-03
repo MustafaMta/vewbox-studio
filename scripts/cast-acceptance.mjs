@@ -36,6 +36,13 @@ const PAGES = [
 const SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
 
 const browser = await chromium.launch();
+// the dev server compiles each route on its first request: warm every page once, unthrottled, so the throttled run
+// measures the page and not the compiler
+{
+  const warm = await browser.newPage();
+  for (const pg of PAGES) { await warm.goto(`${base}${pg.path}`, { waitUntil: 'domcontentloaded' }); await warm.waitForSelector('main h1', { timeout: 300000 }).catch(() => {}); }
+  await warm.close();
+}
 let failed = 0;
 const report = [];
 for (const size of SIZES) {

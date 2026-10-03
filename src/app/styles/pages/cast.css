@@ -4,8 +4,8 @@
    skeleton (CharactersSkeleton, CharacterSkeleton, LocationsSkeleton, LocationSkeleton) uses the same classes, so it has
    the page's exact shapes and nothing moves when the content arrives.
 
-   The cards, the shelf head, dialogs and skeleton parts are the shared kit's (src/components/media, ui/kit); this sheet
-   only places them. Page-local still: .pc-disc, the 36 px voice disc (the kit's PlayDisc has no 36 size yet). */
+   The cards, the voice disc and audio row, the shelf head, dialogs and skeleton parts are the shared kit's
+   (src/components/media, players, ui/kit); this sheet only places them. */
 @layer components {
   /* ------------------------------------------------------------------------------------------------ page head */
   .pc-page { display: flex; flex-direction: column; }
@@ -21,9 +21,6 @@
   .pc-bar { margin-block-start: 24px; }
   .pc-bar .catalogue-bar { margin: 0; }
 
-  /* the split primary: "New character" + the method menu (a divider between the two parts) */
-  .pc-split > .menu-wrap { position: relative; }
-  .pc-split > .menu-wrap::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; z-index: 1; inline-size: 1px; background: var(--split-on-primary); pointer-events: none; }
 
   .pc-section { margin-block-start: var(--section-gap); scroll-margin-block-start: 24px; }
   .pc-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 32px; margin-block-end: 4px; }
@@ -35,13 +32,6 @@
   .pc-grid > li { min-inline-size: 0; }
   .pc-none { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-block-start: 24px; }
 
-  /* the figure card with its voice disc at the end of the name row (the disc is the card's sibling, never in the link) */
-  .pc-fig { position: relative; min-inline-size: 0; }
-  .pc-fig[data-voice] .fcard-name { padding-inline-end: 44px; }
-  .pc-fig > .pc-disc { position: absolute; inset-inline-end: 0; inset-block-end: 20px; }
-  .pc-disc.btn { inline-size: 36px; block-size: 36px; min-inline-size: 36px; min-block-size: 36px; padding: 0; }
-  .pc-disc.btn svg { inline-size: 16px; block-size: 16px; }
-  @media (pointer: coarse) { .pc-disc.btn { inline-size: 44px; block-size: 44px; min-inline-size: 44px; min-block-size: 44px; } .pc-fig > .pc-disc { inset-block-end: 16px; } .pc-fig[data-voice] .fcard-name { padding-inline-end: 52px; } }
   .pc-calls { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
 
   /* the plates (locations) */
@@ -69,20 +59,15 @@
   .char-override-acts { display: flex; flex-wrap: wrap; gap: 8px; }
   .char-voice { margin-block-start: 24px; }
 
-  /* the voice as one audio row (§5.24) */
-  .vrow { display: flex; align-items: center; gap: 12px; min-block-size: 64px; padding: 12px; border-radius: var(--r-md); background: var(--surface-1); }
-  .vrow[data-selected] { background: var(--surface-2); }
-  .vrow-play.btn { inline-size: 40px; block-size: 40px; min-inline-size: 40px; padding: 0; }
-  .vrow-play.btn svg { inline-size: 16px; block-size: 16px; }
-  .vrow-play[data-off] { pointer-events: none; }
-  .vrow-words { display: flex; flex: 1 1 0; flex-direction: column; min-inline-size: 0; }
-  .vrow-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
-  .vrow-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; color: var(--text-3); }
-  .vrow-wave { display: flex; flex: 1.4 1 0; align-items: center; gap: 12px; min-inline-size: 0; }
-  .vrow-wave canvas { display: block; flex: 1; min-inline-size: 0; block-size: 32px; cursor: pointer; border-radius: var(--r-xs); }
-  .vrow-time { flex: none; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .vrow-end { display: flex; flex: none; align-items: center; gap: 8px; }
-  .vrow-error { flex-basis: 100%; margin: 0; font-size: 13px; line-height: 18px; color: var(--bad); }
+  /* a voice line: the kit's audio row, with an action at its end */
+  .pc-arow { display: flex; align-items: center; gap: 12px; min-inline-size: 0; }
+  .pc-arow > .pc-arow-row { flex: 1; min-inline-size: 0; }
+  .pc-arow-end { display: flex; flex: none; align-items: center; gap: 8px; }
+  .pc-arow[data-selected] .arow { background: var(--surface-2); }
+  /* a spoken line is read, not just named: the words and the waveform share the row equally */
+  :is(.char-voice, .vrow-list) .arow-words { flex: 1 1 0; }
+  :is(.char-voice, .vrow-list) .arow-wave { flex: 1 1 0; }
+  .pc-arow-off.btn { flex: none; inline-size: 40px; block-size: 40px; min-inline-size: 40px; padding: 0; pointer-events: none; }
   .vrow-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .char-voice-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-block-start: 12px; }
   .char-voice-foot .state-word { min-inline-size: 0; }
@@ -195,8 +180,6 @@
   @media (max-width: 639px) {
     .pc-head { align-items: stretch; flex-direction: column; }
     .pc-head-acts > * { flex: 1; }
-    .pc-head-acts .pc-split { display: flex; }
-    .pc-head-acts .pc-split > .btn:first-child { flex: 1; }
     .pc-grid, .pc-calls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
     .pc-plates { grid-template-columns: minmax(0, 1fr); }
     .char-figure-frame { border-radius: var(--r-md); }
@@ -204,8 +187,7 @@
     .char-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .char-posters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .char-acts > .btn-primary { flex: 1 1 100%; }
-    .vrow { flex-wrap: wrap; }
-    .vrow-wave { flex-basis: 100%; order: 3; }
+    .pc-arow { flex-wrap: wrap; }
     .pc-pair, .pc-drop, .pc-ready { grid-template-columns: minmax(0, 1fr); }
     .pc-create-card { padding: 16px; }
     .pc-drop .shaped-drop-wrap, .pc-ready > :first-child { max-inline-size: 200px; }
