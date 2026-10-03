@@ -83,7 +83,7 @@ function Drawer({ side, title, open, onClose, children }: { side: 'start' | 'end
   );
 }
 
-export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, className }: { id: string; list?: DockPanel; canvas: ReactNode; canvasTitle: string; inspector?: DockPanel; footer?: ReactNode; className?: string }) {
+export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, tools, className }: { id: string; list?: DockPanel; canvas: ReactNode; canvasTitle: string; inspector?: DockPanel; footer?: ReactNode; /** the workspace's own controls in the layout bar (the focus-mode button) */ tools?: ReactNode; className?: string }) {
   const T = useT();
   const focus = useFocusMode();
   const three = useMediaQuery('(min-width: 1280px)');
@@ -122,6 +122,7 @@ export function DockLayout({ id, list, canvas, canvasTitle, inspector, footer, c
           </>
         )}
         <span className="prow-spacer" />
+        {tools}
         {(mode === 'three' || mode === 'two') && (
           <Menu label={`${T('media.dock.layout')}: ${T('nav.more')}`}>
             <MenuItem icon={<IconReplay />} onClick={reset}>{T('media.dock.reset')}</MenuItem>

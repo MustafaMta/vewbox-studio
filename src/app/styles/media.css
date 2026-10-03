@@ -32,6 +32,8 @@
       html[dir='rtl'] .tcard[data-ratio='16/9'] .tcard-title.t-card { font-size: 19px; line-height: 30px; }
     }
   }
+  /* very small frames (a 112 × 63 still in a phone row): the state words go; the name and the number stay */
+  @container (max-width: 140px) { .tcard .tcard-state { display: none; } }
   /* small frames (a 160 × 90 still in a row, a strip): the number and the name step down */
   @container (max-width: 200px) {
     .tcard .tcard-num { font-size: 32px; line-height: 32px; }
@@ -59,6 +61,7 @@
   .mslate-item { white-space: nowrap; unicode-bidi: isolate; }
   .mslate-item:last-child { white-space: normal; }
   .mslate-sep { color: var(--ink-500); }
+  .mslate .status { white-space: normal; }
   .mslate[data-size='tile'] { color: var(--fg-faint); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .mslate[data-size='header'] { color: var(--fg-muted); }
 
@@ -169,7 +172,7 @@
   }
 
   /* ---- episodes (§5.7) --------------------------------------------------------------------------------------- */
-  .ep-state { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .ep-state { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-2); }
   .ep-row { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); min-block-size: 104px; border-block-end: 1px solid var(--line-soft); }
   .ep-num { display: grid; place-items: center; inline-size: 32px; block-size: 32px; padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--fg-faint); font: inherit; font-size: 15px; font-weight: 500; }
   button.ep-num { cursor: pointer; }
@@ -187,7 +190,7 @@
   .ep-chev { inline-size: 16px; block-size: 16px; color: var(--fg-faint); }
   @media (max-width: 639px) {
     .ep-link { grid-template-columns: 112px minmax(0, 1fr) 16px; gap: var(--space-3); }
-    .ep-runtime { display: none; }
+    .ep-runtime, .ep-row .stage-meter { display: none; }
   }
 
   /* ---- the season picker (§5.7) ------------------------------------------------------------------------------ */
@@ -251,12 +254,12 @@
   .mhero-slate { margin-block-end: var(--space-2); }
   .mhero-title { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .mhero-alt { margin: var(--space-1) 0 0; color: var(--fg-muted); }
-  .mhero-leadwrap { margin-block-start: var(--space-3); }
+  .mhero-leadwrap { align-self: stretch; margin-block-start: var(--space-3); }
   .mhero-lead { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .mhero-lead[data-open] { display: block; }
   .mhero-more { margin-block-start: 2px; padding: 0; border: 0; background: none; color: var(--fg-muted); font: inherit; font-size: 13px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; border-radius: var(--r-1); }
   .mhero-more:hover { color: var(--fg); }
-  .mhero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-block-start: var(--space-5); }
+  .mhero-actions { display: flex; flex-wrap: wrap; align-items: center; align-self: stretch; gap: var(--space-2); margin-block-start: var(--space-5); }
   .mhero-status { margin-block-start: var(--space-3); }
   .mhero-text-on-art .mhero-alt, .mhero-text-on-art .mhero-more { color: var(--on-art-muted); }
   .mhero-text-on-art .mhero-lead, .mhero-on-art-body { color: var(--fg-body); }
@@ -343,6 +346,42 @@
   .mhero-theatre-main { display: grid; gap: var(--space-5); }
   .mhero-theatre .mhero-text { margin-block-start: var(--space-5); }
   @media (min-width: 1440px) { .mhero-theatre-main[data-notes] { grid-template-columns: minmax(0, 1fr) 320px; } }
+
+  /* ---- the specimen sections (components/media/Specimens.tsx; dev only) ---------------------------------------- */
+  .spec-page { display: flex; flex-direction: column; gap: var(--space-3); }
+  .spec-page > .page-title { margin: 0; }
+  .spec-lead { margin: 0; }
+  .spec-nav { font-size: 13px; color: var(--fg-faint); }
+  .spec-nav a { color: var(--fg-muted); }
+  .spec { display: flex; flex-direction: column; gap: var(--space-8); margin-block-start: var(--space-6); }
+  .spec-section { display: flex; flex-direction: column; gap: var(--space-7); scroll-margin-block-start: var(--space-5); }
+  .spec-section-h { margin: 0; padding-block-end: var(--space-3); border-block-end: 1px solid var(--line-soft); }
+  .spec-block { display: flex; flex-direction: column; gap: var(--space-4); min-inline-size: 0; }
+  .spec-h { margin: 0; }
+  .spec-cell { display: flex; flex-direction: column; gap: var(--space-2); min-inline-size: 0; margin: 0; }
+  .spec-cap { margin: 0; }
+  .spec-row { display: grid; gap: var(--space-5); grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); }
+  .spec-row-2 { --n: 1; } .spec-row-3 { --n: 1; } .spec-row-4 { --n: 2; } .spec-row-6 { --n: 3; }
+  @media (min-width: 768px) { .spec-row-2 { --n: 2; } .spec-row-3 { --n: 3; } .spec-row-4 { --n: 4; } .spec-row-6 { --n: 6; } }
+  .spec-stack { display: flex; flex-direction: column; gap: var(--space-5); min-inline-size: 0; }
+  .spec-gap { margin-block-start: var(--space-6); }
+  .spec-meters { display: flex; flex-wrap: wrap; gap: var(--space-5); margin: 0; }
+  .spec-faces { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+  .spec-hero { gap: var(--space-3); padding-block-end: var(--space-5); border-block-end: 1px solid var(--line-soft); }
+  .spec-theatre-room { padding: var(--space-4); background: var(--page); }
+  .spec-compact { position: relative; padding-block: var(--space-2); }
+  .spec-compact .chead { position: relative; margin-inline: 0; }
+  .spec-preview { position: relative; aspect-ratio: 16 / 9; max-inline-size: 720px; overflow: hidden; border-radius: var(--r-3); background: var(--art-ph); }
+  .spec-canvas { max-inline-size: 960px; }
+  .spec-music { display: grid; gap: var(--space-6); }
+  @media (min-width: 1280px) { .spec-music { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+  .spec-dock { overflow: hidden; border-radius: var(--r-2); }
+  .spec-dock-head { display: flex; justify-content: flex-end; padding: 6px 8px; background: var(--frame); border-block-end: 1px solid var(--line-soft); }
+  .spec-shotlist { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  .spec-shot { inline-size: 100%; justify-content: flex-start; text-align: start; }
+  .spec-shot > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+  .spec-panel { padding: var(--space-3); border-radius: var(--r-2); background: var(--frame); }
+  .spec-toolrow { position: relative; display: flex; justify-content: center; padding: var(--space-6); border-radius: var(--r-2); background: var(--canvas); }
 
   /* ============================== legacy (F0 → F3; kept until each page migrates, then Q1) ================= */
   /* the word that sits on every bundled picture: now on the solid chip, no blur (§1.5) */

@@ -19,14 +19,14 @@ export interface HeroTextProps {
   titleLang?: string;
   titleSize?: 'hero' | 'hero-sm';
   /** the second-language name: a quiet line under the title, with its own language */
-  alt?: { text: string; lang: string } | null;
+  altTitle?: { text: string; lang: string } | null;
   lead?: ReactNode;
   leadLang?: string;
   actions?: ReactNode;
   statusStrip?: ReactNode;
   onArt?: boolean;
   /** the hero title is the page's h1; a specimen page shows several heroes under lower levels */
-  headingLevel?: 1 | 2 | 3;
+  headingLevel?: 1 | 2 | 3 | 4;
   children?: ReactNode;
   className?: string;
 }
@@ -50,13 +50,13 @@ function Lead({ children, lang, onArt }: { children: ReactNode; lang?: string; o
   );
 }
 
-export function HeroText({ slate, status, title, titleLang, titleSize = 'hero', alt, lead, leadLang, actions, statusStrip, onArt, headingLevel = 1, children, className }: HeroTextProps) {
-  const H = (`h${headingLevel}`) as 'h1' | 'h2' | 'h3';
+export function HeroText({ slate, status, title, titleLang, titleSize = 'hero', altTitle, lead, leadLang, actions, statusStrip, onArt, headingLevel = 1, children, className }: HeroTextProps) {
+  const H = (`h${headingLevel}`) as 'h1' | 'h2' | 'h3' | 'h4';
   return (
     <div className={cls('mhero-text', onArt && 'mhero-text-on-art', className)}>
       <Slate size="hero" items={slate ?? []} status={status} onArt={onArt} className="mhero-slate" />
       {title && <H className={cls(titleSize === 'hero' ? 't-hero' : 't-hero-sm', 'mhero-title')} dir="auto" lang={titleLang}>{title}</H>}
-      {alt && <p className="mhero-alt text-sm" dir="auto" lang={alt.lang}>{alt.text}</p>}
+      {altTitle && <p className="mhero-alt text-sm" dir="auto" lang={altTitle.lang}>{altTitle.text}</p>}
       {lead && <Lead lang={leadLang} onArt={onArt}>{lead}</Lead>}
       {actions && <div className="mhero-actions">{actions}</div>}
       {statusStrip && <div className="mhero-status">{statusStrip}</div>}

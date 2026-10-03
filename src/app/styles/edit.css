@@ -91,6 +91,7 @@
   .tl-clip:hover .tl-trim, .tl-clip:focus-visible .tl-trim, .tl-clip[data-selected] .tl-trim { opacity: 1; }
   .tl-line { position: absolute; inset-block: 6px; display: flex; align-items: center; padding-inline: 6px; overflow: hidden; border-radius: var(--r-precise); background: var(--clip); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 12px; line-height: 16px; color: var(--fg-body); }
   .tl-line-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl .wave-head { display: none; }
   .tl-playhead { position: absolute; z-index: 3; inset-block: 0; inline-size: 1px; background: var(--fg); pointer-events: none; }
 
   /* ---- the dock layout (§5.20) ------------------------------------------------------------------------------- */
@@ -109,6 +110,9 @@
   .dock-rail { display: flex; flex-direction: column; align-items: center; padding-block: 4px; background: var(--input); }
   html[dir='rtl'] .dock-collapse-glyph, .dock-inspector .dock-collapse-glyph { transform: scaleX(-1); }
   html[dir='rtl'] .dock-inspector .dock-collapse-glyph { transform: none; }
+  .dock-canvas > .cplayer { flex: 1; min-block-size: 0; }
+  .dock-canvas .cplayer-canvas { flex: 1; min-block-size: 0; }
+  .dock-canvas .cplayer-canvas[data-zoom='fit'] .cplayer-box { block-size: 100%; max-block-size: none; aspect-ratio: auto !important; }
   .dock-footer { min-inline-size: 0; background: var(--frame); border-block-start: 1px solid var(--line-soft); }
   .dock-single { display: flex; flex-direction: column; min-block-size: 0; block-size: 100%; }
   .dock-single > .dock-panel, .dock-single > .dock-canvas { flex: 1; }

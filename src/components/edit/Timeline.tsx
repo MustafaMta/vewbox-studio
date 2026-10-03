@@ -83,10 +83,10 @@ export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [
         <button type="button" className="ebtn" onClick={() => setPps(null)} aria-pressed={pps === null}><IconFit aria-hidden />{T('media.tl.fit')}</button>
         {one && onTrim && (
           <span className="tl-nudges" role="group" aria-label={T.f('media.shot', { n: one.number })}>
-            <span className="tl-nudge-label tc">{T.f('media.tl.trimStart', { n: one.number })}</span>
+            <span className="tl-nudge-label">{T.f('media.tl.trimStart', { n: one.number })}</span>
             <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from - frame)}>{T('media.tl.startEarlier')}</button>
             <button type="button" className="ebtn" onClick={() => trim(one, 'start', one.from + frame)}>{T('media.tl.startLater')}</button>
-            <span className="tl-nudge-label tc">{T.f('media.tl.trimEnd', { n: one.number })}</span>
+            <span className="tl-nudge-label">{T.f('media.tl.trimEnd', { n: one.number })}</span>
             <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to - frame)}>{T('media.tl.endEarlier')}</button>
             <button type="button" className="ebtn" onClick={() => trim(one, 'end', one.to + frame)}>{T('media.tl.endLater')}</button>
           </span>

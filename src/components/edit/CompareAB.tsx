@@ -59,7 +59,7 @@ export function CompareAB({ a, b, onChoose, fps, aspect = '16/9', className }: {
     <figure className="cmp-pane" data-side={s} hidden={!wide && side !== s}>
       <div className="cmp-frame canvas" style={{ aspectRatio: aspect.replace('/', ' / ') }}>
         <video ref={ref} src={src.src} poster={src.poster} playsInline preload="metadata" muted={side !== s}
-          onLoadedMetadata={(e) => setDuration((d) => Math.max(d, e.currentTarget.duration || 0))} onEnded={() => setPlaying(false)} />
+          onLoadedMetadata={(e) => { const d0 = e.currentTarget.duration || 0; setDuration((d) => Math.max(d, d0)); }} onEnded={() => setPlaying(false)} />
       </div>
       <figcaption className="cmp-cap">
         <span className="cmp-label"><span className="tc">{s}</span> · <span dir="auto">{src.label}</span>{src.chosen && <span className="cmp-chosen"> ({T('media.compare.chosen')})</span>}</span>

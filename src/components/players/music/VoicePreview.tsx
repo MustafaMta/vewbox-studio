@@ -30,7 +30,7 @@ export function VoicePreview({ track, name, line, lineLang, origin, className }:
         <span className="vreel-name" dir="auto">{name}</span>
         {origin && <span className="vreel-origin"> · {origin}</span>}
       </p>
-      {line && <p className="vreel-line" dir="auto" lang={lineLang}>“{line}”</p>}
+      {line && <p className="vreel-line" dir="auto" lang={lineLang}><q>{line}</q></p>}
     </div>
   );
 }
