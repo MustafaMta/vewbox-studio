@@ -266,6 +266,17 @@ const AGENTS_BASE: AgentBase[] = [
     systemInstructions: S(`Plates show the place before anyone arrives: pure environment and props, the same architecture in every view.`),
     model: 'Qwen-Image-2512 / Qwen-Image-Edit-2511 (ComfyUI)', skills: ['world-continuity'], tools: ['image.generate', 'image.edit_with_references'], inputSchema: 'JOB_PAYLOADS.LOCATION_PLATES', outputSchema: 'location plates', limits: { timeoutMs: 1_200_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '1.2.0',
     qualityRequirements: ['no figures in a plate'], jobTypes: ['LOCATION_PLATES'], steps: [] },
+  { id: 'world-continuity', name: 'World Continuity', department: 'WORLD', role: 'The World Bible: pinned revisions, places reused on return',
+    description: 'Keeps the World Bible: a structured, versioned record per show (or per short and music video) of the characters with their canonical images and voice identities, relationships, places with their plates, architecture and layout, props, wardrobe, the story timeline, light and weather, each scene’s end state, the world’s rules and the audio policy. Writes a revision whenever the world changes (after story development, the shot plan and an episode’s continuity record); pins a production to the revision its approved story is made against at its first production run, and moves the pin only when nothing the production already filmed would change; gives every take the place’s plate the bible chooses (an established frame of an approved take before a drawn plate, by id) and the pinned canonical images, and records what the take read; registers the frames an approved cut establishes, so a returning place is filmed against what the audience saw.',
+    systemInstructions: S(`One world per show (or per short and music video), in append-only revisions; a production reads the revision its story was approved against and follows a newer one only when nothing it already filmed would change; a returning place is filmed against its established frames or plates by id, never redrawn from a description; every take records the revision it read.`),
+    model: 'rule set (src/domain/world.ts, src/server/world)', skills: ['world-continuity'], tools: [], inputSchema: 'Production, World Bible revision', outputSchema: 'WorldRevision / WorldPin / WorldRead', version: '1.0.0',
+    qualityRequirements: ['every take records the World Bible revision it read', 'a returning place is filmed against its plates by id', 'revisions are append-only'], ...STEP_ONLY,
+    steps: [
+      { id: 'world-sync', name: 'World Bible revision after the story changes', where: W('handlers/story.ts') },
+      { id: 'world-pin', name: 'World Bible pin of a production', where: W('handlers/produce.ts') },
+      { id: 'world-read', name: 'World Bible read for a take', where: W('handlers/take.ts') },
+      { id: 'establish-locations', name: 'Established frames of an approved cut', where: W('handlers/assemble.ts') },
+    ] },
   // Pre-Production
   { id: 'film-director', name: 'Film Director', department: 'PREPRODUCTION', role: 'Director: the shot plan',
     description: 'Executes PLAN_SHOTS: one structured call per scene for shots with purpose, staging, framing, camera move, duration, line assignment, continuity states and a generation prompt; for a music video it also assigns the singing per section and copies it onto the shots. Records the SHOT_PLAN handoff.',
@@ -395,6 +406,7 @@ const AGENTS_AR: Record<string, { name: string; role: string; description: strin
   'character-continuity': { name: 'وكيل استمرارية الشخصيات', role: 'مراجع الهوية لكل لقطة', description: 'يسلّم الصور المعتمدة لشخصيات كل لقطة إلى وكيل تهيئة المراجع عند توليدها (تسليم الهوية)، ويفحص الصورة المرجعية المرفوعة قبل رسم الشخصية منها.' },
   'art-director': { name: 'المدير الفني', role: 'المدير: مراجعة تسليم الأماكن', description: 'يراجع لوحات المكان قبل تسليمها إلى ما قبل الإنتاج: يجب أن توجد لوحة رئيسية وزاوية واحدة على الأقل، ويحمل تسليم مرحلة الشخصيات والعالم النتيجة.' },
   'environment-artist': { name: 'فنان البيئات', role: 'لوحات المواقع', description: 'ينفّذ لوحات الموقع: اللوحة الرئيسية خالية من الناس، وزاوية معاكسة وزاوية نحو المَعلم مرسومتان منها، وحتى ثلاث حالات لأوقات اليوم.' },
+  'world-continuity': { name: 'استمرارية العالم', role: 'سجل العالم: نسخ مثبَّتة وأماكن يُعاد استخدامها عند العودة', description: 'يحفظ سجل العالم: سجلًا منظَّمًا ذا نسخ متتابعة لكل مسلسل (أو لكل فيلم قصير وفيديو موسيقي) يضم الشخصيات بصورها المعتمدة وهوياتها الصوتية، والعلاقات، والأماكن بلوحاتها ومعمارها ومخططها، والإكسسوارات، والأزياء، والخط الزمني للقصة، والإضاءة والطقس، وحالة كل مشهد عند نهايته، وقواعد العالم، وسياسة الصوت. يكتب نسخة جديدة كلما تغيّر العالم (بعد تطوير القصة وخطة اللقطات وتسجيل استمرارية الحلقة)؛ ويثبّت الإنتاج عند أول تشغيل له على النسخة التي وُوفق على قصته بها، ولا ينقله إلى نسخة أحدث إلا إذا لم يتغير شيء مما صُوِّر؛ ويعطي كل لقطة لوحة المكان التي يختارها السجل (إطارًا مرجعيًا من لقطة معتمدة قبل اللوحة المرسومة، بمعرّفه) والصور المعتمدة المثبَّتة، ويسجّل ما قرأته اللقطة؛ ويضيف الإطارات المرجعية للأماكن من المونتاج المعتمد، فيُصوَّر المكان عند العودة إليه على ما رآه الجمهور.' },
   'film-director': { name: 'مخرج الفيلم', role: 'المدير: خطة اللقطات', description: 'ينفّذ تخطيط اللقطات: استدعاء منظَّم لكل مشهد يُنتج لقطات بغرض وتمركز وتأطير وحركة كاميرا ومدة وتوزيع للجمل وحالات استمرارية ووصف للتوليد؛ وفي الفيديو الموسيقي يوزّع الغناء على المقاطع وينسخه إلى اللقطات. ويسجّل تسليم خطة اللقطات.' },
   'storyboard-artist': { name: 'فنان القصة المصورة', role: 'الإطارات الافتتاحية', description: 'ينفّذ تحضير الإطارات: الإطار الافتتاحي للقطة (والختامي عند الطلب) من لوحة المكان وصور شخصيتين على الأكثر، ويسجّل تسليم القصة المصورة حين يكتمل إطار كل لقطة.' },
   'shot-planner': { name: 'مخطط اللقطات', role: 'ملاءمة توقيت المشهد', description: 'يلائم لقطات المشهد المخطَّطة مع ميزانية مدته: إذا قصرت الخطة عن 90٪ من الميزانية تُمدَّد كل لقطة بالنسبة نفسها (بثوانٍ كاملة، من 3 إلى 10 ثوانٍ للقطة).' },
@@ -424,6 +436,7 @@ const STEPS_AR: Record<string, string> = {
   'mix-plan': 'خطة مزج المونتاج', 'subtitle-cues': 'إشارات ترجمة المونتاج', 'story-gate': 'بوابة الموافقة على القصة', 'pilot-gate': 'بوابة اللقطة التجريبية للمشهد', 'cut-gate': 'بوابة الموافقة على المونتاج',
   'qa-handoff-review': 'مراجعة تسليم ضمان الجودة', 'file-validation': 'التحقق من الملف المنجز', 'take-speech-check': 'فحص كلام اللقطة', 'song-check': 'فحص الأغنية',
   'voice-proof-check': 'فحص جملة إثبات الصوت', 'picture-check': 'فحص صورة اللقطة', 'failure-classification': 'تصنيف الإخفاق',
+  'world-sync': 'نسخة جديدة من سجل العالم بعد تغيّر القصة', 'world-pin': 'تثبيت سجل العالم للإنتاج', 'world-read': 'قراءة سجل العالم للقطة', 'establish-locations': 'الإطارات المرجعية للأماكن من المونتاج المعتمد',
 };
 
 export const AGENTS: AgentDef[] = AGENTS_BASE.map((a) => {
@@ -447,7 +460,6 @@ const PLANNED_BASE: Array<Omit<PlannedRole, 'nameAr' | 'reasonAr'>> = [
   { id: 'world-designer', department: 'WORLD', name: 'World Designer', would: 'Design new places with layout, landmarks and props from the story’s needs.', reason: 'Part of the Head of Story’s develop call today (new places come with full designs).', phase: LATER },
   { id: 'set-designer', department: 'WORLD', name: 'Set Designer', would: 'Keep each place’s layout record current.', reason: 'Layouts are written once by the develop call and edited by hand; nothing maintains them.', phase: LATER },
   { id: 'props-designer', department: 'WORLD', name: 'Props Designer', would: 'Track recurring props and their state between scenes.', reason: 'Props exist only in the shot continuity the Film Director’s plan writes; there is no tracker.', phase: LATER },
-  { id: 'world-continuity', department: 'WORLD', name: 'World Continuity', would: 'Hand the established state of a returning place to the planner.', reason: 'Done inside the Film Director’s planning prompt today (establishedAt), not as separate work.', phase: LATER },
   { id: 'cinematographer', department: 'PREPRODUCTION', name: 'Cinematographer', would: 'Set framing, lens, angle and movement per shot.', reason: 'Inside the Film Director’s single shot-plan call today.', phase: LATER },
   { id: 'production-planner', department: 'PREPRODUCTION', name: 'Production Planner', would: 'Estimate shots, seconds and engine time before production starts.', reason: 'Part of the Executive Producer’s preflight; no duration estimate is computed yet.', phase: LATER },
   { id: 'production-director', department: 'VIDEO', name: 'Production Director', would: 'Supervise each take against the approved plan.', reason: 'The plan is enforced by the preflight and the video specialist’s request; there is no supervisory code.', phase: LATER },
@@ -473,7 +485,6 @@ const PLANNED_AR: Record<string, { name: string; reason: string }> = {
   'world-designer': { name: 'مصمم العالم', reason: 'جزء من استدعاء التطوير لدى رئيس قسم القصة حاليًا، فالأماكن الجديدة تأتي بتصاميم كاملة.' },
   'set-designer': { name: 'مصمم الديكور', reason: 'تُكتب مخططات الأماكن مرة واحدة في استدعاء التطوير وتُعدَّل يدويًا، ولا شيء يحدّثها.' },
   'props-designer': { name: 'مصمم الإكسسوارات', reason: 'لا توجد الإكسسوارات إلا في استمرارية اللقطات التي تكتبها خطة مخرج الفيلم، ولا يوجد متتبّع لها.' },
-  'world-continuity': { name: 'استمرارية العالم', reason: 'تتم حاليًا داخل تعليمات التخطيط لدى مخرج الفيلم، لا كعمل مستقل.' },
   cinematographer: { name: 'مدير التصوير', reason: 'جزء من استدعاء خطة اللقطات الواحد لدى مخرج الفيلم حاليًا.' },
   'production-planner': { name: 'مخطط الإنتاج', reason: 'جزء من فحص الجدوى لدى المنتج التنفيذي، ولا يُحسب تقدير للمدة بعد.' },
   'production-director': { name: 'مدير الإنتاج', reason: 'تُفرض الخطة بفحص الجدوى وبطلب أخصائي الفيديو، ولا يوجد كود إشرافي.' },

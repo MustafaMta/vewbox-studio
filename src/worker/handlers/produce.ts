@@ -10,6 +10,7 @@ import { orderedShots } from '@/domain/timeline';
 import * as comfy from '@/server/providers/comfy';
 import { requireApproval } from '@/server/org/gates';
 import { effectiveRelation } from '@/server/production/shot-pack';
+import { ensurePin, establishApprovedCuts } from '@/server/world';
 
 /** PRODUCE — the "make everything" button: for each shot without an accepted take, draw the opening frame (when
  *  missing, and never for a continuation, which starts from the previous take's tail) and then generate a take;
@@ -64,6 +65,16 @@ export const produce: Handler = async (ctx) => {
   if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots before producing.');
   // the first human gate (the Quality Director's step): nothing is generated for a story nobody approved
   await step(ctx, 'quality-director', `story-gate: “${p.title}”`, () => requireApproval(productionId, 'STORY'));
+  // THE WORLD BIBLE PIN (the World Continuity step): every approved cut in this world first registers the frames it
+  // establishes (so a returning place is filmed against what the audience saw), then the production is pinned to the
+  // revision of its approved story — or follows a newer one when nothing it already filmed changes; every take reads it
+  const pin = await step(ctx, 'world-continuity', `world-pin: “${p.title}”`, async () => {
+    const established = await establishApprovedCuts(state, p, { jobId: ctx.job.id });
+    const fresh = established.some((e) => e.added) ? (await readState()).state : state;
+    const out = await ensurePin(fresh, fresh.productions.find((x) => x.id === p.id) ?? p, { jobId: ctx.job.id, by: 'world-continuity' });
+    await ctx.event(out.blocking.length ? 'warn' : 'info', `World Bible: ${out.message}`, { revision: out.view.revision.number, action: out.action, established: established.filter((e) => e.added), blocking: out.blocking });
+    return { revision: out.view.revision.number, pinned: out.view.pinned, action: out.action, established: established.reduce((n, e) => n + e.added, 0), blocking: out.blocking.length };
+  });
   // respeak: speaking shots whose chosen take never proved its words (made before the script check existed, or
   // failing it) get a new take through the audio-first pipeline; a passing new take becomes the choice
   const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
@@ -147,14 +158,14 @@ export const produce: Handler = async (ctx) => {
   const after = (await readState()).state.productions.find((x) => x.id === productionId)!;
   const remaining = after.shots.filter((sh) => needsTake(sh)).length;
   const pilotsReport = verdicts.map((v) => ({ scene: v.sceneNumber, shotId: v.shotId, passed: v.passed, reason: v.reason }));
-  if (respeak) { const still = after.shots.filter(unverified).length; return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, stillUnverified: still, awaitingReview: still > 0 || blocked.length > 0 }; }
+  if (respeak) { const still = after.shots.filter(unverified).length; return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, world: pin, stillUnverified: still, awaitingReview: still > 0 || blocked.length > 0 }; }
   if (remaining === 0 && !after.cutAssetId) {
     const req = { type: 'ASSEMBLE' as const, payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` };
     const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'ASSEMBLE', input: req });
     await waitFor(ctx, [r.job.id], 'assembling');
   }
   await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${outcome.completed} of ${targets.length} shot(s) generated${outcome.failed ? `, ${outcome.failed} failed` : ''}${blocked.length ? `, ${blocked.length} held back by a pilot or a predecessor` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed: outcome.completed, failed: outcome.failed, remaining, blocked: blocked.length });
-  return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
+  return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, world: pin, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
 };
 
 /** A child job is settled when it is terminal or waits for a person (AWAITING_REVIEW is not terminal, but nothing more

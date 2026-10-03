@@ -89,7 +89,8 @@ try {
         if (!spec || (Array.isArray(value) && value.length === 2 && typeof value[1] === 'number')) continue; // a link
         const opts = options(spec);
         // file pickers (models, uploaded images/audio) are checked by the model list below, not by the template
-        const filePicker = /_name\d*$|^(image|audio|video)$/.test(name);
+        // (LoadVideo's input is `file`: the continuation tail is uploaded per take, so "tail.mov" is a placeholder)
+        const filePicker = /_name\d*$|^(image|audio|video|file)$/.test(name);
         if (opts.length && !filePicker && !opts.includes(value)) { problems.push(`${wf.name}: ${node.class_type}.${name} = ${JSON.stringify(value)} is not one of ${opts.slice(0, 8).join(', ')}${opts.length > 8 ? ', …' : ''}`); continue; }
         const cfg = Array.isArray(spec) && spec[1] && typeof spec[1] === 'object' ? spec[1] : {};
         if (typeof value === 'number') {

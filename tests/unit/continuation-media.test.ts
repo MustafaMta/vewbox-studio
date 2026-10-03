@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
-import { ffmpeg, speechAudioArgs, tailClip, tailClipArgs } from '@/server/media/ffmpeg';
+import { ffmpeg, frameAt, frameAtArgs, speechAudioArgs, tailClip, tailClipArgs } from '@/server/media/ffmpeg';
 import { ffprobe } from '@/server/media';
 
 const run = promisify(execFile);
@@ -36,6 +36,29 @@ describe('tail clip', () => {
     expect(au.sample_rate).toBe('48000');
     expect(Math.abs(Number(au.duration) - 22 / 24)).toBeLessThan(0.03);
     expect((await ffprobe(tail)).hasAudio).toBe(true);
+    await fs.rm(dir, { recursive: true, force: true });
+  }, 30_000);
+});
+
+describe('the guide is what the cut shows (the production audio timeline)', () => {
+  it('a tail that ends where the previous window ends: the 22 frames before that frame; an end past the clip is the clip’s end', () => {
+    const a = tailClipArgs('/in.mp4', '/out.mov', 22, 158, 24, 120);
+    expect(a.slice(a.indexOf('-ss'), a.indexOf('-ss') + 2)).toEqual(['-ss', (98 / 24).toFixed(6)]);
+    expect(a.slice(a.indexOf('-frames:v'), a.indexOf('-frames:v') + 2)).toEqual(['-frames:v', '22']);
+    const b = tailClipArgs('/in.mp4', '/out.mov', 22, 124, 24, 200);
+    expect(b.slice(b.indexOf('-ss'), b.indexOf('-ss') + 2)).toEqual(['-ss', (102 / 24).toFixed(6)]);
+  });
+
+  it('frameAt writes the frame asked for (an established plate, a hosted first frame) — read back by its luma', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'vb-frame-'));
+    const src = path.join(dir, 'clip.mp4');
+    await ffmpeg(['-f', 'lavfi', '-i', "color=c=black:s=64x36:r=24:d=3,format=yuv444p,geq=lum='10+N*2':cb=128:cr=128,format=yuv420p", '-c:v', 'libx264', '-crf', '8', '-pix_fmt', 'yuv420p', src]);
+    expect(frameAtArgs(src, '/o.png', 30)).toEqual(expect.arrayContaining(['-ss', (30 / 24).toFixed(6), '-frames:v', '1']));
+    const png = await frameAt(src, path.join(dir, 'f.png'), 30);
+    const { stdout } = await run('ffmpeg', ['-v', 'error', '-i', png, '-vf', 'format=gray', '-f', 'rawvideo', '-'], { encoding: 'buffer' });
+    // the PNG is full-range RGB: back to the clip's limited-range luma, then to the frame number
+    const mean = [...stdout].reduce((s, v) => s + v, 0) / stdout.length;
+    expect(Math.round(((mean * 219) / 255 + 16 - 10) / 2)).toBe(30);
     await fs.rm(dir, { recursive: true, force: true });
   }, 30_000);
 });

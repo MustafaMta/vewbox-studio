@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Character, ContinuityState, IdeaPreferences, IdeaProposal, Location, Production, Scene, StudioState } from '@/domain/types';
+import type { Character, ContinuityState, IdeaPreferences, IdeaProposal, Location, Production, Scene, StudioState, WorldBible } from '@/domain/types';
+import { worldForPlanner, worldForStory } from '@/domain/world';
 import type { Dialect, Language, Style } from '@/domain/vocabulary';
 import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
 import { nid } from '@/domain/ids';
@@ -337,8 +338,9 @@ export function libraryGuests(s: StudioState, p: Production, cast: Character[]):
     .slice(0, show ? 2 : 12);
 }
 
-/** From a brief (and whatever cast/places are already attached) to a developed story with a scene breakdown. */
-export async function developStory(s: StudioState, p: Production, cast: Character[], world: Location[], opts: EngineOptions = {}): Promise<DevelopResult> {
+/** From a brief (and whatever cast/places are already attached) to a developed story with a scene breakdown. An
+ *  episode develops inside its show's World Bible (`bible`: rules, relationships, timeline, open storylines, places). */
+export async function developStory(s: StudioState, p: Production, cast: Character[], world: Location[], opts: EngineOptions = {}, bible?: WorldBible): Promise<DevelopResult> {
   const show = p.showId ? s.shows.find((x) => x.id === p.showId) : undefined;
   const libraryChars = libraryGuests(s, p, cast).map(castSummary);
   const libraryLocs = s.locations.filter((l) => l.style === p.style && !world.some((x) => x.id === l.id)).slice(0, 10).map(locationSummary);
@@ -349,7 +351,7 @@ Title: ${p.title}${p.titleAr ? ` / ${p.titleAr}` : ''}
 Brief: """${p.brief.text || p.logline || p.synopsis || '(none — invent a strong premise that fits the title)'}"""
 ${p.logline ? `Existing logline: ${p.logline}` : ''}${p.synopsis ? `\nExisting synopsis (keep its facts): ${p.synopsis}` : ''}
 Target running time: ${p.targetSeconds} seconds → plan about ${sceneBudget} scene(s), each with targetSeconds that add up to roughly the total.
-${show ? `Part of the show "${show.title}" (${show.logline}). Show synopsis: ${show.synopsis ?? ''}. Bible: ${compact(show.bible ?? {})}.
+${show ? `Part of the show "${show.title}" (${show.logline}). Show synopsis: ${show.synopsis ?? ''}. ${bible ? `World Bible (respect every fact; reuse its places as they are): ${compact(worldForStory(bible))}` : `Bible: ${compact(show.bible ?? {})}`}.
 This is an EPISODE of that show: its regulars (${s.characters.filter((c) => show.castIds.includes(c.id)).map((c) => c.name).join(', ') || 'see the cast below'}) carry every episode; the leads named in the brief or synopsis must appear. Characters from outside the show are guests: at most two, only when this episode's story needs them, never replacing a regular.` : ''}
 Cast already attached (use them; refer to them by exact name): ${compact(cast.map(castSummary))}
 Places already attached (use them; refer to them by exact name): ${compact(world.map(locationSummary))}
@@ -436,7 +438,15 @@ export interface PlannedShot { purpose: string; action: string; framing: ShotPla
 /** A scene's planned shots before the timing fit, with the running-time budget and per-shot cap they are fitted to. */
 export interface ShotPlanDraft { shots: PlannedShot[]; budget: number; maxShot: number }
 
-export async function planShotsDraft(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}): Promise<ShotPlanDraft> {
+/** The planner's world block for a scene: the World Bible's (rules, a returning place with its established frames and
+ *  last state, props and wardrobe last seen) and, when the bible has no return to say, the production's own earlier
+ *  shots at the place (`establishedAt`). */
+export function planningWorld(p: Production, scene: Scene, bible?: WorldBible): string {
+  const fromBible = bible ? worldForPlanner(bible, p, scene) : '';
+  return [fromBible, /RETURNING LOCATION/.test(fromBible) ? '' : establishedAt(p, scene)].filter(Boolean).join('\n');
+}
+
+export async function planShotsDraft(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}, bible?: WorldBible): Promise<ShotPlanDraft> {
   const loc = world.find((l) => l.id === scene.locationId);
   const present = scene.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
   const lines = scene.beats.flatMap((b) => b.lines.map((l) => ({ characterName: cast.find((c) => c.id === l.characterId)?.name ?? '?', characterId: l.characterId, text: l.text, textAr: l.textAr, id: l.id })));
@@ -450,7 +460,7 @@ Characters present (exact names; include their look so prompts can describe them
 Beats and lines of the scene, in order: ${compact(scene.beats.map((b, i) => ({ beat: i + 1, action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })))}
 Dialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): ${compact(lines.map((l, i) => ({ index: i, who: l.characterName, line: l.textAr || l.text })))}
 ${previous.shot ? `The previous shot (from the preceding scene or earlier in this scene) ended like this; keep continuity or mark a clear transition: ${compact({ action: previous.shot.action, continuity: previous.shot.continuity })}` : 'This is the first shot of the production.'}
-${establishedAt(p, scene)}
+${planningWorld(p, scene, bible)}
 Camera rules for this direction: ${d.camera}
 For each shot write "prompt": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look ("${d.visual.slice(0, 80)}…" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. If the shot has dialogue, do not write the spoken words or any <d> tag: say who speaks (by appearance) and how they deliver it; the studio appends the exact script lines. Do not describe what to avoid.
 Continuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.

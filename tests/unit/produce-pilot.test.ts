@@ -8,10 +8,15 @@ import type { Production, StudioState, Take } from '@/domain/types';
  *  after the take it continues was accepted; a continuation gets no opening frame. */
 
 type Outcome = 'pass' | 'reject' | 'fail' | 'review';
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, jobs: new Map<string, Job>(), order: [] as string[], outcome: {} as Record<string, Outcome>, imagesReady: false, events: [] as string[] }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, jobs: new Map<string, Job>(), order: [] as string[], outcome: {} as Record<string, Outcome>, imagesReady: false, events: [] as string[], world: [] as string[] }));
 
 vi.mock('@/server/studio/engine', () => ({ readState: async () => ({ state: fake.state, version: 1, hash: 'h' }) }));
-vi.mock('@/server/org/gates', () => ({ requireApproval: async () => undefined }));
+vi.mock('@/server/org/gates', () => ({ requireApproval: async () => { fake.world.push('story-gate'); } }));
+// the World Bible: approved cuts register what they establish, then the production is pinned — before any job
+vi.mock('@/server/world', () => ({
+  establishApprovedCuts: async () => { fake.world.push('establish'); return [{ productionId: 'prod-earlier', added: 2, reason: '2 frame(s) established' }]; },
+  ensurePin: async () => { fake.world.push(`pin:${fake.jobs.size}`); return { view: { revision: { number: 4 }, pinned: true }, action: 'PINNED', message: 'pinned to World Bible revision 4 at the story\'s approval', blocking: [] }; },
+}));
 vi.mock('@/server/providers/comfy', () => ({ health: async () => ({ ok: fake.imagesReady }), listModels: async () => ['qwen_image_2512_fp8_e4m3fn.safetensors'] }));
 vi.mock('@/server/jobs/queue', () => ({
   listJobs: async () => [],
@@ -48,7 +53,7 @@ const ctx = (productionId: string) => ({
   event: async (_l: string, m: string) => { fake.events.push(m); },
 }) as unknown as Parameters<typeof produce>[0];
 
-beforeEach(() => { fake.jobs = new Map(); fake.order = []; fake.outcome = {}; fake.imagesReady = false; fake.events = []; });
+beforeEach(() => { fake.jobs = new Map(); fake.order = []; fake.outcome = {}; fake.imagesReady = false; fake.events = []; fake.world = []; });
 
 describe('pure: pilots, verdicts', () => {
   it('the first shot to generate in each unproven scene is its pilot; a scene with an accepted chosen take is open', () => {
@@ -77,6 +82,10 @@ describe('PRODUCE with the pilot gate', () => {
     const r = await produce(ctx(p.id));
     expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13', 'ASSEMBLE']);
     expect(r).toMatchObject({ completed: 4, pilots: [{ scene: 1, shotId: 's11', passed: true }, { scene: 2, shotId: 's21', passed: true }], blocked: [] });
+    // the World Bible is pinned after the story gate and before the first job: established frames first
+    expect(fake.world).toEqual(['story-gate', 'establish', 'pin:0']);
+    expect(r).toMatchObject({ world: { revision: 4, pinned: true, action: 'PINNED', established: 2, blocking: 0 } });
+    expect(fake.events.join('\n')).toContain('World Bible: pinned to World Bible revision 4');
   });
 
   it('a pilot that fails its checks stops its scene only', async () => {
