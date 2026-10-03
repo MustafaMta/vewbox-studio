@@ -1,0 +1,144 @@
+{
+  "page": "/studio",
+  "width": 390,
+  "stops": 4,
+  "failures": 0,
+  "results": [
+    {
+      "n": 1,
+      "tag": "a",
+      "name": "Skip to content",
+      "box": {
+        "x": 12,
+        "y": 12,
+        "w": 115.03125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 2,
+      "tag": "a",
+      "name": "Vewbox Studio, go to Shows",
+      "box": {
+        "x": 10,
+        "y": 5.5,
+        "w": 44,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 3,
+      "tag": "a",
+      "name": "New…",
+      "box": {
+        "x": 290,
+        "y": 5.5,
+        "w": 40,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 4,
+      "tag": "button",
+      "name": "Open menu",
+      "box": {
+        "x": 334,
+        "y": 5.5,
+        "w": 40,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    }
+  ]
+}

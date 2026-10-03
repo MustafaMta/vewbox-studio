@@ -1,0 +1,1118 @@
+{
+  "page": "/characters/char-56c47abc59",
+  "width": 1440,
+  "stops": 30,
+  "failures": 0,
+  "results": [
+    {
+      "n": 1,
+      "tag": "a",
+      "name": "Skip to content",
+      "box": {
+        "x": 12,
+        "y": 12,
+        "w": 115.03125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 2,
+      "tag": "a",
+      "name": "Vewbox Studio, go to Shows",
+      "box": {
+        "x": 8,
+        "y": 8,
+        "w": 223,
+        "h": 56
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 3,
+      "tag": "a",
+      "name": "New…",
+      "box": {
+        "x": 12,
+        "y": 72,
+        "w": 215,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 4,
+      "tag": "a",
+      "name": "Shows",
+      "box": {
+        "x": 12,
+        "y": 158,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 5,
+      "tag": "a",
+      "name": "Shorts",
+      "box": {
+        "x": 12,
+        "y": 196,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 6,
+      "tag": "a",
+      "name": "Music Videos",
+      "box": {
+        "x": 12,
+        "y": 234,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 7,
+      "tag": "a",
+      "name": "Characters",
+      "box": {
+        "x": 12,
+        "y": 312,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 8,
+      "tag": "a",
+      "name": "Locations",
+      "box": {
+        "x": 12,
+        "y": 350,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 9,
+      "tag": "a",
+      "name": "Files",
+      "box": {
+        "x": 12,
+        "y": 388,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 10,
+      "tag": "a",
+      "name": "Studio Company",
+      "box": {
+        "x": 12,
+        "y": 466,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 11,
+      "tag": "a",
+      "name": "Production, 4 decisions waiting for you",
+      "box": {
+        "x": 12,
+        "y": 504,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 12,
+      "tag": "a",
+      "name": "Screening Room",
+      "box": {
+        "x": 12,
+        "y": 542,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 13,
+      "tag": "a",
+      "name": "Settings",
+      "box": {
+        "x": 12,
+        "y": 700,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 14,
+      "tag": "button",
+      "name": "Help & shortcuts",
+      "box": {
+        "x": 12,
+        "y": 738,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 15,
+      "tag": "a",
+      "name": "Connected. Open the engine room in Production",
+      "box": {
+        "x": 12,
+        "y": 814,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 16,
+      "tag": "button",
+      "name": "Collapse the navigation",
+      "box": {
+        "x": 12,
+        "y": 852,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 17,
+      "tag": "a",
+      "name": "Characters",
+      "box": {
+        "x": 264,
+        "y": 28,
+        "w": 80.609375,
+        "h": 24
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 18,
+      "tag": "a",
+      "name": "See where",
+      "box": {
+        "x": 285,
+        "y": 774.75,
+        "w": 62.5625,
+        "h": 17.5
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 19,
+      "tag": "button",
+      "name": "Edit details",
+      "box": {
+        "x": 1298.953125,
+        "y": 73,
+        "w": 117.046875,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 20,
+      "tag": "button",
+      "name": "Play “Hello. My name is Elias Moore, and this is my voice.”",
+      "box": {
+        "x": 758.5,
+        "y": 849.3125,
+        "w": 35,
+        "h": 35
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 21,
+      "tag": "canvas[role=slider]",
+      "name": "Seek “Hello. My name is Elias Moore, and this is my voice.”",
+      "box": {
+        "x": 1013.53125,
+        "y": 852.8125,
+        "w": 221.890625,
+        "h": 28
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 22,
+      "tag": "button",
+      "name": "I listened",
+      "box": {
+        "x": 1136.484375,
+        "y": 433.0625,
+        "w": 106.125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 23,
+      "tag": "input",
+      "name": "",
+      "box": {
+        "x": 758.5,
+        "y": 520.0625,
+        "w": 522.140625,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 24,
+      "tag": "button",
+      "name": "Speak it",
+      "box": {
+        "x": 1287.640625,
+        "y": 520.0625,
+        "w": 109.859375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 25,
+      "tag": "summary",
+      "name": "Check details",
+      "box": {
+        "x": 758.5,
+        "y": 582.0625,
+        "w": 97.171875,
+        "h": 20
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.48,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 26,
+      "tag": "button",
+      "name": "Play “Did you see the 1987 storm, Clara? Thirty-two ships ca",
+      "box": {
+        "x": 740,
+        "y": 781.8125,
+        "w": 35,
+        "h": 35
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 27,
+      "tag": "canvas[role=slider]",
+      "name": "Seek “Did you see the 1987 storm, Clara? Thirty-two ships ca",
+      "box": {
+        "x": 1007.375,
+        "y": 785.3125,
+        "w": 246.546875,
+        "h": 28
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 28,
+      "tag": "a",
+      "name": "The Static Sky",
+      "box": {
+        "x": 880,
+        "y": 438.34375,
+        "w": 98.859375,
+        "h": 24
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 29,
+      "tag": "textarea",
+      "name": "Designed by Casting from the brief: “A retired lighthouse ke",
+      "box": {
+        "x": 740,
+        "y": 652.09375,
+        "w": 588,
+        "h": 109.5625
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 30,
+      "tag": "button",
+      "name": "Delete character",
+      "box": {
+        "x": 740,
+        "y": 774.15625,
+        "w": 149.078125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    }
+  ]
+}

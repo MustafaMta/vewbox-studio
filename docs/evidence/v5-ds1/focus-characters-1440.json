@@ -1,0 +1,1414 @@
+{
+  "page": "/characters",
+  "width": 1440,
+  "stops": 38,
+  "failures": 0,
+  "results": [
+    {
+      "n": 1,
+      "tag": "a",
+      "name": "Skip to content",
+      "box": {
+        "x": 12,
+        "y": 12,
+        "w": 115.03125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 2,
+      "tag": "a",
+      "name": "Vewbox Studio, go to Shows",
+      "box": {
+        "x": 8,
+        "y": 8,
+        "w": 223,
+        "h": 56
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 3,
+      "tag": "a",
+      "name": "New…",
+      "box": {
+        "x": 12,
+        "y": 72,
+        "w": 215,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 4,
+      "tag": "a",
+      "name": "Shows",
+      "box": {
+        "x": 12,
+        "y": 158,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 5,
+      "tag": "a",
+      "name": "Shorts",
+      "box": {
+        "x": 12,
+        "y": 196,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 6,
+      "tag": "a",
+      "name": "Music Videos",
+      "box": {
+        "x": 12,
+        "y": 234,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 7,
+      "tag": "a",
+      "name": "Characters",
+      "box": {
+        "x": 12,
+        "y": 312,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 8,
+      "tag": "a",
+      "name": "Locations",
+      "box": {
+        "x": 12,
+        "y": 350,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 9,
+      "tag": "a",
+      "name": "Files",
+      "box": {
+        "x": 12,
+        "y": 388,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 10,
+      "tag": "a",
+      "name": "Studio Company",
+      "box": {
+        "x": 12,
+        "y": 466,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 11,
+      "tag": "a",
+      "name": "Production, 4 decisions waiting for you",
+      "box": {
+        "x": 12,
+        "y": 504,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 12,
+      "tag": "a",
+      "name": "Screening Room",
+      "box": {
+        "x": 12,
+        "y": 542,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 13,
+      "tag": "a",
+      "name": "Settings",
+      "box": {
+        "x": 12,
+        "y": 700,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 14,
+      "tag": "button",
+      "name": "Help & shortcuts",
+      "box": {
+        "x": 12,
+        "y": 738,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 15,
+      "tag": "a",
+      "name": "Connected. Open the engine room in Production",
+      "box": {
+        "x": 12,
+        "y": 814,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 16,
+      "tag": "button",
+      "name": "Collapse the navigation",
+      "box": {
+        "x": 12,
+        "y": 852,
+        "w": 215,
+        "h": 36
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 17,
+      "tag": "a",
+      "name": "Add Character",
+      "box": {
+        "x": 1265.578125,
+        "y": 34,
+        "w": 150.421875,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 18,
+      "tag": "input",
+      "name": "Search",
+      "box": {
+        "x": 264,
+        "y": 171,
+        "w": 263.4375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 19,
+      "tag": "select",
+      "name": "Style",
+      "box": {
+        "x": 534.4375,
+        "y": 171,
+        "w": 103.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 20,
+      "tag": "select",
+      "name": "Production",
+      "box": {
+        "x": 645.03125,
+        "y": 171,
+        "w": 140.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 21,
+      "tag": "select",
+      "name": "Language",
+      "box": {
+        "x": 792.625,
+        "y": 171,
+        "w": 132.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 22,
+      "tag": "select",
+      "name": "Identity",
+      "box": {
+        "x": 932.21875,
+        "y": 171,
+        "w": 130.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 23,
+      "tag": "select",
+      "name": "Usage",
+      "box": {
+        "x": 1069.8125,
+        "y": 171,
+        "w": 180.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 24,
+      "tag": "select",
+      "name": "Sort",
+      "box": {
+        "x": 1257.40625,
+        "y": 171,
+        "w": 158.59375,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 25,
+      "tag": "button[role=radio]",
+      "name": "",
+      "box": {
+        "x": 267,
+        "y": 225,
+        "w": 38,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 26,
+      "tag": "a",
+      "name": "Najm — Retired librarian and amateur astronomer — Locked",
+      "box": {
+        "x": 264,
+        "y": 283,
+        "w": 180.328125,
+        "h": 270.484375
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 27,
+      "tag": "button",
+      "name": "Play the voice of Najm",
+      "box": {
+        "x": 367.328125,
+        "y": 510.984375,
+        "w": 28,
+        "h": 28
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.69,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.96,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.79,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 28,
+      "tag": "summary",
+      "name": "Najm: More",
+      "box": {
+        "x": 398.828125,
+        "y": 507.984375,
+        "w": 34,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 29,
+      "tag": "a",
+      "name": "Hana Mori — A seventeen-year-old courier who races messages ",
+      "box": {
+        "x": 458.328125,
+        "y": 283,
+        "w": 180.328125,
+        "h": 270.484375
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 30,
+      "tag": "button",
+      "name": "Play the voice of Hana Mori",
+      "box": {
+        "x": 561.65625,
+        "y": 510.984375,
+        "w": 28,
+        "h": 28
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.69,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 15.81,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.79,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 31,
+      "tag": "summary",
+      "name": "Hana Mori: More",
+      "box": {
+        "x": 593.15625,
+        "y": 507.984375,
+        "w": 34,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 32,
+      "tag": "a",
+      "name": "Salam — A young, curious explorer navigating a whimsical, in",
+      "box": {
+        "x": 652.65625,
+        "y": 283,
+        "w": 180.328125,
+        "h": 270.484375
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 33,
+      "tag": "summary",
+      "name": "Salam: More",
+      "box": {
+        "x": 787.484375,
+        "y": 507.984375,
+        "w": 34,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 34,
+      "tag": "a",
+      "name": "أبو سلام — صاحب مقهى شعبي في شارع المتنبي ببغداد — Approved",
+      "box": {
+        "x": 846.984375,
+        "y": 283,
+        "w": 180.34375,
+        "h": 270.515625
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 35,
+      "tag": "summary",
+      "name": "أبو سلام: More",
+      "box": {
+        "x": 981.828125,
+        "y": 508.015625,
+        "w": 34,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 36,
+      "tag": "a",
+      "name": "Elias Moore — Retired Lighthouse Keeper and Radio Repairman ",
+      "box": {
+        "x": 1041.328125,
+        "y": 283,
+        "w": 180.328125,
+        "h": 270.484375
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 37,
+      "tag": "button",
+      "name": "Play the voice of Elias Moore",
+      "box": {
+        "x": 1144.65625,
+        "y": 510.984375,
+        "w": 28,
+        "h": 28
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.69,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.09,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.79,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 38,
+      "tag": "summary",
+      "name": "Elias Moore: More",
+      "box": {
+        "x": 1176.15625,
+        "y": 507.984375,
+        "w": 34,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 18.32,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    }
+  ]
+}

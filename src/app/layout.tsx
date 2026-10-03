@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { fontVariables } from './fonts';
 import { BOOT } from './boot';
+import { FOCUS_SCROLL } from './focus-scroll';
 import { StudioProvider } from '@/studio/store';
 import { LocaleProvider } from '@/components/ui/locale';
 import { ToastProvider } from '@/components/ui/toast';
@@ -30,6 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Vewbox Studio</title>
         {/* the interface preferences, applied before the first paint (src/app/boot.ts) */}
         <script dangerouslySetInnerHTML={{ __html: BOOT }} />
+        {/* a keyboard-focused item half out of a strip is brought fully into it, ring included (src/app/focus-scroll.ts) */}
+        <script dangerouslySetInnerHTML={{ __html: FOCUS_SCROLL }} />
       </head>
       <body className="antialiased">
         <StudioProvider>

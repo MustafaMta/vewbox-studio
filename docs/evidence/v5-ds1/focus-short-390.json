@@ -1,0 +1,958 @@
+{
+  "page": "/shorts/short-28bdb3342b",
+  "width": 390,
+  "stops": 26,
+  "failures": 0,
+  "results": [
+    {
+      "n": 1,
+      "tag": "a",
+      "name": "Skip to content",
+      "box": {
+        "x": 12,
+        "y": 12,
+        "w": 115.03125,
+        "h": 34
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 2,
+      "tag": "a",
+      "name": "Vewbox Studio, go to Shows",
+      "box": {
+        "x": 10,
+        "y": 5.5,
+        "w": 44,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 3,
+      "tag": "a",
+      "name": "New…",
+      "box": {
+        "x": 290,
+        "y": 5.5,
+        "w": 40,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 4,
+      "tag": "button",
+      "name": "Open menu",
+      "box": {
+        "x": 334,
+        "y": 5.5,
+        "w": 40,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": "offscreen",
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 5,
+      "tag": "a",
+      "name": "Shorts",
+      "box": {
+        "x": 16,
+        "y": 94,
+        "w": 53.09375,
+        "h": 24
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 16.85,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 16.85,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 16.85,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 16.85,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 6,
+      "tag": "a[role=tab]",
+      "name": "Overview",
+      "box": {
+        "x": 10,
+        "y": 540.5625,
+        "w": 85.015625,
+        "h": 44
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": -2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 7,
+      "tag": "a",
+      "name": "Scenes2",
+      "box": {
+        "x": 16,
+        "y": 606.5625,
+        "w": 173.75,
+        "h": 70.5
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 8,
+      "tag": "a",
+      "name": "Shots8",
+      "box": {
+        "x": 200.25,
+        "y": 606.5625,
+        "w": 173.75,
+        "h": 70.5
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 9,
+      "tag": "a",
+      "name": "Frames8/8",
+      "box": {
+        "x": 16,
+        "y": 687.5625,
+        "w": 173.75,
+        "h": 70.5
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 10,
+      "tag": "a",
+      "name": "Takes8/8",
+      "box": {
+        "x": 200.25,
+        "y": 687.5625,
+        "w": 173.75,
+        "h": 70.5
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 11,
+      "tag": "a",
+      "name": "Review the cut",
+      "box": {
+        "x": 16,
+        "y": 772.0625,
+        "w": 114.875,
+        "h": 40
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 12,
+      "tag": "a",
+      "name": "Open →",
+      "box": {
+        "x": 328.4375,
+        "y": 439.5625,
+        "w": 45.5625,
+        "h": 20
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 13,
+      "tag": "a",
+      "name": "Establish the workshop and Najm's entrance",
+      "box": {
+        "x": 16,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 14,
+      "tag": "a",
+      "name": "Focus on Elias examining the radio",
+      "box": {
+        "x": 166.5,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 15,
+      "tag": "a",
+      "name": "Show Najm's interaction with the radio",
+      "box": {
+        "x": 234,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 16,
+      "tag": "a",
+      "name": "Show the radio's reaction and Najm's surprise",
+      "box": {
+        "x": 124.5,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 17,
+      "tag": "a",
+      "name": "Show the radio's activation and Elias's reaction",
+      "box": {
+        "x": 234,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 18,
+      "tag": "a",
+      "name": "Capture Elias's stunned expression and the photo's reveal",
+      "box": {
+        "x": 233.5,
+        "y": 481.5625,
+        "w": 140,
+        "h": 100
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 19,
+      "tag": "a",
+      "name": "Edit",
+      "box": {
+        "x": 351.1875,
+        "y": 439.59375,
+        "w": 22.8125,
+        "h": 20
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 20,
+      "tag": "a",
+      "name": "Elias Moore",
+      "box": {
+        "x": 16,
+        "y": 473.59375,
+        "w": 112.328125,
+        "h": 161.65625
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 21,
+      "tag": "a",
+      "name": "Najm",
+      "box": {
+        "x": 138.828125,
+        "y": 473.59375,
+        "w": 112.328125,
+        "h": 161.65625
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 22,
+      "tag": "a",
+      "name": "Edit",
+      "box": {
+        "x": 351.1875,
+        "y": 674.25,
+        "w": 22.8125,
+        "h": 20
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 23,
+      "tag": "a",
+      "name": "Elias’s Workshop",
+      "box": {
+        "x": 16,
+        "y": 708.25,
+        "w": 173.75,
+        "h": 118.984375
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 4,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 24,
+      "tag": "button",
+      "name": "Edit",
+      "box": {
+        "x": 16,
+        "y": 740.234375,
+        "w": 72.921875,
+        "h": 40
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 25,
+      "tag": "button",
+      "name": "Duplicate",
+      "box": {
+        "x": 95.921875,
+        "y": 740.234375,
+        "w": 106.75,
+        "h": 40
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    },
+    {
+      "n": 26,
+      "tag": "button",
+      "name": "Delete",
+      "box": {
+        "x": 209.671875,
+        "y": 740.234375,
+        "w": 88.359375,
+        "h": 40
+      },
+      "outline": "solid 2px rgb(243, 239, 232)",
+      "offset": 2,
+      "sides": {
+        "top": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "bottom": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "left": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        },
+        "right": {
+          "changed": 1,
+          "contrast": 17.28,
+          "ok": true
+        }
+      },
+      "covered": null,
+      "ok": true
+    }
+  ]
+}
