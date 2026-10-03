@@ -31,12 +31,13 @@ for (const lang of ['en', 'ar']) {
         // department and agent names arrive from the organisation a moment after the page
         if (p.startsWith('/studio/')) await page.waitForFunction(() => !/·\s*[A-Za-z-]+\s·\s*Studio Company/.test(document.title), null, { timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(300);
-        return page.evaluate(() => ({ title: document.title, titles: document.head.querySelectorAll('title').length }));
+        return page.evaluate(() => ({ title: document.title, titles: document.head.querySelectorAll('title').length, landed: location.pathname + location.search }));
       });
     } catch (e) { r = { title: `(failed: ${e.message.split('\n')[0]})`, titles: 0 }; }
     const problems = [];
-    // one page is its path, its tab and the cut on screen; other parameters (?start=, ?show=) open the same page
-    const u = new URL(p, 'http://x'); const pageKey = `${u.pathname}?${['tab', 'cut'].map((k) => u.searchParams.get(k) ?? '').join('&')}`;
+    // one page is its path, its tab and the cut on screen; other parameters (?start=, ?show=) open the same page; a
+    // redirect (/library, /projects, /jobs) is the page it lands on, so it shares that page's title
+    const u = new URL(r.landed ?? p, 'http://x'); const pageKey = `${u.pathname}?${['tab', 'cut'].map((k) => u.searchParams.get(k) ?? '').join('&')}`;
     if (!r.title.includes(' · ')) problems.push('only the studio name');
     if (seen.has(r.title) && seen.get(r.title).key !== pageKey) problems.push(`same as ${seen.get(r.title).path}`);
     if (lang === 'ar' && !/[؀-ۿ]/.test(r.title)) problems.push('no Arabic');
