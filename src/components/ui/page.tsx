@@ -77,7 +77,7 @@ export function CastStack({ cast, max = 5, emptyLabel }: { cast: Array<{ id: str
   if (!cast.length) return emptyLabel ? <span className="text-[12px] text-faint">{emptyLabel}</span> : null;
   return (
     <span className="flex items-center">
-      {cast.slice(0, max).map((c) => <span key={c.id} title={c.name} className="stack-face">{c.src ? <img src={c.src} alt="" /> : c.name.slice(0, 1)}</span>)}
+      {cast.slice(0, max).map((c) => <span key={c.id} title={c.name} className="stack-face">{c.src ? <img src={c.src} alt="" className="object-top" /> : c.name.slice(0, 1)}</span>)}
       {cast.length > max && <span className="ms-1.5 text-[12px] text-faint">+{cast.length - max}</span>}
     </span>
   );

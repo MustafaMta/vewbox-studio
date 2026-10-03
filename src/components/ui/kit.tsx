@@ -408,7 +408,7 @@ export function PickGrid({ items, selected, onToggle, ratio = 'aspect-[4/5]', em
         return (
           <li key={it.id}>
             <button type="button" aria-pressed={on} onClick={() => onToggle(it.id)} className={cls('group relative w-full overflow-hidden rounded-[var(--r-3)] border text-start transition-colors', on ? 'border-accent shadow-[inset_0_0_0_0.5px_var(--accent)]' : 'border-line hover:border-line-strong')}>
-              <Thumb src={it.src} alt="" ratio={ratio} className="rounded-none" />
+              <Thumb src={it.src} alt="" ratio={ratio} className={cls('rounded-none', ratio === 'aspect-[4/5]' && '[&_img]:object-top')} />
               <span className="block px-2 py-1.5"><span className="block truncate text-sm font-medium" dir="auto">{it.label}</span>{it.sub && <span className="block truncate text-xs text-muted">{it.sub}</span>}</span>
               <span aria-hidden className={cls('absolute end-2 top-2 grid size-5 place-items-center rounded-full border', on ? 'border-accent-strong bg-accent-strong text-accent-fg' : 'border-white/70 bg-black/30')}>{on && <IconCheck className="size-3.5" />}</span>
             </button>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Production, Shot } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { assetById, assetSrc, castOf, locationById, productionHref, seasonById, shotHref, shotLabel, showById } from '@/studio/selectors';
+import { assetById, assetSrc, castOf, locationById, primaryImageSrc, productionHref, seasonById, shotHref, shotLabel, showById } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
@@ -134,7 +134,7 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
           {shownTake && shownTake.provider !== 'SAMPLE' && <section className="panel p-4 sm:p-5"><TakeProvenance take={shownTake} /></section>}
           <Details summary={`${T('shot.references')} · ${cast.length + (loc ? 1 : 0)}`} open={cast.length > 0}>
             <div className="flex flex-wrap gap-3">
-              {cast.map((c) => <Link key={c.id} href={`/characters/${c.id}`} className="w-20 text-center"><Thumb src={assetSrc(state, c.portraitAssetId)} alt="" ratio="aspect-[4/5]" className="rounded-lg" /><span className="mt-1 block truncate text-xs" dir="auto">{c.name}</span></Link>)}
+              {cast.map((c) => <Link key={c.id} href={`/characters/${c.id}`} className="w-20 text-center"><Thumb src={primaryImageSrc(state, c)} alt="" ratio="aspect-[4/5]" className="rounded-lg [&_img]:object-top" /><span className="mt-1 block truncate text-xs" dir="auto">{c.name}</span></Link>)}
               {loc && <Link href={`/locations/${loc.id}`} className="w-32 text-center"><Thumb src={assetSrc(state, loc.masterAssetId)} alt="" ratio="aspect-[4/5]" className="rounded-lg" /><span className="mt-1 block truncate text-xs" dir="auto">{loc.name}</span></Link>}
               {cast.length === 0 && !loc && <p className="text-sm text-muted">{T('empty.references')}</p>}
             </div>

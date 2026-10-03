@@ -9,7 +9,7 @@ import { ASPECTS, DIALECTS, DURATIONS, STYLES, type Aspect, type Dialect, type L
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
 import { splitLyrics } from '@/domain/lyrics';
-import { assetSrc, productionHref, seasonById, showById } from '@/studio/selectors';
+import { assetSrc, primaryImageSrc, productionHref, seasonById, showById } from '@/studio/selectors';
 import { SAMPLE_VARIANTS, sampleProposal } from '@/domain/proposals';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
@@ -144,7 +144,7 @@ function Preferences({ kind, prefs, setPrefs, inheritsFromShow }: { kind: Wizard
       <div>
         <p className="label">{kind === 'music-video' ? T('auto.includePerformers') : T('auto.includeCast')}</p>
         <p className="help -mt-1 mb-2">{T('auto.includeHint')}</p>
-        <PickGrid items={state.characters.map((c) => ({ id: c.id, label: c.name, src: assetSrc(state, c.portraitAssetId), sub: c.role }))} selected={prefs.castIds ?? []} onToggle={(id) => toggle('castIds', id)} empty={<p className="text-sm text-faint">{T('empty.characters')}</p>} />
+        <PickGrid items={state.characters.map((c) => ({ id: c.id, label: c.name, src: primaryImageSrc(state, c), sub: c.role }))} selected={prefs.castIds ?? []} onToggle={(id) => toggle('castIds', id)} empty={<p className="text-sm text-faint">{T('empty.characters')}</p>} />
       </div>
       <div>
         <p className="label">{T('auto.includeLocations')}</p>
@@ -210,7 +210,7 @@ function Review({ kind, showId, seasonId, proposal, setProposal, prefs, onBack, 
             const existing = c.characterId ? state.characters.find((x) => x.id === c.characterId) : undefined;
             return (
               <li key={c.key} className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${on ? 'border-line-strong bg-raised' : 'border-line opacity-60'}`}>
-                <div className="w-12 flex-none">{existing ? <Art src={assetSrc(state, existing.portraitAssetId)} ratio="portrait" title={c.name} className="!rounded-md" /> : <span aria-hidden className="grid aspect-[4/5] w-full place-items-center rounded-md border border-dashed border-line-strong bg-input text-[15px] font-semibold text-muted">{c.name.trim().charAt(0) || '?'}</span>}</div>
+                <div className="w-12 flex-none">{existing ? <Art src={primaryImageSrc(state, existing)} ratio="portrait" top title={c.name} className="!rounded-md" /> : <span aria-hidden className="grid aspect-[4/5] w-full place-items-center rounded-md border border-dashed border-line-strong bg-input text-[15px] font-semibold text-muted">{c.name.trim().charAt(0) || '?'}</span>}</div>
                 <div className="min-w-0 flex-1">
                   {c.isNew ? (
                     <div className="grid gap-2 sm:grid-cols-2"><Input aria-label={`${T('label.name')} (${c.name})`} value={c.name} onChange={(e) => set({ cast: proposal.cast.map((x) => (x.key === c.key ? { ...x, name: e.target.value } : x)) })} /><Input aria-label={`${T('label.role')} (${c.name})`} value={c.role} onChange={(e) => set({ cast: proposal.cast.map((x) => (x.key === c.key ? { ...x, role: e.target.value } : x)) })} /></div>
@@ -436,7 +436,7 @@ function Manual({ kind, showId, seasonId, onBack }: { kind: WizardKind; showId?:
             <div><h2 id="w-people" className="h2">{isMV ? T('step.performers') : T('wizard.people')}</h2><p className="mt-1 text-sm text-muted">{T('wizard.optional')}{kind === 'episode' && inheritedCast.length > 0 ? ` · ${inheritedCast.length} ${T('lib.inheritedFromShow')}` : ''}</p></div>
             <div>
               <p className="label">{isMV ? T('wizard.singer') : T('label.cast')}</p>
-              <PickGrid items={state.characters.map((c) => ({ id: c.id, label: c.name, src: assetSrc(state, c.portraitAssetId), sub: inheritedCast.includes(c.id) ? T('lib.inheritedFromShow') : c.role }))} selected={[...cast, ...inheritedCast]} onToggle={(id) => { if (inheritedCast.includes(id)) return; setCast((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id])); }}
+              <PickGrid items={state.characters.map((c) => ({ id: c.id, label: c.name, src: primaryImageSrc(state, c), sub: inheritedCast.includes(c.id) ? T('lib.inheritedFromShow') : c.role }))} selected={[...cast, ...inheritedCast]} onToggle={(id) => { if (inheritedCast.includes(id)) return; setCast((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id])); }}
                 extra={<Modal size="lg" title={T('lib.addCharacter')} trigger={(open) => <AddTile onClick={open}><IconPlus aria-hidden className="size-5" />{T('btn.createNew')}</AddTile>}>{(close) => <CharacterForm defaultStyle={style} onSaved={(id) => { setCast((xs) => [...xs, id]); close(); }} onCancel={close} />}</Modal>} />
             </div>
             <div>
