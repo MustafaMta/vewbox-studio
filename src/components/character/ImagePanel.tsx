@@ -5,6 +5,7 @@ import type { Character } from '@/domain/types';
 import { useJobsFor, useStudio } from '@/studio/store';
 import { api } from '@/studio/api';
 import { assetById, primaryImageOf } from '@/studio/selectors';
+import { redrawsFromEarlierPicture } from '@/domain/identity';
 import { useT } from '@/components/ui/locale';
 import { useToast } from '@/components/ui/toast';
 import { Button, Dropzone, Field, Modal, Status, Textarea } from '@/components/ui/kit';
@@ -134,7 +135,7 @@ function RedrawForm({ c, close }: { c: Character; close: () => void }) {
           ? <div className="max-w-[12rem]"><ImagePreview src={pending.src} alt={T('char.ref.yours')} fileName={pending.label} width={pending.width} height={pending.height} bytes={pending.bytes} unavailable={pending.unavailable} onReplace={(f) => void addReference(f)} onRemove={() => void removeReference()} busy={busy} /></div>
           : <Dropzone label={T('char.ref.upload')} hint={T('cast.picture.rules')} accept="image/png,image/jpeg,image/webp" icon={<IconImageAdd />} busy={busy} onFile={(f) => void addReference(f)} error={error} row />}
         {pending && error && <p role="alert" className="help text-bad">{error}</p>}
-        <p className="help">{pending ? T('cast.redraw.withReference') : T('cast.redraw.fromDescription')}</p>
+        <p className="help">{pending ? T('cast.redraw.withReference') : redrawsFromEarlierPicture(c) ? T('cast.redraw.fromEarlierPicture') : T('cast.redraw.fromDescription')}</p>
       </div>
       <div className="sheet-actions flex justify-end gap-2"><Button variant="quiet" onClick={close}>{T('btn.cancel')}</Button><Button variant="primary" icon={<IconGenerate />} loading={starting} disabled={busy} onClick={() => void draw()}>{T('cast.redraw.go')}</Button></div>
     </div>

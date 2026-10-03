@@ -173,6 +173,7 @@ export const cast = {
   'cast.redraw.reference': ['Reference picture', 'صورة مرجعية'],
   'cast.redraw.withReference': ['The new image follows this picture; it is not the image itself.', 'تتبع الصورة الجديدة هذه الصورة؛ وليست هي الصورة نفسها.'],
   'cast.redraw.fromDescription': ['Without a picture, the image is drawn from the written look.', 'من دون صورة، تُرسم الصورة من المظهر المكتوب.'],
+  'cast.redraw.fromEarlierPicture': ['Without a new picture, the image is drawn again from the reference picture this character was made from.', 'من دون صورة جديدة، تُرسم الصورة من جديد من الصورة المرجعية التي صُنعت منها الشخصية.'],
   'cast.redraw.go': ['Redraw image', 'أعد رسم الصورة'],
   'cast.profile.noDescription': ['No description yet.', 'لا وصف بعد.'],
   'cast.profile.look': ['The look, in words', 'المظهر بالكلمات'],

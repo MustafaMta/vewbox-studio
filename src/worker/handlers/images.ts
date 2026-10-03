@@ -28,7 +28,7 @@ import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
 import { canChangeAppearance } from '@/domain/rules';
-import { primaryImageOf, usableImage } from '@/domain/identity';
+import { lookWritten, primaryImageOf, redrawsFromEarlierPicture, usableImage } from '@/domain/identity';
 import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff } from '@/server/org/runs';
 
@@ -265,7 +265,11 @@ export const characterAppearance: Handler = async (ctx) => {
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`);
-  const pending = c.pendingReference ? state.assets.find((a) => a.id === c.pendingReference!.assetId) : undefined;
+  // D19: the look of a character made from a picture IS that picture (its look fields stay empty until the producer
+  // writes them), so a redraw without a new picture draws from the same picture again — from the written look it
+  // would draw a stranger. The earlier picture is the one the current image records.
+  const earlier = redrawsFromEarlierPicture(c) ? state.assets.find((a) => a.id === c.canonicalImage!.referenceAssetId) : undefined;
+  const pending = c.pendingReference ? state.assets.find((a) => a.id === c.pendingReference!.assetId) : usableImage(earlier) ? earlier : undefined;
   // REFERENCE PICTURE CHECK (the Character Continuity Agent's step): an uploaded reference is checked before anything
   // is drawn from it
   const validation = c.pendingReference ? await step(ctx, 'character-continuity', `reference-picture-check: ${c.name}`, () => requireUsableReference(c, pending)) : undefined;
@@ -279,11 +283,13 @@ export const characterAppearance: Handler = async (ctx) => {
   // the look: read from the producer's picture, or the English identity line of the written sheet
   await ctx.progress('GENERATING', { phase: 'drawing', message: pending ? `Reading ${c.name}’s reference picture` : `Drawing ${c.name}` });
   const read = pending ? await readReference(ctx, c, pending) : undefined;
-  const look = read ? referenceLook(c, read.description) : { ...textLook(c), from: 'DESCRIPTION' as const, lowConfidence: [] as string[], notVisible: [] as string[] };
+  // without its picture (removed from the library) a picture-made character keeps the line its image was drawn from
+  const keptLine = !read && !lookWritten(c) && c.canonicalImage?.referenceAssetId && c.canonicalImage.identityLine ? c.canonicalImage.identityLine : undefined;
+  const look = read ? referenceLook(c, read.description) : { ...(keptLine ? { line: keptLine, nonLatin: [] as string[] } : textLook(c)), from: 'DESCRIPTION' as const, lowConfidence: [] as string[], notVisible: [] as string[] };
   if (!read && look.nonLatin.length && !/;/.test(look.line)) throw new StudioError('INVALID', `${c.name}: the look is written only in a script the image model does not read (${look.nonLatin.slice(0, 3).join('; ')}); write the appearance in English, or describe the character so it is designed.`, { characterId: c.id, nonLatin: look.nonLatin, failureClass: 'INVALID_INPUT' });
   const redraw = read ? await referenceEngine() : undefined;
   const klein = redraw?.engine === 'KLEIN';
-  const notes = [...(read?.notes ?? []), ...(redraw?.note ? [redraw.note] : []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
+  const notes = [...(earlier && pending === earlier ? [`drawn again from the earlier reference picture (${earlier.id})`] : []), ...(keptLine ? ['the earlier reference picture is no longer in the library: drawn from the line the current image was drawn from'] : []), ...(read?.notes ?? []), ...(redraw?.note ? [redraw.note] : []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
   if (notes.length) await ctx.event('warn', `${c.name}: ${notes.join(' — ')}`, { characterId: c.id, notes });
   const engine = !read ? CANONICAL_ENGINE.DESCRIPTION : klein ? CANONICAL_ENGINE.REFERENCE_KLEIN : CANONICAL_ENGINE.REFERENCE_QWEN;
   const model = !read ? 'Qwen-Image-2512' : klein ? 'FLUX.2-klein-4B' : 'Qwen-Image-Edit-2511';

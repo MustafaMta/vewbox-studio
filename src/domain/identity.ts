@@ -54,6 +54,20 @@ export function nonHumanSpecies(species: string | undefined | null): string | un
  *    GENERATED audio, and which recording a character speaks from is `pickReference` there. The take preflight asks
  *    `pickReference` — exactly what the worker speaks from — not "has any audio" (that let a speaker whose only audio
  *    was a missing file or an unconsented upload pass the preflight, and the take then fell back to a default voice). */
+/** The look written in words: build, face, hair, skin, eyes, wardrobe. */
+export const LOOK_FIELD_KEYS = ['build', 'face', 'hair', 'skin', 'eyes', 'wardrobe'] as const satisfies ReadonlyArray<keyof Character>;
+
+/** At least one look field is written. A character made from a picture has none until the producer writes them:
+ *  the picture is its look, and a redraw without a new picture draws from that picture again (D19). */
+export function lookWritten(c: Partial<Pick<Character, (typeof LOOK_FIELD_KEYS)[number]>>): boolean {
+  return LOOK_FIELD_KEYS.some((k) => { const v = String(c[k] ?? '').trim(); return Boolean(v) && v !== '—'; });
+}
+
+/** A redraw without a new picture draws from the picture the current image was drawn from (D19). */
+export function redrawsFromEarlierPicture(c: Pick<Character, 'pendingReference'> & Partial<Pick<Character, 'canonicalImage' | (typeof LOOK_FIELD_KEYS)[number]>>): boolean {
+  return !c.pendingReference && !lookWritten(c) && Boolean(c.canonicalImage?.referenceAssetId);
+}
+
 export const usableImage = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
 export const usableAudio = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'AUDIO' && !a.sample && !a.unavailable);
 
