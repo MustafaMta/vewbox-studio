@@ -140,11 +140,11 @@ export function SeekBar({ track, className = '', label = 'Seek', showTimes = tru
   const pct = st.duration ? (st.time / st.duration) * 100 : 0;
   return (
     <div className={`flex items-center gap-3 ${className}`} dir="ltr">
-      {showTimes && <span className="mono w-10 flex-none text-end text-[11.5px] text-muted num">{fmtClock(st.time)}</span>}
+      {showTimes && <span className="mono w-10 flex-none text-end text-xs text-muted num">{fmtClock(st.time)}</span>}
       <input type="range" className="seek flex-1" style={{ '--p': `${pct}%` } as React.CSSProperties} min={0} max={st.duration || 1} step={0.01} value={st.time} disabled={!st.duration}
         aria-label={label} aria-valuetext={`${fmtClock(st.time)} / ${fmtClock(st.duration)}`}
         onChange={(e) => { if (st.mine) p.seek(Number(e.target.value)); else p.play(track, Number(e.target.value)); }} />
-      {showTimes && <span className="mono w-11 flex-none text-[11.5px] text-muted num" title={st.provisional ? 'Length from the record; confirmed when the file loads' : undefined}>{st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>}
+      {showTimes && <span className="mono w-11 flex-none text-xs text-muted num" title={st.provisional ? 'Length from the record; confirmed when the file loads' : undefined}>{st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>}
     </div>
   );
 }

@@ -1,24 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { HOME, NAV_GROUPS, NAV_ITEMS, areaKey, currentItem, isActive } from '@/components/shell/nav-model';
+import { HOME, MORE_ITEMS, NAV_GROUPS, NAV_ITEMS, PHONE_TABS, PRODUCTION_ITEMS, areaLabel, currentItem, currentTab, isActive } from '@/components/shell/nav-model';
 import { jobsTarget, libraryTarget, projectsTarget } from '@/components/shell/redirects';
-import { T } from '@/lib/copy';
 
-/** docs/DESIGN-SYSTEM-V4.md §7.1 (primary navigation) and §7.2 (routes and redirects), package F4. */
+/** The v5.1 shell: one compact left sidebar and the phone's bottom bar, from one list (nav-model.ts). */
 
-describe('the primary navigation (§7.1)', () => {
-  it('has the three groups in order, with the Screening Room back in Studio (V4-04)', () => {
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual(['productions', 'castWorld', 'studio']);
+describe('the primary navigation (v5.1 sidebar)', () => {
+  it('has the primary places, then the Production group, Settings last', () => {
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(['primary', 'production']);
     expect(NAV_GROUPS.map((g) => g.items.map((i) => i.href))).toEqual([
-      ['/shows', '/shorts', '/music-videos'],
-      ['/characters', '/locations', '/assets'],
-      ['/studio', '/production', '/screening'],
+      ['/', '/shows', '/shorts', '/music-videos', '/characters', '/studio'],
+      ['/production', '/screening', '/locations', '/assets'],
     ]);
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, 'Production']);
     expect(NAV_ITEMS.at(-1)?.href).toBe('/settings');
   });
 
-  it('names every item and group', () => {
-    for (const k of [...NAV_GROUPS.map((g) => g.label), ...NAV_ITEMS.map((i) => i.key)]) expect(T(k)).toBeTruthy();
-    expect(T('screening.title')).toBe('Screening Room');
+  it('names every item in English', () => {
+    expect(NAV_ITEMS.map((i) => i.label)).toEqual(['Home', 'Shows', 'Shorts', 'Music Videos', 'Characters', 'Studio Company', 'Production', 'Screening Room', 'Locations', 'Files', 'Settings']);
   });
 
   it('carries the needs-you count on Production only', () => {
@@ -31,20 +29,39 @@ describe('the primary navigation (§7.1)', () => {
     expect(currentItem('/characters/new')?.href).toBe('/characters');
     expect(currentItem('/studio/departments/CASTING')?.href).toBe('/studio');
     expect(currentItem('/settings')?.href).toBe('/settings');
+    expect(currentItem('/')?.href).toBe('/');
+    expect(isActive('/shows', '/')).toBe(false);
     expect(isActive('/showsx', '/shows')).toBe(false);
     expect(currentItem('/kit')).toBeUndefined();
   });
 
   it('names the area for the phone bar', () => {
-    expect(areaKey('/music-videos/river-lights')).toBe('nav.musicVideos');
-    expect(areaKey('/screening')).toBe('screening.title');
-    expect(areaKey('/new')).toBe('nav.new');
-    expect(areaKey('/kit')).toBeNull();
+    expect(areaLabel('/music-videos/river-lights')).toBe('Music Videos');
+    expect(areaLabel('/screening')).toBe('Screening Room');
+    expect(areaLabel('/new')).toBe('New');
+    expect(areaLabel('/kit')).toBeNull();
   });
 
-  it('goes home to Shows', () => { expect(HOME).toBe('/shows'); });
+  it('goes home to Home', () => { expect(HOME).toBe('/'); });
 });
 
+describe('the phone navigation (bottom bar)', () => {
+  it('has five tabs: Home · Productions · Characters · Studio · More', () => {
+    expect(PHONE_TABS.map((t) => t.label)).toEqual(['Home', 'Productions', 'Characters', 'Studio', 'More']);
+    expect(PRODUCTION_ITEMS.map((i) => i.label)).toEqual(['Shows', 'Shorts', 'Music Videos']);
+    expect(MORE_ITEMS.map((i) => i.label)).toEqual(['Locations', 'Production', 'Screening Room', 'Files', 'Settings']);
+  });
+  it('reaches every place of the sidebar', () => {
+    const reached = new Set(PHONE_TABS.flatMap((t) => ('item' in t ? [t.item.href] : t.items.map((i) => i.href))));
+    expect(NAV_ITEMS.map((i) => i.href).filter((h) => !reached.has(h))).toEqual([]);
+  });
+  it('marks the tab a page belongs to', () => {
+    expect(currentTab('/shorts/abc')).toBe('productions');
+    expect(currentTab('/production')).toBe('more');
+    expect(currentTab('/studio/agents/x')).toBe('studio');
+    expect(currentTab('/')).toBe('home');
+  });
+});
 describe('the old addresses land on their targets (§7.2)', () => {
   it('/library → Characters, or the tab it named', () => {
     expect(libraryTarget(undefined)).toBe('/characters');

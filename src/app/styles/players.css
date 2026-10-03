@@ -31,9 +31,6 @@
   .seek::-moz-range-progress { block-size: 4px; border-radius: 999px; background: var(--seek-fill); }
   .seek::-moz-range-thumb { inline-size: 13px; block-size: 13px; border: 0; border-radius: 999px; background: var(--on-art); }
   .seek:disabled { cursor: default; opacity: 0.45; }
-  .seek:focus-visible { outline: none; }
-  .seek:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--ring); }
-  .seek:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--ring); }
   .seek-light, .seek[data-tone='video'] { --seek-fill: var(--fg); --seek-track: color-mix(in srgb, var(--on-art) 28%, transparent); }
   .seek-light { --seek-fill: var(--on-art); }
   .seek[data-tone='edit'] { --seek-fill: var(--accent); --seek-track: var(--ink-700); }
@@ -49,7 +46,7 @@
   .vbtn:disabled { opacity: 0.4; }
   .vbtn svg { inline-size: 1.05rem; block-size: 1.05rem; }
   .vbtn[aria-pressed='true'] { background: color-mix(in srgb, var(--on-art) 18%, transparent); }
-  @media (hover: none) { .vcontrols { opacity: 1 !important; pointer-events: auto !important; } }
+  @media (hover: none) { .vcontrols { opacity: 1; pointer-events: auto; } }
   .vplayer:focus-within .vcontrols { opacity: 1; pointer-events: auto; }
   /* the legacy play button on a picture: now the solid chip, never blurred (§1.5) */
   .play-on-art { display: inline-grid; place-items: center; inline-size: 2.5rem; block-size: 2.5rem; border-radius: 999px; background: var(--chip-on-art); color: var(--on-art); transition: background-color var(--t) var(--ease); }
@@ -63,7 +60,6 @@
   .pdisc-play { transform: translateX(6%); }
   .pdisc[data-tone='chip'] { background: var(--chip-on-art); color: var(--on-art); }
   .pdisc[data-tone='chip']:hover { background: color-mix(in srgb, var(--gray-1000) 90%, transparent); }
-  .pdisc[data-tone='chip']:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); }
   .pdisc[data-tone='ivory'] { background: var(--primary); color: var(--on-primary); }
   .pdisc[data-tone='ivory']:hover { background: var(--primary-hover); }
   .pdisc[data-tone='ivory']:active { background: var(--primary-active); }
@@ -78,8 +74,7 @@
   .pvideo { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; max-inline-size: none; object-fit: contain; background: var(--media); }
 
   /* ---- the inline player (lobby) ----------------------------------------------------------------------------- */
-  .iplayer { position: relative; overflow: hidden; border-radius: var(--r-3); background: var(--media); color: var(--on-art); outline: none; }
-  .iplayer:focus-visible { box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); outline: none; }
+  .iplayer { position: relative; overflow: hidden; border-radius: var(--r-3); background: var(--media); color: var(--on-art); }
   .iplayer-box { position: relative; inline-size: 100%; margin-inline: auto; }
   .iplayer[data-full] { display: flex; align-items: center; }
   .iplayer[data-full] .iplayer-box { block-size: 100%; }
@@ -87,7 +82,7 @@
   .iplayer-controls { position: absolute; inset-inline: 0; inset-block-end: 0; z-index: 2; display: flex; flex-direction: column; gap: 2px; padding: 32px 12px 8px; background: var(--scrim-bottom); transition: opacity var(--t) var(--ease); }
   .iplayer:not([data-awake]) .iplayer-controls { opacity: 0; pointer-events: none; transition: opacity var(--t-exit) var(--ease-in); }
   .iplayer:focus-within .iplayer-controls { opacity: 1; pointer-events: auto; }
-  @media (hover: none) { .iplayer-controls { opacity: 1 !important; pointer-events: auto !important; } }
+  @media (hover: none) { .iplayer .iplayer-controls, .iplayer:not([data-awake]) .iplayer-controls { opacity: 1; pointer-events: auto; } }
   .iplayer-row { display: flex; align-items: center; gap: 4px; }
 
   /* a clip that did not load: the poster stays, the message sits on the solid chip */
@@ -116,10 +111,10 @@
   .ebtn-play svg { fill: currentColor; }
   .ebtn-quiet { color: var(--fg-muted); }
   .ebtn .kbd { margin-inline-start: 2px; }
-  .cplayer { display: flex; flex-direction: column; min-inline-size: 0; background: var(--frame); outline: none; }
+  .cplayer { display: flex; flex-direction: column; min-inline-size: 0; background: var(--frame); }
   .cplayer:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
   .cplayer-canvas { position: relative; display: grid; place-items: center; min-block-size: 160px; padding: var(--space-3); overflow: hidden; background: var(--canvas); }
-  .cplayer-box { position: relative; inline-size: 100%; max-block-size: 60vh; }
+  .cplayer-box { position: relative; inline-size: 100%; max-block-size: 60vh; aspect-ratio: var(--cp-ratio, auto); }
   .cplayer-canvas[data-zoom='actual'] .cplayer-box { flex: none; max-inline-size: none; max-block-size: none; }
   .cplayer .pvideo { background: var(--canvas); }
   .cplayer-bar { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; background: var(--frame); border-block-start: 1px solid var(--line-soft); }
@@ -129,7 +124,7 @@
   .cplayer-tc-total { color: var(--fg-faint); }
 
   /* ---- the theatre player ------------------------------------------------------------------------------------ */
-  .tplayer { position: relative; background: var(--surround); color: var(--on-art); outline: none; }
+  .tplayer { position: relative; background: var(--surround); color: var(--on-art); }
   .tplayer:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   .tplayer-box { position: relative; inline-size: 100%; max-block-size: 76vh; margin-inline: auto; }
   .tplayer .pvideo { background: var(--surround); }
@@ -142,8 +137,7 @@
 
   /* ---- the player bar (§5.12) -------------------------------------------------------------------------------- */
   .playerbar { --pb-nav: 0px; display: flex; align-items: center; gap: var(--space-3); block-size: var(--playerbar-h); padding-inline: 12px 8px; border-radius: var(--r-4); background: var(--raised-2); box-shadow: var(--shadow-float); color: var(--fg-body); }
-  .playerbar[data-placement='fixed'] { position: fixed; z-index: var(--z-playerbar); inset-block-end: calc(12px + env(safe-area-inset-bottom, 0px)); inset-inline-start: calc(var(--shell-nav-w, var(--pb-nav)) + 12px); inset-inline-end: 12px; }
-  @media (min-width: 1024px) { .playerbar { --pb-nav: var(--sidebar-w); } }
+  .playerbar[data-placement='fixed'] { position: fixed; z-index: var(--z-playerbar); inset-block-end: calc(12px + max(var(--bottom-nav), env(safe-area-inset-bottom, 0px))); inset-inline-start: calc(var(--shell-nav-w, 0px) + 12px); inset-inline-end: 12px; }
   .playerbar-thumb { flex: none; block-size: 40px; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--r-1); background: var(--art-ph); }
   .playerbar[data-shape='poster'] .playerbar-thumb { aspect-ratio: 2 / 3; }
   .playerbar[data-shape='wide'] .playerbar-thumb { aspect-ratio: 16 / 9; }
@@ -203,7 +197,7 @@
 
   /* ---- the lyric view (§5.13) -------------------------------------------------------------------------------- */
   .lyrics { position: relative; }
-  .lyrics-scroll { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding-block: var(--space-2) var(--space-7); scrollbar-width: thin; }
+  .lyrics-scroll { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding-block: var(--space-2) var(--space-7); }
   .lyrics-group { margin: 0; }
   .lyrics-section { margin: var(--space-4) 8px var(--space-1); }
   .lyrics-group:first-child .lyrics-section { margin-block-start: 0; }

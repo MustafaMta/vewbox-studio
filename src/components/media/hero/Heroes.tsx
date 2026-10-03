@@ -119,7 +119,7 @@ export function PlateHero({ plates, current, lighting, extra, ...t }: Base & { p
           // eslint-disable-next-line @next/next/no-img-element
           <img key={p.key} src={p.picture.src} alt={p.key === on ? p.alt : ''} aria-hidden={p.key === on ? undefined : true} data-on={p.key === on || undefined}
             data-light={dimsLight(pres(p)) || undefined} style={{ objectPosition: objectPosition(pres(p)) }} />
-        ) : null) : <Frame ratio="2.39/1" alt="" title={t.title} titleLang={t.titleLang} titleState="noImage" className="mhero-plate-card" />}
+        ) : null) : <Frame ratio="2.39/1" alt="" title={t.title} titleLang={t.titleLang} titleState="noImage" className="mhero-plate-card" style={{ aspectRatio: 'auto' }} />}
       </div>
       {lighting && <div className="mhero-plate-switch">{lighting}</div>}
       <HeroText {...t} titleSize="hero-sm">{extra}</HeroText>

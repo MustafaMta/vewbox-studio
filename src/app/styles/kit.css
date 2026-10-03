@@ -98,7 +98,8 @@
   .textarea { block-size: auto; min-block-size: 5rem; line-height: 1.6; padding: 9px 12px; resize: vertical; }
   .input::placeholder, .textarea::placeholder { color: var(--fg-faint); }
   .input:hover:not(:focus), .select:hover:not(:focus), .textarea:hover:not(:focus), :is(.input, .select, .textarea).is-hover { border-color: var(--fg-faint); }
-  .input:focus, .select:focus, .textarea:focus, .input:focus-visible, .select:focus-visible, .textarea:focus-visible, :is(.input, .select, .textarea).is-focus { outline: none; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  :is(.input, .select, .textarea):is(:focus-visible, .is-focus) { border-color: var(--fg-muted); }
+  :is(.input, .select, .textarea).is-focus { outline: 2px solid var(--paper); outline-offset: 2px; }
   .input[aria-invalid='true'], .textarea[aria-invalid='true'], .select[aria-invalid='true'] { border-color: var(--bad); }
   .input:disabled, .select:disabled, .textarea:disabled { border-color: var(--line); color: var(--fg-disabled); cursor: not-allowed; }
   .input[type='file'] { padding: 0.35rem 12px; line-height: 1.3; block-size: auto; }
@@ -139,8 +140,8 @@
   .progress { block-size: 4px; inline-size: 100%; overflow: hidden; border-radius: 999px; background: var(--raised-2); }
   .progress > span { display: block; block-size: 100%; border-radius: 999px; background: var(--accent-strong); transition: inline-size var(--t-slow) var(--ease), width var(--t-slow) var(--ease); }
   /* tabs — text with a 2 px accent rule under the selected one; counts are faint numbers; scrolls on a phone */
-  .tabs { display: flex; gap: 4px; border-block-end: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
-  .tabs::-webkit-scrollbar { display: none; }
+  /* tabs never scroll: on a narrow screen they wrap to a second row (§4.6, QA M17) */
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-block-end: 1px solid var(--line-soft); }
   .tab { position: relative; display: inline-flex; align-items: center; gap: 6px; block-size: var(--tabs-h); padding: 0 12px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-muted); white-space: nowrap; border-radius: var(--r-1) var(--r-1) 0 0; transition: color var(--t) var(--ease); scroll-snap-align: start; }
   .tab:hover, .tab.is-hover { color: var(--fg); }
   .tab[aria-selected='true'], .tab.is-selected { color: var(--fg); font-weight: 600; }
@@ -174,8 +175,7 @@
   .phase-name { font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .phase[data-tone='ok'] { border-inline-start-color: var(--ok); } .phase[data-tone='info'], .phase[data-tone='teal'] { border-inline-start-color: var(--accent); } .phase[data-tone='bad'] { border-inline-start-color: var(--bad); }
   .phase[data-tone='gold'], .phase[data-tone='warn'] { border-inline-start-color: var(--warn); }
-  .phase-strip { display: flex; gap: 0.25rem; overflow-x: auto; padding-block-end: 0.25rem; scrollbar-width: none; }
-  .phase-strip::-webkit-scrollbar { display: none; }
+  .phase-strip { display: flex; gap: 0.25rem; }
   /* a long job's rows: one per real phase or child job, the state in the number */
   .jp-rows { display: flex; flex-direction: column; }
   .jp-rows > li { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); column-gap: 0.65rem; padding-block: 0.55rem; border-block-start: 1px solid var(--line-soft); font-size: 0.8125rem; color: var(--fg-faint); }
@@ -302,8 +302,7 @@
   .tabpanel:focus-visible { outline-offset: 4px; }
   .anchor-nav { margin-block-end: 32px; }
   .anchor-nav-sticky { position: sticky; top: calc(var(--sticky-top) + var(--sticky-header, 0px)); z-index: var(--z-sticky); background: var(--page); }
-  .anchor-nav ul { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-block-end: 1px solid var(--line-soft); }
-  .anchor-nav ul::-webkit-scrollbar { display: none; }
+  .anchor-nav ul { display: flex; flex-wrap: wrap; gap: 4px; border-block-end: 1px solid var(--line-soft); }
   .anchor-link { position: relative; display: inline-flex; align-items: center; block-size: 40px; padding-inline: 12px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--fg-muted); white-space: nowrap; border-radius: var(--r-1) var(--r-1) 0 0; }
   .anchor-link:hover, .anchor-link.is-hover { color: var(--fg); }
   .anchor-link:focus-visible { outline-offset: -2px; }
@@ -321,8 +320,8 @@
   .crumbs a { color: var(--fg-muted); border-radius: var(--r-1); }
   .crumbs a:hover { color: var(--fg); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
   .crumbs [aria-current='page'] { color: var(--fg); font-weight: 500; }
-  .crumbs-short { display: none !important; }
-  @media (max-width: 639px) { .crumbs-collapsible { display: none !important; } .crumbs-short { display: flex !important; } }
+  .crumbs .crumbs-short { display: none; }
+  @media (max-width: 639px) { .crumbs .crumbs-collapsible { display: none; } .crumbs .crumbs-short { display: flex; } }
   /* the catalogue bar: search, Filter · Sort · View, then the active filters */
   .catalogue-bar { display: flex; flex-direction: column; gap: 12px; margin-block-end: 24px; }
   .catalogue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
@@ -351,7 +350,6 @@
   .popover, .menu-v4 { z-index: var(--z-overlay); opacity: 1; transform: none; transition: opacity var(--t-exit-fast) var(--ease-in), transform var(--t-exit-fast) var(--ease-in), display var(--t-exit-fast) allow-discrete; }
   .popover { position: absolute; inset-block-start: calc(100% + 4px); inset-inline-start: 0; padding: 4px; background: var(--raised-2); color: var(--fg-body); border-radius: var(--r-2); box-shadow: var(--shadow-3); }
   .popover[data-align='end'] { inset-inline-start: auto; inset-inline-end: 0; }
-  .popover:focus-visible { outline: none; }
   .menu-v4 { max-inline-size: min(calc(100vw - 32px), 22rem); }
   .menu-v4[data-align='start'] { inset-inline-start: 0; inset-inline-end: auto; }
   .popover[hidden], .menu-v4[hidden] { display: none; opacity: 0; transform: translateY(4px); }
@@ -398,9 +396,8 @@
   /* the command palette: 640 px at 15vh, a 48 px field */
   dialog.palette { inline-size: min(calc(100vw - 32px), 640px); margin-block: 15vh auto; max-block-size: 70vh; overflow: hidden; }
   .palette-field { display: flex; align-items: center; gap: 12px; block-size: 48px; padding-inline: 16px; border-block-end: 1px solid var(--line-soft); }
-  .palette-field:focus-within { box-shadow: inset 0 -2px 0 var(--accent); }
   .palette-field > svg { inline-size: 18px; block-size: 18px; color: var(--fg-faint); flex: none; }
-  .palette-field input { flex: 1 1 auto; min-inline-size: 0; block-size: 100%; background: transparent; border: 0; outline: none; color: var(--fg); font-size: 16px; }
+  .palette-field input { flex: 1 1 auto; min-inline-size: 0; block-size: 100%; background: transparent; border: 0; color: var(--fg); font-size: 16px; }
   .palette-field input::placeholder { color: var(--fg-faint); }
   .palette-list { max-block-size: calc(70vh - 48px); overflow-y: auto; padding: 8px; }
   .palette-group { padding: 8px 8px 4px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-faint); }
@@ -507,11 +504,11 @@
   .settings-summary-controls:not([hidden]) { display: flex; flex-direction: column; gap: 16px; margin-block-start: 16px; }
   .chip-input { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: var(--control-h); padding: 4px 6px; border-radius: var(--r-2); background: var(--input); border: 1px solid var(--line-field); cursor: text; transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
   .chip-input:hover { border-color: var(--fg-faint); }
-  .chip-input:focus-within { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .chip-input:focus-within { border-color: var(--fg-muted); }
   .chip-input:has(input[aria-invalid='true']) { border-color: var(--bad); }
   .chip-input[data-disabled] { border-color: var(--line); cursor: not-allowed; }
   .chip-input .filter-chip { block-size: 28px; padding-inline-start: 10px; }
-  .chip-input-field { flex: 1 1 8rem; min-inline-size: 6rem; block-size: 30px; padding-inline: 6px; background: transparent; border: 0; outline: none; color: var(--fg); font-size: 14px; }
+  .chip-input-field { flex: 1 1 8rem; min-inline-size: 6rem; block-size: 30px; padding-inline: 6px; background: transparent; border: 0; color: var(--fg); font-size: 14px; }
   .chip-input-field::placeholder { color: var(--fg-faint); }
   .shaped-drop { position: relative; display: grid; place-items: center; inline-size: 100%; overflow: hidden; border-radius: var(--r-media); background: var(--input); border: 1px solid var(--line-field); transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
   .shaped-drop[data-over] { border-color: var(--accent); box-shadow: inset 0 0 0 0.5px var(--accent); }
@@ -606,4 +603,42 @@
   .kit-spec-cutting { background: var(--page); }
   .kit-spec-frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
   .kit-spec-frames img { inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-precise); background: var(--media); }
+
+  /* ---- loading (v5.1; kit/Loading.tsx): skeletons, progress, the running dot ---------------------------------
+     Placeholders sit on --art-ph (a picture's own tint when the caller knows it), square-cornered like the pictures
+     they stand for; one faint band of paper sweeps across them every 1.6 s (the sweep itself lasts about a second)
+     and stops under reduced motion. Values are temporary (phase 1). */
+  .sk { position: relative; display: block; overflow: hidden; background: var(--art-ph); }
+  .sk::after { content: ''; position: absolute; inset: 0; translate: -100% 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--paper) 4%, transparent) 50%, transparent); animation: sk-sweep 1.6s var(--ease-inout) infinite; }
+  @media (prefers-reduced-motion: reduce) { .sk::after { content: none; } }
+  html[data-motion='reduce'] .sk::after { content: none; }
+  .sk-line { block-size: 12px; border-radius: var(--r-xs); }
+  .sk-line[data-size='title'] { block-size: 24px; }
+  .sk-line[data-size='small'] { block-size: 10px; }
+  .sk-text { display: grid; gap: 10px; }
+  .sk-block { border-radius: var(--r-md); }
+  .sk-block[data-radius='media'] { border-radius: var(--r-media); }
+  .sk-block[data-radius='lg'] { border-radius: var(--r-lg); }
+  .sk-block[data-radius='pill'] { border-radius: var(--r-pill); }
+  .sk-media { inline-size: 100%; border-radius: var(--r-media); }
+  .sk-tile { display: grid; gap: 12px; min-inline-size: 0; }
+  .sk-tile-text { display: grid; gap: 8px; }
+  @keyframes sk-sweep { 0% { translate: -100% 0; } 65%, 100% { translate: 100% 0; } }
+
+  /* a progress bar: 3 px paper on the line; indeterminate, a third of it travels */
+  .pbar { position: relative; display: block; inline-size: 100%; block-size: 3px; overflow: hidden; border-radius: var(--r-pill); background: var(--line); }
+  .pbar[data-size='sm'] { block-size: 2px; }
+  .pbar-fill { display: block; block-size: 100%; inline-size: 0; border-radius: inherit; background: var(--paper); transition: inline-size var(--t-slow) var(--ease-std); }
+  .pbar[data-indeterminate] .pbar-fill { position: absolute; inset-block: 0; inline-size: 33%; animation: pbar-travel 1.4s var(--ease-inout) infinite; }
+  @media (prefers-reduced-motion: reduce) { .pbar[data-indeterminate] .pbar-fill { animation: none; translate: 0 0; } }
+  html[data-motion='reduce'] .pbar[data-indeterminate] .pbar-fill { animation: none; translate: 0 0; }
+  @keyframes pbar-travel { from { translate: -100% 0; } to { translate: 300% 0; } }
+
+  /* the running dot: paper with a static 3 px ring of 18 % paper; it breathes unless motion is reduced */
+  .job-dot { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--fg); }
+  .job-dot-mark { flex: none; inline-size: 7px; block-size: 7px; border-radius: var(--r-pill); background: var(--paper); box-shadow: 0 0 0 3px color-mix(in srgb, var(--paper) 18%, transparent); animation: breathe 2s var(--ease-inout) infinite; }
+  .job-dot[data-tone='waiting'] { color: var(--tungsten); }
+  .job-dot[data-tone='waiting'] .job-dot-mark { background: var(--tungsten); box-shadow: none; animation: none; }
+  .job-dot[data-tone='idle'] { color: var(--fg-muted); }
+  .job-dot[data-tone='idle'] .job-dot-mark { background: var(--fg-faint); box-shadow: none; animation: none; }
 }

@@ -33,7 +33,7 @@ export function ArtRow({ href, src, ratio = 'poster', title, titleAr, cells, sta
     <li className="row row-hover -mx-2 px-2">
       <Link href={href} className="flex min-w-0 flex-1 items-center gap-3">
         <div className={cls(w, 'flex-none')}><Art src={src} ratio={ratio} title={title} sample={false} className="!rounded-md !shadow-none" /></div>
-        <span className="min-w-0 flex-1"><span className="bi block truncate text-sm font-medium" dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar" dir="rtl">{titleAr}</span>}</span>{sample && <span className="text-[11px] text-faint">Sample</span>}</span>
+        <span className="min-w-0 flex-1"><span className="bi block truncate text-sm font-medium" dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar content-text" dir="auto">{titleAr}</span>}</span>{sample && <span className="text-xs text-faint">Sample</span>}</span>
         {cells?.map((c, i) => <span key={i} className="hidden min-w-0 flex-none text-sm text-muted sm:block sm:w-28 md:w-36 truncate">{c}</span>)}
         {status && <span className="hidden flex-none sm:block">{status}</span>}
       </Link>
@@ -51,7 +51,7 @@ export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, m
   const words = (
     <div className="min-w-0 flex-1 pb-1">
       {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-      <h1 className={cls('page-title bi', wide ? 'display-xl' : compact ? 'text-[1.5rem] sm:text-[1.9rem]' : 'text-[1.6rem] sm:text-[2.1rem] lg:text-[2.25rem]')} dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar" dir="rtl">{titleAr}</span>}</h1>
+      <h1 className={cls('page-title bi', wide ? 'display-xl' : compact ? 'text-[1.5rem] sm:text-[1.9rem]' : 'text-[1.6rem] sm:text-[2.1rem] lg:text-[2.25rem]')} dir="auto"><span>{title}</span>{titleAr && <span className="bi-ar content-text" dir="auto">{titleAr}</span>}</h1>
       {description && <p className={cls('mt-2 max-w-3xl text-[14px] leading-relaxed text-body', wide ? 'line-clamp-3' : 'hidden sm:block')} dir="auto">{description}</p>}
       {meta && <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">{meta}</p>}
       {actions && <div className="mt-4 flex flex-wrap items-center gap-2">{actions}</div>}

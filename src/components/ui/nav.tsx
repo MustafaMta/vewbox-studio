@@ -5,9 +5,9 @@ import { T } from '@/lib/copy';
 import { IconChevronRight } from './icons';
 
 /** NAVIGATION — the studio's navigation lives in the shell since v4 (src/components/shell: the Sidebar, the NavRail,
- *  the MobileBar and its sheet, the model in nav-model.ts; docs/DESIGN-SYSTEM-V4.md §5.1, §7.1). This module keeps the
+ *  the phone's top and bottom bars, the model in nav-model.ts; docs/DESIGN-SYSTEM-V4.md §5.1, §7.1). This module keeps the
  *  breadcrumb trail that pages use, and re-exports the model for anything that asked for it here. */
-export { NAV_GROUPS, NAV_ITEMS, isActive, currentItem, areaKey } from '@/components/shell/nav-model';
+export { NAV_GROUPS, NAV_ITEMS, isActive, currentItem, areaLabel } from '@/components/shell/nav-model';
 export type { NavItem, NavGroup } from '@/components/shell/nav-model';
 
 export function Crumbs({ items }: { items: Array<{ href?: string; label: string }> }) {

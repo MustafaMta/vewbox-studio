@@ -1,30 +1,26 @@
-'use client';
-
-import { T } from '@/lib/copy';
-
-/** THE VEWBOX GLYPH — a lens opened by a V: the frame you view through. In the product it is monochrome ivory on a
- *  `--raised-2` tile (docs/DESIGN-SYSTEM-V4.md §2.5, V4-08): the work stays the brightest, most colourful thing on
- *  screen. The violet gradient mark survives only as the favicon (src/components/shell/brand-mark.ts). */
-export function VewboxGlyph({ size = 18, className = '' }: { size?: number; className?: string }) {
+/** THE VEWBOX MARK (docs/DESIGN-SYSTEM-V5.md §1.4) — the viewfinder: four frame corners around a dot, the frame you
+ *  look through. Monochrome, in the current colour (paper in the shell), never on a coloured tile: the work stays the
+ *  brightest, most colourful thing on screen. The same drawing is the favicon (src/app/layout.tsx). */
+export function VewboxGlyph({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" focusable="false">
-      <path d="M17.79 5.11A9 9 0 1 0 20.69 9.67" strokeWidth="1.6" />
-      <path d="M8.2 8.6 12 15.9l3.8-7.3" strokeWidth="2.2" />
+    <svg width={size} height={size} viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" className={className} aria-hidden="true" focusable="false">
+      <path d="M2.5 8V3.5H7M19 3.5h4.5V8M23.5 18v4.5H19M7 22.5H2.5V18" />
+      <circle cx="13" cy="13" r="3.2" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-/** The glyph on its 32 px tile (the sidebar's brand row, the phone bar). */
+/** The mark in its 32 px box (the brand row, the phone bar). */
 export function BrandTile({ className = '' }: { className?: string }) {
   return <span className={`brand-tile ${className}`} aria-hidden="true"><VewboxGlyph /></span>;
 }
 
-/** The tile and the wordmark. */
+/** The mark and the wordmark. */
 export function VewboxLogo({ className = '' }: { className?: string }) {
   return (
     <span className={`brand-logo ${className}`}>
       <BrandTile />
-      <span className="brand-wordmark">{T('app.name')}</span>
+      <span className="brand-wordmark">Vewbox Studio</span>
     </span>
   );
 }

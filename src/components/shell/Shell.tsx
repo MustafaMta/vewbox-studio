@@ -4,7 +4,6 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExt
 import { useRootVarContribution } from './root-vars';
 import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
-import { T } from '@/lib/copy';
 import { SyncErrors } from '@/components/ui/jobs';
 import { ShellContext, type RoomName, type ShellApi } from './context';
 import { waitingDecisions, type PipelineRow } from './decisions';
@@ -12,21 +11,24 @@ import { readPrefs, usePrefs, writePrefs, type NavShape } from './preferences';
 import { shortcutFor } from './shortcuts';
 import { DocumentTitle } from './DocumentTitle';
 import { Sidebar } from './Sidebar';
-import { MobileBar } from './MobileBar';
+import { BottomNav, PhoneBar } from './PhoneNav';
+import { ShellSkeleton } from './ShellSkeleton';
 import { ServerBar } from './ServerBar';
 import { CommandPalette } from './CommandPalette';
 import { ShortcutSheet } from './ShortcutSheet';
 
-/** THE SHELL (docs/DESIGN-SYSTEM-V4.md §5.1, §4.1, §2.3, §7.5) — what every page of the studio sits in:
+/** THE SHELL (v5.1: the app frame — one compact left sidebar, then the content column) — what every page of the
+ *  studio sits in:
  *
- *    skip link · MobileBar (< 768) · Sidebar or NavRail (≥ 768) · content column [data-room] → ServerBar · <main>
+ *    skip link · Sidebar (≥ 768) · content column [data-room] → PhoneBar (< 768) · ServerBar · <main> · BottomNav (< 768)
  *    + the command palette (Ctrl/⌘K) and the shortcut sheet (?), and the global shortcuts.
  *
- *  The navigation's shape: the 240 sidebar at ≥ 1024 in the lobby, the 80 rail at 768–1023 and in the cutting room;
- *  Ctrl/⌘ \ (or Collapse) chooses the other shape for this kind of room, remembered in this browser. Until the shell
- *  has mounted, the shape the boot script chose (`html[data-nav-boot]`) is drawn, so a collapsed rail never flashes
- *  open. Pages talk to the shell through <Room>, useRoom(), usePaletteEntries(), useUrlState()
- *  and <LastKnown />. */
+ *  The document scrolls (so every sticky header and the scroll padding of tokens.css keep working); the sidebar is
+ *  sticky at the full viewport height and scrolls inside itself on a short screen. Its shape: expanded at ≥ 1024,
+ *  the icon rail at 768–1023 and, by default, in the cutting room; Ctrl/⌘ \ (or Collapse) chooses the other shape for
+ *  this kind of room at ≥ 1024, remembered in this browser. Until the shell has mounted, the shape the boot script
+ *  chose (`html[data-nav-boot]`) is drawn, so a collapsed rail never flashes open and the column never shifts. Pages
+ *  talk to the shell through <Room>, useRoom(), usePaletteEntries(), useUrlState() and <LastKnown />. */
 
 /** How long the event stream must stay down before the ServerBar says so (its first retry comes after 1 s). */
 export const SERVER_GRACE_MS = 3000;
@@ -69,8 +71,14 @@ export function Shell({ children }: { children: ReactNode }) {
   // ---- the navigation's shape -------------------------------------------------------------------------------------
   const kind = room === 'cutting' ? 'cutting' : 'lobby';
   const chosen = prefs.nav?.[kind];
-  const nav: NavShape = chosen ?? (!mounted ? 'sidebar' : room === 'cutting' || !wide ? 'rail' : 'sidebar');
-  const toggleNav = useCallback(() => { const next: NavShape = nav === 'rail' ? 'sidebar' : 'rail'; writePrefs({ nav: kind === 'cutting' ? { cutting: next } : { lobby: next } }); }, [kind, nav]);
+  // below 1024 the sidebar is always the icon rail (and below 768 the phone's bars replace it); at 1024 and wider it is
+  // expanded, or what the producer chose for this kind of room (the cutting room starts collapsed)
+  const nav: NavShape = !mounted ? 'sidebar' : !wide ? 'rail' : chosen ?? (room === 'cutting' ? 'rail' : 'sidebar');
+  const toggleNav = useCallback(() => {
+    if (!matchMedia('(min-width: 1024px)').matches) return;
+    const next: NavShape = nav === 'rail' ? 'sidebar' : 'rail';
+    writePrefs({ nav: kind === 'cutting' ? { cutting: next } : { lobby: next } });
+  }, [kind, nav]);
 
   // ---- the palette and the sheet ----------------------------------------------------------------------------------
   const [palette, setPalette] = useState(false);
@@ -92,7 +100,7 @@ export function Shell({ children }: { children: ReactNode }) {
       else if (cmd === 'focus') {
         // focus mode belongs to the cutting room's workspace (F3's FocusMode listens for this event)
         const t = e.target as Element | null;
-        if (live.current.room !== 'cutting' || t?.closest?.('.shell-nav, .mobile-bar')) return;
+        if (live.current.room !== 'cutting' || t?.closest?.('.shell-nav, .phone-bar, .bottom-nav')) return;
         e.preventDefault(); window.dispatchEvent(new CustomEvent('vewbox:focus-mode'));
       }
     };
@@ -110,22 +118,17 @@ export function Shell({ children }: { children: ReactNode }) {
       <Suspense fallback={null}><DocumentTitle /></Suspense>
       <SyncErrors />
       <div className="shell" data-nav={mounted ? nav : undefined} data-shell-room={room} data-lights={lightsDown ? 'down' : undefined}>
-        <a href="#main" className="skip-link">{T('nav.skip')}</a>
+        <a href="#main" className="skip-link">Skip to content</a>
         <Sidebar />
         <div className="shell-column" data-room={room} data-density={density} data-server={serverDown ? 'down' : undefined}
           style={serverDown && serverBarH ? ({ '--server-bar-h': `${serverBarH}px` } as React.CSSProperties) : undefined}>
           {/* inside the column, so the phone's bar stands on the room's own ground */}
-          <MobileBar />
+          <PhoneBar />
           {serverDown && <ServerBar onHeight={setServerBarH} />}
           <main id="main" tabIndex={-1} className="shell-main">
-            {ready ? children : (
-              <div aria-busy="true" className="shell-skeleton">
-                <span className="sr-only">{T('shell.save.opening')}</span>
-                <div className="shell-ph shell-skeleton-title" /><div className="shell-ph shell-skeleton-lead" />
-                <div className="shell-skeleton-grid">{[0, 1, 2].map((i) => <div key={i} className="shell-ph shell-ph-wide" />)}</div>
-              </div>
-            )}
+            {ready ? children : <ShellSkeleton label="Opening the studio…" />}
           </main>
+          <BottomNav />
         </div>
       </div>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
