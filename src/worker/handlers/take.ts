@@ -2,6 +2,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler } from './index';
 import { step } from './step';
+import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, showsPictureOfPeople } from './people';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
@@ -335,6 +336,23 @@ export const generateTake: Handler = async (ctx) => {
       report.checks.push({ name: 'script-spoken', ok: false, detail: `not verified (transcription unavailable): ${(e as Error).message}` });
       scriptCheck = { ok: false, detail: `not verified: ${(e as Error).message}` };
       takeUnverified = true;
+    }
+  }
+  // PEOPLE ON SCREEN (the Visual Quality Inspector's step, D33): the new frames sampled every half second and counted
+  // by the vision model; anyone extra at any moment — a stranger, a duplicated character — fails the take
+  const expectedPeople = peopleExpected(sh, sh.characterIds);
+  if (expectedPeople !== undefined && backend === 'local' && await canCountPeople()) {
+    try {
+      const samples = await step(ctx, 'visual-quality-inspector', `people-check: shot ${sh.number}`, (tool) => countPeopleOverTime(ctx, tool, 'image.describe_reference', result.file, { from: trimStartFrames / H3_FPS, to: probe.durationSeconds ?? expectSeconds, label: `${p.title} ${sh.number} — people on screen` }));
+      const v = peopleVerdict(samples, expectedPeople);
+      // a shot that features a photo or a reflection of someone: a surplus may be that picture — flagged, not rejected
+      const pictured = showsPictureOfPeople(sh.action);
+      const where = `${v.max} people at ${v.at.map((t) => `${t.toFixed(1)} s`).join(', ')} where the shot has ${expectedPeople}`;
+      report.checks.push({ name: 'people-on-screen', ok: v.ok, value: v.max, threshold: `≤ ${expectedPeople}`, detail: v.ok ? `${samples.length} moments counted, never more than ${expectedPeople}` : pictured ? `${where} — the shot shows a picture or a reflection of someone: look before choosing (not rejected)` : where });
+      if (!v.ok && !pictured) report.ok = false;
+      if (!v.ok && pictured) await ctx.event('warn', `shot ${sh.number}: ${where}; the shot shows a picture or a reflection of someone — look before choosing this take`, { shotId: sh.id, at: v.at });
+    } catch (e) {
+      await ctx.event('warn', `shot ${sh.number}: the people on screen could not be counted (${(e as Error).message})`, { shotId: sh.id });
     }
   }
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;

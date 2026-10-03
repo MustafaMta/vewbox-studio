@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 10;
+export const ORG_VERSION = 11;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -422,11 +422,11 @@ const AGENTS_BASE: AgentBase[] = [
       { id: 'voice-proof-check', name: 'Proof-line check of a voice', where: W('handlers/voice.ts') },
     ] },
   { id: 'visual-quality-inspector', name: 'Visual Quality Inspector', department: 'QA', role: 'Measured picture checks',
-    description: 'Runs the measured checks on every new take (decodable, duration, size, audio stream, black and frozen frames, flicker, silence, true peak); a failed check rejects the take as OUTPUT_CORRUPTION.',
-    systemInstructions: S(`Measured checks only; a failed check rejects the take; anatomy and acting are a person's review.`),
-    model: 'ffmpeg', skills: ['take-inspection'], tools: ['media.qa_take'], inputSchema: 'take file', outputSchema: 'QaReport', limits: { timeoutMs: 300_000, maxAttempts: 1, resource: 'CPU' }, version: '2.0.0',
-    qualityRequirements: ['every take checked'], jobTypes: [],
-    steps: [{ id: 'picture-check', name: 'Picture check of a take', where: W('handlers/take.ts') }] },
+    description: 'Runs the measured checks on every new take (decodable, duration, size, audio stream, black and frozen frames, flicker, silence, true peak) and counts the people on screen every half second with the vision model; a failed check rejects the take as OUTPUT_CORRUPTION.',
+    systemInstructions: S(`Measured checks only; a failed check rejects the take; more people on screen than the shot holds — a stranger, a duplicated character — fails it; anatomy and acting are a person's review.`),
+    model: 'ffmpeg + Qwen3.5-4B (ComfyUI)', skills: ['take-inspection'], tools: ['media.qa_take', 'image.describe_reference'], inputSchema: 'take file', outputSchema: 'QaReport', limits: { timeoutMs: 300_000, maxAttempts: 1, resource: 'CPU' }, version: '2.1.0',
+    qualityRequirements: ['every take checked', 'never more people on screen than the shot holds'], jobTypes: [],
+    steps: [{ id: 'picture-check', name: 'Picture check of a take', where: W('handlers/take.ts') }, { id: 'people-check', name: 'People on screen, every half second', where: W('handlers/take.ts') }] },
   { id: 'reliability-engineer', name: 'Reliability Engineer', department: 'QA', role: 'Failure classification',
     description: 'Classifies every failed job into the studio’s failure classes, decides whether an unchanged retry is allowed (infrastructure, provider and resource failures only) and opens the reliability event; a later success resolves it.',
     systemInstructions: S(`A second attempt is an event, not a routine; only infrastructure, provider and resource failures retry unchanged; everything else needs a stated correction.`),
@@ -482,7 +482,7 @@ const STEPS_AR: Record<string, string> = {
   'timing-fit': 'ملاءمة توقيت المشهد', 'reference-selection': 'اختيار مراجع اللقطة', 'line-preparation': 'تحضير الجملة قبل النطق',
   'mix-plan': 'خطة مزج المونتاج', 'subtitle-cues': 'إشارات ترجمة المونتاج', 'story-gate': 'بوابة الموافقة على القصة', 'pilot-gate': 'بوابة اللقطة التجريبية للمشهد', 'cut-gate': 'بوابة الموافقة على المونتاج',
   'qa-handoff-review': 'مراجعة تسليم ضمان الجودة', 'file-validation': 'التحقق من الملف المنجز', 'take-speech-check': 'فحص كلام اللقطة', 'song-check': 'فحص الأغنية',
-  'voice-proof-check': 'فحص جملة إثبات الصوت', 'picture-check': 'فحص صورة اللقطة', 'failure-classification': 'تصنيف الإخفاق',
+  'voice-proof-check': 'فحص جملة إثبات الصوت', 'picture-check': 'فحص صورة اللقطة', 'people-check': 'عدّ الأشخاص على الشاشة كل نصف ثانية', 'failure-classification': 'تصنيف الإخفاق',
   'world-sync': 'نسخة جديدة من سجل العالم بعد تغيّر القصة', 'world-pin': 'تثبيت سجل العالم للإنتاج', 'world-read': 'قراءة سجل العالم للقطة', 'establish-locations': 'الإطارات المرجعية للأماكن من المونتاج المعتمد',
 };
 

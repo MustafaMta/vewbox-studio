@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
 import type { ToolRunner } from '@/server/org/tools';
 import { step } from './step';
+import { canCountPeople, countPeopleInFiles, peopleExpected } from './people';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot, WorldRead } from '@/domain/types';
@@ -22,7 +23,7 @@ import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
-  qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
+  referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
 import { frameContinuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
@@ -575,25 +576,14 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   return kept!.id;
 }
 
-/** How many people a frame should hold: the shot's people — unless its action brings in others (a crowd, customers,
- *  passers-by), which the studio does not count. */
-export function peopleExpected(sh: Pick<Shot, 'action'>, people: unknown[]): number | undefined {
-  if (!people.length) return undefined;
-  if (/\b(crowd|people|customers|passers?-?by|strangers|children|guests|audience|others|everyone|onlookers|patrons|workers|soldiers)\b/i.test(sh.action)) return undefined;
-  return people.length;
-}
+export { peopleExpected };
 
-const PEOPLE_COUNT_PROMPT = 'How many people are physically present in this picture? Count every person, child or figure standing or sitting in the room, even when partly hidden. Do not count people who only appear in a photograph, portrait, poster or painting on the wall. Answer with the number only.';
-
-/** The people physically in a picture, counted by Qwen3.5-4B (10/10 on the Short's frames, wall portraits excluded);
- *  undefined when the vision model is not installed or answers no number. */
+/** The people physically in a drawn frame (people.ts); undefined when the vision model is not installed. */
 async function countPeople(ctx: HandlerContext, assetId: string, label: string): Promise<number | undefined> {
-  if (!(await comfy.listModels('text_encoders').catch(() => [] as string[])).includes(MODELS.vlm)) return undefined;
+  if (!(await canCountPeople())) return undefined;
   const a = (await readState()).state.assets.find((x) => x.id === assetId);
   if (!usableImage(a)) return undefined;
-  const run = await runGraph(ctx, qwenVlmText({ items: [{ key: 'people', image: await comfy.uploadInput(assetFile(a)), prompt: PEOPLE_COUNT_PROMPT }], maxLength: 16 }), { label: `${label}: counting the people`, tool: 'image.describe_reference' });
-  const n = Number(/\d+/.exec(comfy.textOutput(run.outputs, vlmOutput('people')) ?? '')?.[0]);
-  return Number.isFinite(n) ? n : undefined;
+  return (await countPeopleInFiles(ctx, ctx.tool, 'image.describe_reference', [assetFile(a)], `${label}: counting the people`))[0];
 }
 
 export const shotFrames: Handler = async (ctx) => {
