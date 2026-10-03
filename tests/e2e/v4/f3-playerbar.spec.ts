@@ -2,7 +2,15 @@ import { expect, test } from '@playwright/test';
 import { openKit } from './f3-helpers';
 
 /** DESIGN-SYSTEM-V4 §5.12, §8.5 F3, WCAG 2.4.11: while the fixed PlayerBar is shown it sets --bottom-bars (76 px), and
- *  an element that receives keyboard focus below its top edge scrolls clear of it. Read-only. */
+ *  an element that receives keyboard focus below its top edge scrolls clear of it. Read-only.
+ *
+ *  The routes are removed after the test (DS-1): the capture harness answers every /api/studio request with
+ *  `await route.fetch()`, the page asks for more than one snapshot (dev Strict Mode runs the store's first effect
+ *  twice; a command answered with a foreign hash schedules another), and on a slow server (the full suite) one is
+ *  still in flight when the test ends — the route callback then rejects with "Test ended" and Playwright fails the
+ *  test although its assertions passed. Awaiting `unrouteAll({ behavior: 'ignoreErrors' })` drops those callbacks. */
+
+test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 
 test('the PlayerBar sets --bottom-bars and a focused element below it scrolls clear', async ({ page }) => {
   await openKit(page, 'en', '#players');
