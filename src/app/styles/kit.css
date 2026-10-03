@@ -9,157 +9,173 @@
    to show every state at once.
    ============================================================================================================ */
 @layer components {
-  /* ---- surfaces --------------------------------------------------------------------------------------- */
-  /* a panel holds an interactive group; read-only lists sit on the ground with hairlines. No shadow, no inner
-     highlight: hover is one ladder step lighter */
-  .card, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
-  .card-hover { transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); }
-  .card-hover:hover { border-color: var(--line-strong); background: var(--input); }
-  .card-hover:has(a:focus-visible) { outline: 2px solid var(--ring); outline-offset: 2px; }
-  .panel-raised { background: var(--raised-2); border: 1px solid var(--line-strong); border-radius: var(--r-3); }
-  .well { background: color-mix(in srgb, var(--bg) 70%, transparent); border: 1px solid var(--line-soft); border-radius: var(--r-2); }
-  .divider { border-block-start: 1px solid var(--line-soft); }
-  /* the writing surface: quieter than the canvas, the words in full ivory */
-  .paper { background: var(--input); color: var(--fg); border: 1px solid var(--line); border-radius: var(--r-3); }
-  .paper .input, .paper .textarea, .paper .select { background: var(--bg); }
+  /* ---- surfaces (VISUAL-STANDARD-V5.1 §3.3, §5.9): cards are tone — surface-1, radius 14, no border, no shadow;
+     hover one step up. Media at the top of a card is clipped by the card. ----------------------------------------- */
+  .card, .panel { background: var(--surface-1); border: 0; border-radius: var(--r-md); }
+  .card-hover { transition: background-color var(--dur-1) var(--ease-out); }
+  .card-hover:hover { background: var(--surface-2); }
+  .card-hover:has(a:focus-visible) { outline: 2px solid var(--text-1); outline-offset: 3px; }
+  .panel-raised { background: var(--surface-2); border: 0; border-radius: var(--r-md); }
+  .well { background: var(--bg-page); border: 0; border-radius: var(--r-sm); }
+  .divider { border-block-start: 1px solid var(--line); }
+  .paper { background: var(--surface-1); color: var(--text-1); border: 0; border-radius: var(--r-md); }
+  .paper :is(.input, .textarea, .select) { background: var(--bg-page); }
 
-  /* ---- buttons ---------------------------------------------------------------------------------------- */
-  /* the one button (§6): 40 / 32 / 48 tall, radius 8, 14/20 semibold (13 at sm). Primary is ivory and appears once
-     per region; secondary is an outline on the control boundary; quiet is text until hovered (ghost and subtle are
-     the same thing now); danger is red text and edge — the filled red button lives only inside a confirm dialog */
-  .btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; block-size: var(--control-h); padding: 0 16px; border-radius: var(--r-2); font-size: 14px; font-weight: 600; line-height: 20px; border: 1px solid transparent; transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform 90ms var(--ease); white-space: nowrap; cursor: pointer; flex: none; }
-  .btn svg { inline-size: 16px; block-size: 16px; flex: none; }
-  .btn:active:not(:disabled) { transform: translateY(1px); }
-  .btn:disabled, .btn[aria-disabled='true'] { cursor: not-allowed; transform: none; color: var(--fg-disabled); }
+  /* ---- buttons (§5.3): pills, filled, never outlined. md 40 · sm 32 · lg 48; primary once per region ------------- */
+  .btn { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 8px; block-size: var(--control-h); padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-1); font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; text-decoration: none; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out); }
+  .btn:where(:has(> svg:first-child, > .spinner:first-child)) { padding-inline-start: 14px; }
+  .btn svg { flex: none; inline-size: 16px; block-size: 16px; stroke-width: 1.75; }
+  .btn:is(:disabled, [aria-disabled='true']) { cursor: not-allowed; }
   .btn-primary { background: var(--primary); color: var(--on-primary); }
-  .btn-primary:hover:not(:disabled), .btn-primary.is-hover { background: var(--primary-hover); }
-  .btn-primary:active:not(:disabled) { background: var(--primary-active); }
-  .btn-primary:disabled, .btn-primary[aria-disabled='true'] { background: var(--raised-2); color: var(--fg-disabled); }
-  .btn-secondary { background: transparent; color: var(--fg); border-color: var(--line-field); }
-  .btn-secondary:hover:not(:disabled), .btn-secondary.is-hover { background: var(--raised-2); }
-  .btn-secondary:active:not(:disabled) { background: var(--input); }
-  .btn-secondary:disabled, .btn-secondary[aria-disabled='true'] { border-color: var(--line); }
-  .btn-ghost, .btn-subtle, .btn-quiet { background: transparent; color: var(--fg-muted); padding-inline: 12px; }
-  .btn-ghost:hover:not(:disabled), .btn-subtle:hover:not(:disabled), .btn-quiet:hover:not(:disabled), .btn-quiet.is-hover { background: var(--raised-2); color: var(--fg); }
-  .btn-danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
-  .btn-danger:hover:not(:disabled), .btn-danger.is-hover { background: var(--bad-soft); }
-  .btn-danger:disabled { border-color: var(--line); }
-  /* the one filled red button: a destructive confirm inside a dialog */
-  .btn-danger-solid { background: var(--bad); color: var(--on-primary); border-color: transparent; }
-  .btn-danger-solid:hover:not(:disabled), .btn-danger-solid.is-hover { background: color-mix(in srgb, var(--bad) 85%, var(--primary-hover)); }
-  .btn-danger-solid:disabled { background: var(--raised-2); }
-  .btn-ok { background: transparent; color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
-  .btn-sm { block-size: var(--control-h-sm); padding: 0 12px; font-size: 13px; line-height: 18px; }
-  .btn-xs { block-size: 28px; padding: 0 10px; font-size: 12.5px; line-height: 16px; border-radius: var(--r-1); }
-  .btn-xs svg { inline-size: 14px; block-size: 14px; }
-  .btn-lg { block-size: 48px; padding: 0 20px; font-size: 15px; }
-  @media (pointer: coarse) { .btn-sm { block-size: 40px; } .btn-xs { block-size: 36px; } .tab { block-size: 48px; } }
-  .btn-icon { padding: 0; inline-size: var(--control-h); }
-  .btn-icon.btn-sm { inline-size: var(--control-h-sm); }
-  .btn-icon.btn-xs { inline-size: 28px; }
-  .btn-icon.btn-lg { inline-size: 48px; }
-  @media (pointer: coarse) { .btn-icon.btn-sm { inline-size: 40px; } .btn-icon.btn-xs { inline-size: 36px; } }
+  .btn-primary:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--primary-hover); }
+  .btn-primary:is(:active, .is-active):not(:disabled, [aria-disabled='true']) { background: var(--primary-active); }
+  .btn-primary:is(:disabled, [aria-disabled='true']) { background: var(--surface-2); color: var(--text-disabled); }
+  .btn-secondary { background: var(--surface-2); color: var(--text-1); }
+  .btn-secondary:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--surface-3); }
+  .btn-secondary:is(:active, .is-active):not(:disabled, [aria-disabled='true']) { background: var(--surface-4); }
+  .btn-secondary:is(:disabled, [aria-disabled='true']) { background: var(--surface-1); color: var(--text-disabled); }
+  /* a secondary inside a level-1 card is one step lighter, so it still reads as a button */
+  :is(.card, .panel, .paper, .approval, .dcard, .acard, .pcard, .creation-group) .btn-secondary { background: var(--surface-3); }
+  :is(.card, .panel, .paper, .approval, .dcard, .acard, .pcard, .creation-group) .btn-secondary:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--surface-4); }
+  :is(.card, .panel, .paper, .approval, .dcard, .acard, .pcard, .creation-group) .btn-secondary:is(:active, .is-active):not(:disabled, [aria-disabled='true']) { background: var(--surface-5); }
+  :is(.card, .panel, .paper, .approval, .dcard, .acard, .pcard, .creation-group) .btn-secondary:is(:disabled, [aria-disabled='true']) { background: var(--surface-2); color: var(--text-disabled); }
+  .dcard:hover .btn-secondary, .acard:hover .btn-secondary { background: var(--surface-4); }
+  .btn-quiet, .btn-ghost, .btn-subtle { background: transparent; color: var(--text-2); padding-inline: 12px; }
+  :is(.btn-quiet, .btn-ghost, .btn-subtle):is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--surface-2); color: var(--text-1); }
+  :is(.btn-quiet, .btn-ghost, .btn-subtle):is(:active, .is-active):not(:disabled, [aria-disabled='true']) { background: var(--surface-3); }
+  :is(.btn-quiet, .btn-ghost, .btn-subtle):is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); }
+  /* what removes, outside a dialog: quiet, in the failure colour (the filled danger lives only in a confirm) */
+  .btn-danger { background: transparent; color: var(--bad); }
+  .btn-danger:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--bad-soft); }
+  .btn-danger:is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); }
+  .btn-danger-solid { background: var(--bad); color: var(--on-primary); }
+  .btn-danger-solid:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) { background: var(--bad-hover); }
+  .btn-danger-solid:is(:disabled, [aria-disabled='true']) { background: var(--surface-2); color: var(--text-disabled); }
+  .btn-ok { background: var(--ok-soft); color: var(--ok); }
+  .btn-sm, .btn-xs { block-size: var(--control-h-sm); gap: 6px; padding: 0 12px; font-size: 13px; line-height: 18px; }
+  :is(.btn-sm, .btn-xs):where(:has(> svg:first-child, > .spinner:first-child)) { padding-inline-start: 10px; }
+  :is(.btn-sm, .btn-xs) svg { inline-size: 14px; block-size: 14px; }
+  .btn-lg { block-size: var(--control-h-lg); padding: 0 20px; font-size: 15px; line-height: 20px; }
+  .btn-lg svg { inline-size: 18px; block-size: 18px; }
+  @media (pointer: coarse) { .btn, .btn-sm, .btn-xs { min-block-size: 44px; } .tab { min-block-size: 44px; } }
+  /* the icon button: a circle, 40 (sm 32), quiet or secondary fill */
+  .btn-icon { inline-size: var(--control-h); padding: 0; }
+  .btn-icon svg { inline-size: 18px; block-size: 18px; }
+  .btn-icon:is(.btn-sm, .btn-xs) { inline-size: var(--control-h-sm); }
+  .btn-icon:is(.btn-sm, .btn-xs) svg { inline-size: 16px; block-size: 16px; }
+  .btn-icon.btn-lg { inline-size: var(--control-h-lg); }
+  @media (pointer: coarse) { .btn-icon, .btn-icon:is(.btn-sm, .btn-xs) { min-inline-size: 44px; } }
   .btn-block { inline-size: 100%; }
   [data-density='compact'] .btn { font-size: 13px; }
-  /* pressed: one step up and a 2 px accent underline — never a violet fill */
-  .btn[aria-pressed='true'] { background: var(--raised-2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+  /* pressed (a toggle): one step up, never an underline or a colour */
+  .btn[aria-pressed='true'] { background: var(--surface-3); color: var(--text-1); }
   .btn[aria-busy='true'] { cursor: progress; }
   /* loading keeps the width: the spinner takes the icon's place, or sits over a label-only button */
   .btn .btn-spinner { position: absolute; inset: 0; margin: auto; }
   .btn .btn-label-busy { color: transparent; }
-  /* a loading button is busy, not unavailable: it keeps its own look */
-  .btn-primary[data-loading] { background: var(--primary); color: var(--on-primary); }
-  .btn-secondary[data-loading] { border-color: var(--line-field); color: var(--fg); }
-  .btn-quiet[data-loading], .btn-ghost[data-loading] { color: var(--fg-muted); }
-  .btn-danger[data-loading] { border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
-  .btn-danger-solid[data-loading] { background: var(--bad); color: var(--on-primary); }
-  .btn-count { font-weight: 500; color: var(--fg-faint); font-variant-numeric: tabular-nums; }
-  .btn-caret { color: var(--fg-faint); }
-  .spinner { display: inline-block; inline-size: 14px; block-size: 14px; flex: none; border-radius: var(--r-pill); border: 2px solid currentColor; border-block-start-color: transparent; animation: kit-spin 800ms linear infinite; }
+  .btn-count { font-family: var(--font-mono); font-size: 12px; font-weight: 400; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .btn-primary .btn-count { color: var(--on-primary-2); }
+  .btn-caret { color: var(--text-3); }
+  .spinner { display: inline-block; flex: none; inline-size: 14px; block-size: 14px; border-radius: var(--r-pill); border: 1.5px solid currentColor; border-block-start-color: transparent; animation: kit-spin 700ms linear infinite; }
   @keyframes kit-spin { to { transform: rotate(360deg); } }
+  /* the split button (§5.3): one pill, two parts that hover alone, a 1 px divider inset 8 px */
+  .btn-split { display: inline-flex; flex: none; border-radius: var(--r-pill); }
+  .btn-split > .btn { border-radius: 0; }
+  .btn-split > .btn:first-child { padding-inline-end: 12px; border-start-start-radius: var(--r-pill); border-end-start-radius: var(--r-pill); }
+  .btn-split > .btn:last-child { inline-size: 32px; padding: 0; border-start-end-radius: var(--r-pill); border-end-end-radius: var(--r-pill); }
+  .btn-split > .btn:last-child svg { inline-size: 14px; block-size: 14px; }
+  .btn-split > .btn + .btn::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--line-strong); }
+  .btn-split > .btn-primary + .btn-primary::before { background: var(--split-on-primary); }
+  .btn-split > .menu-wrap > .btn { border-radius: 0 var(--r-pill) var(--r-pill) 0; inline-size: 32px; padding: 0; }
   /* a drawn state (the specimen) */
-  .is-focus { outline: 2px solid var(--ring); outline-offset: 2px; }
-  /* an upload area: dashed, it lights up when a file is dragged over it */
-  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 1.25rem; border: 1.5px dashed var(--line-field); border-radius: var(--r-3); background: var(--input); color: var(--fg-muted); text-align: center; cursor: pointer; transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); }
-  .dropzone:hover { border-color: var(--fg-faint); color: var(--fg); }
-  .dropzone[data-over='true'] { border-color: var(--accent); color: var(--fg); }
-  .dropzone:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
-  .dropzone[aria-disabled='true'] { cursor: not-allowed; border-color: var(--line); color: var(--fg-disabled); }
+  .is-focus { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  /* an upload area (v3): dashed boundary on surface-1; drag-over is the light boundary */
+  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px; border: 1.5px dashed var(--line-control); border-radius: var(--r-md); background: var(--surface-1); color: var(--text-2); text-align: center; cursor: pointer; transition: border-color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out); }
+  .dropzone:hover { border-color: var(--line-control-hover); color: var(--text-1); }
+  .dropzone[data-over='true'] { border-color: var(--text-1); background: var(--surface-2); color: var(--text-1); }
+  .dropzone:focus-within { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  .dropzone[aria-disabled='true'] { cursor: not-allowed; border-color: var(--line); color: var(--text-disabled); }
   .dropzone[data-error='true'] { border-color: var(--bad); }
-  /* "add another" under an existing preview: one 56 px row, icon · label · hint inline */
-  .dropzone-row { flex-direction: row; justify-content: flex-start; gap: 0.75rem; min-block-size: 3.5rem; padding: 0.5rem 0.9rem; text-align: start; }
-  .dropzone-row > span:first-child { inline-size: 2rem; block-size: 2rem; }
+  .dropzone-row { flex-direction: row; justify-content: flex-start; gap: 12px; min-block-size: 56px; padding: 8px 12px; text-align: start; }
+  .dropzone-row > span:first-child { inline-size: 32px; block-size: 32px; }
 
-  /* ---- fields ----------------------------------------------------------------------------------------- */
-  /* fields (§6): 40 px (compact 32), radius 8, the control boundary at ≥ 3:1; focus is the accent edge (border plus
-     an inset 1 px), never a translucent glow, so no doubled outline */
-  .input, .select, .textarea { inline-size: 100%; background: var(--input); color: var(--fg); border: 1px solid var(--line-field); border-radius: var(--r-2); padding: 0 12px; block-size: var(--control-h); font-size: 14px; line-height: calc(var(--control-h) - 2px); transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); scroll-margin-block-end: 72px; }
+  /* ---- fields (§5.15): 40 high, surface-1, a 1 px control boundary, radius 10 ------------------------------------ */
+  .input, .select, .textarea { inline-size: 100%; block-size: var(--control-h); padding: 0 12px; border: 1px solid var(--line-control); border-radius: var(--r-sm); background: var(--surface-1); color: var(--text-1); font: inherit; font-size: 14px; line-height: calc(var(--control-h) - 2px); transition: border-color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out); scroll-margin-block-end: 72px; }
   [data-density='compact'] :is(.input, .select, .textarea) { font-size: 13px; }
-  .textarea { block-size: auto; min-block-size: 5rem; line-height: 1.6; padding: 9px 12px; resize: vertical; }
-  .input::placeholder, .textarea::placeholder { color: var(--fg-faint); }
-  .input:hover:not(:focus), .select:hover:not(:focus), .textarea:hover:not(:focus), :is(.input, .select, .textarea).is-hover { border-color: var(--fg-faint); }
-  :is(.input, .select, .textarea):is(:focus-visible, .is-focus) { border-color: var(--fg-muted); }
-  :is(.input, .select, .textarea).is-focus { outline: 2px solid var(--paper); outline-offset: 2px; }
-  .input[aria-invalid='true'], .textarea[aria-invalid='true'], .select[aria-invalid='true'] { border-color: var(--bad); }
-  .input:disabled, .select:disabled, .textarea:disabled { border-color: var(--line); color: var(--fg-disabled); cursor: not-allowed; }
-  .input[type='file'] { padding: 0.35rem 12px; line-height: 1.3; block-size: auto; }
-  /* the one big field of a creation flow */
-  .input-lg { block-size: 48px; font-size: 16px; line-height: 46px; }
-  .textarea.input-lg { block-size: auto; min-block-size: 7.5rem; line-height: 1.6; padding: 12px 14px; }
-  .input[type='search']::-webkit-search-cancel-button { filter: invert(0.7); }
-  .select { appearance: none; padding-inline-end: 2.4rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ada597' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.85rem center; background-size: 0.875rem; }
-  .select option { background: var(--input); color: var(--fg); }
-  .label { display: block; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg-body); margin-block-end: 6px; }
-  .help, .hint { font-size: 12px; line-height: 16px; color: var(--fg-faint); margin-block-start: 6px; }
-  .range { inline-size: 100%; accent-color: var(--accent-strong); }
-  .check { inline-size: 1rem; block-size: 1rem; accent-color: var(--accent-strong); flex: none; border-radius: 4px; }
+  .textarea { block-size: auto; min-block-size: 96px; padding: 10px 12px; line-height: 20px; resize: vertical; }
+  .input::placeholder, .textarea::placeholder { color: var(--text-3); }
+  :is(.input, .select, .textarea):is(:hover, .is-hover):not(:focus, :disabled) { border-color: var(--line-control-hover); }
+  :is(.input, .select, .textarea):is(:focus-visible, .is-focus) { border-color: var(--text-1); }
+  :is(.input, .select, .textarea).is-focus { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  :is(.input, .textarea, .select)[aria-invalid='true'] { border-color: var(--bad); }
+  :is(.input, .select, .textarea):disabled { border-color: var(--line); background: var(--bg-page); color: var(--text-disabled); cursor: not-allowed; }
+  .input[type='file'] { block-size: auto; padding: 6px 12px; line-height: 20px; }
+  .input-lg { block-size: 48px; font-size: 15px; line-height: 46px; }
+  .textarea.input-lg { block-size: auto; min-block-size: 120px; line-height: 22px; padding: 12px 14px; }
+  .input[type='search']::-webkit-search-cancel-button { filter: invert(0.6); }
+  .select { appearance: none; padding-inline-end: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238E8E8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; } /* v4-lint: allow physical — the chevron sits at the end of an LTR-only interface */
+  .select option { background: var(--surface-2); color: var(--text-1); }
+  .label { display: block; margin-block-end: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-2); }
+  .help, .hint { margin-block-start: 6px; font-size: 13px; line-height: 18px; color: var(--text-3); }
+  .field-error { display: flex; align-items: center; gap: 6px; margin-block-start: 6px; font-size: 13px; line-height: 18px; color: var(--bad); }
+  .field-error svg { inline-size: 14px; block-size: 14px; flex: none; }
+  .range { inline-size: 100%; accent-color: var(--text-1); }
+  .check { flex: none; inline-size: 16px; block-size: 16px; border-radius: var(--r-xs); accent-color: var(--text-1); }
 
-  /* ---- status ----------------------------------------------------------------------------------------- */
-  /* a badge is for counts and the sample mark; tones are quiet text on a neutral pill, never decoration */
-  .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0 8px; block-size: 22px; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 1; white-space: nowrap; border: 1px solid var(--line); background: var(--raised-2); color: var(--fg-body); }
-  .badge svg { inline-size: 0.75rem; block-size: 0.75rem; }
-  .badge-neutral { background: var(--raised-2); color: var(--fg-body); border-color: var(--line); }
-  .badge-ok { background: var(--ok-soft); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
-  .badge-warn, .badge-gold { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
-  .badge-bad, .badge-err { background: var(--bad-soft); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
-  .badge-info, .badge-teal { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
-  .badge-accent { background: var(--raised-2); color: var(--fg); border-color: var(--line-strong); }
-  /* on art: a solid chip, never glass (§1.5) */
-  .badge-glass { background: var(--chip-on-art); color: var(--on-art); border-color: color-mix(in srgb, var(--on-art) 12%, transparent); }
-  /* status (§6): a 6 px dot and a 12/16 phrase. Waiting and failed colour the words too; running is the accent */
-  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--fg-muted); white-space: nowrap; }
-  .status::before { content: ''; inline-size: 6px; block-size: 6px; border-radius: 999px; background: var(--fg-faint); flex: none; }
-  .status-ok::before { background: var(--ok); } .status-info::before, .status-accent::before, .status-teal::before { background: var(--accent); }
-  .status-warn, .status-gold { color: var(--warn); } .status-warn::before, .status-gold::before { background: var(--warn); }
-  .status-bad { color: var(--bad); } .status-bad::before { background: var(--bad); }
-  /* the only loop besides the skeleton: the live dot of something running right now */
-  .status-live::before { animation: breathe 2s ease-in-out infinite; }
-  .dot { display: inline-block; inline-size: 6px; block-size: 6px; border-radius: 999px; flex: none; }
-  .dot-live { animation: breathe 2s ease-in-out infinite; }
-  /* job progress: it fills from the start */
-  .progress { block-size: 4px; inline-size: 100%; overflow: hidden; border-radius: 999px; background: var(--raised-2); }
-  .progress > span { display: block; block-size: 100%; border-radius: 999px; background: var(--accent-strong); transition: inline-size var(--t-slow) var(--ease), width var(--t-slow) var(--ease); }
-  /* tabs — text with a 2 px accent rule under the selected one; counts are faint numbers; scrolls on a phone */
-  /* tabs never scroll: on a narrow screen they wrap to a second row (§4.6, QA M17) */
-  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-block-end: 1px solid var(--line-soft); }
-  .tab { position: relative; display: inline-flex; align-items: center; gap: 6px; block-size: var(--tabs-h); padding: 0 12px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-muted); white-space: nowrap; border-radius: var(--r-1) var(--r-1) 0 0; transition: color var(--t) var(--ease); scroll-snap-align: start; }
-  .tab:hover, .tab.is-hover { color: var(--fg); }
-  .tab[aria-selected='true'], .tab.is-selected { color: var(--fg); font-weight: 600; }
-  .tab[aria-selected='true']::after, .tab.is-selected::after { content: ''; position: absolute; inset-inline: 12px; inset-block-end: -1px; block-size: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
-  .tab:disabled, .tab[aria-disabled='true'], .tab.is-disabled { color: var(--fg-disabled); cursor: not-allowed; }
+  /* ---- chips and badges (§5.13) ------------------------------------------------------------------------------- */
+  /* a status badge: 22 high, pill, 12/16 500; the tones are the state colours on their soft fills */
+  .badge { display: inline-flex; align-items: center; gap: 6px; block-size: 22px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+  .badge svg { inline-size: 12px; block-size: 12px; }
+  .badge-neutral, .badge-accent, .badge-info, .badge-teal { background: var(--surface-2); color: var(--text-2); }
+  .badge-ok { background: var(--ok-soft); color: var(--ok); }
+  .badge-warn, .badge-gold, .badge-wait { background: var(--wait-soft); color: var(--wait); }
+  .badge-bad, .badge-err { background: var(--bad-soft); color: var(--bad); }
+  .badge-glass { background: var(--chip-on-art); color: var(--text-1); }
+  /* a filter chip: 32 high (44 coarse), pill, surface-2; selected is the light */
+  .chip { display: inline-flex; flex: none; align-items: center; gap: 6px; block-size: 32px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font: inherit; font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out); }
+  .chip:is(:hover, .is-hover):not(:disabled, [aria-pressed='true'], [aria-checked='true'], .is-selected) { background: var(--surface-3); color: var(--text-1); }
+  .chip:is([aria-pressed='true'], [aria-checked='true'], [aria-current='true'], .is-selected) { background: var(--primary); color: var(--on-primary); }
+  .chip:is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); cursor: not-allowed; }
+  .chip .count { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+  .chip:is([aria-pressed='true'], [aria-checked='true'], [aria-current='true'], .is-selected) .count { color: var(--on-primary-2); }
+  @media (pointer: coarse) { .chip { min-block-size: 44px; } }
+  /* the status word (v3 `.status`): a 6 px dot and the words (§5.12) */
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); white-space: nowrap; }
+  .status::before { content: ''; flex: none; inline-size: 6px; block-size: 6px; border-radius: var(--r-pill); background: var(--text-3); }
+  .status-ok::before { background: var(--ok); }
+  .status-info::before, .status-accent::before, .status-teal::before { background: var(--text-1); }
+  .status-warn, .status-gold { color: var(--text-1); } .status-warn::before, .status-gold::before { background: var(--wait); }
+  .status-bad { color: var(--text-1); } .status-bad::before { background: var(--bad); }
+  .status-live { color: var(--text-1); } .status-live::before { background: var(--text-1); animation: pulse 1.6s ease-in-out infinite; }
+  .dot { display: inline-block; flex: none; inline-size: 6px; block-size: 6px; border-radius: var(--r-pill); }
+  .dot-live { animation: pulse 1.6s ease-in-out infinite; }
+  /* job progress (v3 `.progress`): the determinate bar of §5.21 */
+  .progress { block-size: 4px; inline-size: 100%; overflow: hidden; border-radius: var(--r-pill); background: var(--surface-3); }
+  .progress > span { display: block; block-size: 100%; border-radius: inherit; background: var(--text-1); transition: inline-size var(--dur-3) var(--ease-out); }
+
+  /* ---- tabs and segmented (§5.14) --------------------------------------------------------------------------------
+     Tabs: 40 high (44 on phones), 24 apart, 14/20 500; the selected one has a 2 px light bar on the bottom edge over a
+     1 px baseline; they never scroll — on a narrow screen they wrap to a second row. */
+  .tabs { display: flex; flex-wrap: wrap; column-gap: 24px; border-block-end: 1px solid var(--line); }
+  .tab { position: relative; display: inline-flex; align-items: center; gap: 6px; block-size: var(--tabs-h); padding: 0; border: 0; background: transparent; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-2); white-space: nowrap; cursor: pointer; transition: color var(--dur-1) var(--ease-out); }
+  @media (max-width: 639px) { .tab { block-size: 44px; } }
+  .tab:is(:hover, .is-hover) { color: var(--text-1); }
+  .tab:is([aria-selected='true'], [aria-current='page'], .is-selected) { color: var(--text-1); }
+  .tab:is([aria-selected='true'], [aria-current='page'], .is-selected)::after { content: ''; position: absolute; inset-inline: 0; inset-block-end: -1px; block-size: 2px; border-radius: 1px; background: var(--text-1); }
+  .tab:is(:disabled, [aria-disabled='true'], .is-disabled) { color: var(--text-disabled); cursor: not-allowed; }
   .tab:focus-visible { outline-offset: -2px; }
-  .tab .count { font-size: 12px; font-weight: 500; color: var(--fg-faint); font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
-  /* a detail page's tabs stay while its content scrolls: under the mobile bar, and under a compact header */
-  .tabs-sticky { position: sticky; top: calc(var(--sticky-top) + var(--sticky-header, 0px)); background: var(--page); z-index: var(--z-sticky); }
-  /* segmented (§6): an outline track on the control boundary; the selected option is neutral, one step up */
-  .seg, .segmented { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; background: transparent; border: 1px solid var(--line-field); border-radius: var(--r-2); }
-  .seg > * { block-size: var(--control-h-sm); padding: 0 12px; border-radius: var(--r-1); font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg-muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background-color var(--t-fast), color var(--t-fast); }
-  .seg > *:hover, .seg > .is-hover { color: var(--fg); }
-  .seg > [aria-selected='true'], .seg > [aria-pressed='true'], .seg > [aria-checked='true'], .seg > .is-selected { background: var(--raised-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }
-  .seg > *:disabled, .seg > [aria-disabled='true'] { color: var(--fg-disabled); cursor: not-allowed; }
-  .seg > *:focus-visible { outline-offset: 0; }
+  .tab .count { font-family: var(--font-mono); font-size: 13px; font-weight: 400; color: var(--text-3); font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
+  .tabs-sticky { position: sticky; top: calc(var(--sticky-top) + var(--sticky-header, 0px)); z-index: var(--z-sticky); background: var(--page); }
+  /* segmented: a 36 px track on surface-1, radius 10, 2 px inside; options 32 high, radius 8 */
+  .seg, .segmented { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 0; border-radius: var(--r-sm); background: var(--surface-1); }
+  .seg > * { display: inline-flex; align-items: center; gap: 6px; block-size: 32px; padding: 0 12px; border: 0; border-radius: var(--r-nest-sm); background: transparent; font: inherit; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); white-space: nowrap; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out); }
+  .seg > :is(:hover, .is-hover) { color: var(--text-1); }
+  .seg > :is([aria-selected='true'], [aria-pressed='true'], [aria-checked='true'], [aria-current='page'], .is-selected) { background: var(--surface-3); color: var(--text-1); }
+  .seg > :is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); cursor: not-allowed; }
+  .seg > *:focus-visible { outline-offset: -2px; }
+  @media (pointer: coarse) { .seg > * { min-block-size: 44px; min-inline-size: 44px; } }
   .seg-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; max-inline-size: 100%; }
-  .seg-reason { font-size: 12px; line-height: 16px; color: var(--fg-faint); }
+  .seg-reason { font-size: 12px; line-height: 16px; color: var(--text-3); }
   .steps { display: flex; align-items: center; gap: 0.35rem; }
   .step { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 12px; color: var(--fg-faint); white-space: nowrap; }
   /* a stepped dialog's progress: numbered, current in the accent, done in green */
@@ -258,7 +274,6 @@
   .notice-warn, .notice-gold { border-inline-start-color: var(--warn); } .notice-warn svg, .notice-gold svg { color: var(--warn); }
   .notice-bad { border-color: color-mix(in srgb, var(--bad) 35%, transparent); border-inline-start-color: var(--bad); background: var(--bad-soft); } .notice-bad svg { color: var(--bad); }
   .notice-ok { border-inline-start-color: var(--ok); } .notice-ok svg { color: var(--ok); }
-  .kbd { font-family: var(--font-mono); font-size: 0.7rem; padding: 0 0.35rem; border: 1px solid var(--line-strong); border-block-end-width: 2px; border-radius: 4px; color: var(--fg-muted); }
 
   /* ---- motion ----------------------------------------------------------------------------------------- */
   /* a placeholder block: one soft pulse of at most a second, then still — no sweeping gradient (§1.5, §5.16) */

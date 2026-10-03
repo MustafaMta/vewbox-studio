@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { ArtVars, Presentation } from '@/domain/presentation';
 import { T } from '@/lib/copy';
+import { IconImageOff } from '@/components/ui/icons';
 import { cls } from '@/components/ui/kit';
 import { artStyle, cssRatio, dimsLight, objectPosition, type FrameRatio, type Picture } from './art';
 import { TitleCard, type TitleState } from './TitleCard';
@@ -42,7 +43,8 @@ export interface FrameProps {
   presentation?: Presentation | null;
   /** the producer judges these pixels: no light-backdrop filter */
   judge?: boolean;
-  radius?: 'media' | 'precise' | 'none' | 'group';
+  /** media 14 (tiles) · hero 20 (the marquee, detail heroes) · none (inside a card, which clips it) */
+  radius?: 'media' | 'precise' | 'none' | 'group' | 'hero';
   /** the title card hides from assistive technology (a tile link names it) */
   decorative?: boolean;
   className?: string;
@@ -73,18 +75,28 @@ export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', foc
   // an image that finished before hydration fires no onLoad: read it from the element
   const imgRef = useCallback((img: HTMLImageElement | null) => { if (img?.complete) { if (img.naturalWidth > 0) reveal(img); else if (img.currentSrc) setFailed(true); } }, [reveal]);
 
-  const unavailable = state === 'unavailable' || Boolean(asset?.unavailable) || failed;
+  const unavailable = state === 'unavailable' || Boolean(asset?.unavailable);
   const vars = artStyle(art, ['--art-ph', '--art-edge']);
+  const tinted = Boolean((vars as Record<string, unknown> | undefined)?.['--art-ph']);
+  // a picture that exists but did not load keeps its place and colour, and says so (§5.5 Failed)
+  if (src && failed && state !== 'missing') {
+    return (
+      <div className={cls('frame', className)} data-fit={fit} data-radius={radius} data-failed data-tint={tinted || undefined} style={{ aspectRatio: cssRatio(ratio), ...vars, ...style }}>
+        <span className="frame-failed" role="img" aria-label={alt ? `${alt} — picture unavailable` : 'Picture unavailable'}><IconImageOff aria-hidden /><span aria-hidden>Picture unavailable</span></span>
+        {children}
+      </div>
+    );
+  }
   if (!src || state === 'missing' || unavailable) {
     const drawing = state === 'drawing';
     return (
-      <TitleCard title={title ?? alt} lang={titleLang} ratio={ratio} number={number} radius={radius === 'group' ? 'media' : radius} decorative={decorative}
+      <TitleCard title={title ?? alt} lang={titleLang} ratio={ratio} number={number} radius={radius === 'group' || radius === 'hero' ? 'media' : radius} decorative={decorative}
         state={unavailable ? 'unavailable' : drawing ? 'drawing' : titleState ?? 'notDrawn'} stateLabel={drawing && phase ? phase : undefined}
         className={className} style={{ ...vars, ...style }}>{children}</TitleCard>
     );
   }
   return (
-    <div ref={boxRef} className={cls('frame', className)} data-fit={fit} data-radius={radius} data-loaded={loaded || undefined} style={{ aspectRatio: cssRatio(ratio), ...vars, ...style }}>
+    <div ref={boxRef} className={cls('frame', className)} data-fit={fit} data-radius={radius} data-loaded={loaded || undefined} data-tint={tinted || undefined} style={{ aspectRatio: cssRatio(ratio), ...vars, ...style }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img ref={imgRef} src={src} alt={alt} loading={priority || near ? 'eager' : 'lazy'} decoding="async" fetchPriority={priority ? 'high' : undefined}
         data-light={dimsLight(pres, judge) || undefined} style={fit === 'cover' ? { objectPosition: objectPosition(pres, focal) } : undefined}

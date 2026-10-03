@@ -13,7 +13,8 @@ import { shortcutFor } from './shortcuts';
 import { DocumentTitle } from './DocumentTitle';
 import { Sidebar } from './Sidebar';
 import { BottomNav, PhoneBar } from './PhoneNav';
-import { ShellSkeleton } from './ShellSkeleton';
+import { RouteSkeleton } from './route-skeletons';
+import { usePathname } from 'next/navigation';
 import { ServerBar } from './ServerBar';
 import { CommandPalette } from './CommandPalette';
 import { ShortcutSheet } from './ShortcutSheet';
@@ -44,6 +45,7 @@ function useMedia(q: string): boolean {
 export function Shell({ children }: { children: ReactNode }) {
   const { ready, state, jobs, stream, saving } = useStudio();
   const prefs = usePrefs();
+  const pathname = usePathname() ?? '/';
   const wide = useMedia('(min-width: 1280px)');
 
   // ---- the room and the lights -------------------------------------------------------------------------------------
@@ -147,7 +149,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <PhoneBar />
           {serverDown && <ServerBar onHeight={setServerBarH} />}
           <main id="main" tabIndex={-1} className="shell-main">
-            {ready ? children : <ShellSkeleton label="Opening the studio…" />}
+            {ready ? children : <RouteSkeleton pathname={pathname} />}
           </main>
           <BottomNav />
         </div>
