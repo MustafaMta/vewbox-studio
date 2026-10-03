@@ -26,10 +26,18 @@ interface Api {
   ready: boolean;
   /** How this studio began: the kind of its last seed or reset (empty, or sample in a test run) and when. */
   seeded: { kind: string | null; at: string | null } | null;
-  /** Whether every change made here has reached the server: saved, saving (queued or in flight), or unsaved${nl}   *  (a send failed; the changes are kept and retried). */
+  /** Whether every change made here has reached the server: saved, saving (queued or in flight), or unsaved
+   *  (a send failed; the changes are kept and retried). Read by the shell's SaveState (audit D1). */
   saving: SaveState;
   /** The event stream is open and the last batch was accepted. */
   connected: boolean;
+  /** The event stream (/api/events) on its own: `connecting` until its first hello, `open` while it runs, `down` once
+   *  it dropped (it is retried with a growing delay). `lastDataAt` is the moment the data on screen was last known
+   *  current: the drop itself, or the last snapshot read while the stream was not open. For the shell's ServerBar
+   *  (docs/DESIGN-SYSTEM-V4.md §5.1); a failed command send is SaveState's to report, not this. */
+  stream: { state: 'connecting' | 'open' | 'down'; lastDataAt: number | null };
+  /** Open the event stream again now (and re-read the snapshot and the jobs) instead of waiting for the next retry. */
+  reconnect: () => void;
   version: number;
   capabilities: Capabilities | null;
   /** The last problem syncing or running a command, for the toast layer. Cleared by `clearError`. */
@@ -83,6 +91,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const errorSeq = useRef(0);
   const failures = useRef(0);
   const [saving, setSaving] = useState<SaveState>('saved');
+  const [stream, setStream] = useState<Api['stream']>({ state: 'connecting', lastDataAt: null });
+  const reopenStream = useRef<() => void>(() => {});
   /** Re-derive the save state from the queue (called wherever pending, inflight or failures change). */
   const syncSaving = useCallback(() => setSaving(saveStateOf({ pending: pending.current.length, inflight: inflight.current.length, failures: failures.current })), []);
 
@@ -97,6 +107,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       let s = snap.state;
       for (const c of [...inflight.current, ...pending.current]) { try { s = runCommand(s, c).state; } catch { /* the server will say */ } }
       applyLocal(s); bumpVersion(snap.version); setSeeded(snap.seeded ? { kind: snap.seeded.kind, at: snap.seeded.at } : null); setCapabilities(snap.capabilities); setReady(true);
+      // while the stream is open the data is current anyway; otherwise this read is the newest known data
+      setStream((x) => (x.state === 'open' ? x : { ...x, lastDataAt: Date.now() }));
     } catch (e) { raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'The studio server cannot be reached.'); }
   }, [applyLocal, bumpVersion, raise]);
 
@@ -150,10 +162,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     me.current = clientId();
     void refresh(); void loadJobs();
     let es: EventSource | null = null; let closed = false; let backoff = 1000;
+    let retry: ReturnType<typeof setTimeout> | null = null;
     const open = () => {
       if (closed) return;
+      retry = null;
       es = new EventSource('/api/events');
-      es.addEventListener('hello', () => { setConnected(true); backoff = 1000; scheduleRefresh(0); scheduleJobs(0); });
+      es.addEventListener('hello', () => { setConnected(true); setStream({ state: 'open', lastDataAt: Date.now() }); backoff = 1000; scheduleRefresh(0); scheduleJobs(0); });
       es.addEventListener('studio', (ev) => {
         try {
           const e = JSON.parse((ev as MessageEvent).data) as { version: number; origin: string };
@@ -169,13 +183,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (jobEventNeedsReload(e)) scheduleJobs(); else setJobs((js) => applyJobEvent(js, e));
       });
       es.addEventListener('activity', () => setActivityTick((t) => t + 1));
-      es.onerror = () => { setConnected(false); es?.close(); es = null; if (!closed) setTimeout(open, backoff); backoff = Math.min(30_000, backoff * 2); };
+      es.onerror = () => {
+        setConnected(false); es?.close(); es = null;
+        // the data on screen was current up to the drop
+        setStream((x) => ({ state: 'down', lastDataAt: x.state === 'open' ? Date.now() : x.lastDataAt }));
+        if (!closed) retry = setTimeout(open, backoff);
+        backoff = Math.min(30_000, backoff * 2);
+      };
     };
     open();
+    reopenStream.current = () => { if (closed || es) return; if (retry) clearTimeout(retry); backoff = 1000; open(); };
     const flushNow = () => { if (pending.current.length && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ clientId: me.current, commands: pending.current })], { type: 'application/json' }); if (navigator.sendBeacon('/api/commands', body)) pending.current = []; } };
     window.addEventListener('pagehide', flushNow);
-    return () => { closed = true; es?.close(); window.removeEventListener('pagehide', flushNow); };
+    return () => { closed = true; if (retry) clearTimeout(retry); es?.close(); window.removeEventListener('pagehide', flushNow); };
   }, [refresh, loadJobs, scheduleRefresh, scheduleJobs, bumpVersion]);
+
+  const reconnect = useCallback(() => { reopenStream.current(); void refresh(); void loadJobs(); }, [refresh, loadJobs]);
 
   const addFile = useCallback(async (file: File, meta: { label?: string; tags?: string[]; expect?: Asset['kind'] }): Promise<AddFileResult> => {
     try {
@@ -214,7 +237,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setLastError(null), []);
 
-  const value = useMemo<Api>(() => ({ state, ready, seeded, saving, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, saving, connected, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
+  const value = useMemo<Api>(() => ({ state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

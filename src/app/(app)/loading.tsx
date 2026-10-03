@@ -1,3 +1,16 @@
+'use client';
+
+import { useT } from '@/components/ui/locale';
+
+/** While a route's code loads: the page's frame in placeholders, and a sentence for screen readers (§5.16: no
+ *  spinner without a sentence). */
 export default function Loading() {
-  return <div aria-busy className="space-y-4"><div className="skeleton h-8 w-64" /><div className="skeleton h-4 w-96" /><div className="grid-tiles mt-8">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton aspect-video" />)}</div></div>;
+  const T = useT();
+  return (
+    <div aria-busy="true" className="shell-skeleton">
+      <span className="sr-only" role="status">{T('shell.loading')}</span>
+      <div className="shell-ph shell-skeleton-title" /><div className="shell-ph shell-skeleton-lead" />
+      <div className="shell-skeleton-grid">{[0, 1, 2].map((i) => <div key={i} className="shell-ph shell-ph-wide" />)}</div>
+    </div>
+  );
 }

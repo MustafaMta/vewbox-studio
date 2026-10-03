@@ -3,21 +3,29 @@
 import { createContext, useContext, useEffect } from 'react';
 import { t, tt, type Key, type Locale } from '@/lib/i18n';
 import { useStudio } from '@/studio/store';
+import { readPrefs, usePrefs, writePrefs } from '@/components/shell/preferences';
 
 const Ctx = createContext<Locale>('en');
 
 /** The interface language and motion preference come from Settings in the store; this applies them to <html> so the
- *  whole page, fonts and direction included, follows. An inline script in the root layout does the same before paint. */
+ *  whole page, fonts and direction included, follows. They are mirrored into this browser's interface preferences
+ *  (`vewbox.ui`, merged with contrast, density, previews and keys), so the boot script (src/app/boot.ts) applies
+ *  them before the next first paint. */
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const { state } = useStudio();
-  const locale = state.settings.uiLanguage;
+  const { state, ready } = useStudio();
+  const saved = usePrefs();
+  // until the studio's settings arrive, the language this browser last used (the shell is not English for a moment)
+  const locale = ready ? state.settings.uiLanguage : (saved.locale ?? state.settings.uiLanguage);
   const motion = state.settings.reducedMotion;
   useEffect(() => {
+    // before the first snapshot the settings are the defaults, not the studio's: keep what the boot applied
+    if (!ready) return;
     const html = document.documentElement;
     html.lang = locale; html.dir = locale === 'ar' ? 'rtl' : 'ltr';
     if (motion) html.setAttribute('data-motion', 'reduce'); else html.removeAttribute('data-motion');
-    try { localStorage.setItem('vewbox.ui', JSON.stringify({ locale, motion })); } catch { /* fine */ }
-  }, [locale, motion]);
+    const p = readPrefs();
+    if (p.locale !== locale || p.motion !== motion) writePrefs({ locale, motion });
+  }, [locale, motion, ready]);
   return <Ctx.Provider value={locale}>{children}</Ctx.Provider>;
 }
 

@@ -2,9 +2,16 @@
 
 import { useT } from '@/components/ui/locale';
 import { LinkButton } from '@/components/ui/kit';
-import { Empty } from '@/components/ui/cinema';
+import { HOME } from '@/components/shell/nav-model';
 
+/** An address the studio does not have, or a record that was deleted: say so, and offer the home. */
 export default function NotFound() {
   const T = useT();
-  return <Empty title={T('misc.notFound')} hint={T('misc.notFound.hint')} action={<LinkButton href="/" variant="primary">{T('misc.goHome')}</LinkButton>} />;
+  return (
+    <div className="shell-error">
+      <h1 className="page-title">{T('misc.notFound')}</h1>
+      <p className="lead">{T('misc.notFound.hint')}</p>
+      <div className="shell-error-actions"><LinkButton href={HOME} variant="primary">{T('shell.error.home')}</LinkButton></div>
+    </div>
+  );
 }

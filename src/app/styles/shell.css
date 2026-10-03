@@ -1,25 +1,229 @@
 /* ============================================================================================================
-   SHELL — owned by F4 (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   The sidebar navigation (§5.1). Split out of src/app/globals.css by F0; F1 dims the idle items to --fg-nav (§2.1,
-   one step under muted, still 7.1:1 on the ground).
+   SHELL — owned by F4 (docs/DESIGN-SYSTEM-V4.md §5.1, §4.1, §5.17, §8.2 rule 2, §8.3).
+   The frame every page sits in (src/components/shell): the skip link, the navigation in its two shapes — the 240 px
+   sidebar and the 80 px rail — the phone's top bar and menu sheet, the content column that carries the page's room,
+   the ServerBar, the shell's dialogs (the command palette, the shortcut sheet) and the page placeholders.
+
+   The navigation's shape is `data-nav` on .shell (rail | sidebar), set by the shell once it has mounted; before that
+   the boot script's choice (`html[data-nav-boot]`, src/app/boot.ts) is drawn, so a collapsed rail never flashes open.
+   Colours, radii and durations are tokens only (scripts/v4-lint.mjs).
    ============================================================================================================ */
 @layer components {
-  /* ---- navigation ------------------------------------------------------------------------------------- */
-  /* navigation (§6): the sidebar sits on the ground; 36 px items; the current one is one step up with a 2 px accent
-     marker on the start edge, its icon in the text colour (not the accent) */
-  .nav-group { padding-inline: 12px; margin-block-end: 6px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg-faint); }
-  html[dir='rtl'] .nav-group { font-size: 13px; line-height: 20px; }
-  .nav-link { position: relative; display: flex; align-items: center; gap: 10px; block-size: 36px; padding: 0 12px; border-radius: var(--r-2); font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-nav); transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
-  html[dir='rtl'] .nav-link { font-size: 14.5px; }
-  .nav-link svg { inline-size: 18px; block-size: 18px; flex: none; color: var(--fg-faint); stroke-width: 1.5; transition: color var(--t-fast) var(--ease); }
-  .nav-link:hover { background: var(--input); color: var(--fg); }
-  .nav-link:hover svg { color: var(--fg-body); }
-  .nav-link[aria-current='page'] { background: var(--raised-2); color: var(--fg); }
-  .nav-link[aria-current='page'] svg { color: var(--fg); }
-  .nav-link[aria-current='page']::before { content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 50%; translate: 0 -50%; block-size: 16px; inline-size: 2px; border-radius: 2px; background: var(--accent); }
+  /* ---- the frame ------------------------------------------------------------------------------------------ */
+  .shell { --shell-nav-w: var(--sidebar-w); min-block-size: 100dvh; }
+  .shell-column { display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 100dvh; }
+  .shell-main { flex: 1 0 auto; inline-size: 100%; max-inline-size: calc(var(--content-max) + 2 * var(--gutter)); padding-inline: var(--gutter); padding-block: 24px 64px; }
+  .shell-main:focus-visible { outline: none; } /* the skip link's target; the content after it carries the focus */
+  [data-room='cutting'] > .shell-main { max-inline-size: none; }  /* the cutting room uses the full width (§4.2) */
+  @media (min-width: 640px) { .shell-main { padding-block-start: 32px; } }
+  @media (min-width: 1024px) { .shell-main { padding-block-start: 40px; } }
+
+  /* the skip link: the first focusable element of every page, shown only while focused */
+  .skip-link { position: fixed; inset-block-start: 12px; inset-inline-start: 12px; z-index: var(--z-skip); padding: 8px 12px; border-radius: var(--r-2); background: var(--primary); color: var(--on-primary); font-size: 13px; line-height: 18px; font-weight: 600; }
+  .skip-link:not(:focus) { inline-size: 1px; block-size: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---- the brand: a monochrome ivory glyph on a raised tile (§2.5, V4-08) ------------------------------------ */
+  .brand-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px; border-radius: var(--r-2); background: var(--raised-2); color: var(--fg); }
+  .brand-wordmark { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); white-space: nowrap; }
+  .brand-logo { display: inline-flex; align-items: center; gap: 12px; }
+
+  /* ---- the navigation (≥ 768): the sidebar is the default shape -------------------------------------------- */
+  .shell > .shell-nav { display: none; }
+  .shell-nav { flex-direction: column; background: var(--bg); }
+  .shell-brand { display: flex; align-items: center; gap: 12px; flex: none; block-size: 56px; margin: 8px 8px 0; padding-inline: 8px; border-radius: var(--r-2); }
+  .shell-brand:hover .brand-tile { background: var(--input); }
+  .shell-new-row { padding: 8px 12px 16px; }
+  .shell-new { inline-size: 100%; }
+  .shell-groups { display: flex; flex: 1 0 auto; flex-direction: column; gap: 20px; padding: 4px 12px 16px; }
+  .shell-group ul { display: flex; flex-direction: column; gap: 2px; }
+  .shell-group-label { padding-inline: 12px; margin-block-end: 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--fg-faint); }
+  html[dir='rtl'] .shell-group-label { font-size: 13px; line-height: 20px; }
+
+  .shell-item { position: relative; display: flex; align-items: center; gap: 10px; inline-size: 100%; block-size: 36px; padding-inline: 12px; border: 0; border-radius: var(--r-2); background: transparent; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-nav); text-align: start; cursor: pointer; transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+  html[dir='rtl'] .shell-item { font-size: 14.5px; }
+  .shell-icon { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; inline-size: 18px; block-size: 18px; color: var(--fg-faint); transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+  .shell-icon svg { inline-size: 18px; block-size: 18px; stroke-width: 1.5; }
+  .shell-label { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  a.shell-item:hover, button.shell-item:hover { background: var(--input); color: var(--fg); }
+  a.shell-item:hover .shell-icon, button.shell-item:hover .shell-icon { color: var(--fg-body); }
+  /* the current item: one step up, ivory text and icon, a 2 × 16 px tally marker on the start edge */
+  .shell-link[aria-current='page'] { background: var(--raised-2); color: var(--fg); }
+  .shell-link[aria-current='page'] .shell-icon { color: var(--fg); }
+  .shell-link[aria-current='page']::before { content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 50%; translate: 0 -50%; inline-size: 2px; block-size: 16px; border-radius: var(--r-precise); background: var(--accent); }
+  /* the needs-you count: a warn dot and the number, only when there is one */
+  .shell-count { display: inline-flex; flex: none; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--warn); }
+  .shell-count .dot { background: var(--warn); }
+  .shell-count-badge { display: none; }
+
+  /* the footer: Settings, Help & shortcuts, SaveState, the connection, Collapse */
+  .shell-foot { display: flex; flex: none; flex-direction: column; gap: 2px; margin-block-start: auto; padding: 8px 12px 12px; border-block-start: 1px solid var(--line-soft); }
+  .shell-status { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--fg-faint); cursor: default; }
+  html[dir='rtl'] .shell-status { font-size: 14px; line-height: 20px; }
+  a.shell-status { cursor: pointer; }
+  .shell-status .dot { inline-size: 6px; block-size: 6px; border-radius: var(--r-pill); background: var(--fg-disabled); }
+  .shell-status[data-tone='ok'] .dot { background: var(--ok); }
+  .shell-status[data-tone='live'] .dot { background: var(--accent); animation: shell-tally 2s var(--ease-inout) infinite; }
+  .shell-status[data-tone='warn'] { color: var(--warn); }
+  .shell-status[data-tone='warn'] .dot { background: var(--warn); }
+  .shell-kbd { flex: none; padding-inline: 5px; border: 1px solid var(--line-strong); border-radius: var(--r-1); font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 400; color: var(--fg-faint); }
+  html[dir='rtl'] .shell-mirror { transform: scaleX(-1); }
+
+  /* the rail's tooltip (Sidebar.tsx): fixed, so the scrolling rail never clips it */
+  .rail-tip { position: fixed; z-index: var(--z-toast); translate: 0 -50%; max-inline-size: 18rem; padding: 6px 10px; border-radius: var(--r-3); background: var(--raised-2); box-shadow: var(--shadow-3); font-size: 13px; line-height: 18px; font-weight: 500; color: var(--fg); white-space: nowrap; }
+
+  @media (min-width: 768px) {
+    .shell { display: grid; grid-template-columns: var(--shell-nav-w) minmax(0, 1fr); }
+    .shell > .shell-nav { display: flex; position: sticky; inset-block-start: 0; z-index: var(--z-nav); block-size: 100dvh; overflow-x: hidden; overflow-y: auto; border-inline-end: 1px solid var(--line-soft); }
+
+    /* ---- the rail: 80 px, icon over label (768–1023, and the cutting room) ---------------------------------- */
+    :is(.shell[data-nav='rail'], html[data-nav-boot='rail'] .shell:not([data-nav])) {
+      --shell-nav-w: var(--rail-w);
+      /* the rail still scrolls on a short screen (wheel, touch, focus), without a scrollbar eating its 80 px */
+      & > .shell-nav { scrollbar-width: none; }
+      & > .shell-nav::-webkit-scrollbar { display: none; }
+      & .shell-brand { justify-content: center; margin-inline: 8px; padding-inline: 0; }
+      & .shell-brand .brand-wordmark { display: none; }
+      & .shell-new-row { display: flex; justify-content: center; padding: 4px 0 12px; }
+      & .shell-new { inline-size: 48px; block-size: 48px; padding: 0; }
+      & .shell-new .shell-label { display: none; }
+      & .shell-groups { gap: 12px; padding: 4px 4px 12px; }
+      & .shell-group + .shell-group { padding-block-start: 12px; border-block-start: 1px solid var(--line-soft); }
+      & .shell-group-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      & .shell-link { flex-direction: column; justify-content: center; gap: 4px; block-size: auto; min-block-size: 56px; padding: 2px; text-align: center; background: transparent; }
+      & .shell-link .shell-icon { inline-size: 56px; block-size: 32px; border-radius: var(--r-pill); }
+      & .shell-link .shell-icon svg { inline-size: 20px; block-size: 20px; }
+      /* up to two lines, broken between words only */
+      & .shell-link .shell-label { flex: none; inline-size: 100%; overflow: visible; font-size: 12px; line-height: 16px; white-space: normal; overflow-wrap: normal; word-break: normal; text-wrap: balance; }
+      & .shell-link:hover { background: transparent; }
+      & .shell-link:hover .shell-icon { background: var(--input); }
+      & .shell-link[aria-current='page'] { background: transparent; }
+      & .shell-link[aria-current='page'] .shell-icon { background: var(--raised-2); }
+      & .shell-link[aria-current='page'] .shell-label { font-weight: 600; }
+      & .shell-link[aria-current='page']::before { content: none; }
+      & .shell-link > .shell-count { display: none; }
+      & .shell-count-badge { display: inline-flex; position: absolute; inset-block-start: -2px; inset-inline-end: 6px; align-items: center; justify-content: center; min-inline-size: 16px; block-size: 16px; padding-inline: 4px; border-radius: var(--r-pill); background: var(--warn); font-size: 11px; line-height: 16px; font-weight: 700; color: var(--on-primary); }
+      & .shell-foot { align-items: center; padding: 8px 4px 12px; }
+      & .shell-foot .shell-link { inline-size: 100%; }
+      & .shell-foot :is(.shell-button, .shell-status) { justify-content: center; inline-size: 48px; block-size: 40px; padding: 0; }
+      & .shell-foot :is(.shell-button, .shell-status) .shell-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      & .shell-foot .shell-kbd { display: none; }
+    }
+    html[dir='rtl'] :is(.shell[data-nav='rail'], html[data-nav-boot='rail'] .shell:not([data-nav])) .shell-link .shell-label { font-size: 13px; line-height: 18px; }
+  }
+
+  /* ---- the phone: a 56 px top bar and a full-height menu sheet (< 768) --------------------------------------- */
+  .mobile-bar { position: sticky; inset-block-start: 0; z-index: var(--z-nav); display: flex; align-items: center; gap: 8px; block-size: var(--mobilebar-h); padding-inline: calc(var(--gutter) - 6px) var(--gutter); background: var(--page); border-block-end: 1px solid var(--line-soft); }
+  .mobile-brand { display: inline-flex; flex: none; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; border-radius: var(--r-2); }
+  .mobile-area { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); }
+  .mobile-actions { display: flex; flex: none; align-items: center; gap: 4px; }
+  .mobile-action { inline-size: 44px; block-size: 44px; }
+  .shell-nav-sheet { display: flex; padding-block-end: 16px; background: transparent; }
+  .shell-nav-sheet .shell-new-row { padding-block-start: 16px; }
+  .shell-nav-sheet .shell-item { block-size: 44px; }
+  .shell-nav-sheet .shell-groups { flex: none; }
+  @media (min-width: 768px) { .mobile-bar { display: none; } }
+
+  /* ---- the ServerBar: the event stream is down (§5.1) -------------------------------------------------------- */
+  .shell-column[data-server='down'] { --sticky-top: calc(var(--mobilebar-h) + var(--server-bar-h, 40px)); }
+  .server-bar { position: sticky; inset-block-start: calc(var(--sticky-top) - var(--server-bar-h, 40px)); z-index: calc(var(--z-compact) + 1); display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 6px var(--gutter); background: color-mix(in srgb, var(--warn) 12%, var(--page)); border-block-end: 1px solid color-mix(in srgb, var(--warn) 45%, var(--page)); font-size: 13px; line-height: 18px; color: var(--warn); }
+  html[dir='rtl'] .server-bar { font-size: 14px; line-height: 20px; }
+  .server-bar-icon { flex: none; inline-size: 16px; block-size: 16px; }
+  .server-bar-text { flex: 1; min-inline-size: 0; }
+  .server-bar-what { font-weight: 600; }
+  .server-bar-retry { flex: none; }
+  .shell-column[data-server='down'] > .shell-main { opacity: 0.7; }
+  .last-known { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--warn); }
+  html[dir='rtl'] .last-known { font-size: 13px; line-height: 20px; }
+  @media (min-width: 768px) { .shell-column[data-server='down'] { --sticky-top: var(--server-bar-h, 40px); } }
+
+  /* ---- the theatre's lights down (§4.8, §6.15): the house dims while the film plays ------------------------- */
+  .shell > .shell-nav, .mobile-bar, [data-lights-dim] { transition: opacity var(--t-fast) var(--ease-standard); }
+  .shell[data-lights='down'] :is(.shell-nav, .mobile-bar, [data-lights-dim]) { opacity: 0.15; transition-duration: var(--t-lights); }
+  .shell[data-lights='down'] :is(.shell-nav, .mobile-bar, [data-lights-dim]):is(:hover, :focus-within) { opacity: 1; transition-duration: var(--t-fast); }
+
+  /* ---- the shell's dialogs (ShellDialog.tsx; §5.17): surface, radius 16, the overlay without blur ------------ */
+  .shell-dialog { inline-size: fit-content; block-size: fit-content; max-inline-size: none; max-block-size: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--fg-body); overflow: visible; }
+  .shell-dialog::backdrop { background: var(--overlay); }
+  .shell-dialog-panel { display: flex; flex-direction: column; inline-size: min(var(--dlg-w, 560px), calc(100vw - 32px)); max-block-size: calc(100dvh - 48px); overflow: hidden; border-radius: var(--r-4); background: var(--surface); box-shadow: var(--shadow-3); }
+  .shell-dialog[open] .shell-dialog-panel { animation: shell-dialog-in var(--t-slow) var(--ease) both; }
+  .shell-dialog[data-placement='top'] { margin-block: 15vh auto; margin-inline: auto; }
+  .shell-dialog[data-placement='top'] .shell-dialog-panel { max-block-size: 70vh; }
+  .shell-dialog-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 56px; padding-block: 8px; padding-inline: 24px 12px; border-block-end: 1px solid var(--line-soft); }
+  .shell-dialog-body { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; }
+  .shell-dialog-foot { flex: none; padding: 12px 24px; border-block-start: 1px solid var(--line-soft); }
+  /* the phone's menu: the whole screen */
+  .shell-dialog[data-placement='full'] { inline-size: 100%; block-size: 100dvh; margin: 0; }
+  .shell-dialog[data-placement='full'] .shell-dialog-panel { inline-size: 100%; block-size: 100%; max-block-size: 100dvh; border-radius: 0; background: var(--bg); box-shadow: none; }
+  .shell-dialog[data-placement='full'][open] .shell-dialog-panel { animation-name: shell-sheet-in; }
+  .shell-dialog[data-placement='full'] .shell-dialog-head { padding-inline: var(--gutter) calc(var(--gutter) - 6px); }
+  @media (max-width: 639.98px) {
+    /* a dialog becomes a bottom sheet; the palette stays at the top, above the on-screen keyboard */
+    .shell-dialog[data-placement='center'] { inline-size: 100%; margin-block: auto 0; margin-inline: 0; }
+    .shell-dialog[data-placement='center'] .shell-dialog-panel { inline-size: 100%; max-block-size: 92dvh; border-radius: var(--r-4) var(--r-4) 0 0; }
+    .shell-dialog[data-placement='center'][open] .shell-dialog-panel { animation-name: shell-sheet-in; }
+    .shell-dialog[data-placement='top'] { inline-size: 100%; margin-block: 0 auto; margin-inline: 0; }
+    .shell-dialog[data-placement='top'] .shell-dialog-panel { inline-size: 100%; max-block-size: 85dvh; border-radius: 0 0 var(--r-4) var(--r-4); }
+    .shell-dialog-head { padding-inline: 20px 8px; }
+  }
+  html:has(.shell-dialog[open]) { overflow: hidden; }
+
+  /* ---- the command palette (§5.17): 640 wide at 15vh, a 48 px field, grouped results ----------------------- */
+  .palette { display: flex; flex-direction: column; min-block-size: 0; max-block-size: inherit; }
+  .palette-field { display: flex; flex: none; align-items: center; gap: 12px; block-size: 48px; padding-inline: 16px; border-block-end: 1px solid var(--line-soft); }
+  .palette-field:focus-within { box-shadow: inset 0 -2px 0 var(--accent); }
+  .palette-search-icon { flex: none; inline-size: 18px; block-size: 18px; color: var(--fg-faint); }
+  .palette-input { flex: 1; min-inline-size: 0; block-size: 100%; padding: 0; border: 0; background: transparent; font: inherit; font-size: 16px; line-height: 24px; color: var(--fg); }
+  .palette-input::placeholder { color: var(--fg-faint); }
+  .palette-input:focus-visible { outline: none; } /* the field row's tally underline marks it */
+  .palette-list { flex: 1 1 auto; min-block-size: 0; max-block-size: min(56vh, 480px); overflow-y: auto; padding: 8px; }
+  .palette-group + .palette-group { margin-block-start: 8px; }
+  .palette-group-label { padding: 8px 12px 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--fg-faint); }
+  html[dir='rtl'] .palette-group-label { font-size: 13px; line-height: 20px; }
+  .palette-option { position: relative; display: flex; align-items: baseline; gap: 8px; min-block-size: 40px; padding: 10px 12px; border-radius: var(--r-2); font-size: 14px; line-height: 20px; color: var(--fg-body); cursor: pointer; }
+  html[dir='rtl'] .palette-option { font-size: 15px; line-height: 22px; }
+  .palette-option[aria-selected='true'] { background: var(--raised-2); color: var(--fg); }
+  .palette-option[aria-selected='true']::before { content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 50%; translate: 0 -50%; inline-size: 2px; block-size: 16px; border-radius: var(--r-precise); background: var(--accent); }
+  .palette-kind { flex: none; color: var(--fg-muted); }
+  .palette-sep { flex: none; color: var(--fg-disabled); }
+  .palette-name { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+  .palette-detail { flex: 0 1 auto; min-inline-size: 0; margin-inline-start: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 20px; color: var(--fg-faint); }
+  .palette-empty { padding: 12px 20px 20px; color: var(--fg-muted); }
+  .palette-hint { flex: none; padding: 8px 16px; border-block-start: 1px solid var(--line-soft); font-size: 12px; line-height: 16px; color: var(--fg-faint); }
+  html[dir='rtl'] .palette-hint { font-size: 13px; line-height: 20px; }
+  @media (pointer: coarse) { .palette-option { min-block-size: 44px; } .palette-hint { display: none; } }
+
+  /* ---- the shortcut sheet (§5.17, §7.5) --------------------------------------------------------------------- */
+  .keys-sheet { display: grid; gap: 24px; padding: 20px 24px 24px; }
+  .keys-pref { padding: 12px 16px; border-radius: var(--r-3); background: var(--input); }
+  .keys-scopes { display: grid; gap: 24px 32px; }
+  @media (min-width: 720px) { .keys-scopes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .keys-table { inline-size: 100%; border-collapse: collapse; }
+  .keys-table caption { padding-block-end: 8px; text-align: start; }
+  .keys-scope { display: block; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); }
+  .keys-scope-hint { display: block; font-size: 12px; line-height: 16px; color: var(--fg-faint); }
+  html[dir='rtl'] .keys-scope-hint { font-size: 13px; line-height: 20px; }
+  .keys-table th { padding-block: 7px; padding-inline-end: 12px; font-size: 13px; line-height: 18px; font-weight: 400; color: var(--fg-body); text-align: start; }
+  html[dir='rtl'] .keys-table th { font-size: 14px; line-height: 20px; }
+  .keys-table td { padding-block: 7px; text-align: end; white-space: nowrap; }
+  .keys-table tr + tr :is(th, td) { border-block-start: 1px solid var(--line-soft); }
+  .keys-alts { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+  .keys-combo { display: inline-flex; align-items: center; gap: 3px; color: var(--fg-faint); }
+  .keys-or { font-size: 12px; line-height: 16px; color: var(--fg-faint); }
+
+  /* ---- placeholders, errors ----------------------------------------------------------------------------------- */
+  /* ratio-true frames on the placeholder tone, no shimmer (§5.16) */
+  .shell-skeleton { display: grid; gap: 16px; padding-block-start: 8px; }
+  .shell-ph { border-radius: var(--r-2); background: var(--art-ph); }
+  .shell-ph-wide { aspect-ratio: 16 / 9; }
+  .shell-skeleton-title { inline-size: min(18rem, 70%); block-size: 36px; }
+  .shell-skeleton-lead { inline-size: min(28rem, 90%); block-size: 16px; }
+  .shell-skeleton-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; margin-block-start: 24px; }
+  @media (min-width: 768px) { .shell-skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1280px) { .shell-skeleton-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .shell-error { display: grid; gap: 12px; max-inline-size: var(--measure-form); padding-block-start: 8px; }
+  .shell-error-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px 8px; }
 }
 
-/* F1 → F4 handover (outside the layer, so it outranks tokens.css). §2.1 drops --sticky-top to 0 from 768 px, where
-   F4's 80 px rail replaces the top bar; until the rail lands, today's shell keeps its top bar up to 1024 px, and the
-   sticky rows (tabs) must keep sitting under it there. F4: delete this rule with the bar. */
-@media (min-width: 768px) and (max-width: 1023px) { :root { --sticky-top: var(--mobilebar-h); } }
+@keyframes shell-tally { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes shell-dialog-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes shell-sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
