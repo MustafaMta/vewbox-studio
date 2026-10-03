@@ -9,7 +9,8 @@ import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
 import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
-import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, setProgress, type Lane } from '@/server/jobs/queue';
+import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, reapStale, setProgress, type Lane } from '@/server/jobs/queue';
+import { startHeartbeat } from './heartbeat';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { step } from './handlers/step';
 import { gpuLease } from './gpu';
@@ -53,7 +54,13 @@ async function run(job: Job, lane: Lane) {
   // lost the job (its lease went stale and another worker reclaimed it) can no longer overwrite the new attempt
   const lease = { workerId, attempt: job.attempts };
   let leaseLost = false;
-  const hb = setInterval(() => { heartbeat(job.id, workerId).then((r) => { if (r.cancelRequested) cancelRequested = true; }).catch((e) => { jl.warn({ err: e.message }, 'heartbeat failed; another worker may own this job now'); cancelRequested = true; if (isStudioError(e) && e.code === 'CONFLICT') leaseLost = true; }); }, 20_000);
+  // a lost lease (CONFLICT) stops the attempt; a transient database error is retried, never a cancellation (audit H6)
+  const stopHeartbeat = startHeartbeat({
+    beat: () => heartbeat(job.id, workerId), intervalMs: 20_000,
+    onCancel: () => { cancelRequested = true; },
+    onLost: () => { jl.warn('heartbeat: another worker owns this job now; stopping this attempt'); leaseLost = true; cancelRequested = true; },
+    onError: (e, failures) => jl.warn({ err: (e as Error).message, failures }, 'heartbeat failed; retrying (the job keeps running)'),
+  });
   const t0 = Date.now();
   // Recording the outcome can itself fail (the database is away, or a reset removed the job while it ran); that is
   // logged and never takes the worker down. The lease expires and another worker, or the next tick, carries on.
@@ -141,13 +148,19 @@ async function run(job: Job, lane: Lane) {
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_FAILED', message: `${agent.name} failed: ${label} — ${failureClass}: ${err.message.slice(0, 200)}`, data: { failureClass, code, attempt: job.attempts, retryable, shotId: job.shotId }, jobId: job.id });
     }
   } finally {
-    clearInterval(hb);
+    stopHeartbeat();
     running[lane].delete(job.id);
   }
 }
 
+let lastReap = 0;
 async function tick() {
   await touchAlive();
+  // settle stale jobs no worker may take over (cancelled, or out of attempts) — every 15 s is plenty
+  if (Date.now() - lastReap > 15_000) {
+    lastReap = Date.now();
+    try { const r = await reapStale(); if (r.cancelled.length || r.failed.length) log.warn(r, 'reaped stale jobs'); } catch (e) { log.error({ err: (e as Error).message }, 'reap failed'); }
+  }
   for (const lane of Object.keys(LANES) as Lane[]) {
     const cfg = LANES[lane];
     while (!stopping && running[lane].size < cfg.limit) {

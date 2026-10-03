@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { backoffMs, cancelled, claim, complete, enqueue, fail, getJob, heartbeat, requestCancel, retry, setProgress } from '@/server/jobs/queue';
+import { backoffMs, cancelled, claim, complete, enqueue, fail, getJob, heartbeat, isUniqueViolation, reapStale, requestCancel, retry, setProgress } from '@/server/jobs/queue';
 import { db, schema } from '@/server/db/client';
 
 /** THE QUEUE'S PROMISES, against the real database. A worker that goes quiet loses its lease; a second worker takes
@@ -118,5 +118,66 @@ describe('queue leases', () => {
     expect(b1).toBeGreaterThanOrEqual(12_000); expect(b1).toBeLessThanOrEqual(18_000);
     expect(b2).toBeGreaterThan(b1); expect(b3).toBeGreaterThan(b2);
     expect(b9).toBeLessThanOrEqual(15 * 60_000 * 1.2);
+  });
+});
+
+describe('queue hardening (audit H4, step 3)', () => {
+  const stale = () => new Date(Date.now() - 10 * 60_000).toISOString();
+  const parked = async (maxAttempts: number) => { const { job } = await enqueue({ type: 'MEDIA_PROBE', payload: { assetId: `asset-h4-${Math.random().toString(36).slice(2)}` }, maxAttempts, runAfter: new Date(Date.now() + 3600_000).toISOString() }); made.push(job.id); return job; };
+
+  it('a job whose worker died on its last attempt is not reclaimed: the reaper fails it (INFRASTRUCTURE, not retryable)', async () => {
+    const job = await parked(2);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'dead-worker', heartbeatAt: stale(), attempts: 2, runAfter: null }).where(eq(schema.jobs.id, job.id));
+    for (let i = 0; i < 3; i++) { const c = await claim('test-worker-poison', ['MEDIA_PROBE']); expect(c?.id).not.toBe(job.id); if (c) await complete(c.id, { skipped: true }); }
+    const r = await reapStale();
+    expect(r.failed).toContain(job.id);
+    const j = (await getJob(job.id))!;
+    expect(j.status).toBe('FAILED'); expect(j.finishedAt).toBeTruthy();
+    expect(j.error).toMatchObject({ code: 'UNAVAILABLE', retryable: false, details: { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' } });
+    // a deliberate retry still revives it
+    expect((await retry(job.id)).status).toBe('QUEUED');
+    await requestCancel(job.id);
+  });
+
+  it('a job cancelled while its worker died is settled CANCELLED by the reaper; a live one is left alone', async () => {
+    const dead = await parked(3); const live = await parked(3);
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'dead-worker', heartbeatAt: stale(), attempts: 1, cancelRequested: true }).where(eq(schema.jobs.id, dead.id));
+    await db().update(schema.jobs).set({ status: 'GENERATING', lockedBy: 'live-worker', heartbeatAt: new Date().toISOString(), attempts: 1, cancelRequested: true }).where(eq(schema.jobs.id, live.id));
+    const r = await reapStale();
+    expect(r.cancelled).toContain(dead.id); expect(r.cancelled).not.toContain(live.id);
+    expect((await getJob(dead.id))!.status).toBe('CANCELLED');
+    expect((await getJob(live.id))!.status).toBe('GENERATING');
+    await cancelled(live.id);
+  });
+
+  it('cancel and claim racing: the job is either cancelled before it starts, or claimed WITH the cancel flag — never claimed and unflagged', async () => {
+    let claimedFlagged = 0; let cancelledQueued = 0;
+    for (let i = 0; i < 25; i++) {
+      const { job } = await enqueue({ type: 'EPISODE_CONTINUITY', payload: { productionId: `race-${i}-${Math.random().toString(36).slice(2)}` }, priority: 10_000 });
+      made.push(job.id);
+      const [, got] = await Promise.all([requestCancel(job.id), claim('test-worker-race', ['EPISODE_CONTINUITY'])]);
+      const j = (await getJob(job.id))!;
+      if (got?.id === job.id) { expect(j.cancelRequested).toBe(true); expect(j.status).toBe('PREPARING'); claimedFlagged++; await cancelled(job.id); }
+      else { expect(j.status).toBe('CANCELLED'); expect(j.cancelRequested).toBe(true); cancelledQueued++; if (got) await cancelled(got.id); }
+    }
+    expect(claimedFlagged + cancelledQueued).toBe(25);
+  });
+
+  it('one active job per character: concurrent requests get the same job; the database refuses a second active row', async () => {
+    const characterId = `char-h4-${Math.random().toString(36).slice(2)}`;
+    const results = await Promise.all(Array.from({ length: 6 }, (_, i) => enqueue({ type: 'VOICE_BUILD', payload: { characterId }, idempotencyKey: i % 2 ? `vb-${characterId}-${i}` : undefined, runAfter: new Date(Date.now() + 3600_000).toISOString() })));
+    for (const r of results) made.push(r.job.id);
+    expect(results.filter((r) => r.created)).toHaveLength(1);
+    expect(new Set(results.map((r) => r.job.id)).size).toBe(1);
+    const now = new Date().toISOString();
+    const second = db().insert(schema.jobs).values({ id: `job-h4-${Math.random().toString(36).slice(2)}`, type: 'VOICE_BUILD', status: 'QUEUED', payload: { characterId }, characterId, createdAt: now, updatedAt: now });
+    const err = await second.then(() => null, (e: unknown) => e);
+    expect(isUniqueViolation(err, 'jobs_one_active_per_character')).toBe(true);
+    // once it is finished, a new one may start
+    await requestCancel(results[0].job.id);
+    const next = await enqueue({ type: 'VOICE_BUILD', payload: { characterId }, runAfter: new Date(Date.now() + 3600_000).toISOString() });
+    made.push(next.job.id);
+    expect(next.created).toBe(true);
+    await requestCancel(next.job.id);
   });
 });
