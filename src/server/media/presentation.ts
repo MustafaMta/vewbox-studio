@@ -1,8 +1,7 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import type { Presentation } from '@/domain/presentation';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** IMAGE PRESENTATION, MEASURED ON THE CPU — docs/DESIGN-SYSTEM-V4.md §2.4. Every value comes from the picture's own
  *  pixels (decoded by ffmpeg, as `image-check.ts` does, into raw RGBA and read by a small pure-JS pass):

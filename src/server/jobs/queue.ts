@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, lt, or, sql as dsql } from 'drizzle-orm';
 import { z } from 'zod';
-import { JOB_PAYLOADS, JOB_RESOURCE, type Job, type JobError, type JobEvent, type JobProgress, type JobStatus, type JobType, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
+import { ACTIVE_STATUSES, JOB_PAYLOADS, JOB_RESOURCE, type Job, type JobError, type JobEvent, type JobProgress, type JobStatus, type JobType, isActiveStatus } from '@/domain/jobs';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { db, schema } from '../db/client';
@@ -53,8 +53,20 @@ export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promis
     productionId: (p.productionId as string | undefined) ?? null, sceneId: (p.sceneId as string | undefined) ?? null, shotId: (p.shotId as string | undefined) ?? null, characterId: (p.characterId as string | undefined) ?? null, locationId: (p.locationId as string | undefined) ?? null,
     createdAt: now, updatedAt: now,
   };
+  // the check above is a fast path; the partial unique index jobs_one_active_per_character (migration 0014) is the
+  // guarantee: a concurrent insert that loses the race gets the winner back
+  const oneActive = async <T>(insert: () => Promise<T>): Promise<T | { job: Job; created: false }> => {
+    try { return await insert(); } catch (e) {
+      if (isUniqueViolation(e, 'jobs_one_active_per_character') && typeof p.characterId === 'string') {
+        const active = await findActive(input.type, { characterId: p.characterId });
+        if (active) return { job: active, created: false };
+      }
+      throw e;
+    }
+  };
   if (input.idempotencyKey) {
-    const inserted = await db().insert(schema.jobs).values(row).onConflictDoNothing({ target: schema.jobs.idempotencyKey }).returning();
+    const inserted = await oneActive(() => db().insert(schema.jobs).values(row).onConflictDoNothing({ target: schema.jobs.idempotencyKey }).returning());
+    if (!Array.isArray(inserted)) return inserted;
     if (inserted.length === 0) {
       const existing = await db().select().from(schema.jobs).where(eq(schema.jobs.idempotencyKey, input.idempotencyKey));
       return { job: rowToJob(existing[0]), created: false };
@@ -62,10 +74,19 @@ export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promis
     await notifyJobs(inserted[0].id, 'QUEUED');
     return { job: rowToJob(inserted[0]), created: true };
   }
-  const inserted = await db().insert(schema.jobs).values(row).returning();
+  const inserted = await oneActive(() => db().insert(schema.jobs).values(row).returning());
+  if (!Array.isArray(inserted)) return inserted;
   await notifyJobs(inserted[0].id, 'QUEUED');
   await addEvent(inserted[0].id, 'info', 'queued');
   return { job: rowToJob(inserted[0]), created: true };
+}
+
+/** A Postgres unique violation (23505), optionally on one constraint/index. postgres.js puts the fields on the error;
+ *  Drizzle may wrap it as `cause`. */
+export function isUniqueViolation(e: unknown, constraint?: string): boolean {
+  const pg = (e as { code?: string; constraint_name?: string; cause?: { code?: string; constraint_name?: string } }) ?? {};
+  const x = pg.code === '23505' ? pg : pg.cause?.code === '23505' ? pg.cause : undefined;
+  return Boolean(x) && (!constraint || x!.constraint_name === constraint || String((e as Error).message ?? '').includes(constraint) || String((pg.cause as Error | undefined)?.message ?? '').includes(constraint));
 }
 
 /** An active job for the same target of the same type, if any — the UI uses it to show one spinner, not two. */
@@ -110,17 +131,23 @@ export async function addEvent(jobId: string, level: JobEvent['level'], message:
 
 /** The user asks for a job to stop. Queued jobs stop at once; running jobs stop at their next checkpoint. */
 export async function requestCancel(id: string): Promise<Job> {
-  const job = await getJob(id);
-  if (!job) throw new StudioError('NOT_FOUND', `Job ${id} not found`);
-  if (isTerminalStatus(job.status)) return job;
   const now = new Date().toISOString();
-  if (job.status === 'QUEUED') {
-    await db().update(schema.jobs).set({ status: 'CANCELLED', cancelRequested: true, finishedAt: now, updatedAt: now }).where(and(eq(schema.jobs.id, id), eq(schema.jobs.status, 'QUEUED')));
-    await addEvent(id, 'info', 'cancelled before it started');
-  } else {
-    await db().update(schema.jobs).set({ cancelRequested: true, updatedAt: now }).where(eq(schema.jobs.id, id));
-    await addEvent(id, 'info', 'cancel requested');
+  // ONE STATEMENT, compare-and-set on the status (audit H4): a queued job becomes CANCELLED, a running one gets the
+  // flag, decided on the row as it is when the update takes its lock. A claim racing with this either committed
+  // first (the row is PREPARING now: the flag is set and the worker stops at its next checkpoint) or waits for us
+  // (the row is CANCELLED: claim skips it). Both CASEs read the row's old status.
+  const rows = await db().update(schema.jobs).set({
+    cancelRequested: true,
+    status: dsql`case when ${schema.jobs.status} = 'QUEUED' then 'CANCELLED' else ${schema.jobs.status} end`,
+    finishedAt: dsql`case when ${schema.jobs.status} = 'QUEUED' then ${now}::timestamptz else ${schema.jobs.finishedAt} end`,
+    updatedAt: now,
+  }).where(and(eq(schema.jobs.id, id), inArray(schema.jobs.status, [...ACTIVE_STATUSES, 'AWAITING_REVIEW']))).returning({ status: schema.jobs.status });
+  if (rows.length === 0) {
+    const job = await getJob(id);
+    if (!job) throw new StudioError('NOT_FOUND', `Job ${id} not found`);
+    return job; // already finished: nothing to cancel
   }
+  await addEvent(id, 'info', rows[0].status === 'CANCELLED' ? 'cancelled before it started' : 'cancel requested');
   // children follow the parent
   const children = await db().select({ id: schema.jobs.id }).from(schema.jobs).where(and(eq(schema.jobs.parentId, id), inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'])));
   for (const c of children) await requestCancel(c.id);
@@ -143,6 +170,30 @@ export async function retry(id: string): Promise<Job> {
 // ------------------------------------------------------------------------------------------------------ worker side
 
 export const LEASE_SECONDS = 90;
+const RUNNING_STATUSES: JobStatus[] = ['PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'];
+
+/** THE REAPER (audit H4) — settles running jobs whose worker went quiet (no heartbeat within the lease) and that no
+ *  worker may take over:
+ *  - a cancel was requested: CANCELLED (claim never takes over a cancelled job, so before this it stayed "running"
+ *    forever);
+ *  - its attempts are used up: FAILED, failure class INFRASTRUCTURE (`WORKER_LOST`), not retryable — the job that
+ *    crashes its worker is not retried forever; the retry endpoint can still revive it on purpose.
+ *  Each is one conditional UPDATE (the row must still be stale and running when it is written), safe to run from
+ *  every worker at once. Returns the jobs it settled. */
+export async function reapStale(now = new Date()): Promise<{ cancelled: string[]; failed: string[] }> {
+  const nowIso = now.toISOString();
+  const staleBefore = new Date(now.getTime() - LEASE_SECONDS * 1000).toISOString();
+  const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)));
+  const cancelled = await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'cancelled', message: 'cancelled; its worker had stopped' } })
+    .where(and(stale, eq(schema.jobs.cancelRequested, true))).returning({ id: schema.jobs.id });
+  const failed = await db().update(schema.jobs).set({
+    status: 'FAILED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'failed', message: 'its worker stopped on every attempt' },
+    error: dsql`jsonb_build_object('code', 'UNAVAILABLE', 'message', 'The worker running this job stopped responding on each of its ' || ${schema.jobs.attempts} || ' attempts (it may crash the worker: out of memory, a runaway process). It was not retried again.', 'retryable', false, 'details', jsonb_build_object('failureClass', 'INFRASTRUCTURE', 'reason', 'WORKER_LOST', 'previousError', ${schema.jobs.error}))`,
+  }).where(and(stale, eq(schema.jobs.cancelRequested, false), dsql`${schema.jobs.attempts} >= ${schema.jobs.maxAttempts}`)).returning({ id: schema.jobs.id, lockedBy: schema.jobs.lockedBy });
+  for (const r of cancelled) { await addEvent(r.id, 'info', 'cancelled: its worker had stopped before reaching a checkpoint').catch(() => undefined); await notifyJobs(r.id, 'CANCELLED').catch(() => undefined); }
+  for (const r of failed) { log.warn({ jobId: r.id }, 'job failed: its worker was lost on every attempt'); await addEvent(r.id, 'error', 'failed: its worker was lost on every attempt', { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' }).catch(() => undefined); await notifyJobs(r.id, 'FAILED').catch(() => undefined); }
+  return { cancelled: cancelled.map((r) => r.id), failed: failed.map((r) => r.id) };
+}
 
 /** Claim the next runnable job of the given types. Stale leases (no heartbeat within the lease) are taken over. */
 export async function claim(workerId: string, types: JobType[]): Promise<Job | undefined> {
@@ -156,7 +207,9 @@ export async function claim(workerId: string, types: JobType[]): Promise<Job | u
       inArray(schema.jobs.type, types),
       or(
         and(eq(schema.jobs.status, 'QUEUED'), or(isNull(schema.jobs.runAfter), lt(schema.jobs.runAfter, nowIso))),
-        and(inArray(schema.jobs.status, ['PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING']), lt(schema.jobs.heartbeatAt, staleBefore)),
+        // a stale attempt is taken over only while attempts remain: a job that kills its worker every time (OOM, a
+        // runaway child) is failed by reapStale, never retried forever (audit H4)
+        and(inArray(schema.jobs.status, RUNNING_STATUSES), lt(schema.jobs.heartbeatAt, staleBefore), lt(schema.jobs.attempts, schema.jobs.maxAttempts)),
       ),
       eq(schema.jobs.cancelRequested, false),
     )).orderBy(desc(schema.jobs.priority), asc(schema.jobs.createdAt)).limit(1).for('update', { skipLocked: true });

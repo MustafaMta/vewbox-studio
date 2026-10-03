@@ -2,8 +2,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFileP } from './media/exec';
 import { fileTypeFromBuffer } from 'file-type';
 import { StudioError } from '@/domain/errors';
 import type { Asset, AssetKind, AssetThumb, AssetTier } from '@/domain/types';
@@ -14,7 +13,7 @@ import { measurePresentation } from './media/presentation';
 import { isFigureLike, makeThumbnail, thumbPathFor } from './media/thumbs';
 import { thumbSrc } from './studio/snapshot';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** THE LIBRARY ON DISK — every file the studio stores lives under LIBRARY_ROOT as `{kind}/{yyyy}/{mm}/{assetId}.{ext}`.
  *  Paths are built from ids the server minted, never from client strings; MIME types come from the bytes, not the
@@ -45,21 +44,30 @@ export function libraryPathFor(assetId: string, kind: AssetKind, ext: string): s
 }
 
 /** Resolve a stored relative path to an absolute path inside the allowed root; refuses anything that escapes. */
-export function resolveLibrary(rel: string): string {
-  const root = libraryRoot();
+/** A stored path names a FILE strictly inside its root: never the root itself, never outside it (`..`, an absolute or
+ *  drive path, a UNC share), never with a NUL byte or a colon (a Windows drive-relative path or an alternate data
+ *  stream; the paths the server mints — `{kind}/{yyyy}/{mm}/{id}.{ext}` — never have one). */
+function inside(root: string, rel: string, what: string): string {
+  if (typeof rel !== 'string' || rel.length === 0 || rel.includes('\0') || rel.replace(/^[a-zA-Z]:[\\/]/, '').includes(':')) throw new StudioError('INVALID', `Malformed path in the ${what}.`);
   const abs = path.resolve(root, rel);
-  if (!abs.startsWith(root + path.sep) && abs !== root) throw new StudioError('INVALID', 'Path escapes the library.');
+  if (!abs.startsWith(root + path.sep)) throw new StudioError('INVALID', `Path escapes the ${what}.`);
   return abs;
 }
-export function resolvePublic(rel: string): string {
-  const root = publicRoot();
-  const abs = path.resolve(root, rel);
-  if (!abs.startsWith(root + path.sep)) throw new StudioError('INVALID', 'Path escapes the public folder.');
-  return abs;
-}
+export function resolveLibrary(rel: string): string { return inside(libraryRoot(), rel, 'library'); }
+export function resolvePublic(rel: string): string { return inside(publicRoot(), rel, 'public folder'); }
 
 export function fileFor(asset: { storage: string; path: string }): string {
   return asset.storage === 'PUBLIC' ? resolvePublic(asset.path) : resolveLibrary(asset.path);
+}
+
+/** The file a stored path names, as it really is on disk: symlinks and junctions resolved, and the result still inside
+ *  the real root of its storage (a link inside the library cannot hand out a file elsewhere). Rejects with ENOENT
+ *  when the file does not exist, INVALID when it escapes. */
+export async function realFileFor(asset: { storage: string; path: string }): Promise<string> {
+  const file = fileFor(asset);
+  const [root, real] = await Promise.all([fsp.realpath(asset.storage === 'PUBLIC' ? publicRoot() : libraryRoot()), fsp.realpath(file)]);
+  if (!real.startsWith(root + path.sep)) throw new StudioError('INVALID', 'Path escapes the library.');
+  return real;
 }
 
 /** An asset's file on disk: a bundled sample from the public folder (its `src` path), anything else from the library

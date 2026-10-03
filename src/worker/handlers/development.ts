@@ -18,6 +18,7 @@ import { draftPeople, needsRevision } from '@/server/story/development/rubric';
 import { lifeTimelineIssues, storyTexts } from '@/server/story/development/timeline';
 import { buildDossier } from '@/server/story/development/dossier';
 import { stageChecks, type BasedOn } from '@/server/story/development/checks';
+import { fenced } from '@/server/jobs/fence';
 
 /** THE RESEARCH-DRIVEN AUTO IDEA (docs/CONTRACTS-AUTO-IDEA.md §1). AUTO_IDEA is the Head of Story's orchestration: each
  *  stage is a durable child job (parent = the AUTO_IDEA job, key `idea:${ideaJobId}:${stage}:1`, so a restart adopts
@@ -184,7 +185,7 @@ export const autoIdea: Handler = async (ctx) => {
   // is shown to the producer (D20)
   const openIssues = lifeTimelineIssues(storyTexts(final.content), draftPeople(final.content, c), new Date().getUTCFullYear());
   const proposal: IdeaProposal = { ...final.content.proposal, development: { ...dossier, ...(openIssues.length ? { openIssues } : {}) } };
-  await db().insert(schema.proposals).values({ id: proposalId, jobId: ideaJobId, request: payload, proposal, createdAt: new Date().toISOString() });
+  await fenced('proposal', (tx) => tx.insert(schema.proposals).values({ id: proposalId, jobId: ideaJobId, request: payload, proposal, createdAt: new Date().toISOString() }));
   const checks = [
     { name: 'research-recorded', ok: dossier.research.coverage.length === RESEARCH_PLATFORMS.length, detail: `${dossier.research.status}: ${dossier.research.itemIds.length} source(s)` },
     { name: 'analysis-traceable', ok: Boolean(dossier.analysis?.patterns.every((p) => !p.measured || p.evidenceIds.length)) },

@@ -1,13 +1,12 @@
-import { execFile } from 'node:child_process';
 import fsp from 'node:fs/promises';
-import { promisify } from 'node:util';
+import { execFileP } from './exec';
 import { StudioError } from '@/domain/errors';
 import type { VoiceReferenceRefusal, VoiceReferenceValidation } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
 import { ffprobe } from '../media';
 import { ffmpeg } from './ffmpeg';
 
-const execFileP = promisify(execFile);
+// ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
 /** VOICE REFERENCE MEASUREMENT — THE one measurement stack for a voice recording (the upload route, the voice
  *  handlers and scripts/iraqi-voice-suite.mjs all use it; review finding 9): pure helpers on a local file with
