@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bindingOf, clipSecondsFor, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
 import type { Character } from '@/domain/types';
+import { VideoGenerateInput } from '@/server/org/contracts';
 import { fixture, shotOf, TAKE_A } from './continuity-fixture';
 
 /** The shot pack decides, purely, what a take is conditioned on (docs/research/MINIMAX-CONTINUITY.md §3–4): the three
@@ -149,7 +150,10 @@ describe('clip length', () => {
     expect(clipSecondsFor({ trimStartFrames: 22 }, 5)).toEqual({ seconds: 5.9167, frames: 158, newFrames: 136, truncated: false });
     expect(clipSecondsFor({ trimStartFrames: 0 }, 4)).toMatchObject({ frames: 124, truncated: false });
     const long = clipSecondsFor({ trimStartFrames: 22 }, 15);
-    expect(long).toMatchObject({ frames: 362, newFrames: 340, truncated: true });
+    expect(long).toMatchObject({ seconds: 15, frames: 362, newFrames: 340, truncated: true });
+    // the request stays inside the tool contract (seconds ≤ 15) while the engine still makes all 362 frames
+    expect(VideoGenerateInput.safeParse({ prompt: 'p', seconds: long.seconds, width: 1280, height: 720, aspect: 'WIDE_16_9', guides: [{ frameIdx: 0, imageFile: '/t.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audioFile: '/l.wav' }] }).success).toBe(true);
+    expect(VideoGenerateInput.safeParse({ prompt: 'p', seconds: 5, width: 1280, height: 720, aspect: 'WIDE_16_9', guides: [{ frameIdx: 0, audioFromVideo: true }] }).success).toBe(false);
   });
   it('guide problems name a guide that does not fit', () => {
     expect(guideProblems([{ kind: 'TAIL', frameIdx: 0, frames: 22, audio: true }], 124)).toEqual([]);

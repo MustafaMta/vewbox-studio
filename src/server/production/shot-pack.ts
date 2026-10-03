@@ -2,7 +2,7 @@ import type { Asset, Character, Location, Production, Shot, ShotRelation, Studio
 import { orderedShots } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
-import { H3_FPS, H3_GUIDE_FRAMES, H3_MAX_FRAMES, h3FrameCount, h3GuideFits } from '@/server/workflows/minimax-h3';
+import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideFits } from '@/server/workflows/minimax-h3';
 import type { H3Binding } from '@/server/story/prompts';
 
 /** THE SHOT PACK — what one take of a shot is conditioned on, resolved once from the studio records by a pure
@@ -186,7 +186,8 @@ export function bindingOf(pack: ShotPack, audioRefs: Array<{ characterId: string
  *  362 − guide frames of new picture (≈14.2 s with 22 frames). */
 export function clipSecondsFor(pack: Pick<ShotPack, 'trimStartFrames'>, newSeconds: number): { seconds: number; frames: number; newFrames: number; truncated: boolean } {
   const want = Math.max(1, newSeconds) + pack.trimStartFrames / H3_FPS;
-  const seconds = Math.min(H3_MAX_FRAMES / H3_FPS, want);
+  // 15 s is the request ceiling (the contract's and the hosted API's); it already snaps up to the 362-frame maximum
+  const seconds = Math.min(15, want);
   const frames = h3FrameCount(seconds);
   const newFrames = frames - pack.trimStartFrames;
   return { seconds: Number(seconds.toFixed(4)), frames, newFrames, truncated: Math.round(newSeconds * H3_FPS) > newFrames };

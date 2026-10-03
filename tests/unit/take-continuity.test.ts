@@ -54,6 +54,7 @@ vi.mock('@/server/env', () => ({ env: () => ({ CODE_VERSION: 'test' }) }));
 vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h', recordQaReport: async () => 'qa' }));
 
 import { generateTake } from '@/worker/handlers/take';
+import { VideoGenerateInput } from '@/server/org/contracts';
 import { fixture } from './continuity-fixture';
 
 const ctx = (productionId: string, shotId: string) => ({
@@ -76,6 +77,7 @@ describe('GENERATE_TAKE by relation', () => {
     await generateTake(ctx(p.id, 's12'));
     expect(fake.tails[0]).toEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/tail\.mp4$/), 22]);
     const req = fake.requests[0] as { guides: unknown[]; referenceImages: Array<{ file: string }>; firstFrame?: unknown; seconds: number; prompt: string; lowering?: string };
+    expect(VideoGenerateInput.safeParse(req).error?.issues ?? []).toEqual([]); // what the tool runner validates
     expect(req.guides).toEqual([{ frameIdx: 0, imageFile: '/tmp/tail.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audioFile: expect.stringMatching(/dialogue\.wav$/) }]);
     expect(req.referenceImages.map((r) => r.file)).toEqual(['/lib/img/canon-a.png', '/lib/img/canon-b.png', '/lib/img/plate-dusk.png']);
     expect(req.firstFrame).toBeUndefined();
@@ -105,6 +107,7 @@ describe('GENERATE_TAKE by relation', () => {
     await generateTake(ctx(p.id, 's13'));
     expect(fake.tails).toEqual([]);
     const req = fake.requests[0] as { guides?: unknown[]; referenceImages: Array<{ file: string }>; firstFrame?: { file: string }; lastFrame?: { file: string }; prompt: string };
+    expect(VideoGenerateInput.safeParse(req).error?.issues ?? []).toEqual([]); // what the tool runner validates
     expect(req.referenceImages.map((r) => r.file)).toEqual(['/lib/img/canon-a.png', '/lib/img/plate-dusk.png', '/lib/img/open-13.png']);
     expect(req.firstFrame?.file).toBe('/lib/img/open-13.png');
     expect(req.lastFrame?.file).toBe('/lib/img/end-13.png');
@@ -123,6 +126,7 @@ describe('GENERATE_TAKE by relation', () => {
     await generateTake(ctx(p.id, 's12'));
     expect(fake.closing).toEqual(['/lib/vid/vid-a.mp4']);
     const req = fake.requests[0] as { guides?: unknown[]; referenceImages?: unknown[]; firstFrame?: { file: string }; lowering?: string; prompt: string };
+    expect(VideoGenerateInput.safeParse(req).error?.issues ?? []).toEqual([]); // what the tool runner validates
     expect(req.firstFrame?.file).toBe('/tmp/last.png');
     expect(req.referenceImages).toBeUndefined();
     expect(req.guides).toBeUndefined();
