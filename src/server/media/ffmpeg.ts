@@ -6,6 +6,7 @@ import { StudioError } from '@/domain/errors';
 import type { QaCheck, QaReport } from '@/domain/types';
 import { ffprobe, type Probe } from '../media';
 import { log } from '../log';
+import { jobSignal } from '../jobs/context';
 
 /** FFMPEG — every media transformation the studio performs, as explicit argument lists (never a shell string):
  *  thumbnails, review proxies, loudness measurement, the quality checks on a generated take, assembly and export. */
@@ -13,15 +14,24 @@ import { log } from '../log';
 export const tmpRoot = () => process.env.TMP_ROOT || path.join(os.tmpdir(), 'vewbox');
 export async function tmpDir(prefix: string): Promise<string> { const d = path.join(tmpRoot(), `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`); await fsp.mkdir(d, { recursive: true }); return d; }
 
-export async function ffmpeg(args: string[], opts: { timeoutMs?: number; cwd?: string } = {}): Promise<{ stderr: string; ms: number }> {
+/** Run ffmpeg. The child is killed (SIGKILL) at its timeout, and — audit H5 — when `signal` (by default the running
+ *  job's: cancel, deadline, lost lease; src/server/jobs/context.ts) aborts; the promise then rejects with the
+ *  signal's reason. */
+export async function ffmpeg(args: string[], opts: { timeoutMs?: number; cwd?: string; signal?: AbortSignal } = {}): Promise<{ stderr: string; ms: number }> {
   const t0 = Date.now();
+  const signal = opts.signal ?? jobSignal();
   return new Promise((resolve, reject) => {
-    const child = spawn('ffmpeg', ['-hide_banner', '-nostdin', '-y', ...args], { cwd: opts.cwd, stdio: ['ignore', 'ignore', 'pipe'] });
+    if (signal?.aborted) { reject(signal.reason); return; }
+    const child = spawn('ffmpeg', ['-hide_banner', '-nostdin', '-y', ...args], { cwd: opts.cwd, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     let err = '';
+    let settled = false;
+    const done = (fn: () => void) => { if (settled) return; settled = true; clearTimeout(timer); signal?.removeEventListener('abort', onAbort); fn(); };
+    const onAbort = () => { child.kill('SIGKILL'); done(() => reject(signal!.reason)); };
+    signal?.addEventListener('abort', onAbort, { once: true });
     child.stderr.on('data', (d) => { err += d.toString(); if (err.length > 400_000) err = err.slice(-200_000); });
-    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new StudioError('PROVIDER', `ffmpeg timed out after ${Math.round((opts.timeoutMs ?? 0) / 1000)} s`)); }, opts.timeoutMs ?? 30 * 60_000);
-    child.on('error', (e) => { clearTimeout(timer); reject(new StudioError('UNAVAILABLE', `ffmpeg could not start: ${e.message}`)); });
-    child.on('close', (code) => { clearTimeout(timer); if (code === 0) resolve({ stderr: err, ms: Date.now() - t0 }); else reject(new StudioError('PROVIDER', `ffmpeg exited with ${code}: ${err.split('\n').filter(Boolean).slice(-6).join(' | ')}`)); });
+    const timer = setTimeout(() => { child.kill('SIGKILL'); done(() => reject(new StudioError('PROVIDER', `ffmpeg timed out after ${Math.round((opts.timeoutMs ?? 0) / 1000)} s`))); }, opts.timeoutMs ?? 30 * 60_000);
+    child.on('error', (e) => done(() => reject(new StudioError('UNAVAILABLE', `ffmpeg could not start: ${e.message}`))));
+    child.on('close', (code) => done(() => { if (code === 0) resolve({ stderr: err, ms: Date.now() - t0 }); else reject(new StudioError('PROVIDER', `ffmpeg exited with ${code}: ${err.split('\n').filter(Boolean).slice(-6).join(' | ')}`)); }));
   });
 }
 

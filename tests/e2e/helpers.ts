@@ -9,7 +9,7 @@ import type { Job, JobEvent, JobType } from '../../src/domain/jobs';
  *  errors, and fails on any network request that is not the studio itself (fonts excepted). The database is shared,
  *  so the suite runs with one worker (see playwright.config.ts). */
 
-export const BASE = process.env.STUDIO_URL || 'http://localhost:4200';
+export const BASE = process.env.STUDIO_URL || 'http://127.0.0.1:4210';
 
 /** The sample studio is a test fixture: the server loads it only when it runs with STUDIO_SAMPLE_FIXTURE=1
  *  (playwright.config.ts starts its server that way; a reused server must have been started with it). */
@@ -17,7 +17,7 @@ export async function resetStudio(kind: 'sample' | 'empty' = 'sample') {
   const r = await fetch(`${BASE}/api/studio/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind, keepSettings: false }) });
   if (!r.ok) {
     const body = (await r.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
-    const hint = body?.error?.code === 'NOT_CONFIGURED' ? ' — start the studio server with STUDIO_SAMPLE_FIXTURE=1 to run the browser tests' : '';
+    const hint = body?.error?.code === 'NOT_CONFIGURED' ? ' — start the studio server with STUDIO_SAMPLE_FIXTURE=1 to run the browser tests' : body?.error?.code === 'FORBIDDEN' ? ' — this is not a test server; run `pnpm test:server` (VEWBOX_ALLOW_RESET=1 on a test database)' : '';
     throw new Error(`reset failed: ${r.status} ${body?.error?.message ?? ''}${hint}`);
   }
 }

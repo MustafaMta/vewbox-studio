@@ -1,4 +1,5 @@
 import { userAgent } from './config';
+import { jobSignal, stopReasonOf } from '../jobs/context';
 
 /** HTTP FOR RESEARCH — every call has a 15 s timeout (also bounded by the caller's AbortSignal), an honest
  *  User-Agent, and per-source spacing (GDELT asks for at most one request every 5 s). Errors name the host and path,
@@ -18,11 +19,14 @@ export interface CallOptions { method?: 'GET' | 'POST'; headers?: Record<string,
  *  throws ResearchHttpError with the status, so a provider maps 401/403/429 to its coverage. */
 export async function call(url: string, opts: CallOptions = {}): Promise<{ status: number; json?: unknown; text: string }> {
   const timeout = AbortSignal.timeout(opts.timeoutMs ?? CALL_TIMEOUT_MS);
-  const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
+  // the caller's signal, else the running job's (cancel, deadline, lost lease — src/server/jobs/context.ts)
+  const parent = opts.signal ?? jobSignal();
+  const signal = parent ? AbortSignal.any([parent, timeout]) : timeout;
   let res: Response;
   try {
     res = await fetch(url, { method: opts.method ?? 'GET', headers: { 'User-Agent': userAgent(), accept: opts.accept ?? 'application/json', ...(opts.headers ?? {}) }, body: opts.body, signal });
   } catch (e) {
+    if (parent && stopReasonOf(parent)) throw stopReasonOf(parent);
     const err = e as Error;
     if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new ResearchHttpError(0, `${where(url)} did not answer within ${Math.round((opts.timeoutMs ?? CALL_TIMEOUT_MS) / 1000)} s`);
     throw new ResearchHttpError(0, `${where(url)} is not reachable (${err.message})`);

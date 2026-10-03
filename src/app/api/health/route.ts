@@ -6,6 +6,7 @@ import { currentVersion } from '@/server/studio/engine';
 import { capabilities } from '@/server/env';
 import { json, route } from '@/server/http';
 import { bootstrap } from '@/server/bootstrap';
+import { resetAllowed } from '@/server/test-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,6 @@ export const GET = route(async () => {
   const t0 = Date.now();
   let dbOk = false; let error: string | undefined;
   try { await bootstrap(); await db().execute(dsql`select 1`); dbOk = true; } catch (e) { error = (e as Error).message; }
-  const body = { ok: dbOk, service: 'web', dbMs: Date.now() - t0, version: dbOk ? await currentVersion() : null, queue: dbOk ? await queueStats() : null, intake: dbOk ? await intakeState() : null, capabilities: capabilities(), codeVersion: process.env.CODE_VERSION ?? 'dev', error };
+  const body = { ok: dbOk, service: 'web', dbMs: Date.now() - t0, version: dbOk ? await currentVersion() : null, queue: dbOk ? await queueStats() : null, intake: dbOk ? await intakeState() : null, capabilities: capabilities(), codeVersion: process.env.CODE_VERSION ?? 'dev', /** a test server (src/server/test-guard.ts): the suites refuse any server where this is false */ testServer: resetAllowed().ok, error };
   return json(body, { status: dbOk ? 200 : 503 });
 });

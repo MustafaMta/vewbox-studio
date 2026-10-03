@@ -9,7 +9,12 @@ import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
 import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
-import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, setProgress, type Lane } from '@/server/jobs/queue';
+import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, reapStale, setProgress, type Lane } from '@/server/jobs/queue';
+import { startHeartbeat } from './heartbeat';
+import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
+import { jobDeadline } from '@/server/jobs/deadlines';
+import { isFencedWrite } from '@/server/jobs/fence';
+import { settleDialogueReviews } from '@/server/jobs/reviews';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { step } from './handlers/step';
 import { gpuLease } from './gpu';
@@ -42,7 +47,8 @@ const LANES: Record<Lane, { limit: number; types: JobType[] }> = {
 const running: Record<Lane, Set<string>> = { HOSTED: new Set(), LLM: new Set(), CPU: new Set(), GPU: new Set(), ORCHESTRATION: new Set() };
 let stopping = false;
 
-class Cancelled extends Error { constructor() { super('cancelled'); this.name = 'Cancelled'; } }
+/** How long a stopped handler that ignores its signal is waited for before the lane slot is freed anyway. */
+const ABORT_GRACE_MS = 5_000;
 
 async function run(job: Job, lane: Lane) {
   const agent = agentForJob(job);
@@ -53,7 +59,23 @@ async function run(job: Job, lane: Lane) {
   // lost the job (its lease went stale and another worker reclaimed it) can no longer overwrite the new attempt
   const lease = { workerId, attempt: job.attempts };
   let leaseLost = false;
-  const hb = setInterval(() => { heartbeat(job.id, workerId).then((r) => { if (r.cancelRequested) cancelRequested = true; }).catch((e) => { jl.warn({ err: e.message }, 'heartbeat failed; another worker may own this job now'); cancelRequested = true; if (isStudioError(e) && e.code === 'CONFLICT') leaseLost = true; }); }, 20_000);
+  // THE ATTEMPT'S SIGNAL (audit H5): aborted on cancel, at the deadline, or when the lease is lost; it kills ffmpeg
+  // children, aborts provider requests and cancels ComfyUI prompts (src/server/jobs/context.ts)
+  const jobCtrl = new AbortController();
+  const stop = (reason: unknown) => { if (!jobCtrl.signal.aborted) jobCtrl.abort(reason); };
+  const deadline = jobDeadline(job.type);
+  const deadlineTimer = deadline.mode === 'off' ? undefined : setTimeout(() => {
+    jl.warn({ deadlineMs: deadline.ms, mode: deadline.mode }, 'job passed its deadline');
+    void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms }).catch(() => undefined);
+    if (deadline.mode === 'enforce') stop(deadlineExceeded(JOB_LABELS[job.type] ?? job.type, deadline.ms));
+  }, deadline.ms);
+  // a lost lease (CONFLICT) stops the attempt; a transient database error is retried, never a cancellation (audit H6)
+  const stopHeartbeat = startHeartbeat({
+    beat: () => heartbeat(job.id, workerId), intervalMs: 20_000,
+    onCancel: () => { cancelRequested = true; stop(new JobCancelled()); },
+    onLost: () => { jl.warn('heartbeat: another worker owns this job now; stopping this attempt'); leaseLost = true; cancelRequested = true; stop(new LeaseLost()); },
+    onError: (e, failures) => jl.warn({ err: (e as Error).message, failures }, 'heartbeat failed; retrying (the job keeps running)'),
+  });
   const t0 = Date.now();
   // Recording the outcome can itself fail (the database is away, or a reset removed the job while it ran); that is
   // logged and never takes the worker down. The lease expires and another worker, or the next tick, carries on.
@@ -80,16 +102,19 @@ async function run(job: Job, lane: Lane) {
     // without a parent run (recording failed) the step still runs, unrecorded, rather than failing the job
     delegate: runId ? makeDelegator(job, runId, jl) : (_agentId, _purpose, fn) => fn((_id, f) => f()),
     activity: (kind, message, data, opts) => studioEvent({ departmentId: opts?.departmentId ?? agent.department, agentId: opts?.agentId ?? agent.id, productionId: opts?.productionId ?? job.productionId, kind, message, data, jobId: job.id }),
-    checkpoint: async () => { if (cancelRequested) throw new Cancelled(); },
-    progress: async (status, progress, extra) => { if (cancelRequested) throw new Cancelled(); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; throw new Cancelled(); } await phaseChanged(status, progress); },
+    checkpoint: async () => { if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); },
+    progress: async (status, progress, extra) => { if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; stop(new LeaseLost()); throw new LeaseLost(); } await phaseChanged(status, progress); },
     event: (level, message, data) => addEvent(job.id, level, message, data),
     gpu: gpuLease,
+    signal: jobCtrl.signal,
   };
   await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_STARTED', message: `${agent.name} started: ${label}${job.attempts > 1 ? ` (attempt ${job.attempts} of ${job.maxAttempts})` : ''}`, data: { attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
   try {
     const handler = HANDLERS[job.type];
     if (!handler) throw Object.assign(new Error(`No handler for ${job.type}`), { retryable: false });
-    const result = await handler(ctx);
+    // the handler runs in the job scope (signal + lease, src/server/jobs/context.ts); a handler that ignores an abort
+    // is let go of after ABORT_GRACE_MS so its lane slot is freed — its late writes are fenced on the lease
+    const result = await raceAbort(runInJobScope({ jobId: job.id, signal: jobCtrl.signal, lease }, () => handler(ctx)), jobCtrl.signal, ABORT_GRACE_MS);
     const ms = Date.now() - t0;
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
     await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
@@ -100,15 +125,20 @@ async function run(job: Job, lane: Lane) {
     }
     if (runId) await record('finish run', () => finishRun(runId, { outcome, ms, costUsd: typeof result?.costUsd === 'number' ? result.costUsd : undefined }));
     if (job.attempts > 1) await record('resolve reliability', () => resolveReliability(job.id, `attempt ${job.attempts} succeeded`));
+    // lines recorded again settle earlier reviews of the production whose flagged lines are now all decided
+    if (job.type === 'DIALOGUE_AUDIO' && job.productionId) await record('settle dialogue reviews', async () => { await settleDialogueReviews([job.productionId!]); });
     await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: outcome === 'COMPLETED' ? 'RUN_COMPLETED' : 'RUN_REVIEW', message: `${agent.name} finished: ${label} in ${ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${(ms / 60_000).toFixed(1)} min`}${outcome === 'AWAITING_REVIEW' ? ' — awaiting review' : ''}`, data: { ms, attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
     jl.info({ ms }, 'job completed');
-  } catch (e) {
+  } catch (thrown) {
     const ms = Date.now() - t0;
-    if (leaseLost) {
+    // stopped by its signal: the reason decides the outcome, whatever the provider reported on the way out
+    const e = jobCtrl.signal.aborted ? jobCtrl.signal.reason : thrown;
+    // a lost lease, seen by the heartbeat, a progress write or a fenced result write (src/server/jobs/fence.ts)
+    if (leaseLost || e instanceof LeaseLost || isFencedWrite(e)) {
       // another worker reclaimed this job: its attempt owns the record now; only this run is closed
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost: another worker reclaimed the job; this attempt’s writes were refused', ms }));
       jl.warn('lease lost; this attempt stopped without writing the job');
-    } else if (e instanceof Cancelled || cancelRequested) {
+    } else if (e instanceof JobCancelled || cancelRequested) {
       await record('cancelled', async () => { await cancelled(job.id, lease); });
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'CANCELLED', failureClass: 'CANCELLED', ms }));
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_CANCELLED', message: `${agent.name} stopped: ${label} was cancelled`, jobId: job.id });
@@ -141,13 +171,20 @@ async function run(job: Job, lane: Lane) {
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_FAILED', message: `${agent.name} failed: ${label} — ${failureClass}: ${err.message.slice(0, 200)}`, data: { failureClass, code, attempt: job.attempts, retryable, shotId: job.shotId }, jobId: job.id });
     }
   } finally {
-    clearInterval(hb);
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    stopHeartbeat();
     running[lane].delete(job.id);
   }
 }
 
+let lastReap = 0;
 async function tick() {
   await touchAlive();
+  // settle stale jobs no worker may take over (cancelled, or out of attempts) — every 15 s is plenty
+  if (Date.now() - lastReap > 15_000) {
+    lastReap = Date.now();
+    try { const r = await reapStale(); if (r.cancelled.length || r.failed.length) log.warn(r, 'reaped stale jobs'); } catch (e) { log.error({ err: (e as Error).message }, 'reap failed'); }
+  }
   for (const lane of Object.keys(LANES) as Lane[]) {
     const cfg = LANES[lane];
     while (!stopping && running[lane].size < cfg.limit) {
