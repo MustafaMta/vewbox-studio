@@ -75,6 +75,14 @@ browser, with the evidence it produced. Defects found are listed with their fix 
   proof heard back "Hello, my name is Hana Mori, and this is my voice." CER 0 / coverage 1 / PASS; ranking recorded
   (gates passed first, then mean seed-to-line similarity, then CER).
 
+## A6 — Persistence across a full restart — 2026-10-03
+
+- Before: Elias Moore APPROVED/DESIGNED voice · Hana Mori DRAFT/DESIGNED voice · Salam DRAFT/no voice · أبو سلام
+  APPROVED/no voice. Stopped the dev server and the worker, restarted the Postgres container (healthy at 03:00:49Z),
+  restarted both cold.
+- After: identical rows in the database; the directory lists the same four with the same states; Elias's profile shows
+  "Approved · Version 1" and his voice plays (audio element playing). ✓
+
 ### Defects found in A1
 
 | # | Defect | Status |
@@ -92,4 +100,5 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 | D11 | Casting's design invents brand-like logos/text on clothing ("Mori Express", a star sneaker mark resembling a real brand) | fixed `cd648f8` (design skill 2.1.0 rule; negative prompt) — to re-verify on the next design |
 | D12 | A garment word with stray Cyrillic letters ("deshdaша") dropped the WHOLE wardrobe from the identity line | fixed `bbfa91f`; verified in a real redraw (v2 shows the designed wardrobe) |
 | D14 | The voice description written from the profile says "A woman of about 16" for a teenager (the panel's builder ignores age bands; the image's identity line already uses "teenage girl") | open |
+| D15 | Image Reference: with no role given, the design step invented "A young, curious explorer … floating islands" for a picture of a man of 60–70 — the non-visual design does not see the picture's description | open — run the design after the vision description and give it the description's age/sex; never invent a role that contradicts the picture |
 | D13 | Realistic prompt adherence: a "thick, gray mustache" drawn as a full beard (2/2 draws); an Iraqi dishdasha drawn tunic-length | open — model limitation; candidate for the FLUX vs Qwen comparison and a wardrobe wording rule ("ankle-length dishdasha") |
