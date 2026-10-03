@@ -26,22 +26,23 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
   const tab = (map: Record<string, Key | null>) => { const k = map[search?.get('tab') ?? ''] ?? null; return k ? [T(k)] : []; };
   const prod = (id: string | undefined) => state.productions.find((p) => p.id === id);
   const prodName = (p: Production) => (p.kind === 'MUSIC_VIDEO' ? (p.song?.title || p.title) : p.title);
-  const shot = (p: Production | undefined, id: string | undefined) => { const sh = p?.shots.find((s) => s.id === id); return fill(T('shell.title.shot'), sh && p ? shotLabel(p, sh) : (id ?? '')); };
+  const shot = (p: Production | undefined, id: string | undefined) => { const sh = p?.shots.find((s) => s.id === id); return fill('Shot {n}', sh && p ? shotLabel(p, sh) : (id ?? '')); };
 
   switch (seg[0]) {
     case undefined: return ['Home'];
     case 'shows': {
-      const area = T('nav.shows');
+      const area = 'Shows';
       if (!seg[1]) return [area];
       const show = state.shows.find((s) => s.id === seg[1]);
       const name = show ? show.title : null;
       if (!name) return [area];
       if (seg[2] !== 'seasons') return [...tab(SHOW_TABS), name, area];
       const season = state.seasons.find((s) => s.id === seg[3]);
-      if (seg[4] !== 'episodes') return [fill(T('shell.title.season'), season?.number ?? ''), name, area];
+      if (seg[4] !== 'episodes') return [fill('Season {n}', season?.number ?? ''), name, area];
       const ep = prod(seg[5]);
-      const epLabel = fill(T('shell.title.episode'), ep?.episodeNumber ?? '');
+      const epLabel = fill('Episode {n}', ep?.episodeNumber ?? '');
       if (seg[6] === 'shots') return [shot(ep, seg[7]), epLabel, name, area];
+      if (seg[6] === 'production') return ['Production', epLabel, name, area];
       const t1 = tab(FILM_TABS);
       return t1.length ? [...t1, epLabel, name, area] : [ep ? `${epLabel}: ${prodName(ep)}` : epLabel, name, area];
     }
@@ -52,24 +53,25 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
       const p = prod(seg[1]);
       if (!seg[1] || !p) return [area];
       if (seg[2] === 'shots') return [shot(p, seg[3]), prodName(p), area];
+      if (seg[2] === 'production') return ['Production', prodName(p), area];
       return [...tab(music ? MUSIC_TABS : FILM_TABS), prodName(p), area];
     }
     case 'characters': {
-      const area = T('nav.characters');
+      const area = 'Characters';
       if (!seg[1]) return [area];
-      if (seg[1] === 'new') return [T('cast.new.title'), area];
+      if (seg[1] === 'new') return ['New character', area];
       const c = state.characters.find((x) => x.id === seg[1]);
       return c ? [c.name, area] : [area];
     }
     case 'locations': {
-      const area = T('nav.locations');
+      const area = 'Locations';
       if (!seg[1]) return [area];
-      if (seg[1] === 'new') return [T('shell.title.newLocation'), area];
+      if (seg[1] === 'new') return ['New location', area];
       const l = state.locations.find((x) => x.id === seg[1]);
       return l ? [l.name, area] : [area];
     }
     case 'studio': {
-      const area = T('nav.company');
+      const area = 'Studio Company';
       const deptName = (id: string | undefined) => { const d = org?.departments.find((x) => x.id === id); return d ? d.name : (id ?? ''); };
       if (seg[1] === 'departments' && seg[2]) return [deptName(seg[2]), area];
       if (seg[1] === 'agents' && seg[2]) {
@@ -78,24 +80,23 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
       }
       return [area];
     }
-    case 'production': return [T('nav.production')];
-    case 'jobs': return [T('jobs.title'), T('nav.production')];
-    case 'screening': { const p = prod(search?.get('cut') ?? undefined); return p ? [prodName(p), T('screening.title')] : [T('screening.title')]; }
-    case 'settings': return [T('nav.settings')];
-    case 'assets': return [T('nav.files')];
-    case 'library': return [T('library.title')];
-    case 'projects': return [T('projects.title')];
-    case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : seg[1]] : [T('nav.new')];
+    case 'production': return ['Production'];
+    case 'jobs': return ['Activity', 'Production'];
+    case 'screening': { const p = prod(search?.get('cut') ?? undefined); return p ? [prodName(p), 'Screening Room'] : ['Screening Room']; }
+    case 'settings': return ['Settings'];
+    case 'assets': return ['Files'];
+    case 'library': return ['Library'];
+    case 'projects': return ['Projects'];
+    case 'new': return seg[1] ? [NEW_KIND[seg[1]] ? T(NEW_KIND[seg[1]]) : seg[1]] : ['New…'];
     // the dev-only specimen pages of the interface kit (F2) and the media kit (F3)
-    case 'kit': return [T('kit.page.title')];
-    case 'kit-media': return [T('shell.title.kitMedia')];
+    case 'kit': return ['Interface kit'];
     default: return [];
   }
 }
 
 /** The document title: the parts, then the studio's name; Production with the waiting decisions in front. */
 export function documentTitle(input: TitleInput): string {
-  const title = [...titleParts(input).filter(Boolean), T('app.name')].join(' · ');
+  const title = [...titleParts(input).filter(Boolean), 'Vewbox Studio'].join(' · ');
   const production = input.pathname === '/production' || input.pathname.startsWith('/production/');
   return production && input.waiting && input.waiting > 0 ? `(${input.waiting}) ${title}` : title;
 }

@@ -20,7 +20,7 @@ function Pips({ done, total }: { done: number; total: number }) {
   return (
     <span className="pips">
       <span className="pips-row" aria-hidden>{Array.from({ length: total }, (_, i) => <span key={i} data-done={i < done || undefined} />)}</span>
-      <span className="num pips-n">{T.f('media.sections.of', { a: done, b: total })}</span>
+      <span className="num pips-n">{`${done} of ${total}`}</span>
     </span>
   );
 }
@@ -31,14 +31,14 @@ export function SectionsTable({ rows, time, onPlayFrom, version, duration, class
   const total = duration ?? rows.reduce((m, r) => Math.max(m, r.to), 0);
   return (
     <table className={cls('table sections', className)}>
-      <caption className="sr-only">{T('media.sections.caption')}</caption>
+      <caption className="sr-only">Sections of the song</caption>
       <thead>
         <tr>
           <th scope="col" className="sections-n">#</th>
-          <th scope="col">{T('media.sections.section')}</th>
-          <th scope="col">{T('media.sections.singer')}</th>
-          <th scope="col" className="sections-shots">{T('media.sections.shots')}</th>
-          <th scope="col" className="sections-time">{T('media.sections.time')}</th>
+          <th scope="col">Section</th>
+          <th scope="col">Singer</th>
+          <th scope="col" className="sections-shots">Shots</th>
+          <th scope="col" className="sections-time">Time</th>
         </tr>
       </thead>
       <tbody>
@@ -48,18 +48,18 @@ export function SectionsTable({ rows, time, onPlayFrom, version, duration, class
             <tr key={r.id} data-live={now || undefined} aria-current={now ? 'true' : undefined}>
               <td className="sections-n">
                 {onPlayFrom ? (
-                  <button type="button" className="sections-play" aria-label={T.f('media.sections.playFrom', { name: r.name })} onClick={() => onPlayFrom(r)}>
+                  <button type="button" className="sections-play" aria-label={`Play from ${r.name}`} onClick={() => onPlayFrom(r)}>
                     {now ? <span className="m-tally" aria-hidden /> : <span className="num sections-num" aria-hidden>{i + 1}</span>}
                     <IconPlay aria-hidden className="sections-glyph" />
                   </button>
                 ) : now ? <span className="m-tally" aria-hidden /> : <span className="num">{i + 1}</span>}
-                {now && <span className="sr-only">{T('media.sections.nowSung')}</span>}
+                {now && <span className="sr-only">Being sung now</span>}
               </td>
               <th scope="row" className="sections-name" dir="auto">
                 {r.name}
                 <span className="sections-shots-inline"><Pips done={r.shotsDone} total={r.shotsTotal} /></span>
               </th>
-              <td>{r.singer ? <span className="sections-singer"><FaceCircle name={r.singer.name} asset={r.singer.asset} src={r.singer.src} size={24} decorative ring={now ? 'speaking' : undefined} /><span className="sections-singer-name" dir="auto" lang={r.singer.lang}>{r.singer.name}</span></span> : <span className="sections-none"><span aria-hidden>—</span><span className="sr-only">{T('media.lyrics.noSinger')}</span></span>}</td>
+              <td>{r.singer ? <span className="sections-singer"><FaceCircle name={r.singer.name} asset={r.singer.asset} src={r.singer.src} size={24} decorative ring={now ? 'speaking' : undefined} /><span className="sections-singer-name" dir="auto" lang={r.singer.lang}>{r.singer.name}</span></span> : <span className="sections-none"><span aria-hidden>—</span><span className="sr-only">No singer</span></span>}</td>
               <td className="sections-shots"><Pips done={r.shotsDone} total={r.shotsTotal} /></td>
               <td className="sections-time"><span className="mono" dir="ltr">{fmtClock(r.from)}–{fmtClock(r.to)}</span></td>
             </tr>
@@ -69,7 +69,7 @@ export function SectionsTable({ rows, time, onPlayFrom, version, duration, class
       <tfoot>
         <tr>
           <td colSpan={5} className="sections-total">
-            <span className="mono" dir="ltr">{fmtClock(total)}</span> · {T.p('media.count.sections', rows.length)} · {T.p('media.count.shots', shots)}{version !== undefined && <> · {T.f('media.songVersion', { n: version })}</>}
+            <span className="mono" dir="ltr">{fmtClock(total)}</span> · {T.p('media.count.sections', rows.length)} · {T.p('media.count.shots', shots)}{version !== undefined && <> · {`song version ${version}`}</>}
           </td>
         </tr>
       </tfoot>

@@ -102,15 +102,17 @@ export function PosterCard(props: Omit<MediaCardProps, 'ratio'>) { return <Media
 export function SleeveCard(props: Omit<MediaCardProps, 'ratio'>) { return <MediaCard {...props} ratio="1/1" />; }
 
 /** A character (Home's line-up; the casting directory): the whole figure, never cropped, the name below, one badge. */
-export function FigureCard({ href, onSelect, selected, disabledReason, name, nameLang, badge, waiting, priority, onClick, className, ...pic }: PictureProps & {
+export function FigureCard({ href, onSelect, selected, disabledReason, name, nameLang, badge, waiting, disc, priority, onClick, className, ...pic }: PictureProps & {
   href?: string; onSelect?: () => void; selected?: boolean; disabledReason?: string;
   name: string; nameLang?: string;
   /** the one badge under the name; `waiting` is the "Needs approval" badge */
   badge?: ReactNode; waiting?: boolean;
+  /** a control at the end of the name row, OUTSIDE the link (the voice: <PlayDisc size={36} tone="secondary" />) */
+  disc?: ReactNode;
   priority?: boolean; onClick?: () => void; className?: string;
 }) {
-  return (
-    <Hit href={href} onSelect={onSelect} selected={selected} disabledReason={disabledReason} title={name} onClick={onClick} className={cls('fcard', className)}>
+  const card = (
+    <Hit href={href} onSelect={onSelect} selected={selected} disabledReason={disabledReason} title={name} onClick={onClick} className={cls('fcard', disc != null && 'fcard-has-disc', className)}>
       <Frame asset={pic.asset} src={pic.src} presentation={pic.presentation} art={artOf(pic)} ratio="928/1664" fit="contain" alt="" title={name} titleLang={nameLang} titleState="noImage" decorative priority={priority} className="fcard-frame">
         {selected && <span className="card-check" aria-hidden><IconCheck /></span>}
       </Frame>
@@ -118,6 +120,8 @@ export function FigureCard({ href, onSelect, selected, disabledReason, name, nam
       <span className="fcard-state">{disabledReason ? <span className="t-meta">{disabledReason}</span> : badge ?? (waiting ? <span className="badge badge-warn">Needs approval</span> : null)}</span>
     </Hit>
   );
+  if (disc == null) return card;
+  return <div className="fcard-host">{card}<span className="fcard-disc">{disc}</span></div>;
 }
 
 /** Start a new one, in the shelf's own shape (§7 "each shelf ends with a start card"): the viewfinder corners, a plus
