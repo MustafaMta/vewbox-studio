@@ -14,7 +14,6 @@ import { step } from './handlers/step';
 import { gpuLease } from './gpu';
 import type { FailureClass } from '@/server/org/model';
 import { syncRegistry } from '@/server/registry';
-import { syncOrg } from '@/server/org/registry';
 import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
 import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
@@ -149,8 +148,9 @@ async function tick() {
 
 async function main() {
   log.info({ workerId, lanes: Object.fromEntries(Object.entries(LANES).map(([k, v]) => [k, v.limit])) }, 'worker starting');
+  // bootstrap() migrates, seeds an empty database and syncs the organisation (once: audit B5 measured a second sync
+  // here, 106–211 ms per start)
   await bootstrap();
-  await syncOrg();
   syncRegistry().catch((e) => log.warn({ err: (e as Error).message }, 'registry sync failed'));
   const loop = setInterval(() => { void tick(); }, 1500);
   void tick();

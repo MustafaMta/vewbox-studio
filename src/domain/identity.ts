@@ -1,4 +1,4 @@
-import type { CanonicalImage, Character, StudioState } from './types';
+import type { Asset, CanonicalImage, Character, StudioState } from './types';
 
 /** THE CANONICAL IMAGE, READ — pure questions about a character's one canonical front full-body image
  *  (docs/CONTRACTS-IDENTITY-PACK.md v2), shared by the reducers, the server preflight and the pages. */
@@ -44,6 +44,18 @@ export function nonHumanSpecies(species: string | undefined | null): string | un
   const s = species?.trim();
   return s && !HUMAN.test(s) ? s : undefined;
 }
+
+/** USABLE MEDIA — the one definition of each rule (audit B2: they were repeated in the preflight and the handlers, and
+ *  the two audio checks disagreed). Three different questions, three rules:
+ *  - `usableImage`: a picture a step can draw or film from — a real image, never a bundled sample or an SVG placeholder.
+ *  - `usableAudio`: audio a step can play or mix (a song, a recorded line) — a real file, present in the library;
+ *    generated audio counts (a generated song is the song).
+ *  - a recording a voice is CLONED from is stricter: `usableRecordingAsset` (src/domain/voice-identity.ts) also refuses
+ *    GENERATED audio, and which recording a character speaks from is `pickReference` there. The take preflight asks
+ *    `pickReference` — exactly what the worker speaks from — not "has any audio" (that let a speaker whose only audio
+ *    was a missing file or an unconsented upload pass the preflight, and the take then fell back to a default voice). */
+export const usableImage = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
+export const usableAudio = (a: Asset | undefined): a is Asset => Boolean(a && a.kind === 'AUDIO' && !a.sample && !a.unavailable);
 
 /** The character whose canonical image this picture is, if any. */
 export function canonicalImageOwner(s: Pick<StudioState, 'characters'>, assetId: string): Character | undefined {

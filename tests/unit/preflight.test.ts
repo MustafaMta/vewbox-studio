@@ -38,7 +38,47 @@ describe('preflightTake', () => {
     const c = r.checks.find((x) => x.name === 'speakers-have-voices');
     expect(c).toBeDefined();
     // the sample voices are bundled placeholders, so the check fails with the missing names
-    expect(c!.ok).toBe(false); expect(c!.failureClass).toBe('MISSING_REFERENCE'); expect(c!.detail).toMatch(/no voice recording for/);
+    expect(c!.ok).toBe(false); expect(c!.failureClass).toBe('MISSING_REFERENCE'); expect(c!.detail).toMatch(/no usable voice for/);
+  });
+  // audit B2: the take preflight asks what the worker speaks from (pickReference), not "has any audio" — the old check
+  // passed a speaker whose only audio was a generated line, an unconsented upload or a missing file, and the take then
+  // fell back to the engine's default voice
+  describe('the speaker’s voice is the reference the worker speaks from', () => {
+    const consent = { statement: 'MY_VOICE' as const, by: 'PRODUCER' as const, at: '2026-10-03T00:00:00.000Z' };
+    const setup = (sample: Partial<StudioState['characters'][number]['voice']['samples'][number]>, asset: Partial<StudioState['assets'][number]>, line: Partial<Shot['dialogue'][number]> = {}) => {
+      const s0 = withRealPictures(base(), firstFilm(base()));
+      const p = firstFilm(s0); const sh = { ...p.shots.find((x) => x.dialogue.length > 0)!, dialogue: [] as Shot['dialogue'] };
+      const speaker = p.castIds[0] ?? s0.characters[0].id;
+      const shot: Shot = { ...sh, dialogue: [{ id: 'l1', characterId: speaker, text: 'A line.', ...line }] };
+      const prod: Production = { ...p, castIds: Array.from(new Set([...p.castIds, speaker])), shots: p.shots.map((x) => (x.id === sh.id ? shot : x)) };
+      const a = { id: 'rec-1', kind: 'AUDIO' as const, src: '/api/media/rec-1', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' as const, mimeType: 'audio/wav', createdAt: 'x', provenance: { path: 'audio/rec-1.wav' }, ...asset };
+      const characters = s0.characters.map((c) => (c.id === speaker ? { ...c, voice: { ...c.voice, identity: undefined, selectedSampleId: 'sm-1', samples: [{ id: 'sm-1', label: 'rec', assetId: a.id, source: 'UPLOADED' as const, ...sample }] } } : c));
+      const recorded = { id: 'line-1', kind: 'AUDIO' as const, src: '/api/media/line-1', label: 'line', tags: [], sample: false, origin: 'GENERATED' as const, mimeType: 'audio/wav', createdAt: 'x', provenance: { path: 'audio/line-1.wav' } };
+      const s: StudioState = { ...s0, characters, assets: [...s0.assets, a, recorded], productions: s0.productions.map((x) => (x.id === prod.id ? prod : x)) };
+      return preflightTake(s, prod, shot, { backend: 'local' }).checks.find((x) => x.name === 'speakers-have-voices')!;
+    };
+    it('a consented recording that is present: passes', () => { expect(setup({ consent }, {}).ok).toBe(true); });
+    it('the same recording missing from the library: refused (it used to pass)', () => { expect(setup({ consent }, { unavailable: true }).ok).toBe(false); });
+    it('a generated line is not a voice to speak from: refused (it used to pass)', () => { expect(setup({ consent, source: 'GENERATED' }, { origin: 'GENERATED' }).ok).toBe(false); });
+    it('an upload without its consent statement: refused, and the detail says what is waiting', () => {
+      const c = setup({}, {});
+      expect(c.ok).toBe(false);
+      expect(c.detail).toMatch(/waiting for its consent statement/);
+    });
+    it('every line already recorded with the current voice needs no reference (the worker reuses them); a missing recording does', () => {
+      expect(setup({}, {}, { audioAssetId: 'line-1' }).ok).toBe(true);
+      expect(setup({}, {}, { audioAssetId: 'gone' }).ok).toBe(false);
+    });
+  });
+  it('a music video’s song must be present: generated counts, a missing file does not', () => {
+    const s0 = withRealPictures(base(), firstFilm(base()));
+    const mv = s0.productions.find((p) => p.kind === 'MUSIC_VIDEO' && p.song?.assetId && p.shots.length > 0);
+    if (!mv) return;
+    const sh = mv.shots[0];
+    const song = (over: Partial<StudioState['assets'][number]>): StudioState => ({ ...s0, assets: s0.assets.map((a) => (a.id === mv.song!.assetId ? { ...a, sample: false, origin: 'GENERATED', ...over } : a)) });
+    const check = (s: StudioState) => preflightTake(s, mv, { ...sh, performance: { ...(sh.performance ?? {}), mode: 'SOLO' } as Shot['performance'] }, { backend: 'local' }).checks.find((x) => x.name === 'song-present')!;
+    expect(check(song({})).ok).toBe(true);
+    expect(check(song({ unavailable: true })).ok).toBe(false);
   });
   it('a continuation refuses to start before the shot it continues has an accepted take', () => {
     const s0 = base(); const p0 = firstFilm(s0);

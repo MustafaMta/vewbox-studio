@@ -25,6 +25,7 @@ import { addAsset, addVoiceRecording } from '@/domain/actions';
 import { POST } from '@/app/api/jobs/route';
 import { requeueKeyFor, voiceBuildKey } from '@/server/jobs/keys';
 import { createCharacterKey, startCreateCharacter } from '@/components/character/contract';
+import { canonical, hashString } from '@/domain/hash';
 
 const post = async (body: Record<string, unknown>) => { const res = await POST(new Request('http://studio.test/api/jobs', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }), undefined); return { status: res.status, body: await res.json() as { job: Job & { key?: string }; created: boolean } }; };
 const finish = (id: string, status: JobStatus) => { const j = fake.jobs.find((x) => x.id === id)!; j.status = status; };
@@ -92,7 +93,9 @@ describe('CREATE_CHARACTER dedupe (finding 19)', () => {
     expect(createCharacterKey(payload, t)).toBe(createCharacterKey({ draw: true, voice: { mode: 'NONE' }, profile: { language: 'EN', style: 'REALISTIC', name: 'Rafid' }, mode: 'MANUAL' }, t + 20_000));
     expect(createCharacterKey(payload, t)).not.toBe(createCharacterKey({ ...payload, profile: { ...payload.profile, name: 'Rafida' } }, t));
     expect(createCharacterKey(payload, t)).not.toBe(createCharacterKey(payload, t + 61_000));
-    expect(createCharacterKey(payload, t)).toMatch(/^CREATE_CHARACTER:[0-9a-f]{8}:\d+$/);
+    expect(createCharacterKey(payload, t)).toMatch(/^CREATE_CHARACTER:[0-9a-f]{16}:\d+$/);
+    // one canonical hash for the studio (audit B4): the key's hash is hashString(canonical(payload))
+    expect(createCharacterKey(payload, t).split(':')[1]).toBe(hashString(canonical(payload)));
   });
   it('a double submit is one parent; a relaunch after a failure is a new one', async () => {
     const t = Date.UTC(2026, 9, 3, 10, 15, 5);

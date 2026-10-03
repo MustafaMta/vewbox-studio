@@ -58,6 +58,10 @@ export function fileFor(asset: { storage: string; path: string }): string {
   return asset.storage === 'PUBLIC' ? resolvePublic(asset.path) : resolveLibrary(asset.path);
 }
 
+/** An asset's file on disk: a bundled sample from the public folder (its `src` path), anything else from the library
+ *  (`provenance.path`). The one copy of this rule (it was repeated in seven places, audit B1). */
+export const assetFile = (a: Pick<Asset, 'sample' | 'src' | 'provenance'>): string => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
+
 export async function sniff(buf: Buffer, declared?: string): Promise<{ mime: string; kind: AssetKind; ext: string }> {
   const ft = await fileTypeFromBuffer(buf.subarray(0, 4100));
   let mime = ft?.mime as string | undefined;

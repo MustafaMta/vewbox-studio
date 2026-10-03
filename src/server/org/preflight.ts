@@ -1,10 +1,10 @@
-import type { Asset, Character, Production, Shot, StudioState } from '@/domain/types';
+import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { clipSecondsFor, continuationSource, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
-import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi } from '@/domain/voice-identity';
-import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
+import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
 import type { FailureClass } from './model';
 
@@ -31,9 +31,6 @@ function identityWarning(characters: Character[]): PreflightWarning | null {
  *  the trained range is 124–362 frames; guide clips are 5, 22, 39 … frames and must fit inside the clip. The studio
  *  chains at most 4 guides. */
 export const H3_LIMITS = { maxReferenceImages: 9, maxReferenceVideos: 3, maxReferenceAudio: 3, minSeconds: 1, maxSeconds: 15, maxGuides: 4, minFrames: H3_MIN_FRAMES, maxFrames: H3_MAX_FRAMES } as const;
-
-const usableImage = (a?: Asset) => Boolean(a && a.kind === 'IMAGE' && !a.sample && a.mimeType !== 'image/svg+xml');
-const usableAudio = (a?: Asset) => Boolean(a && a.kind === 'AUDIO' && !a.sample);
 
 export function preflightTake(state: StudioState, p: Production, sh: Shot, opts: { backend: 'local' | 'api'; customPrompt?: boolean }): Preflight {
   const checks: PreflightCheck[] = [];
@@ -90,11 +87,17 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const w = identityWarning(inShot);
     if (w) warnings.push(w);
   }
-  // audio before video: a speaking shot (film, local engine) needs a canonical voice for every speaker
+  // audio before video: a speaking shot (film, local engine) needs a voice for every speaker, judged as the worker
+  // judges it (take.ts): every line of the speaker already has a current stored recording (reused), or there is a
+  // reference to speak from (pickReference: a design seed, or a consented recording that is present). A speaker with
+  // neither would be voiced by the engine's default voice, so the preflight refuses rather than pass it.
   const speakers = Array.from(new Set(sh.dialogue.map((d) => d.characterId)));
   if (p.kind !== 'MUSIC_VIDEO' && speakers.length && opts.backend === 'local' && !opts.customPrompt) {
-    const voiceless = speakers.map((id) => cast.find((c) => c.id === id)).filter((c) => c && !c.voice.samples.some((s) => s.assetId && usableAudio(byId(s.assetId)))).map((c) => c!.name);
-    add('speakers-have-voices', voiceless.length === 0, 'MISSING_REFERENCE', voiceless.length ? `no voice recording for ${voiceless.join(', ')}; upload one on the Voice tab` : `${speakers.length} speaker(s) with recordings`);
+    const spoken = (d: Shot['dialogue'][number]) => Boolean((p.language === 'AR' ? d.textAr || d.text : d.text)?.trim());
+    const linesStored = (c: Character) => { const mine = sh.dialogue.filter((d) => d.characterId === c.id && spoken(d)); return mine.length > 0 && mine.every((d) => lineRecordingCurrent(d, c, state.assets)); };
+    const voiceless = speakers.map((id) => cast.find((c) => c.id === id)).filter((c): c is Character => Boolean(c) && !linesStored(c!) && !pickReference(c!, state.assets));
+    const unconsented = voiceless.filter((c) => c.voice.samples.some((s) => s.source === 'UPLOADED' && !isConsentedUpload(s) && usableRecordingAsset(byId(s.assetId))));
+    add('speakers-have-voices', voiceless.length === 0, 'MISSING_REFERENCE', voiceless.length ? `no usable voice for ${voiceless.map((c) => c.name).join(', ')}; build one on the Voice tab${unconsented.length ? ` (${unconsented.map((c) => c.name).join(', ')}: a recording is waiting for its consent statement)` : ''}` : `${speakers.length} speaker(s) with a voice`);
     add('voice-references-within-limit', speakers.length <= H3_LIMITS.maxReferenceAudio, 'UNSUPPORTED_CAPABILITY', `${speakers.length} speaker(s), limit ${H3_LIMITS.maxReferenceAudio}`);
   }
   // a music video shot needs the song and its stretch

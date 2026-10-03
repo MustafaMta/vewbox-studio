@@ -8,7 +8,7 @@ const execFileP = promisify(execFile);
 import { orderedShots } from '@/domain/timeline';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';
-import { ffprobe, fileFor } from '../media';
+import { assetFile, ffprobe } from '../media';
 import { ffmpeg, measureLoudness, tmpDir } from './ffmpeg';
 import { log } from '../log';
 
@@ -25,7 +25,6 @@ export const CUT_RATE = 48000;
 export interface TimelineItem { shot: Shot; take: Asset; takeRecord: Take; start: number; duration: number; startFrame: number; frames: number; /** frames dropped at the head of the take (continuation guide) */ trimStartFrames: number; sceneNumber: number }
 export interface Timeline { items: TimelineItem[]; total: number; totalFrames: number }
 
-const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
 
 export function buildTimeline(p: Production, assets: Asset[], opts: { /** extra head frames to drop per shot (sound-to-picture alignment under a song master) */ extraTrim?: Record<string, number> } = {}): Timeline {
   const items: TimelineItem[] = [];

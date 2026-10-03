@@ -1,4 +1,4 @@
-import type { Asset, Character, DialectStatus, Settings, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceIdentity, VoiceListeningRecord, VoiceSample } from './types';
+import type { Asset, Character, DialectStatus, Settings, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceDesignRecord, VoiceIdentity, VoiceListeningRecord, VoiceSample } from './types';
 import type { Dialect, Language } from './vocabulary';
 import { isCloneSource, voiceLock } from './rules';
 
@@ -63,6 +63,73 @@ export const isConsentStatement = (x: unknown): x is ConsentStatement => typeof 
 
 /** An upload with the producer's consent statement: the only real-person recording a new build clones from. */
 export const isConsentedUpload = (s: Pick<VoiceSample, 'source' | 'assetId' | 'consent'>) => isCloneSource(s) && isConsentStatement(s.consent?.statement);
+
+/** A clone source as found: a consented upload; an upload an identity was pinned from before consent was recorded
+ *  (spoken from, never built from again — `confirmVoiceConsent` upgrades it); an upload without consent (refused at a
+ *  build); or a design seed with its record and candidate (Rule V-DESIGN, checked on the file in `referenceWav`). */
+export interface ReferencePick {
+  asset: Asset; sample?: VoiceSample;
+  via: 'IDENTITY' | 'SELECTED' | 'UPLOADED' | 'REQUESTED' | 'DESIGN';
+  kind: 'CONSENTED' | 'LEGACY' | 'UNCONSENTED' | 'DESIGNED';
+  design?: { record: VoiceDesignRecord; candidate: VoiceDesignCandidate };
+}
+
+export interface ReferenceOptions {
+  /** one specific upload (REFERENCE mode, or AUTOMATIC's chosen recording) */
+  sampleId?: string;
+  /** one specific design candidate (DESIGN mode, or AUTOMATIC's designed pick) */
+  design?: { designId: string; candidate: number };
+  /** BUILD: a new identity is pinned from it (consent required); SPEAK (default): a line is spoken from the voice */
+  purpose?: 'BUILD' | 'SPEAK';
+}
+
+/** THE REFERENCE RULE — what a character's voice is cloned from. An identity designed by the studio speaks from its
+ *  design seed and nothing else (never a silent fall-back to another voice). Otherwise, in this order: the identity's
+ *  reference upload; the chosen sample when it is a consented upload; any consented upload. GENERATED lines (the
+ *  proof, previews), bundled SAMPLE voices and uploads without consent are never cloned from — except that an identity
+ *  pinned before consent existed keeps speaking from its own recording. `sampleId` / `design` ask for one source. */
+export function pickReference(c: Character, assets: Asset[], opts: ReferenceOptions = {}): ReferencePick | null {
+  const byId = (id?: string) => (id ? assets.find((a) => a.id === id) : undefined);
+  const designPick = (designId: string, match: (x: VoiceDesignCandidate) => boolean, via: ReferencePick['via']): ReferencePick | null => {
+    const record = c.voice.designs?.find((d) => d.id === designId);
+    const candidate = record?.candidates.find(match);
+    const a = candidate ? byId(candidate.assetId) : undefined;
+    return record && candidate && a && a.kind === 'AUDIO' && !a.sample && !a.unavailable ? { asset: a, via, kind: 'DESIGNED', design: { record, candidate } } : null;
+  };
+  if (opts.design) return designPick(opts.design.designId, (x) => x.index === opts.design!.candidate, 'DESIGN');
+  if (opts.sampleId) {
+    const sm = c.voice.samples.find((s) => s.id === opts.sampleId);
+    const a = sm && isCloneSource(sm) ? byId(sm.assetId) : undefined;
+    return usableRecordingAsset(a) ? { asset: a, sample: sm, via: 'REQUESTED', kind: isConsentedUpload(sm!) ? 'CONSENTED' : 'UNCONSENTED' } : null;
+  }
+  const id = c.voice.identity;
+  if (id?.origin === 'DESIGNED') return id.designId ? designPick(id.designId, (x) => x.assetId === id.referenceAssetId, 'IDENTITY') : null;
+  if (id?.referenceAssetId) {
+    const a = byId(id.referenceAssetId);
+    if (usableRecordingAsset(a)) {
+      const sample = c.voice.samples.find((s) => s.id === id.referenceSampleId) ?? c.voice.samples.find((s) => s.assetId === a.id && isCloneSource(s));
+      const kind = sample && isConsentedUpload(sample) ? 'CONSENTED' : !id.origin ? 'LEGACY' : 'UNCONSENTED';
+      if (kind !== 'UNCONSENTED') return { asset: a, sample, via: 'IDENTITY', kind };
+    }
+  }
+  const chosen = c.voice.samples.find((s) => s.id === c.voice.selectedSampleId);
+  if (chosen && isConsentedUpload(chosen)) { const a = byId(chosen.assetId); if (usableRecordingAsset(a)) return { asset: a, sample: chosen, via: 'SELECTED', kind: 'CONSENTED' }; }
+  for (const s of c.voice.samples) {
+    if (!isConsentedUpload(s)) continue;
+    const a = byId(s.assetId);
+    if (usableRecordingAsset(a)) return { asset: a, sample: s, via: 'UPLOADED', kind: 'CONSENTED' };
+  }
+  return null;
+}
+
+/** A line's stored recording is current when its file exists and the voice that spoke it is the one pinned now. */
+export function lineRecordingCurrent(d: { audioAssetId?: string; voiceRevision?: number }, c: Pick<Character, 'voice'>, assets: Asset[]): boolean {
+  if (!d.audioAssetId) return false;
+  const a = assets.find((x) => x.id === d.audioAssetId);
+  if (!a || a.kind !== 'AUDIO' || a.unavailable) return false;
+  const rev = c.voice.identity?.revision;
+  return rev === undefined ? true : d.voiceRevision === rev;
+}
 
 /** A recording an Iraqi voice may be cloned from: Arabic (not heard or marked as English) and not marked as another
  *  dialect. Whether it is authentically Iraqi is a listener's call; this only keeps an English or an MSA-marked clip out. */

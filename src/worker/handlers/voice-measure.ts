@@ -1,6 +1,6 @@
-import type { Asset, Character } from '@/domain/types';
+import type { Character } from '@/domain/types';
 import type { Language } from '@/domain/vocabulary';
-import { fileFor } from '@/server/media';
+import { assetFile } from '@/server/media';
 import { clipping, loudness } from '@/server/media/voice-check';
 import { arabicWordCoverage } from '@/server/media/arabic-align';
 import { charErrorRate, scriptCoverage, wordErrorRate } from '@/server/providers/speech';
@@ -19,7 +19,8 @@ export const TTS_VRAM = 8000;
 export const ASR_VRAM = 4000;
 export const DESIGN_VRAM = 7000;
 
-export const assetFile = (a: Asset) => fileFor({ storage: a.sample ? 'PUBLIC' : 'LIBRARY', path: a.sample ? a.src.replace(/^\/+/, '') : String(a.provenance?.path ?? '') });
+/** The library's one rule for where an asset's file is (src/server/media.ts), re-exported for the voice handlers. */
+export { assetFile };
 
 /** The profile's pace as the engine's speed factor. */
 export const speedForPace = (pace: Character['voice']['pace']): number => (pace === 'SLOW' ? 0.9 : pace === 'QUICK' ? 1.12 : 1.0);
