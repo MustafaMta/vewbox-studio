@@ -16,12 +16,12 @@
   [dir='auto'], .arabic, :lang(ar) { font-family: var(--font-arabic); }
   /* text that picks its own direction still lines up with the page: English in an Arabic page sits on the right
      (text-align: match-parent would say this, but Chromium drops it) */
-  html[dir='rtl'] [dir='auto'] { text-align: right; }
+  html[dir='rtl'] [dir='auto'] { text-align: right; } /* v4-lint: allow physical — the logical form (match-parent) is dropped by Chromium */
   :lang(ar) .mono, [dir='auto'] .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   h1, h2, h3, h4 { text-wrap: balance; color: var(--fg); }
   p { text-wrap: pretty; }
   :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--r-1); }
-  ::selection { background: rgba(169, 159, 245, 0.32); }
+  ::selection { background: color-mix(in srgb, var(--accent) 32%, transparent); }
   img, video { max-inline-size: 100%; }
   ::-webkit-scrollbar { inline-size: 11px; block-size: 11px; }
   ::-webkit-scrollbar-thumb { background: var(--ink-700); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
