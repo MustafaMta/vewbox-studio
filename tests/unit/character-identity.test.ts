@@ -201,6 +201,9 @@ describe('the voice identity v2: origin, measured vs listened, design', () => {
     // personality text is never part of the description: it can name people, and the server refuses such a description
     expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little, like Samir.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English.');
     expect(designedIraqiAllowed({ uiLanguage: 'en' })).toBe(false);
+    // D14: the noun follows the age band
+    expect(voiceDescriptionOf(character({ sex: 'FEMALE', ageYears: 16 })).startsWith('A teenage girl of about 16')).toBe(true);
+    expect(voiceDescriptionOf(character({ sex: 'MALE', ageYears: 9 })).startsWith('A boy of about 9')).toBe(true);
     // the server keeps the switch at settings.voice.allowDesignedIraqi; nothing else turns it on
     expect(designedIraqiAllowed({ voice: { allowDesignedIraqi: true } })).toBe(true);
     expect(designedIraqiAllowed({ generation: { allowDesignedIraqi: true } })).toBe(false);

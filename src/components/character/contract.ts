@@ -159,7 +159,9 @@ export const designedIraqiAllowed = (settings: unknown): boolean => (settings as
  *  it can name people, and the server refuses a description that names anyone. */
 export function voiceDescriptionOf(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'species'> & { voice: Pick<Character['voice'], 'pitch' | 'pace' | 'timbre'> }): string {
   const species = nonHumanSpecies(c.species);
-  const who = species ? species : `${c.sex === 'FEMALE' ? 'woman' : 'man'} of about ${c.ageYears}`;
+  // the age band picks the noun, as in the image's identity line: a 16-year-old is a teenage girl, not a woman (D14)
+  const noun = c.ageYears < 13 ? (c.sex === 'FEMALE' ? 'girl' : 'boy') : c.ageYears < 18 ? (c.sex === 'FEMALE' ? 'teenage girl' : 'teenage boy') : (c.sex === 'FEMALE' ? 'woman' : 'man');
+  const who = species ? species : `${noun} of about ${c.ageYears}`;
   const pitch = { LOW: 'a low', MID: 'a middle', HIGH: 'a high' }[c.voice.pitch];
   const pace = { SLOW: 'slow, unhurried', MEASURED: 'measured', QUICK: 'quick' }[c.voice.pace];
   const parts = [`A ${who}`, `${pitch} voice`, `${pace} delivery`, c.voice.timbre.trim() ? c.voice.timbre.trim().toLowerCase() : '', c.language === 'AR' ? 'speaking Modern Standard Arabic' : 'speaking English'];
