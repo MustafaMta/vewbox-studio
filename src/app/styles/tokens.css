@@ -1,14 +1,12 @@
 /* ============================================================================================================
-   TOKENS — owned by DS (docs/DESIGN-SYSTEM-V5.md §2, §4, §11.2 DS-1, §11.3 rule 2).
+   TOKENS — owned by DS (docs/design/VISUAL-STANDARD-V5.1.md §3; binding over docs/DESIGN-SYSTEM-V5.md §2, §4).
 
-   "Viewfinder": the surround is carbon black and nearly neutral, so the pictures carry all the colour. The first
-   :root block below is §2.1 exactly (one revision: --fg-disabled is #7E7B75, the value §2.2 and §14.4 adopted after
-   the QA, 4.3:1 on the disabled fill), then §4's space, radii, elevation, density and motion, the type families
-   (§3.1) and the layout of §4.1–4.2. Then the v4 names, kept as ALIASES of the v5 values so every page and component
-   written against v4 keeps rendering until Q2 removes them (§11.2). Violet is retired: every --accent*, --iris-*,
-   --violet-* name resolves to paper or muted text, never to a hue (§2.1, §1.3; scripts/v5-lint.mjs refuses a violet
-   value anywhere). Then breakpoints, density, More contrast, the scroll padding that keeps focus clear of every
-   fixed bar (QA F1), the art wash, the three rooms (v4 mechanics, v5 values) and the Tailwind theme.
+   "Viewfinder, dark room": a neutral charcoal ladder (chroma 0) where the only colour is the work. The first :root
+   block is §3.1–§3.6 exactly — surfaces, lines, text, the one primary, the three state colours, radii (6 · 10 · 14 ·
+   20 · pill), elevation, the 4-grid, the layout grid and motion. Then the names of v5 and v4, kept as ALIASES of the
+   new values (§3.1 "legacy aliases") so every page written before v5.1 keeps resolving until its owner migrates it.
+   Then the breakpoints, density, More contrast, the scroll padding that keeps focus clear of every fixed bar (QA F1),
+   the art wash, the three rooms and the Tailwind theme.
    Runtime values (--art, --art-ph, --art-edge, --sticky-extra, --bottom-bars) are set inline on the element that owns
    them, never on :root by script. Components never hard-code a colour (scripts/v5-lint.mjs).
    ============================================================================================================ */
@@ -16,176 +14,212 @@
 :root {
   color-scheme: dark;
 
-  /* ── carbon: the surround (hue ≈ 75°, chroma ≤ 0.004) ───────────────────────────────────────────── */
-  --carbon-0:  #000000;  /* theatre surround; letterbox */
-  --carbon-1:  #060606;  /* media floor; sunken stage */
-  --carbon-2:  #0A0A09;  /* page */
-  --carbon-3:  #111110;  /* tone group (no border); docked panels */
-  --carbon-4:  #181817;  /* field fill; hover; workspace frame */
-  --carbon-5:  #20201E;  /* raised: menus, popovers, selected segment */
-  --carbon-6:  #2A2A28;  /* hairline (decorative) */
-  --carbon-7:  #3A3936;  /* strong hairline; overlay edge */
-  --carbon-8:  #72706A;  /* control boundary (≥ 3:1) */
-  --carbon-9:  #8F8B84;  /* faint text */
-  --carbon-10: #ADA9A1;  /* muted text */
-  --carbon-11: #D8D4CC;  /* body text */
-  --paper:     #F3EFE8;  /* light: titles, the primary, playhead, selection, focus */
-  --paper-hi:  #FFFFFF;  /* primary hover */
-  --gray-canvas: #0B0B0B; --gray-clip: #262626; --gray-edge: #8A8A8A;   /* achromatic review surfaces (v4) */
-  --tungsten: #E3AA5B; --tungsten-soft: rgb(227 170 91 / .14); --tungsten-line: rgb(227 170 91 / .45);
-  --ok: #7FCB9C;  --ok-soft: rgb(127 203 156 / .12);
-  --bad: #F0826F; --bad-soft: rgb(240 130 111 / .12);
+  /* ── §3.1 surfaces: five steps, neutral ─────────────────────────────────────────────────────────────── */
+  --bg-nav:     #050505;  /* sidebar, phone top and bottom bars */
+  --bg-page:    #101010;  /* the page */
+  --surface-1:  #1A1A1A;  /* cards, panels, title cards, skeletons, fields */
+  --surface-2:  #242424;  /* hover on cards and nav, selected nav item, secondary button, menus, chips */
+  --surface-3:  #2E2E2E;  /* hover on surface-2 items, secondary button on a card, tooltips */
+  --surface-4:  #383838;  /* the pressed secondary (§5.3 "#383838") */
+  --surface-5:  #424242;  /* the pressed secondary on a card */
+  --black:      #000000;  /* media letterbox, theatre, players (a role, not a step) */
 
-  /* ── roles ──────────────────────────────────────────────────────────────────────────────────────── */
-  --page: var(--carbon-2); --sunken: var(--carbon-1); --media: var(--carbon-1);
-  --surface: var(--carbon-3); --field: var(--carbon-4); --raised: var(--carbon-5);
-  --line-soft: #1C1C1A; --line: var(--carbon-6); --line-strong: var(--carbon-7); --line-field: var(--carbon-8);
-  --fg: var(--paper); --fg-body: var(--carbon-11); --fg-muted: var(--carbon-10); --fg-faint: var(--carbon-9);
-  --fg-disabled: #7E7B75; --on-paper: var(--carbon-2);
-  --chip-on-art: rgb(6 6 6 / .80);
-  --selection: rgb(243 239 232 / .85);   /* selected text: paper, with ink on it */
-  --scrim-b:   linear-gradient(0deg,  rgb(10 10 9 / .96) 0%, rgb(10 10 9 / .86) 28%, rgb(10 10 9 / .35) 58%, rgb(10 10 9 / 0) 78%);
-  --scrim-s:   linear-gradient(90deg, rgb(10 10 9 / .92) 0%, rgb(10 10 9 / .78) 30%, rgb(10 10 9 / 0) 62%);
-  --scrim-top: linear-gradient(180deg, rgb(10 10 9 / .70) 0%, rgb(10 10 9 / 0) 100%);
-  --art: var(--page);    /* set inline by the hero that owns it: oklch(0.22–0.25 min(C,0.05) H) */
-  --art-ph: var(--field);    /* image placeholder: the same hue at L 0.24 (§2.4), set inline */
-  --art-edge: var(--media);  /* the figure's own border colour (§2.4), set inline */
-  --wash-end: 560px;         /* the wash reaches --page this far below a lobby hero's top (phones: 400 px) */
+  /* lines */
+  --line:         #222222;  /* dividers on the page; tab baseline */
+  --line-strong:  #333333;  /* dividers inside cards; overlay edges */
+  --line-control: #6E6E6C;  /* field boundary (3.72:1 on page, 3.41 on surface-1) */
+  --line-control-hover: #8A8A88;
 
-  /* ── space: the 4-grid (§4.3) — nothing else ──────────────────────────────────────────────────────── */
-  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 128px;
+  /* text: four steps */
+  --text-1: #F5F5F4;  /* titles, primary text, icons when selected      17.4:1 on page */
+  --text-2: #A6A6A3;  /* secondary text, descriptions, nav at rest        7.8 page · 7.1 s1 · 6.4 s2 */
+  --text-3: #8E8E8B;  /* meta, labels, counts, placeholder                 5.8 page · 5.3 s1 · 4.7 s2 (never on s3) */
+  --text-disabled: #5A5A58;  /* disabled labels only (exempt; always paired with a reason) */
 
-  /* ── layout (§4.1, §4.2) ─────────────────────────────────────────────────────────────────────────── */
-  --margin: 16px; --gutter: 16px; --content-max: 1600px; --measure: 64ch;
-  --measure-lead: 64ch; --measure-prose: 66ch; --measure-note: 44ch; --measure-form: 720px;
-  --section: 64px;
-  --bar-h: 56px;          /* the top bar (64 from 640 px) */
-  --tabbar-h: 64px;       /* the phone bottom bar, without the safe area */
-  --bottom-nav: 0px;      /* the bottom bar's share of the bottom edge: set below 768 px while one is shown */
-  --sticky-top: 0px;      /* the sticky bar that is always on top at this width (v4's shell sets it below) */
+  /* light: the one primary, selection, focus */
+  --primary: #F5F5F4; --primary-hover: #FFFFFF; --primary-active: #E2E2E0; --on-primary: #0A0A0A;  /* 18.2:1 */
+
+  /* state colours: meaning only */
+  --wait: #E3AA5B;  --wait-soft: rgb(227 170 91 / .16);   /* tungsten: waiting for the producer   9.2:1 */
+  --ok:   #7FCB9C;  --ok-soft:   rgb(127 203 156 / .14);  /* done, approved, ready                 9.9:1 */
+  --bad:  #F0826F;  --bad-soft:  rgb(240 130 111 / .14);  /* failed, refused, destructive confirm   7.4:1 */
+  --bad-hover: #F39684;
+  /* running = --text-1 with the pulse (§5.12); there is no blue, no violet, no brand hue */
+
+  /* on art */
+  --chip-on-art: rgb(0 0 0 / .72);
+  --art-ph: var(--surface-1);   /* set inline per frame from presentation.dominant */
+  --art-edge: var(--surface-1); /* set inline per figure: presentation.edge */
+  --overlay: rgb(0 0 0 / .64);  /* behind dialogs and sheets */
+  --selection: rgb(245 245 244 / .85);
+  --buffered: #3A3A3A;          /* a player's buffered range; unplayed waveform bars */
+  --split-on-primary: rgb(0 0 0 / .14);
+
+  /* the two gradients that remain (§3.1): the art wash (heroes of Show, Short, Music video, Location) and the frame
+     poster scrim. The v5 hero scrims are retired; their names stay for pages that still draw them, until Q2. */
+  --art: var(--bg-page);
+  --wash-end: 560px;
+  --scrim-poster: linear-gradient(0deg, rgb(0 0 0 / .82) 0%, rgb(0 0 0 / .5) 40%, rgb(0 0 0 / 0) 70%);
+
+  /* ── §3.2 radii: one family ─────────────────────────────────────────────────────────────────────────── */
+  --r-0: 0; --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-pill: 999px;
+  --r-nest-sm: 8px;   /* derived: an option 2 px inside a 10 px track (§3.2 nesting) */
+
+  /* ── §3.3 elevation: tone first; shadows only on overlays and modals ──────────────────────────────────── */
+  --shadow-overlay: 0 0 0 1px var(--line-strong), 0 12px 32px rgb(0 0 0 / .5);   /* menus, popovers, toasts */
+  --shadow-modal:   0 0 0 1px var(--line-strong), 0 24px 64px rgb(0 0 0 / .6);   /* dialogs, drawers, sheets */
+
+  /* ── §3.4 spacing: these values only ─────────────────────────────────────────────────────────────────── */
+  --s-4: 4px; --s-8: 8px; --s-12: 12px; --s-16: 16px; --s-20: 20px; --s-24: 24px; --s-32: 32px; --s-40: 40px;
+  --s-48: 48px; --s-56: 56px; --s-64: 64px; --s-80: 80px;
+
+  /* ── §3.5 layout grid (phone first; the breakpoints below) ────────────────────────────────────────────── */
+  --pad: 16px;            /* content padding, each side */
+  --gutter: 12px;         /* column gutter */
+  --cols: 4;
+  --section-gap: 40px;
+  --content-max: 1680px;
+  --sidebar-w: 240px; --sidebar-w-collapsed: 64px;
+  --topbar-h: 56px;       /* the phone and tablet top bar */
+  --tabbar-h: 64px;       /* the phone and tablet bottom bar, without the safe area */
+  --bottom-nav: 0px;      /* the bottom bar's share of the bottom edge: set below 1024 px while one is shown */
+  --sticky-top: 0px;      /* the bar that is always on top at this width (the top bar below 1024) */
   --sticky-extra: 0px;    /* set by a page while its compact header and/or sticky tabs are stuck */
   --bottom-bars: 0px;     /* set by a page while a now-playing bar or a sticky form footer is shown */
+  --measure: 64ch; --measure-lead: 64ch; --measure-prose: 66ch; --measure-note: 44ch; --measure-form: 720px;
 
-  /* ── shape (§4.4) ─────────────────────────────────────────────────────────────────────────────────── */
-  --r-0: 0; --r-xs: 2px; --r-sm: 2px; --r-media: 2px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
+  /* ── §3.6 motion ──────────────────────────────────────────────────────────────────────────────────────── */
+  --dur-1: 120ms;  /* hover and press colour changes, tooltip in */
+  --dur-2: 180ms;  /* menus and popovers in, tab underline, sidebar collapse */
+  --dur-3: 240ms;  /* image fade-in, dialog in, toast in, skeleton → content crossfade */
+  --dur-4: 360ms;  /* media hover zoom, drawer and sheet in */
+  --ease-out:   cubic-bezier(0.2, 0, 0, 1);      /* default for state changes */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);   /* things appearing */
+  --ease-exit:  cubic-bezier(0.4, 0, 1, 1);      /* things leaving; exits use 70 % of the entry duration */
 
-  /* ── elevation: tone first; shadows only on overlays (§4.5) ───────────────────────────────────────── */
-  --shadow-overlay: 0 24px 64px -16px rgb(0 0 0 / .85), 0 0 0 1px var(--line-strong);
-  --shadow-float:   0 16px 40px -16px rgb(0 0 0 / .8), 0 0 0 1px var(--line-strong);
-  --shadow-contact: 0 36px 72px -24px rgb(0 0 0 / .9);   /* posters and sleeves in heroes: a contact shadow, not a glow */
-  --overlay: rgb(0 0 0 / .72);                           /* the dim behind a dialog or sheet */
+  /* ── density: controls (§5.3, §5.15) ──────────────────────────────────────────────────────────────────── */
+  --control-h: 40px; --control-h-sm: 32px; --control-h-lg: 48px; --row-h: 48px; --body-fs: 14px; --body-lh: 20px;
 
-  /* ── motion (§4.7; v4 §4.8 kept) ──────────────────────────────────────────────────────────────────── */
-  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms; --t-media: 480ms; --t-travel: 1200ms;
-  --t-exit-fast: 90ms; --t-exit: 150ms; --t-exit-slow: 200ms;       /* exits always shorter than entries */
-  --t-lights: 600ms; --t-idle: 2000ms;                               /* theatre lights-down fade; idle delay */
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);                             /* enter */
-  --ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);                        /* exit (shorter) */
-  --ease-std: cubic-bezier(0.2, 0, 0, 1);                            /* in-place state changes */
-  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);                      /* crossfades, travel */
-
-  /* ── density (§4.6): comfortable in the lobby; compact in the cutting room (below) ─────────────────── */
-  --control-h: 44px; --control-h-sm: 34px; --control-h-lg: 52px; --row-h: 48px; --body-fs: 15px; --body-lh: 24px;
-
-  /* ── type (§3.1): self-hosted through next/font/google (src/app/fonts.ts declares the three --font-* faces). The
-     website is English-only; content in Arabic (a character's name, a line, a lyric) is drawn by the operating
-     system's own Arabic face, chosen by this chain after the web face: Windows (Segoe UI, Tahoma; Times New Roman for
-     the serif), macOS and iOS (Geeza Pro, SF Arabic), Android and Linux (Noto Sans / Noto Naskh Arabic). ─────────── */
-  --font-ui: var(--font-plex-sans, 'IBM Plex Sans'), 'Segoe UI', 'Geeza Pro', 'SF Arabic', 'Noto Sans Arabic', 'Noto Sans', Tahoma, system-ui, sans-serif;
-  --font-title: var(--font-newsreader, 'Newsreader'), 'Times New Roman', 'Noto Naskh Arabic', 'Geeza Pro', Georgia, serif;
-  --font-mono: var(--font-plex-mono, 'IBM Plex Mono'), ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  --title-weight: 500;
+  /* ── §4.1 type families (src/app/fonts.ts declares --font-geist and --font-geist-mono) ─────────────────── */
+  --font-ui:    var(--font-geist, 'Geist'), 'Segoe UI', 'Geeza Pro', 'SF Arabic', 'Noto Sans Arabic', system-ui, sans-serif;
+  --font-mono:  var(--font-geist-mono, 'Geist Mono'), ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-title: var(--font-ui);   /* kept as an alias so existing classes resolve */
+  --title-weight: 600;
 
   /* ── layers ───────────────────────────────────────────────────────────────────────────────────────── */
   --z-raised: 10; --z-sticky: 20; --z-compact: 30; --z-playerbar: 35; --z-nav: 40; --z-nowbar: 45; --z-overlay: 50; --z-toast: 60; --z-skip: 70;
 
-  /* ══ v4 NAMES, kept as aliases of the v5 values until Q2 (§11.2, §11.4) ═════════════════════════════
-     The v4 ladder maps onto carbon step for step; iris and violet are gone: the light is paper. */
-  --ink-1000: var(--carbon-1); --ink-975: var(--carbon-1); --ink-950: var(--carbon-2); --ink-900: var(--carbon-3);
-  --ink-850: var(--carbon-4); --ink-800: var(--carbon-5); --ink-700: var(--carbon-6); --ink-600: var(--carbon-7);
-  --ink-550: var(--carbon-8); --ink-500: var(--fg-disabled); --ink-400: var(--carbon-9); --ink-350: var(--carbon-10);
-  --ink-300: var(--carbon-10); --ink-200: var(--carbon-11); --ink-100: var(--paper);
-  --gray-1000: var(--carbon-0); --gray-960: var(--gray-canvas); --gray-850: var(--gray-clip); --gray-500: var(--gray-edge);
-  /* the retired tally: the fills (progress, checked marks) and the ring become paper; light text becomes muted */
-  --iris-600: var(--paper); --iris-500: var(--paper); --iris-400: var(--paper); --iris-300: var(--fg-muted);
-  --violet-700: var(--paper); --violet-600: var(--paper); --violet-500: var(--paper); --violet-400: var(--paper); --violet-300: var(--fg-muted);
-  /* surfaces */
-  --bg: var(--carbon-2); --raised-2: var(--carbon-5); --input: var(--field);
-  --frame: var(--carbon-4); --canvas: var(--gray-canvas); --surround: var(--carbon-0);
+  /* ══ LEGACY ALIASES (§3.1): v5 and v4 names → the v5.1 values, until each page migrates ═══════════════════ */
+  /* v5 carbon ladder → the nearest new step */
+  --carbon-0: var(--black); --carbon-1: var(--bg-nav); --carbon-2: var(--bg-page); --carbon-3: var(--surface-1);
+  --carbon-4: var(--surface-1); --carbon-5: var(--surface-2); --carbon-6: var(--surface-3); --carbon-7: var(--line-strong);
+  --carbon-8: var(--line-control); --carbon-9: var(--text-3); --carbon-10: var(--text-2); --carbon-11: var(--text-1);
+  --paper: var(--primary); --paper-hi: var(--primary-hover);
+  --gray-canvas: #0B0B0B; --gray-clip: #262626; --gray-edge: #8A8A8A;   /* achromatic review surfaces (v4; workspace) */
+  --tungsten: var(--wait); --tungsten-soft: var(--wait-soft); --tungsten-line: rgb(227 170 91 / .45);
+  /* v5 roles */
+  --page: var(--bg-page); --sunken: var(--bg-nav); --media: var(--black);
+  --surface: var(--surface-1); --field: var(--surface-1); --raised: var(--surface-2);
+  --line-soft: var(--line); --line-field: var(--line-control);
+  --fg: var(--text-1); --fg-body: var(--text-1); --fg-muted: var(--text-2); --fg-faint: var(--text-3);
+  --fg-disabled: var(--text-disabled); --on-paper: var(--on-primary);
+  --scrim-b:   linear-gradient(0deg,  rgb(16 16 16 / .96) 0%, rgb(16 16 16 / .86) 28%, rgb(16 16 16 / .35) 58%, rgb(16 16 16 / 0) 78%);
+  --scrim-s:   linear-gradient(90deg, rgb(16 16 16 / .92) 0%, rgb(16 16 16 / .78) 30%, rgb(16 16 16 / 0) 62%);
+  --scrim-top: linear-gradient(180deg, rgb(16 16 16 / .70) 0%, rgb(16 16 16 / 0) 100%);
+  --shadow-float: var(--shadow-overlay);
+  --shadow-contact: 0 24px 64px rgb(0 0 0 / .6);
+  --s1: var(--s-4); --s2: var(--s-8); --s3: var(--s-12); --s4: var(--s-16); --s5: var(--s-24); --s6: var(--s-32); --s7: var(--s-48); --s8: var(--s-64); --s9: var(--s-80); --s10: var(--s-80);
+  --margin: var(--pad); --section: var(--section-gap);
+  --bar-h: var(--topbar-h);
+  --r-media: var(--r-md);
+  --t-fast: var(--dur-1); --t: var(--dur-2); --t-slow: var(--dur-3); --t-media: var(--dur-3); --t-travel: 1200ms;
+  --t-exit-fast: 84ms; --t-exit: 126ms; --t-exit-slow: 168ms;
+  --t-lights: 600ms; --t-idle: 2000ms;                               /* theatre lights-down fade; idle delay */
+  --ease: var(--ease-enter); --ease-in: var(--ease-exit); --ease-std: var(--ease-out);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);                      /* crossfades, travel */
+  /* v4 ladder */
+  --ink-1000: var(--black); --ink-975: var(--bg-nav); --ink-950: var(--bg-page); --ink-900: var(--surface-1);
+  --ink-850: var(--surface-1); --ink-800: var(--surface-2); --ink-700: var(--surface-3); --ink-600: var(--line-strong);
+  --ink-550: var(--line-control); --ink-500: var(--text-disabled); --ink-400: var(--text-3); --ink-350: var(--text-2);
+  --ink-300: var(--text-2); --ink-200: var(--text-1); --ink-100: var(--text-1);
+  --gray-1000: var(--black); --gray-960: var(--gray-canvas); --gray-850: var(--gray-clip); --gray-500: var(--gray-edge);
+  /* the retired tally and violet: the fills become the primary; light text becomes text-2 */
+  --iris-600: var(--primary); --iris-500: var(--primary); --iris-400: var(--primary); --iris-300: var(--text-2);
+  --violet-700: var(--primary); --violet-600: var(--primary); --violet-500: var(--primary); --violet-400: var(--primary); --violet-300: var(--text-2);
+  /* v4 surfaces */
+  --bg: var(--bg-page); --raised-2: var(--surface-2); --input: var(--surface-1);
+  --frame: var(--surface-1); --canvas: var(--gray-canvas); --surround: var(--black);
   --clip: var(--gray-clip); --clip-edge: var(--gray-edge);
-  /* text */
-  --fg-nav: var(--carbon-10);
-  --on-art: var(--paper); --on-art-muted: var(--carbon-11);
+  /* v4 text */
+  --fg-nav: var(--text-2);
+  --on-art: var(--text-1); --on-art-muted: var(--text-2);
   --fg-on-art: var(--on-art); --fg-on-art-muted: var(--on-art-muted);
-  /* action: the primary is paper; the "accent" is light, not hue (§2.1) */
-  --primary: var(--paper); --primary-hover: var(--paper-hi); --primary-active: var(--carbon-11); --on-primary: var(--on-paper);
-  --accent: var(--paper); --accent-strong: var(--paper);
-  --accent-soft: rgb(243 239 232 / .08);   /* a selected row's tint: paper, barely */
-  --accent-line: rgb(243 239 232 / .45);
-  --ring: var(--paper); --ring-art-inner: var(--paper); --ring-art-outer: var(--carbon-0);
-  --select-precise: var(--paper);
-  /* status: waiting is tungsten (v4's warn and gold); info is a quiet word, not a hue */
-  --warn: var(--tungsten); --warn-soft: var(--tungsten-soft);
-  --info: var(--fg-muted); --info-soft: rgb(243 239 232 / .06);
-  --gold: var(--tungsten); --gold-soft: var(--tungsten-soft); --gold-text: var(--tungsten); --gold-line: var(--tungsten-line);
-  --teal: var(--paper); --teal-soft: var(--accent-soft); --teal-line: var(--accent-line);
-  --edge: var(--carbon-8); --edge-lit: var(--paper); --edge-wait: var(--tungsten); --edge-bad: var(--bad);
-  --ivory: var(--paper); --ivory-hover: var(--paper-hi); --on-ivory: var(--on-paper);
-  /* scrims and shadows */
+  /* v4 action names */
+  --accent: var(--primary); --accent-strong: var(--primary);
+  --accent-soft: rgb(245 245 244 / .08);
+  --accent-line: rgb(245 245 244 / .45);
+  --ring: var(--text-1); --ring-art-inner: var(--text-1); --ring-art-outer: var(--black);
+  --select-precise: var(--text-1);
+  --warn: var(--wait); --warn-soft: var(--wait-soft);
+  --info: var(--text-2); --info-soft: rgb(245 245 244 / .06);
+  --gold: var(--wait); --gold-soft: var(--wait-soft); --gold-text: var(--wait); --gold-line: var(--tungsten-line);
+  --teal: var(--primary); --teal-soft: var(--accent-soft); --teal-line: var(--accent-line);
+  --edge: var(--line-control); --edge-lit: var(--primary); --edge-wait: var(--wait); --edge-bad: var(--bad);
+  --ivory: var(--primary); --ivory-hover: var(--primary-hover); --on-ivory: var(--on-primary);
   --scrim-bottom: var(--scrim-b); --scrim-start: var(--scrim-s);
   --shadow-1: none; --shadow-2: none; --shadow-3: var(--shadow-overlay);
   --halo-violet: none; --halo-gold: none; --halo-teal: none;
-  /* shape: v4's 6/8/12/16 px steps fold into v5's three (§4.4); pictures are square-cornered */
-  --r-precise: var(--r-xs); --r-1: var(--r-md); --r-2: var(--r-md); --r-3: var(--r-lg); --r-4: var(--r-lg);
-  /* motion and type names of v4 */
-  --ease-standard: var(--ease-std);
-  --font-title-latin: var(--font-newsreader, 'Newsreader');
-  --title-tracking: -0.024em;
-  /* the shell (v5.1: one compact left sidebar; styles/shell.css): expanded, the collapsed icon rail, the phone's top bar */
-  --sidebar-w: 232px; --rail-w: 60px; --mobilebar-h: 56px;
-  --compact-h: 48px; --tabs-h: 44px; --playerbar-h: 64px;
-  --bleed-max: 1680px; --rail-gap: var(--gutter); --gap-section: var(--section);
-  --space-1: var(--s1); --space-2: var(--s2); --space-3: var(--s3); --space-4: var(--s4); --space-5: var(--s5);
-  --space-6: var(--s6); --space-7: var(--s7); --space-8: var(--s8); --space-9: var(--s9);
+  /* v4 radii → the family (8 → 10, 12 → 14, 16 → 20, 2 → 6) */
+  --r-precise: var(--r-xs); --r-1: var(--r-sm); --r-2: var(--r-sm); --r-3: var(--r-md); --r-4: var(--r-lg);
+  --ease-standard: var(--ease-out);
+  --font-title-latin: var(--font-ui);
+  --title-tracking: -0.02em;
+  --rail-w: var(--sidebar-w-collapsed); --mobilebar-h: var(--topbar-h);
+  --compact-h: 48px; --tabs-h: 40px; --playerbar-h: 64px;
+  --bleed-max: 1680px; --rail-gap: var(--gutter); --gap-section: var(--section-gap);
+  --space-1: var(--s-4); --space-2: var(--s-8); --space-3: var(--s-12); --space-4: var(--s-16); --space-5: var(--s-24);
+  --space-6: var(--s-32); --space-7: var(--s-48); --space-8: var(--s-64); --space-9: var(--s-80);
 }
-@media (min-width: 640px)  { :root { --margin: 24px; --gutter: 24px; --bar-h: 64px; } }
-@media (min-width: 1024px) { :root { --margin: 40px; --section: 80px; } }
-@media (min-width: 1280px) { :root { --margin: 56px; --section: 96px; } }
-@media (min-width: 1800px) { :root { --margin: 80px; } }
+@media (min-width: 640px)  { :root { --pad: 24px; --gutter: 16px; --cols: 8; --section-gap: 48px; } }
+@media (min-width: 1024px) { :root { --pad: 32px; --cols: 12; --section-gap: 56px; } }
+@media (min-width: 1280px) { :root { --pad: 40px; } }
 @media (max-width: 639px)  { :root { --wash-end: 400px; } }
-@media (pointer: coarse)   { :root { --control-h-sm: 44px; } }
-/* the phone's top bar is on top below 768 px; at 768 and wider the sidebar is beside the content, nothing is on top */
-@media (max-width: 767px)  { :root { --sticky-top: var(--mobilebar-h); } }
-/* the phone bottom bar declares itself with [data-bottom-nav]; while it is shown below 768 px it takes the bottom edge,
-   and the scroll padding below keeps every focused control clear of it (WCAG 2.4.11, QA F1) */
-@media (max-width: 767px) { :root:has([data-bottom-nav]) { --bottom-nav: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); } }
+@media (pointer: coarse)   { :root { --control-h: 44px; --control-h-sm: 44px; } }
+/* below 1024 the top bar is on top (§5.2); at 1024 and wider the sidebar is beside the content, nothing is on top */
+@media (max-width: 1023px) { :root { --sticky-top: var(--topbar-h); } }
+/* the bottom bar declares itself with [data-bottom-nav]; while it is shown below 1024 px it takes the bottom edge, and
+   the scroll padding below keeps every focused control clear of it (WCAG 2.4.11, QA F1) */
+@media (max-width: 1023px) { :root:has([data-bottom-nav]) { --bottom-nav: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); } }
 
-/* density: the cutting room defaults to compact (Settings › Interface can choose comfortable) — §4.6, §3.3 */
-[data-density='compact'] { --control-h: 34px; --control-h-sm: 28px; --row-h: 36px; --body-fs: 13.5px; --body-lh: 20px; --gap-section: 24px; }
+/* density: the cutting room defaults to compact (Settings › Interface can choose comfortable); its floor is 13 px */
+[data-density='compact'] { --control-h: 32px; --control-h-sm: 28px; --row-h: 36px; --body-fs: 13px; --body-lh: 20px; --gap-section: 24px; }
 @media (pointer: coarse) { [data-density='compact'] { --control-h: 44px; --control-h-sm: 44px; } }
 
-/* more contrast (§10): muted → body, faint → muted, boundaries one step up */
-html[data-contrast='more'] { --fg-muted: var(--carbon-11); --fg-faint: var(--carbon-10); --fg-nav: var(--carbon-11); --line-field: var(--carbon-9); --line: var(--carbon-7); --line-soft: var(--carbon-6); }
-@media (prefers-contrast: more) { html:not([data-contrast='standard']) { --fg-muted: var(--carbon-11); --fg-faint: var(--carbon-10); --fg-nav: var(--carbon-11); --line-field: var(--carbon-9); --line: var(--carbon-7); --line-soft: var(--carbon-6); } }
+/* more contrast (v5 §10): text-2 → nearly text-1, text-3 → text-2, boundaries one step up */
+html[data-contrast='more'] { --text-2: #D6D6D3; --text-3: #A6A6A3; --line-control: #8A8A88; --line: #333333; --line-strong: #444444; }
+@media (prefers-contrast: more) { html:not([data-contrast='standard']) { --text-2: #D6D6D3; --text-3: #A6A6A3; --line-control: #8A8A88; --line: #333333; --line-strong: #444444; } }
 
-/* fixed and sticky bars never hide the focused element (WCAG 2.4.11; QA F1): the top padding is the bar on top plus
-   whatever sticks under it; the bottom padding is the phone bottom bar plus a now-playing bar or a sticky footer */
+/* fixed and sticky bars never hide the focused element (WCAG 2.4.11; QA F1) */
 html { scroll-padding-block-start: calc(var(--sticky-top) + var(--sticky-extra) + 16px); scroll-padding-block-end: calc(var(--bottom-nav) + var(--bottom-bars) + 16px); }
 
 /* the art colour may animate when a hero changes (season switch); instant under reduced motion */
-@property --art { syntax: '<color>'; inherits: true; initial-value: #0A0A09; }
-/* the wash is its own layer so it can run past the hero's lower edge into the page without a seam (§2.4) */
-.hero { position: relative; isolation: isolate; transition: --art var(--t-media) var(--ease-inout); }
+@property --art { syntax: '<color>'; inherits: true; initial-value: #101010; }
+/* the art wash (§3.1, one of the two gradients left): its own layer, so it runs past the hero into the page */
+.hero { position: relative; isolation: isolate; transition: --art var(--dur-4) var(--ease-inout); }
 .hero::before { content: ''; position: absolute; inset-inline: 0; inset-block-start: 0; block-size: max(100%, var(--wash-end));
-  background: linear-gradient(180deg, var(--art) 0, var(--page) var(--wash-end)); z-index: -1; pointer-events: none; }
+  background: linear-gradient(180deg, var(--art) 0, var(--bg-page) var(--wash-end)); z-index: -1; pointer-events: none; }
 
-/* ── the three rooms (v4 mechanics, v5 surfaces): a page declares its room on the shell's content column ────── */
-[data-room='lobby']   { --page: var(--carbon-2); background: var(--page); }
-[data-room='cutting'] { --page: var(--frame); background: var(--page); --art: var(--page); --wash-end: 0px; }  /* tint impossible */
-[data-room='theatre'] { --page: var(--surround); background: var(--page); --art: var(--page); }
+/* ── the three rooms: a page declares its room on the shell's content column ───────────────────────────────── */
+[data-room='lobby']   { --page: var(--bg-page); background: var(--page); }
+[data-room='cutting'] { --page: var(--bg-page); background: var(--page); --art: var(--page); --wash-end: 0px; }  /* tint impossible */
+[data-room='theatre'] { --page: var(--black); background: var(--page); --art: var(--page); }
 [data-room='cutting'] .viewer, [data-room='cutting'] .canvas { background: var(--canvas); }
 
 @theme inline {
+  /* v5.1 */
+  --color-bg-nav: var(--bg-nav); --color-bg-page: var(--bg-page); --color-surface-1: var(--surface-1); --color-surface-2: var(--surface-2); --color-surface-3: var(--surface-3); --color-black: var(--black);
+  --color-text-1: var(--text-1); --color-text-2: var(--text-2); --color-text-3: var(--text-3); --color-text-disabled: var(--text-disabled);
+  --color-wait: var(--wait); --color-wait-soft: var(--wait-soft); --color-line-control: var(--line-control);
   /* v5 */
   --color-carbon-0: var(--carbon-0); --color-carbon-1: var(--carbon-1); --color-carbon-2: var(--carbon-2); --color-carbon-3: var(--carbon-3); --color-carbon-4: var(--carbon-4); --color-carbon-5: var(--carbon-5); --color-carbon-6: var(--carbon-6); --color-carbon-7: var(--carbon-7); --color-carbon-8: var(--carbon-8); --color-carbon-9: var(--carbon-9); --color-carbon-10: var(--carbon-10); --color-carbon-11: var(--carbon-11);
   --color-paper: var(--paper); --color-paper-hi: var(--paper-hi); --color-on-paper: var(--on-paper);
@@ -198,7 +232,7 @@ html { scroll-padding-block-start: calc(var(--sticky-top) + var(--sticky-extra) 
   --color-violet-700: var(--violet-700); --color-violet-600: var(--violet-600); --color-violet-500: var(--violet-500); --color-violet-400: var(--violet-400); --color-violet-300: var(--violet-300);
   --color-bg: var(--bg); --color-surface: var(--surface); --color-raised: var(--raised); --color-raised-2: var(--raised-2); --color-input: var(--input);
   --color-frame: var(--frame); --color-canvas: var(--canvas); --color-surround: var(--surround); --color-clip: var(--clip); --color-clip-edge: var(--clip-edge);
-  --color-elev: var(--raised); --color-surface-2: var(--raised-2); --color-surface-3: var(--raised-2);
+  --color-elev: var(--raised);
   --color-line: var(--line); --color-line-strong: var(--line-strong); --color-line-field: var(--line-field);
   --color-fg: var(--fg); --color-body: var(--fg-body); --color-muted: var(--fg-muted); --color-faint: var(--fg-faint); --color-disabled: var(--fg-disabled); --color-nav: var(--fg-nav);
   --color-primary: var(--primary); --color-on-primary: var(--on-primary);
@@ -209,18 +243,17 @@ html { scroll-padding-block-start: calc(var(--sticky-top) + var(--sticky-extra) 
   --color-gold: var(--gold); --color-gold-soft: var(--gold-soft); --color-teal: var(--teal); --color-teal-soft: var(--teal-soft);
   --color-line-soft: var(--line-soft); --color-sunken: var(--sunken); --color-gold-text: var(--gold-text); --color-on-art: var(--on-art); --color-on-art-muted: var(--on-art-muted);
   --color-chip-on-art: var(--chip-on-art); --color-art-ph: var(--art-ph);
-  /* the interface is IBM Plex Sans; the title voice
-     (`font-title`) is for content names and page titles only (§3.2); numbers of the production are `font-mono` */
+  /* one family (Geist) for interface and titles; numbers of the production in Geist Mono (§4.1) */
   --font-sans: var(--font-ui);
   --font-display: var(--font-ui);
-  --font-title: var(--font-title);
+  --font-title: var(--font-ui);
   --font-mono: var(--font-mono);
   --radius-0: var(--r-0); --radius-xs: var(--r-xs); --radius-sm: var(--r-sm); --radius-md: var(--r-md); --radius-lg: var(--r-lg); --radius-pill: var(--r-pill);
   --radius-1: var(--r-1); --radius-2: var(--r-2); --radius-3: var(--r-3); --radius-4: var(--r-4); --radius-media: var(--r-media); --radius-precise: var(--r-precise);
-  --shadow-1: var(--shadow-1); --shadow-2: var(--shadow-2); --shadow-3: var(--shadow-3); --shadow-float: var(--shadow-float); --shadow-overlay: var(--shadow-overlay);
+  --shadow-1: var(--shadow-1); --shadow-2: var(--shadow-2); --shadow-3: var(--shadow-3); --shadow-float: var(--shadow-float); --shadow-overlay: var(--shadow-overlay); --shadow-modal: var(--shadow-modal);
   /* 1600 px; a media query's rem is always 16 px, whatever the 14 px root */
   --breakpoint-3xl: 100rem;
-  /* the small sizes are set in px so the 14 px root never shrinks them below the floor (§3.2: 12 px) */
-  --text-sm: 13px; --text-sm--line-height: 20px;
+  /* the small sizes are set in px so the 14 px root never shrinks them below the floor (12 px) */
+  --text-sm: 13px; --text-sm--line-height: 18px;
   --text-xs: 12px; --text-xs--line-height: 16px;
 }

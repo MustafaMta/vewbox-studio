@@ -31,13 +31,13 @@ describe('the v4 token sheet', () => {
     for (const n of ['--page', '--frame', '--canvas', '--surround', '--clip', '--clip-edge', '--fg-nav', '--art', '--art-ph', '--art-edge', '--wash-end', '--chip-on-art', '--scrim-bottom', '--scrim-start', '--ring-art-inner', '--ring-art-outer', '--select-precise', '--shadow-float', '--r-precise', '--t-exit-fast', '--t-exit', '--t-exit-slow', '--t-lights', '--t-idle', '--ease-standard', '--font-ui', '--font-title', '--font-mono', '--title-weight', '--title-tracking', '--control-h', '--row-h', '--body-fs', '--z-toast']) expect(get(n), n).toBeDefined();
   });
 
-  // DS-1 (docs/DESIGN-SYSTEM-V5.md §2.1): the v4 names now resolve to the v5 values (tests/unit/v5-tokens.test.ts)
-  it('resolves the v4 names to the v5 values', () => {
-    expect(get('--fg-nav')).toBe('#ADA9A1');
-    expect(get('--ease-in')).toBe('cubic-bezier(0.3, 0, 0.8, 0.15)');
+  // v5.1 (docs/design/VISUAL-STANDARD-V5.1.md §3.1): the v4 names resolve to the v5.1 values (tests/unit/v5-tokens.test.ts)
+  it('resolves the v4 names to the v5.1 values', () => {
+    expect(get('--fg-nav')).toBe('#A6A6A3');
+    expect(get('--ease-in')).toBe('cubic-bezier(0.4, 0, 1, 1)');
     expect(get('--clip-edge')).toBe('#8A8A8A');
     expect(get('--canvas')).toBe('#0B0B0B');
-    expect(get('--font-title')).toContain('--font-newsreader');
+    expect(get('--font-title')).toContain('--font-geist');
   });
 
   it('declares the rooms, density, More contrast, scroll-padding and the art wash (§2.1, §2.3)', () => {
