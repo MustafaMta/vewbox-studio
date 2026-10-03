@@ -399,7 +399,7 @@ export function CommandPalette({ open, onClose, entries, groups, placeholder, fi
   if (!present) return null;
   return (
     <dialog ref={ref} className="dlg palette" aria-label={T('kit.palette.label')} onCancel={(e) => { e.preventDefault(); onClose(); }} onKeyDown={(e) => trapTab(e, e.currentTarget)}>
-      <div className="palette-field">
+      <div className="palette-field" data-focus-inset>
         <IconSearch aria-hidden />
         <input
           role="combobox" aria-expanded="true" aria-controls={`${id}-l`} aria-autocomplete="list" aria-activedescendant={shown[active] ? `${id}-o-${shown[active].id}` : undefined}

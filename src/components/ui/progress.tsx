@@ -26,7 +26,7 @@ export function PhaseStrip({ phases, label, className = '' }: { phases: Phase[];
       {phases.map((p) => (
         <li key={p.id} className="phase" data-tone={p.tone ?? 'neutral'} title={p.title}>
           <span className="phase-name">{p.name}</span>
-          <span className={cls('status !text-[11px]', `status-${p.tone ?? 'neutral'}`)}>{p.status}</span>
+          <span className={cls('status text-xs', `status-${p.tone ?? 'neutral'}`)}>{p.status}</span>
           {p.time && <span className="num text-faint">{p.time}</span>}
         </li>
       ))}
@@ -153,7 +153,7 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
           <ol className="jp-rows" aria-label={T('jp.phases')}>
             {list.map((r) => (
               <li key={r.id} aria-current={r.state === 'current' ? 'step' : undefined} data-failed={r.state === 'failed' ? '' : undefined} data-skipped={r.state === 'skipped' ? '' : undefined}>
-                <span aria-hidden className={cls('mt-0.5 grid size-6 place-items-center rounded-full border text-[11px] font-semibold', r.state === 'done' ? 'border-transparent bg-ok-soft text-ok' : r.state === 'failed' ? 'border-transparent bg-bad-soft text-bad' : r.state === 'current' ? 'border-transparent bg-primary text-on-primary' : r.state === 'skipped' ? 'border-dashed border-line-strong text-faint' : 'border-line-strong text-faint')}>
+                <span aria-hidden className={cls('mt-0.5 grid size-6 place-items-center rounded-full border text-xs font-semibold', r.state === 'done' ? 'border-transparent bg-ok-soft text-ok' : r.state === 'failed' ? 'border-transparent bg-bad-soft text-bad' : r.state === 'current' ? 'border-transparent bg-primary text-on-primary' : r.state === 'skipped' ? 'border-dashed border-line-strong text-faint' : 'border-line-strong text-faint')}>
                   {r.state === 'done' ? <IconCheck className="size-3.5" /> : r.state === 'failed' ? <IconBad className="size-3.5" /> : r.state === 'current' ? <Spinner className="size-3" /> : r.state === 'skipped' ? '–' : ''}
                 </span>
                 <span className="min-w-0">

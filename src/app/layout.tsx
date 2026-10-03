@@ -4,7 +4,7 @@ import { fontVariables } from './fonts';
 import { BOOT } from './boot';
 import { FOCUS_SCROLL } from './focus-scroll';
 import { StudioProvider } from '@/studio/store';
-import { LocaleProvider } from '@/components/ui/locale';
+import { MotionPreference } from '@/components/ui/motion';
 import { ToastProvider } from '@/components/ui/toast';
 import { PlayerProvider } from '@/components/players/PlayerProvider';
 
@@ -36,9 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <StudioProvider>
-          <LocaleProvider>
+          <MotionPreference>
             <ToastProvider><PlayerProvider>{children}</PlayerProvider></ToastProvider>
-          </LocaleProvider>
+          </MotionPreference>
         </StudioProvider>
       </body>
     </html>

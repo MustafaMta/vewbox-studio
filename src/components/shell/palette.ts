@@ -60,7 +60,7 @@ export function buildEntries(x: PaletteInput): PaletteEntry[] {
   const go = (href: string): PaletteAction => ({ type: 'go', href });
 
   // ---- Go to ----------------------------------------------------------------------------------------------------
-  for (const n of NAV_ITEMS) out.push({ id: `page:${n.href}`, group: 'goto', kind: T('shell.palette.kind.page'), name: T(n.key), action: go(n.href) });
+  for (const n of NAV_ITEMS) out.push({ id: `page:${n.href}`, group: 'goto', kind: T('shell.palette.kind.page'), name: n.label, action: go(n.href) });
   for (const s of state.shows) out.push({ id: `show:${s.id}`, group: 'goto', kind: T('kind.SHOW'), name: s.title, alt: s.titleAr, action: go(`/shows/${encodeURIComponent(s.id)}`) });
   for (const p of state.productions) {
     const title = p.kind === 'MUSIC_VIDEO' ? (p.song?.title || p.title) : p.title;

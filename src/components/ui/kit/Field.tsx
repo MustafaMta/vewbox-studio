@@ -140,7 +140,7 @@ export function ChipInput({ value, onChange, placeholder, max, disabled, id, cla
   const commit = (raw: string) => { const next = addChips(value, raw, max); if (next.length !== value.length) onChange(next); setText(''); };
   const full = max !== undefined && value.length >= max;
   return (
-    <div className={cls('chip-input', className)} data-disabled={disabled || undefined} onClick={(e) => { if (e.target === e.currentTarget) input.current?.focus(); }}>
+    <div className={cls('chip-input', className)} data-focus-within data-disabled={disabled || undefined} onClick={(e) => { if (e.target === e.currentTarget) input.current?.focus(); }}>
       {value.map((v, i) => (
         <span key={`${v}-${i}`} className="filter-chip">
           <span className="min-w-0 truncate" dir="auto">{v}</span>

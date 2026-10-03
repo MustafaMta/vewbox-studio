@@ -910,18 +910,14 @@ const COPY = {
   'nav.assets': 'Asset Library',
   'nav.settings': 'Settings',
   'nav.more': 'More',
-  'nav.areas': 'Studio areas',
   'app.name': 'Vewbox Studio',
 
   // home
   'home.continue': 'Continue working',
   // the restored shell
-  'nav.openMenu': 'Open menu',
-  'nav.skip': 'Skip to content',
   'home.inProduction': 'In production',
 
   // the six areas and the studio organisation
-  'nav.studioArea': 'Studio',
   'nav.company': 'Studio Company',
   'nav.production': 'Production',
   'projects.title': 'Projects',
@@ -938,28 +934,9 @@ const COPY = {
   'shell.title.kitMedia': 'Media kit',
 
   // ---- v4: the shell (§5.1, §7.1) ----
-  'shell.group.productions': 'Productions',
-  'shell.group.castWorld': 'Cast & world',
-  'shell.homeLink': 'Vewbox Studio, go to Shows',
-  'shell.menu': 'Menu',
   'shell.help': 'Help & shortcuts',
-  'shell.collapse': 'Collapse',
-  'shell.collapse.long': 'Collapse the navigation',
-  'shell.expand': 'Expand',
-  'shell.expand.long': 'Expand the navigation',
-  'shell.needsYou': '{n} decision waiting for you|{n} decisions waiting for you',
   // SaveState (audit D1): what the store's queue says, never assumed
-  'shell.save.saved': 'Saved',
-  'shell.save.saving': 'Saving…',
-  'shell.save.unsaved': 'Not saved — retrying',
-  'shell.save.opening': 'Opening the studio…',
   // the connection (the event stream) and what the studio is running, from the job list
-  'shell.conn.connected': 'Connected',
-  'shell.conn.running': 'Connected · {n} running',
-  'shell.conn.queued': 'Connected · {n} queued',
-  'shell.conn.connecting': 'Connecting…',
-  'shell.conn.down': 'Not connected',
-  'shell.conn.link': '{state}. Open the engine room in Production',
   // ServerBar: only when the event stream has really dropped
   'shell.server.down': 'Can’t reach the studio server.',
   'shell.server.since': 'Showing what was there {ago}.',
@@ -972,8 +949,7 @@ const COPY = {
   'shell.error.hint': 'What the studio holds is not affected. Try the page again; the details below say what broke.',
   'shell.error.retry': 'Try again',
   'shell.error.details': 'Details',
-  'shell.error.home': 'Go to Shows',
-  'shell.loading': 'Loading the page…',
+  'shell.error.home': 'Go to Home',
 
   // ---- v4: the command palette (§5.17, §7.6) ----
   'shell.palette.title': 'Command palette',

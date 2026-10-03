@@ -19,8 +19,9 @@ export interface ShellDialogProps {
   /** a visible title (the header row with a close button), or only an accessible name with `label` */
   title?: ReactNode;
   label?: string;
-  /** where it sits: centred (the shortcut sheet), high up at 15vh (the palette), or the whole screen (the menu) */
-  placement?: 'center' | 'top' | 'full';
+  /** where it sits: centred (the shortcut sheet), high up at 15vh (the palette), the whole screen, or a bottom sheet
+   *  (the phone's Productions and More) */
+  placement?: 'center' | 'top' | 'full' | 'sheet';
   /** px; ignored for `full` */
   width?: number;
   /** what takes focus when it opens (default: the first focusable element) */
@@ -63,9 +64,10 @@ export function ShellDialog({ open, onClose, title, label, placement = 'center',
   const onPointerDown = (e: React.PointerEvent<HTMLDialogElement>) => { if (e.target === ref.current) ref.current?.close(); };
 
   return (
-    <dialog ref={ref} id={id} className={`shell-dialog ${className}`} data-placement={placement} style={placement === 'full' ? undefined : ({ '--dlg-w': `${width}px` } as React.CSSProperties)}
+    <dialog ref={ref} id={id} className={`shell-dialog ${className}`} data-placement={placement} style={placement === 'full' || placement === 'sheet' ? undefined : ({ '--dlg-w': `${width}px` } as React.CSSProperties)}
       aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : label} onPointerDown={onPointerDown}>
       <div className="shell-dialog-panel">
+        {placement === 'sheet' && <span className="sheet-handle" aria-hidden />}
         {title && (
           <div className="shell-dialog-head">
             <h2 id={headingId} className="h2">{title}</h2>

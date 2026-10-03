@@ -35,7 +35,7 @@ export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: str
     return (
       <div ref={c.wrap} className={cls('cplayer', className)} tabIndex={0} role="group" aria-label={title ?? T('player.video')} onKeyDown={keys}>
         <div className="cplayer-canvas canvas" data-zoom={zoom}>
-          <div className="cplayer-box" style={zoom === 'fit' ? { aspectRatio: c.ratio ?? '16 / 9' } : c.natural ? { inlineSize: `${c.natural.w}px`, aspectRatio: c.ratio } : undefined}>
+          <div className="cplayer-box" style={zoom === 'fit' ? ({ '--cp-ratio': c.ratio ?? '16 / 9' } as React.CSSProperties) : c.natural ? { inlineSize: `${c.natural.w}px`, aspectRatio: c.ratio } : undefined}>
             <video {...c.videoProps} poster={poster} className="pvideo" onClick={c.toggle} />
             {c.failed && <MediaFailure onRetry={c.retry} fileHref={fileHref ?? src} />}
           </div>

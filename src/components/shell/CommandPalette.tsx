@@ -104,7 +104,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   let index = -1;
   return (
     <div className="palette">
-      <div className="palette-field">
+      <div className="palette-field" data-focus-inset>
         <IconSearch aria-hidden className="palette-search-icon" />
         <input ref={input} className="palette-input" type="text" role="combobox" aria-expanded="true" aria-controls={listId} aria-autocomplete="list"
           aria-activedescendant={flat.length ? optionId(active) : undefined} aria-label={T('shell.palette.label')} placeholder={T('shell.palette.placeholder')}

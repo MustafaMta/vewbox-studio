@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { STUDIO_ERROR_CODES } from '@/domain/errors';
@@ -20,8 +21,10 @@ describe('D1 — the shell says "saved" only when nothing is waiting', () => {
     // a failure that left nothing behind (the queue drained on the next attempt) is saved
     expect(saveStateOf({ pending: 0, inflight: 0, failures: 2 })).toBe('saved');
   });
-  it('the three phrases exist (the shell reads shell.save.*)', () => {
-    for (const k of ['shell.save.saved', 'shell.save.saving', 'shell.save.unsaved'] as const) expect(T(k)).toBeTruthy();
+  it('a change that could not be saved is said in the shell (the studio state line, Shell.tsx)', () => {
+    const src = readFileSync('src/components/shell/Shell.tsx', 'utf8');
+    expect(src).toContain("saving === 'unsaved'");
+    expect(src).toContain("'Not saved — retrying'");
   });
 });
 

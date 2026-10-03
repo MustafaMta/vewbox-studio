@@ -15,7 +15,7 @@ export interface ShellApi {
   /** theatre: dim the navigation (and the page's own chrome marked `data-lights-dim`) while the film plays */
   lightsDown: boolean;
   setLightsDown: (down: boolean) => void;
-  /** the navigation's shape now, and the toggle (Ctrl/⌘ \) */
+  /** the sidebar's shape now (rail = collapsed), and the toggle (Ctrl/⌘ \) */
   nav: 'rail' | 'sidebar';
   toggleNav: () => void;
   openPalette: () => void;
@@ -24,6 +24,8 @@ export interface ShellApi {
   decisions: Decisions;
   /** the event stream has been down long enough to say so (ServerBar is showing) */
   serverDown: boolean;
+  /** the studio's state in one line (the sidebar footer, the More sheet): paused, making, ready, an engine offline */
+  studio: { tone: 'idle' | 'running' | 'failed'; words: string; href: string };
 }
 
 export const ShellContext = createContext<ShellApi | null>(null);

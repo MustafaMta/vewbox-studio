@@ -12,6 +12,7 @@
  *                      ShapedDropzone, FormFooter, SaveWord · v3: Dropzone
  *    kit/Choice        Segmented, ChoiceTiles · v3: ChoiceCards
  *    kit/Recorder      Recorder
+ *    kit/Loading       Skeleton (.Line .Text .Block .Media .Tile), SkeletonRegion, Progress, JobDot
  *    kit/States        PageEmpty, SectionEmpty, LoadingFrame, TextBars, LoadingLine, ErrorNotice, PartialLine,
  *                      SampleBadge, Notice
  *    kit/ApprovalCard  ApprovalCard, InlineNote
@@ -32,6 +33,7 @@ export * from './kit/Field';
 export * from './kit/Choice';
 export * from './kit/Recorder';
 export * from './kit/States';
+export * from './kit/Loading';
 export * from './kit/ApprovalCard';
 export * from './kit/PageHeader';
 export * from './kit/CompactHeader';

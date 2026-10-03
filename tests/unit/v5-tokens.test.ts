@@ -14,48 +14,53 @@ const rgb = (n: string) => { const v = get(n); const p = v && parseColour(v); if
 const solid = (n: string) => rgb(n).slice(0, 3) as [number, number, number];
 const ratio = (fg: string, bg: string) => contrast(solid(fg), solid(bg));
 
-const V5 = {
-  '--carbon-0': '#000000', '--carbon-1': '#060606', '--carbon-2': '#0A0A09', '--carbon-3': '#111110', '--carbon-4': '#181817',
-  '--carbon-5': '#20201E', '--carbon-6': '#2A2A28', '--carbon-7': '#3A3936', '--carbon-8': '#72706A', '--carbon-9': '#8F8B84',
-  '--carbon-10': '#ADA9A1', '--carbon-11': '#D8D4CC', '--paper': '#F3EFE8', '--paper-hi': '#FFFFFF',
+/** docs/design/VISUAL-STANDARD-V5.1.md §3 (binding over v5 §2): the exact values, the legacy aliases, and contrast
+ *  measured from the sheet. */
+const V51 = {
+  '--bg-nav': '#050505', '--bg-page': '#101010', '--surface-1': '#1A1A1A', '--surface-2': '#242424', '--surface-3': '#2E2E2E', '--black': '#000000',
+  '--line': '#222222', '--line-strong': '#333333', '--line-control': '#6E6E6C',
+  '--text-1': '#F5F5F4', '--text-2': '#A6A6A3', '--text-3': '#8E8E8B', '--text-disabled': '#5A5A58',
+  '--primary': '#F5F5F4', '--primary-hover': '#FFFFFF', '--primary-active': '#E2E2E0', '--on-primary': '#0A0A0A',
+  '--wait': '#E3AA5B', '--ok': '#7FCB9C', '--bad': '#F0826F',
   '--gray-canvas': '#0B0B0B', '--gray-clip': '#262626', '--gray-edge': '#8A8A8A',
-  '--tungsten': '#E3AA5B', '--ok': '#7FCB9C', '--bad': '#F0826F', '--line-soft': '#1C1C1A', '--fg-disabled': '#7E7B75',
 };
 
-describe('the v5 token sheet (§2.1)', () => {
+describe('the v5.1 token sheet (§3)', () => {
   it('has the exact values', () => {
-    for (const [k, v] of Object.entries(V5)) expect(get(k), k).toBe(v);
-    expect(get('--tungsten-soft')).toBe('rgb(227 170 91 / .14)');
-    expect(get('--chip-on-art')).toBe('rgb(6 6 6 / .80)');
+    for (const [k, v] of Object.entries(V51)) expect(get(k), k).toBe(v);
+    expect(get('--wait-soft')).toBe('rgb(227 170 91 / .16)');
+    expect(get('--chip-on-art')).toBe('rgb(0 0 0 / .72)');
+    expect(get('--overlay')).toBe('rgb(0 0 0 / .64)');
   });
 
-  it('maps the roles', () => {
-    const roles: Record<string, string> = { '--page': '--carbon-2', '--sunken': '--carbon-1', '--media': '--carbon-1', '--surface': '--carbon-3', '--field': '--carbon-4', '--raised': '--carbon-5', '--line': '--carbon-6', '--line-strong': '--carbon-7', '--line-field': '--carbon-8', '--fg': '--paper', '--fg-body': '--carbon-11', '--fg-muted': '--carbon-10', '--fg-faint': '--carbon-9', '--on-paper': '--carbon-2' };
+  it('maps the legacy names (§3.1)', () => {
+    const roles: Record<string, string> = { '--page': '--bg-page', '--surface': '--surface-1', '--field': '--surface-1', '--raised': '--surface-2', '--fg': '--text-1', '--fg-body': '--text-1', '--fg-muted': '--text-2', '--fg-faint': '--text-3', '--fg-disabled': '--text-disabled', '--paper': '--primary', '--tungsten': '--wait', '--carbon-2': '--bg-page', '--carbon-9': '--text-3', '--on-paper': '--on-primary' };
     for (const [role, base] of Object.entries(roles)) expect(get(role), role).toBe(get(base));
   });
 
-  it('has §4: space, radii, elevation, density and motion', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => get(`--s${i}`))).toEqual(['4px', '8px', '12px', '16px', '24px', '32px', '48px', '64px', '96px', '128px']);
-    expect(['--r-0', '--r-xs', '--r-sm', '--r-media', '--r-md', '--r-lg', '--r-pill'].map((n) => get(n))).toEqual(['0', '2px', '2px', '2px', '8px', '12px', '999px']);
-    expect(get('--shadow-overlay')).toContain('0 24px 64px -16px');
-    expect(get('--shadow-float')).toContain('0 16px 40px -16px');
-    expect([get('--control-h'), get('--control-h-sm'), get('--row-h'), get('--body-fs'), get('--body-lh')]).toEqual(['44px', '34px', '48px', '15px', '24px']);
-    expect(sheet).toMatch(/\[data-density='compact'\] \{ --control-h: 34px;[^}]*--body-fs: 13\.5px; --body-lh: 20px;/);
-    expect([get('--t-fast'), get('--t'), get('--t-slow'), get('--t-media')]).toEqual(['120ms', '200ms', '320ms', '480ms']);
-    expect(get('--ease-std')).toBe('cubic-bezier(0.2, 0, 0, 1)');
+  it('has §3.2–§3.6: radii, elevation, spacing, layout and motion', () => {
+    expect(['--r-0', '--r-xs', '--r-sm', '--r-md', '--r-lg', '--r-pill'].map((n) => get(n))).toEqual(['0', '6px', '10px', '14px', '20px', '999px']);
+    expect(get('--r-media')).toBe('14px');
+    expect(get('--shadow-overlay')).toContain('0 12px 32px rgb(0 0 0 / .5)');
+    expect(get('--shadow-modal')).toContain('0 24px 64px rgb(0 0 0 / .6)');
+    expect([4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80].map((i) => get(`--s-${i}`))).toEqual([4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80].map((i) => `${i}px`));
+    expect([get('--sidebar-w'), get('--sidebar-w-collapsed'), get('--content-max'), get('--topbar-h'), get('--tabbar-h')]).toEqual(['240px', '64px', '1680px', '56px', '64px']);
+    expect([get('--control-h'), get('--control-h-sm'), get('--control-h-lg')]).toEqual(['40px', '32px', '48px']);
+    expect([get('--dur-1'), get('--dur-2'), get('--dur-3'), get('--dur-4')]).toEqual(['120ms', '180ms', '240ms', '360ms']);
+    expect(get('--ease-out')).toBe('cubic-bezier(0.2, 0, 0, 1)');
+    expect(get('--ease-enter')).toBe('cubic-bezier(0.16, 1, 0.3, 1)');
+    expect(get('--ease-exit')).toBe('cubic-bezier(0.4, 0, 1, 1)');
   });
 
-  it('sets the three faces of §3.1, with system fallbacks for content in Arabic (the website is English-only)', () => {
-    expect(get('--font-ui')).toMatch(/^var\(--font-plex-sans/);
-    expect(get('--font-title')).toMatch(/^var\(--font-newsreader/);
-    expect(get('--font-mono')).toMatch(/^var\(--font-plex-mono/);
-    for (const n of ['--font-ui', '--font-title']) expect(get(n), n).toMatch(/'Segoe UI'|'Times New Roman'/);
+  it('sets Geist and Geist Mono (§4.1), with system fallbacks for content in Arabic', () => {
+    expect(get('--font-ui')).toMatch(/^var\(--font-geist,/);
+    expect(get('--font-mono')).toMatch(/^var\(--font-geist-mono/);
+    expect(get('--font-title')).toBe(get('--font-ui'));
     expect(get('--font-ui')).toContain('Geeza Pro');
     expect(get('--font-ui')).toContain('Noto Sans Arabic');
-    expect(sheet).not.toMatch(/--font-inter|--font-plex-arabic|--font-markazi|font-ui-ar|font-title-ar|\[dir=.rtl/);
+    expect(sheet).not.toMatch(/--font-newsreader|--font-plex|\[dir=.rtl/);
   });
 });
-
 describe('violet is retired (§1.3, §2.1)', () => {
   it('every --accent*, --iris-*, --violet-*, --ring* and --teal* resolves to paper or a muted neutral', () => {
     const names = Object.keys(tokens).filter((n) => /^--(accent|iris|violet|ring|teal|info|edge-lit|select)/.test(n));
@@ -76,30 +81,26 @@ describe('violet is retired (§1.3, §2.1)', () => {
   });
 });
 
-describe('contrast (§2.2), measured from the sheet', () => {
+describe('contrast (§3.1), measured from the sheet', () => {
   const at = (n: number, need: number) => expect(n).toBeGreaterThanOrEqual(need);
   it('text on the grounds', () => {
-    for (const bg of ['--page', '--surface', '--field', '--raised', '--gray-canvas', '--carbon-0']) at(ratio('--fg', bg), 4.5);
-    for (const bg of ['--page', '--raised']) { at(ratio('--fg-body', bg), 7); at(ratio('--fg-muted', bg), 4.5); }
-    for (const bg of ['--page', '--surface', '--field', '--raised']) at(ratio('--fg-faint', bg), 4.5);
-    expect(ratio('--fg', '--page')).toBeCloseTo(17.28, 1);
-    expect(ratio('--fg-faint', '--raised')).toBeCloseTo(4.81, 1);
+    for (const bg of ['--bg-nav', '--bg-page', '--surface-1', '--surface-2', '--surface-3', '--black']) at(ratio('--text-1', bg), 4.5);
+    for (const bg of ['--bg-page', '--surface-1', '--surface-2']) { at(ratio('--text-2', bg), 4.5); at(ratio('--text-3', bg), 4.5); }
+    expect(ratio('--text-1', '--bg-page')).toBeCloseTo(17.4, 0);
   });
   it('boundaries, tungsten, status and the primary', () => {
-    for (const bg of ['--page', '--field']) at(ratio('--line-field', bg), 3);
-    for (const bg of ['--page', '--raised']) at(ratio('--tungsten', bg), 4.5);
-    at(contrast(solid('--tungsten'), over(rgb('--tungsten-soft'), solid('--page'))), 4.5);
-    at(ratio('--ok', '--page'), 4.5); at(ratio('--bad', '--page'), 4.5);
-    at(ratio('--on-paper', '--paper'), 4.5);
-    // disabled text is exempt, but kept ≥ 3 by rule (§2.2)
-    at(ratio('--fg-disabled', '--page'), 3);
+    for (const bg of ['--bg-page', '--surface-1']) at(ratio('--line-control', bg), 3);
+    for (const bg of ['--bg-page', '--surface-1']) at(ratio('--wait', bg), 4.5);
+    at(contrast(solid('--wait'), over(rgb('--wait-soft'), solid('--bg-page'))), 4.5);
+    at(ratio('--ok', '--bg-page'), 4.5); at(ratio('--bad', '--bg-page'), 4.5);
+    at(ratio('--on-primary', '--primary'), 4.5);
+    at(ratio('--on-primary', '--bad'), 4.5);
   });
-  it('the focus ring: paper vs the ground, and the black band on art', () => {
-    for (const bg of ['--page', '--surface', '--field', '--raised']) at(ratio('--paper', bg), 3);
-    at(contrast(solid('--paper'), [0, 0, 0]), 3);
-    at(contrast([0, 0, 0], [255, 255, 255]), 3);
+  it('the focus ring: text-1 vs the grounds, and the black band on art', () => {
+    for (const bg of ['--bg-page', '--surface-1', '--surface-2']) at(ratio('--text-1', bg), 3);
+    at(contrast(solid('--text-1'), [0, 0, 0]), 3);
   });
   it('text on the chip over pure white art', () => {
-    at(contrast(solid('--fg'), over(rgb('--chip-on-art'), [255, 255, 255])), 4.5);
+    at(contrast(solid('--text-1'), over(rgb('--chip-on-art'), [255, 255, 255])), 4.5);
   });
 });

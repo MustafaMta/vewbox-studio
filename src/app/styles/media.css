@@ -35,7 +35,7 @@
   @container (max-width: 200px) {
     .tcard .tcard-num { font-size: 32px; line-height: 32px; }
     .tcard .tcard-title.t-card { font-size: 13px; line-height: 16px; letter-spacing: 0; }
-    .tcard .tcard-state { font-size: 11px; line-height: 14px; }
+    .tcard .tcard-state { font-size: 12px; line-height: 16px; }
   }
 
   /* ---- the picture frame (§2.4, §5.4) ---------------------------------------------------------------------- */
@@ -82,12 +82,10 @@
   .tile-title { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); overflow: hidden; overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .mtile { position: relative; min-inline-size: 0; container-type: inline-size; }
   .mtile-link { display: flex; flex-direction: column; align-items: stretch; inline-size: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; border-radius: var(--r-media); cursor: pointer; }
-  .mtile-link:focus-visible { outline: none; }
   div.mtile-link { cursor: default; }
   .mtile-frame::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow var(--t-fast) var(--ease); pointer-events: none; }
   .mtile-link:hover .mtile-frame::after { box-shadow: inset 0 0 0 1px var(--line-strong); }
   .mtile-link:hover .mtile-frame > img { transform: scale(1.02); }
-  .mtile-link:focus-visible .mtile-frame { box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); }
   .mtile-link:focus-visible .mtile-title { text-decoration: underline; text-underline-offset: 3px; }
   .mtile .tcard { --tcard-inset: var(--space-3); }
   .mtile[data-kind='keyart'] .tcard, .mtile[data-kind='plate'] .tcard, .mtile[data-kind='still'] .tcard { --tcard-inset: var(--space-4); }
@@ -149,8 +147,7 @@
   .rail-nav { display: inline-flex; gap: var(--space-1); }
   .rail-all { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--fg-muted); text-decoration: none; border-radius: var(--r-1); }
   .rail-all:hover { color: var(--fg); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
-  .rail-list { --rail-item-w: 280px; display: flex; gap: var(--rail-gap); margin: -6px calc(-1 * var(--gutter)) -8px; padding: 6px var(--gutter) 8px; list-style: none; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); scrollbar-width: none; }
-  .rail-list::-webkit-scrollbar { display: none; }
+  .rail-list { --rail-item-w: 280px; display: flex; gap: var(--rail-gap); margin: -6px calc(-1 * var(--gutter)) -8px; padding: 6px var(--gutter) 8px; list-style: none; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); }
   .rail-item { flex: none; inline-size: var(--rail-item-w); scroll-snap-align: start; }
   .rail[data-item='poster'] .rail-list, .rail[data-item='sleeve'] .rail-list { --rail-item-w: 160px; }
   .rail[data-item='figure'] .rail-list { --rail-item-w: 140px; }
@@ -209,8 +206,6 @@
   .cast-cell { position: relative; min-inline-size: 0; }
   .cast-link { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; color: inherit; text-decoration: none; border-radius: var(--r-2); }
   .cast-link .face { margin-block-end: var(--space-3); }
-  .cast-link:focus-visible { outline: none; }
-  .cast-link:focus-visible .face { box-shadow: 0 0 0 2px var(--ring-art-inner), 0 0 0 4px var(--ring-art-outer); }
   .cast-link:focus-visible .cast-name { text-decoration: underline; text-underline-offset: 3px; }
   .cast-name { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--fg); overflow-wrap: break-word; }
   .cast-role { max-inline-size: 100%; font-size: 13px; line-height: 20px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -331,7 +326,7 @@
   .mhero-plate-pic { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-media); background: var(--art-ph); }
   .mhero-plate-pic > img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; max-inline-size: none; object-fit: cover; opacity: 0; transition: opacity var(--t-media) var(--ease-inout); }
   .mhero-plate-pic > img[data-on] { opacity: 1; }
-  .mhero-plate-pic > .mhero-plate-card { position: absolute; inset: 0; block-size: 100%; aspect-ratio: auto !important; }
+  .mhero-plate-pic > .mhero-plate-card { position: absolute; inset: 0; block-size: 100%; }
   .mhero-plate-switch { margin-block-start: var(--space-3); overflow-x: auto; }
   .mhero-plate .mhero-text { margin-block-start: var(--space-5); }
   @media (min-width: 640px) { .mhero-plate-pic { aspect-ratio: 2.39 / 1; } }
@@ -381,7 +376,7 @@
 
   /* ============================== legacy (F0 → F3; kept until each page migrates, then Q1) ================= */
   /* the word that sits on every bundled picture: now on the solid chip, no blur (§1.5) */
-  .mark { display: inline-flex; align-items: center; block-size: 20px; padding: 0 6px; border-radius: 4px; background: var(--chip-on-art); color: var(--on-art); font-size: 11px; font-weight: 600; letter-spacing: 0; }
+  .mark { display: inline-flex; align-items: center; block-size: 20px; padding: 0 6px; border-radius: 4px; background: var(--chip-on-art); color: var(--on-art); font-size: 12px; font-weight: 600; letter-spacing: 0; }
   .media { position: relative; background: var(--media); border-radius: var(--r-media); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--fg-faint); }
   .media img, .media video { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
   .media-contain img, .media-contain video { object-fit: contain; }
@@ -393,7 +388,6 @@
   a:hover > .poster, a:focus-visible > .poster, .poster-link:hover .poster, .poster-link:focus-visible .poster { border-color: var(--line-strong); }
   .poster-link:hover .poster img { transform: scale(1.02); }
   .poster:focus-visible, .media:focus-visible, .vplayer:focus-visible, .poster-link:focus-visible > .poster { outline: 2px solid var(--on-art); outline-offset: 2px; }
-  .poster-card:has(.poster-link:focus-visible) .poster { box-shadow: 0 0 0 2px var(--on-art); }
   .poster-title { margin-block-start: 10px; font-weight: 600; font-size: 15px; line-height: 20px; color: var(--fg); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .poster-meta { margin-block-start: 2px; font-size: 12px; line-height: 16px; color: var(--fg-faint); display: flex; flex-wrap: wrap; gap: 0.15rem 0.5rem; align-items: center; }
   .poster-meta > span + span::before { content: '·'; margin-inline-end: 0.5rem; color: var(--ink-500); }
