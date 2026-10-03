@@ -217,7 +217,6 @@ const COPY = {
   'misc.seek': 'Seek',
   'misc.play': 'Play',
   'misc.pause': 'Pause',
-  'misc.noArtwork': 'No artwork yet',
   'misc.details': 'Details',
   'meta.views': 'views',
   'lib.searchCharacters': 'Search by name or role',
