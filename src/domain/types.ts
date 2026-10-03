@@ -231,6 +231,9 @@ export interface Brief {
   /** Set when the project was created from the bundled sample proposal rather than a generated one. */
   fromSampleProposal?: boolean;
   proposalJobId?: string;
+  /** Auto Idea: the development intent production must keep (tone, audience, hook, ending) — never rewritten by a
+   *  later department (src/domain/development.ts). */
+  development?: import('./development').DevelopmentIntent;
 }
 
 // ------------------------------------------------------------------------------------------------- Auto Idea
@@ -248,6 +251,13 @@ export interface IdeaPreferences {
   locationIds?: string[];
   /** Music video: how the song is seen. */
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
+  genre?: string;
+  /** Who it is for, in the producer's words (e.g. "Iraqi families", "teens who like anime"). */
+  audience?: string;
+  /** Free creative direction (the brief stays the producer's own premise). */
+  direction?: string;
+  /** AUTO: research when Settings allow it; OFF: an explicitly original concept, no research. */
+  research?: 'AUTO' | 'OFF';
 }
 
 /** The request the story engine receives: what to make, where it belongs, and the optional preferences. For an
@@ -282,6 +292,8 @@ export interface IdeaProposal {
   locations: ProposedLocation[];
   concept?: 'PERFORMANCE' | 'NARRATIVE' | 'MIXED';
   song?: { title: string; caption: string; lyrics: string };
+  /** The research and development the proposal rests on (absent on proposals written before the pipeline). */
+  development?: import('./development').DevelopmentDossier;
 }
 
 export interface ExportRecord { id: string; assetId: string; format: string; resolution: string; subtitles: string; createdAt: string; jobId?: string; durationSeconds?: number; bytes?: number }
@@ -680,6 +692,17 @@ export interface Settings {
   defaults: { style: Style; language: Language; dialect: Dialect; aspect: Aspect };
   generation?: GenerationSettings;
   voice?: VoiceSettings;
+  /** Trend research for Auto Idea (docs/CONTRACTS-AUTO-IDEA.md). Credentials never live here: they are server
+   *  environment variables; this only switches research and individual platforms on or off. */
+  research?: ResearchSettings;
+}
+
+export interface ResearchSettings {
+  enabled: boolean;
+  /** A platform switched off here is DISABLED in every run's coverage. Absent = on. */
+  platforms?: Partial<Record<import('./development').ResearchPlatform, boolean>>;
+  /** How long a fetched result is reused before it is fetched again (default per source; 1–168 h). */
+  cacheHours?: number;
 }
 
 export interface StudioState {

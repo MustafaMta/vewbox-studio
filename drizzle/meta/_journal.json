@@ -64,6 +64,13 @@
       "when": 1790992563946,
       "tag": "0008_take_relation",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791000189615,
+      "tag": "0010_auto_idea",
+      "breakpoints": true
     }
   ]
 }
