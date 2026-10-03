@@ -118,6 +118,7 @@ export async function designAndMeasure(ctx: HandlerContext, c: Character, o: Des
     // 3) the gates on every candidate's reference
     const measuredCands: VoiceDesignCandidate[] = [];
     for (const cand of candidates) {
+      await ctx.checkpoint();
       await ctx.progress('VALIDATING', { phase: 'designing', message: `Measuring candidate ${cand.index} of ${candidates.length}: heard back, loudness, peak, length` });
       const file = files.get(cand.index)!;
       const heard = await hearDesignFile(ctx, file, c.language, `design candidate ${cand.index}`);
@@ -141,6 +142,7 @@ export async function designAndMeasure(ctx: HandlerContext, c: Character, o: Des
       let seedEmbedding = embeddings.get(x.index) ?? null;
       if (!seedEmbedding) seedEmbedding = (await speakerEmbedding(ctx, files.get(x.index)!))?.embedding ?? null;
       for (const [k, sentence] of sentences.entries()) {
+        await ctx.checkpoint();
         await ctx.progress('GENERATING', { phase: 'speaking', message: `Candidate ${x.index}: preview ${k + 1} of ${sentences.length} through ${lineEngine}` });
         const local = { text: sentence, language: c.language, dialect: c.dialect, referenceWav: files.get(x.index)!, referenceText: lineEngine === 'habibi' ? designed.text : undefined, speed: o.speech.speed, emotionAlpha: o.speech.emotionAlpha, seed: o.speech.seed, engine: lineEngine };
         const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: `${lineEngine} preview`, input: local }), { jobId: ctx.job.id });
