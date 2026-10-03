@@ -602,3 +602,69 @@ export const audioTimelines = pgTable('audio_timelines', {
   jobId: text('job_id'),
   createdAt: ts('created_at').notNull(),
 }, (t) => [uniqueIndex('audio_timelines_production_revision_idx').on(t.productionId, t.revision)]);
+
+// ------------------------------------------------------------------------- research and story development
+// docs/CONTRACTS-AUTO-IDEA.md — evidence the Trend Research Agent gathered, the cache that keeps it from being fetched
+// twice, each run's coverage, and the versioned artifacts every development agent writes.
+
+/** One fetch from one source (a provider + query + language/region), with its expiry. A later run inside the expiry
+ *  reuses the items instead of calling the source again. */
+export const researchCache = pgTable('research_cache', {
+  key: text('key').primaryKey(),
+  platform: text('platform').notNull(),
+  provider: text('provider').notNull(),
+  query: text('query').notNull(),
+  status: text('status').notNull(),
+  detail: text('detail').notNull().default(''),
+  itemIds: text('item_ids').array().notNull().default([]),
+  fetchedAt: ts('fetched_at').notNull(),
+  expiresAt: ts('expires_at').notNull(),
+}, (t) => [index('research_cache_expires_idx').on(t.expiresAt)]);
+
+/** A piece of evidence (src/domain/development.ts ResearchItem). Unique per platform + URL: a later fetch updates the
+ *  measurements and retrievedAt rather than duplicating it. */
+export const researchItems = pgTable('research_items', {
+  id: text('id').primaryKey(),
+  platform: text('platform').notNull(),
+  provider: text('provider').notNull(),
+  url: text('url').notNull(),
+  title: text('title').notNull(),
+  publishedAt: ts('published_at'),
+  retrievedAt: ts('retrieved_at').notNull(),
+  category: text('category').notNull(),
+  language: text('language'),
+  region: text('region'),
+  metrics: jsonb('metrics').$type<import('@/domain/development').ResearchMetrics>().notNull().default({}),
+  excerpt: text('excerpt'),
+  query: text('query').notNull(),
+  creator: text('creator'),
+}, (t) => [uniqueIndex('research_items_url_idx').on(t.platform, t.url), index('research_items_retrieved_idx').on(t.retrievedAt)]);
+
+/** One research run of one Auto Idea: the topics chosen, what every platform answered, the items used. */
+export const researchRuns = pgTable('research_runs', {
+  id: text('id').primaryKey(),
+  ideaJobId: text('idea_job_id'),
+  jobId: text('job_id'),
+  status: text('status').notNull(),
+  request: jsonb('request').$type<Record<string, unknown>>().notNull(),
+  topics: jsonb('topics').$type<import('@/domain/development').ResearchTopic[]>().notNull().default([]),
+  coverage: jsonb('coverage').$type<import('@/domain/development').ProviderCoverage[]>().notNull().default([]),
+  itemIds: text('item_ids').array().notNull().default([]),
+  reusedFromCache: integer('reused_from_cache').notNull().default(0),
+  limitations: text('limitations').array().notNull().default([]),
+  startedAt: ts('started_at').notNull(),
+  finishedAt: ts('finished_at'),
+}, (t) => [index('research_runs_idea_idx').on(t.ideaJobId)]);
+
+/** The versioned output of each development stage (research summary, audience analysis, concepts, draft, review).
+ *  A revision is a new row with the next version; nothing is overwritten. */
+export const developmentArtifacts = pgTable('development_artifacts', {
+  id: text('id').primaryKey(),
+  ideaJobId: text('idea_job_id').notNull(),
+  stage: text('stage').notNull(),
+  version: integer('version').notNull(),
+  agentId: text('agent_id').notNull(),
+  jobId: text('job_id'),
+  content: jsonb('content').$type<Record<string, unknown>>().notNull(),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [uniqueIndex('development_artifacts_stage_idx').on(t.ideaJobId, t.stage, t.version)]);

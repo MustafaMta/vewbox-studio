@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JOB_STATUSES, JOB_TYPES } from '@/domain/jobs';
+import { PROVIDER_STATUSES, RESEARCH_CATEGORIES, RESEARCH_PLATFORMS } from '@/domain/development';
 
 /** TYPED TOOL CONTRACTS (docs/CONTRACTS-PHASE2-STUDIO.md R4) — for every registered tool, the input a call site
  *  passes (`ctx.tool(id, fn, { input })`) and the output the provider function really returns. The tool runner
@@ -16,7 +17,7 @@ const bytes = z.custom<Buffer>((v) => Buffer.isBuffer(v), 'a byte buffer');
 
 // --------------------------------------------------------------------------------------- story.structured_answer
 
-export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan'] as const;
+export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan', 'audience-analysis', 'concepts', 'idea-draft', 'idea-review'] as const;
 export type StoryTask = (typeof STORY_TASKS)[number];
 
 /** What the story handlers ask the model for (the engine function and the records it works on). */
@@ -27,6 +28,8 @@ export const StructuredAnswerInput = z.strictObject({
   sceneIds: z.array(z.string().min(1)).optional(),
   /** AUTO_IDEA: what is proposed */
   kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']).optional(),
+  /** a development stage: the AUTO_IDEA job it belongs to */
+  ideaJobId: z.string().min(1).optional(),
 });
 
 const ProposalOut = z.looseObject({
@@ -64,8 +67,48 @@ const PlannedShotOut = z.looseObject({
 const ShotPlanOut = z.looseObject({ shots: z.array(PlannedShotOut).min(1), budget: z.number().positive(), maxShot: z.number().positive() });
 const PerformancePlanOut = z.array(z.looseObject({ sectionId: z.string(), mode: z.enum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL']), singerIds: z.array(z.string()), lines: z.array(z.looseObject({ singerId: z.string(), text: z.string() })).optional() }));
 
-const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut };
-export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut]);
+// the research-driven Auto Idea's stages (src/server/story/development/engine.ts), after the studio's own checks
+const confidence = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+const AudiencePatternOut = z.looseObject({ id: z.string().regex(/^P\d+$/), kind: z.string().min(1), pattern: z.string().min(1), evidenceIds: z.array(z.string().min(1)), measured: z.string().optional(), interpretation: z.string().min(1), confidence, limitations: z.string().optional() })
+  // a measurement always rests on a cited source; without one the pattern is craft knowledge, never HIGH
+  .refine((p) => !p.measured || p.evidenceIds.length > 0, 'a measured pattern cites its sources').refine((p) => p.evidenceIds.length > 0 || p.confidence !== 'HIGH', 'a pattern without evidence is at most MEDIUM');
+const AudienceAnalysisOut = z.looseObject({ audience: z.string().min(1), basis: z.enum(['EVIDENCE', 'CRAFT_ONLY']), patterns: z.array(AudiencePatternOut).min(1), cautions: z.array(z.string()) });
+const AudienceStageOut = z.looseObject({ analysis: AudienceAnalysisOut, downgraded: z.number().int().min(0), droppedRefs: z.number().int().min(0) });
+const ConceptOut = z.looseObject({ id: z.string().min(1), title: z.string().min(1), logline: z.string().min(1), hook: z.string().min(1), whyItWorks: z.string(), patternIds: z.array(z.string()), originalityNote: z.string(), risks: z.string() });
+const ConceptSetOut = z.looseObject({ concepts: z.array(ConceptOut).length(3), chosenId: z.string().min(1), rationale: z.string().min(1), originality: z.array(z.looseObject({ conceptId: z.string(), ok: z.boolean() })).length(3) })
+  // a concept that failed its originality check is never the chosen one
+  .refine((s) => s.originality.some((o) => o.conceptId === s.chosenId && o.ok), 'the chosen concept passed the originality check');
+const DraftContentOut = z.looseObject({ proposal: ProposalOut, hook: z.string().min(1), ending: z.string().min(1), strategy: z.enum(['SHORT_FOCUSED', 'SHOW_SERIAL', 'SEASON_CONTINUATION', 'EPISODE_CONTINUATION', 'MUSIC_FIRST']), draft: z.number().int().min(1).max(2), conceptId: z.string().min(1), answered: z.array(z.string()).optional() });
+const StoryReviewOut = z.looseObject({ reviewer: z.enum(['STORY_EDITOR', 'AUDIENCE_EXPERIENCE']), agentId: z.string().min(1), scores: z.record(z.string(), z.number().int().min(1).max(5)), issues: z.array(z.looseObject({ criterion: z.string(), severity: z.enum(['MINOR', 'MAJOR']), note: z.string(), fix: z.string() })), verdict: z.enum(['APPROVE', 'REVISE']), summary: z.string(), draft: z.number().int().min(1) })
+  // the verdict rule: a MAJOR issue means REVISE
+  .refine((r) => r.verdict === 'REVISE' || !r.issues.some((i) => i.severity === 'MAJOR'), 'a MAJOR issue means REVISE');
+
+const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut, 'audience-analysis': AudienceStageOut, concepts: ConceptSetOut, 'idea-draft': DraftContentOut, 'idea-review': StoryReviewOut };
+export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut, AudienceStageOut, ConceptSetOut, DraftContentOut, StoryReviewOut]);
+
+// ---------------------------------------------------------------------------------------------------- research
+
+const platform = z.enum(RESEARCH_PLATFORMS);
+const ResearchTopic = z.object({ query: z.string().min(1), platforms: z.array(platform), categories: z.array(z.enum(RESEARCH_CATEGORIES)), language: z.enum(['EN', 'AR']), region: z.string().optional(), reason: z.string().min(10) });
+const Coverage = z.object({ platform, provider: z.string().min(1), status: z.enum(PROVIDER_STATUSES), detail: z.string().min(1), queries: z.number().int().min(0), items: z.number().int().min(0), fetchedAt: z.string().optional(), cachedUntil: z.string().optional() });
+const metricsOf = z.strictObject({ views: z.number().optional(), likes: z.number().optional(), comments: z.number().optional(), shares: z.number().optional(), pageviews: z.number().optional(), rank: z.number().optional(), articles: z.number().optional(), periodDays: z.number().optional() });
+/** An item is a real link with its dates and only the source's own measurements: an http(s) URL, a retrieval time, an
+ *  excerpt of at most 200 characters (contract §3). */
+const ResearchItemOut = z.object({ id: z.string().min(1), platform, provider: z.string().min(1), url: z.url({ protocol: /^https?$/ }), title: z.string().min(1), publishedAt: z.string().optional(), retrievedAt: z.string().min(1), category: z.enum(RESEARCH_CATEGORIES), language: z.string().optional(), region: z.string().optional(), metrics: metricsOf, excerpt: z.string().max(200).optional(), query: z.string().min(1), creator: z.string().optional() });
+
+/** research.plan_topics: the request as the Trend Research Agent reads it. */
+export const ResearchPlanInput = z.strictObject({ ideaJobId: z.string().min(1), kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']), language: z.enum(['EN', 'AR']), dialect: z.string().optional(), style: z.string().optional(), genre: z.string().optional(), show: z.string().optional(), refresh: z.boolean() });
+export const ResearchPlanOutput = z.array(ResearchTopic).min(1).max(4);
+/** research.query_source: one platform, the planned topics. */
+export const ResearchQueryInput = z.strictObject({ platform, topics: z.array(ResearchTopic).min(1), refresh: z.boolean() });
+export const ResearchQueryOutput = z.looseObject({ coverage: Coverage, items: z.array(ResearchItemOut), reusedFromCache: z.number().int().min(0) })
+  .refine((r) => r.coverage.items === r.items.length, 'the coverage counts the items it returns')
+  .refine((r) => r.items.every((i) => i.platform === r.coverage.platform), 'items belong to the platform queried')
+  .refine((r) => r.items.length === 0 || ['OK', 'CACHED'].includes(r.coverage.status), 'only an answering platform returns items');
+/** research.store_evidence: what is recorded. */
+export const ResearchStoreInput = z.strictObject({ ideaJobId: z.string().min(1), platforms: z.array(platform).length(RESEARCH_PLATFORMS.length), items: z.number().int().min(0) });
+export const ResearchRunOutput = z.looseObject({ id: z.string().min(1), status: z.enum(['COMPLETE', 'PARTIAL', 'UNAVAILABLE', 'DISABLED']), topics: z.array(ResearchTopic), coverage: z.array(Coverage).length(RESEARCH_PLATFORMS.length), itemIds: z.array(z.string()), reusedFromCache: z.number().int().min(0), limitations: z.array(z.string()), startedAt: z.string(), finishedAt: z.string() })
+  .refine((r) => r.coverage.map((c) => c.platform).join() === RESEARCH_PLATFORMS.join(), 'coverage lists every platform in priority order');
 
 // ------------------------------------------------------------------------------------------------ ComfyUI graphs
 
@@ -217,6 +260,7 @@ export const SCHEMAS: Record<string, z.ZodType> = {
   CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
+  ResearchPlanInput, ResearchPlanOutput, ResearchQueryInput, ResearchQueryOutput, ResearchStoreInput, ResearchRunOutput,
 };
 
 export const CONTRACTS: Record<string, ToolContract> = {
@@ -239,6 +283,9 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'media.align_lag': { input: AlignLagInput, output: AlignLagOutput },
   'lyrics.align': { input: LyricsAlignInput, output: LyricsAlignOutput },
   'jobs.enqueue': { input: EnqueueInput, output: EnqueueOutput },
+  'research.plan_topics': { input: ResearchPlanInput, output: ResearchPlanOutput },
+  'research.query_source': { input: ResearchQueryInput, output: ResearchQueryOutput },
+  'research.store_evidence': { input: ResearchStoreInput, output: ResearchRunOutput },
 };
 
 /** The issues of a failed parse in one line (path: message; …), for the tool call record and the error. */
