@@ -170,6 +170,7 @@ export function ShowSkeleton() {
       <div className="shows-section">
         <SectionHeadSkeleton titleWidth="7rem" />
         <div className="show-seasons"><Skeleton.Block width={200} height={36} radius="sm" /></div>
+        <p className="t-body show-arc"><Skeleton.Line width="40rem" /> <Skeleton.Line width="12rem" /></p>
         <EpisodeGridSkeleton />
       </div>
       <div className="shows-section">

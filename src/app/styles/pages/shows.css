@@ -31,7 +31,6 @@
 
   /* the episode tile (the Shows experience's own, on the media tile's anatomy): still → 12 → words; one link */
   .ep-tile { display: flex; flex-direction: column; min-inline-size: 0; color: var(--text-1); text-decoration: none; border-radius: var(--r-md); }
-  .ep-tile:focus-visible { outline-offset: 3px; }
   .ep-tile-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; margin-block-start: 12px; }
   .ep-tile-syn { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-block-size: 40px; margin-block-start: 4px; }
   .ep-tile-stage { display: flex; align-items: center; gap: 10px; min-block-size: 18px; margin-block-start: 10px; }
@@ -89,7 +88,6 @@
   .ep-steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gutter); margin: 0; padding: 0; list-style: none; }
   .ep-steps > li { display: flex; min-inline-size: 0; }
   .ep-step { display: flex; flex: 1; flex-direction: column; gap: 4px; min-inline-size: 0; min-block-size: 112px; padding: 16px; color: var(--text-1); text-decoration: none; }
-  .ep-step:focus-visible { outline-offset: 3px; }
   .ep-step .status { margin-block-start: auto; }
   .shows-missing { align-items: flex-start; gap: 12px; margin-block-start: 24px; }
   .shows-missing > * { margin: 0; }

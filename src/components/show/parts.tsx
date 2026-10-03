@@ -56,7 +56,7 @@ export function CastCard({ f }: { f: FigureData }) {
  *  title, two reserved lines of synopsis, the stage meter and its words. One link. */
 export function EpisodeTile({ e, priority }: { e: EpisodeCardData; priority?: boolean }) {
   return (
-    <Link className="ep-tile" href={e.href} title={e.title}>
+    <Link className="ep-tile card-link" href={e.href} title={e.title}>
       <Frame asset={e.picture?.asset} src={e.picture?.src} ratio="16/9" fit="cover" alt="" art={artVars(e.picture?.asset)} title={e.title} titleLang={e.lang} titleState="notMade" number={e.number} decorative priority={priority} />
       <span className="ep-tile-words">
         <span className="t-label"><span className="num">Episode {e.number}</span>{e.runtime && <span className="count"> · {e.runtime}</span>}</span>

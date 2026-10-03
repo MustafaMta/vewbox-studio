@@ -59,7 +59,7 @@ export function EpisodeLobby({ show, season, p }: { show: Show; season?: Season;
             const state_ = done || i < at ? 'done' : i === at ? 'now' : 'next';
             return (
               <li key={st}>
-                <Link className="card card-hover ep-step" href={`${work}?tab=${STEP_TAB[st]}`} aria-current={state_ === 'now' ? 'step' : undefined}>
+                <Link className="card card-hover card-link ep-step" href={`${work}?tab=${STEP_TAB[st]}`} aria-current={state_ === 'now' ? 'step' : undefined}>
                   <span className="t-label"><span className="num">Step {i + 1}</span></span>
                   <span className="t-card name">{stageWords(st)}</span>
                   {state_ === 'done' ? <StatusWord tone="done">Done</StatusWord> : state_ === 'now' ? <StatusWord tone={stage.tone === 'waiting' ? 'waiting' : 'current'}>{stage.tone === 'waiting' ? 'Waiting for you' : 'Now'}</StatusWord> : <StatusWord tone="idle">Next</StatusWord>}
