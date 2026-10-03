@@ -78,7 +78,8 @@ export function KitSpecimen({ media }: { media?: ReactNode }) {
           <DensitySample label={T('kit.spec.density.compact')} compact />
         </div>
         <div className="kit-spec-pair">
-          <ContrastSample label={T('kit.spec.contrast.standard')} />
+          {/* the page as it is now (the switch above, or the system), beside a sample that is always More */}
+          <ContrastSample label={T.f('kit.spec.contrast.now', { value: effective })} />
           <ContrastSample label={T('kit.spec.contrast.more')} more />
         </div>
       </SpecSection>
