@@ -42,6 +42,7 @@ export function ProductionWorkspaceSkeleton() {
     <SkeletonRegion label="Opening the production…" className="ws ws-skeleton">
       <Room value="cutting" />
       <Bar />
+      <div className="ws-studioline" aria-hidden />
       <div className="ws-room" data-view="map">
         <Outline />
         <div className="ws-main">
@@ -71,6 +72,7 @@ export function ShotWorkspaceSkeleton() {
     <SkeletonRegion label="Opening the shot…" className="ws ws-skeleton">
       <Room value="cutting" />
       <Bar />
+      <div className="ws-studioline" aria-hidden />
       <div className="ws-room" data-view="shot">
         <Outline />
         <section className="ws-stage">

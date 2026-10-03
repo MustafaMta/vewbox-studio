@@ -41,8 +41,11 @@ for (const size of SIZES) {
     await cdp.send('Network.enable');
     // a returning producer: the app's code is in the browser's cache (the dev server's unminified bundles alone would
     // take minutes at 1.5 Mbps); the studio's data and every picture load on the throttled line
-    await page.goto(`${base}${pg.path}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.ws:not(.ws-skeleton)', { timeout: 240000 });
+    // the dev server can hand out a chunk mid-compile (ChunkLoadError): load again, three times at most
+    for (let attempt = 1; ; attempt++) {
+      try { await page.goto(`${base}${pg.path}`, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('.ws:not(.ws-skeleton)', { timeout: 90000 }); break; }
+      catch (e) { if (attempt >= 3) throw e; console.log(`  retrying ${pg.path}`); }
+    }
     await page.goto('about:blank');
     await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
     await page.addInitScript(() => {

@@ -135,7 +135,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
           {compare.length === 2 && <Button size="sm" icon={<IconCompare aria-hidden />} onClick={() => setComparing((c) => !c)} aria-pressed={comparing}>{comparing ? 'Stop comparing' : `Compare takes ${compare.map((id) => takeNo(shot.takes.find((t) => t.id === id)!)).join(' and ')}`}</Button>}
         </div>
 
-        <StatusRow p={p} shot={shot} running={running} paused={gate.paused} />
+        <StatusRow p={p} shot={shot} running={running} />
 
         <section className="ws-takes" aria-labelledby="ws-takes-h">
           <div className="ws-sub-head">
@@ -262,13 +262,13 @@ function ShotSwitcher({ p, shot, prev, next }: { p: Production; shot: Shot; prev
 
 /** The status row (§8.11): what is being made for this shot now, with its real phase, elapsed time and Cancel; or
  *  nothing running and what a take here took; or the paused studio. */
-function StatusRow({ p, shot, running, paused }: { p: Production; shot: Shot; running?: Job; paused: boolean | null }) {
+function StatusRow({ p, shot, running }: { p: Production; shot: Shot; running?: Job }) {
   const expect = expectationWords(p, shot.id);
   if (running) return <div className="ws-status"><RunningRow job={running} p={p} expect={running.type === 'GENERATE_TAKE' ? expect : null} /></div>;
   return (
     <p className="ws-status ws-status-idle">
       <span className="state-dot" data-tone="idle" aria-hidden />
-      {paused ? 'Nothing is being made: the studio is paused, and a new take waits in the queue until it resumes.' : 'Nothing is being made for this shot now.'}
+      Nothing is being made for this shot now.
       {expect && <span className="t-meta"> · {expect.charAt(0).toUpperCase() + expect.slice(1)}</span>}
     </p>
   );

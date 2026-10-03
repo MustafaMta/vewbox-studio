@@ -41,21 +41,21 @@ export function useStudioGate(): StudioGate {
   };
 }
 
-/** The studio's state as one line above the workspace, only when it is not ready: paused (new takes wait), or an engine
- *  offline. Its one action opens the Studio Company, where the producer resumes it. */
+/** The studio's state as one line above the workspace: paused (new takes wait), an engine offline, or ready. The line
+ *  always holds its place (an empty line while the server has not answered), so its answer never moves the room. Its
+ *  one action opens the Studio Company (resume) or the engines. */
 export function StudioLine({ gate, engines = ['video', 'images', 'voice'] }: { gate: StudioGate; engines?: Engine[] }) {
   const down = engines.filter((e) => gate.offline(e));
-  if (!gate.paused && down.length === 0) return null;
   const NAMES: Record<Engine, string> = { video: 'video', images: 'pictures', voice: 'voices', story: 'story', music: 'music' };
   return (
     <div className="ws-studioline" role="status">
-      <span className="state-dot" data-tone={gate.paused ? 'idle' : 'failed'} aria-hidden />
-      {gate.paused ? (
+      {gate.paused !== null && <span className="state-dot" data-tone={gate.paused ? 'idle' : down.length ? 'failed' : 'done'} aria-hidden />}
+      {gate.paused === null ? <span className="ws-studioline-words" /> : gate.paused ? (
         <span className="ws-studioline-words"><span className="ws-long">The studio is paused. You can edit and choose; new takes wait until you resume it.</span><span className="ws-short">Paused · new takes wait</span></span>
-      ) : (
+      ) : down.length === 0 ? <span className="ws-studioline-words">The studio is ready: a new take starts when you ask for one.</span> : (
         <span className="ws-studioline-words">The engines for {down.map((e) => NAMES[e]).join(' and ')} are offline. You can edit and choose; nothing new can be made until they are back.</span>
       )}
-      <Link className="ws-studioline-link" href={gate.paused ? '/studio' : '/settings#engines'}>{gate.paused ? 'Resume in the Studio Company' : 'Engines'}</Link>
+      {gate.paused !== null && <Link className="ws-studioline-link" href={gate.paused ? '/studio' : '/settings#engines'}>{gate.paused ? 'Resume in the Studio Company' : 'Engines'}</Link>}
     </div>
   );
 }
@@ -66,7 +66,8 @@ export function GenButton<K extends JobType>({ gate, engine, type, payload, targ
   gate: StudioGate; /** the engine the job needs; none for work the studio's own machine does (assembling, exporting) */ engine?: Engine; type: K; payload: JobPayload<K>; target: { productionId?: string; shotId?: string }; children: ReactNode; icon?: ReactNode;
   variant?: 'primary' | 'secondary' | 'quiet'; size?: 'sm' | 'xs'; /** a reason of the page's own (a gate, missing frames) */ disabled?: boolean; reason?: string | null; confirm?: string; className?: string; /** repeated in a list: the reason is said to assistive technology and in the tooltip, the page's studio line says it once */ compact?: boolean;
 }) {
-  const why = (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
+  // while the server has not answered, the control waits in its disabled shape (no layout change when it answers paused)
+  const why = gate.paused === null ? 'Checking whether the studio can take new work…' : (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
   return (
     <span className={cls('ws-gen', className)}>
       <JobButton type={type} payload={payload} target={target} variant={variant} size={size} icon={icon} disabled={Boolean(why) || disabled} title={why ?? undefined} confirm={confirm}>{children}</JobButton>
