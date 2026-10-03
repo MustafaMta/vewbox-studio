@@ -1,0 +1,14 @@
+[
+  {
+    "id": "definition-list",
+    "impact": "serious",
+    "help": "<dl> elements must only directly contain properly-ordered <dt> and <dd> groups, <script>, <template> or <div> elements",
+    "nodes": 1
+  },
+  {
+    "id": "dlitem",
+    "impact": "serious",
+    "help": "<dt> and <dd> elements must be contained by a <dl>",
+    "nodes": 8
+  }
+]

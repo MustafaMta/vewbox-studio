@@ -1,0 +1,8 @@
+[
+  {
+    "id": "role-img-alt",
+    "impact": "serious",
+    "help": "[role=\"img\"] and [role=\"image\"] elements must have alternative text",
+    "nodes": 1
+  }
+]
