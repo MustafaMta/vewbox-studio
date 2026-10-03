@@ -22,83 +22,66 @@ The worker never loads both H3 variants at once (the GPU lease switches families
 
 | Purpose | Model | Files | Licence |
 |---|---|---|---|
-| Character sheets, location views, storyboard frames (edit from up to 3 references) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), `qwen_2.5_vl_7b_fp8_scaled` encoder (9.4 GB), `qwen_image_vae`, Lightning 4-step LoRA | Apache-2.0 |
-| Text to image (portraits, plates from nothing) | Qwen-Image-2512 | `qwen_image_2512_fp8_e4m3fn` (20.4 GB), same encoder/VAE, Lightning 8-step LoRA | Apache-2.0 |
-| Camera control for derived character views (`<sks> {azimuth} {elevation} {distance}`, 96 poses) | fal Qwen-Image-Edit-2511 Multiple-Angles LoRA | `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (295 MB) | Apache-2.0 |
-| Face detection for reference validation and face crops (ComfyUI core `MediaPipeFaceLandmarker`) | MediaPipe BlazeFace + Face Landmarker (Comfy-Org/mediapipe) | `detection/mediapipe_face_fp32.safetensors` (5.4 MB) | Apache-2.0 |
+| The canonical character image from text; plates from nothing | Qwen-Image-2512 | `qwen_image_2512_fp8_e4m3fn` (20.4 GB), `qwen_2.5_vl_7b_fp8_scaled` encoder (9.4 GB), `qwen_image_vae`; Lightning 8-step LoRA for drafts and plates | Apache-2.0 |
+| The canonical image from the producer's picture; location views, storyboard frames, optional secondary material (edit from up to 3 references) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), same encoder/VAE, Lightning 4-step LoRA (849 608 296 B, sha256 `22226e8d…904f`) | Apache-2.0 |
+| Reading the producer's picture (Image Reference): the description the identity line is written from | Qwen3.5-4B in core `TextGenerate` (`CLIPLoader` → `TextGenerate`, greedy) | `text_encoders/qwen3.5_4b_bf16.safetensors` (9 319 828 320 B, sha256 `9fb3ae42…0841`, Comfy-Org/Qwen3.5 rev `5d50a225`), group `images-vlm` | Apache-2.0 |
+| Face box of the producer's picture (the face crop given to the redraw; upload validation) | MediaPipe BlazeFace + Face Landmarker (Comfy-Org/mediapipe), core `MediaPipeFaceLandmarker` | `detection/mediapipe_face_fp32.safetensors` (5.4 MB) | Apache-2.0 |
+| Camera control for optional secondary views (`<sks> {azimuth} {elevation} {distance}`) — not used by default | fal Qwen-Image-Edit-2511 Multiple-Angles LoRA | `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (295 MB) | Apache-2.0 |
 
 Three visual directions (Cartoon, Anime, Realistic) are prompt languages on the same models (`src/server/story/style.ts`),
 so a character keeps one identity across productions and directions are genuinely different in design, lighting and camera.
 
-### Character identity pipeline (wave 2, `src/server/workflows/qwen-image.ts`, `src/worker/handlers/images.ts`)
+### The canonical character image (`src/server/workflows/canonical-image.ts`, `src/worker/handlers/images.ts`)
 
-Research and the drift evidence: `docs/research/CHARACTER-IMAGE-STACK.md`. What is implemented:
+Contract: `docs/CONTRACTS-IDENTITY-PACK.md` (v2) — one character = ONE canonical front full-body image + one voice.
+Evidence, A/B and per-image notes: `docs/evidence/image-v2/REPORT.md`.
 
-| Step | Graph (registry template) | Mode | References, in order | Output |
+| Mode | Graph (registry template) | Settings | Inputs | Measured (RTX 5090) |
 |---|---|---|---|---|
-| Portrait | `qwen-image.t2i` (or `qwen-image.edit` from an upload) | Lightning | — (or the validated upload) | 1024×1280, seed = the character's identity seed |
-| Identity sheet | `qwen-image.identity-sheet` (`qwenIdentitySheet`) | **quality**: no Lightning, 24 steps, cfg 4.0, euler/simple, shift 3.1 | image1 = portrait, image2 = face crop (cut in the graph from the centre-top of the normalised portrait, upscaled to 1024²) | one 1664×1216 sheet, cut by `ImageCrop` into FRONT / THREE_QUARTER / SIDE / BACK tiles of 416×1216, plus the face crop: six files from one run |
-| Derived views (FULL_BODY, EXPRESSION, OUTFIT, or a redrawn tile) | `qwen-image.view` (`qwenView`) | Lightning (+ Multiple-Angles LoRA at 1.0 when present in `/models/loras`) | image1 = FRONT tile, image2 = face crop, image3 = the sheet — always this order | per `VIEW_SPEC` (full body 832×1472, expressions 1280², …), seed = identity seed + the view's offset; a redraw bumps the previous seed by one |
-| Shot frames | `qwen-image.edit` | Lightning | image1 = plate, image2/3 = each character's FRONT tile (fallback portrait); a lone character also gets the face crop | as before |
-| Face check | `qwen-image.face-check` (`faceCheck`) | — | the picture | bounding boxes as text (`PreviewAny`), optional face-oval mask |
+| Auto / Manual | `qwen-image.canonical` (`qwenCanonicalImage`) | **quality**: no Lightning, 30 steps, cfg 4, euler/simple, shift 3.1, negative with the style's "not this medium" words | the prompt: medium first → whole-figure framing → English identity line → style direction → avoid list | 928×1664; 42 s engine warm (≈ 6–9 s with the Lightning draft `qwen-image.canonical-draft`) |
+| Image Reference — read | `qwen3.5.reference-read` (`referenceReadGraph`) | MediaPipe (`detector_variant` both, min confidence 0.5) + Qwen3.5-4B (sampling off, thinking off, ≤ 900 tokens) in one prompt | the validated upload | see REPORT §4 |
+| Image Reference — redraw | `qwen-image.canonical-reference` (`qwenReferenceCanonical`) | Edit-2511 **quality**: 24 steps, cfg 4 | image1 = the upload, image2 = its face (one detected face → square crop with 25 % margin, chin-safe, cut in the graph and scaled to 1024²) | see REPORT §4 |
 
-- **Identity line** (`identityLine(c)` in `src/server/workflows/identity.ts`): the fixed tokens that drifted in the first
-  sheets — hair, eyes, skin, build, wardrobe, every distinguishing mark, accessories, visual restrictions — written once
-  and repeated verbatim in the portrait, sheet, view and frame prompts. Stored on `character.canon.identityLine`
-  (editable; a stored line wins). **Identity seed** (`identitySeedFor(c)`): `canon.identitySeed`, else FNV-1a of the id.
-- Provenance on every asset: model, LoRAs, prompt, seed, the asset ids of the references given to the model, the
-  workflow version, the ComfyUI prompt id and engine time. Every `CharacterRef` carries `view`, `references`, `seed`.
-  The activity feed says which references were used for each picture.
-- An uploaded reference is validated on the CPU (`src/server/media/image-check.ts`: short side ≥ 512, ≤ 24 MP,
-  Laplacian-variance sharpness ≥ 30; face detection is **not** available on the CPU in this build) and
-  `CHARACTER_APPEARANCE` refuses an unusable one with `MISSING_REFERENCE` instead of drawing from text.
-- `CHARACTER_APPEARANCE` queues `CHARACTER_REFS` as a child (key `appearance:${jobId}:refs`) unless it is itself a child
-  of an orchestrating job (`CREATE_CHARACTER` queues its own sheet step). A redraw never deletes the previous portrait,
-  sheet or tiles; a full pack replaces the refs list, a partial redraw (`roles`) replaces only those roles.
+- **Identity line** (`canonicalIdentityLine`, or `identityLineFromDescription` for a picture): English, style first, then
+  sex and age ("a man of about 70"), build, face, hair, eyes, skin, every garment with its colour, distinguishing details,
+  accessories, restrictions. A piece in another script is left out and reported (`nonLatin`), never sent to the model; a
+  look written only in another script is refused with a reason. Recorded on the canonical image (`identityLine`).
+- **Framing check** (`src/server/media/figure-check.ts`, CPU): the background is flooded from the border; the figure's box
+  must keep clear of the top and bottom edges and fill ≥ 55 % of the height. A failing picture is redrawn once with the
+  next seed (the first stays in the library as RAW), then left for the producer with the reason (approval then needs
+  an override). On the A/B set it passed 36/36 canonical pictures and failed 12/12 deliberately cut ones.
+- **Seed**: the character's identity seed (`identitySeedFor`) + the version it replaces, so a redraw is a new picture.
+- Provenance on every asset: model, prompt, negative, seed, references, workflow version, ComfyUI prompt id, engine time,
+  the framing result; from a picture also the face box, the description and the reading model. `setCanonicalImage`
+  records job, seed, reference, engine, identity line and check; the image is a DRAFT until the producer approves it.
+- **Secondary material** (`CHARACTER_REFS`): only on request, drawn from the canonical image with the wave-2 sheet and
+  view graphs (`qwen-image.identity-sheet`, `qwen-image.view`), stored with tier `SECONDARY`. Known limitation: the
+  sheet graph's built-in face crop still assumes a head-and-shoulders portrait (default box, y 0–45 %).
 
-#### One-off fetch of the two identity helpers (no fetcher image rebuild)
+#### The detection folder (corrected 2026-10-03)
 
-The manifest group `images-qwen-identity` is not in the compose `MODEL_GROUPS` default; fetch it once into the
-`vewbox_models` volume (the ComfyUI container mounts it at `/models`), as root because the volume is root-owned:
+ComfyUI only reads the folders listed in `docker/comfyui/extra_model_paths.yaml`; `detection` (and `clip_vision`,
+`controlnet`, `style_models`, `background_removal`) were missing, so `LoadMediaPipeFaceLandmarker` listed nothing although
+`/models/detection/mediapipe_face_fp32.safetensors` existed. The earlier note here ("a cache that refreshes on the next
+start") was wrong: a restart alone does not fix it. The yaml now lists them and `compose.yaml` bind-mounts it from the
+repo, so a new model folder needs a `comfyui` restart, not an image rebuild. On 2026-10-03 the corrected file was copied
+into the running container and `comfyui` alone was restarted (queue empty, no image job active); `/models/detection`
+then listed the MediaPipe file and `/object_info/LoadMediaPipeFaceLandmarker` offered it. After this branch is merged,
+`docker compose up -d --no-deps comfyui` (from the main checkout) makes the bind mount effective.
 
-```powershell
-docker run --rm --user 0:0 -v vewbox_models:/models curlimages/curl:8.11.1 -sSL --fail --create-dirs -o /models/detection/mediapipe_face_fp32.safetensors "https://huggingface.co/Comfy-Org/mediapipe/resolve/main/detection/mediapipe_face_fp32.safetensors"
-docker run --rm --user 0:0 -v vewbox_models:/models curlimages/curl:8.11.1 -sSL --fail --create-dirs -o /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors "https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA/resolve/main/qwen-image-edit-2511-multiple-angles-lora.safetensors"
-docker run --rm -v vewbox_models:/models alpine:latest sha256sum /models/detection/mediapipe_face_fp32.safetensors /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors
-```
+#### Downloaded but not wired (left on the models volume)
 
-Expected hashes (the Hub's LFS oids, also in the manifest): `a98c4806…888a` (mediapipe), `42426ded…6765` (LoRA). Done on
-2026-10-02: both verified; `GET /models/loras` listed the LoRA at once, `GET /models/detection` still answered `[]`
-because ComfyUI cached the folder listing while the folder did not exist — it refreshes on the next ComfyUI start
-(or when the folder's mtime changes again); `node scripts/check-comfy-nodes.mjs` reports it until then.
-`docker compose --profile models run --rm -e MODEL_GROUPS=images-qwen-identity models` does the same through the fetcher.
+Fetched on 2026-10-03 for an identity-similarity check across views; with one canonical image there is nothing to
+compare, so they are **not used**, no Node dependency (onnxruntime-node) was added, and their manifest group was
+removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /models/identity` if the space is needed.
 
-#### GPU test plan — identity sheet A/B (run only when the architect says the GPU is free)
-
-Subjects: **Nadia** `char-69c05af166` and **Abu Kareem** `char-7d1a3d6880` (both CARTOON, portraits and six old
-per-view refs exist, so the "before" set is already in the library: keep it, nothing is deleted).
-
-1. Preflight (read-only): `node scripts/check-comfy-nodes.mjs` must show every template valid and
-   `detection/mediapipe_face_fp32.safetensors` present; `GET /models/loras` must list the Multiple-Angles LoRA.
-2. For each character queue `CHARACTER_REFS` with no `roles` (the full pack: sheet → tiles → FULL_BODY, EXPRESSION).
-   Expect one quality-mode sheet pass (watch `image.generation_ms` with `sheet: 1`; estimate 1.5–3 min, note the real
-   number and ComfyUI's `engineMs`) and two Lightning view passes (~12–20 s each with three references).
-3. Record in the VRAM table below: sheet pass seconds and peak VRAM (`/system_stats` during the run), derived-view
-   seconds with three references and the LoRA.
-4. Compare, per character, the new tiles against the old per-view refs (`refs` before the job: FRONT, THREE_QUARTER,
-   SIDE, FULL_BODY, EXPRESSION drawn from the portrait alone). Look at, in this order: facial hair state (Abu Kareem:
-   "No mustache" is a visual restriction — it must hold in all four tiles and the full body), hair length and tie,
-   shoe colour, accessory presence (Nadia: locket and gloves in every view; Abu Kareem: keychain, antenna pin), fabric
-   pattern layout, head-to-body ratio between tiles, and whether the portrait's pose or props leaked into the views.
-   Then the expression grid: four heads of the same face, no body, no props.
-5. Pass = every tile shows the same person with the identity-line tokens all present and unchanged (no beard/shoe/
-   accessory flips) and the derived views keep them too; the old set is the baseline that failed on these very
-   tokens. Fail = any token flips between tiles, a tile is not the view it is labelled (profile not a profile), or
-   the sheet collapses into fewer than four figures. Partial = tiles agree but a derived view drifts: then redraw the
-   view once with the LoRA off (`angleLora` false) to tell the LoRA's effect from the reference order's.
-6. Face check: run `qwen-image.face-check` on each tile; expect exactly one box per tile with height ≥ 18 % of the
-   tile; record the box text in the asset provenance for the next wave's identity metric.
-7. Write the outcome with the asset ids and the activity lines into `docs/evidence/identity-sheet-ab.md`.
+| File (volume path) | Bytes | sha256 | Licence |
+|---|---|---|---|
+| `identity/face_detection_yunet_2023mar.onnx` (opencv/face_detection_yunet) | 232 589 | `8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4` | MIT |
+| `identity/face_recognition_sface_2021dec.onnx` (opencv/face_recognition_sface) | 38 696 353 | `0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79` | Apache-2.0 |
+| `identity/dinov2-small/model.onnx` (Xenova/dinov2-small) | 88 459 888 | `83141175ec78b4ff9a2bb58a4c7c264ba0054d1c2e122e5a8114b79a8d4179ea` | Apache-2.0 |
+| `identity/ccip/model_feat.onnx`, `model_metrics.onnx`, `metrics.json` (deepghs/ccip_onnx, caformer-24-randaug-pruned) | 150 248 245 + 1 649 + 147 | `4ea118d1…ac5f`, `7e4646fd…25c1`, `b5535577…52d4` | **OpenRAIL** — use restrictions travel with the model (no unlawful, discriminatory, defamatory or privacy-violating use, among others); any future use must pass them on |
+| `loras/Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors` (lightx2v, rev `d74eba14`) | 849 608 296 | `a9e81a58a78f260f67b337a6f615e8fa4cd3bc79847c77b7d61a581b789b1ba8` | Apache-2.0 (a "balanced" mode for the old sheet; unused) |
 
 ## Voices and transcription
 
@@ -174,8 +157,9 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 |---|---|---|
 | MiniMax H3 fl2va int8 + nvfp4 encoder | 22–32 GB card total while generating (DiT staged dynamically, 20 GB); 60–95 s per 3.75–5.9 s clip at 1344×768, 8 turbo steps ≈ 7 s each | 1 (ComfyUI serialises) |
 | Qwen-Image-Edit fp8 + encoder fp8 (Lightning) | engine time from `/history`: T2I 8 steps 1024×1280 11.5 s warm (75 s with the first load); Edit 4 steps, 1 reference, 1024×1280 18–22 s; 3 references 1344×768 12–13.5 s; VRAM peak not yet recorded | 1 |
-| Qwen-Image-Edit fp8, quality mode (identity sheet: 24 steps, cfg 4, 1664×1216, 2 references) | to be measured in the GPU test plan above (estimate 1.5–3 min) | 1 |
-| Qwen-Image-Edit fp8 + Multiple-Angles LoRA (derived view, 3 references) | to be measured in the GPU test plan above | 1 |
+| Qwen-Image-2512 fp8, quality mode (the canonical image: 30 steps, cfg 4, 928×1664) | 42 s engine warm (41.8–42.2 s over 12 runs); Lightning 8-step draft at the same size 6–9 s; card total sampled at 1 Hz 29.6–31.7 GB while ComfyUI kept both Qwen models and the encoder resident (voice/ASR unloaded) | 1 |
+| Qwen-Image-Edit fp8, quality mode (secondary 3-view sheet: 24 steps, cfg 4, 1728×1216, 2 references) | 140–141 s engine (3 runs, 2026-10-03); card total ≤ 30.8 GB | 1 |
+| Qwen-Image-Edit fp8 + Multiple-Angles LoRA (secondary view, 3 references, 832×1472) | 12.9–15.3 s engine (6 runs); four expressions in one prompt 47.6–49.2 s | 1 |
 | IndexTTS 2.5 / Habibi | one line each on 2026-10-03 (docs/evidence/voice-design/report.json): IndexTTS card total 3.5 → 9.5 GB while loaded (≈ 6 GB), 15.8 s for load + a 5.7 s line; Habibi IRQ 3.5 → 4.3 GB after one 3.3 s line, 18.8 s with a 17 s load. Not yet a full measurement | 1 (unloads on request) |
 | VoxCPM2 (voice design, bf16, eager) | 5.2 GB allocated / 6.4 GB reserved peak (≈ 7 GB of the card with its CUDA context); 18 s load (33 s cold); 3.3–7.2 s per candidate of 6.6–15 s audio; ≈ 0.63 GB context stays after `/unload` until restart | 1 (unloads on request) |
 | ECAPA (speaker embeddings) | CPU only: ~8 s first load, ~0.2 s per pair of 10 s clips | — |

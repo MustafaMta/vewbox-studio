@@ -32,7 +32,7 @@ export interface GrayImage { data: Uint8Array; width: number; height: number }
 
 /** Decode a picture to 8-bit greyscale, downscaled so the long side is at most `maxSide` (the sharpness measure is
  *  compared at one scale). */
-export async function grayPixels(file: string, maxSide = REFERENCE_RULES.analysisSide, size?: { width: number; height: number }): Promise<GrayImage> {
+export async function grayPixels(file: string, maxSide: number = REFERENCE_RULES.analysisSide, size?: { width: number; height: number }): Promise<GrayImage> {
   const p = size ?? await ffprobe(file);
   const w0 = Number(p.width) || 0, h0 = Number(p.height) || 0;
   if (!w0 || !h0) throw new Error('the picture has no dimensions');

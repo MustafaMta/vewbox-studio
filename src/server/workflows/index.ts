@@ -18,6 +18,9 @@ export const MODELS = {
   qwenMultiAngleLora: 'qwen-image-edit-2511-multiple-angles-lora.safetensors',
   /** MediaPipe BlazeFace + landmarker weights (Comfy-Org/mediapipe, models/detection), 5.4 MB */
   mediapipeFace: 'mediapipe_face_fp32.safetensors',
+  /** Qwen3.5-4B (Comfy-Org/Qwen3.5, Apache-2.0, 9.3 GB) — a vision-language model run by core `TextGenerate`; used
+   *  only to describe an uploaded reference picture (Image Reference mode) */
+  vlm: 'qwen3.5_4b_bf16.safetensors',
   // local MiniMax H3
   h3Fl2va: 'minimax_h3_fl2va_pruned_int8_convrot.safetensors',
   h3Ref2va: 'minimax_h3_ref2va_pruned_int8_convrot.safetensors',
@@ -54,5 +57,7 @@ export const snap = (n: number, m: number) => Math.max(m, Math.round(n / m) * m)
 export { qwenTextToImage, qwenEdit, qwenIdentitySheet, qwenView, faceCheck, SHEET_OUTPUTS, SHEET_TILES, FACE_CHECK_OUTPUTS, VIEW_SPEC, DEFAULT_FACE_BOX } from './qwen-image';
 export type { ViewRole, FaceBox } from './qwen-image';
 export { identityLine, identitySeedFor, seedFromId, sheetPrompt, viewPrompt, VIEW_SEED_OFFSET } from './identity';
+// the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2; handler calls: CHARACTER-IMAGE-V2-INTEGRATION.md)
+export * from './canonical-image';
 export { minimaxH3Video, h3FrameCount } from './minimax-h3';
 export { aceStepSong, minimaxMusic3Song } from './music';

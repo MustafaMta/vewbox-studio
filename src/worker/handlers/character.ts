@@ -12,14 +12,16 @@ import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
 
 /** CREATE A CHARACTER — the one job behind the three starts of the character page (contract §1.1): Describe (AUTO),
  *  Write the sheet (MANUAL), From a picture (REFERENCE). It runs the chain as durable child jobs — design (only when
- *  fields are missing) → appearance → reference sheet → voice (only when a reference exists) — each with the key
+ *  fields are missing) → the canonical image (CHARACTER_APPEARANCE: one front full-body picture, contract v2) → voice
+ *  (only when a reference exists) — each with the key
  *  `create:${jobId}:${step}` and this job as parent, so a restart adopts the children already queued and never
  *  runs a step twice. Progress is `step/total` over the real phases. Partial success keeps the record: the result
  *  lists every step as done, skipped (why) or failed (class, message); nothing is reported done that did not happen. */
 
-const STEPS: CreateCharacterStep[] = ['design', 'appearance', 'sheet', 'voice'];
+/** design → image → voice (contract v2: no sheet or extra views by default; "appearance" is the canonical-image step). */
+const STEPS: CreateCharacterStep[] = ['design', 'appearance', 'voice'];
 const CHILD_TYPE: Record<CreateCharacterStep, JobType> = { design: 'DESIGN_CHARACTER', appearance: 'CHARACTER_APPEARANCE', sheet: 'CHARACTER_REFS', voice: 'VOICE_BUILD' };
-const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the portrait', sheet: 'Drawing the reference sheet', voice: 'Building the voice' };
+const LABEL: Record<CreateCharacterStep, string> = { design: 'Designing the character', appearance: 'Drawing the character image', sheet: 'Drawing secondary material', voice: 'Building the voice' };
 /** The DESIGN_CHARACTER payload's brief limit (src/domain/jobs.ts). */
 const BRIEF_MAX = 2000;
 /** In REFERENCE mode the look fields are the picture's: they count as present when deciding whether to design. */
@@ -144,26 +146,26 @@ export const createCharacter: Handler = async (ctx) => {
     c = await fresh();
   }
 
-  // 2) APPEARANCE and 3) SHEET — drawn unless the request said not to; the sheet needs the portrait
+  // 2) IMAGE — the one canonical front full-body image, drawn unless the request said not to; nothing else is drawn
+  //    (secondary material is a CHARACTER_REFS request of its own, never part of creation)
   const draw = payload.draw !== false;
-  if (!draw) { skip('appearance', 'not requested (draw: false)'); skip('sheet', 'not requested (draw: false)'); }
+  if (!draw) skip('appearance', 'not requested (draw: false)');
   else {
     const toDraw = c;
-    const pre = await step(ctx, 'executive-producer', `character-preflight: portrait of ${c.name}`, async () => preflightCharacter((await readState()).state, toDraw, 'CHARACTER_APPEARANCE'));
+    const pre = await step(ctx, 'executive-producer', `character-preflight: canonical image of ${c.name}`, async () => preflightCharacter((await readState()).state, toDraw, 'CHARACTER_APPEARANCE'));
     if (!pre.ok) {
       const failed = pre.checks.filter((x) => !x.ok);
       steps.push({ step: 'appearance', status: 'failed', reason: failed.map((x) => x.detail ?? x.name).join('; '), failureClass: failed[0].failureClass });
-      skip('sheet', 'no portrait to draw the views from');
     } else {
       const drawn = await runStep(ctx, chain, 'appearance', { characterId: c.id }, 1);
-      steps.push(outcomeOf('appearance', drawn));
+      const out = outcomeOf('appearance', drawn);
+      // a drawn image is a DRAFT: the step is done and the image awaits the producer's approval
+      steps.push(out.status === 'done' && drawn.status === 'COMPLETED' ? { ...out, reason: out.reason ?? 'canonical image drawn — awaiting your approval' } : out);
       c = await fresh();
-      if (drawn.status === 'COMPLETED' && c.portraitAssetId) { const sheet = await runStep(ctx, chain, 'sheet', { characterId: c.id }, 2); steps.push(outcomeOf('sheet', sheet)); }
-      else skip('sheet', 'no portrait to draw the views from');
     }
   }
 
-  // 4) VOICE — only from a real reference; a new character without one has "no voice yet", and the result says why
+  // 3) VOICE — only from a real reference; a new character without one has "no voice yet", and the result says why
   const voice = payload.voice;
   if (!voice || voice.mode === 'NONE') skip('voice', 'no voice requested');
   else {
@@ -177,13 +179,17 @@ export const createCharacter: Handler = async (ctx) => {
       if (missing) skip('voice', `no voice yet: ${failed.map((x) => x.detail ?? x.name).join('; ')}`);
       else steps.push({ step: 'voice', status: 'failed', reason: failed.map((x) => x.detail ?? x.name).join('; '), failureClass: failed[0].failureClass });
     } else {
-      const built = await runStep(ctx, chain, 'voice', vp, 3);
+      const built = await runStep(ctx, chain, 'voice', vp, 2);
       steps.push(outcomeOf('voice', built));
     }
   }
 
   const failed = steps.filter((s) => s.status === 'failed');
   const result: CreateCharacterResult = { characterId, steps };
-  await ctx.activity(failed.length ? 'CHARACTER_CREATED_PARTIAL' : 'CHARACTER_CREATED', `${c.name}: ${steps.map((s) => `${s.step} ${s.status}${s.reason ? ` (${s.reason.slice(0, 60)})` : ''}`).join(', ')}`, { characterId, steps });
-  return { ...result, awaitingReview: failed.length > 0 || steps.some((s) => s.reason === 'awaiting review') };
+  c = await fresh();
+  // the character's identity is its canonical image, a DRAFT until the producer approves it
+  const awaitingApproval = c.canonicalImage?.status === 'DRAFT';
+  const message = `${c.name}: ${steps.map((s) => `${s.step === 'appearance' ? 'image' : s.step} ${s.status}`).join(', ')}${awaitingApproval ? ' — awaiting your approval' : ''}`;
+  await ctx.activity(failed.length ? 'CHARACTER_CREATED_PARTIAL' : 'CHARACTER_CREATED', `${c.name}: ${steps.map((s) => `${s.step === 'appearance' ? 'image' : s.step} ${s.status}${s.reason ? ` (${s.reason.slice(0, 60)})` : ''}`).join(', ')}${awaitingApproval ? ' — awaiting your approval' : ''}`, { characterId, steps, canonicalImage: c.canonicalImage ? { assetId: c.canonicalImage.assetId, status: c.canonicalImage.status, version: c.canonicalImage.version } : undefined });
+  return { ...result, message, awaitingApproval, canonicalAssetId: c.canonicalImage?.assetId, awaitingReview: failed.length > 0 || steps.some((s) => s.reason === 'awaiting review') };
 };

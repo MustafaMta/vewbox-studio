@@ -5,6 +5,7 @@ import { step } from './step';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
+import { primaryImageOf } from '@/domain/identity';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -47,7 +48,7 @@ export const generateTake: Handler = async (ctx) => {
   // succeed: a failed check is a classified failure the producer corrects, not an attempt the engine burns
   await step(ctx, 'executive-producer', `take-preflight: shot ${sh.number}`, async () => {
     const preflight = preflightTake(state, p, sh, { backend, customPrompt: Boolean(payload.prompt) });
-    await ctx.event(preflight.ok ? 'info' : 'error', `preflight ${preflight.ok ? 'passed' : 'FAILED'}`, { checks: preflight.checks });
+    await ctx.event(preflight.ok ? (preflight.warnings.length ? 'warn' : 'info') : 'error', `preflight ${preflight.ok ? (preflight.warnings.length ? `passed with ${preflight.warnings.length} warning(s): ${preflight.warnings.map((w) => w.detail ?? w.name).join('; ').slice(0, 300)}` : 'passed') : 'FAILED'}`, { checks: preflight.checks, warnings: preflight.warnings });
     if (!preflight.ok) {
       const failed = preflight.checks.filter((c) => !c.ok);
       throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
@@ -163,10 +164,11 @@ export const generateTake: Handler = async (ctx) => {
   }
   if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
 
-  // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the usable portrait of each character in the shot
-  // (at most four, in the shot's order); a bundled sample or an SVG is never an identity reference
+  // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the primary image of each character in the shot (the
+  // canonical front full-body image, else a legacy portrait; at most four, in the shot's order); a bundled sample or an
+  // SVG is never an identity reference
   const identity: Array<{ characterId: string; asset: Asset }> = sh.characterIds.length
-    ? await step(ctx, 'character-continuity', `identity-handoff: shot ${sh.number}`, async () => sh.characterIds.slice(0, 4).flatMap((cid) => { const a = byId(cast.find((x) => x.id === cid)?.portraitAssetId); return usableImage(a) ? [{ characterId: cid, asset: a! }] : []; }))
+    ? await step(ctx, 'character-continuity', `identity-handoff: shot ${sh.number}`, async () => sh.characterIds.slice(0, 4).flatMap((cid) => { const c = cast.find((x) => x.id === cid); const a = c ? byId(primaryImageOf(c)) : undefined; return usableImage(a) ? [{ characterId: cid, asset: a! }] : []; }))
     : [];
   // REFERENCE SELECTION (the Reference Conditioning Agent's step)
   // 4) PICTURES. With a drawn opening frame the clip starts on it (first-frame conditioning); otherwise identity comes

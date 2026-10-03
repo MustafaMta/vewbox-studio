@@ -18,7 +18,8 @@ vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h' }));
 import { seed } from '@/domain/sample';
 import { designCharacter } from '@/server/story/engine';
 import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
-import { referenceIdentityLine, referencePortraitPrompt } from '@/worker/handlers/images';
+import { referenceIdentityLine, referenceLook } from '@/worker/handlers/images';
+import { referenceCanonicalPrompt, type CharacterDescription } from '@/server/workflows';
 import { lookFieldText, lookFromReference } from '@/components/character/look';
 
 beforeEach(() => { llm.calls = []; });
@@ -52,23 +53,42 @@ describe('designCharacter in REFERENCE mode (text-only model)', () => {
 
 const looked = (over: Partial<Character> = {}): Character => ({ ...seed().characters.find((c) => c.id === 'nour')!, build: '', face: '', hair: '', skin: '', eyes: '', wardrobe: '', distinguishing: [], canon: undefined, ...over });
 
-describe('the portrait prompt and the identity line from a picture', () => {
-  it('name the picture as the look and invent no look token', () => {
+const described: CharacterDescription = { ageRange: '35-45', sex: 'female', build: 'slim', skinTone: 'light olive', faceShape: 'oval', hair: { colour: 'black', length: 'long', texture: 'wavy' }, facialHair: 'none', eyes: 'brown', glasses: 'none', marks: [], clothing: [{ item: 'cardigan', colour: 'green' }], footwear: 'not visible', accessories: [], notVisible: ['shoes'], confidence: {} };
+
+describe('the canonical image and the identity line from a picture', () => {
+  it('without a description, name the picture as the look and invent no look token', () => {
     const c = looked();
     expect(referenceIdentityLine(c)).toBe('Identity: build, face, hair, skin, eyes and wardrobe exactly as in the reference picture.');
-    const prompt = referencePortraitPrompt(c);
-    expect(prompt).toMatch(/the one in the reference picture/);
+    const look = referenceLook(c, undefined);
+    expect(look.from).toBe('PICTURE');
+    const prompt = referenceCanonicalPrompt({ style: c.style, identityLine: look.line });
+    expect(prompt).toMatch(/Redraw the person in image 1/);
     expect(prompt).toContain('as in the reference picture');
-    // the description of the old prompt (age and sex, "wearing …") is gone, and so is any look the record ever held
-    expect(prompt).not.toMatch(/year-old|\bwearing\b/);
+    // no look the record ever held reaches the prompt
     const original = seed().characters.find((x) => x.id === 'nour')!;
     for (const k of ['hair', 'wardrobe', 'face', 'eyes'] as const) if (original[k]) expect(prompt).not.toContain(original[k]);
+  });
+  it('with a description, the line is what the picture shows (style first), then what the producer wrote', () => {
+    const c = looked({ wardrobe: 'a blue raincoat', distinguishing: ['a scar over the left eyebrow'] });
+    const look = referenceLook(c, described);
+    expect(look.from).toBe('DESCRIPTION');
+    expect(look.line.startsWith(`Identity: ${c.style === 'ANIME' ? '2D anime character' : c.style === 'CARTOON' ? 'stylized 3D animated character' : 'photorealistic real person'}, a woman aged about 35-45;`)).toBe(true);
+    expect(look.line).toContain('long wavy black hair');
+    expect(look.line).toContain('wearing green cardigan');
+    expect(look.line).toContain('wearing a blue raincoat; a scar over the left eyebrow');
+    expect(look.notVisible).toContain('footwear');
+    expect(look.line).not.toContain('not visible');
   });
   it('state exactly what the producer wrote, and leave the rest to the picture', () => {
     const c = looked({ hair: 'short red curls', wardrobe: 'a blue raincoat', distinguishing: ['a scar over the left eyebrow'] });
     const line = referenceIdentityLine(c);
     expect(line).toBe('Identity: build, face, skin and eyes exactly as in the reference picture; short red curls hair; wearing a blue raincoat; a scar over the left eyebrow.');
-    expect(referencePortraitPrompt(c)).toContain(line);
+    expect(referenceCanonicalPrompt({ style: 'CARTOON', identityLine: line })).toContain(line);
+  });
+  it('never sends a non-Latin piece the producer wrote to the image model', () => {
+    const look = referenceLook(looked({ wardrobe: 'عباءة سوداء' }), described);
+    expect(look.nonLatin).toEqual(['wearing عباءة سوداء']);
+    expect(look.line).not.toMatch(/عباءة/);
   });
 });
 
