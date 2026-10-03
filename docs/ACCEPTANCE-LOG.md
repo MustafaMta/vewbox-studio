@@ -27,9 +27,9 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 |---|---|---|
 | D1 | Creation page showed a job removed by the cleanup as "in progress" (stale sessionStorage) | fixed `076ac32` |
 | D2 | Cast profile image panel was sticky and taller than the viewport: Approve/Redraw unreachable on short screens | fixed `ee223a6` |
-| D3 | The C-compiler failure was classified as transient and retried 3× unchanged before failing (it is an environment fault, not transient) | open — classify "Failed to find C compiler" / missing toolchain as INFRASTRUCTURE-non-retryable with a precise message |
-| D4 | Creation page after a reload shows "Drawing the image: failed" although the retried drawing succeeded and the image is approved (step state taken from the first failed child; retries are in-memory only) | open |
-| D5 | `/characters/new?start=sheet` does not start a new creation while a finished run is remembered; only "Open profile" is offered | open |
-| D6 | Profile "Who" row shows "Human" (species) instead of sex · age when the design step fills species | open |
-| D7 | Voice panel copy: "No voice yet. Record or upload…" contradicts the Automatic option; the Automatic help still says "(… personality)" though personality is no longer used | open |
-| D8 | English voice check does not normalise numbers ("Thirty-two" vs "32") → false CER | open |
+| D3 | The C-compiler failure was classified as transient and retried 3× unchanged before failing (it is an environment fault, not transient) | fixed `fa60bde` (ComfyUI ENVIRONMENT kind, non-retryable, fix-the-container message; test) |
+| D4 | Creation page after a reload shows "Drawing the image: failed" although the retried drawing succeeded and the image is approved (step state taken from the first failed child; retries are in-memory only) | fixed `d455e2c` (a later job of the step's kind for the same character supersedes; tests); verified live: the run now reads "Approved — the character is ready" |
+| D5 | `/characters/new?start=sheet` does not start a new creation while a finished run is remembered; only "Open profile" is offered | fixed `d455e2c`; verified live: the sheet form opens |
+| D6 | Profile "Who" row shows "Human" (species) instead of sex · age when the design step fills species | fixed `17bedc5` (`nonHumanSpecies`; design stores none for people; tests) |
+| D7 | Voice panel copy: "No voice yet. Record or upload…" contradicts the Automatic option; the Automatic help still says "(… personality)" though personality is no longer used | fixed `2255c1a` |
+| D8 | English voice check does not normalise numbers ("Thirty-two" vs "32") → false CER | fixed `d8d5897` (digits spelled as words on both sides; near misses stay close; tests incl. the real preview line) |
