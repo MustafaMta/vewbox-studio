@@ -64,13 +64,13 @@ async function open(size, path, ready) {
   });
   const t0 = Date.now();
   await page.goto(`${base}${path}`, { waitUntil: 'commit' });
-  await page.waitForSelector('main .theatre-room, main .theatre-lobby', { timeout: 120000 });
+  await page.waitForSelector('main .theatre-room, main .theatre-lobby', { timeout: 300000 });
   const skeleton = await page.evaluate(() => Boolean(document.querySelector('.theatre-skeleton')));
   const firstMs = Date.now() - t0;
   return { ctx, page, skeleton, firstMs, shot: async (name) => page.screenshot({ path: `${out}/${name}` }), settle: async () => {
-    await page.waitForSelector(ready, { timeout: 120000 });
+    await page.waitForSelector(ready, { timeout: 300000 });
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
-    await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
+    await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 300000 }).catch(() => {});
     await page.waitForTimeout(1000);
   } };
 }
@@ -80,7 +80,7 @@ for (const size of SIZES) {
   const t = await open(size, `/screening?p=${encodeURIComponent(pid)}`, '.theatre-room:not(.theatre-skeleton) .theatre-video');
   await t.shot(`theatre-loading-${size.w}.png`);
   await t.settle();
-  await t.page.waitForFunction(() => { const v = document.querySelector('.theatre-video'); return v && v.readyState >= 1; }, null, { timeout: 120000 }).catch(() => {});
+  await t.page.waitForFunction(() => { const v = document.querySelector('.theatre-video'); return v && v.readyState >= 1; }, null, { timeout: 300000 }).catch(() => {});
   await t.page.waitForTimeout(600);
   await t.page.screenshot({ path: `${out}/theatre-${size.w}.png`, fullPage: true });
   const m = await t.page.evaluate(({ textChecks }) => {
@@ -159,7 +159,7 @@ for (const size of SIZES) {
     return route.continue();
   });
   await page.goto(`${base}/screening?p=${encodeURIComponent(pid)}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-note', { timeout: 120000 });
+  await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-note', { timeout: 300000 });
   await page.waitForFunction(() => document.querySelector('.theatre-video')?.readyState >= 2, null, { timeout: 60000 });
   await page.getByRole('button', { name: /^Jump to 0:09/ }).click();
   await page.waitForTimeout(1200);

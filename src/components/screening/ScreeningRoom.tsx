@@ -182,7 +182,7 @@ export function ScreeningSkeleton({ view }: { view?: 'theatre' | 'list' }) {
       <div className="theatre">
         <div className="theatre-stage" style={{ '--tw': 16, '--th': 9 } as React.CSSProperties}>
           <div className="theatre-pic" />
-          <div className="theatre-transport"><Skeleton.Block width={40} height={40} radius="pill" /><span className="theatre-seek-sk"><Skeleton.Line width="100%" /></span></div>
+          <div className="ptransport theatre-transport"><Skeleton.Block width={36} height={36} radius="pill" /><span className="theatre-seek-sk"><Skeleton.Line width="100%" /></span></div>
         </div>
         <div className="theatre-pane">
           <div className="theatre-tabs-wrap"><div className="tabs"><span className="tab"><Skeleton.Line width="3rem" /></span><span className="tab"><Skeleton.Line width="3rem" /></span><span className="tab"><Skeleton.Line width="3rem" /></span></div></div>

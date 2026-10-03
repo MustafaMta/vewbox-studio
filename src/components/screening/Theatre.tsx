@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useRef, type CSSProperties } from 'react';
-import { Captions, Crosshair, FastForward, Maximize2, Minimize2, Pause, Play, Rewind } from 'lucide-react';
+import { Crosshair } from 'lucide-react';
+import { IconBack5, IconCaptions, IconExitFullscreen, IconForward5, IconFullscreen, IconPause, IconPlay } from '@/components/ui/icons';
 import type { CutNote } from '@/domain/types';
 import { VolumeControl } from '@/components/players/Controls';
-import { MediaFailure, SeekBar, coreKeys, type PlayerCore } from '@/components/players/PlayerCore';
+import { MediaFailure, SeekBar, TimeReadout, coreKeys, type PlayerCore } from '@/components/players/PlayerCore';
 import { useShortcutScope } from '@/components/players/useShortcutScope';
 import { clock, type CutView } from './model';
 
@@ -76,21 +77,23 @@ export function Theatre({ core: c, cut, title, pins, activeId, onSelectNote, pin
         {c.failed && <MediaFailure onRetry={c.retry} fileHref={cut.src} />}
       </div>
 
-      <div className="theatre-transport" dir="ltr" role="group" aria-label="Transport">
-        <button type="button" className="btn btn-primary btn-icon theatre-play" aria-label={c.playing ? 'Pause' : 'Play'} onClick={c.toggle} disabled={c.failed}>
-          {c.playing ? <Pause aria-hidden /> : <Play aria-hidden />}
-        </button>
-        <button type="button" className="btn btn-quiet btn-icon btn-sm theatre-wide" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)} disabled={!c.ready}><Rewind aria-hidden /></button>
-        <button type="button" className="btn btn-quiet btn-icon btn-sm theatre-wide" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)} disabled={!c.ready}><FastForward aria-hidden /></button>
-        <span className="theatre-time t-ro" aria-hidden>{clock(c.time)}<span className="theatre-time-total"> / {clock(c.duration || cut.duration)}</span></span>
-        <SeekBar time={c.time} duration={c.duration} step={c.frame} onSeek={c.seek} label="Seek" tone="video" disabled={!c.ready} ticks={ticks} className="theatre-seek" />
+      {/* the kit's docked transport (players.css .ptransport), with the theatre's own parts: ±5 s, the shot marks and
+          note ticks on the seek bar, and the subtitles button with its language as a readout */}
+      <div className="ptransport theatre-transport" dir="ltr" role="group" aria-label="Transport">
+        <button type="button" className="pt-play" aria-label={c.playing ? 'Pause' : 'Play'} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
+        <span className="pt-group theatre-wide">
+          <button type="button" className="pt-btn" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)} disabled={!c.ready}><IconBack5 aria-hidden /></button>
+          <button type="button" className="pt-btn" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)} disabled={!c.ready}><IconForward5 aria-hidden /></button>
+        </span>
+        <TimeReadout time={c.time} duration={c.duration || cut.duration} className="pt-time theatre-time" />
+        <SeekBar time={c.time} duration={c.duration} buffered={c.buffered} step={c.frame} onSeek={c.seek} label="Seek" tone="docked" disabled={!c.ready || c.failed} ticks={ticks} className="pt-seek theatre-seek" />
         {cut.captions.length > 0 && (
-          <button type="button" className="btn btn-quiet btn-sm theatre-cc" aria-pressed={c.cc} aria-label="English subtitles" onClick={c.toggleCc} disabled={!c.hasCaptions}>
-            <Captions aria-hidden /><span className="t-ro" aria-hidden>EN</span>
+          <button type="button" className="pt-btn theatre-cc" aria-pressed={c.cc} aria-label="English subtitles" onClick={c.toggleCc} disabled={!c.hasCaptions}>
+            <IconCaptions aria-hidden /><span className="t-ro" aria-hidden>EN</span>
           </button>
         )}
         <span className="theatre-wide"><VolumeControl volume={c.volume} muted={c.muted} onVolume={c.setVolume} onMute={c.toggleMute} popover /></span>
-        <button type="button" className="btn btn-quiet btn-icon btn-sm" aria-label={c.full ? 'Exit full screen' : 'Full screen'} onClick={c.fullscreen}>{c.full ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}</button>
+        <button type="button" className="pt-btn" aria-label={c.full ? 'Exit full screen' : 'Full screen'} onClick={c.fullscreen}>{c.full ? <IconExitFullscreen aria-hidden /> : <IconFullscreen aria-hidden />}</button>
       </div>
     </div>
   );

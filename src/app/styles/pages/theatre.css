@@ -4,8 +4,6 @@
    exact shapes and nothing moves when the content arrives. */
 @layer components {
   .theatre-room { display: flex; flex-direction: column; }
-  /* the theatre's black ground from the first paint (the page's <Room> applies it only once the page has hydrated) */
-  .shell-column:has(.theatre-room, .theatre-lobby) { --page: var(--black); background: var(--page); }
 
   /* ------------------------------------------------------------------------- the theatre: stage beside the pane */
   /* the film, then (phone and tablet) the programme and the review pane; at ≥ 1280 the pane beside the film */
@@ -39,14 +37,9 @@
   .theatre-stage[data-pinning] .theatre-pic { outline: 1px dashed var(--line-control); outline-offset: -1px; }
 
   /* the transport, docked: always visible, never over the picture */
-  .theatre-transport { display: flex; align-items: center; gap: 8px; block-size: 52px; padding: 0 12px; background: var(--black); color: var(--text-2); }
-  .theatre-time { flex: none; color: var(--text-2); white-space: nowrap; }
-  .theatre-time-total { color: var(--text-3); }
   .theatre-seek, .theatre-seek-sk { flex: 1; min-inline-size: 0; }
-  /* on the seek bar: the shot marks quiet, the notes in light */
-  .theatre-seek .seek-tick[data-kind='mark'] { inset-block-start: calc(50% - 4px); inline-size: 1px; block-size: 8px; background: var(--text-3); }
-  .theatre-seek .seek-tick[data-kind='note'] { inline-size: 2px; block-size: 12px; background: var(--text-1); }
-  .theatre-cc { gap: 6px; padding-inline: 8px; }
+  .theatre-transport { --sk-fill: var(--surface-2); }
+  .theatre-cc { display: inline-flex; inline-size: auto; gap: 6px; padding-inline: 8px; }
   .theatre-wide { display: inline-flex; }
 
   /* -------------------------------------------------------------------------------------------- the review pane */

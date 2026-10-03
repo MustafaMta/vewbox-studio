@@ -1411,7 +1411,6 @@ const COPY = {
   'production.lead': 'Where each production stands in the pipeline, what is waiting for you, and everything the studio is running.',
   'production.empty': 'Nothing in production.',
   'production.empty.hint': 'Start a show, a short or a music video from Projects.',
-  'screening.title': 'Screening Room',
   'pipeline.STORY': 'Story',
   'pipeline.CAST_WORLD': 'Cast & world',
   'pipeline.SCRIPT': 'Script',
