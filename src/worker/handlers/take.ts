@@ -24,6 +24,7 @@ import { env } from '@/server/env';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { recordProducedTake } from '@/server/studio/notes';
 
 /** GENERATE A TAKE — the heart of production. Resolve the shot pack (relation to the previous shot, every character's
  *  canonical image and the plate bound as pictures, what the clip starts from), record the lines first, write the
@@ -410,6 +411,8 @@ export const generateTake: Handler = async (ctx) => {
   const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId }], 'worker');
   // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
   await recordWorldRead({ productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id, takeId: r.take.id });
+  // a screening note sent to this shot (B2) now has the take it asked for
+  try { const n = await recordProducedTake(sh.id, r.take.id); if (n) await ctx.event('info', `${n} screening note(s) sent to this shot record this take`, { takeId: r.take.id }); } catch (e) { ctx.log.warn({ err: (e as Error).message }, 'could not record the take on its screening notes'); }
   await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
   // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
   // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
