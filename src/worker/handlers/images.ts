@@ -414,6 +414,17 @@ export const characterRefs: Handler = async (ctx) => {
 
 // ---------------------------------------------------------------------------------------------------- locations
 
+/** A closer view of a place towards one of its landmarks, as Edit-2511 reads it (the wording measured in D24). */
+export function landmarkViewPrompt(landmark: string): string {
+  return `A closer view of the same place, the camera moved forward towards ${landmark.trim().replace(/\.$/, '').replace(/^(A|An|The) /, (m) => m.toLowerCase())}, which fills the middle of the frame. Keep the same materials, colours, furnishings, style of rendering and lighting.`;
+}
+/** A landmark's short label: its words up to the first comma or position phrase ("the long wooden workbench"). */
+export function landmarkLabel(landmark: string): string {
+  const head = landmark.split(/,| on the | in the | at the | under | beside | facing /i)[0]!.trim().replace(/\.$/, '');
+  const short = head.length > 48 ? `${head.slice(0, 47).trimEnd()}…` : head;
+  return short.replace(/^(A|An|The) /, (m) => m.toLowerCase());
+}
+
 export const locationPlates: Handler = async (ctx) => {
   const { locationId, timesOfDay, force } = ctx.job.payload as { locationId: string; timesOfDay?: TimeOfDay[]; force?: boolean };
   const { state } = await readState();
@@ -437,10 +448,14 @@ export const locationPlates: Handler = async (ctx) => {
     master = (await readState()).state.assets.find((a) => a.id === m.id);
     await ctx.checkpoint();
   }
-  const views: Array<{ note: string; label: string }> = [{ note: 'camera turned to the opposite side of the space, reverse angle', label: 'Reverse angle' }, { note: 'a closer view towards the main landmark', label: 'Towards the landmark' }];
+  // D24: a "reverse angle" drawn by Edit-2511 from the master kept the master's composition (6/6 draws, also with the
+  // Multiple-Angles LoRA and with generic or landmark-derived wording; one hand-written prompt naming the door worked
+  // 2/2) — so no view is labelled a reverse angle until a recipe holds. What does hold (2/2): a closer view towards the
+  // first landmark, in quality mode (docs/evidence/location-views)
+  const views: Array<{ prompt: string; note: string; label: string }> = l.landmarks[0] ? [{ prompt: landmarkViewPrompt(l.landmarks[0]), note: `a closer view towards ${l.landmarks[0]}`, label: `Towards ${landmarkLabel(l.landmarks[0])}` }] : [];
   for (const [i, v] of views.entries()) {
-    await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: ${v.label.toLowerCase()}`, step: 2 + i, total: 3 + (timesOfDay?.length ?? 1) });
-    const r = await draw(ctx, { prompt: locationPrompt(l, 'VIEW', primaryTod, v.note) + ' Same place as the reference picture: identical architecture, layout, materials and props.', negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, label: `${l.name} — ${v.label.toLowerCase()}`, tags: ['location', 'view'], provenance: { locationId: l.id, view: 'VIEW', note: v.note } });
+    await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: ${v.label.toLowerCase()}`, step: 2 + i, total: 2 + views.length + (timesOfDay?.length ?? 1) });
+    const r = await draw(ctx, { prompt: v.prompt, negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, quality: true, label: `${l.name} — ${v.label.toLowerCase()}`, tags: ['location', 'view'], provenance: { locationId: l.id, view: 'VIEW', note: v.note } });
     refs.push({ id: `lref-${r.id}`, role: 'VIEW', assetId: r.id, label: v.label, timeOfDay: primaryTod });
     await ctx.checkpoint();
   }

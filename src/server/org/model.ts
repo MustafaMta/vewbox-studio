@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 9;
+export const ORG_VERSION = 10;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -304,7 +304,7 @@ const AGENTS_BASE: AgentBase[] = [
     qualityRequirements: ['every handed-off place has a master plate and a view'], ...STEP_ONLY,
     steps: [{ id: 'plate-handoff-review', name: 'Plate hand-off review', where: W('handlers/images.ts') }] },
   { id: 'environment-artist', name: 'Environment Artist', department: 'WORLD', role: 'Location plates',
-    description: 'Executes LOCATION_PLATES: the master plate (unoccupied), a reverse angle and a view towards the landmark drawn from it, and up to three time-of-day states.',
+    description: 'Executes LOCATION_PLATES: the master plate (unoccupied), a closer view towards the first landmark drawn from it, and up to three time-of-day states. No reverse angle yet: the edit model keeps the master’s composition.',
     systemInstructions: S(`Plates show the place before anyone arrives: pure environment and props, the same architecture in every view.`),
     model: 'Qwen-Image-2512 / Qwen-Image-Edit-2511 (ComfyUI)', skills: ['world-continuity'], tools: ['image.generate', 'image.edit_with_references'], inputSchema: 'JOB_PAYLOADS.LOCATION_PLATES', outputSchema: 'location plates', limits: { timeoutMs: 1_200_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '1.2.0',
     qualityRequirements: ['no figures in a plate'], jobTypes: ['LOCATION_PLATES'], steps: [] },

@@ -1,0 +1,58 @@
+[
+  {
+    "arm": "L1-draft-back",
+    "seed": 4101,
+    "ms": 14175,
+    "prompt": "<sks> back view eye-level shot wide shot",
+    "file": "L1-draft-back-4101.png"
+  },
+  {
+    "arm": "L1-draft-back",
+    "seed": 4102,
+    "ms": 6104,
+    "prompt": "<sks> back view eye-level shot wide shot",
+    "file": "L1-draft-back-4102.png"
+  },
+  {
+    "arm": "L2-quality-back",
+    "seed": 4101,
+    "ms": 54545,
+    "prompt": "<sks> back view eye-level shot wide shot",
+    "file": "L2-quality-back-4101.png"
+  },
+  {
+    "arm": "L2-quality-back",
+    "seed": 4102,
+    "ms": 50488,
+    "prompt": "<sks> back view eye-level shot wide shot",
+    "file": "L2-quality-back-4102.png"
+  },
+  {
+    "arm": "L3-quality-back-left",
+    "seed": 4101,
+    "ms": 54511,
+    "prompt": "<sks> back-left quarter view eye-level shot wide shot",
+    "file": "L3-quality-back-left-4101.png"
+  },
+  {
+    "arm": "L3-quality-back-left",
+    "seed": 4102,
+    "ms": 50454,
+    "prompt": "<sks> back-left quarter view eye-level shot wide shot",
+    "file": "L3-quality-back-left-4102.png"
+  },
+  {
+    "arm": "T1-quality-text",
+    "seed": 4101,
+    "ms": 60364,
+    "prompt": "Show the opposite side of this same room: the camera stands in front of the window and looks back into the room, towards the wooden door and the far wall. Keep the same floorboards, walls, shelves of radios, workbench, materials, colours and night lighting; the window is now behind the camera.",
+    "file": "T1-quality-text-4101.png"
+  },
+  {
+    "arm": "T1-quality-text",
+    "seed": 4102,
+    "ms": 50475,
+    "prompt": "Show the opposite side of this same room: the camera stands in front of the window and looks back into the room, towards the wooden door and the far wall. Keep the same floorboards, walls, shelves of radios, workbench, materials, colours and night lighting; the window is now behind the camera.",
+    "file": "T1-quality-text-4102.png"
+  }
+]

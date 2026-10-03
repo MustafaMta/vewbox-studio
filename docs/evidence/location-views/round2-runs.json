@@ -1,0 +1,44 @@
+[
+  {
+    "arm": "R-quality",
+    "seed": 4201,
+    "ms": 52513,
+    "prompt": "Show the reverse angle of this same place: the camera turns around and looks back the other way, from the far side of the picture towards where this picture was taken from, so everything the reference picture faces is now behind the camera. Show the parts of the place this picture does not show. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "R-quality-4201.png"
+  },
+  {
+    "arm": "R-quality",
+    "seed": 4202,
+    "ms": 50465,
+    "prompt": "Show the reverse angle of this same place: the camera turns around and looks back the other way, from the far side of the picture towards where this picture was taken from, so everything the reference picture faces is now behind the camera. Show the parts of the place this picture does not show. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "R-quality-4202.png"
+  },
+  {
+    "arm": "R-draft",
+    "seed": 4201,
+    "ms": 8123,
+    "prompt": "Show the reverse angle of this same place: the camera turns around and looks back the other way, from the far side of the picture towards where this picture was taken from, so everything the reference picture faces is now behind the camera. Show the parts of the place this picture does not show. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "R-draft-4201.png"
+  },
+  {
+    "arm": "R-draft",
+    "seed": 4202,
+    "ms": 6090,
+    "prompt": "Show the reverse angle of this same place: the camera turns around and looks back the other way, from the far side of the picture towards where this picture was taken from, so everything the reference picture faces is now behind the camera. Show the parts of the place this picture does not show. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "R-draft-4202.png"
+  },
+  {
+    "arm": "K-quality",
+    "seed": 4201,
+    "ms": 52856,
+    "prompt": "A closer view of the same place, the camera moved forward towards A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp, which fills the middle of the frame. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "K-quality-4201.png"
+  },
+  {
+    "arm": "K-quality",
+    "seed": 4202,
+    "ms": 50495,
+    "prompt": "A closer view of the same place, the camera moved forward towards A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp, which fills the middle of the frame. Keep the same materials, colours, furnishings, style of rendering and lighting.",
+    "file": "K-quality-4202.png"
+  }
+]
