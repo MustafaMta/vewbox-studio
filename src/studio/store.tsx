@@ -192,7 +192,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       };
     };
     open();
-    reopenStream.current = () => { if (closed || es) return; if (retry) clearTimeout(retry); backoff = 1000; open(); };
+    // "Try now": drop the waiting retry (or an attempt still hanging) and connect again at once
+    reopenStream.current = () => { if (closed) return; if (retry) clearTimeout(retry); retry = null; es?.close(); es = null; backoff = 1000; open(); };
     const flushNow = () => { if (pending.current.length && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ clientId: me.current, commands: pending.current })], { type: 'application/json' }); if (navigator.sendBeacon('/api/commands', body)) pending.current = []; } };
     window.addEventListener('pagehide', flushNow);
     return () => { closed = true; if (retry) clearTimeout(retry); es?.close(); window.removeEventListener('pagehide', flushNow); };

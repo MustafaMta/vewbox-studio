@@ -14,7 +14,9 @@
  *    data-nav-boot            "rail" or "sidebar": the navigation's shape until the shell has mounted */
 export const BOOT = [
   'try{',
-  "var h=document.documentElement,u=JSON.parse(localStorage.getItem('vewbox.ui')||'{}')||{};",
+  "var h=document.documentElement,u={};",
+  "try{u=JSON.parse(localStorage.getItem('vewbox.ui')||'{}')||{}}catch(e){}",
+  "if(typeof u!=='object'){u={}}",
   "if(u.locale==='ar'){h.lang='ar';h.dir='rtl'}",
   "if(u.motion){h.setAttribute('data-motion','reduce')}",
   "if(u.contrast==='more'||u.contrast==='standard'){h.setAttribute('data-contrast',u.contrast)}",
