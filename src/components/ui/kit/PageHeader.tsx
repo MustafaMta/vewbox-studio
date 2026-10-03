@@ -11,7 +11,7 @@ import { cls } from './cls';
  *  Actions sit at the end of the title row in this order: the primary, up to two secondaries, then More (always
  *  last). On a phone they wrap under the lead and the primary goes full width. Nothing sits behind it: no band, no
  *  gradient. One language per title: a second name (`titleAlt`, or `titleAr`) is a quiet line under it. */
-export function PageHeader({ title, titleAr, titleAlt, subtitle, eyebrow, slate, meta, action, primary, secondary, more, back, count, className = '', size, lead = true }: {
+export function PageHeader({ title, titleAr, titleAlt, subtitle, eyebrow, slate, meta, action, primary, secondary, more, back, count, className = '', size, lead = true, titleAs: H = 'h1' }: {
   title: ReactNode; titleAr?: string; titleAlt?: string;
   /** the lead: the page's one purpose line */ subtitle?: ReactNode;
   eyebrow?: ReactNode; /** a slate instead of the eyebrow (F3's <Slate>) */ slate?: ReactNode;
@@ -22,6 +22,7 @@ export function PageHeader({ title, titleAr, titleAlt, subtitle, eyebrow, slate,
   /** a collection's size, after the title (faint, tabular) */ count?: number;
   className?: string; size?: 'display';
   /** false: the subtitle is small text rather than the lead */ lead?: boolean;
+  /** the page's h1 (default); h2 only where a header is shown inside another page (the /kit specimen) */ titleAs?: 'h1' | 'h2';
 }) {
   const alt = titleAlt ?? titleAr;
   const actions = primary || secondary || more ? <>{primary}{secondary}{more}</> : action;
@@ -29,9 +30,9 @@ export function PageHeader({ title, titleAr, titleAlt, subtitle, eyebrow, slate,
     <header className={cls('page-header mb-8 lg:mb-10', className)}>
       {back && <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link>}
       {(slate || eyebrow) && <div className={slate ? 'page-slate' : 'eyebrow page-eyebrow'}>{slate ?? eyebrow}</div>}
-      <h1 className={cls('page-header-title', size === 'display' ? 'display-xl' : 'page-title')} dir="auto">
+      <H className={cls('page-header-title', size === 'display' ? 'display-xl' : 'page-title')} dir="auto">
         {title}{count !== undefined && <span className="page-count num">{count}</span>}
-      </h1>
+      </H>
       {actions && <div className="page-actions">{actions}</div>}
       {alt && <p className="page-alt text-sm text-muted" dir="auto">{alt}</p>}
       {subtitle && <p className={cls('page-lead', lead ? 'lead' : 'text-sm text-muted')} dir="auto">{subtitle}</p>}

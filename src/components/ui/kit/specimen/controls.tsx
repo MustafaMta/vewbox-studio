@@ -118,7 +118,7 @@ export function NavigationSpec() {
         <Cell state={T('kit.spec.hover')}><span className="tab is-hover">{T('tab.overview')}</span></Cell>
         <Cell state={T('kit.spec.focus')}><span className="tab is-focus">{T('tab.produce')}</span></Cell>
         <Cell state={T('kit.spec.selected')}><span className="tab is-selected">{T('tab.story')}</span></Cell>
-        <Cell state={T('kit.spec.disabled')}><span className="tab is-disabled">{T('tab.finalCut')}</span></Cell>
+        <Cell state={T('kit.spec.disabled')}><button type="button" className="tab" disabled>{T('tab.finalCut')}</button></Cell>
       </SpecRow>
       <SpecRow label="Crumbs">
         <Crumbs items={[{ href: '#navigation', label: T('kit.spec.show') }, { href: '#navigation', label: T('kit.spec.season') }, { href: '#navigation', label: T('kit.spec.episode') }, { label: T('kit.spec.shot') }]} />

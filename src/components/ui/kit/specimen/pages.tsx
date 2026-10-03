@@ -89,9 +89,9 @@ export function ApprovalSpec() {
         onApprove={() => wait(900)} onRequestChanges={() => wait(600)} openHref="#approval" onUndo={() => undefined} />
       <ApprovalCard id="kit-frames" media={<Frames />} kind={T('tab.storyboard')} title={T('kit.spec.approval.title')} provenance={T('kit.spec.approval.from')} ask={T('kit.spec.approval.askFrames')}
         onApprove={() => undefined} busy />
-      <ApprovalCard id="kit-failed" media={<Paper />} kind={T('tab.story')} title={T('kit.spec.approval.title')} ask={T('kit.spec.approval.ask')}
+      <ApprovalCard id="kit-failed" media={<Paper />} kind={T('tab.story')} title={T('kit.spec.episode4')} ask={T('kit.spec.approval.ask')}
         onApprove={() => undefined} failure={<ErrorNotice live={false} title={T('kit.approval.failed')} why={T('kit.approval.failedWhy')} details="POST /api/commands 503 (approveStory)" />} />
-      <ApprovalCard id="kit-done" kind={T('tab.story')} title={T('kit.spec.approval.title')} onApprove={() => undefined} approved onUndo={() => undefined} />
+      <ApprovalCard id="kit-done" kind={T('tab.story')} title={T('kit.spec.episode')} onApprove={() => undefined} approved onUndo={() => undefined} />
     </SpecSection>
   );
 }
@@ -107,7 +107,7 @@ export function HeadersSpec() {
   return (
     <SpecSection id="headers" title={T('kit.spec.sec.headers')} lead={T('kit.spec.headers.lead')}>
       <div className="kit-spec-sample">
-        <PageHeader className="!mb-0" back={{ href: '#headers', label: T('nav.characters') }} eyebrow={T('kit.spec.header.eyebrow')} title={T('nav.characters')} count={7} subtitle={T('kit.spec.header.lead')}
+        <PageHeader titleAs="h2" className="!mb-0" back={{ href: '#headers', label: T('nav.characters') }} eyebrow={T('kit.spec.header.eyebrow')} title={T('nav.characters')} count={7} subtitle={T('kit.spec.header.lead')}
           primary={<Button variant="primary" icon={<IconPlus />}>{T('kit.spec.newChar')}</Button>} secondary={<Button>{T('btn.select')}</Button>} more={<MenuButton label={T('nav.more')} iconOnly variant="quiet"><MenuItem>{T('btn.edit')}</MenuItem></MenuButton>} />
       </div>
       <SpecRow label={`CompactHeader · ${T('kit.spec.lobby')}`}>
@@ -143,7 +143,7 @@ export function CreationSpec() {
     <SpecSection id="creation" title={T('kit.spec.sec.creation')} lead={T('kit.spec.creation.lead')}>
       <div>
         <CreationShell
-          back={{ href: '#creation', label: T('kit.spec.backTo') }} cancel={{ href: '#creation' }}
+          titleAs="h2" back={{ href: '#creation', label: T('kit.spec.backTo') }} cancel={{ href: '#creation' }}
           title={T('kit.spec.newEpisode')} slate={<p className="slate">{T('kit.spec.creation.slate')}</p>}
           method={{ value: method, onChange: setMethod, options: methods }}
           preview={<Slot ratio="16/9">{brief ? <span className="t-card-lg text-muted" dir="auto">{brief}</span> : T('kit.spec.slot.titleCard')}</Slot>}

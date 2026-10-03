@@ -349,7 +349,16 @@
   .catalogue-search .input { block-size: 40px; line-height: 38px; padding-inline-start: 36px; }
   .catalogue-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .catalogue-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  @media (max-width: 639px) { .catalogue-search { flex-basis: 100%; } .catalogue-controls { inline-size: 100%; } }
+  @media (max-width: 639px) {
+    .catalogue-search { flex-basis: 100%; }
+    .catalogue-controls { inline-size: 100%; flex-wrap: nowrap; gap: 4px; }
+    .catalogue-controls > * { flex: none; }
+    .catalogue-controls > .seg { flex-wrap: nowrap; }
+    .catalogue-controls > .menu-wrap { flex: 1 1 auto; min-inline-size: 0; }
+    .catalogue-controls > .menu-wrap > .btn { inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+    /* "Sort:" is still the button's name; a phone shows the value only, so Filter · Sort · View fit one row */
+    .catalogue-sort-prefix { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  }
   .filter-panel { inline-size: min(calc(100vw - 32px), 22rem); padding: 16px; }
   .filter-panel:not([hidden]) { display: flex; flex-direction: column; gap: 16px; }
   .filter-facet { border: 0; margin: 0; padding: 0; min-inline-size: 0; }
@@ -498,7 +507,10 @@
   .compact-thumb { display: inline-flex; block-size: 32px; flex: none; overflow: hidden; border-radius: var(--r-1); }
   .compact-thumb > * { block-size: 32px; inline-size: auto; }
   .compact-title { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--fg); }
-  .compact-status { flex: none; }
+  .compact-status, .compact-save { flex: none; display: inline-flex; }
+  .compact-start { overflow: hidden; }
+  /* a phone keeps back · title | primary · More; the status and the save state stay on the page itself */
+  @media (max-width: 639px) { .compact-status, .compact-save { display: none; } }
   .compact-tabs { grid-area: tabs; min-inline-size: 0; }
   .compact-tabs .tabs { border-block-end: 0; margin: 0; padding: 0; }
   .compact-header[data-tabs='true'] { grid-template-areas: 'start end' 'tabs tabs'; grid-template-rows: var(--compact-h) var(--tabs-h); }
@@ -582,6 +594,12 @@
   @media (min-width: 1280px) { .creation-preview { display: block; position: sticky; top: calc(var(--sticky-top) + 24px); } }
   .creation-more { margin-block-start: 20px; }
   .creation-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-block-start: 20px; padding-block-start: 16px; border-block-start: 1px solid var(--line-soft); }
+  /* a phone: the primary first and full width, the alternatives under it */
+  @media (max-width: 639px) {
+    .creation-foot > span:last-child { inline-size: 100%; }
+    .creation-foot > span:last-child > .btn-primary { order: -1; flex: 1 1 100%; }
+  }
+  .settings-summary-change { white-space: nowrap; }
   .stepper-full { flex-wrap: wrap; }
   .step-v4 { display: inline-flex; align-items: center; gap: 8px; }
   .step-line { display: inline-block; inline-size: 24px; block-size: 1px; background: var(--line-strong); }
@@ -598,6 +616,7 @@
   .kit-spec-cell { display: flex; flex: 0 1 auto; flex-direction: column; gap: 8px; min-inline-size: 0; max-inline-size: 100%; }
   .kit-spec-cell-wide { flex: 1 1 14rem; }
   .kit-spec-items > .kit-spec-cell:not(.kit-spec-cell-wide) { flex-shrink: 0; }
+  @media (max-width: 639px) { .kit-spec-cell-wide { flex-basis: 100%; } }
   .kit-spec-cell-body { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-block-size: 32px; }
   .kit-spec-slot { display: grid; place-items: center; inline-size: 100%; padding: 16px; text-align: center; border-radius: var(--r-media); background: var(--art-ph); }
   .kit-spec-still-body { position: relative; }

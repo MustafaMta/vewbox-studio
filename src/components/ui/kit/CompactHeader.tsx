@@ -55,7 +55,7 @@ export function CompactHeader({ mode, watch, scrollRoot, contained, back, thumb,
         {status && <span className="compact-status">{status}</span>}
       </div>
       {tabs && mode === 'cutting' && <div className="compact-tabs">{tabs}</div>}
-      <div className="compact-end">{save}{primary}{more}</div>
+      <div className="compact-end">{save && <span className="compact-save">{save}</span>}{primary}{more}</div>
     </div>
   );
 }

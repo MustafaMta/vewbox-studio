@@ -293,8 +293,8 @@ const items = (menu: HTMLElement | null) => (menu ? Array.from(menu.querySelecto
  *  opens; ↑ on the button opens at the last), a letter jumps to the next item that starts with it, Enter or Space
  *  activates, Esc closes and returns focus to the button, Tab closes and moves on. `iconOnly` shows the … glyph
  *  with `label` as its name. */
-export function MenuButton({ label, icon, iconOnly, caret, variant = 'secondary', size, align = 'end', children, className = '', menuClassName = '' }: {
-  label: string; icon?: ReactNode; iconOnly?: boolean; /** a ⌄ after the label (a choice such as Sort) */ caret?: boolean; variant?: ButtonVariant; size?: ButtonSize; align?: 'start' | 'end'; children: ReactNode; className?: string; menuClassName?: string;
+export function MenuButton({ label, display, icon, iconOnly, caret, variant = 'secondary', size, align = 'end', children, className = '', menuClassName = '' }: {
+  label: string; /** what the button shows, when it is not just `label` (its text is still the name) */ display?: ReactNode; icon?: ReactNode; iconOnly?: boolean; /** a ⌄ after the label (a choice such as Sort) */ caret?: boolean; variant?: ButtonVariant; size?: ButtonSize; align?: 'start' | 'end'; children: ReactNode; className?: string; menuClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -338,7 +338,7 @@ export function MenuButton({ label, icon, iconOnly, caret, variant = 'secondary'
         aria-haspopup="menu" aria-expanded={open} aria-controls={`${id}-m`} aria-label={iconOnly ? label : undefined} title={iconOnly ? label : undefined}
         onClick={() => (open ? close(false) : openAt('first'))}
         onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); openAt('first'); } else if (e.key === 'ArrowUp') { e.preventDefault(); openAt('last'); } }}>
-        {iconOnly ? (icon ?? <IconMore aria-hidden />) : <>{icon}{label}{caret && <IconChevronDown aria-hidden className="btn-caret" />}</>}
+        {iconOnly ? (icon ?? <IconMore aria-hidden />) : <>{icon}{display ?? label}{caret && <IconChevronDown aria-hidden className="btn-caret" />}</>}
       </button>
       <div ref={menu} id={`${id}-m`} role="menu" aria-labelledby={`${id}-b`} className={cls('menu menu-v4', menuClassName)} data-align={align} hidden={!open}
         onKeyDown={onMenuKey}

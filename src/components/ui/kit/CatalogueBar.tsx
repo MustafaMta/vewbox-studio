@@ -132,7 +132,7 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
             </Popover>
           )}
           {sorts && onSort && (
-            <MenuButton label={`${T('lib.sort')}: ${sortLabel ?? ''}`} variant="quiet" caret align="end">
+            <MenuButton label={`${T('lib.sort')}: ${sortLabel ?? ''}`} display={<><span className="catalogue-sort-prefix">{T('lib.sort')}: </span>{sortLabel}</>} variant="quiet" caret align="end">
               {sorts.map((s) => <MenuItem key={s.value} role="menuitemradio" aria-checked={s.value === sort} onClick={() => onSort(s.value)}>{s.label}</MenuItem>)}
             </MenuButton>
           )}

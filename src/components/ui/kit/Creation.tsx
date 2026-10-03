@@ -39,7 +39,7 @@ export function useMethodOptions(): Array<TileOption<CreationMethod>> {
   ];
 }
 
-export function CreationShell<M extends string = CreationMethod>({ back, cancel, title, slate, method, state = 'form', preview, estimate, primary, moreControl, working, review, stepper, notice, children, className = '' }: {
+export function CreationShell<M extends string = CreationMethod>({ back, cancel, title, slate, method, state = 'form', preview, estimate, primary, moreControl, working, review, stepper, notice, children, className = '', titleAs: H = 'h1' }: {
   back?: { href: string; label: string };
   /** Cancel, at the top end and next to the primary (a link back, or a handler) */ cancel?: { href: string } | { onClick: () => void };
   title: ReactNode; /** "For The Last Sip · Season 2 · Cartoon · Arabic (Iraqi)" (F3's <Slate>) */ slate?: ReactNode;
@@ -55,6 +55,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
   /** a refusal or a kept draft, said above the group */ notice?: ReactNode;
   /** state="form": the one essential input, then SettingsSummary */ children?: ReactNode;
   className?: string;
+  /** the page's h1 (default); h2 only inside another page (the /kit specimen) */ titleAs?: 'h1' | 'h2';
 }) {
   const T = useT();
   const howId = useId();
@@ -65,7 +66,7 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
         {back ? <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link> : <span />}
         {cancelEl}
       </div>
-      <h1 className="page-title" dir="auto">{title}</h1>
+      <H className="page-title" dir="auto">{title}</H>
       {slate && <div className="creation-slate">{slate}</div>}
       {stepper && <div className="mt-4">{stepper}</div>}
       {method && state === 'form' && (

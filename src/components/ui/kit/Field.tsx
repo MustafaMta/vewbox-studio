@@ -116,8 +116,7 @@ export function SettingsSummary({ items, children, defaultOpen = false, classNam
     <div className={cls('settings-summary', className)}>
       <p className="settings-summary-line">
         <span id={`${id}-s`} dir="auto">{shown.map((x, i) => <Fragment key={i}>{i > 0 && <span aria-hidden className="slate-sep"> · </span>}<span>{x}</span></Fragment>)}</span>
-        <span aria-hidden className="slate-sep"> · </span>
-        <button type="button" className="link-quiet" aria-expanded={open} aria-controls={`${id}-c`} aria-describedby={`${id}-s`} onClick={() => setOpen((o) => !o)}>{T('kit.change')}</button>
+        <span className="settings-summary-change"><span aria-hidden className="slate-sep"> · </span><button type="button" className="link-quiet" aria-expanded={open} aria-controls={`${id}-c`} aria-describedby={`${id}-s`} onClick={() => setOpen((o) => !o)}>{T('kit.change')}</button></span>
       </p>
       <div id={`${id}-c`} hidden={!open} className="settings-summary-controls">{children}</div>
     </div>
