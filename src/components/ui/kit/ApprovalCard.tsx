@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { Button } from './Button';
 import { cls } from './cls';
 import { useSessionDraft } from './session';
@@ -37,7 +36,7 @@ export function InlineNote({ storageKey, label, submitLabel, onSubmit, onCancel,
       <textarea ref={field} id={id} className="textarea" dir="auto" rows={3} value={text} placeholder={placeholder} maxLength={2000} onChange={(e) => setText(e.target.value)} />
       <span className="mt-2 flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={!text.trim()} loading={busy}>{submitLabel}</Button>
-        <Button size="sm" variant="quiet" onClick={onCancel} disabled={busy}>{T('btn.cancel')}</Button>
+        <Button size="sm" variant="quiet" onClick={onCancel} disabled={busy}>Cancel</Button>
       </span>
     </form>
   );
@@ -91,8 +90,8 @@ export function ApprovalCard({ id, media, kind, title, provenance, ask, onApprov
         onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPaused(false); }}>
         <p role="status" className="approval-done-line">
           <span id={hid} className="min-w-0 truncate"><span className="text-fg">{kind} · {title}</span></span>
-          <StateWord tone="done">{state === 'approved' ? T('kit.approval.approved') : T('kit.approval.sent')}</StateWord>
-          {state === 'approved' && onUndo && <Button size="xs" variant="quiet" onClick={async () => { await onUndo(); setState('idle'); }}>{T('kit.undo')}</Button>}
+          <StateWord tone="done">{state === 'approved' ? 'Approved' : 'Sent back with your note'}</StateWord>
+          {state === 'approved' && onUndo && <Button size="xs" variant="quiet" onClick={async () => { await onUndo(); setState('idle'); }}>Undo</Button>}
         </p>
       </section>
     );
@@ -107,14 +106,14 @@ export function ApprovalCard({ id, media, kind, title, provenance, ask, onApprov
         {provenance && <p className="caption mt-1">{provenance}</p>}
         {ask && <p className="mt-3 text-body">{ask}</p>}
         <div className="approval-actions">
-          <Button variant="primary" onClick={() => void approve()} loading={busy} disabled={state === 'noting'}>{T('kit.approval.approve')}</Button>
-          {onRequestChanges && <Button variant="secondary" onClick={() => setState('noting')} disabled={busy} aria-expanded={state === 'noting'}>{T('kit.approval.requestChanges')}</Button>}
-          {openHref && <Link href={openHref} className="btn btn-quiet">{openLabel ?? T('btn.open')}</Link>}
+          <Button variant="primary" onClick={() => void approve()} loading={busy} disabled={state === 'noting'}>Approve</Button>
+          {onRequestChanges && <Button variant="secondary" onClick={() => setState('noting')} disabled={busy} aria-expanded={state === 'noting'}>Request changes</Button>}
+          {openHref && <Link href={openHref} className="btn btn-quiet">{openLabel ?? 'Open'}</Link>}
         </div>
         {state === 'noting' && onRequestChanges && (
-          <InlineNote storageKey={`vewbox.note:${id}`} label={T('kit.approval.whatChange')} submitLabel={T('kit.approval.sendBack')} onSubmit={sendBack} onCancel={() => setState('idle')} className="mt-4" />
+          <InlineNote storageKey={`vewbox.note:${id}`} label={'What should change?'} submitLabel={'Send back'} onSubmit={sendBack} onCancel={() => setState('idle')} className="mt-4" />
         )}
-        {error && <ErrorNotice className="mt-4" title={T('kit.approval.failed')} why={T('kit.approval.failedWhy')} details={error} />}
+        {error && <ErrorNotice className="mt-4" title={'The decision was not saved.'} why={'Nothing changed. Try again in a moment.'} details={error} />}
         {failure && <div className="mt-4">{failure}</div>}
       </div>
     </section>

@@ -59,7 +59,7 @@
   .slate { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--text-3); }
   .slate-sm { font-size: 12px; line-height: 16px; }
   .slate-lg { font-size: 14px; line-height: 20px; color: var(--text-2); }
-  .slate-on-art { color: var(--on-art-muted); }
+  .slate-on-art { color: var(--text-2); }
   .t-facts > span { white-space: nowrap; }
   .t-facts > span:not(:last-child)::after { content: '·'; margin-inline: 6px; color: var(--text-3); }
 

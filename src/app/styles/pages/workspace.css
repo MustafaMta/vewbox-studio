@@ -304,13 +304,6 @@
   .ws-disc-inner > .ws-disc-sum { min-block-size: 36px; padding: 0; font-size: 13px; line-height: 18px; color: var(--text-2); }
   .ws-disc-inner > .ws-disc-body { padding: 8px 0 0; }
 
-  .ws-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
-  .ws-pick { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-block-size: 44px; padding: 8px; border: 0; border-radius: var(--r-sm); background: var(--surface-1); color: var(--text-2); font: inherit; font-size: 12px; line-height: 16px; font-weight: 500; text-align: start; cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
-  .ws-pick:hover { background: var(--surface-2); color: var(--text-1); }
-  .ws-pick[aria-checked='true'] { background: var(--primary); color: var(--on-primary); }
-  .ws-pick:focus-visible { outline-offset: 2px; }
-  .ws-pick-draw { display: block; line-height: 0; }
-  .ws-pick-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-inline-size: 100%; }
 
   .ws-ref-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .ws-ref-chip { padding-inline: 4px 10px; max-inline-size: 100%; }

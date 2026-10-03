@@ -119,17 +119,18 @@ export function useTrackState(track: Track | null) {
   return { mine, playing: mine && p.playing, loading: mine && p.status === 'loading' && p.playing === false, error: mine && p.status === 'error' ? p.error : null, notice: mine && p.status !== 'error' ? p.error : null, time: mine ? Math.min(p.time, duration || p.time) : 0, duration, provisional: !fileDuration && Boolean(track?.duration) };
 }
 
-/** A play/pause control for one track. `primary` is the large violet transport in a header; `onArt` sits on a
- *  picture; the default is a quiet round button. While the file loads after a press, it shows a spinner. */
+/** A play/pause control for one track (§5.24): `primary` is the 40 px light disc of an audio row or a header (36 with
+ *  `size="sm"`); `onArt` sits on a picture (the chip on art); the default is a 32 px quiet round button. While the
+ *  file loads after a press, a spinner takes the glyph's place. */
 export function TrackButton({ track, primary, onArt, size, className = '', labelPlay = 'Play', labelPause = 'Pause' }: { track: Track; primary?: boolean; onArt?: boolean; size?: 'xs' | 'sm'; className?: string; labelPlay?: string; labelPause?: string }) {
   const p = usePlayer();
   const st = useTrackState(track);
   const busy = st.mine && p.status === 'loading' && !p.playing;
-  const icon = busy ? <span aria-hidden className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : st.playing ? <IconPause /> : <IconPlay className="translate-x-px" />;
+  const icon = busy ? <span aria-hidden className="spinner" /> : st.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />;
   const common = { type: 'button' as const, 'aria-label': st.playing ? labelPause : labelPlay, 'aria-pressed': st.playing, 'aria-busy': busy || undefined };
   if (onArt) return <button {...common} className={`play-on-art ${className}`} onClick={(e) => { e.preventDefault(); p.toggle(track); }}>{icon}</button>;
-  if (primary) return <button {...common} className={`transport transport-primary ${className}`} onClick={() => p.toggle(track)}>{icon}</button>;
-  return <button {...common} className={`transport ${size === 'xs' ? 'transport-xs' : size === 'sm' ? 'transport-sm' : ''} ${className}`} onClick={() => p.toggle(track)}>{icon}</button>;
+  const kind = primary ? 'pt-play' : 'pt-btn';
+  return <button {...common} className={`${kind} ${className}`} data-size={size} onClick={() => p.toggle(track)}>{icon}</button>;
 }
 
 /** A seek bar bound to the current track when it is this one; otherwise it shows the track's known length at zero,
@@ -139,12 +140,12 @@ export function SeekBar({ track, className = '', label = 'Seek', showTimes = tru
   const st = useTrackState(track);
   const pct = st.duration ? (st.time / st.duration) * 100 : 0;
   return (
-    <div className={`flex items-center gap-3 ${className}`} dir="ltr">
-      {showTimes && <span className="mono w-10 flex-none text-end text-xs text-muted num">{fmtClock(st.time)}</span>}
-      <input type="range" className="seek flex-1" style={{ '--p': `${pct}%` } as React.CSSProperties} min={0} max={st.duration || 1} step={0.01} value={st.time} disabled={!st.duration}
+    <div className={`tseek ${className}`} dir="ltr">
+      {showTimes && <span className="tseek-time">{fmtClock(st.time)}</span>}
+      <input type="range" className="seek" data-tone="docked" style={{ '--p': `${pct}%`, '--b': `${pct}%` } as React.CSSProperties} min={0} max={st.duration || 1} step={0.01} value={st.time} disabled={!st.duration}
         aria-label={label} aria-valuetext={`${fmtClock(st.time)} / ${fmtClock(st.duration)}`}
         onChange={(e) => { if (st.mine) p.seek(Number(e.target.value)); else p.play(track, Number(e.target.value)); }} />
-      {showTimes && <span className="mono w-11 flex-none text-xs text-muted num" title={st.provisional ? 'Length from the record; confirmed when the file loads' : undefined}>{st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>}
+      {showTimes && <span className="tseek-time" title={st.provisional ? 'Length from the record; confirmed when the file loads' : undefined}>{st.provisional ? '~' : ''}{fmtClock(st.duration)}</span>}
     </div>
   );
 }

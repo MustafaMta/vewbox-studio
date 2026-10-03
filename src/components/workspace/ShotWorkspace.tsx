@@ -27,7 +27,7 @@ import { IconChevronLeft, IconChevronRight, IconClose, IconCompare, IconDelete, 
 import { GenButton, useStudioGate } from './gate';
 import { RunningRow } from './Running';
 import { WorkspaceShell } from './WorkspaceShell';
-import { FramingDraw, MoveDraw, Picks } from './picks';
+import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
 import { activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
 
 /** THE SHOT WORKSPACE (docs/DESIGN-SYSTEM-V5.md §8.11) — the shot is the session. The canvas holds one dominant
@@ -194,8 +194,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         <details className="ws-disc" open>
           <summary className="ws-disc-sum">Camera and framing</summary>
           <div className="ws-disc-body">
-            <Field label="Framing"><Picks<Framing> label="Framing" value={draft.framing} options={FRAMINGS} onChange={(v) => patch({ framing: v })} draw={(v) => <FramingDraw f={v} />} /></Field>
-            <Field label="Camera"><Picks<CameraMove> label="Camera move" value={draft.cameraMove} options={CAMERA_MOVES} onChange={(v) => patch({ cameraMove: v })} draw={(v) => <MoveDraw m={v} />} /></Field>
+            <Field label="Framing"><Picks<Framing> label="Framing" value={draft.framing} options={FRAMINGS.map((v) => ({ value: v, label: vocab(v) }))} onChange={(v) => patch({ framing: v })} draw={(v) => <FramingDraw f={v} />} /></Field>
+            <Field label="Camera"><Picks<CameraMove> label="Camera move" value={draft.cameraMove} options={CAMERA_MOVES.map((v) => ({ value: v, label: vocab(v) }))} onChange={(v) => patch({ cameraMove: v })} draw={(v) => <MoveDraw m={v} />} /></Field>
             <Field label="Length"><Segmented<string> label="Length in seconds" size="sm" value={String(draft.durationSeconds)} onChange={(v) => patch({ durationSeconds: Number(v) })} options={[...new Set([...LENGTHS, draft.durationSeconds])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: `${n} s` }))} /></Field>
             <Field label="Into the shot" help="How it joins the shot before it."><Segmented<Transition> label="Into the shot" size="sm" value={draft.transition} onChange={(v) => patch({ transition: v })} options={TRANSITIONS.map((t) => ({ value: t, label: t === 'EXTEND' ? 'Continues' : vocab(t) }))} /></Field>
           </div>

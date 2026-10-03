@@ -1,31 +1,52 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { CameraMove, Framing } from '@/domain/vocabulary';
-import { vocab } from './model';
+import { cls } from '@/components/ui/kit/cls';
 
-/** PICKS (docs/DESIGN-SYSTEM-V5.md §5.19) — closed vocabularies as a row of choices, each with a drawn 44 × 26 preview
- *  (the frame, the subject's size in it, the camera's move as an arrow), so a framing or a move is chosen by its look,
- *  never by a model parameter. A radio group: one tab stop, arrows move and choose. */
+/** PICKS (docs/DESIGN-SYSTEM-V5.md §5.19) — a closed vocabulary (framing, camera move) as a radio group of choices,
+ *  each with a drawn 44 × 26 preview (the frame, the subject's size in it, the camera's move as an arrow), so a framing
+ *  or a move is chosen by its look, never by a model parameter. One Tab stop; the arrows (and Home/End) move and
+ *  choose. Each pick: surface-1, radius 10, 12/16 500; hover surface-2; chosen = the light (primary fill); a disabled
+ *  option says why in its tooltip and stays out of the arrow path. */
 
-export function Picks<T extends string>({ label, value, options, onChange, draw, describedBy }: { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; draw?: (v: T) => ReactNode; describedBy?: string }) {
+export interface PickOption<T extends string> { value: T; label: string; disabled?: boolean; reason?: string }
+
+export function Picks<T extends string>({ label, value, options, onChange, draw, describedBy, className }: {
+  label: string;
+  value: T;
+  /** the values with their words (and an optional disabled reason) */
+  options: ReadonlyArray<PickOption<T>>;
+  onChange: (v: T) => void;
+  /** the 44 × 26 preview of a value (FramingDraw, MoveDraw) */
+  draw?: (v: T) => ReactNode;
+  describedBy?: string;
+  className?: string;
+}) {
+  const live = options.filter((o) => !o.disabled);
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const i = options.indexOf(value);
-    const n = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? options.length - 1 : null;
-    if (n === null) return;
+    const i = live.findIndex((o) => o.value === value);
+    const n = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? live.length - 1 : null;
+    if (n === null || !live.length) return;
     e.preventDefault();
-    const next = options[(n + options.length) % options.length];
+    const next = live[(n + live.length) % live.length].value;
     onChange(next);
-    requestAnimationFrame(() => (e.currentTarget.querySelector(`[data-value="${next}"]`) as HTMLElement | null)?.focus());
+    const root = e.currentTarget;
+    requestAnimationFrame(() => (root.querySelector(`[data-value="${next}"]`) as HTMLElement | null)?.focus());
   };
+  const selectedLive = live.some((o) => o.value === value);
   return (
-    <div className="ws-picks" role="radiogroup" aria-label={label} aria-describedby={describedBy} onKeyDown={onKey}>
-      {options.map((o) => (
-        <button key={o} type="button" role="radio" aria-checked={o === value} tabIndex={o === value ? 0 : -1} data-value={o} className="ws-pick" onClick={() => onChange(o)}>
-          {draw && <span className="ws-pick-draw" aria-hidden>{draw(o)}</span>}
-          <span className="ws-pick-label">{vocab(o)}</span>
-        </button>
-      ))}
+    <div className={cls('picks', className)} role="radiogroup" aria-label={label} aria-describedby={describedBy} onKeyDown={onKey}>
+      {options.map((o, i) => {
+        const tabbable = o.value === value || (!selectedLive && !o.disabled && live[0]?.value === o.value);
+        return (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value} tabIndex={tabbable ? 0 : -1} data-value={o.value} className="pick"
+            disabled={o.disabled} title={o.disabled ? o.reason : undefined} onClick={() => onChange(o.value)} data-i={i}>
+            {draw && <span className="pick-draw" aria-hidden>{draw(o.value)}</span>}
+            <span className="pick-label">{o.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -36,6 +57,7 @@ const SIZE: Record<Framing, number> = { EXTREME_WIDE: 0.25, WIDE: 0.45, MEDIUM_W
 /** A 44 × 26 frame with a figure at the framing's size (two figures for a two-shot; a shoulder for over-the-shoulder;
  *  an object for an insert). Drawn in currentColor. */
 export function FramingDraw({ f }: { f: Framing }) {
+  const id = useId();
   const s = SIZE[f];
   const figure = (cx: number, scale: number) => {
     const head = 3.2 * scale; const top = 26 - 22 * scale; const body = 9 * scale;
@@ -44,8 +66,8 @@ export function FramingDraw({ f }: { f: Framing }) {
   return (
     <svg width="44" height="26" viewBox="0 0 44 26" fill="none" stroke="currentColor" strokeWidth="1.25">
       <rect x="0.75" y="0.75" width="42.5" height="24.5" rx="2" />
-      <clipPath id={`fr-${f}`}><rect x="1" y="1" width="42" height="24" /></clipPath>
-      <g clipPath={`url(#fr-${f})`} fill="currentColor" fillOpacity="0.35">
+      <clipPath id={`fr-${id}`}><rect x="1" y="1" width="42" height="24" /></clipPath>
+      <g clipPath={`url(#fr-${id})`} fill="currentColor" fillOpacity="0.35">
         {f === 'INSERT' ? <rect x="16" y="9" width="12" height="9" rx="1.5" /> : f === 'TWO_SHOT' ? <>{figure(15, s)}{figure(29, s)}</> : f === 'OVER_THE_SHOULDER' ? <>{figure(28, 0.8)}<circle cx="8" cy="20" r="9" fillOpacity="0.6" /></> : figure(22, s)}
       </g>
     </svg>

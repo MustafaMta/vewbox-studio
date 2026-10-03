@@ -1,9 +1,8 @@
 'use client';
 
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { T } from '@/lib/copy';
-import { cls } from '@/components/ui/kit';
-import { IconAddNote, IconBack5, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
+import { cls } from '@/components/ui/kit/cls';
+import { IconAddNote, IconBack5, IconClose, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
 import type { PlayerHandle } from './InlinePlayer';
 import { coreKeys, MediaFailure, SeekBar, usePlayerCore } from './PlayerCore';
@@ -11,11 +10,12 @@ import type { SyncBus } from './sync';
 import { timecode } from './time';
 import { useShortcutScope } from './useShortcutScope';
 
-/** THE CANVAS PLAYER (docs/DESIGN-SYSTEM-V4.md §5.12) — the cutting-room shell: the clip at its native ratio on the
- *  achromatic `--canvas`, radius 0, letterboxed; a DOCKED transport under the frame (never over it, never hidden —
- *  the editor needs it): ‹ frame · play · frame ›, −5 s / +5 s (J/L), mark in / mark out (I/O), the timecode in `.tc`,
- *  volume and zoom-to-fit. The seek fill is iris on `--ink-700`; the marked range shows on the track. The transport
- *  is LTR. `onAddNote` (N) appears only when timecoded notes exist in the backend (B2). */
+/** THE CANVAS PLAYER (the cutting room; VISUAL-STANDARD-V5.1 §5.24 transport, v5 §5.13 behaviour) — the clip at its
+ *  native ratio on the achromatic canvas, radius 0, letterboxed, and the same DOCKED transport as the lobby player
+ *  under it (52 high, surface-1, never over the picture, never hidden): ‹ frame · play · frame › · the timecode in
+ *  mono · the seek track (the marked range on it) · −5 s / +5 s · mark in / mark out (I/O) and Clear · Add a note (N,
+ *  when notes exist) · volume · fit / actual size. 32 px quiet icon buttons, 36 px play. Below 768 px the seek track
+ *  takes its own row above the buttons. The transport is LTR. */
 
 export interface Marks { in?: number; out?: number }
 
@@ -32,37 +32,35 @@ export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: str
     const keys = useShortcutScope(coreKeys(c, { k: () => c.pause(), i: markIn, o: markOut, ...(onAddNote ? { n: () => onAddNote(c.time) } : {}) }));
     const fps0 = fps && fps > 0 ? fps : 24;
     const ticks = [marks.in, marks.out].filter((x): x is number => x !== undefined).map((at) => ({ at, kind: 'mark' as const }));
+    const marked = marks.in !== undefined || marks.out !== undefined;
     return (
-      <div ref={c.wrap} className={cls('cplayer', className)} tabIndex={0} role="group" aria-label={title ?? T('player.video')} onKeyDown={keys}>
+      <div ref={c.wrap} className={cls('cplayer', className)} tabIndex={0} role="group" aria-label={title ?? 'Video'} onKeyDown={keys}>
         <div className="cplayer-canvas canvas" data-zoom={zoom}>
           <div className="cplayer-box" style={zoom === 'fit' ? ({ '--cp-ratio': c.ratio ?? '16 / 9' } as React.CSSProperties) : c.natural ? { inlineSize: `${c.natural.w}px`, aspectRatio: c.ratio } : undefined}>
             <video {...c.videoProps} poster={poster} className="pvideo" onClick={c.toggle} />
             {c.failed && <MediaFailure onRetry={c.retry} fileHref={fileHref ?? src} />}
           </div>
         </div>
-        <div className="cplayer-bar" dir="ltr" role="group" aria-label={T('media.player.transport')}>
-          <SeekBar time={c.time} duration={c.duration} step={c.frame} onSeek={c.seek} label={T('misc.seek')} tone="edit" disabled={!c.ready} ticks={ticks} range={marks.in !== undefined || marks.out !== undefined ? { from: marks.in, to: marks.out } : undefined} />
-          <div className="cplayer-row">
-            <div className="cplayer-group">
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('player.prevFrame')} onClick={() => c.step(-1)}><IconPrevFrame aria-hidden /></button>
-              <button type="button" className="ebtn ebtn-icon ebtn-play" aria-label={c.playing ? T('misc.pause') : T('misc.play')} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('player.nextFrame')} onClick={() => c.step(1)}><IconNextFrame aria-hidden /></button>
-            </div>
-            <div className="cplayer-group">
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('media.player.back5')} onClick={() => c.nudge(-5)}><IconBack5 aria-hidden /></button>
-              <button type="button" className="ebtn ebtn-icon" aria-label={T('media.player.fwd5')} onClick={() => c.nudge(5)}><IconForward5 aria-hidden /></button>
-            </div>
-            <div className="cplayer-group">
-              <button type="button" className="ebtn" aria-pressed={marks.in !== undefined} onClick={markIn}>{T('media.player.markIn')}</button>
-              <button type="button" className="ebtn" aria-pressed={marks.out !== undefined} onClick={markOut}>{T('media.player.markOut')}</button>
-              {(marks.in !== undefined || marks.out !== undefined) && <button type="button" className="ebtn ebtn-quiet" onClick={() => setMarks({})}>{T('media.player.clearMarks')}</button>}
-            </div>
-            <span className="tc cplayer-tc" aria-label={T('media.player.timecode')} role="timer">{timecode(c.time, fps0)}<span className="cplayer-tc-total"> / {timecode(c.duration, fps0)}</span></span>
-            <span className="prow-spacer" />
-            {onAddNote && <button type="button" className="ebtn" onClick={() => onAddNote(c.time)}><IconAddNote aria-hidden />{T('media.player.addNote')}</button>}
-            <VolumeControl volume={c.volume} muted={c.muted} onVolume={c.setVolume} onMute={c.toggleMute} popover />
-            <button type="button" className="ebtn" onClick={() => setZoom(zoom === 'fit' ? 'actual' : 'fit')}><IconFit aria-hidden />{zoom === 'fit' ? T('media.player.actualSize') : T('media.player.fit')}</button>
-          </div>
+        <div className="ptransport ptransport-edit" dir="ltr" role="group" aria-label="Playback controls">
+          <span className="pt-group">
+            <button type="button" className="pt-btn" aria-label="Previous frame" onClick={() => c.step(-1)}><IconPrevFrame aria-hidden /></button>
+            <button type="button" className="pt-play" aria-label={c.playing ? 'Pause' : 'Play'} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
+            <button type="button" className="pt-btn" aria-label="Next frame" onClick={() => c.step(1)}><IconNextFrame aria-hidden /></button>
+          </span>
+          <span className="ptime pt-tc" aria-label="Timecode" role="timer">{timecode(c.time, fps0)}<span className="pt-tc-total"> / {timecode(c.duration, fps0)}</span></span>
+          <SeekBar time={c.time} duration={c.duration} buffered={c.buffered} step={c.frame} onSeek={c.seek} label="Seek" tone="docked" disabled={!c.ready} ticks={ticks} range={marked ? { from: marks.in, to: marks.out } : undefined} className="pt-seek" />
+          <span className="pt-group pt-nudge">
+            <button type="button" className="pt-btn" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)}><IconBack5 aria-hidden /></button>
+            <button type="button" className="pt-btn" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)}><IconForward5 aria-hidden /></button>
+          </span>
+          <span className="pt-group">
+            <button type="button" className="btn btn-quiet btn-sm pt-mark" aria-label="Mark in" aria-pressed={marks.in !== undefined} onClick={markIn}>In</button>
+            <button type="button" className="btn btn-quiet btn-sm pt-mark" aria-label="Mark out" aria-pressed={marks.out !== undefined} onClick={markOut}>Out</button>
+            {marked && <button type="button" className="pt-btn" aria-label="Clear marks" onClick={() => setMarks({})}><IconClose aria-hidden /></button>}
+          </span>
+          {onAddNote && <button type="button" className="pt-btn" aria-label="Add a note at the playhead" onClick={() => onAddNote(c.time)}><IconAddNote aria-hidden /></button>}
+          <VolumeControl volume={c.volume} muted={c.muted} onVolume={c.setVolume} onMute={c.toggleMute} popover />
+          <button type="button" className="pt-btn" aria-label={zoom === 'fit' ? 'Actual size' : 'Fit'} aria-pressed={zoom === 'actual'} onClick={() => setZoom(zoom === 'fit' ? 'actual' : 'fit')}><IconFit aria-hidden /></button>
         </div>
       </div>
     );

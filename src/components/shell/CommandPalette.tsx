@@ -25,7 +25,7 @@ type Section = { id: PaletteGroup | 'recent'; items: PaletteEntry[] };
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <ShellDialog open={open} onClose={onClose} label={T('shell.palette.title')} placement="top" width={640} className="palette-dialog">
+    <ShellDialog open={open} onClose={onClose} label={'Command palette'} placement="top" width={640} className="palette-dialog">
       <PaletteBody onClose={onClose} />
     </ShellDialog>
   );
@@ -107,10 +107,10 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       <div className="palette-field" data-focus-inset>
         <IconSearch aria-hidden className="palette-search-icon" />
         <input ref={input} className="palette-input" type="text" role="combobox" aria-expanded="true" aria-controls={listId} aria-autocomplete="list"
-          aria-activedescendant={flat.length ? optionId(active) : undefined} aria-label={T('shell.palette.label')} placeholder={T('shell.palette.placeholder')}
+          aria-activedescendant={flat.length ? optionId(active) : undefined} aria-label={'Search the studio'} placeholder={'Go to, create, decide…'}
           value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown} autoComplete="off" spellCheck={false} dir="auto" />
       </div>
-      <div id={listId} role="listbox" aria-label={T('shell.palette.title')} className="palette-list">
+      <div id={listId} role="listbox" aria-label={'Command palette'} className="palette-list">
         {sections.map((s) => (
           <div key={s.id} role="group" aria-labelledby={`${listId}-${s.id}`} className="palette-group">
             <div id={`${listId}-${s.id}`} role="presentation" className="palette-group-label">{label(s.id)}</div>
@@ -129,9 +129,9 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           </div>
         ))}
       </div>
-      {q.trim() && !flat.length && <p className="palette-empty">{T.f('shell.palette.none', { q: q.trim() })}</p>}
+      {q.trim() && !flat.length && <p className="palette-empty">{`Nothing matches “${q.trim()}”.`}</p>}
       <p className="sr-only" role="status">{q.trim() ? T.p('shell.palette.count', flat.length) : ''}</p>
-      <p className="palette-hint" aria-hidden>{T('shell.palette.hint')}</p>
+      <p className="palette-hint" aria-hidden>↑ ↓ to move · Enter to open · Esc to close</p>
     </div>
   );
 }
