@@ -16,9 +16,9 @@ export function SpecSection({ id, title, lead, children }: { id: string; title: 
 }
 
 /** A labelled row of specimens. */
-export function SpecRow({ label, children, className = '' }: { label: ReactNode; children: ReactNode; className?: string }) {
+export function SpecRow({ label, children, className = '', stack }: { label: ReactNode; children: ReactNode; className?: string; /** the label above, the specimen at the column's full width (shelves) */ stack?: boolean }) {
   return (
-    <div className={cls('kit-spec-row', className)}>
+    <div className={cls('kit-spec-row', className)} data-stack={stack || undefined}>
       <h3 className="kit-spec-label">{label}</h3>
       <div className="kit-spec-items">{children}</div>
     </div>

@@ -3,16 +3,20 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cls } from './cls';
 
-/** LOADING PRIMITIVES (v5.1; docs/DESIGN-SYSTEM-V5.md §5.16, §5.18) — calm placeholders that hold a page's real layout
- *  while its data or pictures arrive, and the three progress marks.
+/** LOADING PRIMITIVES (docs/design/VISUAL-STANDARD-V5.1.md §5.21, §5.22) — placeholders that hold a page's real
+ *  layout while its data or pictures arrive, and the progress marks. The skeletons of every card shape are in
+ *  src/components/media/Skeletons.tsx and are built from these.
  *
- *    Skeleton.Line / .Text / .Block / .Media / .Tile   placeholders in the page's own shapes, on the placeholder tone
- *                                                       (`--art-ph`; a picture's own tint when the caller sets it),
- *                                                       with one slow, faint shimmer that stops under reduced motion
- *    Progress                                           a determinate bar (`value` 0–1, only when the engine reports a
- *                                                       real fraction) or an indeterminate one (`value` omitted)
- *    JobDot                                             the running dot: something is working right now (static under
- *                                                       reduced motion; its word carries it)
+ *    Skeleton.Line / .Text / .Block / .Media / .Tile   placeholders in the page's own shapes: surface-1 (surface-2 on a
+ *                                                       card), text bars radius 6, 12 high (titles 16) set inside the
+ *                                                       real line box, so the line keeps its height; they appear after
+ *                                                       150 ms (no flash on fast loads) and pulse 1 → .55 → 1 over
+ *                                                       1.4 s — never a shimmer; static under reduced motion
+ *    Progress                                           determinate (`value` 0–1, only with a real fraction; the phase
+ *                                                       words and "2 of 8" above it when given) or indeterminate
+ *    JobRunning                                         a job running: the running dot, its phase words, the elapsed
+ *                                                       time and Cancel from the first second (§5.21)
+ *    JobDot                                             the running dot with its words
  *
  *  Placeholders are hidden from assistive technology: the region that waits says so once (`aria-busy` and a sentence,
  *  e.g. <SkeletonRegion label="Loading the shows…">). Nothing here spins without a sentence beside it. */
@@ -37,7 +41,7 @@ function Text({ lines = 2, size = 'body', className }: { lines?: number; size?: 
 }
 
 /** A block of any size (a button, a field, a panel). */
-function Block({ width = '100%', height = 44, radius = 'md', className, style }: { width?: string | number; height?: string | number; radius?: 'media' | 'md' | 'lg' | 'pill'; className?: string; style?: CSSProperties }) {
+function Block({ width = '100%', height = 44, radius = 'md', className, style }: { width?: string | number; height?: string | number; radius?: 'xs' | 'sm' | 'media' | 'md' | 'lg' | 'pill'; className?: string; style?: CSSProperties }) {
   return <span aria-hidden className={cls('sk sk-block', className)} data-radius={radius} style={{ inlineSize: width, blockSize: height, ...style }} />;
 }
 
@@ -45,7 +49,7 @@ function Block({ width = '100%', height = 44, radius = 'md', className, style }:
  *  colour when it is known (an `--art-ph` value from the record). */
 function Media({ ratio = '16/9', tint, className, style, children }: { ratio?: SkeletonRatio; tint?: string | null; className?: string; style?: CSSProperties; children?: ReactNode }) {
   return (
-    <span aria-hidden className={cls('sk sk-media', className)} data-ratio={ratio} style={{ aspectRatio: ratioCss(ratio), ...(tint ? ({ '--art-ph': tint } as CSSProperties) : null), ...style }}>
+    <span aria-hidden className={cls('sk sk-media', className)} data-ratio={ratio} style={{ aspectRatio: ratioCss(ratio), ...(tint ? ({ '--sk-fill': tint } as CSSProperties) : null), ...style }}>
       {children}
     </span>
   );
@@ -74,15 +78,38 @@ export function SkeletonRegion({ label, className, children }: { label: string; 
   );
 }
 
-/** A progress bar. With `value` (0–1) it is determinate and says its percentage; without, it is indeterminate (a
- *  short segment travels; under reduced motion it rests at the start, and the label carries the state). */
-export function Progress({ value, label, className, size = 'md' }: { value?: number | null; label: string; className?: string; size?: 'sm' | 'md' }) {
+/** A progress bar (§5.21): a 4 px track on surface-3, the fill text-1. With `value` (0–1) it is determinate; without,
+ *  a 30 % fill travels (static under reduced motion; the words carry the state). `phase` and `count` draw the label
+ *  row above it: the phase words at the start, "2 of 8" in mono at the end. */
+export function Progress({ value, label, phase, count, className, size = 'md' }: { value?: number | null; label: string; phase?: ReactNode; count?: ReactNode; className?: string; size?: 'sm' | 'md' }) {
   const known = typeof value === 'number' && Number.isFinite(value);
   const pct = known ? Math.round(Math.min(1, Math.max(0, value as number)) * 100) : null;
-  return (
+  const bar = (
     <span role="progressbar" aria-label={label} aria-valuemin={known ? 0 : undefined} aria-valuemax={known ? 100 : undefined} aria-valuenow={pct ?? undefined}
-      className={cls('pbar', className)} data-size={size} data-indeterminate={known ? undefined : true}>
+      aria-valuetext={known && typeof count === 'string' ? count : undefined}
+      className={cls('pbar', !(phase || count) && className)} data-size={size} data-indeterminate={known ? undefined : true}>
       <span className="pbar-fill" style={known ? { inlineSize: `${pct}%` } : undefined} />
+    </span>
+  );
+  if (!(phase || count)) return bar;
+  return (
+    <span className={cls('pbar-wrap', className)}>
+      <span className="pbar-label"><span className="pbar-phase">{phase}</span>{count != null && <span className="pbar-count">{count}</span>}</span>
+      {bar}
+    </span>
+  );
+}
+
+/** A job running (§5.21): the running dot, the phase words ("Drawing frame 13 of 20"), the elapsed time in mono and a
+ *  quiet sm Cancel, available from the first second. `elapsed` is seconds; the caller ticks it from the job's start. */
+export function JobRunning({ phase, elapsed, onCancel, cancelling, cancelLabel = 'Cancel', className }: { phase: ReactNode; elapsed?: number | null; onCancel?: () => void; cancelling?: boolean; cancelLabel?: string; className?: string }) {
+  const t = typeof elapsed === 'number' && Number.isFinite(elapsed) ? `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, '0')}` : null;
+  return (
+    <span className={cls('job-run', className)} role="status">
+      <span className="job-dot-mark" aria-hidden />
+      <span className="job-run-phase">{phase}</span>
+      {t && <span className="job-run-time" aria-label={`${t} elapsed`}>{t}</span>}
+      {onCancel && <button type="button" className="btn btn-quiet btn-sm job-run-cancel" onClick={onCancel} disabled={cancelling} aria-busy={cancelling || undefined}>{cancelling ? 'Cancelling…' : cancelLabel}</button>}
     </span>
   );
 }
