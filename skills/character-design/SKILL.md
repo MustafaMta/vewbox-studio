@@ -4,7 +4,7 @@ description: Designing an original character that can be drawn and voiced, and h
 license: Proprietary to this studio
 allowed-tools: story.structured_answer image.generate image.edit_with_references image.describe_reference
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
   models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
@@ -29,7 +29,11 @@ metadata:
 - Do not repeat the look or the name of a character the studio already has.
 - Give the character a personality and a speaking voice (pitch, pace, timbre): voice casting starts from it.
 - When the look comes from the producer's reference picture, which you cannot see, design only who the character is
-  (role, personality, sex and age, voice) and leave every look field to the picture: invent nothing visible.
+  (role, personality, sex and age, voice) and leave every look field to the picture: invent nothing visible. The
+  picture is read first, and the brief says what the vision model saw (apparent age, sex, what is visibly worn): the
+  sex and age are those, and the role, personality and voice must suit that person — never "young" for someone who
+  looks sixty, never a role the visible clothing rules out. With no role given, choose a plain, everyday role that
+  fits the person in the picture; anything that still contradicts it is left for the producer.
 
 ## How the character is then drawn
 
@@ -43,8 +47,9 @@ metadata:
    CG render, not a photograph" / "2D anime character design, cel-shaded … not 3D" / "Photorealistic full-length
    studio photograph"), then the framing, the identity line and the production direction; Qwen-Image-2512 in quality
    mode (30 steps, cfg 4), 928×1664.
-4. From a picture (Image Reference): the picture is validated, then read — its face box and a description by the
-   vision model, from which the identity line is written (low-confidence details are left out and shown); the
+4. From a picture (Image Reference): the picture is validated, then read once — before the design when a character
+   is created from it — its face box and a description by the vision model, from which the design learns the
+   apparent age and sex and the identity line is written (low-confidence details are left out and shown); the
    picture (and its face crop) is then redrawn into the production's style by Qwen-Image-Edit-2511.
 5. The whole figure must be in the frame (checked on the CPU); a picture that fails is redrawn once, then left for
    the producer with the reason.

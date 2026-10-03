@@ -9,6 +9,9 @@ import { commands, readState, stampCommands, type CommandSpec } from '@/server/s
 import { enqueue, getJob, retry } from '@/server/jobs/queue';
 import { preflightCharacter, referenceImageProblem } from '@/server/org/preflight';
 import { LOOK_FIELDS, REFERENCE_LOOK_BRIEF } from '@/server/story/schemas';
+import { referenceSeenBrief } from '@/server/story/engine';
+import { pictureFacts } from '@/server/workflows';
+import { readReferencePicture } from './images';
 
 /** CREATE A CHARACTER — the one job behind the three starts of the character page (contract §1.1): Describe (AUTO),
  *  Write the sheet (MANUAL), From a picture (REFERENCE). It runs the chain as durable child jobs — design (only when
@@ -97,13 +100,29 @@ export const createCharacter: Handler = async (ctx) => {
   //    a complete sheet is written directly, in one batch with its seat, under a key a restart recognises.
   //    REFERENCE: the look is the picture's, never designed — the look fields count as given (empty = "as in the
   //    reference picture") and the design brief opens with REFERENCE_LOOK_BRIEF, so the text-only designer fills
-  //    only who the character is (finding 3)
+  //    only who the character is (finding 3). The picture is READ FIRST (D15: a design that never saw it made a man of
+  //    60–70 "a young, curious explorer"): the Character Designer's vision model describes it, and the design brief
+  //    carries the apparent age, sex and what is visibly worn, which the design may not contradict. The reading is
+  //    stored on the picture, so the image step draws from the same one.
   let characterId: string;
   const fromPicture = payload.mode === 'REFERENCE';
   const needsDesign = payload.mode === 'AUTO' || profileNeedsDesign({ ...(fromPicture ? PICTURE_LOOK : {}), ...profile, name });
   if (needsDesign) {
+    let seen: string | undefined;
+    if (fromPicture && refAsset) {
+      await ctx.progress('GENERATING', { phase: 'design', message: 'Reading the reference picture', step: 1, total: STEPS.length, percent: null });
+      try {
+        const read = await step(ctx, 'character-designer', `reference-read: ${refAsset.id}`, (tool) => readReferencePicture(ctx, refAsset, { label: `${name ?? 'New character'} — reading the reference picture`, runner: tool, describeOnly: true }));
+        if (read.description) seen = referenceSeenBrief(pictureFacts(read.description));
+        else await ctx.event('warn', `the reference picture was not described before the design (${read.notes.join('; ') || 'no description'}): the design takes age and sex from the producer’s words`, { referenceAssetId: refAsset.id });
+      } catch (e) {
+        await ctx.checkpoint();
+        await ctx.event('warn', `the reference picture could not be read before the design (${(e as Error).message}): the design takes age and sex from the producer’s words`, { referenceAssetId: refAsset.id });
+      }
+    }
     await ctx.progress('GENERATING', { phase: 'design', message: LABEL.design, step: 1, total: STEPS.length, percent: null });
-    const brief = fromPicture ? [REFERENCE_LOOK_BRIEF, payload.brief?.trim().slice(0, BRIEF_MAX - REFERENCE_LOOK_BRIEF.length - 1)].filter(Boolean).join('\n') : payload.brief;
+    const head = [REFERENCE_LOOK_BRIEF, seen].filter(Boolean).join('\n');
+    const brief = fromPicture ? [head, payload.brief?.trim().slice(0, Math.max(0, BRIEF_MAX - head.length - 1))].filter(Boolean).join('\n') : payload.brief;
     const child = await runStep(ctx, chain, 'design', { brief, name, profile: Object.keys(profile).length ? { ...profile, name } : undefined, style, language, dialect, productionId: p?.id, showId: show?.id }, 0);
     const out = outcomeOf('design', child);
     steps.push(out);

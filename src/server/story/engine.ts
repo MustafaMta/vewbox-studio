@@ -10,6 +10,7 @@ import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
+import type { PictureFacts } from '../workflows/canonical-image';
 
 /** THE STORY ENGINE — turns a brief into a production: concept, cast and world, synopsis, scenes, script, shots with
  *  continuity, and the performance plan of a music video. It writes original material in the chosen style and
@@ -179,16 +180,19 @@ const CharacterDesignSchema = z.object({
   voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']), timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
 });
 export type CharacterDesign = z.infer<typeof CharacterDesignSchema>;
+type ReferenceDesign = z.infer<typeof CharacterDesignFromReferenceSchema>;
 
 /** A character from a one-line brief: every appearance field filled so the portrait and the voice can be made.
  *
  *  REFERENCE mode (`lookFrom: 'REFERENCE'`, or the brief carries REFERENCE_LOOK_BRIEF — the CREATE_CHARACTER
  *  orchestrator's marker, the only channel through the DESIGN_CHARACTER job): the look is the producer's picture and
- *  the story model is text-only, so it designs who the character is (role, personality, sex/age from the producer's
- *  words or the name, the voice description) and none of the look. The look fields come back empty — empty means
+ *  the story model is text-only, so it designs who the character is (role, personality, sex/age, the voice
+ *  description) and none of the look. The chain reads the picture first (D15) and adds what the vision model saw
+ *  (REFERENCE_SEEN_PREFIX: apparent age and sex, what is visibly worn): the design takes sex and age from it and never
+ *  contradicts it; without it, from the producer's words or the name. The look fields come back empty — empty means
  *  "as in the reference picture" — so a merge keeps whatever the producer wrote and invents nothing else; the
- *  portrait is drawn from the picture (images.ts), and the profile shows those fields as "from the reference picture"
- *  until the producer writes them. A vision model would fill them from the picture (contract §1.2a). */
+ *  canonical image is drawn from the picture (images.ts), and the profile shows those fields as "from the reference
+ *  picture" until the producer writes them. */
 export async function designCharacter(s: StudioState, req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string; lookFrom?: 'REFERENCE' }, opts: EngineOptions = {}): Promise<CharacterDesign> {
   if (req.lookFrom === 'REFERENCE' || isReferenceLookBrief(req.brief)) return designCharacterFromReference(req, opts);
   const existing = s.characters.filter((c) => c.style === req.style).slice(0, 20).map((c) => ({ name: c.name, role: c.role, look: castSummary(c).look }));
@@ -202,20 +206,113 @@ Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, 
   return r.data;
 }
 
-/** The REFERENCE-mode design: the non-visual half of the sheet, from words only. */
+/** The orchestrator's second line in a REFERENCE design brief (D15): what the vision model saw in the producer's
+ *  picture (apparent age, sex, what is visibly worn), as JSON on one line, read by `designCharacterFromReference`. */
+export const REFERENCE_SEEN_PREFIX = 'SEEN IN THE REFERENCE PICTURE (vision model): ';
+export const referenceSeenBrief = (f: PictureFacts): string => `${REFERENCE_SEEN_PREFIX}${JSON.stringify(f)}`;
+
+/** The facts line out of a brief (malformed JSON is ignored), and the producer's words without it. */
+export function parseReferenceSeen(brief: string): { facts?: PictureFacts; rest: string } {
+  let facts: PictureFacts | undefined;
+  const rest = brief.split('\n').filter((line) => {
+    if (!line.startsWith(REFERENCE_SEEN_PREFIX)) return true;
+    try {
+      const v = JSON.parse(line.slice(REFERENCE_SEEN_PREFIX.length)) as Record<string, unknown>;
+      const age = typeof v.apparentAge === 'string' ? v.apparentAge.trim().slice(0, 20) : '';
+      facts = { ...(age ? { apparentAge: age } : {}), ...(v.sex === 'male' || v.sex === 'female' ? { sex: v.sex } : {}), visible: Array.isArray(v.visible) ? v.visible.filter((x): x is string => typeof x === 'string').map((x) => x.slice(0, 120)).slice(0, 12) : [] };
+    } catch { /* not ours to repair: no facts */ }
+    return false;
+  });
+  return { facts, rest: rest.join('\n').trim() };
+}
+
+/** "60-70" → [60, 70]; "about 45" → [40, 50]; the age words a description uses → a range; otherwise undefined. */
+export function ageBounds(apparentAge: string | undefined): [number, number] | undefined {
+  const a = (apparentAge ?? '').toLowerCase();
+  const range = /(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})/.exec(a);
+  if (range) { const lo = Number(range[1]), hi = Number(range[2]); return lo <= hi ? [lo, hi] : [hi, lo]; }
+  const one = /(\d{1,3})/.exec(a);
+  if (one) { const n = Number(one[1]); return [Math.max(1, n - 5), n + 5]; }
+  if (/elderly|\bold\b|senior/.test(a)) return [65, 90];
+  if (/middle-aged/.test(a)) return [40, 60];
+  if (/teen|adolescent/.test(a)) return [13, 19];
+  if (/child|kid/.test(a)) return [5, 12];
+  return undefined;
+}
+
+const YOUNG_WORDS = ['young', 'younger', 'youthful', 'youngster', 'teen', 'teens', 'teenage', 'teenaged', 'teenager', 'adolescent', 'kid', 'child', 'childish', 'boy', 'girl', 'schoolboy', 'schoolgirl'];
+const OLD_WORDS = ['elderly', 'aged', 'ageing', 'aging', 'senior', 'retired', 'retiree', 'grandfather', 'grandmother', 'grandpa', 'grandma', 'grandparent', 'middle-aged', 'widow', 'widower', 'veteran'];
+const FEMALE_WORDS = ['woman', 'women', 'girl', 'lady', 'she', 'her', 'hers', 'herself', 'mother', 'grandmother', 'wife', 'daughter', 'sister', 'aunt', 'niece', 'queen', 'princess', 'actress', 'waitress', 'heroine', 'matriarch', 'businesswoman', 'seamstress', 'feminine'];
+const MALE_WORDS = ['man', 'men', 'boy', 'gentleman', 'he', 'him', 'his', 'himself', 'father', 'grandfather', 'husband', 'son', 'brother', 'uncle', 'nephew', 'king', 'prince', 'actor', 'waiter', 'hero', 'patriarch', 'businessman', 'masculine'];
+/** The words that would contradict what the picture shows (age and sex), minus the producer's own words. */
+function contradictingWords(f: PictureFacts, producerWords: string): string[] {
+  const bounds = ageBounds(f.apparentAge);
+  const words = [
+    ...(bounds && bounds[0] >= 40 ? YOUNG_WORDS : []),
+    ...(bounds && bounds[1] <= 25 ? OLD_WORDS : []),
+    ...(f.sex === 'male' ? FEMALE_WORDS : f.sex === 'female' ? MALE_WORDS : []),
+  ];
+  const own = new Set(producerWords.toLowerCase().match(/[a-z-]+/g) ?? []);
+  return [...new Set(words)].filter((w) => !own.has(w));
+}
+const wordsIn = (text: string, words: string[]) => (text.toLowerCase().match(/[a-z-]+/g) ?? []).filter((w) => words.includes(w));
+const ADJECTIVES = new Set(['young', 'younger', 'youthful', 'teenage', 'teenaged', 'elderly', 'aged', 'ageing', 'aging', 'middle-aged', 'feminine', 'masculine']);
+
+/** Never contradict the picture (D15): the sex is the picture's, the age is inside its apparent range, and a role,
+ *  personality or voice phrase the model wrote with a contradicting word is repaired — an age or sex adjective is
+ *  dropped ("A young, curious explorer" → "A curious explorer"); a role that still contradicts it is left for the
+ *  producer, a personality sentence that does is dropped. The producer's own words are never touched. Pure. */
+export function reconcileWithPicture(d: ReferenceDesign, f: PictureFacts, producerWords = ''): { design: ReferenceDesign; changed: string[] } {
+  const changed: string[] = [];
+  const out: ReferenceDesign = { ...d };
+  if (f.sex) { const sex = f.sex === 'male' ? 'MALE' : 'FEMALE'; if (out.sex !== sex) { changed.push(`sex ${out.sex} → ${sex}`); out.sex = sex; } }
+  const bounds = ageBounds(f.apparentAge);
+  if (bounds && (out.ageYears < bounds[0] || out.ageYears > bounds[1])) { const age = Math.round((bounds[0] + bounds[1]) / 2); changed.push(`age ${out.ageYears} → ${age}`); out.ageYears = age; }
+  const bad = contradictingWords(f, producerWords);
+  if (!bad.length) return { design: out, changed };
+  const dropAdjectives = (s: string) => s.replace(/\b([A-Za-z-]+)\b(\s*,)?\s*/g, (m, w: string) => (ADJECTIVES.has(w.toLowerCase()) && bad.includes(w.toLowerCase()) ? '' : m)).replace(/\s{2,}/g, ' ').trim();
+  // an article before a dropped adjective is fixed only where one was dropped ("an elderly man" → "a man")
+  const repair = (s: string) => { const d2 = dropAdjectives(s); return d2 === s ? s : d2.replace(/\b(A|a)n?\s+(\w)/g, (_whole, a: string, ch: string) => `${a}${/[aeiou]/i.test(ch) ? 'n' : ''} ${ch}`); };
+  if (wordsIn(out.role, bad).length) {
+    const role = repair(out.role);
+    const next = wordsIn(role, bad).length || !role ? 'To be decided by the producer' : role.charAt(0).toUpperCase() + role.slice(1);
+    changed.push(`role "${out.role}" → "${next}"`); out.role = next;
+  }
+  if (wordsIn(out.personality, bad).length) {
+    const kept = out.personality.split(/(?<=[.;!?])\s+/).map(repair).filter((s) => s && !wordsIn(s, bad).length).join(' ');
+    changed.push('personality: contradicting words removed'); out.personality = kept;
+  }
+  if (out.voice) {
+    const v = { ...out.voice, timbre: repair(out.voice.timbre), ...(out.voice.notes ? { notes: repair(out.voice.notes) } : {}) };
+    if (v.timbre !== out.voice.timbre || v.notes !== out.voice.notes) { changed.push('voice: contradicting words removed'); out.voice = v; }
+  }
+  return { design: out, changed };
+}
+
+/** The REFERENCE-mode design: the non-visual half of the sheet, from words only — and, when the creation chain could
+ *  read the picture first (D15), from what the vision model saw: the apparent age and sex and what is visibly worn,
+ *  which the design must never contradict (`reconcileWithPicture` holds it to them). */
 async function designCharacterFromReference(req: { brief: string; name?: string; style: Style; language: Language; dialect?: Dialect; world?: string }, opts: EngineOptions): Promise<CharacterDesign> {
-  const brief = req.brief.split(REFERENCE_LOOK_BRIEF).join('').trim();
+  const { facts, rest } = parseReferenceSeen(req.brief.split(REFERENCE_LOOK_BRIEF).join(''));
+  const brief = rest.trim();
+  const bounds = ageBounds(facts?.apparentAge);
+  const roleGiven = /\brole:\s*\S/i.test(brief);
+  const seen = facts && (facts.apparentAge || facts.sex || facts.visible.length)
+    ? `\nA vision model looked at the picture for you. It saw: ${[facts.apparentAge ? `apparent age ${facts.apparentAge}` : '', facts.sex ? `a ${facts.sex === 'male' ? 'man' : 'woman'}` : '', facts.visible.length ? `visible: ${facts.visible.join('; ')}` : ''].filter(Boolean).join('; ')}.
+This is what the producer's picture shows: never contradict it.${facts.sex ? ` The character is ${facts.sex === 'male' ? 'MALE' : 'FEMALE'}.` : ''}${bounds ? ` Their age is between ${bounds[0]} and ${bounds[1]}.` : ''} The role, personality and voice must suit a person who looks like this — no "young" for someone who looks sixty, no role that needs another age, sex or body, nothing the visible clothing rules out.${roleGiven ? '' : ' No role was given: choose a plain, everyday role that fits this person and the world (what they wear is a clue); invent no adventure the picture does not support.'}`
+    : '';
   const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
-Their LOOK is a reference picture the producer uploaded. You cannot see that picture. Do not describe or guess the face, hair, skin, eyes, build, wardrobe, accessories or any visible mark: the picture is the look and the portrait is drawn from it.
-Design only who they are: their role, their personality (temperament, habits, how they speak), sex and age (take them from the producer's words or the name; when nothing says, choose what fits the role), and the voice description.
+Their LOOK is a reference picture the producer uploaded. You cannot see that picture. Do not describe or guess the face, hair, skin, eyes, build, wardrobe, accessories or any visible mark: the picture is the look and the portrait is drawn from it.${seen}
+Design only who they are: their role, their personality (temperament, habits, how they speak), sex and age (${seen ? 'as the vision model saw them' : "take them from the producer's words or the name; when nothing says, choose what fits the role"}), and the voice description.
 ${brief ? `The producer's words: """${brief}"""` : 'The producer gave no words beyond the picture.'}${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
 Return JSON: { name, nameAr?, role, sex, ageYears, species?, personality, voice: { pitch, pace, timbre, notes? } }. No look fields.`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignFromReferenceSchema, messages, { ...opts, maxTokens: 1500, temperature: 0.8 });
   opts.onResult?.(r.result);
+  const held = facts ? reconcileWithPicture(r.data, facts, brief).design : r.data;
   // the look is the picture's: nothing is invented for it (empty = "as in the reference picture")
   const look = Object.fromEntries(LOOK_FIELDS.map((k) => [k, ''])) as Record<LookField, string>;
-  return { ...r.data, ...look, distinguishing: [] };
+  return { ...held, ...look, distinguishing: [] };
 }
 
 // ----------------------------------------------------------------------------------------------- Manual Brief

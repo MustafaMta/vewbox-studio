@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { Handler, HandlerContext } from './index';
+import type { ToolRunner } from '@/server/org/tools';
 import { step } from './step';
 import { StudioError, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
@@ -18,7 +19,7 @@ import {
   CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
-  referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type PxRect, type SecondaryMaterialKind,
+  referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
 import { continuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
@@ -58,9 +59,11 @@ interface Drawn { id: string; file: string; prompt: string; references: string[]
 
 type ImageTool = 'image.generate' | 'image.edit_with_references' | 'image.describe_reference';
 
-/** Run one graph under the GPU lease as a recorded tool call. */
-async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool }): Promise<comfy.ComfyRunResult> {
-  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => ctx.tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
+/** Run one graph under the GPU lease as a recorded tool call (through `runner`, a delegated step's tool runner, when
+ *  another agent's step runs it). */
+async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool; runner?: ToolRunner }): Promise<comfy.ComfyRunResult> {
+  const tool = opts.runner ?? ctx.tool;
+  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
 }
 
 /** Fetch one ComfyUI output file into a temporary folder (the caller removes `dir`). */
@@ -179,30 +182,57 @@ export async function requireUsableReference(c: Character, pending: Asset | unde
   return v;
 }
 
-interface ReferenceRead { upload: string; faceRect?: PxRect; faces: number; description?: CharacterDescription; notes: string[]; describedBy?: string }
+/** One reading of a reference picture, as stored on the picture's asset (`provenance.reading`). */
+interface StoredReading { boxes: FaceBoxPx[]; description: CharacterDescription; describedBy: string; vlm: string; at: string }
+const storedReading = (a: Asset): StoredReading | undefined => {
+  const r = a.provenance?.reading as Partial<StoredReading> | undefined;
+  return r && r.vlm === MODELS.vlm && Array.isArray(r.boxes) && r.description && typeof r.description === 'object' && Array.isArray(r.description.clothing) ? r as StoredReading : undefined;
+};
 
-/** Read the producer's picture in ComfyUI before drawing from it: the face box (one face → a chin-safe crop given to
- *  the redraw as image 2) and, when Qwen3.5-4B is installed, the description the identity line is written from. */
-async function readReference(ctx: HandlerContext, c: Character, pending: Asset): Promise<ReferenceRead> {
-  const file = assetFile(pending);
-  const upload = await comfy.uploadInput(file);
+export interface PictureReading { upload: string; boxes: FaceBoxPx[]; description?: CharacterDescription; describedBy?: string; notes: string[]; reused: boolean }
+
+/** Read the producer's picture in ComfyUI: the MediaPipe face boxes and, when Qwen3.5-4B is installed, the
+ *  description the identity line (and, in the creation chain, the design — D15) is written from. A reading with a
+ *  description is stored on the picture's asset and reused by the next read of the same picture, so the design and
+ *  the drawing work from ONE reading (and the vision model runs once). `describeOnly`: without the vision model
+ *  nothing is run (the caller only wants the description). `runner`: a delegated step's tool runner. */
+export async function readReferencePicture(ctx: HandlerContext, picture: Asset, opts: { label: string; runner?: ToolRunner; describeOnly?: boolean }): Promise<PictureReading> {
+  const upload = await comfy.uploadInput(assetFile(picture));
   const describe = (await comfy.listModels('text_encoders').catch(() => [] as string[])).includes(MODELS.vlm);
-  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { label: `${c.name} — reading the reference picture`, tool: 'image.describe_reference' });
+  const stored = storedReading(picture);
+  if (stored) return { upload, boxes: stored.boxes, description: stored.description, describedBy: stored.describedBy, notes: [`the picture was already read (${stored.describedBy}); that one reading is used`], reused: true };
+  if (!describe && opts.describeOnly) return { upload, boxes: [], notes: ['the vision model (Qwen3.5-4B) is not installed: the picture cannot be described'], reused: false };
+  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { label: opts.label, tool: 'image.describe_reference', runner: opts.runner });
   const notes: string[] = [];
   const boxes = parseFaceBoxes(comfy.textOutput(run.outputs, REFERENCE_FACE_OUTPUTS.bboxes));
-  let faceRect: PxRect | undefined;
-  if (boxes.length === 1) {
-    const p = await ffprobe(file);
-    const size = { width: Number(p.width) || pending.width || 0, height: Number(p.height) || pending.height || 0 };
-    if (size.width && size.height) faceRect = faceCropRect(boxes[0], size);
-  } else notes.push(boxes.length ? `${boxes.length} faces found: the redraw gets no separate face crop` : 'no face found by the detector: the redraw gets no separate face crop');
   let description: CharacterDescription | undefined;
   if (!describe) notes.push('the vision model (Qwen3.5-4B) is not installed: the look is taken from the picture alone');
   else {
     const text = comfy.textOutput(run.outputs, vlmOutput(REFERENCE_DESCRIBE_KEY)) ?? '';
     try { description = parseCharacterDescription(text); } catch (e) { notes.push(`the description could not be read (${(e as Error).message}): the look is taken from the picture alone`); }
   }
-  return { upload, faceRect, faces: boxes.length, description, notes, describedBy: description ? 'Qwen3.5-4B' : undefined };
+  if (description) {
+    const fresh = (await readState()).state.assets.find((a) => a.id === picture.id) ?? picture;
+    const reading: StoredReading = { boxes, description, describedBy: 'Qwen3.5-4B', vlm: MODELS.vlm, at: new Date().toISOString() };
+    await command('updateAsset', [picture.id, { provenance: { ...(fresh.provenance ?? {}), reading } }], 'worker');
+  }
+  return { upload, boxes, description, describedBy: description ? 'Qwen3.5-4B' : undefined, notes, reused: false };
+}
+
+interface ReferenceRead { upload: string; faceRect?: PxRect; faces: number; description?: CharacterDescription; notes: string[]; describedBy?: string }
+
+/** Read the producer's picture before drawing from it: the face box (one face → a chin-safe crop given to the redraw
+ *  as image 2) and the description the identity line is written from. */
+async function readReference(ctx: HandlerContext, c: Character, pending: Asset): Promise<ReferenceRead> {
+  const read = await readReferencePicture(ctx, pending, { label: `${c.name} — reading the reference picture` });
+  const notes = [...read.notes];
+  let faceRect: PxRect | undefined;
+  if (read.boxes.length === 1) {
+    const p = await ffprobe(assetFile(pending));
+    const size = { width: Number(p.width) || pending.width || 0, height: Number(p.height) || pending.height || 0 };
+    if (size.width && size.height) faceRect = faceCropRect(read.boxes[0], size);
+  } else notes.unshift(read.boxes.length ? `${read.boxes.length} faces found: the redraw gets no separate face crop` : 'no face found by the detector: the redraw gets no separate face crop');
+  return { upload: read.upload, faceRect, faces: read.boxes.length, description: read.description, notes, describedBy: read.describedBy };
 }
 
 const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REFERENCE: 'Qwen-Image-Edit-2511 (24 steps, cfg 4)' } as const;

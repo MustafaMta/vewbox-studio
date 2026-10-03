@@ -411,6 +411,28 @@ export function identityLineFromDescription(d: CharacterDescription, opts: { sty
   return { line: `Identity: ${parts.join('; ')}.`, lowConfidence: [...new Set(lowConfidence)], notVisible };
 }
 
+/** What the text-only design step may know of a reference picture it cannot see (D15): the apparent age and sex and
+ *  what is visibly worn or carried — low-confidence and not-visible fields left out, short phrases only — so the
+ *  designed role, age and voice never contradict the picture. */
+export interface PictureFacts { apparentAge?: string; sex?: 'male' | 'female'; visible: string[] }
+
+export function pictureFacts(d: CharacterDescription): PictureFacts {
+  const low = new Set(Object.entries(d.confidence).filter(([, v]) => v === 'low').map(([k]) => k));
+  const sure = (key: string, v: string | undefined): v is string => Boolean(v) && !NOT_VISIBLE.test(v!) && !low.has(key) && ![...low].some((l) => l.startsWith(`${key}.`));
+  const none = (v: string) => /^(none|no)\b/i.test(v);
+  const visible: string[] = [];
+  const add = (v: string) => { const s = squash(v).slice(0, 60); if (s && !visible.some((x) => x.toLowerCase() === s.toLowerCase())) visible.push(s); };
+  const hair = [d.hair.length, d.hair.colour].filter((x) => x && !NOT_VISIBLE.test(x)).join(' ');
+  if (hair && !low.has('hair') && ![...low].some((l) => l.startsWith('hair.'))) add(`${hair} hair`);
+  if (sure('facialHair', d.facialHair)) add(none(d.facialHair) ? 'no facial hair' : d.facialHair);
+  if (sure('glasses', d.glasses) && !none(d.glasses)) add(/glass|spectacle/i.test(d.glasses) ? d.glasses : `glasses (${d.glasses})`);
+  if (!low.has('clothing')) for (const c of d.clothing) add([c.colour, c.item].filter(Boolean).join(' '));
+  if (sure('footwear', d.footwear)) add(d.footwear);
+  if (!low.has('accessories')) for (const a of d.accessories) add(a);
+  const sex = low.has('sex') ? undefined : /^f/i.test(d.sex ?? '') ? 'female' as const : /^m/i.test(d.sex ?? '') ? 'male' as const : undefined;
+  return { ...(sure('ageRange', d.ageRange) ? { apparentAge: d.ageRange.replace(/\s*years?( old)?/i, '').slice(0, 20) } : {}), ...(sex ? { sex } : {}), visible: visible.slice(0, 10) };
+}
+
 // --------------------------------------------------------------------------------------- style judgement
 
 export const STYLE_CHECK_PROMPT = 'Look at the picture. Answer with JSON only: {"medium": "photograph | 3d_render | 2d_drawing", "fullBody": true or false, "figures": number}. "photograph" = a photo of a real person; "3d_render" = a computer-animated 3D CG character; "2d_drawing" = a 2D anime, cartoon or illustration drawing. "fullBody" = the whole figure from the top of the head to the feet is inside the picture. "figures" = how many people are shown.';

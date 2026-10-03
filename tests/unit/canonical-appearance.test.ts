@@ -165,6 +165,26 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
     expect(c.canonicalImage!.engine).toMatch(/Qwen-Image-Edit-2511/);
     expect(r).toMatchObject({ lookFrom: 'REFERENCE' });
   });
+  it('one reading per picture (D15): the reading stored on the picture — by this draw or by the creation chain before the design — is used, not run again', async () => {
+    upload();
+    fake.text = {
+      bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408, "score": 0.96}]]',
+      vlm_describe: '{"ageRange": "60-70", "sex": "male", "facialHair": "thick grey moustache", "clothing": [{"item": "dishdasha", "colour": "grey"}], "confidence": {}}',
+    };
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.describe_reference', 'image.edit_with_references']);
+    expect(asset('up-face').provenance).toMatchObject({ reading: { describedBy: 'Qwen3.5-4B', description: { ageRange: '60-70' } } });
+    const first = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.identityLine;
+    // the same picture again (a redraw from it): the stored reading is used — no vision run, the same identity line
+    fake.state = setPendingReference(fake.state, 'nour', 'up-face', { ok: true, width: 1024, height: 1280, faces: 1, reasons: [] });
+    fake.runs = []; fake.text = {};
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.edit_with_references']);
+    expect(fake.runs[0].graph.facecrop).toBeDefined(); // the stored face box still gives the face crop
+    const img = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!;
+    expect(img.identityLine).toBe(first);
+    expect(img.check!.notes!.join(' ')).toMatch(/already read/);
+  });
   it('a redraw after a framing failure leaves the face crop out (it pulled the shot in to three-quarter length)', async () => {
     upload();
     fake.text = { bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408}]]', vlm_describe: '{"sex": "male", "ageRange": "25-35", "clothing": [{"item": "shirt", "colour": "blue"}]}' };

@@ -38,7 +38,7 @@ Evidence, A/B and per-image notes: `docs/evidence/image-v2/REPORT.md`.
 | Mode | Graph (registry template) | Settings | Inputs | Measured (RTX 5090) |
 |---|---|---|---|---|
 | Auto / Manual | `qwen-image.canonical` (`qwenCanonicalImage`) | **quality**: no Lightning, 30 steps, cfg 4, euler/simple, shift 3.1, negative with the style's "not this medium" words | the prompt: medium first → whole-figure framing → English identity line → style direction → avoid list | 928×1664; 42 s engine warm (≈ 6–9 s with the Lightning draft `qwen-image.canonical-draft`) |
-| Image Reference — read | `qwen3.5.reference-read` (`referenceReadGraph`) | MediaPipe (`detector_variant` both, min confidence 0.5) + Qwen3.5-4B (sampling off, thinking off, ≤ 900 tokens) in one prompt | the validated upload | see REPORT §4 |
+| Image Reference — read | `qwen3.5.reference-read` (`referenceReadGraph`) | MediaPipe (`detector_variant` both, min confidence 0.5) + Qwen3.5-4B (sampling off, thinking off, ≤ 900 tokens) in one prompt; once per picture: a creation from a picture reads it before the design (D15: the design gets the apparent age, sex and visible clothing), the reading is stored on the picture (`provenance.reading`) and the redraw uses it | the validated upload | see REPORT §4 |
 | Image Reference — redraw | `qwen-image.canonical-reference` (`qwenReferenceCanonical`) | Edit-2511 **quality**: 24 steps, cfg 4 | image1 = the upload, image2 = its face (one detected face → square crop with 25 % margin, chin-safe, cut in the graph and scaled to 1024²) | see REPORT §4 |
 
 - **Identity line** (`canonicalIdentityLine`, or `identityLineFromDescription` for a picture): English, style first, then
