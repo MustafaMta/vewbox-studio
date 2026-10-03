@@ -10,11 +10,28 @@ import { DICTIONARIES, KEYS, t } from '@/lib/i18n';
 const snapshot = JSON.parse(fs.readFileSync(path.join('tests', 'fixtures', 'i18n-v3-snapshot.json'), 'utf8')) as Record<string, [string, string]>;
 const PREFIX: Record<string, string | null> = { common: null, kit: 'kit', media: 'media', shell: 'shell', shows: 'shows', film: 'film', music: 'music', cast: 'cast', studio: 'studio' };
 
+/** Keys whose copy was deliberately rewritten after the split, each with its reason. A change to any other key of the
+ *  old dictionary fails, so copy only changes on purpose. (Deleting old keys is package Q1's job: it adds a REMOVED
+ *  list here.) */
+const REVISED: Record<string, string> = {
+  'char.create.voiceNoneHint': 'D9: voices are also designed from the description, not only cloned from a recording',
+  'char.form.voiceHint': 'D9: the same',
+};
+
 describe('the split dictionary', () => {
-  it('keeps every key of the old dictionary with the same English and the same Arabic', () => {
+  it('keeps every key of the old dictionary with the same English and the same Arabic, except deliberate revisions', () => {
     const changed = Object.entries(snapshot).filter(([k, [en, ar]]) => !(KEYS as string[]).includes(k) || t('en', k as never) !== en || t('ar', k as never) !== ar).map(([k]) => k);
     expect(Object.keys(snapshot)).toHaveLength(1260);
-    expect(changed).toEqual([]);
+    expect(changed.filter((k) => !(k in REVISED))).toEqual([]);
+  });
+
+  it('lists as revised only keys that exist and really changed', () => {
+    for (const k of Object.keys(REVISED)) {
+      expect(k in snapshot, `${k} is not an old key`).toBe(true);
+      expect((KEYS as string[]).includes(k), `${k} was deleted, not revised`).toBe(true);
+      const [en, ar] = snapshot[k]!;
+      expect(t('en', k as never) !== en || t('ar', k as never) !== ar, `${k} is listed as revised but is unchanged`).toBe(true);
+    }
   });
 
   it('adds nothing but new package keys under the package prefix (none at the split: the two are equal key for key)', () => {
