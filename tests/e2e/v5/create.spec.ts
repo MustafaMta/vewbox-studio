@@ -220,6 +220,14 @@ test('Auto is honest when it cannot run: the paused studio or the offline engine
   await expect(page.getByRole('button', { name: 'Develop an idea' })).toBeDisabled();
 });
 
+test('?mode= opens the flow in that mode; a missing or unknown mode opens Auto', async ({ page }) => {
+  for (const [q, mode] of [['?mode=manual', 'Manual'], ['?mode=auto', 'Auto'], ['', 'Auto'], ['?mode=bogus', 'Auto']] as const) {
+    await open(page, `/new/music-video${q}`);
+    await expect(page.getByRole('radiogroup', { name: 'How to start' }).getByRole('radio', { name: mode })).toHaveAttribute('aria-checked', 'true');
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  }
+});
+
 test('an episode without its show says so and offers the way back', async ({ page }) => {
   await open(page, '/new/episode?show=missing-show');
   await expect(page.getByRole('heading', { level: 1, name: 'This show isn’t in the studio' })).toBeVisible();

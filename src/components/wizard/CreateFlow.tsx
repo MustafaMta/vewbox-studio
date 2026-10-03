@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { Aspect, Dialect, Language, Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { seasonById, showById } from '@/studio/selectors';
-import { Segmented, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { ErrorState, Segmented, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
 import { IconAuto, IconChevronLeft, IconManual } from '@/components/ui/icons';
 import { Preview } from './parts';
 import { emptySong, type SongDraft } from './Song';
@@ -44,12 +44,10 @@ export function CreateFlow({ kind }: { kind: CreateKind }) {
   const needsShow = kind === 'season' || kind === 'episode';
   if (needsShow && (!show || (kind === 'episode' && !season))) {
     return (
-      <div className="create">
-        <div className="create-missing">
-          <h1 className="t-page">{show ? 'This show has no season yet' : 'This show isn’t in the studio'}</h1>
-          <p className="t-lead">{show ? 'Add a season first; its episodes follow.' : `A ${info.noun} belongs to a show. Open the show and add it from there.`}</p>
-          <Link className="btn btn-secondary" href={show ? `/new/season?show=${show.id}` : '/shows'}>{show ? 'New season' : 'Back to Shows'}</Link>
-        </div>
+      <div className="create create-missing">
+        <ErrorState kind="page" title={show ? 'This show has no season yet' : 'This show isn’t in the studio'} back={show ? { href: `/new/season?show=${show.id}`, label: 'New season' } : { href: '/shows', label: 'Back to Shows' }}>
+          {show ? 'Add a season first; its episodes follow.' : `A ${info.noun} belongs to a show. Open the show and add it from there.`}
+        </ErrorState>
       </div>
     );
   }

@@ -7,7 +7,7 @@
 // Manual (brief, more control, validation errors), the music video's song (write, upload refused), seasons and
 // episodes without a show, an empty studio and the loading skeletons — and measures each: the shared start edge,
 // equal heights in the hub grid and in every picker row, Geist only, no text under 12 px, no horizontal overflow, no
-// frame marked unavailable, and (hub and flow, throttled first load) the layout shift.
+// frame marked unavailable, and (hub and flow, a first load throttled to 4 Mbps with 150 ms latency — the dev server's uncompressed chunks time out at 1.5 Mbps) the layout shift.
 //
 // Read only: every write is answered in the browser (scripts/lib/capture.mjs) and never reaches the server. States
 // the studio lacks are derived from its own records: the engines' answers are replaced (ready / offline / checking),
@@ -108,9 +108,12 @@ async function measure(page) {
 
 for (const size of SIZES) {
   for (const st of STATES) {
+   // the dev server can hand out a chunk mid-compile: a page that never becomes ready is opened again (three times at most)
+   for (let attempt = 1; attempt <= 3; attempt++) {
     const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     await prepare(page, { motion: 'reduce' });
+    if (process.env.DEBUG_ERRORS) { page.on('pageerror', (e) => console.log('   stack:', (e.stack || '').split('\n').slice(0, 3).join(' | '))); page.on('requestfailed', (r) => console.log('   failed:', r.url(), r.failure()?.errorText)); }
     await page.addInitScript(() => { window.__shifts = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 50) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true }); });
     const eng = st.engines ? ENGINES[st.engines] : null;
     if (eng) {
@@ -129,7 +132,7 @@ for (const size of SIZES) {
       if (st.empty) await page.route((u) => u.pathname === '/api/jobs', (route) => route.fulfill({ json: { jobs: [] } }));
     }
     let cdp = null;
-    if (st.cls) { cdp = await ctx.newCDPSession(page); await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 }); }
+    if (st.cls) { cdp = await ctx.newCDPSession(page); await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (4 * 1024 * 1024) / 8, uploadThroughput: (1 * 1024 * 1024) / 8 }); }
     const file = `${out}/${st.name}-${size.w}.png`;
     try {
       await page.goto(`${base}${st.path}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -138,7 +141,7 @@ for (const size of SIZES) {
         await page.waitForTimeout(400);
         await page.screenshot({ path: file, fullPage: true });
       } else {
-        await page.waitForSelector(st.wait ?? 'main h1', { timeout: st.cls ? 300000 : 120000 });
+        await page.waitForSelector(st.wait ?? 'main h1', { timeout: st.cls ? 240000 : 60000 });
         await page.waitForFunction(() => !document.querySelector('.create-skeleton, .sk-region'), null, { timeout: 60000 }).catch(() => {});
         if (st.dev) await page.waitForSelector('.create-step', { timeout: 30000 });
         if (st.act) await st.act(page);
@@ -158,12 +161,15 @@ for (const size of SIZES) {
       report.push({ state: st.name, size: `${size.w}×${size.h}`, file, ...(m ?? {}), checks });
       console.log(`${size.w} ${st.name}: ${bad.length ? `✗ ${bad.join(', ')}` : '✓'}${m ? ` · start x ${m.starts.join('/')}${m.offenders.length ? ` (${m.offenders.join(', ')})` : ''}${st.cls ? ` · CLS ${m.cls.toFixed(4)}${m.shifts.length ? ` ${JSON.stringify(m.shifts)}` : ''}` : ''}${m.small.length ? ` · small ${m.small.join('; ')}` : ''}${m.overflow > 0 ? ` · overflow ${m.overflow}` : ''} · fonts ${m.fonts.join(', ')}` : ''}`);
     } catch (e) {
+      if (attempt < 3) { console.log(`  ${size.w} ${st.name}: not ready (${e.message.split('\n')[0].slice(0, 80)}), opening again`); await page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {}); await ctx.close(); continue; }
       failed += 1;
       console.log(`${size.w} ${st.name}: ✗ ${e.message.split('\n')[0]}`);
       report.push({ state: st.name, size: `${size.w}×${size.h}`, error: e.message.split('\n')[0] });
     }
     await page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {});
     await ctx.close();
+    break;
+   }
   }
 }
 await browser.close();

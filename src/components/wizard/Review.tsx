@@ -10,7 +10,7 @@ import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, FormFooter, Input, Notice, Segmented, Select, SettingsSummary, Textarea } from '@/components/ui/kit';
-import { AudioPlayer } from '@/components/players/Controls';
+import { AudioRow } from '@/components/players/Controls';
 import { nameLang } from '@/components/home/model';
 import { IconShuffle } from '@/components/ui/icons';
 import { AspectGlyph, Panel, PickGrid, StylePicker, figureOf, plateOf } from './parts';
@@ -120,7 +120,7 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
       {isMV && (
         <Panel id="create-review-song-h" title="The song" description={uploaded ? 'Your song. The video follows its sections.' : 'Written by the studio; it is made when production starts.'}>
           {uploaded ? (
-            <AudioPlayer src={uploaded.src} title={uploaded.name} duration={uploaded.duration} />
+            <AudioRow track={{ id: uploaded.assetId, src: uploaded.src, title: uploaded.name, duration: uploaded.duration }} meta={lengthWords(uploaded.duration) || 'Your upload'} />
           ) : p.song ? (
             <div className="create-stack">
               <Field label="Song title"><Input value={p.song.title} onChange={(e) => set({ song: { ...p.song!, title: e.target.value } })} /></Field>
