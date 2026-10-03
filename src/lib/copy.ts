@@ -164,7 +164,6 @@ const COPY = {
   'lib.inheritedFromShow': 'from the show',
   'lib.uploadHint': 'Files you add are checked, stored in the studio library on the server and listed here with their origin.',
   'media.unavailable': 'File not available',
-  'media.unavailable.hint': 'The record exists but its file is missing from the studio library: it was removed from the library folder, or the volume was replaced.',
   'media.added': 'File added.',
 
   // empty states
@@ -375,9 +374,7 @@ const COPY = {
   'nav.musicVideos': 'Music Videos',
   'nav.characters': 'Characters',
   'nav.locations': 'Locations',
-  'nav.settings': 'Settings',
   'nav.more': 'More',
-  'app.name': 'Vewbox Studio',
 
   // home
   'home.continue': 'Continue working',
@@ -385,8 +382,6 @@ const COPY = {
   'home.inProduction': 'In production',
 
   // the six areas and the studio organisation
-  'nav.company': 'Studio Company',
-  'nav.production': 'Production',
   // navigation and the production page
   'nav.new': 'New…',
 
@@ -1122,11 +1117,8 @@ const COPY = {
   // ---- studio --------------------------------------------------------------------------------------------------------
 
   // settings
-  'jobs.title': 'Activity',
   'jobs.queued': 'Queued',
-  'jobs.cancel': 'Cancel',
   'jobs.retry': 'Retry',
-  'jobs.cancelRequested': 'Stopping…',
   'jobs.inProgress': 'In progress',
   // counted phrases: `one|other` (T.p); {n} is the count
   'studio.approve': 'Approve',
