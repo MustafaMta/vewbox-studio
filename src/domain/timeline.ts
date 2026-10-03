@@ -17,13 +17,21 @@ export function orderedShots(p: Production): Shot[] {
   return [...p.shots].sort((a, b) => (sceneOrder.get(a.sceneId) ?? 0) - (sceneOrder.get(b.sceneId) ?? 0) || a.number - b.number);
 }
 
-/** The window of every shot on the timeline, from the sum of the durations before it (the PLAN; the cut's clock is
- *  the audio timeline below). */
-export function shotWindows(p: Production): Map<string, Window> {
+/** The planned window of every shot, from the sum of the planned durations before it. */
+function plannedWindows(p: Production): Map<string, Window> {
   const out = new Map<string, Window>();
   let t = 0;
   for (const sh of orderedShots(p)) { const d = Math.max(0, sh.durationSeconds || 0); out.set(sh.id, { from: t, to: t + d }); t += d; }
   return out;
+}
+
+/** The window of every shot. A music video with a song: its window ON THE SONG (song time), as the audio timeline
+ *  below tiles it — the producer's `songWindow` when set, else the plan's — so the take's anchored stretch, the sung
+ *  lines in its prompt, the singing assignment and the cut all read the same window. Otherwise: the plan, back to
+ *  back (the cut's own clock is the audio timeline). */
+export function shotWindows(p: Production): Map<string, Window> {
+  if (p.kind === 'MUSIC_VIDEO' && p.song) return new Map([...songWindowFrames(p).windows].map(([id, w]) => [id, { from: w.fromFrame / CLOCK_FPS, to: w.toFrame / CLOCK_FPS }]));
+  return plannedWindows(p);
 }
 
 /** The song section that owns most of a window (ties go to the earlier section). */
@@ -161,7 +169,7 @@ const relationOf = (sh: Shot, t: Take | undefined): ShotRelation | undefined => 
  *  producer set one, else the plan's back-to-back window. They TILE the song: a gap is filled by the shot before it
  *  (it runs on), an overlap is taken from the later shot; the cut starts at the first window. */
 export function songWindowFrames(p: Production): { windows: Map<string, { fromFrame: number; toFrame: number }>; notes: string[] } {
-  const planned = shotWindows(p);
+  const planned = plannedWindows(p);
   const notes: string[] = [];
   const out = new Map<string, { fromFrame: number; toFrame: number }>();
   let prev: { id: string; w: { fromFrame: number; toFrame: number } } | undefined;
