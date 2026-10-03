@@ -9,7 +9,7 @@ import { LinkButton } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
 import { LibraryBar, NoMatches } from '@/components/library/Library';
-import { MusicVideoCard } from '@/components/library/Cards';
+import { MusicVideoCard } from '@/components/library/MusicVideoCard';
 import { ProductionMenu, sortItems } from '@/components/library/ProductionTile';
 import { IconMusicVideos, IconPlus } from '@/components/ui/icons';
 

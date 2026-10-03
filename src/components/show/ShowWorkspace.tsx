@@ -15,7 +15,7 @@ import { Art, Empty, Hero } from '@/components/ui/cinema';
 import { FactList, ProgressBar, Section } from '@/components/ui/page';
 import { CanonPicker } from '@/components/library/CanonPicker';
 import { StageStatus } from '@/components/library/ProductionTile';
-import { stageFraction } from '@/components/library/Cards';
+import { stageFraction } from '@/components/library/ShowCard';
 import { IconArrowRight, IconAspect, IconChevronRight, IconDelete, IconDuration, IconEdit, IconLanguage, IconPlay, IconPlus, IconStyle } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/players/VideoPlayer';
 import { aspectLabel, aspectShort, dialectLabel, fmtAgo, fmtSeconds, ratioCss } from '@/lib/format';

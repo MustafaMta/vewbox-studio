@@ -4,7 +4,7 @@ import { useStudio } from '@/studio/store';
 import { assetSrc, primaryImageSrc } from '@/studio/selectors';
 import { useT } from '@/components/ui/locale';
 import { PageHeader } from '@/components/ui/page';
-import { StartCard } from '@/components/library/Cards';
+import { StartCard } from '@/components/library/StartCard';
 import { IconCharacters, IconLocations, IconMusicVideos, IconShorts, IconShows } from '@/components/ui/icons';
 
 /** NEW… — the five things the studio starts, as pictures: a show, a short, a music video, a character, a location.

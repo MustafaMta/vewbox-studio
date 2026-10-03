@@ -8,7 +8,9 @@ import { useT } from '@/components/ui/locale';
 import { PageHeader, Section } from '@/components/ui/page';
 import { TabBar } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
-import { MusicVideoCard, ShortCard, ShowCard } from '@/components/library/Cards';
+import { ShowCard } from '@/components/library/ShowCard';
+import { ShortCard } from '@/components/library/ShortCard';
+import { MusicVideoCard } from '@/components/library/MusicVideoCard';
 import { ProductionMenu } from '@/components/library/ProductionTile';
 import { IconMusicVideos, IconPlus, IconShorts, IconShows } from '@/components/ui/icons';
 
