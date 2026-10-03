@@ -1,29 +1,28 @@
 'use client';
 
-import type { Asset, Character } from '@/domain/types';
+import type { Character } from '@/domain/types';
 import { isActiveStatus } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
-import { T } from '@/lib/copy';
-import { Button, Details, Status } from '@/components/ui/kit';
+import { artVars } from '@/studio/presentation';
+import { Button, StateWord } from '@/components/ui/kit';
 import { useStartJob } from '@/components/ui/jobs';
 import { IconGenerate } from '@/components/ui/icons';
-import type { Key } from '@/lib/copy';
-import { CharacterImage } from './CharacterImage';
+import { Frame } from '@/components/media/Frame';
 import { materialByTier, secondaryJobs } from './identity';
 import { SECONDARY_KINDS, secondaryPayload, type SecondaryKind } from './contract';
+import { CastSection } from './parts';
 
-const GROUP: Array<{ key: 'portrait' | 'expressions' | 'outfits' | 'earlier'; title: Key; kind?: SecondaryKind }> = [
-  { key: 'portrait', title: 'cast.secondary.portrait' },
-  { key: 'expressions', title: 'cast.secondary.expressions', kind: 'EXPRESSION' },
-  { key: 'outfits', title: 'cast.secondary.outfits', kind: 'OUTFIT' },
-  { key: 'earlier', title: 'cast.secondary.earlier' },
+const GROUP: Array<{ key: 'portrait' | 'expressions' | 'outfits' | 'earlier'; title: string; kind?: SecondaryKind; draw?: string }> = [
+  { key: 'portrait', title: 'Close-up portrait' },
+  { key: 'expressions', title: 'Expressions', kind: 'EXPRESSION', draw: 'Draw expressions' },
+  { key: 'outfits', title: 'Outfits', kind: 'OUTFIT', draw: 'Draw an outfit' },
+  { key: 'earlier', title: 'Earlier views' },
 ];
-const DRAW_KEY: Record<SecondaryKind, Key> = { EXPRESSION: 'cast.secondary.drawExpressions', OUTFIT: 'cast.secondary.drawOutfit' };
 
-/** SECONDARY MATERIAL — optional pictures (an older close-up portrait, expressions, outfits, views from before the
- *  canonical image), collapsed at the end of the profile and never the identity. Present when something exists or
- *  is being made, or — while the look may still change and the canonical image exists — when it can be requested.
- *  Raw outputs never appear. */
+/** MORE PICTURES — optional material (an older close-up portrait, expressions, outfits, views from before the
+ *  canonical figure), collapsed at the end of the profile and never the identity. Present when something exists or is
+ *  being made, or — while the look may still change and the canonical figure exists — when it can be requested. Raw
+ *  outputs never appear. */
 export function SecondaryMaterial({ c, locked }: { c: Character; locked: boolean }) {
   const { state, jobs } = useStudio();
   const m = materialByTier(c, state.assets);
@@ -31,35 +30,33 @@ export function SecondaryMaterial({ c, locked }: { c: Character; locked: boolean
   const canRequest = !locked && Boolean(c.canonicalImage);
   if (m.secondaryCount === 0 && running.length === 0 && !canRequest) return null;
   return (
-    <section aria-label={T('cast.secondary.title')}>
-      <Details summary={<>{T('cast.secondary.title')}{m.secondaryCount > 0 && <span className="num ms-1 text-faint">{m.secondaryCount}</span>}</>}>
-        <p className="max-w-[64ch] text-[13px] leading-5 text-faint">{T('cast.secondary.lead')}</p>
-        <div className="mt-5 space-y-8">
+    <CastSection id="more" title="More pictures" count={m.secondaryCount || undefined} description="Optional pictures made on request. They never replace the figure.">
+      <details className="details char-details">
+        <summary>{m.secondaryCount ? `Show ${m.secondaryCount === 1 ? 'the picture' : `all ${m.secondaryCount}`}` : 'Request expressions or outfits'}</summary>
+        <div className="char-stack char-voice">
           {GROUP.map((g) => {
             const items = m.secondary[g.key];
             const live = running.filter((r) => r.kind === g.kind);
             if (items.length === 0 && live.length === 0 && !(canRequest && g.kind)) return null;
             return (
               <div key={g.key}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="h3">{T(g.title)}{items.length > 0 && <span className="num ms-2 text-[13px] font-medium text-faint">{items.length}</span>}</h3>
-                  {live.length > 0 ? <Status tone="info" live>{live[0].job.progress?.message || T('jobs.inProgress')}</Status> : canRequest && g.kind && <DrawSecondary c={c} kind={g.kind} />}
+                <div className="pc-shead">
+                  <div className="pc-shead-title"><h3 className="t-title">{g.title}{items.length > 0 && <span className="pc-shead-count"> {items.length}</span>}</h3></div>
+                  {live.length > 0 ? <StateWord tone="running">{live[0].job.progress?.message || 'Drawing'}</StateWord> : canRequest && g.kind && g.draw && <DrawSecondary c={c} kind={g.kind} label={g.draw} />}
                 </div>
-                {items.length > 0 ? <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3">{items.map((a) => <Tile key={a.id} a={a} name={c.name} label={T(g.title)} />)}</ul> : <p className="mt-1 text-[13px] text-faint">{T('cast.secondary.none')}</p>}
+                {items.length > 0
+                  ? <ul className="char-secondary" role="list">{items.map((a) => <li key={a.id}><Frame asset={a} ratio="1/1" fit="cover" alt={`${c.name}, ${g.title.toLowerCase()}`} art={artVars(a)} title={c.name} /></li>)}</ul>
+                  : <p className="t-body char-card-line">None yet.</p>}
               </div>
             );
           })}
         </div>
-      </Details>
-    </section>
+      </details>
+    </CastSection>
   );
 }
 
-function Tile({ a, name, label }: { a: Asset; name: string; label: string }) {
-  return <li><CharacterImage src={a.src} kind="PORTRAIT" name={name} ratio={4 / 5} unavailable={a.unavailable} alt={`${name} — ${label}`} /></li>;
-}
-
-function DrawSecondary({ c, kind }: { c: Character; kind: SecondaryKind }) {
+function DrawSecondary({ c, kind, label }: { c: Character; kind: SecondaryKind; label: string }) {
   const { start, busy } = useStartJob();
-  return <Button size="sm" variant="quiet" icon={<IconGenerate />} loading={busy} onClick={() => void start('CHARACTER_REFS', secondaryPayload(c.id, [kind]), { quiet: true })}>{T(DRAW_KEY[kind])}</Button>;
+  return <Button size="sm" variant="secondary" icon={<IconGenerate />} loading={busy} onClick={() => void start('CHARACTER_REFS', secondaryPayload(c.id, [kind]), { quiet: true })}>{label}</Button>;
 }

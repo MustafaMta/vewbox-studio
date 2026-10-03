@@ -142,11 +142,11 @@ export function CreateCharacter() {
   // preflight: the engines this start needs, read live
   const needsVoice = start === 'describe' && describe.voiceMode === 'RECORDING';
   const gate = engineGate(engines.status, needsVoice ? ['images', 'voice'] : ['images']);
-  const gateReason = !gate.ok ? `${T('char.create.engineDown')}: ${gate.blocked.map((b) => `${T.dyn(`status.${b.need}`)} — ${b.detail}`).join(' · ')}` : null;
-  const dialectReason = header.language === 'AR' && !header.dialect ? T('char.create.needDialect') : null;
+  const gateReason = !gate.ok ? `${'Not reachable'}: ${gate.blocked.map((b) => `${T.dyn(`status.${b.need}`)} — ${b.detail}`).join(' · ')}` : null;
+  const dialectReason = header.language === 'AR' && !header.dialect ? 'Choose a dialect for an Arabic character.' : null;
   const disabledReason = gateReason ?? dialectReason;
 
-  useUnsavedGuard(!parentId && (describe.brief.trim().length > 0 || picture.note.trim().length > 0 || sheet.name.trim().length > 0), T('char.create.leave'));
+  useUnsavedGuard(!parentId && (describe.brief.trim().length > 0 || picture.note.trim().length > 0 || sheet.name.trim().length > 0), 'Leave without creating the character? The brief is lost.');
 
   const basePayload = (): Pick<CreateCharacterPayload, 'style' | 'language' | 'dialect' | 'productionId' | 'showId'> => ({ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, showId: forShow?.id, productionId: forProduction?.id });
   const say = (job: StartedJob) => { for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail }); };
@@ -180,7 +180,7 @@ export function CreateCharacter() {
   };
   const submitPicture = () => {
     if (!picture.asset) return;
-    const keep = picture.keep === 'FACE' ? T('char.create.keepFace.prompt') : T('char.create.keepAll.prompt');
+    const keep = picture.keep === 'FACE' ? 'Keep the face from the reference picture; everything else follows the sheet.' : 'Keep the face, hair and wardrobe from the reference picture.';
     const brief = [keep, picture.note.trim()].filter(Boolean).join(' ');
     // the look is the picture's (never designed from words); who they are travels in the profile
     const ageYears = sheetAge({ band: picture.band });
@@ -201,12 +201,12 @@ export function CreateCharacter() {
         : await startVoiceBuild(startJob, { characterId, mode: lastPayload?.voice?.referenceSampleId ? 'REFERENCE' : 'AUTOMATIC', referenceSampleId: lastPayload?.voice?.referenceSampleId });
       say(job);
       setRetries((r) => ({ ...r, [step]: job.id }));
-    } catch (e) { toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
+    } catch (e) { toast.bad(`${'Could not start'}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
   };
   const writeMyself = () => { setSheet((s) => ({ ...s, name: lastPayload?.name ?? describe.name, look: lastPayload?.brief ?? describe.brief })); setSheetStep('identity'); reset(); setStart('sheet'); };
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
   const reset = () => { setParentId(null); setFetched(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
-  const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok(T('toast.deleted')); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
+  const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok('Deleted.'); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const drawAgain = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); say(job); setRetries((r) => ({ ...r, image: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 
   const profileHref = characterId ? `/characters/${characterId}?created=${parentId ?? ''}#image` : '/characters';
@@ -215,29 +215,29 @@ export function CreateCharacter() {
 
   return (
     <div className="max-w-[64rem]">
-      <Crumbs items={[{ href: '/characters', label: T('nav.characters') }, { label: T('cast.new.title') }]} />
-      <PageHeader title={T('cast.new.title')} subtitle={T('cast.new.lead')} />
+      <Crumbs items={[{ href: '/characters', label: 'Characters' }, { label: 'New character' }]} />
+      <PageHeader title={'New character'} subtitle={'Start the way that suits you. Nothing is drawn until you say so.'} />
 
       {!running && !ready && (
         <div className="space-y-8">
           <section aria-labelledby="how-h">
-            <h2 id="how-h" className="section-title mb-4">{T('cast.new.how')}</h2>
-            <ChoiceCards name="start" size="lg" columns={3} label={T('cast.new.how')} value={start} onChange={(v) => { setStart(v); setStartError(null); }} options={[
-              { value: 'describe', label: T('char.create.describe'), hint: T('cast.start.describe.hint'), icon: <IconAuto /> },
-              { value: 'sheet', label: T('char.create.sheet'), hint: T('cast.start.sheet.hint'), icon: <IconManual /> },
-              { value: 'picture', label: T('char.create.picture'), hint: T('cast.start.picture.hint'), icon: <IconImageAdd /> },
+            <h2 id="how-h" className="section-title mb-4">{'How do you want to start?'}</h2>
+            <ChoiceCards name="start" size="lg" columns={3} label={'How do you want to start?'} value={start} onChange={(v) => { setStart(v); setStartError(null); }} options={[
+              { value: 'describe', label: 'Describe them', hint: 'A line is enough; Casting does the rest.', icon: <IconAuto /> },
+              { value: 'sheet', label: 'Write the sheet', hint: 'You fill it in; the image is drawn when you ask.', icon: <IconManual /> },
+              { value: 'picture', label: 'From a picture', hint: 'The studio draws them to match your reference.', icon: <IconImageAdd /> },
             ]} />
           </section>
           {gateReason && start !== 'sheet' && (
-            <Notice tone="warn" title={T('char.create.engineDownTitle')} action={<span className="flex flex-wrap gap-2"><Link href="/settings#engines" className="btn btn-secondary btn-sm">{T('char.create.openEngines')}</Link><Button size="sm" variant="quiet" icon={<IconRetry />} loading={engines.loading} onClick={engines.reload}>{T('btn.refresh')}</Button></span>}>
+            <Notice tone="warn" title={'An engine this start needs is not reachable'} action={<span className="flex flex-wrap gap-2"><Link href="/settings#engines" className="btn btn-secondary btn-sm">{'Settings → Engines'}</Link><Button size="sm" variant="quiet" icon={<IconRetry />} loading={engines.loading} onClick={engines.reload}>{'Refresh'}</Button></span>}>
               {gate.blocked.map((b) => <span key={b.need} className="block" dir="auto">{T.dyn(`status.${b.need}`)}: {b.detail}</span>)}
-              <span className="mt-1 block">{T('char.create.sheetAlwaysWorks')}</span>
+              <span className="mt-1 block">{'Write the sheet always works; the look can be drawn once the engine is back.'}</span>
             </Notice>
           )}
-          {startError && <Notice tone="bad" title={T('gen.failed')}>{startError}</Notice>}
+          {startError && <Notice tone="bad" title={'Could not start'}>{startError}</Notice>}
           <div key={start} className="fade-in">
             {start === 'describe' && <DescribeStart value={describe} onChange={setDescribe} recording={recording} onRecording={setRecording} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
-            {start === 'sheet' && <SheetStart value={sheet} onChange={setSheet} step={sheetStep} onStep={setSheetStep} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} language={header.language} styleWord={T.dyn(`style.${header.style}`)} languageWord={header.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(header.dialect)})` : T('label.english')} />}
+            {start === 'sheet' && <SheetStart value={sheet} onChange={setSheet} step={sheetStep} onStep={setSheetStep} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} language={header.language} styleWord={T.dyn(`style.${header.style}`)} languageWord={header.language === 'AR' ? `${'Arabic'} (${dialectLabel(header.dialect)})` : 'English'} />}
             {start === 'picture' && <PictureStart value={picture} onChange={setPicture} onSubmit={submitPicture} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
           </div>
         </div>
@@ -245,26 +245,26 @@ export function CreateCharacter() {
 
       {running && (
         <div className="space-y-4">
-          <p className="text-[13px] text-muted" role="note">{T('cast.new.leaveSafe')}</p>
+          <p className="text-[13px] text-muted" role="note">{'You can leave this page: the work goes on, and the character’s profile shows it when it is done.'}</p>
           <CreationProgress parent={parent} steps={steps} characterId={characterId} settled={settled} referenceSrc={start === 'picture' || draft.current.referenceAssetId ? referenceSrc : undefined} onCancel={() => void cancel()} cancelling={cancelling} onRetryStep={(s) => void retryStep(s)} onWriteMyself={writeMyself}>
             {voiceUpload && voiceUpload.forJob === parentId && (
               <div className="mt-3 flex flex-wrap items-center gap-2" role="status">
                 <span className={`status ${voiceUpload.state === 'accepted' ? 'status-ok' : voiceUpload.state === 'refused' || voiceUpload.state === 'error' ? 'status-bad' : 'status-info'}`} dir="auto">
                   {T.dyn(`char.create.rec.${voiceUpload.state}`)}{voiceUpload.message ? ` — ${voiceUpload.message}` : ''}
                 </span>
-                {voiceUpload.state === 'error' && recording && <Button size="sm" variant="quiet" icon={<IconRetry />} onClick={() => setVoiceUpload({ ...voiceUpload, state: 'waiting', message: undefined })}>{T('jobs.retry')}</Button>}
-                {(voiceUpload.state === 'refused' || voiceUpload.state === 'error') && characterId && <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">{T('char.create.addRecording')}</Link>}
+                {voiceUpload.state === 'error' && recording && <Button size="sm" variant="quiet" icon={<IconRetry />} onClick={() => setVoiceUpload({ ...voiceUpload, state: 'waiting', message: undefined })}>{'Retry'}</Button>}
+                {(voiceUpload.state === 'refused' || voiceUpload.state === 'error') && characterId && <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">{'Add a recording'}</Link>}
               </div>
             )}
             {settled && (
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line-soft pt-4">
                 {created ? <>
-                  <p className="me-auto text-[13px] text-body" dir="auto">{T('char.create.partial').replace('{name}', created.name)}</p>
-                  <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />{T('char.create.openProfile')}</Link>
+                  <p className="me-auto text-[13px] text-body" dir="auto">{'{name} exists. Open the profile to finish what did not run.'.replace('{name}', created.name)}</p>
+                  <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />{'Open profile'}</Link>
                 </> : <>
-                  <p className="me-auto text-[13px] text-body">{T('char.create.nothingMade')}</p>
-                  <Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>{T('jobs.retry')}</Button>
-                  <Button variant="quiet" onClick={reset}>{T('btn.back')}</Button>
+                  <p className="me-auto text-[13px] text-body">{'Nothing was created; your brief is kept.'}</p>
+                  <Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>{'Retry'}</Button>
+                  <Button variant="quiet" onClick={reset}>{'Back'}</Button>
                 </>}
               </div>
             )}

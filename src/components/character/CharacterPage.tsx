@@ -1,168 +1,190 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import type { Character } from '@/domain/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { Character, Production } from '@/domain/types';
 import { nonHumanSpecies } from '@/domain/identity';
-import { useStudio } from '@/studio/store';
-import { assetById, assignmentsOf, productionHref } from '@/studio/selectors';
-import { T } from '@/lib/copy';
+import { useJobsFor, useStudio } from '@/studio/store';
+import { artVars } from '@/studio/presentation';
+import { assetById, assignmentsOf, productionHref, shotHref, shotLabel } from '@/studio/selectors';
+import { posterOf } from '@/studio/selectors/poster';
 import { useToast } from '@/components/ui/toast';
-import { Button, ConfirmDelete, Field, Notice, Status, Textarea, Thumb } from '@/components/ui/kit';
-import { Art } from '@/components/ui/cinema';
-import { FactList } from '@/components/ui/page';
-import { StageStatus } from '@/components/library/ProductionTile';
-import { IconChevronLeft, IconClose, IconDelete } from '@/components/ui/icons';
-import { dialectLabel, fmtDate, words } from '@/lib/format';
-import { identityStatus, usageGroups } from './identity';
+import { Button, MenuButton, MenuItem, MenuSeparator, Notice, Skeleton, SkeletonRegion, StateWord, Textarea, useConfirm } from '@/components/ui/kit';
+import { IconClose, IconDelete, IconEdit } from '@/components/ui/icons';
+import { Frame } from '@/components/media/Frame';
+import { words } from '@/lib/format';
+import { identityStatus, imageJobs } from './identity';
 import { createResultOf } from './contract';
 import { lookFieldText, lookFromReference } from './look';
-import { ImagePanel } from './ImagePanel';
-import { VoiceSection } from './VoiceSection';
+import { IdentityBlock } from './ImagePanel';
+import { VoiceSection, VoiceSummary } from './VoiceSection';
 import { SecondaryMaterial } from './SecondaryMaterial';
-import { DetailsDialog, LookDialog } from './EditDialogs';
+import { DetailsDialog, LookDialog, STYLE_WORD, languageWords } from './EditDialogs';
+import { BackLink, CastSection, MediaCard, figureOf, nameLang, usable } from './parts';
 
-/** Old links named a tab; the profile is one page now, so they land on the matching section. */
-const LEGACY_TAB: Record<string, string> = { voice: 'voice', used: 'productions', usage: 'productions', appearance: 'image', sides: 'image', profile: 'about', overview: 'about' };
+/** Old links named a tab or a section; the profile is one page, so they land on the matching section. */
+const LEGACY: Record<string, string> = { voice: 'voice', used: 'appears', usage: 'appears', productions: 'appears', appearance: 'figure', sides: 'figure', image: 'figure', profile: 'about', overview: 'about' };
 
-/** ONE CHARACTER — a premium cast profile built around one image (docs/CONTRACTS-IDENTITY-PACK.md v2 §4,
- *  DESIGN-SYSTEM-V3 §9.6): the canonical front full-body image as the hero with its state said once beneath it
- *  (Draft — awaiting your approval · Approved · Locked: used in N videos) and the quiet actions that apply (Approve,
- *  Redraw, Draw); beside it who they are — name, Arabic name, short description, personality, language and dialect;
- *  then the voice identity with a real player, the productions they are in, the creative notes, and, collapsed at the
- *  end, any secondary material. No tabs. Details stay editable after a video; the look and the voice are held. */
+/** ONE CHARACTER (docs/DESIGN-SYSTEM-V5.md §8.8 on the v5.1 standard) — a standing figure you can hear. The ONE
+ *  canonical front full-body figure at 928:1664 on its own field, never cropped, sticky beside the words from 1024 px;
+ *  beside it the slate, the name, the role, the figure's state (draft · approved · locked) with Approve / Redraw, and
+ *  the one voice as an audio row. Then About (who they are and the look, only the facts that are written), Voice (how
+ *  it was checked, the ways to make or replace it, how it should sound), Appears in (the productions as posters, the
+ *  shots as frames), Notes for the writers, and More pictures. Details stay editable after filming; the look and the
+ *  voice are held. No model internals. */
 export function CharacterPage({ c }: { c: Character }) {
-  const { act } = useStudio();
+  const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const sp = useSearchParams();
+  const confirm = useConfirm();
   const s = identityStatus(c);
   const locked = s.kind === 'LOCKED';
-  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`;
-  const legacy = sp.get('tab');
-  useEffect(() => { const id = legacy ? LEGACY_TAB[legacy] : undefined; if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' }); }, [legacy]);
+  const jobs = useJobsFor({ characterId: c.id, type: 'CHARACTER_APPEARANCE' });
+  const { running } = imageJobs(c, jobs);
+  const figure = figureOf(state, c);
+  const lang = nameLang(c.name);
+  const [details, setDetails] = useState(false);
+  const [look, setLook] = useState(false);
+  const target = sp.get('tab') ?? (typeof window !== 'undefined' ? window.location.hash.slice(1) : '');
+  useEffect(() => { const id = target ? LEGACY[target] ?? target : undefined; if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' }); }, [target]);
+  const species = nonHumanSpecies(c.species);
+  const slate = [STYLE_WORD[c.style], languageWords(c), species ? words(species) : null, c.ageYears ? `${c.ageYears} years old` : null].filter(Boolean) as string[];
+
+  const remove = async () => {
+    const ok = await confirm({ title: `Delete ${c.name}?`, body: 'They are removed from every cast list. Finished shots and cuts keep their pictures and sound.', confirmLabel: `Delete ${c.name}`, tone: 'danger' });
+    if (!ok) return;
+    try { act('deleteCharacter', c.id); toast.ok(`${c.name} was deleted.`); router.push('/characters'); } catch (e) { toast.bad((e as Error).message); }
+  };
 
   return (
-    <article className="pb-8" aria-labelledby="char-name">
-      <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5" aria-hidden />{T('nav.characters')}</Link>
+    <article className="pc-page" aria-labelledby="char-name">
       <JustCreated c={c} />
-      {/* the canonical image is the identity: the largest thing on the page (≈ 40 % of the content width on desktop) */}
-      <div className="grid gap-8 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
-        {/* not sticky: the image is taller than many laptop screens, and a sticky panel would hide its own Approve /
-            Redraw actions below the fold for good (found in the browser, 2026-10-03) */}
-        <div id="image" className="mx-auto w-full max-w-[24rem] scroll-mt-24 md:mx-0 md:max-w-none md:self-start"><ImagePanel c={c} s={s} /></div>
+      <div className="char">
+        <div className="char-figure" id="figure">
+          <Frame asset={figure} ratio="928/1664" fit="contain" radius="hero" alt={`${c.name}, full length, from the front`} art={artVars(figure)} title={c.name} titleLang={lang} titleState="noImage"
+            state={running ? 'drawing' : undefined} phase={running ? (running.progress?.message || 'Drawing the figure') : undefined} judge={s.kind === 'DRAFT'} priority className="char-figure-frame" />
+        </div>
+        <div className="char-main">
+          <BackLink href="/characters" label="Characters" />
+          <p className="t-meta char-slate">{slate.map((x) => <span key={x}>{x}</span>)}</p>
+          <h1 id="char-name" className="t-hero char-name" title={c.name}><bdi lang={lang}>{c.name}</bdi></h1>
+          {c.nameAr && <p className="t-body char-alt"><bdi lang="ar">{c.nameAr}</bdi></p>}
+          <p className="t-lead char-role" dir="auto">{c.role || 'No description yet.'}</p>
+          <IdentityBlock c={c} s={s} extra={<>
+            <Button variant="secondary" icon={<IconEdit />} onClick={() => setDetails(true)}>Edit details</Button>
+            <MenuButton label={`More for ${c.name}`} iconOnly variant="secondary" align="end">
+              <MenuItem icon={<IconEdit aria-hidden />} onClick={() => setLook(true)} disabled={locked} description={locked ? 'Held: the character has been filmed' : 'Style, age and how they look, in words'}>Edit the look</MenuItem>
+              <MenuSeparator />
+              <MenuItem icon={<IconDelete aria-hidden />} tone="danger" onClick={() => void remove()}>Delete {c.name}</MenuItem>
+            </MenuButton>
+          </>} />
+          <VoiceSummary c={c} />
 
-        <div className="min-w-0 space-y-12">
-          <header id="about" className="scroll-mt-24">
-            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-              <div className="min-w-0 flex-1 basis-72">
-                <p className="eyebrow mb-2">{T.dyn(`style.${c.style}`)} · {lang}</p>
-                <h1 id="char-name" className="display-xl" dir="auto">{c.name}</h1>
-                {c.nameAr && <p className="mt-1 text-sm text-muted"><bdi dir="rtl" lang="ar">{c.nameAr}</bdi></p>}
-              </div>
-              <div className="flex flex-none items-center gap-1.5"><DetailsDialog c={c} /></div>
-            </div>
-            <p className="lead mt-4" dir="auto">{c.role || T('cast.profile.noDescription')}</p>
-            {c.personality && <p className="prose-copy mt-4" dir="auto">{c.personality}</p>}
-            {c.distinguishing.length > 0 && <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted" aria-label={T('char.traits')}>{c.distinguishing.map((x) => <li key={x} dir="auto">{x}</li>)}</ul>}
-          </header>
-
-          <Look c={c} locked={locked} />
+          <About c={c} />
           <VoiceSection c={c} />
-          <Productions c={c} />
+          <AppearsIn c={c} />
           <Notes c={c} />
           <SecondaryMaterial c={c} locked={locked} />
-          <div className="border-t border-line-soft pt-6">
-            <ConfirmDelete title={c.name} label={T('cast.profile.delete')} onDelete={() => { try { act('deleteCharacter', c.id); toast.ok(T('toast.deleted')); router.push('/characters'); } catch (e) { toast.bad((e as Error).message); } }} variant="ghost" icon={<IconDelete />}>{T('char.deleteConfirm')}</ConfirmDelete>
-          </div>
         </div>
       </div>
+      <DetailsDialog c={c} open={details} onClose={() => setDetails(false)} />
+      <LookDialog c={c} open={look} onClose={() => setLook(false)} />
     </article>
   );
 }
 
-/** The written look and the facts that go with it, read-only, with Edit look while the look may still change. */
-function Look({ c, locked }: { c: Character; locked: boolean }) {
+/** Who they are: the personality as prose, the distinguishing traits, then the look in words — only the facts that
+ *  are written (a look drawn from a reference picture says so). */
+function About({ c }: { c: Character }) {
   const { state } = useStudio();
   const fromPicture = lookFromReference(c, state.assets);
-  const look = (v: string) => lookFieldText(v, fromPicture, T('char.look.fromReference'));
+  const look = (v: string) => lookFieldText(v, fromPicture, 'From the reference picture');
   const species = nonHumanSpecies(c.species);
-  const who = `${c.sex === 'FEMALE' ? T('label.female') : T('label.male')} · ${c.ageYears}${species ? ` · ${words(species)}` : ''}`;
+  const facts = [
+    ['Who', [c.sex === 'FEMALE' ? 'Female' : 'Male', c.ageYears ? `${c.ageYears}` : null, species ? words(species) : null].filter(Boolean).join(' · ')],
+    ['Build', look(c.build)], ['Face', look(c.face)], ['Hair', look(c.hair)], ['Skin', look(c.skin)], ['Eyes', look(c.eyes)], ['Wardrobe', look(c.wardrobe)], ['Distinguishing marks', c.distinguishing.join(' · ')],
+  ].filter(([, v]) => v && v !== '—');
   return (
-    <section aria-labelledby="look-h">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2"><h2 id="look-h" className="section-title">{T('cast.profile.look')}</h2><LookDialog c={c} locked={locked} describedBy="identity-lock" /></div>
-      <div><FactList items={[{ label: T('cast.profile.who'), value: who }, { label: T('label.build'), value: look(c.build) }, { label: T('label.face'), value: look(c.face) }, { label: T('label.hair'), value: look(c.hair) }, { label: T('label.skin'), value: look(c.skin) }, { label: T('label.eyes'), value: look(c.eyes) }, { label: T('label.wardrobe'), value: look(c.wardrobe) }]} /></div>
-    </section>
+    <CastSection id="about" title="About">
+      {c.personality ? c.personality.split(/\n{2,}/).map((p, i) => <p key={i} className="t-prose char-prose" dir="auto">{p}</p>) : <p className="t-body pc-empty-line">No personality written yet.</p>}
+      <dl className="char-facts">
+        {facts.map(([label, value]) => <div key={label}><dt className="t-label">{label}</dt><dd dir="auto">{value}</dd></div>)}
+      </dl>
+    </CastSection>
   );
 }
 
-/** PRODUCTIONS — the videos the character has actually been in (from the usage records, with the image version
- *  each take was made with when recorded), then where they are cast but not filmed yet. An unknown history says so
- *  and is never read as "unused". */
-function Productions({ c }: { c: Character }) {
+interface Appearance { p: Production; shots: Array<{ id: string; label: string; href: string; frame?: ReturnType<typeof assetById> }> }
+
+/** APPEARS IN — the productions as posters (key art, else the frame poster, else the title card), then every shot the
+ *  character is in as a 16:9 frame (the shot's drawn opening frame) labelled with its number. An unknown video history
+ *  says so and is never read as "unused". */
+function AppearsIn({ c }: { c: Character }) {
   const { state } = useStudio();
   const s = identityStatus(c);
-  const groups = usageGroups(c, state.productions);
-  const filmed = new Set(groups.map((g) => g.productionId));
-  const { shows, productions } = assignmentsOf(state, c.id);
-  const cast = [...shows.map((x) => ({ id: `s-${x.id}`, href: `/shows/${x.id}`, title: x.title, kind: T('kind.SHOW'), art: assetById(state, x.posterAssetId ?? x.coverAssetId) })), ...productions.filter((p) => !filmed.has(p.id) && !p.showId).map((p) => ({ id: p.id, href: productionHref(p), title: p.title, kind: T.dyn(`kind.${p.kind}`), art: assetById(state, p.posterAssetId ?? p.coverAssetId) }))];
+  const filmedIn = new Set((c.usage?.videos ?? []).filter((v) => v.status === 'IN_TAKE').map((v) => v.productionId));
+  const list: Appearance[] = useMemo(() => {
+    const { productions } = assignmentsOf(state, c.id);
+    const ids = new Set([...productions.map((p) => p.id), ...filmedIn]);
+    return state.productions.filter((p) => ids.has(p.id)).map((p) => ({
+      p,
+      shots: p.shots.filter((sh) => sh.characterIds.includes(c.id))
+        .sort((a, b) => (p.scenes.find((x) => x.id === a.sceneId)?.number ?? 0) - (p.scenes.find((x) => x.id === b.sceneId)?.number ?? 0) || a.number - b.number)
+        .map((sh) => { const f = assetById(state, sh.openingFrameAssetId); return { id: sh.id, label: shotLabel(p, sh), href: shotHref(p, sh.id), frame: usable(f) ? f : undefined }; }),
+    }));
+  }, [state, c.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shows = assignmentsOf(state, c.id).shows;
+  const shotCount = list.reduce((n, a) => n + a.shots.length, 0);
+  const kind = (p: Production) => (p.kind === 'SHORT' ? 'Short' : p.kind === 'MUSIC_VIDEO' ? 'Music video' : 'Episode');
   return (
-    <section id="productions" aria-labelledby="prod-h" className="scroll-mt-24">
-      <h2 id="prod-h" className="section-title mb-4">{T('cast.prod.title')}{groups.length > 0 && <span className="num ms-2 text-[13px] font-medium text-faint">{groups.length}</span>}</h2>
-      {s.lock.reason === 'UNKNOWN' && <Notice tone="warn" className="mb-4" title={T('char.usage.unknown')}>{T('char.usage.unknown.hint')}</Notice>}
-      {groups.length === 0 ? <p className="text-[14px] text-muted">{s.lock.reason === 'UNKNOWN' ? T('cast.prod.unknown') : T('cast.prod.none')}</p> : (
-        <ul className="rows">
-          {groups.map((g) => {
-            const art = assetById(state, g.production?.coverAssetId);
-            return (
-              <li key={g.productionId} className="row items-start gap-4">
-                <div className="w-28 flex-none sm:w-36"><Thumb src={art?.src} alt="" ratio="aspect-video" empty="—" /></div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    {g.production ? <Link href={productionHref(g.production)} className="text-[15px] font-semibold text-fg underline-offset-2 hover:underline" dir="auto">{g.title}</Link> : <span className="text-[15px] font-semibold text-fg" dir="auto">{g.title} <span className="text-[13px] font-normal text-faint">· {T('char.usedIn.deleted')}</span></span>}
-                    {g.production && <StageStatus p={g.production} />}
-                  </div>
-                  <p className="mt-1 text-[13px] leading-5 text-muted">{g.rows.map((r) => `${T('label.shot')} ${r.shotLabel} · ${r.takeLabel}${r.status === 'TAKE_REMOVED' ? ` (${T('char.usage.takeRemoved')})` : ''}`).join(' — ')}</p>
-                  <p className="mt-0.5 text-xs text-faint">{T('char.usedIn.first')} {fmtDate(g.firstAt)} · {g.imageVersions.length ? `${T('cast.prod.imageVersion')} ${g.imageVersions.join(', ')}` : T('cast.prod.versionUnknown')}</p>
-                </div>
-              </li>
-            );
-          })}
+    <CastSection id="appears" title="Appears in" count={list.length + shows.length || undefined}>
+      {s.lock.reason === 'UNKNOWN' && <Notice tone="warn" title="History not on record">The video history of this character is not on record, so the figure and voice are kept as if filmed.</Notice>}
+      {list.length + shows.length === 0 ? <p className="t-body pc-empty-line">{s.lock.reason === 'UNKNOWN' ? 'No video history on record.' : 'Not cast in a production yet.'}</p> : (
+        <ul className="char-posters" role="list">
+          {shows.map((x) => <li key={x.id}><MediaCard href={`/shows/${x.id}`} asset={usableOr(assetById(state, x.posterAssetId ?? x.coverAssetId))} ratio="2/3" title={x.title} meta="Show" /></li>)}
+          {list.map(({ p, shots }) => (
+            <li key={p.id}><MediaCard href={productionHref(p)} asset={usableOr(posterOf(p, state.assets)?.asset)} ratio="2/3" title={p.title}
+              meta={`${kind(p)} · ${filmedIn.has(p.id) ? (shots.length === 1 ? 'in 1 shot' : `in ${shots.length} shots`) : 'cast, not filmed yet'}`} /></li>
+          ))}
         </ul>
       )}
-      {cast.length > 0 && (
-        <div className="mt-8">
-          <h3 className="h3">{T('cast.prod.cast')}</h3>
-          <p className="mt-1 text-[13px] text-faint">{T('char.usedIn.assignedHint')}</p>
-          <ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-4">
-            {cast.map((x) => <li key={x.id}><Link href={x.href} className="poster-link block"><Art src={x.art?.src} ratio="poster" title={x.title} /><p className="mt-2 line-clamp-2 text-[13px] font-medium leading-5 text-fg" dir="auto">{x.title}</p><p className="text-xs text-faint">{x.kind}</p></Link></li>)}
+      {shotCount > 0 && (
+        <>
+          <h3 className="t-title char-sub">Shots <span className="pc-shead-count">{shotCount}</span></h3>
+          <ul className="char-frames" role="list">
+            {list.flatMap(({ p, shots }) => shots.map((sh) => (
+              <li key={sh.id}><MediaCard href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={p.title} /></li>
+            )))}
           </ul>
-        </div>
+        </>
       )}
-    </section>
+    </CastSection>
   );
 }
+const usableOr = (a: import('@/domain/types').Asset | null | undefined) => (usable(a) ? a : undefined);
 
-/** Creative notes for the writers: metadata, saved in place, editable whatever the lock. */
+/** Notes for the writers: metadata, saved in place, editable whatever the lock. */
 function Notes({ c }: { c: Character }) {
   const { act } = useStudio();
   const toast = useToast();
   const [notes, setNotes] = useState(c.notes ?? '');
   const dirty = notes !== (c.notes ?? '');
   return (
-    <section aria-labelledby="notes-h">
-      <h2 id="notes-h" className="section-title mb-3">{T('char.notes')}</h2>
-      <form className="max-w-2xl space-y-3" onSubmit={(e) => { e.preventDefault(); try { act('updateCharacter', c.id, { notes }); toast.ok(T('toast.saved')); } catch (err) { toast.bad((err as Error).message); } }}>
-        <Field label={<span className="sr-only">{T('char.notes')}</span>} help={T('char.notes.hint')}><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} maxLength={4000} /></Field>
-        <div className="flex items-center gap-3">{dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}<Button type="submit" variant="secondary" size="sm" disabled={!dirty}>{dirty ? T('btn.save') : T('btn.saved')}</Button></div>
+    <CastSection id="notes" title="Notes for the writers" description="Habits, history, how to play them. Never used to draw the character.">
+      <form className="char-form" onSubmit={(e) => { e.preventDefault(); try { act('updateCharacter', c.id, { notes }); toast.ok('Notes saved.'); } catch (err) { toast.bad((err as Error).message); } }}>
+        <Textarea aria-label="Notes for the writers" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} maxLength={4000} />
+        <div className="char-form-acts">
+          <Button type="submit" variant="secondary" size="sm" disabled={!dirty}>{dirty ? 'Save notes' : 'Saved'}</Button>
+          {dirty && <StateWord tone="waiting">Unsaved changes</StateWord>}
+        </div>
       </form>
-    </section>
+    </CastSection>
   );
 }
 
 /** The one-time note after creation (`?created=<jobId>`): what the chain made, and the one thing that waits — the
- *  approval of the image. Dismissing it drops the parameter. */
+ *  approval of the figure. Dismissing it drops the parameter. */
 function JustCreated({ c }: { c: Character }) {
   const { jobs } = useStudio();
   const sp = useSearchParams();
@@ -174,11 +196,35 @@ function JustCreated({ c }: { c: Character }) {
   const s = identityStatus(c);
   const failed = result?.steps.filter((x) => x.status === 'failed') ?? [];
   const dismiss = () => { const q = new URLSearchParams(sp.toString()); q.delete('created'); router.replace(`${pathname}${q.size ? `?${q}` : ''}`, { scroll: false }); };
-  const message = s.kind === 'DRAFT' ? T('cast.created.approve') : s.kind === 'NONE' ? T('cast.created.noImage') : T('cast.created.done');
+  const message = s.kind === 'DRAFT' ? 'Look at the figure and approve it: it becomes the character in every shot.' : s.kind === 'NONE' ? 'The figure was not drawn; draw it from here.' : 'The character is ready.';
+  const step = (x: string) => (x === 'design' ? 'Writing the sheet' : x === 'image' ? 'Drawing the figure' : 'Building the voice');
   return (
-    <Notice tone={s.kind === 'DRAFT' ? 'warn' : failed.length ? 'bad' : 'ok'} className="mb-8" title={T('char.created.title')} action={<Button size="sm" variant="quiet" icon={<IconClose />} onClick={dismiss}>{T('btn.close')}</Button>}>
-      {message}{!c.voice.identity ? ` ${T('cast.created.noVoice')}` : ''}
-      {failed.length > 0 && <span className="mt-1 block text-bad">{failed.map((f) => `${T.dyn(`cast.step.${f.step}`)}: ${f.reason ?? T('jp.failed')}`).join(' · ')}</span>}
-    </Notice>
+    <div className="pc-notice">
+      <Notice tone={s.kind === 'DRAFT' ? 'warn' : failed.length ? 'bad' : 'ok'} title={`${c.name} was created`} action={<Button size="sm" variant="quiet" icon={<IconClose />} onClick={dismiss}>Close</Button>}>
+        {message}{!c.voice.identity ? ' No voice yet: make one under Voice.' : ''}
+        {failed.length > 0 && <span className="pc-notice-bad">{failed.map((f) => `${step(f.step)}: ${f.reason ?? 'failed'}`).join(' · ')}</span>}
+      </Notice>
+    </div>
+  );
+}
+
+/** The profile while the studio's first snapshot loads: the figure at 928:1664 in its column, then the slate, the name,
+ *  the role, the state, the actions and the voice row at their real sizes. */
+export function CharacterSkeleton() {
+  return (
+    <SkeletonRegion label="Opening the character…" className="pc-page pc-skeleton">
+      <div className="char">
+        <div className="char-figure"><Skeleton.Media ratio="928/1664" className="char-figure-frame" /></div>
+        <div className="char-main">
+          <span className="pc-back"><Skeleton.Line width="6rem" /></span>
+          <div className="t-meta char-slate"><Skeleton.Line width="16rem" /></div>
+          <div className="t-hero char-name"><Skeleton.Line size="title" width="14rem" /></div>
+          <div className="t-lead char-role"><Skeleton.Line width="80%" /></div>
+          <div className="char-state"><Skeleton.Line width="10rem" /></div>
+          <div className="char-acts"><Skeleton.Block width={112} height={40} radius="pill" /><Skeleton.Block width={104} height={40} radius="pill" /><Skeleton.Block width={128} height={40} radius="pill" /></div>
+          <div className="char-voice"><Skeleton.Block width="100%" height={64} radius="md" /></div>
+        </div>
+      </div>
+    </SkeletonRegion>
   );
 }
