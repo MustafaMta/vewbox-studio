@@ -65,6 +65,16 @@ browser, with the evidence it produced. Defects found are listed with their fix 
   slippers), full body ✓. Style: a CG render, but only mildly stylised — closer to photoreal 3D than A1's cartoon
   (partial style fidelity, see D10/FLUX comparison).
 
+## A5 — "Design a voice" (three candidates, choose one), English — 2026-10-03
+
+- On Hana Mori (A2): "Design a voice" → the description written from the profile («A woman of about 16, a high voice,
+  quick delivery, bright and playful, with a metallic edge from shouting over rain, speaking English.») → "Design three
+  voices" → VOICE_DESIGN completed → three candidates in the panel, each labelled "Studio-designed synthetic voice — not a
+  real person" with its measured intelligibility (97 %, 100 %, 100 % of words heard) and a real player.
+- Candidate 2 played (8.8 s file, the audio element playing) → "Choose this voice" → VOICE_BUILD (DESIGN mode, 21.5 s):
+  proof heard back "Hello, my name is Hana Mori, and this is my voice." CER 0 / coverage 1 / PASS; ranking recorded
+  (gates passed first, then mean seed-to-line similarity, then CER).
+
 ### Defects found in A1
 
 | # | Defect | Status |
@@ -81,4 +91,5 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 | D10 | Anime style fidelity: two draws of an Anime character came out comic-illustrative rather than cel anime | open — FLUX vs Qwen A/B and prompt review |
 | D11 | Casting's design invents brand-like logos/text on clothing ("Mori Express", a star sneaker mark resembling a real brand) | fixed `cd648f8` (design skill 2.1.0 rule; negative prompt) — to re-verify on the next design |
 | D12 | A garment word with stray Cyrillic letters ("deshdaша") dropped the WHOLE wardrobe from the identity line | fixed `bbfa91f`; verified in a real redraw (v2 shows the designed wardrobe) |
+| D14 | The voice description written from the profile says "A woman of about 16" for a teenager (the panel's builder ignores age bands; the image's identity line already uses "teenage girl") | open |
 | D13 | Realistic prompt adherence: a "thick, gray mustache" drawn as a full beard (2/2 draws); an Iraqi dishdasha drawn tunic-length | open — model limitation; candidate for the FLUX vs Qwen comparison and a wardrobe wording rule ("ankle-length dishdasha") |
