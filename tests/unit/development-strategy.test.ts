@@ -9,7 +9,7 @@ import { resolveDraft } from '@/server/story/development/resolve';
 import { intentDirective } from '@/server/story/development/intent';
 import { buildDossier } from '@/server/story/development/dossier';
 import type { DraftContent } from '@/server/story/development/engine';
-import type { DraftOut } from '@/server/story/development/schemas';
+import { clipText, DraftOutSchema, type DraftOut } from '@/server/story/development/schemas';
 import { agentPrompt } from '@/server/org/skills';
 
 /** FORMATS, CONTINUATION AND THE RUBRIC — each format's strategy and structure, a season or an episode carrying its
@@ -71,6 +71,21 @@ const draftOut = (over: Partial<DraftOut> = {}): DraftOut => ({
   locations: [{ existingLocationId: 'cafe', name: 'The café', description: 'x' }],
   hook: 'كريم يدخل المقهى ماشي على أطراف أصابعه', ending: 'أبو سمير يشطب الدين ويطلب قصيدة', ...over,
 } as DraftOut);
+
+describe('a long answer is not a wrong one (live smoke: the revision failed twice on 450-character summaries and an age of "unknown")', () => {
+  it('cuts overlong text at a sentence or word and leaves an age that is not 1–120 out, instead of a repair round', () => {
+    expect(clipText('Short.', 20)).toBe('Short.');
+    const cut = clipText('One sentence here. Another sentence that runs on and on and on.', 40);
+    // the sentence end is too early (under 60 % of the limit): the cut falls on a word
+    expect(cut).toBe('One sentence here. Another sentence…');
+    expect(clipText('A first sentence that is long enough. And a second one that is too long.', 50)).toBe('A first sentence that is long enough.…');
+    expect(cut.length).toBeLessThanOrEqual(40);
+    const long = 'x '.repeat(300);
+    const d = DraftOutSchema.parse({ ...draftOut(), structure: [{ title: 'A', summary: long }, { title: 'B', summary: 'b' }], cast: [{ name: 'Mina', role: 'Clerk', ageYears: 'unknown' }, { name: 'Omar', role: 'Guest', ageYears: 'late 30s' }, { name: 'Zed', role: 'Ghost', ageYears: 0 }] });
+    expect(d.structure[0].summary.length).toBeLessThanOrEqual(400);
+    expect(d.cast.map((c) => c.ageYears)).toEqual([undefined, 30, undefined]);
+  });
+});
 
 describe('the cast and places of a draft', () => {
   it('a library id is trusted only when its name agrees; the show’s regulars are offered; the language is the request’s', () => {

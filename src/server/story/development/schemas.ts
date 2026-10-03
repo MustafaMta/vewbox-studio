@@ -8,8 +8,17 @@ import { ProposalSchema } from '../schemas';
  *  ending, the English gloss of an Arabic story, a few lines that set its voice, and — in a revision — what each review
  *  note became. */
 
-const str = (max = 400) => looseString.pipe(z.string().trim().max(max));
-const req = (max = 400) => looseString.pipe(z.string().trim().min(1).max(max));
+/** A text longer than its limit is cut at a sentence or a word (marked …), never refused: a long answer is not a wrong
+ *  one, and a 14B model asked to shorten often breaks something else in the repair round (seen in the live smoke). */
+export function clipText(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const sentence = Math.max(...['. ', '! ', '? ', '؟ ', '، ', '; '].map((m) => cut.lastIndexOf(m)));
+  const at = sentence > max * 0.6 ? sentence + 1 : Math.max(cut.lastIndexOf(' '), Math.floor(max * 0.6));
+  return `${cut.slice(0, at).trimEnd()}…`;
+}
+const str = (max = 400) => looseString.pipe(z.string().trim().transform((s) => clipText(s, max)));
+const req = (max = 400) => looseString.pipe(z.string().trim().min(1).transform((s) => clipText(s, max)));
 const ids = (max = 8) => looseArray(looseString.pipe(z.string().trim()), { max });
 
 const PATTERN_SYNONYMS = { OPENING: 'HOOK', FIRST_SECONDS: 'HOOK', MYSTERY: 'CURIOSITY', QUESTION: 'CURIOSITY', FEELING: 'EMOTION', HEART: 'EMOTION', RHYTHM: 'PACING', TEMPO: 'PACING', CHARACTERS: 'CHARACTER', TENSION: 'SUSPENSE', COMEDY: 'HUMOR', HUMOUR: 'HUMOR', FUNNY: 'HUMOR', TWIST: 'SURPRISE', PAYOFF: 'ENDING', REWATCH: 'REPLAY', REWATCHABILITY: 'REPLAY', LENGTH: 'FORMAT', STRUCTURE: 'FORMAT', SONG: 'MUSIC', VISUALS: 'VISUAL', IMAGERY: 'VISUAL', CULTURAL: 'CULTURE', LOCAL: 'CULTURE' } as const;
@@ -49,7 +58,26 @@ const DraftExtras = z.preprocess(aliases({ hook: ['opening', 'firstSeconds'], en
   answered: looseArray(str(500), { max: 16 }).optional(),
 }));
 /** The writer's draft: the proposal schema the studio already uses, and the development's extras beside it. */
-export const DraftOutSchema = z.intersection(ProposalSchema, DraftExtras);
+/** The proposal schema's limits, applied by cutting (clipText) before it validates; an age that is not a number from 1 to
+ *  120 ("unknown", "30s" without digits, 0) is left out (the field is optional) rather than sent back for repair. */
+const LIMITS = { title: 80, titleAr: 80, logline: 240, premise: 1600, genre: 60, mood: 80 } as const;
+const fit = (v: unknown, max: number) => (typeof v === 'string' ? clipText(v.trim(), max) : v);
+function fitDraft(v: unknown): unknown {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return v;
+  const o: Record<string, unknown> = { ...(v as Record<string, unknown>) };
+  for (const [k, max] of Object.entries(LIMITS)) o[k] = fit(o[k], max);
+  const each = (key: string, fn: (x: Record<string, unknown>) => Record<string, unknown>) => { if (Array.isArray(o[key])) o[key] = (o[key] as unknown[]).map((x) => (x && typeof x === 'object' ? fn({ ...(x as Record<string, unknown>) }) : x)); };
+  each('structure', (x) => ({ ...x, title: fit(x.title, 80), summary: fit(x.summary, 400) }));
+  each('cast', (x) => {
+    const age = typeof x.ageYears === 'number' ? x.ageYears : typeof x.ageYears === 'string' ? Number(/\d+/.exec(x.ageYears)?.[0]) : NaN;
+    const out = { ...x, name: fit(x.name, 60), role: fit(x.role, 120), reason: fit(x.reason, 240), appearance: fit(x.appearance, 400), personality: fit(x.personality, 400), ageYears: Number.isFinite(age) && age >= 1 && age <= 120 ? Math.round(age) : undefined };
+    return out;
+  });
+  each('locations', (x) => ({ ...x, name: fit(x.name, 60), description: fit(x.description, 400) }));
+  if (o.song && typeof o.song === 'object') { const s = o.song as Record<string, unknown>; o.song = { ...s, title: fit(s.title, 80), caption: fit(s.caption, 300), lyrics: fit(s.lyrics, 4000) }; }
+  return o;
+}
+export const DraftOutSchema = z.preprocess(fitDraft, z.intersection(ProposalSchema, DraftExtras));
 export type DraftOut = z.infer<typeof DraftOutSchema>;
 
 const CRITERION_SYNONYMS = { HOOK: 'OPENING', BEGINNING: 'OPENING', START: 'OPENING', ORIGINAL: 'ORIGINALITY', NOVELTY: 'ORIGINALITY', EMOTIONAL_IMPACT: 'EMOTION', CHARACTERS: 'CHARACTER', CHARACTERISATION: 'CHARACTER', CHARACTERIZATION: 'CHARACTER', RHYTHM: 'PACING', TENSION: 'CONFLICT', STAKES: 'CONFLICT', SUSPENSE: 'CURIOSITY', INTRIGUE: 'CURIOSITY', VISUALS: 'VISUAL', VISUAL_STORYTELLING: 'VISUAL', ARC: 'PROGRESSION', DEVELOPMENT: 'PROGRESSION', PAYOFF: 'ENDING', LINES: 'DIALOGUE', LANGUAGE: 'DIALOGUE', DIALECT: 'DIALOGUE', CONSISTENCY: 'CONTINUITY', SONG: 'MUSIC_FIT', MUSIC: 'MUSIC_FIT' } as const;
