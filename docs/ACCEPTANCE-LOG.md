@@ -99,7 +99,18 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 - Voice: Automatic → designed EN voice, proof "Hello, my name is Najm, and this is my voice." heard verbatim (CER 0,
   coverage 1), ACTIVE; labelled synthetic; nobody has listened yet (naturalness not claimed).
 
-## A8 — Short "The Static Sky" through the browser (in progress) — 2026-10-03
+## A8 — Short "The Static Sky" through the browser — 2026-10-03 (complete)
+
+**Result:** `short-28bdb3342b`, stage COMPLETE. Export `gen-31641211de`: MP4 H.264 1920×1080 + AAC 48 kHz, 56 s,
+59 MB, English subtitles (SRT/VTT); cut `gen-4293ab5b09`, −22.9 LUFS integrated, −7.0 dBTP. The full soundtrack
+transcribed back: all six lines, in order, no invented speech. 8 shots, 2 scenes, one location (master plate + a
+closer landmark view), two cast with canonical images and designed voices; every chosen take passed its picture,
+speech and (after D33) people checks. Producer actions, all through the UI: Auto Idea → corrected proposal (D20) →
+story/scene fixes (D23) → script → shot plan → location edit and redraw (D25) → story approval → dialogue → produce
+every shot → frame and take fixes (D29, D30, D32, D33: 1.3, 1.4, 2.1, 2.3 ×3, 2.4 regenerated) → assemble → cut
+approval → export. Not covered by this Short: CONTINUATION shots (all eight are CUTs) and a return to an established
+location — next acceptance runs.
+
 
 - New Short → Auto Idea with a one-line idea, Cartoon, English, 1:00, cast Elias Moore + Najm. The research-driven
   pipeline ran for real (142 s): GDELT and Wikipedia queried; TikTok, Instagram (and the other keyed platforms)
@@ -108,6 +119,10 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 - The proposal tied Elias (72) to his wife's loss in **1947** (introduced by a reviewer's note, kept by the revision,
   never re-read) → **D20**; corrected by hand to 1987 in the premise, scene purposes, hook, ending, beats and the
   location (which needed D23's fields to reach), then the script and an 8-shot plan (61 s, 6 dialogue lines).
+- Dialogue recorded with the persistent voices (6 lines, 7.4 min; two false flags → D27). Frames: 8 drawn; two held
+  strangers (D30) and one pair crossed the line (D29). Takes (local MiniMax H3, ≈2.6 min each): 7 + regenerations;
+  costume drift from the planner's continuity wardrobe (D32) and a half-second duplicated character (D33) found by
+  reviewing the cut frame by frame and fixed in the pipeline, then the affected takes regenerated and chosen.
 
 ### Defects found in A1
 
