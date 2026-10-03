@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconMinus, IconPlus } from '@/components/ui/icons';
 import { FaceCircle } from '@/components/media/FaceCircle';
@@ -68,16 +67,16 @@ export function LyricView({ lines, time, onSeek, edit, className, height = 360 }
     const face = l.singer ? <FaceCircle name={l.singer.name} asset={l.singer.asset} src={l.singer.src} size={24} decorative ring={state === 'active' ? 'speaking' : undefined} /> : null;
     if (edit) return (
       <div key={l.id} role="listitem" className="lyric-edit" data-i={i}>
-        <input className="input lyric-edit-text" dir="auto" lang={l.lang} value={l.text} aria-label={T.f('media.lyrics.text', { n: i + 1 })} onChange={(e) => edit.onChange(l.id, { text: e.target.value })} />
+        <input className="input lyric-edit-text" dir="auto" lang={l.lang} value={l.text} aria-label={`Text of line ${i + 1}`} onChange={(e) => edit.onChange(l.id, { text: e.target.value })} />
         <div className="lyric-edit-row">
-          <select className="select lyric-edit-singer" aria-label={T.f('media.lyrics.singer', { n: i + 1 })} value={l.singer?.id ?? ''} onChange={(e) => edit.onChange(l.id, { singerId: e.target.value || null })}>
-            <option value="">{T('media.lyrics.noSinger')}</option>
+          <select className="select lyric-edit-singer" aria-label={`Singer of line ${i + 1}`} value={l.singer?.id ?? ''} onChange={(e) => edit.onChange(l.id, { singerId: e.target.value || null })}>
+            <option value="">No singer</option>
             {edit.singers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <span className="lyric-edit-time" dir="ltr">
-            <button type="button" className="ebtn ebtn-icon" aria-label={`${T('media.lyrics.earlier')} · ${T.f('media.lyrics.line', { n: i + 1 })}`} onClick={() => edit.onChange(l.id, { from: Math.max(0, +(l.from - 0.1).toFixed(2)) })}><IconMinus aria-hidden /></button>
-            <input className="input lyric-edit-num mono" type="number" step={0.1} min={0} value={l.from} aria-label={`${T('media.lyrics.start')} · ${T.f('media.lyrics.line', { n: i + 1 })}`} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v >= 0) edit.onChange(l.id, { from: v }); }} />
-            <button type="button" className="ebtn ebtn-icon" aria-label={`${T('media.lyrics.later')} · ${T.f('media.lyrics.line', { n: i + 1 })}`} onClick={() => edit.onChange(l.id, { from: +(l.from + 0.1).toFixed(2) })}><IconPlus aria-hidden /></button>
+            <button type="button" className="ebtn ebtn-icon" aria-label={`${'Start 0.1 s earlier'} · ${`Line ${i + 1}`}`} onClick={() => edit.onChange(l.id, { from: Math.max(0, +(l.from - 0.1).toFixed(2)) })}><IconMinus aria-hidden /></button>
+            <input className="input lyric-edit-num mono" type="number" step={0.1} min={0} value={l.from} aria-label={`${'Start (seconds)'} · ${`Line ${i + 1}`}`} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v >= 0) edit.onChange(l.id, { from: v }); }} />
+            <button type="button" className="ebtn ebtn-icon" aria-label={`${'Start 0.1 s later'} · ${`Line ${i + 1}`}`} onClick={() => edit.onChange(l.id, { from: +(l.from + 0.1).toFixed(2) })}><IconPlus aria-hidden /></button>
           </span>
         </div>
       </div>
@@ -93,7 +92,7 @@ export function LyricView({ lines, time, onSeek, edit, className, height = 360 }
   return (
     <div className={cls('lyrics', className)} data-edit={edit ? '' : undefined}>
       <div ref={box} className="lyrics-scroll" style={{ maxBlockSize: height }} onScroll={onScroll} onWheel={() => { userAt.current = Date.now(); }} onTouchMove={() => { userAt.current = Date.now(); }}
-        role={edit ? 'list' : 'listbox'} aria-label={T('media.lyrics.label')} onKeyDown={onKey}>
+        role={edit ? 'list' : 'listbox'} aria-label={'Lyrics'} onKeyDown={onKey}>
         {groupsOf(lines).map((g, k) => g.section ? (
           <div key={k} role={edit ? 'listitem' : 'group'} aria-label={g.section} className="lyrics-group">
             <p className="lyrics-section caption" aria-hidden dir="auto">{g.section}</p>
@@ -101,7 +100,7 @@ export function LyricView({ lines, time, onSeek, edit, className, height = 360 }
           </div>
         ) : g.items.map(({ l, i }) => line(l, i)))}
       </div>
-      {detached && !edit && <button type="button" className="btn btn-secondary btn-sm lyrics-back" onClick={() => { userAt.current = 0; toActive(true); }}>{T('media.lyrics.back')}</button>}
+      {detached && !edit && <button type="button" className="btn btn-secondary btn-sm lyrics-back" onClick={() => { userAt.current = 0; toActive(true); }}>Back to the playhead</button>}
     </div>
   );
 }

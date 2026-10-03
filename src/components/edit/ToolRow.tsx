@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 
 /** THE TOOL ROW (docs/DESIGN-SYSTEM-V4.md §5.20) — floating at the bottom of the canvas on `--raised-2` with the float
@@ -19,7 +18,7 @@ export function ToolRow({ children, label, floating = true, className }: { child
     xs.forEach((x) => x.setAttribute('tabindex', x === t ? '0' : '-1'));
     t.focus();
   };
-  return <div role="toolbar" aria-label={label ?? T('media.tools.label')} className={cls('toolrow', floating && 'toolrow-float', className)} onKeyDown={onKey}>{children}</div>;
+  return <div role="toolbar" aria-label={label ?? 'Tools'} className={cls('toolrow', floating && 'toolrow-float', className)} onKeyDown={onKey}>{children}</div>;
 }
 
 export function ToolButton({ icon, children, onClick, pressed, disabled, first }: { icon?: ReactNode; children: ReactNode; onClick: () => void; pressed?: boolean; disabled?: boolean; /** the toolbar's first Tab stop */ first?: boolean }) {

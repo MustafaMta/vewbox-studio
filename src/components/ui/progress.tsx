@@ -75,7 +75,7 @@ export function useErrorCopy() {
     const code = err?.code ?? 'UNKNOWN';
     const k = entryOf(code);
     const detail = err?.message?.trim() || undefined;
-    if (!k) return { code, title: T('err.unknown'), hint: T('kit.err.unknownHint'), detail, fix: { label: T('err.PROVIDER.fix'), kind: 'retry' } };
+    if (!k) return { code, title: 'The step failed.', hint: 'The studio could not finish this step. What was finished before it is kept.', detail, fix: { label: 'Try again', kind: 'retry' } };
     return { code, title: T(k.title), hint: T(k.hint), detail, fix: { label: T(k.fix), kind: k.kind } };
   };
 }
@@ -86,8 +86,8 @@ export function useErrorCopy() {
 export function RecoveryAction({ copy, onRetry, jobId, custom, size = 'sm' }: { copy: ErrorCopy; onRetry?: () => void; jobId?: string; custom?: Partial<Record<ErrorCopy['fix']['kind'], ReactNode>>; size?: 'sm' | 'xs' }) {
   const k = copy.fix.kind;
   if (custom?.[k]) return <>{custom[k]}</>;
-  if (k === 'settings') return <span className="flex flex-wrap items-center gap-2"><Link href="/settings#engines" className={cls('btn btn-secondary', `btn-${size}`)}><IconSettings aria-hidden />{copy.fix.label}</Link>{onRetry && <Button size={size} variant="ghost" icon={<IconRetry />} onClick={onRetry}>{T('jobs.retry')}</Button>}</span>;
-  if ((k === 'job' || k === 'consent') && jobId) return <Link href={`/production?job=${jobId}`} className={cls('btn btn-secondary', `btn-${size}`)}><IconOpen aria-hidden />{T('err.openJob')}</Link>;
+  if (k === 'settings') return <span className="flex flex-wrap items-center gap-2"><Link href="/settings#engines" className={cls('btn btn-secondary', `btn-${size}`)}><IconSettings aria-hidden />{copy.fix.label}</Link>{onRetry && <Button size={size} variant="ghost" icon={<IconRetry />} onClick={onRetry}>Retry</Button>}</span>;
+  if ((k === 'job' || k === 'consent') && jobId) return <Link href={`/production?job=${jobId}`} className={cls('btn btn-secondary', `btn-${size}`)}><IconOpen aria-hidden />Open the job</Link>;
   if (k === 'none' || k === 'consent') return null;
   return onRetry ? <Button size={size} variant="secondary" icon={<IconRetry />} onClick={onRetry}>{copy.fix.label}</Button> : null;
 }
@@ -143,14 +143,14 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
   const list = rows ?? phaseRows(job, T);
   const active = !job || isActiveStatus(job.status);
   const pct = job?.progress?.percent;
-  const stepText = job?.progress?.step && job.progress.total ? `${T('jp.step')} ${job.progress.step} ${T('misc.of')} ${job.progress.total}` : null;
+  const stepText = job?.progress?.step && job.progress.total ? `${'step'} ${job.progress.step} ${'of'} ${job.progress.total}` : null;
   return (
     <section className={cls('card p-4 sm:p-5', className)} aria-busy={active || undefined} aria-live="polite">
       {title && <h2 className="section-title mb-4">{title}</h2>}
       <div className={cls('grid gap-5', shape !== 'none' && 'sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]')}>
         {shape !== 'none' && <div className="min-w-0">{preview ?? <div className={cls('skeleton', `skeleton-${shape}`)} aria-hidden />}</div>}
         <div className="min-w-0">
-          <ol className="jp-rows" aria-label={T('jp.phases')}>
+          <ol className="jp-rows" aria-label={'Phases'}>
             {list.map((r) => (
               <li key={r.id} aria-current={r.state === 'current' ? 'step' : undefined} data-failed={r.state === 'failed' ? '' : undefined} data-skipped={r.state === 'skipped' ? '' : undefined}>
                 <span aria-hidden className={cls('mt-0.5 grid size-6 place-items-center rounded-full border text-xs font-semibold', r.state === 'done' ? 'border-transparent bg-ok-soft text-ok' : r.state === 'failed' ? 'border-transparent bg-bad-soft text-bad' : r.state === 'current' ? 'border-transparent bg-primary text-on-primary' : r.state === 'skipped' ? 'border-dashed border-line-strong text-faint' : 'border-line-strong text-faint')}>
@@ -166,8 +166,8 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
           </ol>
           {typeof pct === 'number' && pct > 0 && pct < 100 && active && <div className="progress mt-4" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${pct}%` }} /></div>}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line-soft pt-3 text-[12px] text-faint">
-            <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="num">{T('jp.elapsed')} {fmtElapsed(elapsed)}</span>{stepText && <span className="num">{stepText}</span>}</span>
-            {onCancel && active && <Button size="xs" variant="ghost" icon={<IconClose />} onClick={onCancel} disabled={cancelling || job?.cancelRequested}>{job?.cancelRequested ? T('jobs.cancelRequested') : T('jobs.cancel')}</Button>}
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="num">{'Elapsed'} {fmtElapsed(elapsed)}</span>{stepText && <span className="num">{stepText}</span>}</span>
+            {onCancel && active && <Button size="xs" variant="ghost" icon={<IconClose />} onClick={onCancel} disabled={cancelling || job?.cancelRequested}>{job?.cancelRequested ? 'Stopping…' : 'Cancel'}</Button>}
           </div>
           {failure && <div className="mt-4">{failure}</div>}
           {children}
@@ -182,6 +182,6 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
 export function FailureNotice({ copy, action, jobId, kept }: { copy: ErrorCopy; action?: ReactNode; jobId?: string; /** what is kept, said plainly */ kept?: ReactNode }) {
   return (
     <ErrorNotice title={copy.title} why={copy.hint} kept={kept} details={copy.detail}
-      action={action} alternatives={jobId ? <Link href={`/production?job=${jobId}`} className="btn btn-quiet btn-sm">{T('err.openJob')}</Link> : undefined} />
+      action={action} alternatives={jobId ? <Link href={`/production?job=${jobId}`} className="btn btn-quiet btn-sm">Open the job</Link> : undefined} />
   );
 }

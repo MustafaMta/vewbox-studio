@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCompare } from '@/components/ui/icons';
 
@@ -28,17 +27,17 @@ export function VersionStack({ versions, current, onPick, onCompare, className }
   };
   return (
     <div className={cls('vstack', className)}>
-      <div className="vstack-chips" role={comparing ? 'group' : 'radiogroup'} aria-label={T('media.versions.label')} onKeyDown={onKey}>
+      <div className="vstack-chips" role={comparing ? 'group' : 'radiogroup'} aria-label={'Versions'} onKeyDown={onKey}>
         {versions.map((v) => {
-          const name = `${T.f('media.versions.version', { n: v.n })}${v.id === current ? ` (${T('media.versions.current')})` : ''}${v.note ? ` · ${v.note}` : ''}`;
+          const name = `${`Version ${v.n}`}${v.id === current ? ` (${'current'})` : ''}${v.note ? ` · ${v.note}` : ''}`;
           return comparing
             ? <button key={v.id} type="button" className="vchip num" role="checkbox" aria-checked={picked.includes(v.id)} aria-label={name} data-current={v.id === current || undefined} onClick={() => toggle(v.id)}>v{v.n}</button>
             : <button key={v.id} type="button" className="vchip num" role="radio" aria-checked={v.id === current} tabIndex={v.id === current || (!current && v === versions[0]) ? 0 : -1} aria-label={name} data-current={v.id === current || undefined} onClick={() => onPick?.(v.id)}>v{v.n}</button>;
         })}
       </div>
       {onCompare && versions.length > 1 && (comparing
-        ? <><span className="caption" role="status">{T('media.versions.pickTwo')}</span><button type="button" className="ebtn ebtn-quiet" onClick={() => { setComparing(false); setPicked([]); }}>{T('media.versions.cancel')}</button></>
-        : <button type="button" className="ebtn" onClick={() => setComparing(true)}><IconCompare aria-hidden />{T('media.versions.compare')}</button>)}
+        ? <><span className="caption" role="status">Pick two versions to compare.</span><button type="button" className="ebtn ebtn-quiet" onClick={() => { setComparing(false); setPicked([]); }}>Cancel</button></>
+        : <button type="button" className="ebtn" onClick={() => setComparing(true)}><IconCompare aria-hidden />Compare</button>)}
     </div>
   );
 }

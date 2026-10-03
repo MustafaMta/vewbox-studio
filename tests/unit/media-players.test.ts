@@ -31,8 +31,8 @@ const track: Track = { id: 't', src: '/sample/audio/river-lights-sample.m4a', ti
 
 describe('every transport, seek bar, waveform, strip and timeline is laid out left to right', () => {
   const cases: Array<[string, ReactElement, RegExp]> = [
-    ['inline player', h(InlinePlayer, { src: '/v.mp4' }), /class="iplayer-controls" dir="ltr"/],
-    ['canvas player', h(CanvasPlayer, { src: '/v.mp4' }), /class="cplayer-bar" dir="ltr"/],
+    ['inline player', h(InlinePlayer, { src: '/v.mp4' }), /class="ptransport" dir="ltr"/],
+    ['canvas player', h(CanvasPlayer, { src: '/v.mp4' }), /class="ptransport ptransport-edit" dir="ltr"/],
     ['theatre player', h(TheatrePlayer, { src: '/v.mp4' }), /class="tplayer-transport"[^>]*dir="ltr"/],
     ['song transport', h(SongTransport, { track, title: 'River Lights' }), /class="stransport" dir="ltr"/],
     ['player bar', h(PlayerBar, { track, persistent: true }), /class="playerbar-transport" dir="ltr"/],
@@ -56,10 +56,10 @@ describe('waveform contrast (§2.6)', () => {
   const hex = (name: string): string => { const v = new RegExp(`${name}:\\s*([^;]+);`, 'i').exec(tokens)![1].trim(); const m = /^var\((--[\w-]+)\)$/.exec(v); return m ? hex(m[1]) : v; };
   const lum = (x: string) => { const c = [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-  it('unplayed bars are --ink-550 and played bars --fg', () => {
-    expect(players).toMatch(/--wave-rest:\s*var\(--ink-550\)/);
+  it('unplayed bars are the control boundary (--line-control, v4 --ink-550) and played bars --text-1', () => {
+    expect(players).toMatch(/--wave-rest:\s*var\(--line-control\)/);
     expect(players).toMatch(/\.wave-rest rect \{ fill: var\(--wave-rest\); \}/);
-    expect(players).toMatch(/\.wave-played rect \{ fill: var\(--fg\); \}/);
+    expect(players).toMatch(/\.wave-played rect \{ fill: var\(--text-1\); \}/);
   });
   it('unplayed on the ground and on a surface ≥ 3:1; played against unplayed ≥ 3:1', () => {
     expect(ratio(hex('--ink-550'), hex('--ink-950'))).toBeGreaterThanOrEqual(3);

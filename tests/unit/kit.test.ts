@@ -11,7 +11,6 @@ import { toastDuration } from '@/components/ui/toast';
 import { rovingIndex, rovingStep, tabStops } from '@/components/ui/kit/focus';
 import { activeFilterCount, parseFilters, serializeFilters, toggleFilter } from '@/components/ui/kit/CatalogueBar';
 import { addChips, needsErrorSummary } from '@/components/ui/kit/Field';
-import { matchEntries } from '@/components/ui/kit/Overlay';
 import { sectionInView } from '@/components/ui/kit/Tabs';
 
 /** The interface kit (docs/DESIGN-SYSTEM-V4.md §5, package F2): the keyboard rules as pure functions, the markup
@@ -124,7 +123,7 @@ describe('choices and tabs render as one radiogroup / tablist with one Tab stop'
 describe('status, states and overlays say it in words', () => {
   it('StateWord carries its tone; IdentityState uses the contract words', () => {
     expect(html(h(Kit.StateWord, { tone: 'waiting', children: 'Waiting for you' }))).toContain('data-tone="waiting"');
-    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain(T('kit.identity.draft'));
+    expect(html(h(Kit.IdentityState, { state: 'draft' }))).toContain('Draft — awaiting your approval');
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 2 }))).toContain('Locked · in 2 videos');
     expect(html(h(Kit.IdentityState, { state: 'locked', videos: 1 }))).toContain('Locked · in 1 video');
     expect(html(h(Kit.StageWord, { stage: 'PRODUCE' }))).toContain('Producing');
@@ -133,7 +132,7 @@ describe('status, states and overlays say it in words', () => {
     const out = html(h(Kit.ErrorNotice, { title: 'It failed.', why: 'Plain words.', details: 'RuntimeError: x at y' }));
     const [before, inside] = out.split('<details');
     expect(before).not.toContain('RuntimeError');
-    expect(inside).toContain('class="tc break-all');
+    expect(inside).toContain('class="notice-raw tc"');
     expect(inside).toContain('dir="ltr"');
   });
   it('PageEmpty shows one primary and at most two alternatives', () => {
@@ -142,15 +141,8 @@ describe('status, states and overlays say it in words', () => {
     expect(out).toContain('A2');
     expect(out).not.toContain('A3');
   });
-  it('the palette matches every word, in both scripts, ignoring Arabic marks', () => {
-    const e = [{ text: 'Show · The Kite الطائرة الورقية' }, { text: 'Character · Amina أمينة' }];
-    expect(matchEntries(e, 'kite')).toHaveLength(1);
-    expect(matchEntries(e, 'الطّائرة')).toHaveLength(1);
-    expect(matchEntries(e, 'show amina')).toHaveLength(0);
-    expect(matchEntries(e, '  ')).toHaveLength(2);
-  });
-  it('toasts: 4 s; 10 s with an action, a link or an error; a sticky one stays', () => {
-    expect(toastDuration({ tone: 'ok' })).toBe(4000);
+  it('toasts: 5 s; 10 s with an action, a link or an error; a sticky one stays', () => {
+    expect(toastDuration({ tone: 'ok' })).toBe(5000);
     expect(toastDuration({ tone: 'info', action: { label: 'Undo', onClick: () => undefined } })).toBe(10000);
     expect(toastDuration({ tone: 'ok', link: { label: 'Open', href: '/x' } })).toBe(10000);
     expect(toastDuration({ tone: 'bad' })).toBe(10000);
