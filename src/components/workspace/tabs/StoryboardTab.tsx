@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Production, Scene, Shot } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, locationById, shotHref, shotLabel } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Button, Menu, MenuItem, MenuLink, Modal, Notice, Status, Thumb } from '@/components/ui/kit';
 import { JobButton } from '@/components/ui/jobs';
@@ -15,7 +15,6 @@ import { fmtSeconds, ratioClass, words } from '@/lib/format';
 
 /** STORYBOARD — the shots as pictures, scene by scene. Drag to reorder within a scene; open one to edit it. */
 export function StoryboardTab({ p }: { p: Production }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const [dragging, setDragging] = useState<string | null>(null);
@@ -59,7 +58,7 @@ export function StoryboardTab({ p }: { p: Production }) {
 }
 
 function SceneHeading({ p, sc, count }: { p: Production; sc: Scene; count: number }) {
-  const T = useT(); const { state } = useStudio();
+  const { state } = useStudio();
   const loc = locationById(state, sc.locationId);
   return (
     <div className="mb-3 flex flex-wrap items-baseline gap-2">
@@ -70,7 +69,6 @@ function SceneHeading({ p, sc, count }: { p: Production; sc: Scene; count: numbe
 }
 
 function ShotCard({ p, sh, first, last, dragging, over, onDragStart, onDragEnd, onDragOver, onDrop }: { p: Production; sh: Shot; first: boolean; last: boolean; dragging: boolean; over: boolean; onDragStart: () => void; onDragEnd: () => void; onDragOver: () => void; onDrop: () => void }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const frame = assetById(state, sh.openingFrameAssetId);
@@ -110,7 +108,7 @@ function ShotCard({ p, sh, first, last, dragging, over, onDragStart, onDragEnd, 
 }
 
 export function AddShot({ p, sceneId, variant = 'primary' }: { p: Production; sceneId?: string; variant?: 'primary' | 'secondary' }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const { act } = useStudio(); const toast = useToast();
   const [draft, setDraft] = useState<ShotDraft>(() => emptyShot(sceneId ?? p.scenes[p.scenes.length - 1]?.id ?? ''));
   return (
     <Modal size="lg" title={T('btn.addShot')} trigger={(open) => <Button size="sm" variant={variant} icon={<IconPlus />} disabled={p.scenes.length === 0} onClick={() => { setDraft(emptyShot(sceneId ?? p.scenes[p.scenes.length - 1]?.id ?? '')); open(); }}>{T('btn.addShot')}</Button>}>

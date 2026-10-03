@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconFit, IconZoomIn, IconZoomOut } from '@/components/ui/icons';
 import { Waveform } from '@/components/players/Waveform';
@@ -15,7 +15,7 @@ import { fmtClock, timecode } from '@/components/players/time';
  *  playhead is a 1 px ivory line through every track with an iris handle on the ruler. Trim handles (8 px) sit at the
  *  clip edges on hover and focus; their pointer and keyboard alternative is the ±1 frame nudges in the toolbar (and the
  *  numeric in/out in the inspector) (2.5.7). Zoom: − / +, Ctrl+wheel and Fit. It scrolls horizontally only, and it is
- *  LEFT TO RIGHT in both languages. */
+ *  LEFT TO RIGHT. */
 
 export interface TimelineClip { id: string; number: number; from: number; to: number; purpose?: string }
 export interface TimelineLine { id: string; from: number; to: number; text: string; lang?: string }
@@ -23,7 +23,6 @@ export interface TimelineLine { id: string; from: number; to: number; text: stri
 const STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 
 export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [], music, selected = [], onSelect, onTrim, className }: { duration: number; fps?: number; time: number; onSeek: (t: number) => void; clips: TimelineClip[]; dialogue?: TimelineLine[]; music?: { src: string; label?: string } | null; selected?: string[]; onSelect?: (ids: string[]) => void; onTrim?: (id: string, edge: 'start' | 'end', t: number) => void; className?: string }) {
-  const T = useT();
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [pps, setPps] = useState<number | null>(null);

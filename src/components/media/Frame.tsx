@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import type { ArtVars, Presentation } from '@/domain/presentation';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { artStyle, cssRatio, dimsLight, objectPosition, type FrameRatio, type Picture } from './art';
 import { TitleCard, type TitleState } from './TitleCard';
@@ -47,7 +47,6 @@ export interface FrameProps {
 }
 
 export function Frame({ asset, src: plainSrc, ratio = '16/9', fit = 'cover', focal, alt, priority, state = 'ready', phase, title, titleLang, titleState, number, art, presentation, judge, radius = 'media', decorative, className, style, children }: FrameProps) {
-  const T = useT();
   const src = asset?.src ?? plainSrc ?? null;
   const pres = presentation ?? asset?.presentation ?? null;
   const [loaded, setLoaded] = useState(false);

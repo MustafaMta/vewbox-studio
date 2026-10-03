@@ -14,7 +14,7 @@
 //   physical      physical left/right in components and sheets: left-/right-/ml-/mr-/pl-/pr-/text-left/right/
 //                 border-l/r/rounded-l/r utilities; left/right/margin-left/…/text-align: left|right in CSS and in
 //                 inline style objects (logical properties only)
-//   engine        an engine or model name in a user-facing string (the dictionaries and JSX text): ComfyUI, Qwen,
+//   engine        an engine or model name in a user-facing string (the English copy module and JSX text): ComfyUI, Qwen,
 //                 VoxCPM, MiniMax, IndexTTS, Habibi, safetensors, CUDA
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,7 +24,7 @@ export const ENGINE_NAMES = ['ComfyUI', 'Qwen', 'VoxCPM', 'MiniMax', 'IndexTTS',
 const ENGINE_RE = new RegExp(`\\b(${ENGINE_NAMES.join('|')})`, 'i');
 
 const isCss = (f) => f.endsWith('.css');
-const isDictionary = (f) => /[\\/]lib[\\/]i18n([\\/]|\.ts$)/.test(f);
+const isDictionary = (f) => /[\\/]lib[\\/]copy\.ts$/.test(f);
 const isTokens = (f) => /[\\/]styles[\\/]tokens\.css$/.test(f);
 const isTheatre = (f) => /[\\/]players[\\/]TheatrePlayer/.test(f);
 
@@ -52,7 +52,7 @@ export function lintText(file, text) {
     const s = l.indexOf('/*'); if (s !== -1) { l = l.slice(0, s); inComment = true; }
     if (!css) l = l.replace(/(^|[^:'"`])\/\/.*$/, '$1');
     if (dict) {
-      // a dictionary: only the strings are user-facing (not the keys)
+      // the copy module: only the strings are user-facing (not the keys)
       const strings = [...l.matchAll(/'((?:[^'\\]|\\.)*)'(\s*:)?/g)].filter((m) => !m[2]).map((m) => m[1]).join(' ');
       if (ENGINE_RE.test(strings)) add('engine');
       return;

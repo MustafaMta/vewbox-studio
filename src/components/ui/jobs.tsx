@@ -6,7 +6,7 @@ import { isActiveStatus } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { useStudio } from '@/studio/store';
 import { retryNeedsChange } from '@/studio/retry';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { useToast } from './toast';
 import { Button, Spinner, Status, cls, useConfirm } from './kit';
 import { useErrorCopy } from './progress';
@@ -19,7 +19,6 @@ import { IconGenerate, IconRetry, IconClose } from './icons';
 export function useStartJob() {
   const { startJob, capabilities } = useStudio();
   const toast = useToast();
-  const T = useT();
   const [busy, setBusy] = useState(false);
   const start = async <K extends JobType>(type: K, payload: JobPayload<K>, opts: { idempotencyKey?: string; quiet?: boolean } = {}): Promise<Job | null> => {
     setBusy(true);
@@ -38,7 +37,6 @@ export function useStartJob() {
 }
 
 export function JobButton<K extends JobType>({ type, payload, children, icon, variant = 'secondary', size, className = '', target, idempotencyKey, confirm, disabled, title }: { type: K; payload: JobPayload<K>; children: ReactNode; icon?: ReactNode; variant?: 'primary' | 'secondary' | 'ghost' | 'quiet'; size?: 'sm' | 'xs'; className?: string; target: { productionId?: string; shotId?: string; characterId?: string; locationId?: string }; idempotencyKey?: string; confirm?: string; disabled?: boolean; title?: string }) {
-  const T = useT();
   const { jobs, cancelJob } = useStudio();
   const { start, busy } = useStartJob();
   const ask = useConfirm();
@@ -72,7 +70,6 @@ export function JobButton<K extends JobType>({ type, payload, children, icon, va
 /** RETRY — one press for a transient failure; for any other failure the retry first asks, in a small inline field,
  *  what was corrected (the server refuses an unchanged retry and records the change on the reliability event). */
 export function RetryControl({ job, size = 'xs', label }: { job: Job; size?: 'xs' | 'sm'; label?: ReactNode }) {
-  const T = useT();
   const { retryJob } = useStudio();
   const needs = retryNeedsChange(job);
   const [asking, setAsking] = useState(false);

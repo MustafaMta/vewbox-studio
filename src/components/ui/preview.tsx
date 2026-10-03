@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { Button, SampleMark, Thumb, cls } from './kit';
 import { RATIO, type Ratio } from './cinema';
 import { IconDelete, IconUpload } from './icons';
@@ -15,7 +15,6 @@ export function ImagePreview({ src, alt, ratio = 'portrait', fileName, width, he
   src?: string | null; alt: string; ratio?: Ratio; fileName?: string; width?: number; height?: number; bytes?: number; sample?: boolean; unavailable?: boolean;
   onReplace?: (f: File) => void; onRemove?: () => void; accept?: string; busy?: boolean; caption?: ReactNode; className?: string;
 }) {
-  const T = useT();
   const dims = width && height ? `${width} × ${height}` : null;
   const meta = [dims, bytes ? fmtBytes(bytes) : null].filter(Boolean).join(' · ');
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconWarn } from '@/components/ui/icons';
 import { initialsOf } from './identity';
@@ -15,7 +15,6 @@ export function CharacterImage({ src, kind, name, ratio = 2 / 3, unavailable, al
   src?: string | null; kind: 'CANONICAL' | 'PORTRAIT' | 'NONE'; name: string; /** width / height of the frame (2:3 by default) */ ratio?: number;
   unavailable?: boolean; alt?: string; className?: string; children?: ReactNode; /** the words under the initials when there is no picture */ placeholder?: ReactNode;
 }) {
-  const T = useT();
   const img = useRef<HTMLImageElement>(null);
   const [fit, setFit] = useState<'cover' | 'contain'>(kind === 'PORTRAIT' ? 'cover' : 'contain');
   const measure = (el: HTMLImageElement | null) => {

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, nextStep, productionHref, progressOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useTab } from '@/lib/hooks';
 import { TabBar } from '@/components/ui/kit';
 import { Art, Dots, Hero } from '@/components/ui/cinema';
@@ -37,7 +37,6 @@ export function trackOf(p: Production, src: string | undefined, artworkSrc?: str
 }
 
 export function MusicWorkspace({ p }: { p: Production }) {
-  const T = useT();
   const { state } = useStudio();
   const [rawTab] = useTab([...MUSIC_TABS, 'story', 'cast', 'characters', 'locations'] as const, 'overview');
   const tab: Tab = (ALIAS[rawTab] ?? rawTab) as Tab;
@@ -66,7 +65,7 @@ export function MusicWorkspace({ p }: { p: Production }) {
         description={<span className="text-base text-fg" dir="auto">{artist}</span>}
         meta={<><StageStatus p={p} /><span className="text-faint" aria-hidden>·</span><Dots items={[T.dyn(`style.${p.style}`), p.concept ? T.dyn(`mv.concept.${p.concept}`) : null, p.song ? fmtSeconds(p.song.durationSeconds) : fmtSeconds(p.targetSeconds), p.song ? `${p.song.sections.length} ${T('mv.sections')}` : null]} /></>}
         back={{ href: '/music-videos', label: T('nav.musicVideos') }}>
-        <div ref={sentinel} className="mt-5"><SongPlayer track={track} title={p.song?.title || p.title} performer={artist} artworkSrc={art?.src ?? cover?.src} action={p.stage !== 'COMPLETE' && <Link href={`${base}?tab=${nextTab}`} className="btn btn-primary">{T.dyn(next.key)}<IconChevronRight className="rtl:rotate-180" /></Link>} /></div>
+        <div ref={sentinel} className="mt-5"><SongPlayer track={track} title={p.song?.title || p.title} performer={artist} artworkSrc={art?.src ?? cover?.src} action={p.stage !== 'COMPLETE' && <Link href={`${base}?tab=${nextTab}`} className="btn btn-primary">{T.dyn(next.key)}<IconChevronRight /></Link>} /></div>
       </Hero>
 
       <TabBar ariaLabel={p.title} current={tab} hrefFor={(id) => `${base}?tab=${id}`} className="mb-6" tabs={[

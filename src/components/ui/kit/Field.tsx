@@ -1,7 +1,7 @@
 'use client';
 
 import { cloneElement, Fragment, isValidElement, useId, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconClose, IconUpload } from '../icons';
 import { Button, Spinner } from './Button';
 import { cls } from './cls';
@@ -17,7 +17,6 @@ type Described = { id?: string; 'aria-invalid'?: boolean; 'aria-describedby'?: s
 
 /** A label, the control, then its help or its error. The control gets the id, aria-invalid and aria-describedby. */
 export function Field({ label, help, error, children, required, optional, className = '', htmlFor, hint }: { label: ReactNode; help?: ReactNode; error?: ReactNode | null; children: ReactNode; required?: boolean; /** says "optional" at the end of the label row */ optional?: boolean; className?: string; htmlFor?: string; hint?: ReactNode }) {
-  const T = useT();
   const generated = useId();
   const child = isValidElement(children) ? (children as ReactElement<Described>) : null;
   const id = htmlFor ?? child?.props.id ?? `f-${generated}`;
@@ -75,7 +74,7 @@ export function Toggle({ label, help, checked, onChange, disabled, name }: { lab
       <span className="relative inline-flex flex-none items-center">
         <input type="checkbox" role="switch" name={name} aria-checked={checked} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
         <span aria-hidden className="block h-6 w-10 rounded-full border border-line-field bg-input transition-colors peer-checked:border-accent-strong peer-checked:bg-accent-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--ring)]" />
-        <span aria-hidden className="absolute start-[3px] top-[3px] block size-[18px] rounded-full bg-ink-300 transition peer-checked:translate-x-4 peer-checked:bg-fg rtl:peer-checked:-translate-x-4" />
+        <span aria-hidden className="absolute start-[3px] top-[3px] block size-[18px] rounded-full bg-ink-300 transition peer-checked:translate-x-4 peer-checked:bg-fg" />
       </span>
     </label>
   );
@@ -89,7 +88,6 @@ export const needsErrorSummary = (n: number) => n > 3;
 /** The summary: each error is a link that moves focus to its field. Renders nothing for three errors or fewer
  *  (each field says its own), unless `always`. */
 export function ErrorSummary({ errors, title, always, className = '' }: { errors: ReadonlyArray<{ id: string; message: ReactNode }>; title?: ReactNode; always?: boolean; className?: string }) {
-  const T = useT();
   if (!errors.length || (!always && !needsErrorSummary(errors.length))) return null;
   return (
     <div role="alert" className={cls('notice notice-bad error-summary', className)}>
@@ -108,7 +106,6 @@ export function ErrorSummary({ errors, title, always, className = '' }: { errors
 /** Intent before configuration: one line ("For The Kite · Cartoon · Arabic (Iraqi Baghdadi) · Change"); *Change*
  *  discloses the controls inline. */
 export function SettingsSummary({ items, children, defaultOpen = false, className = '' }: { items: ReadonlyArray<ReactNode>; children: ReactNode; defaultOpen?: boolean; className?: string }) {
-  const T = useT();
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
   const shown = items.filter((x) => x !== null && x !== undefined && x !== false && x !== '');
@@ -138,7 +135,6 @@ export function addChips(existing: readonly string[], raw: string, max?: number)
 /** Traits and distinguishing marks: Enter or a comma adds what was typed; each chip has × (a 24 px target);
  *  Backspace in the empty field removes the last chip. Put it inside a Field: it takes the id and the description. */
 export function ChipInput({ value, onChange, placeholder, max, disabled, id, className = '', ...aria }: { value: readonly string[]; onChange: (v: string[]) => void; placeholder?: string; max?: number; disabled?: boolean; id?: string; className?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }) {
-  const T = useT();
   const [text, setText] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const commit = (raw: string) => { const next = addChips(value, raw, max); if (next.length !== value.length) onChange(next); setText(''); };
@@ -177,7 +173,6 @@ export function ShapedDropzone({ ratio, label, hint, accept, onFile, file, onRem
   /** the chosen file: its name, and a preview src when there is one */ file?: { name: string; src?: string; kind?: 'image' | 'audio' | 'video'; meta?: ReactNode } | null;
   onRemove?: () => void; error?: ReactNode; busy?: boolean; disabled?: boolean; className?: string;
 }) {
-  const T = useT();
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -261,7 +256,6 @@ export function FormFooter({ children, start, className = '' }: { children: Reac
 export type SaveState = 'saved' | 'saving' | 'unsaved';
 /** Autosave in words (§5.18): "Saved", "Saving…" or "Not saved — retrying", from the real write queue. */
 export function SaveWord({ state, className = '' }: { state: SaveState; className?: string }) {
-  const T = useT();
   return (
     <span role="status" aria-live="polite" className={className}>
       <StateWord tone={state === 'saved' ? 'done' : state === 'saving' ? 'running' : 'waiting'}>{T(state === 'saved' ? 'kit.save.saved' : state === 'saving' ? 'kit.save.saving' : 'kit.save.unsaved')}</StateWord>

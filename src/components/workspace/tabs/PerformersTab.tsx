@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, primaryImageSrc } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Badge, Status } from '@/components/ui/kit';
 import { Art, Block, Empty } from '@/components/ui/cinema';
@@ -17,7 +17,6 @@ import { words } from '@/lib/format';
 /** PERFORMERS — who sings, what they sing, and how they sound. The voice is chosen on the character's page; here
  *  it is previewed through the studio's one player. */
 export function PerformersTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p);

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { cls } from './kit';
 import { IconChevronLeft } from './icons';
 
@@ -14,7 +14,6 @@ export const RATIO: Record<Ratio, string> = { poster: 'aspect-[2/3]', square: 'a
 
 /** A picture in its frame; with no picture, the title set as type — never a fake image. */
 export function Art({ src, alt = '', ratio = 'poster', title, sample, className = '', unavailable, children, top }: { src?: string | null; alt?: string; ratio?: Ratio | string; title?: string; sample?: boolean; className?: string; unavailable?: boolean; children?: ReactNode; /** faces first: crop from the top (portraits) */ top?: boolean }) {
-  const T = useT();
   void sample;
   const r = (RATIO as Record<string, string>)[ratio] ?? ratio;
   return (
@@ -61,7 +60,7 @@ export function Hero({ backdropSrc, art, eyebrow, title, titleAr, description, m
   return (
     <header className={cls('hero -mx-[var(--gutter)] -mt-6 mb-8 px-[var(--gutter)] sm:-mt-8 lg:-mt-10', wide && 'hero-wide', pad)}>
       <div className="hero-backdrop">{backdropSrc ? <img src={backdropSrc} alt="" aria-hidden /> : <div className="hero-plain h-full w-full" />}</div>
-      {back && <Link href={back.href} className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link>}
+      {back && <Link href={back.href} className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg"><IconChevronLeft className="size-3.5" aria-hidden />{back.label}</Link>}
       {wide ? words : (
         <div className={cls('flex gap-5 sm:gap-7', compact ? 'items-center' : 'items-end')}>
           <div className={cls('flex-none', compact ? 'w-20 sm:w-28' : 'w-28 sm:w-40 lg:w-44')}>{art}</div>

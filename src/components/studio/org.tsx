@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { agentName, deptName, type OrgAgent, type OrgDepartment, type StudioEventRow } from '@/studio/org';
+import { type OrgAgent, type OrgDepartment, type StudioEventRow } from '@/studio/org';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { fmtAgo } from '@/lib/format';
 
@@ -15,7 +15,6 @@ import { fmtAgo } from '@/lib/format';
 export { fmtMs, pct } from './people';
 
 export function ActivityFeed({ events, agents, departments, compact, empty }: { events: StudioEventRow[]; agents: OrgAgent[]; departments: OrgDepartment[]; compact?: boolean; empty?: ReactNode }) {
-  const T = useT();
   const { state } = useStudio();
   if (!events.length) return <p className="py-2 text-[14px] text-muted">{empty ?? T('studio.activity.empty')}</p>;
   return (
@@ -31,9 +30,9 @@ export function ActivityFeed({ events, agents, departments, compact, empty }: { 
             <div className="min-w-0 flex-1">
               <p className="text-body" dir="auto">{e.message}</p>
               <p className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-faint">
-                <span className="num">{fmtAgo(e.at, T.locale)}</span>
-                {a ? <Link href={`/studio/agents/${a.id}`} className="hover:text-fg" dir="auto">{agentName(a, T.locale)}</Link> : null}
-                {d ? <Link href={`/studio/departments/${d.id}`} className="hover:text-fg" dir="auto">{deptName(d, T.locale)}</Link> : null}
+                <span className="num">{fmtAgo(e.at)}</span>
+                {a ? <Link href={`/studio/agents/${a.id}`} className="hover:text-fg" dir="auto">{a.name}</Link> : null}
+                {d ? <Link href={`/studio/departments/${d.id}`} className="hover:text-fg" dir="auto">{d.name}</Link> : null}
                 {p ? <Link href={productionHref(p)} className="hover:text-fg" dir="auto">{p.title}</Link> : null}
                 {e.jobId ? <Link href={`/production?job=${e.jobId}`} className="hover:text-fg">{T('jobs.details')}</Link> : null}
               </p>

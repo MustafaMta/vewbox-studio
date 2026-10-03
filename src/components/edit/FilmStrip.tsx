@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { prefersReducedMotion } from '@/components/players/prefs';
 
@@ -15,7 +15,6 @@ import { prefersReducedMotion } from '@/components/players/prefs';
 export interface StripFrame { id: string; number: number; src?: string | null; label?: string }
 
 export function FilmStrip({ frames, variant = 'lobby', aspect = '16/9', current, onSelect, hrefFor, label, className }: { frames: StripFrame[]; variant?: 'lobby' | 'cutting'; aspect?: '16/9' | '9/16' | '1/1'; current?: string; onSelect?: (f: StripFrame, i: number) => void; hrefFor?: (f: StripFrame) => string; label?: string; className?: string }) {
-  const T = useT();
   const list = useRef<HTMLUListElement>(null);
   const cur = Math.max(0, frames.findIndex((f) => f.id === current));
   // keep the current shot in view (a reel or a cut moving through the shots)

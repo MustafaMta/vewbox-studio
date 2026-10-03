@@ -6,7 +6,7 @@ import type { Production, Show } from '@/domain/types';
 import { STAGES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, episodesOfShow, primaryImageSrc, seasonsOf, stageIndex } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { CastStack, ProgressBar } from '@/components/ui/page';
 import { aspectShort } from '@/lib/format';
 
@@ -16,7 +16,6 @@ export const stageFraction = (p: Production) => stageIndex(p.stage) / (STAGES.le
 /** SHOWS: wide key art, the series in numbers, its premise, its cast, how far along it is. (Owned by P1a; split out
  *  of library/Cards.tsx by F0 unchanged.) */
 export function ShowCard({ show, menu }: { show: Show; menu?: ReactNode }) {
-  const T = useT();
   const { state } = useStudio();
   const cover = assetById(state, show.coverAssetId) ?? assetById(state, show.posterAssetId);
   const seasons = seasonsOf(state, show.id).length;

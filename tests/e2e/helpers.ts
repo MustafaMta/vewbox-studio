@@ -322,8 +322,6 @@ export async function expectAudioLoaded(page: Page, srcPart?: string) {
   if (srcPart) expect(info.src, 'the audio element plays the expected file').toContain(srcPart);
 }
 
-export const setUiLanguage = (uiLanguage: 'en' | 'ar') => act('updateSettings', { uiLanguage });
-
 export function evidencePath(name: string) { fs.mkdirSync(EVIDENCE_DIR, { recursive: true }); return path.join(EVIDENCE_DIR, name); }
 
 /** A loose locator for a control whose final copy is not settled: matched by role and an accessible-name regex,

@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconAddNote, IconBack5, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -15,13 +15,12 @@ import { useShortcutScope } from './useShortcutScope';
  *  achromatic `--canvas`, radius 0, letterboxed; a DOCKED transport under the frame (never over it, never hidden —
  *  the editor needs it): ‹ frame · play · frame ›, −5 s / +5 s (J/L), mark in / mark out (I/O), the timecode in `.tc`,
  *  volume and zoom-to-fit. The seek fill is iris on `--ink-700`; the marked range shows on the track. The transport
- *  is LTR in both languages. `onAddNote` (N) appears only when timecoded notes exist in the backend (B2). */
+ *  is LTR. `onAddNote` (N) appears only when timecoded notes exist in the backend (B2). */
 
 export interface Marks { in?: number; out?: number }
 
 export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: string; fps?: number | null; title?: string; sync?: SyncBus; aspect?: string; marks?: Marks; onMarks?: (m: Marks) => void; onAddNote?: (t: number) => void; fileHref?: string; className?: string }>(
   function CanvasPlayer({ src, poster, fps, title, sync, aspect, marks: given, onMarks, onAddNote, fileHref, className }, ref) {
-    const T = useT();
     const c = usePlayerCore({ src, fps, sync, aspect });
     const [own, setOwn] = useState<Marks>({});
     const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');

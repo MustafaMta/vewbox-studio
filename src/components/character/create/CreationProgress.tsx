@@ -6,13 +6,13 @@ import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Status } from '@/components/ui/kit';
 import { JobProgress, RecoveryAction, useErrorCopy, type ProgressRow } from '@/components/ui/progress';
 import { IconEdit, IconOpen, IconRetry, IconVoice } from '@/components/ui/icons';
 import type { CreateStepName } from '../contract';
 import type { StepView } from './preflight';
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 import { CharacterImage } from '../CharacterImage';
 import { ConsentChoice } from '../ConsentChoice';
 import { imageKindOf } from '../identity';
@@ -27,7 +27,6 @@ export function CreationProgress({ parent, steps, characterId, referenceSrc, onC
   parent?: Job; steps: StepView[]; characterId?: string; /** the reference picture, when the start was From a picture */ referenceSrc?: string;
   onCancel: () => void; onRetryStep: (step: CreateStepName) => void; onWriteMyself: () => void; cancelling?: boolean; settled: boolean; children?: ReactNode;
 }) {
-  const T = useT();
   const { state } = useStudio();
   const copyOf = useErrorCopy();
   const c = characterId ? state.characters.find((x) => x.id === characterId) : undefined;

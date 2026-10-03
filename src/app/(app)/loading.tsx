@@ -1,11 +1,10 @@
 'use client';
 
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 
 /** While a route's code loads: the page's frame in placeholders, and a sentence for screen readers (§5.16: no
  *  spinner without a sentence). */
 export default function Loading() {
-  const T = useT();
   return (
     <div aria-busy="true" className="shell-skeleton">
       <span className="sr-only" role="status">{T('shell.loading')}</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { Slate } from '../Slate';
 
@@ -32,7 +32,6 @@ export interface HeroTextProps {
 }
 
 function Lead({ children, lang, onArt }: { children: ReactNode; lang?: string; onArt?: boolean }) {
-  const T = useT();
   const ref = useRef<HTMLParagraphElement>(null);
   const [open, setOpen] = useState(false);
   const [over, setOver] = useState(false);

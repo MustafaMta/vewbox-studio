@@ -5,7 +5,7 @@ import { openKit } from './f3-helpers';
  *  path, and a rail is one Tab stop. Read-only (the specimens keep their state in the page). */
 
 test('a rail is one Tab stop; the arrows move between its tiles', async ({ page }) => {
-  await openKit(page, 'en');
+  await openKit(page);
   const rail = page.locator('#media .rail').first();
   const stops = await rail.locator('.rail-list [tabindex="0"]').count();
   expect(stops).toBe(1);
@@ -20,7 +20,7 @@ test('a rail is one Tab stop; the arrows move between its tiles', async ({ page 
 });
 
 test('the timeline: trim by ±1 frame buttons, the ruler and the clips by keyboard, zoom by buttons', async ({ page }) => {
-  await openKit(page, 'en', '#edit');
+  await openKit(page, '#edit');
   const tl = page.locator('#edit .tl');
   await tl.scrollIntoViewIfNeeded();
   const clip3 = tl.locator('.tl-clip[data-ci="2"]');
@@ -42,7 +42,7 @@ test('the timeline: trim by ±1 frame buttons, the ruler and the clips by keyboa
 });
 
 test('the dock splitter moves 16 px per arrow and collapses with Enter; Reset layout restores it', async ({ page }) => {
-  await openKit(page, 'en', '#edit');
+  await openKit(page, '#edit');
   const split = page.locator('#edit .dock-split').first();
   await split.scrollIntoViewIfNeeded();
   const v = async () => Number(await split.getAttribute('aria-valuenow'));
@@ -58,7 +58,7 @@ test('the dock splitter moves 16 px per arrow and collapses with Enter; Reset la
 });
 
 test('the dual-scale window moves by buttons and by keyboard', async ({ page }) => {
-  await openKit(page, 'en', '#edit');
+  await openKit(page, '#edit');
   const win = page.locator('#edit .dstrip-window');
   await win.scrollIntoViewIfNeeded();
   expect(await win.getAttribute('aria-valuenow')).toBe('0');
@@ -69,7 +69,7 @@ test('the dual-scale window moves by buttons and by keyboard', async ({ page }) 
 });
 
 test('lyric timing nudges by 0.1 s buttons; the singer by a menu, never by drag', async ({ page }) => {
-  await openKit(page, 'en', '#players');
+  await openKit(page, '#players');
   const edit = page.locator('.lyrics[data-edit]').first();
   await edit.scrollIntoViewIfNeeded();
   await expect(edit.locator('select').first()).toBeVisible();

@@ -12,8 +12,8 @@ import type { AgentRunRow, AgentStat, ReliabilitySummary, StudioEventRow } from 
  *  activity. Types come from the server modules (type-only imports; nothing of the server runs here).
  *
  *  This file is the one place the pages get organisation data from, and the readers at the end of it are the only
- *  code that interprets the v5 shape (docs/CONTRACTS-PHASE2-STUDIO.md §2 R1–R6, §4): what an agent executes, its
- *  Arabic fields, a planned role, a skill's status and evidence, a tool's contract. */
+ *  code that interprets the v5 shape (docs/CONTRACTS-PHASE2-STUDIO.md §2 R1–R6, §4): what an agent executes, a planned
+ *  role, a skill's status and evidence, a tool's contract. */
 
 export type { OrgAgent, OrgDepartment, OrgSkill, OrgTool, PlannedRole, StepDef };
 export interface LiveJob { id: string; type: string; status: string; productionId?: string; shotId?: string; attempts: number; maxAttempts: number; progress?: { phase?: string; message?: string; percent?: number | null } | null; createdAt: string }
@@ -67,24 +67,14 @@ export async function approveStage(productionId: string, body: { stage: string; 
 
 // ----------------------------------------------------------------------------------- readers of the v5 shape
 
-type Lang = 'en' | 'ar';
-/** The Arabic text when the interface is Arabic and the organisation has it; otherwise the English. */
-export const loc = (lang: Lang, en: string, ar?: string | null): string => (lang === 'ar' && ar ? ar : en);
-export const deptName = (d: Pick<DepartmentDef, 'name' | 'nameAr'>, lang: Lang) => loc(lang, d.name, d.nameAr);
-export const deptResponsibility = (d: Pick<DepartmentDef, 'responsibility'> & { responsibilityAr?: string }, lang: Lang) => loc(lang, d.responsibility, d.responsibilityAr);
-export const agentName = (a: Pick<AgentDef, 'name'> & { nameAr?: string }, lang: Lang) => loc(lang, a.name, a.nameAr);
-export const agentRole = (a: Pick<AgentDef, 'role'> & { roleAr?: string }, lang: Lang) => loc(lang, a.role, a.roleAr);
-export const agentDescription = (a: Pick<AgentDef, 'description'> & { descriptionAr?: string }, lang: Lang) => loc(lang, a.description, a.descriptionAr);
-export const stepName = (s: StepDef, lang: Lang) => loc(lang, s.name, s.nameAr);
-
 /** R1: the delegated steps an agent performs inside other agents' jobs. */
 export const stepsOf = (a: Pick<AgentDef, 'steps'>): StepDef[] => a.steps ?? [];
 /** The agent that runs a job type, from the agents' own declarations. */
 export const agentForJobType = <A extends Pick<AgentDef, 'jobTypes'>>(agents: A[], type: string): A | undefined => agents.find((a) => (a.jobTypes as string[]).includes(type));
 
 /** R2: the roles a department will have but does not staff yet — a name, what it would do, why not yet, the phase. */
-export function plannedRolesOf(d: Pick<OrgDepartment, 'id'> & { plannedRoles?: OrgDepartment['plannedRoles'] }, lang: Lang): Array<{ key: string; name: string; would: string; reason: string; phase: string }> {
-  return (d.plannedRoles ?? []).map((r) => ({ key: r.id, name: loc(lang, r.name, r.nameAr), would: r.would, reason: loc(lang, r.reason, r.reasonAr), phase: r.phase }));
+export function plannedRolesOf(d: Pick<OrgDepartment, 'id'> & { plannedRoles?: OrgDepartment['plannedRoles'] }): Array<{ key: string; name: string; would: string; reason: string; phase: string }> {
+  return (d.plannedRoles ?? []).map((r) => ({ key: r.id, name: r.name, would: r.would, reason: r.reason, phase: r.phase }));
 }
 
 /** R5: a skill's computed status as a word key, a tone and the reason the registry gave. */

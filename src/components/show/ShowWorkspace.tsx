@@ -7,7 +7,7 @@ import type { Production, Season, Show } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, assetSrc, episodesOf, nextStep, primaryImageSrc, productionHref, progressOf, seasonsOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, ConfirmDelete, Field, Input, LinkButton, Menu, MenuItem, Modal, Select, Status, TabBar, Textarea, Thumb } from '@/components/ui/kit';
@@ -28,7 +28,6 @@ const TABS = ['overview', 'seasons', 'episodes', 'characters', 'locations', 'set
 const ALIAS: Record<string, (typeof TABS)[number]> = { gallery: 'overview', cast: 'characters', world: 'locations' };
 
 export function ShowWorkspace({ show }: { show: Show }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -82,7 +81,6 @@ export function ShowWorkspace({ show }: { show: Show }) {
  *  episode: rules of the world, who is what to whom, what has happened so far, and the art direction. Edited by hand
  *  here; the cast (locked appearances, voices) and the places (plates, layout) live in the library and are linked. */
 function WorldBible({ show }: { show: Show }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const b = show.bible ?? {};
@@ -105,7 +103,6 @@ function WorldBible({ show }: { show: Show }) {
  *  and world with room to breathe and the World Bible; beside them the show's progress and its facts. Seasons and
  *  episodes live on their own tabs and are not listed a third time here. */
 function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; episodes: Production[] }) {
-  const T = useT();
   const { state } = useStudio();
   const overall = episodes.length ? episodes.reduce((a, p) => a + stageFraction(p), 0) / episodes.length : 0;
   const cast = state.characters.filter((c) => show.castIds.includes(c.id));
@@ -121,9 +118,9 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
               <Link href={`${productionHref(recent)}?tab=${nextStep(recent).tab === 'cast' ? 'characters' : nextStep(recent).tab}`} className="card card-hover group flex items-center gap-4 p-4">
                 <div className="w-28 flex-none sm:w-40"><Thumb src={assetSrc(state, recent.coverAssetId)} alt="" ratio="aspect-video" className="rounded-md" /></div>
                 <div className="min-w-0 flex-1">
-                  <p className="num text-[11.5px] text-faint">{T('misc.episodeOf')} {recent.episodeNumber} · {fmtAgo(recent.updatedAt, T.locale)}</p>
+                  <p className="num text-[11.5px] text-faint">{T('misc.episodeOf')} {recent.episodeNumber} · {fmtAgo(recent.updatedAt)}</p>
                   <p className="truncate text-[15px] font-semibold text-fg" dir="auto">{recent.title}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[12.5px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5 rtl:rotate-180" /></p>
+                  <p className="mt-1 flex items-center gap-1 text-[12.5px] text-muted group-hover:text-fg">{T.dyn(nextStep(recent).key)}<IconArrowRight aria-hidden className="size-3.5" /></p>
                 </div>
                 <StageStatus p={recent} className="hidden sm:inline-flex" />
               </Link>
@@ -161,7 +158,7 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
           <div className="divider my-4" />
           <FactList items={[
             { label: T('label.aspect'), value: aspectLabel(show.aspect), icon: <IconAspect /> },
-            { label: T('label.language'), value: `${show.language === 'EN' ? T('label.english') : T('label.arabic')}${show.dialect ? ` · ${dialectLabel(show.dialect, T.locale)}` : ''}`, icon: <IconLanguage /> },
+            { label: T('label.language'), value: `${show.language === 'EN' ? T('label.english') : T('label.arabic')}${show.dialect ? ` · ${dialectLabel(show.dialect)}` : ''}`, icon: <IconLanguage /> },
             { label: T('label.style'), value: T.dyn(`style.${show.style}`), icon: <IconStyle /> },
             { label: T('show.episodeLength'), value: episodes.length ? fmtSeconds(Math.round(episodes.reduce((a, p) => a + p.targetSeconds, 0) / episodes.length)) : '—', icon: <IconDuration /> },
           ]} />
@@ -174,7 +171,6 @@ function Overview({ show, seasons, episodes }: { show: Show; seasons: Season[]; 
 /** A season's episodes as rows: landscape thumbnail, number, title, duration, status. The one Add Episode button
  *  is the banner's; this tab only names the season it goes to. */
 function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; selected?: Season }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -209,7 +205,6 @@ function Seasons({ show, seasons, selected }: { show: Show; seasons: Season[]; s
 
 /** Every episode of the show, grouped by season, newest season first. */
 function AllEpisodes({ show, seasons, episodes }: { show: Show; seasons: Season[]; episodes: Production[] }) {
-  const T = useT();
   if (episodes.length === 0) return <Empty title={T('show.noEpisodes')} action={seasons.length ? <LinkButton href={`/new/episode?show=${show.id}&season=${seasons[seasons.length - 1].id}`} variant="primary" icon={<IconPlus />}>{T('btn.addEpisode')}</LinkButton> : <AddSeason showId={show.id} variant="primary" />} />;
   const ordered = [...seasons].sort((a, b) => b.number - a.number);
   return (
@@ -225,7 +220,6 @@ function AllEpisodes({ show, seasons, episodes }: { show: Show; seasons: Season[
 }
 
 export function EpisodeRow({ p, seasons, showSeason }: { p: Production; seasons: Season[]; showSeason?: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const cover = assetById(state, p.coverAssetId);
   const pr = progressOf(p);
@@ -242,14 +236,14 @@ export function EpisodeRow({ p, seasons, showSeason }: { p: Production; seasons:
         </div>
         <span className="num hidden w-16 flex-none text-end text-[13px] text-muted sm:block">{fmtSeconds(pr.runtime || p.targetSeconds)}</span>
         <span className="hidden w-28 flex-none md:block"><StageStatus p={p} /></span>
-        <IconChevronRight className="size-4 flex-none text-ink-500 rtl:rotate-180" aria-hidden />
+        <IconChevronRight className="size-4 flex-none text-ink-500" aria-hidden />
       </Link>
     </li>
   );
 }
 
 function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const { act } = useStudio(); const toast = useToast();
   const initial = { title: show.title, titleAr: show.titleAr ?? '', logline: show.logline, synopsis: show.synopsis ?? '', genre: show.genre, style: show.style, language: show.language, dialect: show.dialect ?? 'IRAQI_BAGHDADI', aspect: show.aspect };
   const [d, setD] = useState(initial);
   const set = (p: Partial<typeof d>) => setD((x) => ({ ...x, ...p }));
@@ -268,7 +262,7 @@ function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }
           <Field label={T('label.genre')}><Input value={d.genre} onChange={(e) => set({ genre: e.target.value })} /></Field>
           <Field label={T('label.style')}><Select value={d.style} onChange={(e) => set({ style: e.target.value as typeof d.style })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></Field>
           <Field label={T('label.language')}><Select value={d.language} onChange={(e) => set({ language: e.target.value as typeof d.language })} options={LANGUAGES.map((l) => ({ value: l, label: l === 'EN' ? T('label.english') : T('label.arabic') }))} /></Field>
-          {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as typeof d.dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x, T.locale) }))} /></Field>}
+          {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as typeof d.dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} /></Field>}
           <Field label={T('label.aspect')}><Select value={d.aspect} onChange={(e) => set({ aspect: e.target.value as typeof d.aspect })} options={ASPECTS.map((a) => ({ value: a, label: aspectShort(a) }))} /></Field>
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-line/70 pt-4">{dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}<Button type="submit" variant="primary" disabled={!dirty}>{dirty ? T('btn.save') : T('btn.saved')}</Button></div>
@@ -284,12 +278,11 @@ function ShowSettings({ show, onDeleted }: { show: Show; onDeleted: () => void }
 
 /** A new season starts in the wizard (Auto: the agents continue the show; Manual: a title or a line). */
 export function AddSeason({ showId, variant = 'secondary' }: { showId: string; variant?: 'primary' | 'secondary' | 'ghost' }) {
-  const T = useT();
   return <LinkButton href={`/new/season?show=${showId}`} size={variant === 'primary' ? undefined : 'sm'} variant={variant} icon={<IconPlus />} className={variant === 'ghost' ? 'flex-none xl:justify-start' : ''}>{T('btn.addSeason')}</LinkButton>;
 }
 
 function EditSeasonItem({ season }: { season: Season }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const { act } = useStudio(); const toast = useToast();
   const [title, setTitle] = useState(season.title); const [arc, setArc] = useState(season.arc);
   return (
     <Modal title={`${T('kind.SEASON')} ${season.number}`} trigger={(open) => <MenuItem icon={<IconEdit />} onClick={(e) => { e.stopPropagation(); open(); }}>{T('btn.edit')}</MenuItem>}>

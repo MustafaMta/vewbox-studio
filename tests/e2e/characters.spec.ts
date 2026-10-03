@@ -26,7 +26,7 @@ test('the creation page asks for the method first, keeps the settings to one lin
   await expect(page.getByRole('radiogroup', { name: 'Style' })).toBeVisible();
   await page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' }).click();
   await expect(page.getByLabel('Dialect')).toHaveCount(0);
-  await page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'العربية' }).click();
+  await page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'Arabic' }).click();
   await expect(page.getByLabel('Dialect')).toBeVisible();
   // nothing is preselected: sex and age wait on "Studio decides"
   await page.getByText('More control').click();

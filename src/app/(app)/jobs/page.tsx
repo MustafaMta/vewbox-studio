@@ -9,7 +9,7 @@ import { JOB_LABELS, isActiveStatus, isTerminalStatus } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
 import { api } from '@/studio/api';
 import { productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { PageHeader } from '@/components/ui/page';
 import { Button, Details, KV, Segmented, Status, cls } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
@@ -31,7 +31,6 @@ export default function JobsPage() {
 /** ACTIVITY — every job the studio runs, newest first; one opens into its log. Progress is what the worker reports,
  *  no more: a phase, a step count where there is one, a percentage only when it is real. */
 function Activity() {
-  const T = useT();
   const { jobs, state, cancelJob } = useStudio();
   const sp = useSearchParams();
   const pathname = usePathname();
@@ -59,9 +58,9 @@ function Activity() {
             <li key={j.id} className={cls('panel p-4', open && 'border-accent')}>
               <div className="flex flex-wrap items-center gap-3">
                 <StatusOf job={j} />
-                <span className="font-medium">{JOB_LABELS[j.type]?.[T.locale] ?? j.type}</span>
+                <span className="font-medium">{JOB_LABELS[j.type] ?? j.type}</span>
                 {n.label && (n.href ? <Link href={n.href} className="truncate text-sm text-muted hover:text-fg" dir="auto">{n.label}</Link> : <span className="truncate text-sm text-muted" dir="auto">{n.label}</span>)}
-                <span className="ms-auto text-xs text-faint">{fmtAgo(j.createdAt, T.locale)}{j.attempts > 1 ? ` · ${T('jobs.attempt')} ${j.attempts}/${j.maxAttempts}` : ''}</span>
+                <span className="ms-auto text-xs text-faint">{fmtAgo(j.createdAt)}{j.attempts > 1 ? ` · ${T('jobs.attempt')} ${j.attempts}/${j.maxAttempts}` : ''}</span>
                 {!isTerminalStatus(j.status) && <Button size="xs" variant="ghost" icon={<IconClose />} disabled={j.cancelRequested} onClick={() => void cancelJob(j.id)}>{j.cancelRequested ? T('jobs.cancelRequested') : T('jobs.cancel')}</Button>}
                 {(j.status === 'FAILED' || j.status === 'CANCELLED') && <RetryControl job={j} />}
                 <Link href={open ? pathname : `${pathname}?job=${j.id}`} scroll={false} className="text-xs font-medium text-accent-text hover:underline">{T('jobs.details')}</Link>
@@ -78,14 +77,12 @@ function Activity() {
 }
 
 export function StatusOf({ job }: { job: Job }) {
-  const T = useT();
   const map: Record<string, { tone: 'ok' | 'warn' | 'bad' | 'info' | 'neutral'; key: 'jobs.active' | 'jobs.queued' | 'jobs.done' | 'jobs.failed' | 'jobs.cancelled' | 'jobs.awaitingReview' }> = { QUEUED: { tone: 'neutral', key: 'jobs.queued' }, COMPLETED: { tone: 'ok', key: 'jobs.done' }, FAILED: { tone: 'bad', key: 'jobs.failed' }, CANCELLED: { tone: 'neutral', key: 'jobs.cancelled' }, AWAITING_REVIEW: { tone: 'warn', key: 'jobs.awaitingReview' } };
   const m = map[job.status] ?? { tone: 'info' as const, key: 'jobs.active' as const };
   return <Status tone={m.tone} live={isActiveStatus(job.status) && job.status !== 'QUEUED'}>{T(m.key)}</Status>;
 }
 
 function JobDetail({ job }: { job: Job }) {
-  const T = useT();
   const [events, setEvents] = useState<JobEvent[]>([]);
   // the log is read when the panel opens and again when the job moves to another status or phase (the event stream
   // carries those with the row); its lines are written at those steps, so no timer is needed
@@ -94,7 +91,7 @@ function JobDetail({ job }: { job: Job }) {
   return (
     <div className="mt-4 grid gap-4 border-t border-line pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div>
-        <KV rows={[[T('label.status'), job.status], [T('jobs.started'), job.startedAt ? fmtAgo(job.startedAt, T.locale) : '—'], [T('jobs.finished'), job.finishedAt ? fmtAgo(job.finishedAt, T.locale) : '—'], [T('jobs.provider'), job.providerTaskId ?? '—'], ['Job', job.id], ...(typeof job.result?.ms === 'number' ? [[T('gen.time'), fmtSeconds(Math.round((job.result.ms as number) / 1000))] as [string, string]] : [])]} />
+        <KV rows={[[T('label.status'), job.status], [T('jobs.started'), job.startedAt ? fmtAgo(job.startedAt) : '—'], [T('jobs.finished'), job.finishedAt ? fmtAgo(job.finishedAt) : '—'], [T('jobs.provider'), job.providerTaskId ?? '—'], ['Job', job.id], ...(typeof job.result?.ms === 'number' ? [[T('gen.time'), fmtSeconds(Math.round((job.result.ms as number) / 1000))] as [string, string]] : [])]} />
         {job.error && <div className="notice notice-bad mt-3 text-sm"><div><p className="font-medium">{T('jobs.error')}: {job.error.code}</p><p className="mt-0.5" dir="auto">{job.error.message}</p></div></div>}
         {resultAsset && <p className="mt-3 text-sm"><Link href={`/assets?asset=${resultAsset}`} className="font-medium text-accent-text hover:underline">{T('jobs.open')} →</Link></p>}
         {job.result && <Details summary={T('jobs.result')} className="mt-3"><pre className="max-h-64 overflow-auto rounded-lg bg-input p-3 text-[11px] leading-relaxed">{JSON.stringify(job.result, null, 2)}</pre></Details>}
@@ -103,7 +100,7 @@ function JobDetail({ job }: { job: Job }) {
         <p className="mb-2 text-xs font-medium text-muted">{T('jobs.events')}</p>
         {events.length === 0 ? <p className="text-sm text-faint">—</p> : (
           <ol className="max-h-80 space-y-1 overflow-auto text-[12px]">
-            {events.map((e) => <li key={e.id} className={cls('flex gap-2', e.level === 'error' ? 'text-bad' : e.level === 'warn' ? 'text-warn' : 'text-body')}><span className="num flex-none text-faint">{new Date(e.at).toLocaleTimeString()}</span><span className="min-w-0 break-words" dir="auto">{e.message}{e.data && Object.keys(e.data).length ? <span className="text-faint"> · {JSON.stringify(e.data).slice(0, 240)}</span> : null}</span></li>)}
+            {events.map((e) => <li key={e.id} className={cls('flex gap-2', e.level === 'error' ? 'text-bad' : e.level === 'warn' ? 'text-warn' : 'text-body')}><span className="num flex-none text-faint">{new Date(e.at).toLocaleTimeString('en-GB')}</span><span className="min-w-0 break-words" dir="auto">{e.message}{e.data && Object.keys(e.data).length ? <span className="text-faint"> · {JSON.stringify(e.data).slice(0, 240)}</span> : null}</span></li>)}
           </ol>
         )}
       </div>

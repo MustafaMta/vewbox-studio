@@ -61,7 +61,7 @@ async function run(job: Job, lane: Lane) {
   // the agent run: who is doing this, which attempt, what it calls
   let runId = '';
   await record('start run', async () => { runId = await startRun(job, agent.id); });
-  const label = JOB_LABELS[job.type]?.en ?? job.type;
+  const label = JOB_LABELS[job.type] ?? job.type;
   // THE RUN'S PHASES (B9): startRun recorded QUEUED and PREPARING; every later progress report that moves the job
   // to another phase (GENERATING, CHECKING, FINISHING) is appended to the run as a timed event and announced, so
   // a status row can say how long each phase took and what to expect next time

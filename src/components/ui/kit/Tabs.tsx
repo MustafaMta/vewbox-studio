@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { cls } from './cls';
-import { isRtl, rovingIndex, rovingStep } from './focus';
+import { rovingIndex, rovingStep } from './focus';
 import { useRootVarContribution } from './layout';
 import { MenuButton, MenuLink } from './Overlay';
 
@@ -14,7 +14,7 @@ import { MenuButton, MenuLink } from './Overlay';
 export interface TabItem { id: string; label: ReactNode; count?: number; icon?: ReactNode; disabled?: boolean }
 
 /** 44 px, 14/20 500 muted; the selected tab is --fg 600 with a 2 px iris underline; counts are faint numbers, never
- *  a chip. One Tab stop: ←/→ (mirrored in Arabic), Home and End move between tabs and select (selection follows
+ *  a chip. One Tab stop: ←/→, Home and End move between tabs and select (selection follows
  *  focus). Two forms:
  *  - `hrefFor`: tabs are links and the URL is the state (`?tab=`), so reload and Back behave (§7.4);
  *  - `onSelect`: tabs are buttons that control TabPanels with the same `idBase`.
@@ -28,7 +28,7 @@ export function TabBar({ tabs, current, hrefFor, onSelect, ariaLabel, className 
     const els = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'));
     const i = els.indexOf(document.activeElement as HTMLElement);
     if (i === -1) return;
-    const step = rovingStep(e.key, { rtl: isRtl(e.currentTarget) });
+    const step = rovingStep(e.key);
     if (!step) return;
     const next = rovingIndex(step, i, tabs.map((t) => Boolean(t.disabled)), false);
     if (next < 0 || next === i) { if (step) e.preventDefault(); return; }
@@ -67,7 +67,6 @@ export function sectionInView(tops: ReadonlyArray<{ id: string; top: number }>, 
  *  section in view gets aria-current="true" (scrollspy). Jumps respect scroll-padding (§2.1). On a phone it is a
  *  row of chips that scrolls sideways. */
 export function AnchorNav({ items, label, className = '', sticky = true }: { items: ReadonlyArray<{ id: string; label: ReactNode }>; label?: string; className?: string; sticky?: boolean }) {
-  const T = useT();
   const [current, setCurrent] = useState<string | null>(items[0]?.id ?? null);
   // while it sticks, its height joins --sticky-extra, so a jump to a section lands below it (scroll-padding, §2.1)
   const nav = useRef<HTMLElement>(null);
@@ -108,9 +107,8 @@ export function AnchorNav({ items, label, className = '', sticky = true }: { ite
 }
 
 /** Deep paths: Show › Season 1 › Episode 3 › Shot 12. The last item is the current page (no link). On a phone the
- *  middle collapses into a "…" menu. The separators mirror in Arabic. */
+ *  middle collapses into a "…" menu. */
 export function Crumbs({ items, className = '' }: { items: ReadonlyArray<{ href?: string; label: string }>; className?: string }) {
-  const T = useT();
   const last = items.length - 1;
   const item = (it: { href?: string; label: string }, i: number) => (
     <li key={i}>

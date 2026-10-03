@@ -1,13 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Crumbs } from '@/components/ui/nav';
 import { LibraryHeader } from '@/components/library/Library';
 import { LocationForm } from '@/components/location/LocationForm';
 
 export default function NewLocationPage() {
-  const T = useT();
   const router = useRouter();
   return (
     <div className="mx-auto max-w-3xl">

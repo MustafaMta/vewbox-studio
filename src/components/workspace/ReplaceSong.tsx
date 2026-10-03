@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Modal, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { splitLyrics } from '@/components/wizard/CreateWizard';
@@ -12,7 +12,7 @@ import { IconUpload } from '@/components/ui/icons';
 
 /** Give a music video its song, or replace it: describe and write it (saved as an example song), or bring a file. */
 export function ReplaceSong({ p }: { p: Production }) {
-  const T = useT(); const { state, act, addFile } = useStudio(); const toast = useToast();
+  const { state, act, addFile } = useStudio(); const toast = useToast();
   const [mode, setMode] = useState<'GENERATE' | 'UPLOAD'>('GENERATE');
   const [caption, setCaption] = useState(p.song?.caption ?? ''); const [lyrics, setLyrics] = useState(''); const [title, setTitle] = useState(p.song?.title ?? p.title);
   const submit = (close: () => void) => {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { musicVideos, search } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { LinkButton } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
@@ -15,7 +15,6 @@ import { IconMusicVideos, IconPlus } from '@/components/ui/icons';
 
 /** MUSIC VIDEOS — a record shelf: square art, the song and who performs it, a play button on every sleeve. */
 export default function MusicVideosPage() {
-  const T = useT();
   const { state } = useStudio();
   const [q, setQ] = useState(''); const [style, setStyle] = useState<Style | ''>(''); const [sort, setSort] = useState<'recent' | 'title'>('recent');
   const all = musicVideos(state);

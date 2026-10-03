@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useT } from './locale';
+import { T } from '@/lib/copy';
 import { IconClose } from './icons';
 import { OverlayHost } from './kit/Overlay';
 
@@ -26,7 +26,6 @@ const Ctx = createContext<Api | null>(null);
 const EXIT_MS = 160;
 
 function ToastItem({ t, onGone }: { t: Toast; onGone: (id: number) => void }) {
-  const T = useT();
   const [hold, setHold] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const remaining = useRef<number | null>(toastDuration(t));
@@ -48,7 +47,7 @@ function ToastItem({ t, onGone }: { t: Toast; onGone: (id: number) => void }) {
         {(t.link || t.action) && (
           <span className="mt-1 flex flex-wrap items-center gap-3">
             {t.action && <button type="button" className="toast-action" onClick={() => { t.action!.onClick(); close(); }}>{t.action.label}</button>}
-            {t.link && <Link href={t.link.href} className="toast-action" onClick={close}>{t.link.label} <span aria-hidden className="toast-arrow">→</span></Link>}
+            {t.link && <Link href={t.link.href} className="toast-action" onClick={close}>{t.link.label} <span aria-hidden>→</span></Link>}
           </span>
         )}
       </div>

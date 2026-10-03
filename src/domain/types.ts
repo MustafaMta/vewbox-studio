@@ -731,7 +731,6 @@ export interface VoiceSettings {
 }
 
 export interface Settings {
-  uiLanguage: 'en' | 'ar';
   reducedMotion: boolean;
   defaults: { style: Style; language: Language; dialect: Dialect; aspect: Aspect };
   generation?: GenerationSettings;

@@ -10,7 +10,7 @@
  *    states  the sample studio plus the states a page must show: a draft character, a locked character, a production
  *            awaiting its STORY approval, a running job and a failed job
  *
- *  node --import tsx scripts/v4-fixture.ts <sample|empty|states> [--lang en|ar]   → the fixture as JSON on stdout */
+ *  node --import tsx scripts/v4-fixture.ts <sample|empty|states>   → the fixture as JSON on stdout */
 import { seed } from '@/domain/sample';
 import { emptyStudio } from '@/domain/actions';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
@@ -30,8 +30,8 @@ const ago = (hours: number) => new Date(FIXTURE_NOW - hours * 3_600_000).toISOSt
 
 const job = (p: Partial<Job> & Pick<Job, 'id' | 'type' | 'status'>): Job => ({ priority: 0, payload: {}, attempts: 1, maxAttempts: 2, cancelRequested: false, createdAt: ago(0.2), updatedAt: ago(0.05), ...p });
 
-export function buildFixture(kind: FixtureKind, lang: 'en' | 'ar' = 'en'): Fixture {
-  const settings = { ...DEFAULT_SETTINGS, uiLanguage: lang };
+export function buildFixture(kind: FixtureKind): Fixture {
+  const settings = { ...DEFAULT_SETTINGS };
   if (kind === 'empty') return { kind, state: { ...emptyStudio(settings), settings }, jobs: [], pipeline: { productions: [] } };
   const state: StudioState = { ...seed(), settings };
   if (kind === 'sample') return { kind, state, jobs: [], pipeline: { productions: [] } };
@@ -70,8 +70,6 @@ const isMain = (() => { try { return import.meta.url === new URL(`file:///${proc
 if (isMain) {
   const args = process.argv.slice(2);
   const kind = (args.find((a) => !a.startsWith('--')) ?? 'sample') as FixtureKind;
-  const li = args.indexOf('--lang');
-  const lang = li >= 0 && args[li + 1] === 'ar' ? 'ar' : 'en';
   if (!FIXTURE_KINDS.includes(kind)) { console.error(`unknown fixture "${kind}" (${FIXTURE_KINDS.join(', ')})`); process.exit(2); }
-  process.stdout.write(JSON.stringify(buildFixture(kind, lang)));
+  process.stdout.write(JSON.stringify(buildFixture(kind)));
 }

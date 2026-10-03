@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Presentation } from '@/domain/presentation';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay, IconSound } from '@/components/ui/icons';
 import { dimsLight, objectPosition } from '@/components/media/art';
@@ -17,7 +17,6 @@ import { heroPreviewsOn, prefersReducedMotion, savesData } from './prefs';
 type State = 'still' | 'playing' | 'paused' | 'done';
 
 export function PreviewPlayer({ src, still, alt, focal, presentation, delay = 2000, limit = 15, onWatchWithSound, className }: { src: string; still?: string | null; alt: string; focal?: { x: number; y: number } | null; presentation?: Presentation | null; delay?: number; limit?: number; onWatchWithSound?: () => void; className?: string }) {
-  const T = useT();
   const [state, setState] = useState<State>('still');
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {

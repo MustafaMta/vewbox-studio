@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback } from '@/components/players/coordinator';
@@ -23,7 +23,6 @@ export function reelIndexAt(shots: ReelShot[], t: number): { index: number; star
 }
 
 export function StoryboardReel({ shots, aspect = '16/9', onShot, title, className }: { shots: ReelShot[]; aspect?: '16/9' | '9/16'; onShot?: (index: number) => void; title?: string; className?: string }) {
-  const T = useT();
   const id = useId();
   const owner = `reel-${id}`;
   const total = useMemo(() => shots.reduce((s, x) => s + Math.max(0.1, x.duration), 0), [shots]);

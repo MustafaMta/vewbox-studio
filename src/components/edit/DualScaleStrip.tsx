@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { fmtClock } from '@/components/players/time';
@@ -14,7 +14,6 @@ import { fmtClock } from '@/components/players/time';
 export interface OverviewSegment { id: string; from: number; to: number; src?: string | null }
 
 export function DualScaleStrip({ duration, start, length, onStart, segments = [], children, className }: { duration: number; start: number; length: number; onStart: (s: number) => void; segments?: OverviewSegment[]; children?: ReactNode; className?: string }) {
-  const T = useT();
   const bar = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; s: number } | null>(null);
   const len = Math.min(length, duration);

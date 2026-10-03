@@ -3,13 +3,12 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
 import { documentTitle } from './titles';
 import { useOrgNames } from './org-names';
 import { useShellMaybe } from './context';
 
 /** THE PAGE'S TITLE (docs/DESIGN-SYSTEM-V4.md §5.1 DocumentTitle, §7.3; fixes V4-11, WCAG 2.4.2) — named from the
- *  route and the studio's records in the interface language, rendered once by the shell so no page has to remember
+ *  route and the studio's records, rendered once by the shell so no page has to remember
  *  it. Production carries the number of decisions waiting in front ("(3) Production · …"), only when it is known.
  *
  *  It sets `document.title`, which rewrites the one <title> in <head>: the root layout's static "Vewbox Studio",
@@ -20,11 +19,10 @@ export function DocumentTitle() {
   const pathname = usePathname() ?? '/';
   const search = useSearchParams();
   const { state } = useStudio();
-  const T = useT();
   const shell = useShellMaybe();
   const org = useOrgNames(pathname.startsWith('/studio/'));
   const waiting = shell?.decisions.complete ? shell.decisions.count : 0;
-  const title = documentTitle({ pathname, search, state, locale: T.locale, org, waiting });
+  const title = documentTitle({ pathname, search, state, org, waiting });
   useEffect(() => { document.title = title; }, [title]);
   return null;
 }

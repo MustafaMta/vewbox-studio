@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconCheck, IconClose, IconWarn } from '../icons';
 import { Button, type ButtonSize } from './Button';
 import { cls } from './cls';
@@ -30,7 +30,6 @@ export function KV({ rows }: { rows: Array<[ReactNode, ReactNode]> }) {
 export function ConfirmButton({ onConfirm, label, title, message, confirmLabel, variant = 'danger', size = 'sm', icon, className = '', disabled, ...rest }: {
   onConfirm: () => void; label: ReactNode; title: ReactNode; message?: ReactNode; confirmLabel?: ReactNode; variant?: 'danger' | 'secondary' | 'ghost'; size?: ButtonSize; icon?: ReactNode; className?: string; disabled?: boolean;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'type' | 'children' | 'disabled' | 'className' | 'title'>) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   return (
@@ -52,7 +51,6 @@ export function ConfirmButton({ onConfirm, label, title, message, confirmLabel, 
 
 /** A dialog that deletes only when the title is typed back (v3). */
 export function ConfirmDelete({ title, onDelete, label, children, size = 'sm', variant = 'danger', icon }: { title: string; onDelete: () => void; label?: ReactNode; children?: ReactNode; size?: ButtonSize; variant?: 'danger' | 'ghost' | 'secondary'; icon?: ReactNode }) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const [typed, setTyped] = useState('');
   const id = useId();
@@ -78,7 +76,6 @@ export function ConfirmDelete({ title, onDelete, label, children, size = 'sm', v
 
 /** A modal for a form on a native dialog (v3; Dialog is v4): opens on the trigger, closes on success. */
 export function Modal({ trigger, title, description, children, size }: { trigger: (open: () => void) => ReactNode; title: ReactNode; description?: ReactNode; children: (close: () => void) => ReactNode; size?: 'sm' | 'md' | 'lg' }) {
-  const T = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -111,10 +108,9 @@ export function Thumb({ src, alt, kind, className = '', ratio = 'aspect-video', 
   return <div className={cls('media', contain && 'media-contain', ratio, className)}><img src={src} alt={alt} loading="lazy" decoding="async" /></div>;
 }
 
-function NoPictureYet() { const T = useT(); return <>{T('v3.noPictureYet')}</>; }
+function NoPictureYet() { return <>{T('v3.noPictureYet')}</>; }
 
 function UnavailableNote() {
-  const T = useT();
   return <span className="flex flex-col items-center gap-1 px-3 text-center text-xs" title={T('media.unavailable.hint')}><IconWarn className="size-4 text-warn" aria-hidden />{T('media.unavailable')}</span>;
 }
 

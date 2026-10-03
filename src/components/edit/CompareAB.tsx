@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback } from '@/components/players/coordinator';
@@ -19,7 +19,6 @@ import { useMediaQuery } from './useMediaQuery';
 export interface CompareSource { src: string; poster?: string; label: string; chosen?: boolean }
 
 export function CompareAB({ a, b, onChoose, fps, aspect = '16/9', className }: { a: CompareSource; b: CompareSource; onChoose?: (which: 'A' | 'B') => void; fps?: number | null; aspect?: string; className?: string }) {
-  const T = useT();
   const id = useId();
   const wide = useMediaQuery('(min-width: 1280px)');
   const va = useRef<HTMLVideoElement>(null);

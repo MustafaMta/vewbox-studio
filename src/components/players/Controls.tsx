@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconMuted, IconReplay, IconSound, IconWarn } from '@/components/ui/icons';
 import { SeekBar, TrackButton, useTrackState, usePlayer, fmtClock, type Track } from './PlayerProvider';
@@ -11,7 +11,6 @@ import { SeekBar, TrackButton, useTrackState, usePlayer, fmtClock, type Track } 
 
 /** Mute and volume. `popover` puts the slider behind the speaker button, for tight rows; otherwise it sits inline. */
 export function VolumeControl({ volume, muted, onVolume, onMute, popover, tone = 'dark' }: { volume: number; muted: boolean; onVolume: (v: number) => void; onMute: () => void; popover?: boolean; tone?: 'dark' | 'on-video' }) {
-  const T = useT();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -52,7 +51,6 @@ export function SharedVolume({ popover }: { popover?: boolean }) {
 
 /** A line under a player saying what is happening when it is not simply playing: loading, blocked, failed. */
 export function PlayerNotice({ track, idleText }: { track: Track | null; idleText?: ReactNode }) {
-  const T = useT();
   const st = useTrackState(track);
   if (!track) return idleText ? <p className="text-[12px] text-faint">{idleText}</p> : null;
   if (st.error) return <p role="alert" className="flex items-center gap-1.5 text-[12px] text-bad"><IconWarn aria-hidden className="size-3.5" />{st.error}</p>;
@@ -64,7 +62,6 @@ export function PlayerNotice({ track, idleText }: { track: Track | null; idleTex
 /** THE SONG PLAYER — the cover, the song and who sings it, the transport, a seek bar with elapsed and total time,
  *  replay and volume. With no track it says why, and plays nothing. */
 export function SongPlayer({ track, title, performer, artworkSrc, action, className = '' }: { track: Track | null; title: string; performer: string; artworkSrc?: string; action?: ReactNode; className?: string }) {
-  const T = useT();
   const p = usePlayer();
   return (
     <div className={cls('card flex flex-wrap items-center gap-x-4 gap-y-3 p-3 sm:p-4', className)} role="group" aria-label={`${T('player.song')}: ${title}`}>
@@ -90,7 +87,6 @@ export function SongPlayer({ track, title, performer, artworkSrc, action, classN
 
 /** The compact player: shown once the full player has scrolled away, for the same track, from the same state. */
 export function MiniPlayer({ track, show }: { track: Track; show: boolean }) {
-  const T = useT();
   const st = useTrackState(track);
   if (!show || !st.mine) return null;
   return (
@@ -108,7 +104,6 @@ export function MiniPlayer({ track, show }: { track: Track; show: boolean }) {
 
 /** A one-line player for a file (a song upload, an audio asset) through the shared source. */
 export function AudioPlayer({ src, title, duration, className = '' }: { src: string; title?: string; duration?: number; className?: string }) {
-  const T = useT();
   const track: Track = { id: `file-${src}`, src, title: title ?? T('player.audio'), duration };
   return (
     <div className={cls('flex items-center gap-2 rounded-xl border border-line bg-input px-2 py-1.5', className)} role="group" aria-label={title ?? T('player.audio')}>

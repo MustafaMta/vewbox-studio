@@ -6,7 +6,7 @@ import { SEXES, type Sex } from '@/domain/vocabulary';
 import { api, type ImageReferenceValidation } from '@/studio/api';
 import { useStudio } from '@/studio/store';
 import { isStudioError } from '@/domain/errors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Details, Dropzone, Field, Input, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { ImagePreview } from '@/components/ui/preview';
 import { IconImageAdd, IconWand } from '@/components/ui/icons';
@@ -23,7 +23,6 @@ export interface PictureValues { asset?: Asset; validation?: ImageReferenceValid
  *  server. Beside it: name, role, what to keep, what should change. The picture guides the look; the studio draws the
  *  canonical image from it. */
 export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, onCancel, settings }: { value: PictureValues; onChange: (v: PictureValues) => void; onSubmit: () => void; busy?: boolean; disabledReason?: string | null; onCancel: () => void; settings: ReactNode }) {
-  const T = useT();
   const { refresh } = useStudio();
   const [uploading, setUploading] = useState(false);
   const [refusal, setRefusal] = useState<{ reason: ImageRefusal; detail: string } | null>(null);

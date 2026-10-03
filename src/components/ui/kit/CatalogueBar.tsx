@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useId, useMemo, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconFilterList, IconGrid, IconList, IconSearch } from '../icons';
 import { Button } from './Button';
 import { Segmented } from './Choice';
@@ -95,7 +95,6 @@ export function CatalogueBar<S extends string>({ q, onQ, placeholder, facets = [
   view?: View; onView?: (v: View) => void;
   /** anything else on the row's end (rare) */ extra?: ReactNode; className?: string;
 }) {
-  const T = useT();
   const id = useId();
   const count = activeFilterCount(filters);
   const labelOf = (facet: Facet, value: string) => facet.options.find((o) => o.value === value)?.label ?? value;

@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCaptions, IconExitFullscreen, IconFullscreen, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -21,7 +21,6 @@ export interface CaptionTrack { src: string; label: string; lang: string }
 export interface InlinePlayerProps { src: string; poster?: string; fps?: number | null; title?: string; sync?: SyncBus; className?: string; muted?: boolean; compact?: boolean; aspect?: string; captions?: CaptionTrack[]; maxHeight?: string; fileHref?: string }
 
 export const InlinePlayer = forwardRef<PlayerHandle, InlinePlayerProps>(function InlinePlayer({ src, poster, fps, title, sync, className, muted, compact, aspect, captions, maxHeight, fileHref }, ref) {
-  const T = useT();
   const c = usePlayerCore({ src, fps, sync, muted, aspect });
   const [awake, setAwake] = useState(true);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);

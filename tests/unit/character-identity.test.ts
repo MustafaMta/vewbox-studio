@@ -6,7 +6,7 @@ import { approval, canRedraw, identityStatus, imageJobs, imageKindOf, initialsOf
 import { designResultOf, designedIraqiAllowed, jobSecondary, secondaryPayload, voiceDescriptionOf, voiceExtras } from '@/components/character/contract';
 import { ageBandOf, sheetAge, sheetPayload, sheetStepProblem, EMPTY_SHEET } from '@/components/character/sheetModel';
 import { primaryImageSrc } from '@/studio/selectors';
-import { KEYS, t, type Key } from '@/lib/i18n';
+import { KEYS, T, type Key } from '@/lib/copy';
 import type { StudioState } from '@/domain/types';
 
 /** The cast profile's view-model (docs/CONTRACTS-IDENTITY-PACK.md v2): the status of the one canonical image, which
@@ -57,15 +57,10 @@ describe('the identity status, said once', () => {
     expect(statusWords(identityStatus(character())).short).toBe('cast.status.none');
     expect(statusWords(identityStatus(character({ portraitAssetId: 'old' }))).short).toBe('cast.status.legacy');
   });
-  it('every status phrase exists in English and in Arabic', () => {
+  it('every status phrase exists', () => {
     const keys: Key[] = ['cast.status.draft', 'cast.status.approved', 'cast.status.locked', 'cast.status.none', 'cast.status.draftLong', 'cast.status.approvedLong', 'cast.status.lockedUsed', 'cast.status.lockedUsedOne', 'cast.status.lockedUnknown', 'cast.status.noneLong', 'cast.step.design', 'cast.step.image', 'cast.step.voice', 'cast.step.approval'];
-    for (const k of keys) {
-      expect(KEYS).toContain(k);
-      expect(t('ar', k)).toMatch(/[؀-ۿ]/);
-      expect(t('en', k)).not.toMatch(/[؀-ۿ]/);
-    }
-    expect(t('en', 'cast.status.lockedUsed').replace('{n}', '2')).toBe('Locked: used in 2 videos');
-    expect(t('ar', 'cast.status.draftLong')).toBe('مسودة — بانتظار موافقتك');
+    for (const k of keys) { expect(KEYS).toContain(k); expect(T(k).trim()).not.toBe(''); }
+    expect(T('cast.status.lockedUsed').replace('{n}', '2')).toBe('Locked: used in 2 videos');
   });
 });
 
@@ -201,7 +196,7 @@ describe('the voice identity v2: origin, measured vs listened, design', () => {
     expect(designResultOf({ result: { steps: [] } })).toBeNull();
     // personality text is never part of the description: it can name people, and the server refuses such a description
     expect(voiceDescriptionOf(character({ personality: 'Patient and wry. Speaks little, like Samir.', voice: { ...character().voice, timbre: 'Gravelly, warm' } }))).toBe('A man of about 66, a low voice, slow, unhurried delivery, gravelly, warm, speaking English.');
-    expect(designedIraqiAllowed({ uiLanguage: 'en' })).toBe(false);
+    expect(designedIraqiAllowed({ reducedMotion: false })).toBe(false);
     // D14: the noun follows the age band
     expect(voiceDescriptionOf(character({ sex: 'FEMALE', ageYears: 16 })).startsWith('A teenage girl of about 16')).toBe(true);
     expect(voiceDescriptionOf(character({ sex: 'MALE', ageYears: 9 })).startsWith('A boy of about 9')).toBe(true);

@@ -7,7 +7,7 @@ import type { Character } from '@/domain/types';
 import { nonHumanSpecies } from '@/domain/identity';
 import { useStudio } from '@/studio/store';
 import { assetById, assignmentsOf, productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, ConfirmDelete, Field, Notice, Status, Textarea, Thumb } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';
@@ -33,20 +33,19 @@ const LEGACY_TAB: Record<string, string> = { voice: 'voice', used: 'productions'
  *  then the voice identity with a real player, the productions they are in, the creative notes, and, collapsed at the
  *  end, any secondary material. No tabs. Details stay editable after a video; the look and the voice are held. */
 export function CharacterPage({ c }: { c: Character }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const router = useRouter();
   const sp = useSearchParams();
   const s = identityStatus(c);
   const locked = s.kind === 'LOCKED';
-  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`;
+  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`;
   const legacy = sp.get('tab');
   useEffect(() => { const id = legacy ? LEGACY_TAB[legacy] : undefined; if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' }); }, [legacy]);
 
   return (
     <article className="pb-8" aria-labelledby="char-name">
-      <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{T('nav.characters')}</Link>
+      <Link href="/characters" className="mb-6 inline-flex items-center gap-1 rounded-[var(--r-1)] text-[13px] font-medium text-muted transition-colors hover:text-fg"><IconChevronLeft className="size-3.5" aria-hidden />{T('nav.characters')}</Link>
       <JustCreated c={c} />
       {/* the canonical image is the identity: the largest thing on the page (≈ 40 % of the content width on desktop) */}
       <div className="grid gap-8 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
@@ -85,7 +84,6 @@ export function CharacterPage({ c }: { c: Character }) {
 
 /** The written look and the facts that go with it, read-only, with Edit look while the look may still change. */
 function Look({ c, locked }: { c: Character; locked: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const fromPicture = lookFromReference(c, state.assets);
   const look = (v: string) => lookFieldText(v, fromPicture, T('char.look.fromReference'));
@@ -103,7 +101,6 @@ function Look({ c, locked }: { c: Character; locked: boolean }) {
  *  each take was made with when recorded), then where they are cast but not filmed yet. An unknown history says so
  *  and is never read as "unused". */
 function Productions({ c }: { c: Character }) {
-  const T = useT();
   const { state } = useStudio();
   const s = identityStatus(c);
   const groups = usageGroups(c, state.productions);
@@ -127,7 +124,7 @@ function Productions({ c }: { c: Character }) {
                     {g.production && <StageStatus p={g.production} />}
                   </div>
                   <p className="mt-1 text-[13px] leading-5 text-muted">{g.rows.map((r) => `${T('label.shot')} ${r.shotLabel} · ${r.takeLabel}${r.status === 'TAKE_REMOVED' ? ` (${T('char.usage.takeRemoved')})` : ''}`).join(' — ')}</p>
-                  <p className="mt-0.5 text-xs text-faint">{T('char.usedIn.first')} {fmtDate(g.firstAt, T.locale)} · {g.imageVersions.length ? `${T('cast.prod.imageVersion')} ${g.imageVersions.join(', ')}` : T('cast.prod.versionUnknown')}</p>
+                  <p className="mt-0.5 text-xs text-faint">{T('char.usedIn.first')} {fmtDate(g.firstAt)} · {g.imageVersions.length ? `${T('cast.prod.imageVersion')} ${g.imageVersions.join(', ')}` : T('cast.prod.versionUnknown')}</p>
                 </div>
               </li>
             );
@@ -149,7 +146,6 @@ function Productions({ c }: { c: Character }) {
 
 /** Creative notes for the writers: metadata, saved in place, editable whatever the lock. */
 function Notes({ c }: { c: Character }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const [notes, setNotes] = useState(c.notes ?? '');
@@ -168,7 +164,6 @@ function Notes({ c }: { c: Character }) {
 /** The one-time note after creation (`?created=<jobId>`): what the chain made, and the one thing that waits — the
  *  approval of the image. Dismissing it drops the parameter. */
 function JustCreated({ c }: { c: Character }) {
-  const T = useT();
   const { jobs } = useStudio();
   const sp = useSearchParams();
   const router = useRouter();

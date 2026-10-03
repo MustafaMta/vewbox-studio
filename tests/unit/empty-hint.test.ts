@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { KEYS, t, type Key } from '@/lib/i18n';
+import { KEYS, T, type Key } from '@/lib/copy';
 
 /** V4-01 (docs/DESIGN-SYSTEM-V4.md §0.1, §5.16): an empty page is a title card, one sentence and one primary — and
  *  that sentence is never the page's lead again. /shows, /shorts, /music-videos and /locations were the same page:
@@ -73,7 +73,7 @@ function scan(src: string): { leads: Key[]; hints: Key[]; all: Key[] } {
   return { leads: leads.filter((k) => (KEYS as string[]).includes(k)), hints, all };
 }
 
-const sameWords = (a: Key, b: Key) => t('en', a).trim() === t('en', b).trim() || t('ar', a).trim() === t('ar', b).trim();
+const sameWords = (a: Key, b: Key) => T(a).trim() === T(b).trim();
 
 /** The keys that repeat a lead, over every file given. */
 function findDuplicates(files: ReadonlyArray<{ file: string; src: string }>): string[] {

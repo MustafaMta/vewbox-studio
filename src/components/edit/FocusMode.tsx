@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconFocusMode } from '@/components/ui/icons';
 
@@ -14,7 +14,6 @@ interface Api { on: boolean; set: (v: boolean) => void; toggle: () => void }
 const Ctx = createContext<Api | null>(null);
 
 export function FocusModeProvider({ children }: { children: ReactNode }) {
-  const T = useT();
   const [on, setOn] = useState(false);
   const [said, setSaid] = useState('');
   const set = useCallback((v: boolean) => { setOn(v); setSaid(v ? T('media.focus.on') : T('media.focus.off')); }, [T]);
@@ -35,7 +34,6 @@ export function useFocusMode(): Api {
 }
 
 export function FocusModeButton({ className }: { className?: string }) {
-  const T = useT();
   const f = useFocusMode();
   return (
     <button type="button" className={cls('ebtn', className)} aria-pressed={f.on} onClick={f.toggle}>

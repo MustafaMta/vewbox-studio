@@ -9,7 +9,7 @@
    so a page sheet may refine a kit class, never the other way round.
 
      styles/tokens.css   F1   :root tokens, @theme, rooms, density, contrast
-     styles/base.css     F1   the document, focus, reduced motion, Arabic sizes
+     styles/base.css     F1   the document, focus, reduced motion
      styles/type.css     F1   the type scale
      styles/kit.css      F2   the interface kit
      styles/players.css  F3   players and transport

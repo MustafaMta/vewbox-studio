@@ -13,7 +13,7 @@ import { openKit } from './f3-helpers';
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 
 test('the PlayerBar sets --bottom-bars and a focused element below it scrolls clear', async ({ page }) => {
-  await openKit(page, 'en', '#players');
+  await openKit(page, '#players');
   const bottomBars = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bottom-bars').trim());
   expect(await bottomBars()).toBe('0px');
 

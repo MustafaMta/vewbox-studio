@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { BOOT } from '@/app/boot';
 import { parsePrefs, prefAttributes } from '@/components/shell/preferences';
 
-/** docs/DESIGN-SYSTEM-V4.md §4.9: the preference boot applies language, motion, contrast, density, previews, single
- *  keys and the navigation's shape before the first paint — exactly what the shell applies afterwards. The boot is a
- *  string in <head>; here it runs against a stand-in document. Package F4. */
+/** docs/DESIGN-SYSTEM-V4.md §4.9: the preference boot applies motion, contrast, density, previews, single keys and the
+ *  navigation's shape before the first paint — exactly what the shell applies afterwards. It never touches the
+ *  document's language or direction: the website is English-only and left to right (docs/DESIGN-SYSTEM-V5.md §9), even
+ *  for a browser that still holds an old `locale` preference. The boot is a string in <head>; here it runs against a
+ *  stand-in document. Package F4. */
 
 function runBoot(raw: string | null, wide: boolean) {
   const attrs: Record<string, string> = {};
@@ -35,8 +37,8 @@ describe('the preference boot', () => {
         const want = Object.fromEntries(Object.entries(prefAttributes(p, wide)).filter(([, v]) => v !== null));
         if (p.motion) want['data-motion'] = 'reduce';
         expect(r.attrs).toEqual(want);
-        expect(r.dir).toBe(p.locale === 'ar' ? 'rtl' : 'ltr');
-        expect(r.lang).toBe(p.locale === 'ar' ? 'ar' : 'en');
+        expect(r.dir).toBe('ltr');
+        expect(r.lang).toBe('en');
       });
     }
   }
@@ -48,7 +50,7 @@ describe('the preference boot', () => {
 
 describe('parsePrefs', () => {
   it('keeps what it knows and drops the rest, field by field', () => {
-    expect(parsePrefs('{"locale":"ar","contrast":"more","keys":false,"junk":1}')).toEqual({ locale: 'ar', motion: undefined, contrast: 'more', density: undefined, previews: undefined, keys: false, nav: { lobby: undefined, cutting: undefined } });
-    expect(parsePrefs('[1,2]').locale).toBeUndefined();
+    expect(parsePrefs('{"locale":"ar","contrast":"more","keys":false,"junk":1}')).toEqual({ motion: undefined, contrast: 'more', density: undefined, previews: undefined, keys: false, nav: { lobby: undefined, cutting: undefined } });
+    expect(parsePrefs('[1,2]')).toEqual({ motion: undefined, contrast: undefined, density: undefined, previews: undefined, keys: undefined, nav: { lobby: undefined, cutting: undefined } });
   });
 });

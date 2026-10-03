@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useT } from '../../locale';
+import { T } from '@/lib/copy';
 import { IconAuto, IconClose, IconEdit, IconImageAdd, IconManual, IconPlus, IconScript } from '../../icons';
 import { Button, type ButtonVariant } from '../Button';
 import { CatalogueBar, type Facet, type Filters, type View } from '../CatalogueBar';
@@ -13,7 +13,6 @@ import { Crumbs, TabBar, TabPanel } from '../Tabs';
 import { Cell, SpecRow, SpecSection } from './parts';
 
 export function ButtonsSpec() {
-  const T = useT();
   const rows: Array<[ButtonVariant, string, string]> = [
     ['primary', T('kit.spec.v.primary'), T('btn.save')],
     ['secondary', T('kit.spec.v.secondary'), T('btn.edit')],
@@ -45,7 +44,6 @@ export function ButtonsSpec() {
 }
 
 export function StatusSpec() {
-  const T = useT();
   const sub = useStageSub();
   return (
     <SpecSection id="status" title={T('kit.spec.sec.status')} lead={T('kit.spec.status.lead')}>
@@ -89,7 +87,6 @@ export function StatusSpec() {
 }
 
 export function NavigationSpec() {
-  const T = useT();
   const [tab, setTab] = useState('story');
   const tabs = [
     { id: 'overview', label: T('tab.overview') },
@@ -135,7 +132,6 @@ export function NavigationSpec() {
 }
 
 export function ChoicesSpec() {
-  const T = useT();
   const [light, setLight] = useState<'day' | 'dusk' | 'night'>('dusk');
   const [mode, setMode] = useState<'song' | 'video'>('song');
   const [method, setMethod] = useState<'auto' | 'manual'>('auto');

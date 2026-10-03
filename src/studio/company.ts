@@ -7,7 +7,7 @@ import { agentForJobType } from './org';
  *  - a connection exists only where a handoff was recorded (no handoff, no line);
  *  - the orchestrator's state and its production rings come from the jobs, positions and approvals.
  *  The geometry is docs/DESIGN-SYSTEM-V3.md §9.1: one orbit around the orchestrator, the departments in pipeline
- *  order clockwise from the top (counter-clockwise in Arabic, with the reading direction). */
+ *  order clockwise from the top. */
 
 /** The ring order follows the flow of a production. */
 export const RING = ['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'SOUND', 'VIDEO', 'QA', 'POST'] as const;
@@ -29,15 +29,14 @@ export const VIEW = { w: 1000, h: 775, cx: 500, cy: 388, rx: 300, ry: 280 } as c
 export type Placement = 'above' | 'below' | 'beside';
 export interface Seat { id: string; index: number; theta: number; x: number; y: number; placement: Placement; /** physical side of the centre the seat is on */ side: 'left' | 'right' | 'centre' }
 
-/** Department i at θ = −90° + i·40° on the orbit; x mirrored in RTL. Labels sit outside the orbit: above when
+/** Department i at θ = −90° + i·40° on the orbit. Labels sit outside the orbit: above when
  *  sin θ < −0.5, below when sin θ > 0.6, beside otherwise — never inside, where the connections run. */
-export function seats(rtl: boolean): Seat[] {
+export function seats(): Seat[] {
   return RING.map((id, index) => {
     const theta = -90 + index * 40;
     const th = (theta * Math.PI) / 180;
-    const x0 = VIEW.cx + VIEW.rx * Math.cos(th);
     const y = VIEW.cy + VIEW.ry * Math.sin(th);
-    const x = round(rtl ? VIEW.w - x0 : x0);
+    const x = round(VIEW.cx + VIEW.rx * Math.cos(th));
     const s = Math.sin(th);
     const placement: Placement = s < -0.5 ? 'above' : s > 0.6 ? 'below' : 'beside';
     const side = Math.abs(x - VIEW.cx) < 1 ? 'centre' : x > VIEW.cx ? 'right' : 'left';

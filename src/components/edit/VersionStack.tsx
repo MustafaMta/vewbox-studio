@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCompare } from '@/components/ui/icons';
 
@@ -12,7 +12,6 @@ import { IconCompare } from '@/components/ui/icons';
 export interface Version { id: string; n: number; note?: string }
 
 export function VersionStack({ versions, current, onPick, onCompare, className }: { versions: Version[]; current?: string; onPick?: (id: string) => void; onCompare?: (a: string, b: string) => void; className?: string }) {
-  const T = useT();
   const [comparing, setComparing] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const toggle = (id: string) => {
@@ -23,8 +22,7 @@ export function VersionStack({ versions, current, onPick, onCompare, className }
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const xs = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('.vchip'));
     const i = xs.indexOf(document.activeElement as HTMLButtonElement); if (i < 0) return;
-    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
-    const n = e.key === (rtl ? 'ArrowLeft' : 'ArrowRight') ? i + 1 : e.key === (rtl ? 'ArrowRight' : 'ArrowLeft') ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? xs.length - 1 : null;
+    const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? xs.length - 1 : null;
     if (n === null) return;
     e.preventDefault(); xs[(n + xs.length) % xs.length]?.focus();
   };

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Character } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, ConfirmButton, Status } from '@/components/ui/kit';
 import { IconArrowRight, IconDelete, IconGenerate } from '@/components/ui/icons';
 import { dialectLabel } from '@/lib/format';
@@ -16,14 +16,13 @@ import { identityStatus, imageKindOf, statusWords, voiceTrackSource } from '../i
  *  to hear when one was built, and the image's state ("Draft — awaiting your approval"). One primary action hands
  *  over to the profile, where the image is approved. Draw again redraws the image only; Discard removes the record. */
 export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLookDisabled }: { c: Character; profileHref: string; onAnotherLook: () => void; onDiscard: () => void; anotherLookDisabled?: string }) {
-  const T = useT();
   const { state } = useStudio();
   const image = assetById(state, primaryImageOf(c));
   const s = identityStatus(c);
   const words = statusWords(s);
   const voice = voiceTrackSource(c);
   const va = assetById(state, voice.assetId);
-  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect, T.locale)}` : ''}`;
+  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`;
   const track = va && !va.unavailable && va.src ? { id: `voice-${c.id}-${va.id}`, src: va.src, title: c.name, subtitle: lang, duration: va.durationSeconds } : null;
   return (
     <section className="panel p-4 fade-in sm:p-5" aria-labelledby="ready-h">
@@ -39,7 +38,7 @@ export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLoo
           </div>
           <p className="mt-4 max-w-[60ch] text-[13px] leading-5 text-muted">{s.kind === 'DRAFT' ? T('cast.ready.approveHint') : T('cast.ready.openHint')}</p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Link href={profileHref} className="btn btn-primary">{s.kind === 'DRAFT' ? T('cast.ready.review') : T('char.create.openProfile')}<IconArrowRight aria-hidden className="rtl:rotate-180" /></Link>
+            <Link href={profileHref} className="btn btn-primary">{s.kind === 'DRAFT' ? T('cast.ready.review') : T('char.create.openProfile')}<IconArrowRight aria-hidden /></Link>
             <Button variant="secondary" icon={<IconGenerate />} onClick={onAnotherLook} disabled={Boolean(anotherLookDisabled)} title={anotherLookDisabled}>{T('char.create.drawAgain')}</Button>
             <ConfirmButton variant="ghost" size="sm" icon={<IconDelete />} label={T('cast.ready.discard')} title={`${T('btn.delete')}: ${c.name}`} message={T('char.deleteConfirm')} onConfirm={onDiscard} />
           </div>

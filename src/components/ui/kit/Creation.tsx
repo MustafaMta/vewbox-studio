@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useId, type ReactNode } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconAuto, IconCheck, IconChevronLeft, IconManual } from '../icons';
 import { Button } from './Button';
 import { ChoiceTiles, type TileOption } from './Choice';
@@ -32,7 +32,6 @@ export type CreationMethod = 'auto' | 'manual';
 
 /** The method tiles in the kit's words; pass your own options for a flow with other methods. */
 export function useMethodOptions(): Array<TileOption<CreationMethod>> {
-  const T = useT();
   return [
     { value: 'auto', label: T('kit.create.auto'), hint: T('kit.create.autoHint'), icon: <IconAuto /> },
     { value: 'manual', label: T('kit.create.manual'), hint: T('kit.create.manualHint'), icon: <IconManual /> },
@@ -57,13 +56,12 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
   className?: string;
   /** the page's h1 (default); h2 only inside another page (the /kit specimen) */ titleAs?: 'h1' | 'h2';
 }) {
-  const T = useT();
   const howId = useId();
   const cancelEl = cancel ? ('href' in cancel ? <Link href={cancel.href} className="btn btn-quiet">{T('btn.cancel')}</Link> : <Button variant="quiet" onClick={cancel.onClick}>{T('btn.cancel')}</Button>) : null;
   return (
     <div className={cls('creation', className)}>
       <div className="creation-top">
-        {back ? <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5 rtl:rotate-180" aria-hidden />{back.label}</Link> : <span />}
+        {back ? <Link href={back.href} className="page-back"><IconChevronLeft className="size-3.5" aria-hidden />{back.label}</Link> : <span />}
         {cancelEl}
       </div>
       <H className="page-title" dir="auto">{title}</H>
@@ -104,7 +102,6 @@ export function CreationShell<M extends string = CreationMethod>({ back, cancel,
 
 /** The review's actions: Create (ivory), Another idea (secondary), Change preferences (quiet). */
 export function ReviewActions({ onCreate, onAnother, onPreferences, creating, anotherBusy }: { onCreate: () => void; onAnother?: () => void; onPreferences?: () => void; creating?: boolean; anotherBusy?: boolean }) {
-  const T = useT();
   return (
     <div className="creation-foot">
       <span />
@@ -120,7 +117,6 @@ export function ReviewActions({ onCreate, onAnother, onPreferences, creating, an
 /** Manual, multi-step: "① Identity ─ ② Look ─ ③ Voice". The current step is iris, done steps are ok. On a phone it
  *  reads "Step 2 of 3 · Look". */
 export function Stepper({ steps, current, className = '' }: { steps: ReadonlyArray<{ id: string; label: ReactNode }>; current: number; className?: string }) {
-  const T = useT();
   return (
     <div className={cls('stepper-v4', className)}>
       <ol className="stepper stepper-full" aria-label={T('kit.create.steps')}>
@@ -139,6 +135,5 @@ export function Stepper({ steps, current, className = '' }: { steps: ReadonlyArr
 
 /** The one-time notice on the object's own page after a flow lands there: what was made, and the next step. */
 export function MadeNotice({ children, next, onDismiss }: { children: ReactNode; next?: ReactNode; onDismiss?: () => void }) {
-  const T = useT();
   return <Notice tone="ok" title={children} action={<span className="flex flex-wrap items-center gap-2">{next}{onDismiss && <Button size="sm" variant="quiet" onClick={onDismiss}>{T('kit.dismiss')}</Button>}</span>} />;
 }

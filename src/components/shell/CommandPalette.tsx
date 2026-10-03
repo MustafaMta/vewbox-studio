@@ -3,9 +3,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { IconSearch } from '@/components/ui/icons';
-import { t, tt, type Locale } from '@/lib/i18n';
 import { GROUP_ORDER, buildEntries, emptyView, pushRecent, search, type PaletteEntry, type PaletteGroup } from './palette';
 import { usePageEntries } from './palette-registry';
 import { usePrefs, writePrefs } from './preferences';
@@ -25,7 +24,6 @@ const writeRecent = (ids: string[]) => { try { localStorage.setItem(RECENT_KEY, 
 type Section = { id: PaletteGroup | 'recent'; items: PaletteEntry[] };
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const T = useT();
   return (
     <ShellDialog open={open} onClose={onClose} label={T('shell.palette.title')} placement="top" width={640} className="palette-dialog">
       <PaletteBody onClose={onClose} />
@@ -34,7 +32,6 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 }
 
 function PaletteBody({ onClose }: { onClose: () => void }) {
-  const T = useT();
   const router = useRouter();
   const pathname = usePathname() ?? '/';
   const { state, act } = useStudio();
@@ -49,8 +46,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const listId = useId();
   useEffect(() => { setRecent(readRecent()); input.current?.focus(); }, []);
 
-  const locale = T.locale;
-  const otherLocale: Locale = locale === 'ar' ? 'en' : 'ar';
   const seg = pathname.split('/');
   const currentShowId = seg[1] === 'shows' && seg[2] ? decodeURIComponent(seg[2]) : null;
   const systemMore = typeof matchMedia === 'function' && matchMedia('(prefers-contrast: more)').matches;
@@ -58,13 +53,12 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
 
   const entries = useMemo(() => {
     const built = buildEntries({
-      state, locale, tr: (k) => t(locale, k), other: (k) => t(otherLocale, k), dyn: (k, f) => tt(locale, k, f),
-      decisions: decisions.items, departments: org?.departments ?? [], currentShowId,
+      state, decisions: decisions.items, departments: org?.departments ?? [], currentShowId,
       prefs: { contrastMore, reducedMotion: state.settings.reducedMotion, singleKeys: prefs.keys !== false },
     });
     // a page's own commands join their group
     return GROUP_ORDER.flatMap((g) => [...built.filter((e) => e.group === g), ...pageEntries.filter((e) => e.group === g)]);
-  }, [state, locale, otherLocale, decisions.items, org, currentShowId, contrastMore, prefs.keys, pageEntries]);
+  }, [state, decisions.items, org, currentShowId, contrastMore, prefs.keys, pageEntries]);
 
   const sections: Section[] = useMemo(() => {
     if (q.trim()) {
@@ -93,7 +87,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       case 'contrast': writePrefs({ contrast: a.value }); break;
       case 'keys': writePrefs({ keys: a.value }); break;
       case 'motion': act('updateSettings', { reducedMotion: a.value }); break;
-      case 'language': act('updateSettings', { uiLanguage: a.value }); break;
       case 'sheet': openShortcuts(); break;
       case 'run': a.run(); break;
     }

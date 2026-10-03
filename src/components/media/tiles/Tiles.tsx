@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { PlayDisc } from '@/components/players/PlayDisc';
 import type { Track } from '@/components/players/PlayerProvider';
 import { prefersReducedMotion } from '@/components/players/prefs';
@@ -23,7 +23,6 @@ export function PosterTile({ contain, ...p }: TileProps & { contain?: boolean })
 
 /** Music video: 1:1 sleeve; the performers on a second line; the play disc previews the song on the shared player. */
 export function SleeveTile({ performers, performersLang, track, ...p }: TileProps & { performers?: ReactNode; performersLang?: string; track?: Track | null }) {
-  const T = useT();
   return (
     <TileShell {...p} kind="sleeve" ratio="1/1" titleState={p.titleState ?? 'noSleeve'} sub={performers} subLang={performersLang}
       disc={track ? <PlayDisc track={track} size={40} labelPlay={T.f('media.play', { title: p.title })} labelPause={T.f('media.pause', { title: p.title })} /> : undefined} />
@@ -33,7 +32,6 @@ export function SleeveTile({ performers, performersLang, track, ...p }: TileProp
 /** Character: the full-length figure at its native 928:1664 on `--art-edge` (no black bars, V4-02); the role on one
  *  line; the voice disc plays the identity sample when a voice exists. */
 export function FigureTile({ role, roleLang, voice, ...p }: TileProps & { role?: ReactNode; roleLang?: string; voice?: Track | null }) {
-  const T = useT();
   return (
     <TileShell {...p} kind="figure" ratio="928/1664" fit="contain" titleState={p.titleState ?? 'noImage'} sub={role} subLang={roleLang}
       disc={voice ? <PlayDisc track={voice} size={40} labelPlay={T.f('media.cast.voice', { name: p.title })} labelPause={T.f('media.cast.voicePause', { name: p.title })} /> : undefined} />
@@ -61,7 +59,6 @@ export function PlateTile({ lighting = [], ...p }: TileProps & { lighting?: Arra
 /** A 16:9 still standing for an episode, a cut or a trailer: the kind label above the title ("Episode 3", "Cut 4"),
  *  two lines of synopsis, the slate, and the duration chip on the frame. */
 export function StillCard({ kindLabel, synopsis, duration, number, ...p }: TileProps & { kindLabel?: ReactNode; synopsis?: ReactNode; duration?: string; number?: number }) {
-  const T = useT();
   return (
     <TileShell {...p} kind="still" ratio="16/9" kindLabel={kindLabel} synopsis={synopsis} number={number} titleState={p.titleState ?? 'notMade'}
       chip={duration ? <><span className="tc" aria-hidden>{duration}</span><span className="sr-only">{T.f('media.duration', { t: duration })}</span></> : undefined} />

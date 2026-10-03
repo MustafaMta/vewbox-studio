@@ -6,7 +6,7 @@ import { STAGES } from '@/domain/vocabulary';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { search, shorts } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { LinkButton, Select } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
 import { PageHeader } from '@/components/ui/page';
@@ -17,7 +17,6 @@ import { IconPlus, IconShorts } from '@/components/ui/icons';
 
 /** SHORTS — a film library: posters, the length on the art, the cast and where each film stands. */
 export default function ShortsPage() {
-  const T = useT();
   const { state } = useStudio();
   const [q, setQ] = useState(''); const [style, setStyle] = useState<Style | ''>(''); const [stage, setStage] = useState<Production['stage'] | ''>(''); const [sort, setSort] = useState<'recent' | 'title'>('recent');
   const all = shorts(state);

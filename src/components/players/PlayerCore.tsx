@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconRetry, IconOpen } from '@/components/ui/icons';
 import { claimPlayback, onOtherPlayback, readVolume, writeVolume } from './coordinator';
@@ -144,7 +144,6 @@ export function TimeReadout({ time, duration, className }: { time: number; durat
 /** A failed clip (§5.12): the poster stays; on the solid chip, "This clip didn't load." with Try again and Open the
  *  file. Never a broken frame. */
 export function MediaFailure({ onRetry, fileHref, children }: { onRetry: () => void; fileHref?: string; children?: ReactNode }) {
-  const T = useT();
   return (
     <div className="pfail" role="alert">
       <p className="pfail-msg">{T('media.player.failed')}</p>

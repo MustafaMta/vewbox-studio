@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { JOB_LABELS, type JobType } from '@/domain/jobs';
-import { agentName, schemaFields, skillStatusOf, stepName, stepsOf, type OrgAgent, type OrgSkill, type OrgTool } from '@/studio/org';
-import { useT, type TFn } from '@/components/ui/locale';
+import { schemaFields, skillStatusOf, stepsOf, type OrgAgent, type OrgSkill, type OrgTool } from '@/studio/org';
+import { T, type TFn } from '@/lib/copy';
 import { Details, Status } from '@/components/ui/kit';
 import { failureWords } from './people';
 
@@ -16,16 +16,15 @@ export const resourceWords = (T: TFn, r: string) => T.dyn(`res.${r}`, r);
  *  character” (a job type by its label, quoted). */
 export const constWords = (T: TFn, s: string) => s
   .replace(/\b(APPEARANCE_LOCKED|VOICE_LOCKED)\b/g, (m) => T.dyn(`agent.const.${m}`, m))
-  .replace(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b|\b(?:PRODUCE|EXPORT|ASSEMBLE)\b/g, (m) => { const label = JOB_LABELS[m as JobType]?.[T.locale]; return label ? (T.locale === 'ar' ? `«${label}»` : `“${label}”`) : m; });
-export const jobWords = (T: TFn, t: string) => JOB_LABELS[t as JobType]?.[T.locale] ?? t.toLowerCase().replace(/_/g, ' ');
+  .replace(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b|\b(?:PRODUCE|EXPORT|ASSEMBLE)\b/g, (m) => { const label = JOB_LABELS[m as JobType]; return label ? `“${label}”` : m; });
+export const jobWords = (t: string) => JOB_LABELS[t as JobType] ?? t.toLowerCase().replace(/_/g, ' ');
 
 /** What an agent executes: its job types (in words), the payload routes it takes, and its delegated steps. */
 export function executesOf(T: TFn, a: OrgAgent): { jobs: string[]; steps: string[] } {
-  const jobs = [...a.jobTypes.map((t) => jobWords(T, t)), ...(a.payloadRoutes ?? []).map((r) => `${jobWords(T, r.jobType)} (${T.f('agent.whenRoute', { when: r.when })})`)];
-  return { jobs, steps: stepsOf(a).map((s) => stepName(s, T.locale)) };
+  const jobs = [...a.jobTypes.map((t) => jobWords(t)), ...(a.payloadRoutes ?? []).map((r) => `${jobWords(r.jobType)} (${T.f('agent.whenRoute', { when: r.when })})`)];
+  return { jobs, steps: stepsOf(a).map((s) => s.name) };
 }
 export function ExecutesLine({ agent, className = '' }: { agent: OrgAgent; className?: string }) {
-  const T = useT();
   const { jobs, steps } = executesOf(T, agent);
   if (!jobs.length && !steps.length) return <span className={className}>{T('dept.noPath')}</span>;
   return (
@@ -39,7 +38,6 @@ export function ExecutesLine({ agent, className = '' }: { agent: OrgAgent; class
 
 /** A contract's fields as a compact table: name (mono), type, required or optional, the field's own note. */
 export function ContractFields({ schema, label }: { schema: unknown; label: string }) {
-  const T = useT();
   const rows = schemaFields(schema);
   return (
     <div className="min-w-0">
@@ -61,7 +59,6 @@ export function ContractFields({ schema, label }: { schema: unknown; label: stri
 /** One tool: its name and what it does; the version, engine, limits, permissions, failure classes and the typed
  *  input/output contract behind "Technical details". */
 export function ToolEntry({ tool }: { tool: OrgTool }) {
-  const T = useT();
   return (
     <li className="py-3">
       <p className="text-sm"><span className="font-medium text-fg">{tool.name}</span> <span className="text-muted">— <span dir="auto">{tool.description}</span></span></p>
@@ -85,10 +82,9 @@ export function ToolEntry({ tool }: { tool: OrgTool }) {
 /** One skill: name, how it is used (kind), its computed status with the reason, the evidence (code and tests, with
  *  any missing file marked), whom its text is sent to, and the text itself behind a disclosure. */
 export function SkillEntry({ skill, agents }: { skill: OrgSkill; agents: OrgAgent[] }) {
-  const T = useT();
   const st = skillStatusOf(skill);
   const ev = skill.evidence;
-  const who = (ids: string[]) => ids.map((id) => { const a = agents.find((x) => x.id === id); return a ? agentName(a, T.locale) : id; }).join(', ');
+  const who = (ids: string[]) => ids.map((id) => { const a = agents.find((x) => x.id === id); return a ? a.name : id; }).join(', ');
   const files = (xs: Array<{ path: string; present: boolean }>): ReactNode => xs.map((f, i) => <span key={f.path}>{i > 0 && ', '}<span className="mono break-all">{f.path}</span>{!f.present && <span className="text-bad"> ({T('skill.missing')})</span>}</span>);
   const statusLabel = st.key === 'VERIFIED' ? T('studio.skillValidated') : st.key === 'UNAVAILABLE' ? T('studio.skillUnavailable') : T('studio.skillDraft');
   return (

@@ -14,7 +14,7 @@ import { HeroText, type HeroTextProps } from './HeroText';
  *  `artVars(asset)`) on their root and the wash paints from the hero's top into `--page`; the Figure hero takes only
  *  `--art-edge` (no tint: the figure is under approval) and the Theatre hero takes nothing. With no art and no
  *  presentation every hero is neutral (tests/unit/media-heroes.test.ts). Layers, bottom to top: wash · picture (focal
- *  crop, `--art-ph` while loading) · scrims, only where text sits on the picture (mirrored in Arabic) · text · controls.
+ *  crop, `--art-ph` while loading) · scrims, only where text sits on the picture · text · controls.
  *  On a phone the picture comes first with nothing over it and the text follows on the page. The picture's alt is
  *  built from data by the page ("Key art for The Kite"); the wash and scrims are hidden from assistive technology. */
 

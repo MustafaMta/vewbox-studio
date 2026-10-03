@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { useT } from '../locale';
+import { T } from '@/lib/copy';
 import { IconVoice } from '../icons';
 import { Button } from './Button';
 import { cls } from './cls';
@@ -23,7 +23,6 @@ export function Recorder({ onRecorded, primary, maxSeconds = 120, consent: contr
   /** recording stops by itself after this many seconds */ maxSeconds?: number;
   consent?: ConsentStatement | null; onConsent?: (c: ConsentStatement) => void; className?: string;
 }) {
-  const T = useT();
   const id = useId();
   const [own, setOwn] = useState<ConsentStatement | null>(null);
   const consent = controlled !== undefined ? controlled : own;

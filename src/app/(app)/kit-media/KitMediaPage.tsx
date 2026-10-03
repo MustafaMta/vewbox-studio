@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { MediaSpecimens } from '@/components/media/Specimens';
 
 /** The temporary specimen route's page (F3; delete with the route once /kit is merged). `?only=media|players|edit`
@@ -13,7 +13,6 @@ function Sections() {
 }
 
 export function KitMediaPage() {
-  const T = useT();
   return (
     <div className="spec-page">
       <h1 className="page-title">{T('media.spec.title')}</h1>

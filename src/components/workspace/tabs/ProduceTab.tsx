@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Production, Shot, Take } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, needsTake, readyTakes, shotHref, shotLabel } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Details, KV, Notice, SampleMark, Segmented, Status, Thumb } from '@/components/ui/kit';
 import { JobButton } from '@/components/ui/jobs';
@@ -17,7 +17,6 @@ import { StageGate, useStageApproved } from '@/components/studio/Approve';
 /** PRODUCE — frames and takes for every shot, and the one choice that matters: which take goes into the cut.
  *  Every button here starts a real job; progress and failures show in place and in Activity. */
 export function ProduceTab({ p }: { p: Production }) {
-  const T = useT();
   const { act } = useStudio();
   const toast = useToast();
   const [filter, setFilter] = useState<'all' | 'open' | 'chosen'>('all');
@@ -51,7 +50,6 @@ export function ProduceTab({ p }: { p: Production }) {
 }
 
 function ShotRow({ p, sh, onSelect }: { p: Production; sh: Shot; onSelect: (takeId: string | undefined) => void }) {
-  const T = useT();
   const { state } = useStudio();
   const [preview, setPreview] = useState<string | null>(null);
   const opening = assetById(state, sh.openingFrameAssetId); const ending = assetById(state, sh.endingFrameAssetId);
@@ -110,7 +108,6 @@ function ShotRow({ p, sh, onSelect }: { p: Production; sh: Shot; onSelect: (take
 
 /** Where a generated take came from: provider, model, request, time, cost and the automatic checks. */
 export function TakeProvenance({ take }: { take: Take }) {
-  const T = useT();
   const failed = take.qa?.checks.filter((c) => !c.ok) ?? [];
   return (
     <Details summary={<span className="text-xs">{T('gen.provenance')}{take.qa ? <span className={`ms-2 badge ${take.qa.ok ? 'badge-ok' : 'badge-bad'}`}>{take.qa.ok ? T('gen.qaPassed') : T('gen.qaFailed')}</span> : null}</span>} className="mt-2">

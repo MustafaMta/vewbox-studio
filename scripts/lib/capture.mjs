@@ -12,12 +12,11 @@ export const DEVICES = {
 };
 
 /** The fixture studio (scripts/v4-fixture.ts) for a kind, or a JSON file of the same shape. */
-export async function loadFixture(kindOrFile, lang = 'en', motion = '') {
+export async function loadFixture(kindOrFile, motion = '') {
   if (!kindOrFile) return null;
   const f = /\.json$/i.test(kindOrFile)
     ? JSON.parse(await fs.readFile(kindOrFile, 'utf8'))
-    : JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'scripts/v4-fixture.ts', kindOrFile, '--lang', lang || 'en'], { encoding: 'utf8', maxBuffer: 64 << 20 }));
-  if (lang) f.state.settings.uiLanguage = lang;
+    : JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'scripts/v4-fixture.ts', kindOrFile], { encoding: 'utf8', maxBuffer: 64 << 20 }));
   if (motion) f.state.settings.reducedMotion = motion === 'reduce';
   return f;
 }
@@ -40,10 +39,10 @@ export const SETS = {
 
 /** Route the page's own requests: writes are answered here and never sent; with a fixture, the studio's GETs are
  *  answered from it and the event stream is replaced in the page. */
-export async function prepare(page, { lang = '', fixture = null, motion = '' } = {}) {
+export async function prepare(page, { fixture = null, motion = '' } = {}) {
   page.on('pageerror', (e) => console.log(`  page error: ${e.message.slice(0, 300)}`));
-  await page.addInitScript(({ l, reduce, stubEvents }) => {
-    try { if (l) localStorage.setItem('vewbox.ui', JSON.stringify({ locale: l, motion: reduce })); } catch { /* fine */ }
+  await page.addInitScript(({ reduce, stubEvents }) => {
+    try { if (reduce) localStorage.setItem('vewbox.ui', JSON.stringify({ motion: true })); } catch { /* fine */ }
     // writes never leave the capture
     try { Object.defineProperty(navigator, 'sendBeacon', { value: () => true, configurable: true }); } catch { /* fine */ }
     // the dev server's own badge is not part of the page
@@ -58,7 +57,7 @@ export async function prepare(page, { lang = '', fixture = null, motion = '' } =
         close() { this.readyState = 2; }
       };
     }
-  }, { l: lang, reduce: motion === 'reduce', stubEvents: Boolean(fixture) });
+  }, { reduce: motion === 'reduce', stubEvents: Boolean(fixture) });
   await page.route('**/api/**', async (route) => {
     const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
     if (req.method() !== 'GET' && req.method() !== 'HEAD') {
@@ -70,10 +69,7 @@ export async function prepare(page, { lang = '', fixture = null, motion = '' } =
       if (!res.ok()) return route.fulfill({ response: res }); // a dev server hiccup: the page retries on its own
       const body = await res.json();
       if (fixture) { body.state = structuredClone(fixture.state); body.version = 1; body.hash = 'fixture'; }
-      else {
-        if (lang && body?.state?.settings) body.state.settings.uiLanguage = lang;
-        if (motion && body?.state?.settings) body.state.settings.reducedMotion = motion === 'reduce';
-      }
+      else if (motion && body?.state?.settings) body.state.settings.reducedMotion = motion === 'reduce';
       return route.fulfill({ response: res, json: body });
     }
     if (fixture && p === '/api/jobs') return route.fulfill({ json: { jobs: fixture.jobs } });
@@ -100,12 +96,12 @@ export async function ready(page, { motion = '', settle = true } = {}) {
 
 /** Open one path in a fresh context (no connection carries over) and run `fn` on the ready page; a page that never
  *  becomes ready (the dev server can hand out a chunk mid-compile) is opened again, three times at most. */
-export async function withPage(browser, { size, url, lang, fixture, motion, contrast, settle = true }, fn) {
+export async function withPage(browser, { size, url, fixture, motion, contrast, settle = true }, fn) {
   for (let attempt = 1; ; attempt++) {
     const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, colorScheme: 'dark', ...(contrast ? { contrast } : {}), ...(size.touch ? { isMobile: true, hasTouch: true } : {}) });
     const page = await context.newPage();
     try {
-      await prepare(page, { lang, fixture, motion });
+      await prepare(page, { fixture, motion });
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       await ready(page, { motion, settle });
       const r = await fn(page);

@@ -76,22 +76,17 @@ describe('deriveCompany', () => {
 
 describe('the constellation', () => {
   it('seats the nine departments on one orbit in pipeline order, clockwise from the top', () => {
-    const s = seats(false);
+    const s = seats();
     expect(s.map((x) => x.id)).toEqual([...RING]);
     expect(s[0]).toMatchObject({ x: 500, y: VIEW.cy - VIEW.ry, placement: 'above' });
-    expect(s[2].x).toBeGreaterThan(VIEW.cx); // Casting on the right in LTR
+    expect(s[2].x).toBeGreaterThan(VIEW.cx); // Casting on the right
     for (const x of s) expect(((x.x - VIEW.cx) / VIEW.rx) ** 2 + ((x.y - VIEW.cy) / VIEW.ry) ** 2).toBeCloseTo(1, 3);
   });
   it('places every label outside the orbit: above, below or beside, by the seat angle', () => {
-    expect(seats(false).map((x) => x.placement)).toEqual(['above', 'above', 'beside', 'beside', 'below', 'below', 'beside', 'beside', 'above']);
-  });
-  it('mirrors the orbit in Arabic, so the pipeline runs with the reading direction', () => {
-    const ltr = seats(false); const rtl = seats(true);
-    for (let i = 0; i < ltr.length; i++) { expect(rtl[i].x).toBeCloseTo(VIEW.w - ltr[i].x, 1); expect(rtl[i].y).toBe(ltr[i].y); }
-    expect(rtl[2].side).toBe('left');
+    expect(seats().map((x) => x.placement)).toEqual(['above', 'above', 'beside', 'beside', 'below', 'below', 'beside', 'beside', 'above']);
   });
   it('bends every path toward the orchestrator and ends it at the receiver disc with an arrow', () => {
-    const [a, b] = [seats(false)[1], seats(false)[4]];
+    const [a, b] = [seats()[1], seats()[4]];
     const g = edgeGeometry(a, b, 40, 40, 8);
     const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     // the curve's midpoint lies between the chord and the centre

@@ -5,10 +5,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { Job, JobError, JobStatus } from '@/domain/jobs';
 import type { StudioErrorCode } from '@/domain/errors';
 import { isActiveStatus, isTerminalStatus } from '@/domain/jobs';
-import { useT } from './locale';
+import { T, type TFn } from '@/lib/copy';
 import { Button, ErrorNotice, Spinner, cls, type Tone } from './kit';
 import { IconBad, IconCheck, IconClose, IconOpen, IconRetry, IconSettings } from './icons';
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 
 /** PROGRESS, HONESTLY — a strip of production stages, and a panel for a long job that names the worker's real phase
  *  (Queued → Preparing → Generating → Validating → Saving), its message, the elapsed time, a bar only when a percent
@@ -68,10 +68,9 @@ export const KNOWN: Record<StudioErrorCode, ErrorEntry> = ERROR_COPY;
 
 const entryOf = (code: string): ErrorEntry | undefined => (ERROR_COPY as Record<string, ErrorEntry | undefined>)[code];
 
-/** The StudioError code → plain words in the interface language and the one recovery action. An unknown code is
+/** The StudioError code → plain words and the one recovery action. An unknown code is
  *  "The step failed." with Retry. The engine's own message never becomes the words: it is `detail`, for Details. */
 export function useErrorCopy() {
-  const T = useT();
   return (err?: JobError | { code: string; message?: string } | null): ErrorCopy => {
     const code = err?.code ?? 'UNKNOWN';
     const k = entryOf(code);
@@ -85,7 +84,6 @@ export function useErrorCopy() {
  *  whatever the caller supplies for the reference / usage / fields / consent kinds. A consent failure without the
  *  caller's consent choice offers only the job, never a retry. */
 export function RecoveryAction({ copy, onRetry, jobId, custom, size = 'sm' }: { copy: ErrorCopy; onRetry?: () => void; jobId?: string; custom?: Partial<Record<ErrorCopy['fix']['kind'], ReactNode>>; size?: 'sm' | 'xs' }) {
-  const T = useT();
   const k = copy.fix.kind;
   if (custom?.[k]) return <>{custom[k]}</>;
   if (k === 'settings') return <span className="flex flex-wrap items-center gap-2"><Link href="/settings#engines" className={cls('btn btn-secondary', `btn-${size}`)}><IconSettings aria-hidden />{copy.fix.label}</Link>{onRetry && <Button size={size} variant="ghost" icon={<IconRetry />} onClick={onRetry}>{T('jobs.retry')}</Button>}</span>;
@@ -110,7 +108,7 @@ const PHASES: Array<{ id: string; key: Key; statuses: JobStatus[] }> = [
 /** The phases of one job as rows, from its real status (the worker's `progress.phase` wins when it names one). A
  *  failed row says what happened in plain words; the worker's and the engine's own messages stay out of the rows
  *  (they belong to Details, §5.16) — the step count is in the footer. */
-export function phaseRows(job: Job | undefined, T: ReturnType<typeof useT>): ProgressRow[] {
+export function phaseRows(job: Job | undefined, T: TFn): ProgressRow[] {
   const phase = job ? (job.progress?.phase && PHASES.some((p) => p.id === job.progress!.phase) ? job.progress.phase : PHASES.find((p) => p.statuses.includes(job.status))?.id) : 'QUEUED';
   const idx = Math.max(0, PHASES.findIndex((p) => p.id === phase));
   const done = job?.status === 'COMPLETED';
@@ -141,7 +139,6 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
   job?: Job; /** rows of your own (a parent job's children); otherwise the job's phases */ rows?: ProgressRow[]; preview?: ReactNode; shape?: 'portrait' | 'wide' | 'square' | 'poster' | 'none'; title?: ReactNode;
   onCancel?: () => void; cancelling?: boolean; /** the failure block (copy + one action); rendered under the rows */ failure?: ReactNode; className?: string; children?: ReactNode;
 }) {
-  const T = useT();
   const elapsed = useElapsed(job);
   const list = rows ?? phaseRows(job, T);
   const active = !job || isActiveStatus(job.status);
@@ -183,7 +180,6 @@ export function JobProgress({ job, rows, preview, shape = 'portrait', title, onC
 /** The failure block (the error notice anatomy, §5.16): what happened, why in plain words, the one recovery action
  *  (then the job), and the engine's own message only inside Details. */
 export function FailureNotice({ copy, action, jobId, kept }: { copy: ErrorCopy; action?: ReactNode; jobId?: string; /** what is kept, said plainly */ kept?: ReactNode }) {
-  const T = useT();
   return (
     <ErrorNotice title={copy.title} why={copy.hint} kept={kept} details={copy.detail}
       action={action} alternatives={jobId ? <Link href={`/production?job=${jobId}`} className="btn btn-quiet btn-sm">{T('err.openJob')}</Link> : undefined} />

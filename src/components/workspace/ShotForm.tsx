@@ -5,7 +5,7 @@ import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, typ
 import { nid } from '@/domain/actions';
 import { castOf } from '@/studio/selectors';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Checkbox, Details, Field, Input, Select, Textarea } from '@/components/ui/kit';
 import { IconDelete, IconPlus } from '@/components/ui/icons';
 import { words } from '@/lib/format';
@@ -17,7 +17,6 @@ export const emptyShot = (sceneId: string): ShotDraft => ({ sceneId, purpose: ''
 /** WHAT HAPPENS IN A SHOT — plain filmmaking fields: the purpose, the action, who is in frame, the framing and the
  *  camera, the length, the dialogue. The rare settings sit behind "Advanced". Used by the shot editor and Add Shot. */
 export function ShotFields({ p, draft, onChange, showScene }: { p: Production; draft: ShotDraft; onChange: (patch: Partial<ShotDraft>) => void; showScene?: boolean }) {
-  const T = useT();
   const { state } = useStudio();
   const cast = castOf(state, p);
   const nameOf = (id: string) => cast.find((c) => c.id === id)?.name ?? '?';

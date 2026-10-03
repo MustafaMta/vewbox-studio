@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { TrackButton } from '@/components/players/PlayerProvider';
 import { trackOf } from '@/components/workspace/MusicWorkspace';
 import { IconDuration } from '@/components/ui/icons';
@@ -33,7 +33,6 @@ export function artistOf(state: ReturnType<typeof useStudio>['state'], p: Produc
 /** MUSIC VIDEOS: cover, song and artist first; play the track in place; treatment and format as music metadata.
  *  (Owned by P1c; split out of library/Cards.tsx by F0 unchanged.) */
 export function MusicVideoCard({ p, menu }: { p: Production; menu?: ReactNode }) {
-  const T = useT();
   const { state } = useStudio();
   const art = assetById(state, p.posterAssetId) ?? assetById(state, p.coverAssetId);
   const audio = assetById(state, p.song?.assetId);

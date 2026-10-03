@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconPause, IconPlay } from '@/components/ui/icons';
 import { SharedVolume } from '../Controls';
@@ -17,14 +17,13 @@ import { fmtClock } from '../time';
  *  The 56 px ivory disc is the hero's primary. Song | Video is a radiogroup over ONE transport: in Video mode the page
  *  hands the transport the video's controller, so the same disc and seek bar drive the picture (the playhead is
  *  handed over with `handOff`, players/sync.ts). Video is disabled, with its reason as text, until a cut or a
- *  storyboard exists. The whole transport is LTR in both languages; the play glyph is never mirrored. On a phone the
+ *  storyboard exists. The whole transport is LTR; the play glyph is never mirrored. On a phone the
  *  disc and the switch share a row and the seek bar takes the next. */
 
 export interface MediaController { playing: boolean; time: number; duration: number; toggle: () => void; seek: (t: number) => void }
 export type SongMode = 'song' | 'video';
 
 export function SongVideoSwitch({ value, onChange, videoDisabledReason, className }: { value: SongMode; onChange: (m: SongMode) => void; videoDisabledReason?: ReactNode; className?: string }) {
-  const T = useT();
   const id = useId();
   const opts: Array<{ v: SongMode; label: string; disabled?: boolean }> = [{ v: 'song', label: T('media.mode.song') }, { v: 'video', label: T('media.mode.video'), disabled: Boolean(videoDisabledReason) }];
   const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -51,7 +50,6 @@ export function SongVideoSwitch({ value, onChange, videoDisabledReason, classNam
 }
 
 export function SongTransport({ track, title, mode, onMode, videoDisabledReason, controller, action, noTrack, className }: { track: Track | null; title: string; mode?: SongMode; onMode?: (m: SongMode) => void; videoDisabledReason?: ReactNode; /** Video mode: the video's own state and actions drive the transport */ controller?: MediaController | null; action?: ReactNode; /** why nothing plays when there is no song file */ noTrack?: ReactNode; className?: string }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   const ctl: MediaController | null = controller ?? (track ? { playing: st.playing, time: st.time, duration: st.duration, toggle: () => p.toggle(track), seek: (t) => { if (st.mine) p.seek(t); else p.play(track, t); } } : null);

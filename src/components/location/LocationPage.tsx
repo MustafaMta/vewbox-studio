@@ -7,7 +7,7 @@ import type { Location } from '@/domain/types';
 import { LOCATION_REF_ROLES, TIMES_OF_DAY, type LocationRefRole, type TimeOfDay } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, productionHref } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useTab } from '@/lib/hooks';
 import { Button, Checkbox, ConfirmDelete, Input, KV, Modal, Select, TabBar } from '@/components/ui/kit';
@@ -23,7 +23,6 @@ const TABS = ['overview', 'views', 'lighting', 'props', 'used'] as const;
 /** ONE LOCATION — a wide plate under a wide header, then Overview · Views · Lighting & Variations · Props · Used In.
  *  Pictures and camera views first; the words after; nothing technical in the way. */
 export function LocationPage({ l }: { l: Location }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -81,7 +80,6 @@ export function LocationPage({ l }: { l: Location }) {
 }
 
 function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; title: string }) {
-  const T = useT();
   const { state, act, addFile } = useStudio();
   const toast = useToast();
   const [role, setRole] = useState<LocationRefRole>(roles.includes('VIEW') ? 'VIEW' : roles[0]);
@@ -127,7 +125,6 @@ function Views({ l, roles, title }: { l: Location; roles: LocationRefRole[]; tit
 }
 
 function Props({ l }: { l: Location }) {
-  const T = useT();
   const { act } = useStudio();
   const [draft, setDraft] = useState('');
   const add = () => { const v = draft.trim(); if (!v) return; act('updateLocation', l.id, { props: [...l.props, v] }); setDraft(''); };

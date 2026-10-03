@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Character } from '@/domain/types';
 import { useJobsFor, useStudio } from '@/studio/store';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Status } from '@/components/ui/kit';
 import { IconPause, IconPlay, IconShield } from '@/components/ui/icons';
 import { usePlayer, useTrackState, type Track } from '@/components/players/PlayerProvider';
@@ -18,7 +18,6 @@ import { identityStatus, imageJobs, imageKindOf, statusWords, voiceState, voiceT
  *  sit on the frame's bottom corner, shown on hover and focus (always on touch). The picture and the words are one
  *  link to the profile. */
 export function CastCard({ c, menu }: { c: Character; menu?: ReactNode }) {
-  const T = useT();
   const { state } = useStudio();
   const jobs = useJobsFor({ characterId: c.id, type: 'CHARACTER_APPEARANCE' });
   const image = assetById(state, primaryImageOf(c));
@@ -62,7 +61,6 @@ export function CastCard({ c, menu }: { c: Character; menu?: ReactNode }) {
 
 /** The 32 px ivory play disc of a card, through the shared player. */
 function CardPlay({ track, name }: { track: Track; name: string }) {
-  const T = useT();
   const p = usePlayer();
   const st = useTrackState(track);
   return (

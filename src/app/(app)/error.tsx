@@ -1,13 +1,12 @@
 'use client';
 
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Details, LinkButton } from '@/components/ui/kit';
 import { HOME } from '@/components/shell/nav-model';
 
 /** A page that broke (docs/DESIGN-SYSTEM-V4.md §5.16, the notice anatomy): what happened, what is kept, one recovery
  *  and an alternative; the raw error only inside Details, in mono (V4-06). The shell around it keeps working. */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  const T = useT();
   return (
     <div className="shell-error" role="alert">
       <h1 className="page-title">{T('shell.error.title')}</h1>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { AgentStat, ReliabilitySummary } from '@/studio/org';
-import { useT, type TFn } from '@/components/ui/locale';
+import { T, type TFn } from '@/lib/copy';
 import { Status, cls, type Tone } from '@/components/ui/kit';
 import { fmtAgo } from '@/lib/format';
 
@@ -24,11 +24,10 @@ export function Monogram({ name, size = 32, director, className = '' }: { name: 
 /** An agent's state from its run record: running now, when it last ran, or never. */
 export function agentState(T: TFn, stat?: AgentStat | null): { tone: Tone; live: boolean; text: string } {
   if (stat?.running) return { tone: 'info', live: true, text: T('co.running') };
-  if (stat && stat.runs > 0) return { tone: stat.failed && stat.failed >= stat.completed ? 'bad' : 'neutral', live: false, text: T.f('co.lastRun', { ago: fmtAgo(stat.lastRunAt ?? '', T.locale) }) };
+  if (stat && stat.runs > 0) return { tone: stat.failed && stat.failed >= stat.completed ? 'bad' : 'neutral', live: false, text: T.f('co.lastRun', { ago: fmtAgo(stat.lastRunAt ?? '') }) };
   return { tone: 'neutral', live: false, text: T('co.neverRun') };
 }
 export function AgentStatus({ stat, className }: { stat?: AgentStat | null; className?: string }) {
-  const T = useT();
   const s = agentState(T, stat);
   return <Status tone={s.tone} live={s.live} className={className}>{s.text}</Status>;
 }
@@ -39,7 +38,6 @@ export const failureWords = (T: TFn, c: string) => T.dyn(`fail.${c}`, c.toLowerC
 /** The reliability figures as a table: each measure, its value and the count that produced it — no tile, so no
  *  word is broken to fit (A5). */
 export function ReliabilityTable({ r }: { r: ReliabilitySummary }) {
-  const T = useT();
   const rows: Array<[string, string, string]> = [
     [T('studio.firstAttempt'), pct(r.firstAttemptTechnical.ok, r.firstAttemptTechnical.total), T.f('rel.ofRuns', { a: r.firstAttemptTechnical.ok, b: r.firstAttemptTechnical.total })],
     [T('studio.firstAcceptance'), pct(r.firstAttemptCreative.accepted, r.firstAttemptCreative.total), T.f('rel.ofTakes', { a: r.firstAttemptCreative.accepted, b: r.firstAttemptCreative.total })],
@@ -63,7 +61,7 @@ export function ReliabilityTable({ r }: { r: ReliabilitySummary }) {
         )}
         {r.openEvents.length > 0 && (
           <ol className="rows mt-3 text-sm">
-            {r.openEvents.slice(0, 8).map((e) => <li key={e.id} className="flex flex-wrap gap-x-3 py-2"><span className="num text-faint">{fmtAgo(e.createdAt, T.locale)}</span><Status tone={e.resolved ? 'ok' : 'bad'}>{failureWords(T, e.failureClass)}</Status><span className="min-w-0 flex-1 text-muted" dir="auto">{e.failureMessage}</span>{e.changeMade && <span className="text-faint" dir="auto">→ {e.changeMade}</span>}</li>)}
+            {r.openEvents.slice(0, 8).map((e) => <li key={e.id} className="flex flex-wrap gap-x-3 py-2"><span className="num text-faint">{fmtAgo(e.createdAt)}</span><Status tone={e.resolved ? 'ok' : 'bad'}>{failureWords(T, e.failureClass)}</Status><span className="min-w-0 flex-1 text-muted" dir="auto">{e.failureMessage}</span>{e.changeMade && <span className="text-faint" dir="auto">→ {e.changeMade}</span>}</li>)}
           </ol>
         )}
       </div>

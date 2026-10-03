@@ -8,17 +8,15 @@ import { loadFixture, prepare } from '../../../scripts/lib/capture.mjs';
 
 type Fixture = Awaited<ReturnType<typeof loadFixture>>;
 const cache = new Map<string, Fixture>();
-export async function fixture(kind: 'sample' | 'empty' | 'states', lang: 'en' | 'ar' = 'en'): Promise<Fixture> {
-  const key = `${kind}:${lang}`;
-  if (!cache.has(key)) cache.set(key, await loadFixture(kind, lang, 'reduce'));
-  return cache.get(key)!;
+export async function fixture(kind: 'sample' | 'empty' | 'states'): Promise<Fixture> {
+  if (!cache.has(kind)) cache.set(kind, await loadFixture(kind, 'reduce'));
+  return cache.get(kind)!;
 }
 
 /** Open a page on the fixture studio and wait for the page's own heading (not the shell's placeholder). */
-export async function open(page: Page, path: string, opts: { kind?: 'sample' | 'empty' | 'states'; lang?: 'en' | 'ar'; prefs?: Record<string, unknown>; /** more set-up after the harness's, before the page loads */ before?: (page: Page) => Promise<unknown> } = {}) {
-  const lang = opts.lang ?? 'en';
-  const fx = await fixture(opts.kind ?? 'sample', lang);
-  await prepare(page, { lang, fixture: fx, motion: 'reduce' });
+export async function open(page: Page, path: string, opts: { kind?: 'sample' | 'empty' | 'states'; prefs?: Record<string, unknown>; /** more set-up after the harness's, before the page loads */ before?: (page: Page) => Promise<unknown> } = {}) {
+  const fx = await fixture(opts.kind ?? 'sample');
+  await prepare(page, { fixture: fx, motion: 'reduce' });
   if (opts.prefs) await page.addInitScript((p) => { const u = JSON.parse(localStorage.getItem('vewbox.ui') || '{}'); localStorage.setItem('vewbox.ui', JSON.stringify({ ...u, ...p })); }, opts.prefs);
   if (opts.before) await opts.before(page);
   // the dev server can hand out a chunk while it is still compiling it (a SyntaxError in the page): load again

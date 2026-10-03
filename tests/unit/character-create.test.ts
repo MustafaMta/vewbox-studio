@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Job } from '@/domain/jobs';
 import { DESCRIBE_VOICE_MODES, checkAudioDuration, checkBrief, checkImageDims, checkImageFile, creationSettled, creationSteps, createdCharacterId, describeVoiceMode, describeVoicePayload, engineGate } from '@/components/character/create/preflight';
 import { CREATE_STEPS, createResultOf, normaliseStep } from '@/components/character/contract';
-import { KEYS, t } from '@/lib/i18n';
+import { KEYS, T } from '@/lib/copy';
 import type { EngineStatus } from '@/studio/api';
 
 /** The browser-side preflight of character creation and the derivation of the four-step stepper from the parent
@@ -108,9 +108,8 @@ describe('the voice of a Describe start (finding 15)', () => {
     expect(DESCRIBE_VOICE_MODES).toEqual(['NONE', 'RECORDING']);
     expect(KEYS).not.toContain('char.create.voiceAuto');
     // D9: the hint points to the profile's two real ways (designed from the description, or a permitted recording)
-    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/design a synthetic voice/);
-    expect(t('en', 'char.create.voiceNoneHint')).toMatch(/recording you have permission to use/);
-    expect(t('ar', 'char.create.voiceRecording')).toMatch(/[؀-ۿ]/);
+    expect(T('char.create.voiceNoneHint')).toMatch(/design a synthetic voice/);
+    expect(T('char.create.voiceNoneHint')).toMatch(/recording you have permission to use/);
   });
   it('asks CREATE_CHARACTER for an AUTOMATIC voice only when a recording travels with the request', () => {
     expect(describeVoicePayload('RECORDING', true)).toEqual({ mode: 'AUTOMATIC' });

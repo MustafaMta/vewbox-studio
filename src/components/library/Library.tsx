@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { STYLES, type Style } from '@/domain/vocabulary';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Input, Segmented, Select } from '@/components/ui/kit';
 import { IconGrid, IconList, IconSearch } from '@/components/ui/icons';
 
@@ -27,7 +27,6 @@ export function LibraryHeader({ title, count, action, description }: { title: st
 }
 
 export function LibraryBar({ q, onQ, style, onStyle, view, onView, extra, sort, onSort, placeholder }: { q: string; onQ: (v: string) => void; style?: Style | ''; onStyle?: (v: Style | '') => void; view?: View; onView?: (v: View) => void; extra?: ReactNode; sort?: 'recent' | 'title'; onSort?: (v: 'recent' | 'title') => void; placeholder?: string }) {
-  const T = useT();
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2">
       <label className="relative min-w-0 flex-1 basis-64">
@@ -46,7 +45,6 @@ export function LibraryBar({ q, onQ, style, onStyle, view, onView, extra, sort, 
 }
 
 export function NoMatches({ onClear }: { onClear: () => void }) {
-  const T = useT();
   return <p className="rounded-2xl border border-dashed border-line-strong px-6 py-12 text-center text-sm text-muted">{T('lib.noMatches')} <button type="button" className="ms-1 font-medium text-fg underline-offset-2 hover:underline" onClick={onClear}>{T('lib.clearSearch')}</button></p>;
 }
 

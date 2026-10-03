@@ -351,14 +351,12 @@ export const continuityVersions = pgTable('continuity_versions', {
 export const departments = pgTable('departments', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  nameAr: text('name_ar'),
   directorId: text('director_id').notNull(),
   responsibility: text('responsibility').notNull(),
-  responsibilityAr: text('responsibility_ar'),
   stages: text('stages').array().notNull().default([]),
   order: integer('order').notNull().default(0),
   /** roles the department would need but nobody executes yet (model.ts PLANNED_ROLES) */
-  plannedRoles: jsonb('planned_roles').$type<Array<{ id: string; name: string; nameAr: string; would: string; reason: string; reasonAr: string; phase: string }>>().notNull().default([]),
+  plannedRoles: jsonb('planned_roles').$type<Array<{ id: string; name: string; would: string; reason: string; phase: string }>>().notNull().default([]),
   orgVersion: integer('org_version').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -366,14 +364,11 @@ export const departments = pgTable('departments', {
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  nameAr: text('name_ar'),
   departmentId: text('department_id').notNull(),
   role: text('role').notNull(),
-  roleAr: text('role_ar'),
   description: text('description').notNull(),
-  descriptionAr: text('description_ar'),
   /** delegated steps it performs inside other agents' jobs, and payload routes of a job type it executes */
-  steps: jsonb('steps').$type<Array<{ id: string; name: string; nameAr: string; where: string }>>().notNull().default([]),
+  steps: jsonb('steps').$type<Array<{ id: string; name: string; where: string }>>().notNull().default([]),
   payloadRoutes: jsonb('payload_routes').$type<Array<{ jobType: string; when: string }>>().notNull().default([]),
   systemInstructions: text('system_instructions').notNull(),
   model: text('model').notNull(),

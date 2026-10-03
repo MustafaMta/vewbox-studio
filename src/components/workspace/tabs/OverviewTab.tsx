@@ -7,7 +7,7 @@ import type { Production } from '@/domain/types';
 import { ASPECTS, DIALECTS, LANGUAGES, STYLES } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { assetById, assetSrc, castOf, nextStep, primaryImageSrc, productionHref, progressOf, shotHref, worldOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, ConfirmDelete, Field, Input, KV, Modal, Select, Textarea } from '@/components/ui/kit';
 import { Art, Block } from '@/components/ui/cinema';
@@ -17,7 +17,6 @@ import { aspectLabel, dialectLabel, fmtAgo, fmtSeconds } from '@/lib/format';
 /** OVERVIEW — the state of the production in four numbers that are links, the first shots as a strip, who is in it,
  *  and the details behind Edit. The header above already carries the art and the synopsis. */
 export function OverviewTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -40,7 +39,7 @@ export function OverviewTab({ p }: { p: Production }) {
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link href={`${base}?tab=${tabOf(next.tab)}`} className="btn btn-primary btn-sm">{T.dyn(next.key)}</Link>
             {p.stage !== 'COMPLETE' && <Button size="sm" variant="ghost" onClick={() => { act('markStepDone', p.id, p.stage); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}: {T.dyn(`stage.${p.stage}`)}</Button>}
-            <span className="text-sm text-muted">{T('label.runtime')}: <span className="num text-fg">{fmtSeconds(pr.runtime)}</span> {T('misc.of')} {fmtSeconds(p.targetSeconds)} · {T('label.updated')} {fmtAgo(p.updatedAt, T.locale)}</span>
+            <span className="text-sm text-muted">{T('label.runtime')}: <span className="num text-fg">{fmtSeconds(pr.runtime)}</span> {T('misc.of')} {fmtSeconds(p.targetSeconds)} · {T('label.updated')} {fmtAgo(p.updatedAt)}</span>
           </div>
         </section>
         {firstShots.length > 0 && (
@@ -58,7 +57,7 @@ export function OverviewTab({ p }: { p: Production }) {
         <Block title={T('tab.locations')} count={world.length} actions={<Link href={`${base}?tab=${isMusic ? 'visual' : 'locations'}`} className="text-sm text-muted hover:text-fg">{T('btn.edit')}</Link>}>
           {world.length === 0 ? <p className="text-sm text-muted">{T('empty.locationsIn')}</p> : <ul className="grid grid-cols-2 gap-3">{world.slice(0, 4).map((l) => <li key={l.id}><Link href={`/locations/${l.id}`} className="poster-link block"><Art src={assetSrc(state, l.masterAssetId)} ratio="wide" title={l.name} className="!rounded-lg" /><span className="mt-1.5 block truncate text-xs" dir="auto">{l.name}</span></Link></li>)}</ul>}
         </Block>
-        <KV rows={[[T('label.style'), T.dyn(`style.${p.style}`)], [T('label.language'), `${p.language}${p.dialect ? ` · ${dialectLabel(p.dialect, T.locale)}` : ''}`], [T('label.aspect'), aspectLabel(p.aspect)], [T('label.target'), fmtSeconds(p.targetSeconds)], [T('label.created'), fmtAgo(p.createdAt, T.locale)]]} />
+        <KV rows={[[T('label.style'), T.dyn(`style.${p.style}`)], [T('label.language'), `${p.language}${p.dialect ? ` · ${dialectLabel(p.dialect)}` : ''}`], [T('label.aspect'), aspectLabel(p.aspect)], [T('label.target'), fmtSeconds(p.targetSeconds)], [T('label.created'), fmtAgo(p.createdAt)]]} />
         <div className="flex flex-wrap items-center gap-2">
           <EditDetails p={p} />
           <Button size="sm" icon={<IconDuplicate />} onClick={() => { const r = act('duplicateProduction', p.id); toast.ok(T('toast.created')); router.push(r.production ? productionHref(r.production) : base); }}>{T('btn.duplicate')}</Button>
@@ -70,7 +69,7 @@ export function OverviewTab({ p }: { p: Production }) {
 }
 
 function EditDetails({ p }: { p: Production }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const { act } = useStudio(); const toast = useToast();
   const [d, setD] = useState({ title: p.title, titleAr: p.titleAr ?? '', logline: p.logline, style: p.style, language: p.language, dialect: p.dialect ?? 'IRAQI_BAGHDADI', aspect: p.aspect, targetSeconds: p.targetSeconds, artist: p.artist ?? '', genre: p.genre ?? '' });
   const set = (x: Partial<typeof d>) => setD((y) => ({ ...y, ...x }));
   return (
@@ -88,7 +87,7 @@ function EditDetails({ p }: { p: Production }) {
             <Field label={T('label.style')}><Select value={d.style} onChange={(e) => set({ style: e.target.value as typeof d.style })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></Field>
             <Field label={T('label.aspect')}><Select value={d.aspect} onChange={(e) => set({ aspect: e.target.value as typeof d.aspect })} options={ASPECTS.map((a) => ({ value: a, label: aspectLabel(a) }))} /></Field>
             <Field label={T('label.language')}><Select value={d.language} onChange={(e) => set({ language: e.target.value as typeof d.language })} options={LANGUAGES.map((l) => ({ value: l, label: l === 'EN' ? T('label.english') : T('label.arabic') }))} /></Field>
-            {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as typeof d.dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x, T.locale) }))} /></Field>}
+            {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as typeof d.dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} /></Field>}
             <Field label={`${T('label.target')} (${T('label.seconds')})`}><Input type="number" min={5} max={3600} value={d.targetSeconds} onChange={(e) => set({ targetSeconds: Number(e.target.value) })} /></Field>
           </div>
           <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.save')}</Button></div>

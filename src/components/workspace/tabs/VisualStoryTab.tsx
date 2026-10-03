@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetSrc, castOf, worldOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Button, ChoiceCards, Field, Input, Notice, Status, Textarea } from '@/components/ui/kit';
@@ -18,7 +18,6 @@ import { AddScene, SceneEditor } from './StoryTab';
  *  scenes that map onto the song's sections (developed and scripted by the story engine, or written by hand), and
  *  where it happens. */
 export function VisualStoryTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const world = worldOf(state, p);

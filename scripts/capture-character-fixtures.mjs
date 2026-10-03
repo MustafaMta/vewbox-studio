@@ -1,13 +1,13 @@
 // TEST-ONLY evidence tool: screenshots of the character pages in POPULATED states (draft, approved, locked, drawing,
 // legacy portrait, no image) without touching the database. Nothing here runs in the app: the headless browser
 // answers the studio's own requests from a fixture —
-//   GET /api/studio        → the real snapshot plus fixture characters, assets and productions (and the UI language)
+//   GET /api/studio        → the real snapshot plus fixture characters, assets and productions
 //   GET /api/jobs[/id]     → fixture jobs (a drawing in progress)
 //   GET /api/media/fx-*    → placeholder pictures cropped from docs/evidence (earlier generations) and a test clip
 //   POST/PUT/DELETE /api/* → answered locally (commands "accepted", everything else refused), never sent
 //
 //   node scripts/capture-character-fixtures.mjs [--base http://localhost:4212] [--out docs/evidence] [--width 1440]
-//        [--lang en|ar] [--suffix -en-desktop] [scenario ...]
+//        [--suffix -desktop] [scenario ...]   (the interface is English-only: no language option)
 import { chromium } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -17,7 +17,6 @@ const opt = (name, dflt) => { const i = args.indexOf(`--${name}`); if (i === -1)
 const base = opt('base', 'http://localhost:4212');
 const out = opt('out', 'docs/evidence');
 const width = Number(opt('width', '1440'));
-const lang = opt('lang', 'en');
 const suffix = opt('suffix', '');
 const isPhone = width < 768;
 const EV = 'docs/evidence';
@@ -93,7 +92,7 @@ const jobs = [{ id: 'fx-draw', type: 'CHARACTER_APPEARANCE', status: 'GENERATING
 const prepare = async (page) => {
   page.on('pageerror', (e) => console.log(`  page error: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') console.log(`  console error: ${m.text().slice(0, 300)}`); });
-  await page.addInitScript((l) => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ locale: l, motion: true })); } catch { /* fine */ } }, lang);
+  await page.addInitScript(() => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ motion: true })); } catch { /* fine */ } });
   await page.route('**/api/**', async (route) => {
     const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
     if (req.method() !== 'GET') {
@@ -104,7 +103,6 @@ const prepare = async (page) => {
       const res = await route.fetch();
       if (!res.ok()) return route.fulfill({ response: res }); // a dev server hiccup: the page retries on its own
       const body = await res.json();
-      body.state.settings.uiLanguage = lang;
       body.state.characters = [...characters, ...body.state.characters];
       body.state.assets = [...assets, ...body.state.assets];
       body.state.productions = [...productions, ...body.state.productions];
@@ -128,10 +126,10 @@ const scenarios = {
   directory: { path: '/characters' },
   'profile-draft': { path: '/characters/fx-samir' },
   'profile-locked': { path: '/characters/fx-amina', after: async () => { await page.locator('section[aria-label] details summary').last().click().catch(() => {}); await page.waitForTimeout(300); } },
-  'profile-check': { path: '/characters/fx-rana', after: async () => { await click(lang === 'ar' ? /اعتمد الصورة/ : /Approve image/); } },
+  'profile-check': { path: '/characters/fx-rana', after: async () => { await click(/Approve image/); } },
   'profile-drawing': { path: '/characters/fx-abu' },
   'profile-none': { path: '/characters/fx-noor' },
-  'new-describe': { path: '/characters/new?start=describe', after: async () => { await click(lang === 'ar' ? /^غيّر$/ : /^Change$/); } },
+  'new-describe': { path: '/characters/new?start=describe', after: async () => { await click(/^Change$/); } },
   'new-sheet': { path: '/characters/new?start=sheet' },
   'new-picture': { path: '/characters/new?start=picture' },
 };

@@ -19,9 +19,6 @@ export interface Presentation {
   /** 0–1 point a PORTRAIT (2:3) crop keeps in view when it differs from `focal` (the frame poster, a 2:3 tile cut
    *  from a wide frame); set by the producer or the poster step, never measured. Absent: `focal`, then DEFAULT_FOCAL. */
   portraitFocal?: { x: number; y: number };
-  /** A picture to show instead of this one when the interface is right-to-left (a frame whose reading direction
-   *  matters: text in shot, a left-to-right motion); set by the producer. Absent: the same picture. */
-  rtlFrameAssetId?: string;
 }
 
 /** The CSS custom properties a lobby hero or tile receives (B1's `artVars`); absent keys mean neutral. */

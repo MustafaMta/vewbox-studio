@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { BrandTile } from '@/components/ui/brand';
 import {
   IconAssets, IconCharacters, IconCollapse, IconExpand, IconHelp, IconLocations, IconMusicVideos, IconPlus, IconProduce, IconScreening, IconSettings, IconShorts, IconShows, IconStudio,
@@ -33,7 +33,6 @@ const noSubscribe = () => () => {};
 export const useModLabel = () => useSyncExternalStore(noSubscribe, () => (isMac(navigator.platform) ? '⌘' : 'Ctrl'), () => 'Ctrl');
 
 function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
-  const T = useT();
   const pathname = usePathname() ?? '/';
   const { decisions } = useShell();
   const Icon = NAV_ICONS[item.icon];
@@ -52,7 +51,6 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
 
 /** The three groups, in order. */
 export function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
-  const T = useT();
   const id = useId();
   return (
     <div className="shell-groups">
@@ -69,7 +67,6 @@ export function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
 /** The footer: Settings, then Help & shortcuts in the same place on every page (WCAG 3.2.6), the save state and the
  *  connection, and (sidebar and rail only) Collapse. */
 export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNavigate?: () => void; collapse?: boolean; rail?: boolean }) {
-  const T = useT();
   const { openShortcuts, toggleNav, nav } = useShell();
   const mod = useModLabel();
   const toggleName = T(nav === 'rail' ? 'shell.expand.long' : 'shell.collapse.long');
@@ -84,7 +81,7 @@ export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNav
       <ConnectionState onNavigate={onNavigate} />
       {collapse && (
         <button type="button" className="shell-item shell-button shell-collapse" onClick={toggleNav} aria-keyshortcuts="Control+\ Meta+\" aria-label={toggleName} data-tip={`${toggleName} · ${mod}+\\`}>
-          <span className="shell-icon" aria-hidden>{nav === 'rail' ? <IconExpand aria-hidden className="shell-mirror" /> : <IconCollapse aria-hidden className="shell-mirror" />}</span>
+          <span className="shell-icon" aria-hidden>{nav === 'rail' ? <IconExpand aria-hidden /> : <IconCollapse aria-hidden />}</span>
           <span className="shell-label" aria-hidden>{T(nav === 'rail' ? 'shell.expand' : 'shell.collapse')}</span>
           <kbd className="shell-kbd" dir="ltr" aria-hidden>{mod}+\</kbd>
         </button>
@@ -95,7 +92,6 @@ export function NavFooter({ onNavigate, collapse = true, rail = false }: { onNav
 
 /** The brand row: the monochrome glyph (and the wordmark in the sidebar) goes home. */
 export function BrandLink({ onNavigate }: { onNavigate?: () => void }) {
-  const T = useT();
   return (
     <Link href={HOME} className="shell-brand" aria-label={T('shell.homeLink')} onClick={onNavigate} data-tip={T('app.name')}>
       <BrandTile />
@@ -105,7 +101,6 @@ export function BrandLink({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function NewButton({ onNavigate, className = '' }: { onNavigate?: () => void; className?: string }) {
-  const T = useT();
   return (
     <Link href="/new" className={`btn btn-secondary shell-new ${className}`} onClick={onNavigate} aria-label={T('nav.new')} data-tip={T('nav.new')}>
       <IconPlus aria-hidden /><span className="shell-label">{T('nav.new')}</span>
@@ -117,7 +112,6 @@ type Tip = { text: string; y: number; x: number };
 
 /** The sidebar, or the rail: the shell says which (`nav`). */
 export function Sidebar() {
-  const T = useT();
   const { nav } = useShell();
   const [tip, setTip] = useState<Tip | null>(null);
   const hide = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -131,9 +125,8 @@ export function Sidebar() {
     const el = target instanceof Element ? target.closest<HTMLElement>('[data-tip]') : null;
     if (nav !== 'rail' || !el?.dataset.tip) { setTip(null); return; }
     const r = el.getBoundingClientRect();
-    const rtl = document.documentElement.dir === 'rtl';
-    // beside the rail, on its inline-end side (the right in English, the left in Arabic)
-    setTip({ text: el.dataset.tip, y: r.top + r.height / 2, x: rtl ? window.innerWidth - r.left + 8 : r.right + 8 });
+    // beside the rail, on its right
+    setTip({ text: el.dataset.tip, y: r.top + r.height / 2, x: r.right + 8 });
   };
   return (
     <nav className="shell-nav" aria-label={T('nav.areas')}

@@ -6,7 +6,7 @@ import { TIMES_OF_DAY, type TimeOfDay } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
 import { briefOriginKey, castOf, worldOf } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Block } from '@/components/ui/cinema';
@@ -18,7 +18,6 @@ import { words } from '@/lib/format';
 /** STORY — the brief it started from, the synopsis, and the script: scenes, beats and lines. For a music video the
  *  song sits here too. Every edit is yours; the story engine drafts on request (Develop the story / Write the script). */
 export function StoryTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p); const world = worldOf(state, p);
@@ -78,7 +77,7 @@ export function StoryTab({ p }: { p: Production }) {
 }
 
 export function AddScene({ p }: { p: Production }) {
-  const T = useT(); const { state, act } = useStudio(); const toast = useToast();
+  const { state, act } = useStudio(); const toast = useToast();
   const world = worldOf(state, p);
   const [title, setTitle] = useState(''); const [loc, setLoc] = useState(''); const [tod, setTod] = useState<TimeOfDay>('MIDDAY');
   return (
@@ -98,7 +97,7 @@ export function AddScene({ p }: { p: Production }) {
 }
 
 export function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Array<{ id: string; name: string }>; locations: Array<{ id: string; name: string }> }) {
-  const T = useT(); const { act } = useStudio(); const toast = useToast();
+  const { act } = useStudio(); const toast = useToast();
   const set = (patch: Partial<Scene>) => act('updateScene', p.id, scene.id, patch);
   const setBeat = (id: string, patch: Partial<Beat>) => set({ beats: scene.beats.map((b) => (b.id === id ? { ...b, ...patch } : b)) });
   const setLine = (bid: string, lid: string, patch: Partial<Line>) => setBeat(bid, { lines: scene.beats.find((b) => b.id === bid)!.lines.map((l) => (l.id === lid ? { ...l, ...patch } : l)) });
@@ -133,7 +132,7 @@ export function SceneEditor({ p, scene, cast, locations }: { p: Production; scen
                     <Select aria-label={T('label.role')} value={l.characterId} onChange={(e) => setLine(b.id, l.id, { characterId: e.target.value })} options={[...(scene.characterIds.length ? scene.characterIds : cast.map((c) => c.id)).map((id) => ({ value: id, label: nameOf(id) }))]} />
                     <div className="grid gap-1.5">
                       <Input value={l.text} onChange={(e) => setLine(b.id, l.id, { text: e.target.value })} placeholder={p.language === 'AR' ? 'English (for review)' : T('label.dialogue')} aria-label={T('label.dialogue')} />
-                      {p.language === 'AR' && <Input value={l.textAr ?? ''} dir="rtl" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="النص العربي" aria-label={`${T('label.dialogue')} (${T('label.arabic')})`} />}
+                      {p.language === 'AR' && <Input value={l.textAr ?? ''} dir="rtl" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="The line in Arabic" aria-label={`${T('label.dialogue')} (${T('label.arabic')})`} />}
                     </div>
                     <Button variant="ghost" size="xs" aria-label={T('btn.remove')} icon={<IconDelete />} onClick={() => setBeat(b.id, { lines: b.lines.filter((x) => x.id !== l.id) })} />
                   </li>

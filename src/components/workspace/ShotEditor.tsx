@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { Production, Shot } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, assetSrc, castOf, locationById, primaryImageSrc, productionHref, seasonById, shotHref, shotLabel, showById } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Crumbs } from '@/components/ui/nav';
@@ -21,7 +21,6 @@ import { fmtSeconds, ratioClass, words, ratioCss } from '@/lib/format';
 /** THE SHOT EDITOR — one shot, full width: the picture large on the start side (the chosen take, or the opening
  *  frame), its takes and frames beneath; what happens in it on the end side. Save is explicit; leaving with edits asks. */
 export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
-  const T = useT();
   const { state, act, addFile } = useStudio();
   const toast = useToast();
   const router = useRouter();
@@ -72,8 +71,8 @@ export function ShotEditor({ p, shot }: { p: Production; shot: Shot }) {
         </div>
         <div className="flex items-center gap-2">
           {dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}
-          <LinkButton href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev} size="sm" variant="ghost" icon={<IconChevronLeft className="rtl:rotate-180" />} aria-label={T('shot.previous')} className={prev ? '' : 'pointer-events-none opacity-40'} />
-          <LinkButton href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next} size="sm" variant="ghost" icon={<IconChevronRight className="rtl:rotate-180" />} aria-label={T('shot.nextShot')} className={next ? '' : 'pointer-events-none opacity-40'} />
+          <LinkButton href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev} size="sm" variant="ghost" icon={<IconChevronLeft />} aria-label={T('shot.previous')} className={prev ? '' : 'pointer-events-none opacity-40'} />
+          <LinkButton href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next} size="sm" variant="ghost" icon={<IconChevronRight />} aria-label={T('shot.nextShot')} className={next ? '' : 'pointer-events-none opacity-40'} />
           <Menu label={T('nav.more')}>
             <MenuItem icon={<IconDuplicate />} onClick={() => { act('duplicateShot', p.id, shot.id); toast.ok(T('toast.created')); router.push(`${base}?tab=storyboard`); }}>{T('btn.duplicate')}</MenuItem>
             <MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(T('shot.deleteConfirm'))) { act('deleteShot', p.id, shot.id); toast.ok(T('toast.deleted')); router.push(`${base}?tab=storyboard`); } }}>{T('btn.delete')}</MenuItem>

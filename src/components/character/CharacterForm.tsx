@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Character } from '@/domain/types';
 import { DIALECTS, LANGUAGES, PACES, PITCHES, SEXES, STYLES, type Dialect, type Language, type Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Details, Field, Input, Notice, Segmented, Select, Textarea, cls } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';
@@ -34,7 +34,6 @@ export interface CreateMode {
 }
 
 export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, section = 'all', create }: { initial?: Character; defaultStyle?: Style; onSaved: (id: string) => void; onCancel?: () => void; section?: 'all' | 'appearance' | 'profile'; create?: CreateMode }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const def = state.settings.defaults;
@@ -51,7 +50,7 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
   const locked = initial ? appearanceLock(initial).locked : false;
   // the header owns style, language and dialect on the creation page
   const style = create ? create.style : d.style; const language = create ? create.language : d.language; const dialect = create ? create.dialect : d.dialect;
-  const arabicName = language === 'AR' || T.locale === 'ar';
+  const arabicName = language === 'AR';
   // a character made from a picture: an empty look field is the picture's (finding 3), and the form says so
   const lookPh = initial && lookFromReference(initial, state.assets) ? T('char.look.fromReference') : undefined;
 
@@ -85,7 +84,7 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
             {!create && <>
               <Field label={T('label.style')} help={locked ? T('char.lock.short') : undefined}><Select disabled={locked} value={d.style} onChange={(e) => set({ style: e.target.value as Style })} options={STYLES.map((s) => ({ value: s, label: T.dyn(`style.${s}`) }))} /></Field>
               <Field label={T('label.language')}><Select value={d.language} onChange={(e) => set({ language: e.target.value as Language })} options={LANGUAGES.map((l) => ({ value: l, label: l === 'EN' ? T('label.english') : T('label.arabic') }))} /></Field>
-              {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x, T.locale) }))} /></Field>}
+              {d.language === 'AR' && <Field label={T('label.dialect')}><Select value={d.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} /></Field>}
             </>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -153,7 +152,7 @@ export function CharacterForm({ initial, defaultStyle, onSaved, onCancel, sectio
             <p className="eyebrow">{T.dyn(`style.${style}`)} · {d.species.trim() || `${d.ageYears} · ${d.sex === 'FEMALE' ? T('label.female') : T('label.male')}`}</p>
             <p className="mt-1 text-[15px] font-semibold text-fg" dir="auto">{d.name.trim() || T('char.form.unnamed')}{d.nameAr.trim() ? <span className="bi-ar ms-2 text-[0.85em] font-medium text-muted" dir="rtl">{d.nameAr.trim()}</span> : null}</p>
             <p className="text-[12.5px] text-muted" dir="auto">{d.role.trim() || '—'}</p>
-            <p className="mt-1 text-[12px] text-faint">{language === 'EN' ? T('label.english') : T('label.arabic')}{language === 'AR' && dialect ? ` · ${dialectLabel(dialect, T.locale)}` : ''}</p>
+            <p className="mt-1 text-[12px] text-faint">{language === 'EN' ? T('label.english') : T('label.arabic')}{language === 'AR' && dialect ? ` · ${dialectLabel(dialect)}` : ''}</p>
             {traits.length > 0 && <ul className="mt-2 flex flex-wrap gap-1.5">{traits.slice(0, 6).map((x) => <li key={x} className="badge" dir="auto">{x}</li>)}</ul>}
             <p className="mt-3 text-[11.5px] text-faint">{T('char.form.previewNote')}</p>
           </div>

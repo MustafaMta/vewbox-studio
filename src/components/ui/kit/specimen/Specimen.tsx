@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useT } from '../../locale';
+import { T } from '@/lib/copy';
 import { Button, LinkButton } from '../Button';
 import { Segmented } from '../Choice';
 import { useMediaQuery } from '../layout';
@@ -31,7 +31,6 @@ function useContrastOverride(): [Contrast, (c: Contrast) => void] {
 }
 
 export function KitSpecimen({ media }: { media?: ReactNode }) {
-  const T = useT();
   const [contrast, setContrast] = useContrastOverride();
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const osMore = useMediaQuery('(prefers-contrast: more)');
@@ -101,7 +100,6 @@ export function KitSpecimen({ media }: { media?: ReactNode }) {
 
 /** The same controls at both densities, side by side. */
 function DensitySample({ label, compact }: { label: string; compact?: boolean }) {
-  const T = useT();
   return (
     <div className="kit-spec-sample" data-density={compact ? 'compact' : 'comfortable'}>
       <p className="caption">{label}</p>
@@ -119,7 +117,6 @@ function DensitySample({ label, compact }: { label: string; compact?: boolean })
 /** The text and boundary roles under each contrast setting, side by side. The "More" sample sets the same roles
  *  F1's html[data-contrast='more'] rule sets (tokens.css), on this sample only. */
 function ContrastSample({ label, more }: { label: string; more?: boolean }) {
-  const T = useT();
   return (
     <div className={more ? 'kit-spec-sample kit-spec-more' : 'kit-spec-sample'}>
       <p className="caption">{label}</p>

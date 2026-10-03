@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf, shotHref, shotLabel } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Card, Details, Field, Notice, SampleMark, Select, Status, Thumb } from '@/components/ui/kit';
 import { JobButton, useStartJob } from '@/components/ui/jobs';
@@ -17,7 +17,6 @@ import { StageGate, useStageApproved } from '@/components/studio/Approve';
 /** FINAL CUT — the chosen takes in order with the sound under them, then export. The assembled cut shown for the
  *  sample episode is a sample clip; when there is none, the sequence below is the cut, described. */
 export function FinalCutTab({ p }: { p: Production }) {
-  const T = useT();
   const { state, act } = useStudio();
   const toast = useToast();
   const cut = assetById(state, p.cutAssetId);
@@ -70,7 +69,7 @@ export function FinalCutTab({ p }: { p: Production }) {
           <div className="space-y-3">
             <Field label="Format"><Select value={format} onChange={(e) => setFormat(e.target.value)} options={[{ value: 'mp4-h264', label: 'MP4 · H.264' }, { value: 'mp4-h265', label: 'MP4 · H.265' }, { value: 'mov-prores', label: 'MOV · ProRes' }]} /></Field>
             <Field label="Resolution"><Select value={res} onChange={(e) => setRes(e.target.value)} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} /></Field>
-            <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value)} options={[{ value: 'none', label: '—' }, { value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }, { value: 'both', label: 'AR + EN' }]} /></Field>
+            <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value)} options={[{ value: 'none', label: '—' }, { value: 'ar', label: 'Arabic' }, { value: 'en', label: 'English' }, { value: 'both', label: 'Arabic + English' }]} /></Field>
             <p className="text-xs text-muted">{aspectLabel(p.aspect)} · {fmtSeconds(total)}</p>
             <Button variant="primary" icon={<IconDownload />} className="w-full" loading={busy} disabled={missing > 0 || anySample || !cut || cut.sample || cutApproved === false} title={anySample ? T('final.needsRealTakes') : missing > 0 ? `${missing} ${T('final.missing')}` : !cut || cut.sample ? T('final.noCut') : cutApproved === false ? T('gate.cut') : undefined} onClick={() => void start('EXPORT', { productionId: p.id, format: format as 'mp4-h264' | 'mp4-h265' | 'mov-prores', resolution: res as '720' | '1080' | '2160', subtitles: subs as 'none' | 'ar' | 'en' | 'both' })}>{T('gen.export')}</Button>
             {busy && <p className="text-xs text-faint">{T('final.exportStarted')}</p>}

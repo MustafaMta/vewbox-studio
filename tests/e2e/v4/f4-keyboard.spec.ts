@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { open, palette, sheet } from './f4-helpers';
 
-/** F4 · the keyboard-only pass, in English and Arabic (docs/DESIGN-SYSTEM-V4.md §8.4 gate 4): every control of the
+/** F4 · the keyboard-only pass (docs/DESIGN-SYSTEM-V4.md §8.4 gate 4): every control of the
  *  shell is reached by Tab in navigation order, shows a visible focus ring, and works from the keyboard; the
  *  palette, the sheet and the menu trap focus and give it back on Esc. Also reflow at 320 px and 200 % zoom. */
 
@@ -12,22 +12,19 @@ const focused = (page: Page) => page.evaluate(() => {
   return { name: el.getAttribute('aria-label') || el.textContent?.trim() || '', tag: el.tagName, ring: s.outlineStyle !== 'none' && s.outlineWidth !== '0px' };
 });
 
-const ORDER = {
-  en: ['Skip to content', 'Vewbox Studio, go to Shows', 'New…', 'Shows', 'Shorts', 'Music Videos', 'Characters', 'Locations', 'Files', 'Studio Company', 'Production', 'Screening Room', 'Settings', 'Help & shortcuts', 'Connected. Open the engine room in Production', 'Collapse the navigation'],
-  ar: ['انتقل إلى المحتوى', 'استوديو فيوبوكس، انتقل إلى المسلسلات', 'جديد…', 'المسلسلات', 'الأفلام القصيرة', 'الفيديوهات الموسيقية', 'الشخصيات', 'المواقع', 'الملفات', 'شركة الاستوديو', 'الإنتاج', 'غرفة العرض', 'الإعدادات', 'المساعدة والاختصارات', 'متصل. افتح غرفة المحركات في الإنتاج', 'اطوِ قائمة التنقّل'],
-} as const;
+const ORDER = ['Skip to content', 'Vewbox Studio, go to Shows', 'New…', 'Shows', 'Shorts', 'Music Videos', 'Characters', 'Locations', 'Files', 'Studio Company', 'Production', 'Screening Room', 'Settings', 'Help & shortcuts', 'Connected. Open the engine room in Production', 'Collapse the navigation'] as const;
 
-for (const lang of ['en', 'ar'] as const) {
-  test(`keyboard only (${lang}): Tab walks the shell in order with a visible ring; palette, sheet and collapse by keys`, async ({ page }) => {
-    await open(page, '/characters', { lang });
+{
+  test('keyboard only: Tab walks the shell in order with a visible ring; palette, sheet and collapse by keys', async ({ page }) => {
+    await open(page, '/characters');
     const seen: string[] = [];
-    for (let i = 0; i < ORDER[lang].length; i++) {
+    for (let i = 0; i < ORDER.length; i++) {
       await page.keyboard.press('Tab');
       const f = await focused(page);
       seen.push(f?.name ?? '');
       if (i > 0) expect(f?.ring, `focus ring on ${f?.name}`).toBe(true);
     }
-    expect(seen.map((s) => s.replace(/\s+/g, ' '))).toEqual(ORDER[lang]);
+    expect(seen.map((s) => s.replace(/\s+/g, ' '))).toEqual(ORDER);
     // the next Tab leaves the navigation for the page
     await page.keyboard.press('Tab');
     expect(await page.evaluate(() => Boolean(document.activeElement?.closest('main')))).toBe(true);
@@ -43,8 +40,8 @@ for (const lang of ['en', 'ar'] as const) {
     await page.keyboard.press('Control+k');
     await expect(palette(page)).toBeVisible();
     await expect(palette(page).getByRole('combobox')).toBeFocused();
-    await page.keyboard.type(lang === 'ar' ? 'المواقع' : 'locations');
-    await expect(palette(page).getByRole('option', { selected: true })).toContainText(lang === 'ar' ? 'المواقع' : 'Locations');
+    await page.keyboard.type('locations');
+    await expect(palette(page).getByRole('option', { selected: true })).toContainText('Locations');
     await page.keyboard.press('Enter');
     // (a dev server compiles a route on its first visit)
     await expect(page).toHaveURL(/\/locations$/, { timeout: 45_000 });

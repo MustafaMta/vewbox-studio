@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HOME, NAV_GROUPS, NAV_ITEMS, areaKey, currentItem, isActive } from '@/components/shell/nav-model';
 import { jobsTarget, libraryTarget, projectsTarget } from '@/components/shell/redirects';
-import { t } from '@/lib/i18n';
+import { T } from '@/lib/copy';
 
 /** docs/DESIGN-SYSTEM-V4.md §7.1 (primary navigation) and §7.2 (routes and redirects), package F4. */
 
@@ -16,12 +16,9 @@ describe('the primary navigation (§7.1)', () => {
     expect(NAV_ITEMS.at(-1)?.href).toBe('/settings');
   });
 
-  it('names every item and group in English and Arabic', () => {
-    for (const k of [...NAV_GROUPS.map((g) => g.label), ...NAV_ITEMS.map((i) => i.key)]) {
-      expect(t('en', k)).toBeTruthy();
-      expect(t('ar', k)).toMatch(/[؀-ۿ]/);
-    }
-    expect(t('en', 'screening.title')).toBe('Screening Room');
+  it('names every item and group', () => {
+    for (const k of [...NAV_GROUPS.map((g) => g.label), ...NAV_ITEMS.map((i) => i.key)]) expect(T(k)).toBeTruthy();
+    expect(T('screening.title')).toBe('Screening Room');
   });
 
   it('carries the needs-you count on Production only', () => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { IconOffline } from '@/components/ui/icons';
 import { fmtAgo } from '@/lib/format';
 import { useShellMaybe } from './context';
@@ -13,7 +13,6 @@ import { useShellMaybe } from './context';
  *  at once. While it shows, the page under it is dimmed to 0.7 (the data stays readable) and it adds its height to
  *  `--sticky-extra`. Live sections may say "Last known" with <LastKnown />. */
 export function ServerBar({ onHeight }: { onHeight?: (px: number) => void }) {
-  const T = useT();
   const { stream, reconnect } = useStudio();
   const [, tick] = useState(0);
   const [trying, setTrying] = useState(false);
@@ -30,7 +29,7 @@ export function ServerBar({ onHeight }: { onHeight?: (px: number) => void }) {
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (!trying) return; const t = setTimeout(() => setTrying(false), 1500); return () => clearTimeout(t); }, [trying]);
   const at = stream.lastDataAt;
-  const since = at === null ? T('shell.server.nothing') : Date.now() - at < 60_000 ? T('shell.server.justNow') : T.f('shell.server.since', { ago: fmtAgo(new Date(at), T.locale) });
+  const since = at === null ? T('shell.server.nothing') : Date.now() - at < 60_000 ? T('shell.server.justNow') : T.f('shell.server.since', { ago: fmtAgo(new Date(at)) });
   return (
     <div ref={ref} className="server-bar" role="status">
       <IconOffline aria-hidden className="server-bar-icon" />
@@ -42,7 +41,6 @@ export function ServerBar({ onHeight }: { onHeight?: (px: number) => void }) {
 
 /** "Last known", for a live section while the studio server cannot be reached (nothing otherwise). */
 export function LastKnown({ className = '' }: { className?: string }) {
-  const T = useT();
   const shell = useShellMaybe();
   if (!shell?.serverDown) return null;
   return <span className={`last-known ${className}`}>{T('shell.lastKnown')}</span>;

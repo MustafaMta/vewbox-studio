@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconCaptions, IconExitFullscreen, IconFullscreen, IconPause, IconPlay } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
@@ -15,11 +15,10 @@ import { useShortcutScope } from './useShortcutScope';
  *  in the product (§1.5), and solid `--chip-on-art` under `prefers-reduced-transparency`. Notes appear as iris ticks on
  *  the seek bar. Lights down: while playing, after 2 s idle, the transport fades and `onLights(true)` lets the page dim
  *  everything above the player; any pointer movement or focus brings them back (`onLights(false)`). Instant under
- *  reduced motion (the global rule). The transport is LTR in both languages. */
+ *  reduced motion (the global rule). The transport is LTR. */
 
 export const TheatrePlayer = forwardRef<PlayerHandle, { src: string; poster?: string; fps?: number | null; title?: string; captions?: CaptionTrack[]; notes?: Array<{ at: number; text: string }>; onAddNote?: (t: number) => void; onLights?: (down: boolean) => void; fileHref?: string; className?: string }>(
   function TheatrePlayer({ src, poster, fps, title, captions, notes, onAddNote, onLights, fileHref, className }, ref) {
-    const T = useT();
     const c = usePlayerCore({ src, fps });
     const [down, setDown] = useState(false);
     const [solid, setSolid] = useState(false);

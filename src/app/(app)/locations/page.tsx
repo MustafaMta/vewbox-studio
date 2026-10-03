@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { search } from '@/studio/selectors';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import type { Style } from '@/domain/vocabulary';
 import { LinkButton, Select } from '@/components/ui/kit';
 import { Empty } from '@/components/ui/cinema';
@@ -15,7 +15,6 @@ import { IconLocations, IconPlus } from '@/components/ui/icons';
 
 /** LOCATIONS — wide plates that say what each place is; one action: Add location. */
 export default function LocationsPage() {
-  const T = useT();
   const { state } = useStudio();
   const [q, setQ] = useState(''); const [style, setStyle] = useState<Style | ''>(''); const [kind, setKind] = useState<'' | 'INTERIOR' | 'EXTERIOR'>(''); const [sort, setSort] = useState<'recent' | 'title'>('title');
   const items = sortItems(search(state.locations, q).filter((l) => (!style || l.style === style) && (!kind || l.kind === kind)), sort);

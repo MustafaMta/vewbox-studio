@@ -3,7 +3,7 @@ import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
 import { appearanceLock, type AppearanceLock } from '@/domain/rules';
 import { canonicalCheckFailed, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
-import type { Key } from '@/lib/i18n';
+import type { Key } from '@/lib/copy';
 import { jobSecondary, usageImageVersion, voiceExtras, type SecondaryKind, type VoiceListening, type VoiceOrigin } from './contract';
 
 /** THE CAST PROFILE'S VIEW-MODEL — pure functions over a character, its assets and the jobs, so every page reads the

@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { deptName, useOrg } from '@/studio/org';
+import { useOrg } from '@/studio/org';
 import { handoffPair } from '@/studio/company';
 import { useStudio } from '@/studio/store';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { PageHeader } from '@/components/ui/page';
 import { Button, Notice } from '@/components/ui/kit';
 import { CompanySpine, CompanyStage, EdgeLegend, RecentHandoffs, StageSkeleton, orchestratorLine, useCompany, type Selection } from '@/components/studio/Company';
@@ -19,7 +19,6 @@ const VIEW_KEY = 'vewbox.company.view';
  *  exists only where a handoff was recorded. Reliability lives on Production. "View as list" (remembered) shows
  *  the spine at any width; `?select=CASTING` opens with that department selected. */
 export default function StudioPage() {
-  const T = useT();
   const router = useRouter();
   const { connected } = useStudio();
   const { data: org, error, reload, at } = useOrg();
@@ -45,7 +44,7 @@ export default function StudioPage() {
     const h = fresh[0];
     const pair = h ? handoffPair(h) : null;
     if (!h || !pair || Date.now() - lastSaid.current < 10_000) return;
-    const name = (id: string) => { const d = org.departments.find((x) => x.id === id); return d ? deptName(d, T.locale) : id; };
+    const name = (id: string) => { const d = org.departments.find((x) => x.id === id); return d ? d.name : id; };
     lastSaid.current = Date.now();
     setAnnounce(T.f('co.announce', { from: name(pair.from), stage: T.dyn(`pipeline.${h.stage}`, h.stage), to: name(pair.to) }));
   }, [org]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -55,7 +54,7 @@ export default function StudioPage() {
   if (!org || !company) return (
     <>{header}<div className="co-layout" aria-busy><StageSkeleton /><div className="panel hidden space-y-3 p-5 md:block"><div className="skeleton h-6 w-48" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line-short" /></div></div></>
   );
-  const lastKnown = error && at ? fmtAgo(new Date(at).toISOString(), T.locale) : null;
+  const lastKnown = error && at ? fmtAgo(new Date(at).toISOString()) : null;
   const open = (id: string) => router.push(`/studio/departments/${id}`);
   const orchestratorPanel = (
     <section className="panel p-4" aria-labelledby="co-orch-h">

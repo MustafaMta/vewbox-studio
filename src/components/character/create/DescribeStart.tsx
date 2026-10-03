@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { SEXES, type Sex } from '@/domain/vocabulary';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { Button, Details, Dropzone, Field, Input, Segmented, Textarea } from '@/components/ui/kit';
 import { IconAuto, IconVoice } from '@/components/ui/icons';
 import { fmtSeconds } from '@/lib/format';
@@ -20,7 +20,6 @@ export interface DescribeRecording { file: File; seconds: number | null }
  *  The voice is honest: with no studio voice bank, a voice comes only from a recording — add one now (it is checked
  *  as soon as the character exists and the voice is built from it), or later on the profile. */
 export function DescribeStart({ value, onChange, recording, onRecording, onSubmit, busy, disabledReason, onCancel, settings }: { value: DescribeValues; onChange: (v: DescribeValues) => void; recording: DescribeRecording | null; onRecording: (r: DescribeRecording | null) => void; onSubmit: () => void; busy?: boolean; /** the preflight's reason the primary is disabled, shown in the form (never only a tooltip) */ disabledReason?: string | null; onCancel: () => void; settings: ReactNode }) {
-  const T = useT();
   const [touched, setTouched] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [exact, setExact] = useState(Boolean(value.ageYears));
@@ -78,7 +77,6 @@ export function DescribeStart({ value, onChange, recording, onRecording, onSubmi
 /** The panel's footer (§9.5): the time estimate — or the reason the action cannot run — sits before the actions on
  *  the same row; on a phone it is a sticky bar that never covers the focused field. */
 export function Footer({ reason, estimate, onCancel, cancelLabel, primary, secondary }: { reason?: ReactNode; estimate?: ReactNode; onCancel: () => void; cancelLabel?: ReactNode; primary: ReactNode; secondary?: ReactNode }) {
-  const T = useT();
   return (
     <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex flex-wrap items-center justify-end gap-2 border-t border-line-soft bg-surface px-4 py-3 sm:static sm:m-0 sm:p-0 sm:pt-5">
       {reason ? <p className="me-auto min-w-0 basis-full text-[13px] text-warn sm:basis-auto" role="status">{reason}</p> : estimate ? <p className="me-auto min-w-0 basis-full text-[13px] text-faint sm:basis-auto">{estimate}</p> : null}

@@ -106,7 +106,6 @@
 
   /* ---- the canvas player (cutting room) and the edit buttons ------------------------------------------------- */
   .ebtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; block-size: var(--control-h-sm); padding-inline: 10px; border: 1px solid transparent; border-radius: var(--r-1); background: transparent; color: var(--fg-body); font: inherit; font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
-  html[dir='rtl'] .ebtn { font-size: 14px; }
   .ebtn:hover:not(:disabled) { background: var(--raised-2); color: var(--fg); }
   .ebtn:disabled { color: var(--fg-disabled); cursor: not-allowed; }
   .ebtn[aria-pressed='true'] { background: var(--raised-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }

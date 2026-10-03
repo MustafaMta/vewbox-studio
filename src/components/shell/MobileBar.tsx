@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useT } from '@/components/ui/locale';
+import { T } from '@/lib/copy';
 import { BrandTile } from '@/components/ui/brand';
 import { IconMenu, IconPlus } from '@/components/ui/icons';
 import { HOME, areaKey } from './nav-model';
@@ -15,7 +15,6 @@ import { NavFooter, NavGroups, NewButton } from './Sidebar';
  *  and the menu. The menu is a full-height sheet with the same groups in the same order as the sidebar, then the
  *  footer: Settings, Help & shortcuts, SaveState and the connection. */
 export function MobileBar() {
-  const T = useT();
   const pathname = usePathname() ?? '/';
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [pathname]);
