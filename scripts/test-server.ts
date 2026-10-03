@@ -29,6 +29,9 @@ const env: NodeJS.ProcessEnv = {
   VEWBOX_ALLOW_RESET: '1',
   STUDIO_SAMPLE_FIXTURE: '1',
   NEXT_DIST_DIR: '.next-test',
+  // the QA journeys seed worker results (a canonical image, a take) through the API as fixtures: on their test
+  // server only, system commands are accepted (src/app/api/commands/route.ts)
+  ...(process.env.QA_JOURNEYS === '1' ? { STUDIO_LEGACY_COMMANDS: '1' } : {}),
 };
 // `next dev` with another build folder rewrites next-env.d.ts (and, if it wants another include, tsconfig.json) to
 // point at it; the checkout keeps the committed versions — whatever Next writes is put back

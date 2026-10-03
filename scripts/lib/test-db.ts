@@ -1,29 +1,16 @@
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { readEnvFiles } from './env-files';
 import { assertNotLiveDatabase, databaseName, markTestLibrary, testDatabaseUrl, withDatabase } from '../../src/server/test-guard';
 
 /** THE TEST DATABASE AND LIBRARY (docs/BACKEND-AUDIT-2026-10.md step 1), shared by the vitest worker/API setups and
  *  `pnpm test:server`. The database is TEST_DATABASE_URL, or DATABASE_URL (from the shell, .env, .env.local) with its
  *  name changed to `vewbox_test`; it is created when missing and migrated. The live `vewbox` is refused. */
 
-/** .env then .env.local (later files win), WITHOUT touching process.env: a live DATABASE_URL in a file is only ever
- *  used to derive the test URL from. */
-export function readEnvFiles(dir = process.cwd()): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const f of ['.env', '.env.local']) {
-    try {
-      for (const line of fs.readFileSync(path.join(dir, f), 'utf8').split(/\r?\n/)) {
-        const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-        if (m) out[m[1]] = m[2].replace(/^"(.*)"$/, '$1');
-      }
-    } catch { /* optional */ }
-  }
-  return out;
-}
+export { readEnvFiles };
 
 /** The test database URL for this checkout (files, then the shell). */
 export function resolveTestDatabaseUrl(): string {
