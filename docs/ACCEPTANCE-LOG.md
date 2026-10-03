@@ -21,6 +21,21 @@ browser, with the evidence it produced. Defects found are listed with their fix 
   storm, Clara? 32 ships came home that night." (correct speech); CER 0.14 only because "Thirty-two" was written "32";
   −19.1 LUFS, TP −2.18 dBTP, 0 clipped, seed-to-line similarity 0.80.
 
+## A2 — Anime character, Manual ("Write the sheet"), English — 2026-10-03
+
+- Sheet: Hana Mori, woman, teen band (16), "A seventeen-year-old courier who races messages across a rain-soaked
+  harbour city on her bicycle"; look written by the producer incl. an asymmetric detail ("a single teal streak on her
+  left side", "a courier bag strapped across her right shoulder"); voice high/quick; Anime; "Create and draw".
+  Character `char-9b904cf79c`. Chain: design → image (102.8 s total) → voice skipped ("no voice requested").
+- v1 `gen-4e66ceb421` (framing check ok): head to feet, neutral grey, wardrobe as written (yellow rain jacket, grey
+  hoodie, black cargo shorts + knee pads, red high-tops, bag strap over her right shoulder) ✓. Misses: teal streak on
+  her RIGHT ✗ (known ~2/3 one-sided reliability); style reads as Western comic illustration more than clean cel anime
+  (partial); Casting added a scar, freckles, a phoenix tattoo and "Mori Express" logos (from the designed wardrobe text;
+  the image followed the sheet); a star logo on the sneakers resembles a real brand mark ✗.
+- **Redraw** through the profile ("Redraw image") → v2 `gen-862c1580b5` DRAFT version 2; v1 retiered RAW (never shown) ✓.
+  v2: same character, same misses (streak on her right; comic-like style) — consistent, so the style gap is the
+  pipeline's, not a seed's. Fed to the FLUX vs Qwen comparison (anime style fidelity).
+
 ### Defects found in A1
 
 | # | Defect | Status |
@@ -33,3 +48,6 @@ browser, with the evidence it produced. Defects found are listed with their fix 
 | D6 | Profile "Who" row shows "Human" (species) instead of sex · age when the design step fills species | fixed `17bedc5` (`nonHumanSpecies`; design stores none for people; tests) |
 | D7 | Voice panel copy: "No voice yet. Record or upload…" contradicts the Automatic option; the Automatic help still says "(… personality)" though personality is no longer used | fixed `2255c1a` |
 | D8 | English voice check does not normalise numbers ("Thirty-two" vs "32") → false CER | fixed `d8d5897` (digits spelled as words on both sides; near misses stay close; tests incl. the real preview line) |
+| D9 | "Write the sheet" voice step says "The voice itself is built from a recording on the profile" — ignores the automatic and design ways | open |
+| D10 | Anime style fidelity: two draws of an Anime character came out comic-illustrative rather than cel anime | open — FLUX vs Qwen A/B and prompt review |
+| D11 | Casting's design invents brand-like logos/text on clothing ("Mori Express", a star sneaker mark resembling a real brand) | open — design prompt: no logos, lettering or brand marks unless the producer asks |
