@@ -44,15 +44,17 @@ test.describe('the sidebar at 1440', () => {
     expect(await page.evaluate(() => Boolean(document.activeElement?.closest('main')))).toBe(true);
   });
 
-  test('the brand glyph is monochrome ivory; the violet mark is only the favicon', async ({ page }) => {
+  // DS-1 (DESIGN-SYSTEM-V5 §1.4, §2.1): v5 values; the favicon is the viewfinder glyph, violet is retired everywhere
+  test('the brand glyph is monochrome ivory; the favicon is the ivory viewfinder glyph, never violet', async ({ page }) => {
     await open(page, '/shows');
     const tile = nav(page).locator('.brand-tile');
     const look = await tile.evaluate((el) => { const s = getComputedStyle(el); const svg = el.querySelector('svg')!; return { color: s.color, bg: s.backgroundColor, stroke: svg.getAttribute('stroke'), gradients: el.querySelectorAll('linearGradient, radialGradient').length, fills: [...svg.querySelectorAll('[fill]')].map((n) => n.getAttribute('fill')) }; });
-    expect(look).toEqual({ color: 'rgb(243, 238, 230)', bg: 'rgb(34, 32, 30)', stroke: 'currentColor', gradients: 0, fills: [] });
+    expect(look).toEqual({ color: 'rgb(243, 239, 232)', bg: 'rgb(32, 32, 30)', stroke: 'currentColor', gradients: 0, fills: [] });
     expect(await page.locator('main').evaluate(() => document.querySelectorAll('body linearGradient[id], body radialGradient').length)).toBe(0);
     const icon = await page.locator('link[rel="icon"]').getAttribute('href');
     expect(icon).toMatch(/^data:image\/svg\+xml,/);
-    expect(decodeURIComponent(icon!)).toContain('#6A57EE');
+    expect(decodeURIComponent(icon!)).toContain('#F3EFE8');
+    expect(decodeURIComponent(icon!)).not.toMatch(/#6A57EE|#8B7BF8|#4A3AD0|linearGradient/i);
   });
 
   test('Ctrl+\\ folds the sidebar to the rail and back, and the choice is kept for the next page', async ({ page }) => {
@@ -338,7 +340,7 @@ test.describe('the room (§2.3)', () => {
     await open(page, '/shows');
     await expect(page.locator('.shell-column')).toHaveAttribute('data-room', 'lobby');
     await expect(page.locator('.shell-column > main#main')).toHaveCount(1);
-    expect(await page.locator('.shell-column').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(13, 12, 11)');
+    expect(await page.locator('.shell-column').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(10, 10, 9)'); // --carbon-2 (DS-1)
   });
 });
 

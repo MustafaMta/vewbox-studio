@@ -212,7 +212,7 @@ test.describe('the specimen page', () => {
     await contrast.getByRole('radio', { name: 'More' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-contrast', 'more');
     const muted = await page.locator('.text-muted').first().evaluate((el) => getComputedStyle(el).color);
-    expect(muted).toBe('rgb(221, 214, 203)'); // --fg-muted is raised to --ink-200 (tokens.css)
+    expect(muted).toBe('rgb(216, 212, 204)'); // --fg-muted is raised to body text, --carbon-11 (tokens.css, DS-1)
     await contrast.getByRole('radio', { name: 'As the system' }).click();
     await expect(page.locator('html')).not.toHaveAttribute('data-contrast', /.+/);
   });
