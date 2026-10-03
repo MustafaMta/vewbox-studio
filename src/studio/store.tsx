@@ -9,6 +9,7 @@ import { hashState } from '@/domain/hash';
 import { StudioError, isStudioError } from '@/domain/errors';
 import { type Job, type JobPayload, type JobType, isActiveStatus } from '@/domain/jobs';
 import { api, type Capabilities, type StartedJob } from './api';
+import { JOB_LIST_LIMIT, applyJobEvent, jobEventNeedsReload, mergeJob, type JobEvent } from './job-list';
 
 /** THE STORE — the studio as the server holds it, mirrored in React state. Every change is a named command: it is
  *  applied here at once (so the interface never waits) and sent to the server in small batches, where the same
@@ -93,7 +94,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const scheduleRefresh = useCallback((ms = 150) => { if (refreshTimer.current) clearTimeout(refreshTimer.current); refreshTimer.current = setTimeout(() => { refreshTimer.current = null; void refresh(); }, ms); }, [refresh]);
 
-  const loadJobs = useCallback(async () => { try { setJobs(await api.jobs({ limit: 300 })); } catch { /* shown by connected flag */ } }, []);
+  const loadJobs = useCallback(async () => { try { setJobs(await api.jobs({ limit: JOB_LIST_LIMIT })); } catch { /* shown by connected flag */ } }, []);
   const scheduleJobs = useCallback((ms = 250) => { if (jobsTimer.current) clearTimeout(jobsTimer.current); jobsTimer.current = setTimeout(() => { jobsTimer.current = null; void loadJobs(); }, ms); }, [loadJobs]);
 
   const flush = useCallback(async () => {
@@ -151,7 +152,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           if (!ours || landedAfterOurSnapshot) scheduleRefresh(); else bumpVersion(e.version);
         } catch { /* ignore */ }
       });
-      es.addEventListener('job', () => scheduleJobs());
+      // each job event carries the row (src/server/events.ts): merged in place, no reload of the list
+      es.addEventListener('job', (ev) => {
+        let e: JobEvent = {};
+        try { e = JSON.parse((ev as MessageEvent).data) as JobEvent; } catch { /* reload below */ }
+        if (jobEventNeedsReload(e)) scheduleJobs(); else setJobs((js) => applyJobEvent(js, e));
+      });
       es.addEventListener('activity', () => setActivityTick((t) => t + 1));
       es.onerror = () => { setConnected(false); es?.close(); es = null; if (!closed) setTimeout(open, backoff); backoff = Math.min(30_000, backoff * 2); };
     };
@@ -189,13 +195,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
     const r = await api.startJob(type, payload, opts);
-    setJobs((js) => (js.some((j) => j.id === r.job.id) ? js.map((j) => (j.id === r.job.id ? r.job : j)) : [r.job, ...js]));
+    setJobs((js) => mergeJob(js, r.job));
     // the preflight's warnings travel with the job to the page that started it
     return r.warnings?.length ? { ...r.job, warnings: r.warnings } : r.job;
   }, []);
-  const cancelJob = useCallback(async (id: string) => { const j = await api.cancelJob(id); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; }, []);
+  const cancelJob = useCallback(async (id: string) => { const j = await api.cancelJob(id); setJobs((js) => mergeJob(js, j)); return j; }, []);
   // a refused retry (a non-transient failure needs a stated change) is shown, not swallowed by a `void` caller
-  const retryJob = useCallback(async (id: string, changeMade?: string) => { try { const j = await api.retryJob(id, changeMade); setJobs((js) => js.map((x) => (x.id === id ? j : x))); return j; } catch (e) { raise((e as { code?: string }).code ?? 'UNAVAILABLE', (e as Error).message); throw e; } }, [raise]);
+  const retryJob = useCallback(async (id: string, changeMade?: string) => { try { const j = await api.retryJob(id, changeMade); setJobs((js) => mergeJob(js, j)); return j; } catch (e) { raise((e as { code?: string }).code ?? 'UNAVAILABLE', (e as Error).message); throw e; } }, [raise]);
 
   const clearError = useCallback(() => setLastError(null), []);
   const modified = ready && version !== seedVersion;

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Job } from '@/domain/jobs';
-import { isActiveStatus, isTerminalStatus } from '@/domain/jobs';
+import { isActiveStatus } from '@/domain/jobs';
 import { isStudioError } from '@/domain/errors';
 import { useStudio } from '@/studio/store';
 import { api, type StartedJob } from '@/studio/api';
@@ -59,7 +59,7 @@ export function CreateCharacter() {
   const [sheet, setSheet] = useState<SheetValues>(EMPTY_SHEET);
   const [sheetStep, setSheetStep] = useState<SheetStep>('identity');
   const [parentId, setParentId] = useState<string | null>(null);
-  const [polled, setPolled] = useState<Job | null>(null);
+  const [fetched, setFetched] = useState<Job | null>(null);
   const [retries, setRetries] = useState<Partial<Record<CreateStepName, string>>>({});
   const [lastPayload, setLastPayload] = useState<CreateCharacterPayload | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,21 +91,20 @@ export function CreateCharacter() {
   // when a show is chosen, its look and language are the defaults
   useEffect(() => { if (forShow) setHeader((h) => ({ ...h, style: forShow.style, language: forShow.language, dialect: forShow.dialect ?? h.dialect })); }, [forShow]);
 
-  // the parent job: from the store's job list (the event stream) and, while it runs, from GET /api/jobs/{id}
+  // the parent job: the store's copy, which the event stream keeps current (each job event carries the row); read once
+  // from GET /api/jobs/{id} when the page (re)opens on a remembered job, which may be older than the store's list
   const fromStore = parentId ? jobs.find((j) => j.id === parentId) : undefined;
-  const parent = useMemo(() => [fromStore, polled].filter((j): j is Job => Boolean(j) && j!.id === parentId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0], [fromStore, polled, parentId]);
+  const parent = useMemo(() => [fromStore, fetched].filter((j): j is Job => Boolean(j) && j!.id === parentId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0], [fromStore, fetched, parentId]);
   useEffect(() => {
-    if (!parentId) { setPolled(null); return; }
+    if (!parentId) { setFetched(null); return; }
     let on = true;
     // a remembered job the server no longer has (removed by a reset or a cleanup) is forgotten, never shown as running
-    const tick = () => api.job(parentId).then((r) => { if (on) setPolled(r.job); }).catch((e: unknown) => {
-      if (on && isStudioError(e) && e.code === 'NOT_FOUND') { setParentId(null); setPolled(null); writeDraft({ ...readDraft(), jobId: undefined }); }
+    api.job(parentId).then((r) => { if (on) setFetched(r.job); }).catch((e: unknown) => {
+      if (on && isStudioError(e) && e.code === 'NOT_FOUND') { setParentId(null); setFetched(null); writeDraft({ ...readDraft(), jobId: undefined }); }
       /* otherwise the store's copy still updates */
     });
-    tick();
-    const t = setInterval(() => { if (parent && isTerminalStatus(parent.status) && !Object.keys(retries).length) return; tick(); }, 3000);
-    return () => { on = false; clearInterval(t); };
-  }, [parentId, parent?.status, retries]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { on = false; };
+  }, [parentId]);
 
   const steps = useMemo(() => creationSteps(parent, jobs, retries), [parent, jobs, retries]);
   const characterId = createdCharacterId(parent, jobs);
@@ -158,7 +157,7 @@ export function CreateCharacter() {
     try {
       const job = await startCreateCharacter(startJob, payload);
       say(job);
-      setLastPayload(payload); setRetries({}); setPolled(null); setParentId(job.id);
+      setLastPayload(payload); setRetries({}); setFetched(null); setParentId(job.id);
       setVoiceUpload(withRecording ? { forJob: job.id, state: 'waiting' } : null);
       draft.current = { ...draft.current, referenceAssetId: payload.referenceAssetId };
       writeDraft({ ...readDraft(), jobId: job.id, referenceAssetId: payload.referenceAssetId });
@@ -207,7 +206,7 @@ export function CreateCharacter() {
   };
   const writeMyself = () => { setSheet((s) => ({ ...s, name: lastPayload?.name ?? describe.name, look: lastPayload?.brief ?? describe.brief })); setSheetStep('identity'); reset(); setStart('sheet'); };
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
-  const reset = () => { setParentId(null); setPolled(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
+  const reset = () => { setParentId(null); setFetched(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
   const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok(T('toast.deleted')); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const drawAgain = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); say(job); setRetries((r) => ({ ...r, image: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 
