@@ -136,6 +136,7 @@
   .tplayer .pvideo { background: var(--surround); }
   .tplayer-transport { position: absolute; z-index: 2; inset-inline: var(--space-4); inset-block-end: var(--space-4); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: var(--r-3); background: color-mix(in srgb, var(--gray-1000) 55%, transparent); transition: opacity var(--t-fast) var(--ease); }
   .tplayer[data-solid] .tplayer-transport { background: var(--chip-on-art); }
+  .tplayer:has(.pfail) .tplayer-transport { display: none; }
   .tplayer[data-lights='down'] .tplayer-transport { opacity: 0; transition: opacity var(--t-lights) var(--ease-standard); }
   .tplayer[data-lights='down'] { cursor: none; }
   .tplayer:focus-visible .tplayer-transport, .tplayer:has(:focus-visible) .tplayer-transport { opacity: 1; }

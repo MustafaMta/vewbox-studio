@@ -32,10 +32,10 @@ export function Inspector({ kind, name, nameLang, count, sections = [], details,
             </>}
           </header>
           {sections.map((s) => (
-            <section key={s.id} className="insp-sec" aria-label={typeof s.title === 'string' ? s.title : undefined}>
+            <div key={s.id} className="insp-sec">
               <h3 className="insp-sec-title">{s.title}</h3>
               {s.content}
-            </section>
+            </div>
           ))}
           {details && <details className="details insp-details"><summary>{T('media.inspector.details')}</summary><div className="insp-details-body">{details}</div></details>}
         </>

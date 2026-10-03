@@ -41,7 +41,7 @@ export const InlinePlayer = forwardRef<PlayerHandle, InlinePlayerProps>(function
         {c.failed ? <MediaFailure onRetry={c.retry} fileHref={fileHref ?? src} />
           : !c.started && <button type="button" className="pdisc iplayer-start" data-size={56} data-tone="chip" aria-hidden tabIndex={-1} onClick={c.toggle}><IconPlay className="pdisc-play" /></button>}
       </div>
-      <div className="iplayer-controls" dir="ltr" role="group" aria-label={T('media.player.transport')}>
+      {!c.failed && <div className="iplayer-controls" dir="ltr" role="group" aria-label={T('media.player.transport')}>
         <SeekBar time={c.time} duration={c.duration} step={c.frame} onSeek={c.seek} label={T('misc.seek')} tone="video" disabled={!c.ready} />
         <div className="iplayer-row">
           <button type="button" className="vbtn" aria-label={c.playing ? T('misc.pause') : T('misc.play')} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
@@ -55,7 +55,7 @@ export const InlinePlayer = forwardRef<PlayerHandle, InlinePlayerProps>(function
           {(c.hasCaptions || (captions && captions.length > 0)) && <button type="button" className="vbtn" aria-label={T('player.captions')} aria-pressed={c.cc} onClick={c.toggleCc}><IconCaptions aria-hidden /></button>}
           <button type="button" className="vbtn" aria-label={c.full ? T('player.exitFullscreen') : T('player.fullscreen')} onClick={c.fullscreen}>{c.full ? <IconExitFullscreen aria-hidden /> : <IconFullscreen aria-hidden />}</button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 });
