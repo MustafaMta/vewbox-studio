@@ -383,15 +383,6 @@ export function setPendingReference(s: S, id: string, assetId: string | undefine
   return writeCharacter(s, id, { pendingReference: assetId ? { assetId, addedAt: now(), validation } : undefined });
 }
 
-/** The studio drew the character: a new portrait and, optionally, a fresh set of reference views. Refused when
- *  locked. The pending reference is consumed. */
-export function setCharacterAppearance(s: S, id: string, input: { portraitAssetId: string; refs?: CharacterRef[]; keepExistingRefs?: boolean }): S {
-  const c = mustFind(s.characters, id, 'Character');
-  if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`, { characterId: id });
-  const refs = input.keepExistingRefs ? [...c.refs, ...(input.refs ?? [])] : (input.refs ?? c.refs.filter((r) => r.assetId !== c.portraitAssetId));
-  return writeCharacter(s, id, { portraitAssetId: input.portraitAssetId, refs, pendingReference: undefined });
-}
-
 /** Add reference views the studio drew for a character (front, side, …). Refused when locked. */
 export function addCharacterRefs(s: S, id: string, refs: CharacterRef[]): S {
   const c = mustFind(s.characters, id, 'Character');

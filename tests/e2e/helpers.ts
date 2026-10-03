@@ -64,8 +64,8 @@ export async function settled(page: Page) {
 export type Snap = StudioState;
 export type { Asset, Character, Job };
 
-/** Generous ceilings for real generation (a portrait ~30 s, a sheet ~2 min, a voice ~1 min, a take 2–8 min). */
-export const WAIT = { design: 3 * 60_000, portrait: 4 * 60_000, sheet: 8 * 60_000, voice: 6 * 60_000, preview: 4 * 60_000, take: 12 * 60_000, create: 16 * 60_000 } as const;
+/** Generous ceilings for real generation (the canonical image ~1 min, a voice ~1 min, a take 2–8 min). */
+export const WAIT = { design: 3 * 60_000, image: 6 * 60_000, voice: 6 * 60_000, preview: 4 * 60_000, take: 12 * 60_000, create: 16 * 60_000 } as const;
 
 export const GPU = process.env.QA_GPU === '1';
 export const EVIDENCE_DIR = path.join('docs', 'evidence', 'qa');

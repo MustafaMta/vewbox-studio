@@ -20,8 +20,8 @@ export type CreateStepName = 'design' | 'image' | 'voice';
 export const CREATE_STEPS: readonly CreateStepName[] = ['design', 'image', 'voice'];
 /** The child job each step runs. */
 export const STEP_JOB: Record<CreateStepName, JobType> = { design: 'DESIGN_CHARACTER', image: 'CHARACTER_APPEARANCE', voice: 'VOICE_BUILD' };
-/** PENDING-BACKEND: the wave-2 chain reported 'appearance' (the portrait) and 'sheet' (reference views). 'appearance'
- *  is the image step; the sheet is no longer part of creation, so a 'sheet' outcome is not a row of the stepper. */
+/** The worker names the image step 'appearance' (CHARACTER_APPEARANCE draws the canonical image); results the wave-2
+ *  chain stored in the database may also name a 'sheet' step, which is no longer part of creation and is dropped. */
 export function normaliseStep(step: string): CreateStepName | null {
   if (step === 'appearance' || step === 'front') return 'image';
   return (CREATE_STEPS as readonly string[]).includes(step) ? (step as CreateStepName) : null;

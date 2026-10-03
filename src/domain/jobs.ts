@@ -11,7 +11,7 @@ export const JOB_TYPES = [
   'WRITE_SCRIPT',       // synopsis → scenes, beats, lines
   'PLAN_SHOTS',         // scenes → shots with continuity
   'CHARACTER_APPEARANCE', // description (+ reference) → portrait
-  'CHARACTER_REFS',     // portrait → reference pack
+  'CHARACTER_REFS',     // optional secondary material on request (expressions, outfits); never part of creation
   'LOCATION_PLATES',    // description → master plate + views
   'SHOT_FRAMES',        // shot + refs → opening (and ending) frame
   'GENERATE_TAKE',      // shot → MiniMax video → validated take
@@ -25,7 +25,7 @@ export const JOB_TYPES = [
   'MEDIA_PROBE',        // validate an uploaded file
   'EPISODE_CONTINUITY', // a finished episode → the show's timeline, relationships and open storylines (Continuity Writer)
   'DESIGN_CHARACTER',   // a one-line brief → a fully designed character record (Casting)
-  'CREATE_CHARACTER',   // orchestrate: design (when fields are missing) → appearance → reference sheet → voice (Casting Director)
+  'CREATE_CHARACTER',   // orchestrate: design (when fields are missing) → the canonical image → voice (Casting Director)
   'VOICE_DESIGN',       // character + description → 3 designed candidate voices, measured and previewed through the line engine
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
@@ -185,6 +185,8 @@ export const JOB_LABELS: Record<JobType, { en: string; ar: string }> = {
 };
 
 /** The steps of CREATE_CHARACTER and what each one reported (contract §1.1). */
-export type CreateCharacterStep = 'design' | 'appearance' | 'sheet' | 'voice';
+/** The chain's steps (contract v2): 'appearance' is the canonical-image step. Results stored by the wave-2 chain may
+ *  still name a 'sheet' step; the page drops it (components/character/contract.ts normaliseStep). */
+export type CreateCharacterStep = 'design' | 'appearance' | 'voice';
 export interface CreateCharacterStepOutcome { step: CreateCharacterStep; status: 'done' | 'skipped' | 'failed'; jobId?: string; reason?: string; failureClass?: string }
 export interface CreateCharacterResult { characterId: string; steps: CreateCharacterStepOutcome[] }

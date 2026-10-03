@@ -14,8 +14,8 @@ const literalPhases = (text: string) => Array.from(text.matchAll(/phase: '([a-z 
 describe('jp.<phase> keys', () => {
   const phases = new Set<string>([
     ...['worker/handlers/voice.ts', 'worker/handlers/images.ts', 'worker/handlers/character.ts', 'server/jobs/queue.ts'].flatMap((f) => literalPhases(source(f))),
-    // CREATE_CHARACTER reports its step names as the phase; the queue sets these on completion
-    'design', 'appearance', 'sheet', 'voice', 'done', 'awaiting review',
+    // CREATE_CHARACTER reports its step names as the phase (contract v2: no sheet step); the queue sets these on completion
+    'design', 'appearance', 'voice', 'done', 'awaiting review',
     // DESIGN_CHARACTER (the creation's first child)
     'designing',
   ]);

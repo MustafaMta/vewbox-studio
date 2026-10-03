@@ -1168,7 +1168,6 @@ const D = {
   'jp.design': ['Designing', 'التصميم'],
   'jp.designing': ['Designing', 'التصميم'],
   'jp.appearance': ['Drawing the portrait', 'رسم الصورة الشخصية'],
-  'jp.sheet': ['Drawing the reference sheet', 'رسم الورقة المرجعية'],
   'jp.voice': ['Building the voice', 'بناء الصوت'],
   'jp.drawing': ['Drawing', 'الرسم'],
   'jp.cloning': ['Cloning the voice', 'استنساخ الصوت'],
