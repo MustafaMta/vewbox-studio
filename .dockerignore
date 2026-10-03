@@ -1,3 +1,5 @@
+# The build context every image is built from (compose: `context: .`). The worker image copies the whole context
+# into its runtime layer, so what is left here ships. Patterns are relative to the repository root.
 node_modules
 .next
 .git
@@ -9,4 +11,18 @@ playwright-report
 !.env.example
 *.tsbuildinfo
 .DS_Store
-docs/screenshots
+
+# Agent worktrees and local tool state: gigabytes, never part of an image.
+.claude
+
+# Documentation, research and evidence screenshots are read by people, not by any image. Nothing at run time reads
+# docs/ (agent and skill texts only cite those paths).
+docs
+
+# Browser tests and prototype-era tooling run on the host. KEEP tests/unit/: a skill's status is computed at run time
+# from whether its `verifiedBy` test files exist (src/server/org/skills.ts computeSkillStatus); without them the
+# worker would demote every VERIFIED skill to DRAFT. Also kept on purpose: skills/ (the SKILL.md files the worker
+# reads), docker/models/manifest.json (the model registry), drizzle/ (migrations), scripts/ (operations, e.g.
+# scripts/studio-intake.ts), src/, public/, tsconfig.json (tsx resolves the @/ alias with it).
+tests/e2e
+tools
