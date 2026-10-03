@@ -9,7 +9,7 @@ import { MediaSection } from './specimens/MediaSection';
 import { PlayersSection } from './specimens/PlayersSection';
 import { EditSection } from './specimens/EditSection';
 
-export function MediaSpecimens() {
+export function MediaSpecimens({ only }: { /** one section alone (the capture of a single section) */ only?: 'media' | 'players' | 'edit' } = {}) {
   const root = useRef<HTMLDivElement>(null);
   // a specimen page is captured whole (full-page screenshots never scroll lazy pictures into view): load them all
   useEffect(() => {
@@ -21,9 +21,9 @@ export function MediaSpecimens() {
   }, []);
   return (
     <div ref={root} className="spec">
-      <MediaSection />
-      <PlayersSection />
-      <EditSection />
+      {(!only || only === 'media') && <MediaSection />}
+      {(!only || only === 'players') && <PlayersSection />}
+      {(!only || only === 'edit') && <EditSection />}
     </div>
   );
 }

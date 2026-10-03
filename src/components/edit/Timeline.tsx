@@ -48,8 +48,9 @@ export function Timeline({ duration, fps = 24, time, onSeek, clips, dialogue = [
   const zoom = (k: number) => setPps(Math.max(fit, Math.min(400, scale * k)));
   const select = (id: string, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
     if (!onSelect) return;
-    if (e.shiftKey && anchor.current) {
-      const a = clips.findIndex((c) => c.id === anchor.current), b = clips.findIndex((c) => c.id === id);
+    const from = anchor.current ?? selected[0];
+    if (e.shiftKey && from) {
+      const a = clips.findIndex((c) => c.id === from), b = clips.findIndex((c) => c.id === id);
       const [lo, hi] = a < b ? [a, b] : [b, a];
       onSelect(clips.slice(lo, hi + 1).map((c) => c.id));
     } else if (e.ctrlKey || e.metaKey) { anchor.current = id; onSelect(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]); }
