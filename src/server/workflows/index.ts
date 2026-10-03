@@ -14,8 +14,6 @@ export const MODELS = {
   qwenLightning: 'Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors',
   qwenClip: 'qwen_2.5_vl_7b_fp8_scaled.safetensors',
   qwenVae: 'qwen_image_vae.safetensors',
-  /** fal's 96-pose camera LoRA for Edit-2511 (`<sks> {azimuth} {elevation} {distance}`), Apache-2.0, 295 MB */
-  qwenMultiAngleLora: 'qwen-image-edit-2511-multiple-angles-lora.safetensors',
   /** MediaPipe BlazeFace + landmarker weights (Comfy-Org/mediapipe, models/detection), 5.4 MB */
   mediapipeFace: 'mediapipe_face_fp32.safetensors',
   /** Qwen3.5-4B (Comfy-Org/Qwen3.5, Apache-2.0, 9.3 GB) — a vision-language model run by core `TextGenerate`; used
@@ -54,10 +52,11 @@ export const seed32 = (seed?: number) => (seed === undefined || !Number.isFinite
 /** Round to the multiple ComfyUI latents need. */
 export const snap = (n: number, m: number) => Math.max(m, Math.round(n / m) * m);
 
-export { qwenTextToImage, qwenEdit, qwenIdentitySheet, qwenView, faceCheck, SHEET_OUTPUTS, SHEET_TILES, FACE_CHECK_OUTPUTS, VIEW_SPEC, DEFAULT_FACE_BOX } from './qwen-image';
-export type { ViewRole, FaceBox } from './qwen-image';
-export { identityLine, identitySeedFor, seedFromId, sheetPrompt, viewPrompt, VIEW_SEED_OFFSET } from './identity';
-// the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2; handler calls: CHARACTER-IMAGE-V2-INTEGRATION.md)
+export { qwenTextToImage, qwenEdit, qwenSecondary, faceCheck, isSecondaryMaterialKind, FACE_CHECK_OUTPUTS, SECONDARY_MATERIAL, SECONDARY_SPEC } from './qwen-image';
+export type { SecondaryMaterialKind } from './qwen-image';
+export { identitySeedFor, seedFromId } from './identity';
+// the canonical character image and its identity line (docs/CONTRACTS-IDENTITY-PACK.md v2; the handler is
+// src/worker/handlers/images.ts)
 export * from './canonical-image';
 export { minimaxH3Video, h3FrameCount, h3AlignFrames, h3GuideClipFrames, h3GuideFits, h3Seconds, h3GraphKind, H3_FPS, H3_MIN_FRAMES, H3_MAX_FRAMES, H3_GUIDE_FRAMES } from './minimax-h3';
 export { aceStepSong, minimaxMusic3Song } from './music';

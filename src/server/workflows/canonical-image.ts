@@ -1,7 +1,7 @@
 import type { Character } from '@/domain/types';
 import type { Style } from '@/domain/vocabulary';
 import { MODELS, seed32, type Graph } from './index';
-import { editModel, faceCheck, FACE_CHECK_OUTPUTS } from './qwen-image';
+import { editModel, faceCheck, FACE_CHECK_OUTPUTS, SECONDARY_SPEC, type SecondaryMaterialKind } from './qwen-image';
 
 /** THE CANONICAL CHARACTER IMAGE — one front full-body figure per character (docs/CONTRACTS-IDENTITY-PACK.md v2),
  *  drawn with the installed Qwen stack: Qwen-Image-2512 from the English identity line (Auto, Manual), or
@@ -170,6 +170,19 @@ export function referenceCanonicalPrompt(i: { style: Style; identityLine: string
     `Redraw the person in image 1${i.faceImage ? ', with the face exactly as in image 2,' : ''} as ${STYLE_MEDIUM[i.style].noun}: ${CANONICAL_FRAMING}`,
     'Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description',
     i.identityLine, i.character, i.visual,
+  ]);
+}
+
+/** Secondary material (contract v2 §1, on request only): what the kind shows, of the person in image 1 (the canonical
+ *  image) in the production's medium, everything that makes them who they are kept as in image 1, the identity line,
+ *  the visual direction, a plain background. */
+export function secondaryPrompt(i: { kind: SecondaryMaterialKind; style: Style; identityLine: string; visual?: string }): string {
+  return sentences([
+    `${SECONDARY_SPEC[i.kind].prose}, of the same person as in image 1, drawn as ${STYLE_MEDIUM[i.style].noun}`,
+    'Keep the face, age, skin tone, hair, facial hair, glasses and every garment, colour and accessory exactly as in image 1',
+    i.identityLine,
+    i.visual,
+    'Plain neutral mid-grey studio background, even soft studio light, no text, no labels, no props',
   ]);
 }
 

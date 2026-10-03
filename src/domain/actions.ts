@@ -383,14 +383,6 @@ export function setPendingReference(s: S, id: string, assetId: string | undefine
   return writeCharacter(s, id, { pendingReference: assetId ? { assetId, addedAt: now(), validation } : undefined });
 }
 
-/** Add reference views the studio drew for a character (front, side, …). Refused when locked. */
-export function addCharacterRefs(s: S, id: string, refs: CharacterRef[]): S {
-  const c = mustFind(s.characters, id, 'Character');
-  if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`, { characterId: id });
-  const roles = new Set(refs.map((r) => r.role));
-  return writeCharacter(s, id, { refs: [...c.refs.filter((r) => !roles.has(r.role)), ...refs], portraitAssetId: c.portraitAssetId ?? refs[0]?.assetId });
-}
-
 /** Add a voice line the producer recorded or the studio generated. Voice is not appearance: this works for every
  *  character. Only an upload can be chosen as the voice: a generated line is engine output, a bundled sample a
  *  placeholder. */

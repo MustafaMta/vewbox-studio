@@ -8,7 +8,7 @@ import type { StudioState } from '@/domain/types';
 
 const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, validated: 0 }));
 vi.mock('@/server/studio/engine', () => ({ readState: async () => ({ state: fake.state, version: 1, hash: 'h' }), command: async () => { throw new Error('nothing is written before the reference is accepted'); } }));
-vi.mock('@/server/media', () => ({ fileFor: (a: { path: string }) => `/lib/${a.path}`, adoptFile: async () => { throw new Error('unused'); }, assetFromStored: () => { throw new Error('unused'); } }));
+vi.mock('@/server/media', () => ({ assetFile: (a: { provenance?: Record<string, unknown> }) => `/lib/${String(a.provenance?.path ?? '')}`, adoptFile: async () => { throw new Error('unused'); }, assetFromStored: () => { throw new Error('unused'); } }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async () => '/tmp/fake' }));
 vi.mock('@/server/media/image-check', () => ({ validateReferenceImage: async () => { fake.validated++; return { ok: false, width: 1024, height: 1280, sharpness: 4.2, reasons: ['blurry: sharpness 4.2 is below 30'] }; } }));
 vi.mock('@/server/providers/comfy', () => ({ health: async () => { throw new Error('ComfyUI must not be asked before the reference is accepted'); } }));

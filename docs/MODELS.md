@@ -23,10 +23,9 @@ The worker never loads both H3 variants at once (the GPU lease switches families
 | Purpose | Model | Files | Licence |
 |---|---|---|---|
 | The canonical character image from text; plates from nothing | Qwen-Image-2512 | `qwen_image_2512_fp8_e4m3fn` (20.4 GB), `qwen_2.5_vl_7b_fp8_scaled` encoder (9.4 GB), `qwen_image_vae`; Lightning 8-step LoRA for drafts and plates | Apache-2.0 |
-| The canonical image from the producer's picture; location views, storyboard frames, optional secondary material (edit from up to 3 references) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), same encoder/VAE, Lightning 4-step LoRA (849 608 296 B, sha256 `22226e8d…904f`) | Apache-2.0 |
+| The canonical image from the producer's picture; location views, storyboard frames (edit from up to 3 references); optional secondary material (one reference: the canonical image) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), same encoder/VAE, Lightning 4-step LoRA (849 608 296 B, sha256 `22226e8d…904f`) | Apache-2.0 |
 | Reading the producer's picture (Image Reference): the description the identity line is written from | Qwen3.5-4B in core `TextGenerate` (`CLIPLoader` → `TextGenerate`, greedy) | `text_encoders/qwen3.5_4b_bf16.safetensors` (9 319 828 320 B, sha256 `9fb3ae42…0841`, Comfy-Org/Qwen3.5 rev `5d50a225`), group `images-vlm` | Apache-2.0 |
 | Face box of the producer's picture (the face crop given to the redraw; upload validation) | MediaPipe BlazeFace + Face Landmarker (Comfy-Org/mediapipe), core `MediaPipeFaceLandmarker` | `detection/mediapipe_face_fp32.safetensors` (5.4 MB) | Apache-2.0 |
-| Camera control for optional secondary views (`<sks> {azimuth} {elevation} {distance}`) — not used by default | fal Qwen-Image-Edit-2511 Multiple-Angles LoRA | `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (295 MB) | Apache-2.0 |
 
 Three visual directions (Cartoon, Anime, Realistic) are prompt languages on the same models (`src/server/story/style.ts`),
 so a character keeps one identity across productions and directions are genuinely different in design, lighting and camera.
@@ -54,9 +53,12 @@ Evidence, A/B and per-image notes: `docs/evidence/image-v2/REPORT.md`.
 - Provenance on every asset: model, prompt, negative, seed, references, workflow version, ComfyUI prompt id, engine time,
   the framing result; from a picture also the face box, the description and the reading model. `setCanonicalImage`
   records job, seed, reference, engine, identity line and check; the image is a DRAFT until the producer approves it.
-- **Secondary material** (`CHARACTER_REFS`): only on request, drawn from the canonical image with the wave-2 sheet and
-  view graphs (`qwen-image.identity-sheet`, `qwen-image.view`), stored with tier `SECONDARY`. Known limitation: the
-  sheet graph's built-in face crop still assumes a head-and-shoulders portrait (default box, y 0–45 %).
+- **Secondary material** (`CHARACTER_REFS`, template `qwen-image.secondary`): only on request, one Qwen-Image-Edit-2511
+  pass per kind in quality mode (24 steps, cfg 4, the style's negative) with the canonical image as the only reference
+  and its identity line — an expression sheet (1280×1280, 2×2 grid), the outfit (928×1664, the whole figure) or a
+  close-up portrait (1024×1280) — stored with tier `SECONDARY`, never the identity. The wave-2 identity sheet, the
+  derived FRONT/THREE-QUARTER/SIDE/BACK views and the Multiple-Angles LoRA were removed on 2026-10-03 (audit C1): one
+  click drew a four-view sheet first and saved seven assets.
 
 #### The detection folder (corrected 2026-10-03)
 
@@ -82,6 +84,7 @@ removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /mo
 | `identity/dinov2-small/model.onnx` (Xenova/dinov2-small) | 88 459 888 | `83141175ec78b4ff9a2bb58a4c7c264ba0054d1c2e122e5a8114b79a8d4179ea` | Apache-2.0 |
 | `identity/ccip/model_feat.onnx`, `model_metrics.onnx`, `metrics.json` (deepghs/ccip_onnx, caformer-24-randaug-pruned) | 150 248 245 + 1 649 + 147 | `4ea118d1…ac5f`, `7e4646fd…25c1`, `b5535577…52d4` | **OpenRAIL** — use restrictions travel with the model (no unlawful, discriminatory, defamatory or privacy-violating use, among others); any future use must pass them on |
 | `loras/Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors` (lightx2v, rev `d74eba14`) | 849 608 296 | `a9e81a58a78f260f67b337a6f615e8fa4cd3bc79847c77b7d61a581b789b1ba8` | Apache-2.0 (a "balanced" mode for the old sheet; unused) |
+| `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
 
 ## Voices and transcription
 
@@ -158,8 +161,7 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 | MiniMax H3 fl2va int8 + nvfp4 encoder | 22–32 GB card total while generating (DiT staged dynamically, 20 GB); 60–95 s per 3.75–5.9 s clip at 1344×768, 8 turbo steps ≈ 7 s each | 1 (ComfyUI serialises) |
 | Qwen-Image-Edit fp8 + encoder fp8 (Lightning) | engine time from `/history`: T2I 8 steps 1024×1280 11.5 s warm (75 s with the first load); Edit 4 steps, 1 reference, 1024×1280 18–22 s; 3 references 1344×768 12–13.5 s; VRAM peak not yet recorded | 1 |
 | Qwen-Image-2512 fp8, quality mode (the canonical image: 30 steps, cfg 4, 928×1664) | 42 s engine warm (41.8–42.2 s over 12 runs); Lightning 8-step draft at the same size 6–9 s; card total sampled at 1 Hz 29.6–31.7 GB while ComfyUI kept both Qwen models and the encoder resident (voice/ASR unloaded) | 1 |
-| Qwen-Image-Edit fp8, quality mode (secondary 3-view sheet: 24 steps, cfg 4, 1728×1216, 2 references) | 140–141 s engine (3 runs, 2026-10-03); card total ≤ 30.8 GB | 1 |
-| Qwen-Image-Edit fp8 + Multiple-Angles LoRA (secondary view, 3 references, 832×1472) | 12.9–15.3 s engine (6 runs); four expressions in one prompt 47.6–49.2 s | 1 |
+| Qwen-Image-Edit fp8, quality mode (secondary material: 24 steps, cfg 4, 1 reference) | measured in docs/evidence/image-v2/d13/ (2026-10-03). For comparison, the removed 3-view sheet (1728×1216, 2 references) took 140–141 s engine | 1 |
 | IndexTTS 2.5 / Habibi | one line each on 2026-10-03 (docs/evidence/voice-design/report.json): IndexTTS card total 3.5 → 9.5 GB while loaded (≈ 6 GB), 15.8 s for load + a 5.7 s line; Habibi IRQ 3.5 → 4.3 GB after one 3.3 s line, 18.8 s with a 17 s load. Not yet a full measurement | 1 (unloads on request) |
 | VoxCPM2 (voice design, bf16, eager) | 5.2 GB allocated / 6.4 GB reserved peak (≈ 7 GB of the card with its CUDA context); 18 s load (33 s cold); 3.3–7.2 s per candidate of 6.6–15 s audio; ≈ 0.63 GB context stays after `/unload` until restart | 1 (unloads on request) |
 | ECAPA (speaker embeddings) | CPU only: ~8 s first load, ~0.2 s per pair of 10 s clips | — |

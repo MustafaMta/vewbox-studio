@@ -8,8 +8,8 @@ const execFileP = promisify(execFile);
  *  from ffprobe; sharpness is the variance of the Laplacian over a downscaled greyscale decode (ffmpeg → raw pixels →
  *  a small pure-JS pass), the classic blur measure. Face detection is NOT available on the CPU in this build: no
  *  face model is installed with the Node dependencies (`@vladmandic/human` needs its own weights and a TensorFlow
- *  backend), so `faces` stays undefined and the reasons say so. The ComfyUI MediaPipe graph (`faceCheck`) can fill
- *  `faces`/`faceBoxHeight` later when the GPU is free; `facesFromMask` reads its mask output. */
+ *  backend), so `faces` stays undefined and the reasons say so. The face is found at draw time instead, by the
+ *  ComfyUI MediaPipe graph that reads the picture (`referenceReadGraph`, src/server/workflows/canonical-image.ts). */
 
 export interface ReferenceValidation {
   ok: boolean;
@@ -59,32 +59,6 @@ export function laplacianVariance(img: GrayImage): number {
   }
   const mean = sum / n;
   return sumSq / n - mean * mean;
-}
-
-export interface FaceBoxPx { x: number; y: number; w: number; h: number; area: number }
-
-/** Connected components (4-neighbour) of a binary mask image, largest first; components under `minFraction` of the
- *  picture are noise. Used on the MediaPipe face-oval mask that `faceCheck` renders. */
-export function facesFromMask(img: GrayImage, opts: { threshold?: number; minFraction?: number } = {}): FaceBoxPx[] {
-  const { data, width: w, height: h } = img;
-  const thr = opts.threshold ?? 128; const minArea = Math.max(1, Math.floor((opts.minFraction ?? 0.001) * w * h));
-  const seen = new Uint8Array(w * h);
-  const boxes: FaceBoxPx[] = [];
-  const stack: number[] = [];
-  for (let start = 0; start < w * h; start++) {
-    if (seen[start] || data[start] < thr) continue;
-    let minX = w, minY = h, maxX = -1, maxY = -1, area = 0;
-    stack.push(start); seen[start] = 1;
-    while (stack.length) {
-      const i = stack.pop()!;
-      const x = i % w, y = (i - x) / w;
-      area++; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
-      const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
-      for (const j of nb) if (j >= 0 && !seen[j] && data[j] >= thr) { seen[j] = 1; stack.push(j); }
-    }
-    if (area >= minArea) boxes.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1, area });
-  }
-  return boxes.sort((a, b) => b.area - a.area);
 }
 
 /** The decision, with every reason spelled out for the page. Face rules apply only when a detector ran. */

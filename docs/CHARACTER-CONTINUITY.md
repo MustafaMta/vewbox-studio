@@ -1,7 +1,9 @@
 # Character continuity — the regeneration rule
 
 A character's appearance may be generated, regenerated or replaced **only while that character has never been used in
-any video**. Once a take of any video contains them, their appearance is preserved for continuity.
+any video**. Once a take of any video contains them, their appearance is preserved for continuity. The identity itself
+is defined in [CONTRACTS-IDENTITY-PACK.md](CONTRACTS-IDENTITY-PACK.md) (v2): one canonical front full-body image + one
+persistent voice identity.
 
 ## Definitions
 
@@ -16,41 +18,37 @@ any video**. Once a take of any video contains them, their appearance is preserv
 
 ## What is protected
 
-The appearance: the portrait, the reference views, a pending reference, and the fields that describe how the character
-looks — style, species, sex, age, build, face, hair, skin, eyes, distinguishing features and wardrobe.
+The appearance: the canonical image (and a legacy portrait of a character drawn before canonical images), the
+secondary material (expression sheets, outfits, a close-up portrait — optional pictures drawn on request from the
+canonical image), a pending reference picture, and the fields that describe how the character looks — style, species,
+sex, age, build, face, hair, skin, eyes, distinguishing features, wardrobe and the canon (`APPEARANCE_KEYS`).
 
-What stays editable: name, role, personality, creative notes, language and dialect, and the **voice** (its samples,
-recordings and chosen line). The appearance rule never changes the voice.
+What stays editable: name, Arabic name, role, personality, creative notes, language and dialect, and the voice under its
+own rule (the voice identity contract): a used character keeps the voice it spoke with, but may still get a first
+voice if it had none.
 
-## How the frontend enforces it
+## Where it is enforced
+
+The same pure reducers run in the browser and on the server for every command, so the rule is applied where it cannot
+be bypassed.
 
 | Where | What happens |
 | --- | --- |
-| `src/demo/rules.ts` | The single definition: `appearanceLock()`, `APPEARANCE_KEYS`, `guardCharacterPatch()`, `protectedAssetOwner()`, `recordTakeUsage()`, `markTakeRemoved()`. |
-| `updateCharacter` (shared action) | Drops every appearance field from a patch to a locked character, whatever page sends it. |
-| `setPendingReference` | Refused for a locked character. |
-| `deleteAsset` / the store's `removeAsset` | A picture a locked character's appearance rests on is not deleted; the Asset Library says which character keeps it. |
+| `src/domain/rules.ts` | The single definition: `appearanceLock()`, `canChangeAppearance()`, `APPEARANCE_KEYS`, `guardCharacterPatch()`, `protectedAssetOwner()`, `recordTakeUsage()`, `markTakeRemoved()`. |
+| `updateCharacter` | A patch that changes an appearance field of a used character — including its refs (secondary material) and portrait — is refused with `APPEARANCE_LOCKED`; a whole-form save that leaves the look as it was is saved (its unchanged appearance fields are dropped). |
+| `setCanonicalImage`, `approveCanonicalImage` | A redraw, a replacement or an approval change of a used character is refused (`APPEARANCE_LOCKED`). |
+| `setPendingReference` | Refused for a used character. |
+| `deleteAsset` | A picture a used character's appearance rests on is not deleted (`ASSET_PROTECTED`, the message names the character), and neither is any character's current canonical image. |
 | `addTake` | Records usage for every character in the shot, with production, shot and take. |
 | `removeTake` | Marks the records `TAKE_REMOVED`; the lock stays. |
-| Character page → Appearance | Locked: the notice ("This character has been used in a video. Its appearance is preserved for continuity.") with the records, a disabled Regenerate button, a disabled reference drop zone, no view uploads, no portrait or view changes. Unused: reference upload, preview, replace, remove (kept in IndexedDB across reloads), and Generate/Regenerate, which explains that generation is not connected. |
-| Character form | Locked: the appearance fields are shown read-only with the reason. |
-| Used In tab | The actual video usage, take by take, separate from mere assignments; an unknown history says so. |
+| Worker (`CHARACTER_APPEARANCE`, `CHARACTER_REFS`) | Refuse to draw for a used character before anything runs; the production preflight checks the same (`appearance-unlocked`). |
+| Character profile | Locked: the lock status says "Locked: used in N videos" with the reason; Redraw, Approve and the secondary-material requests are gone; the look is read-only; the voice keeps its own rule. |
 
-Unit tests in `tests/unit/actions.test.ts` (describe "character continuity") and browser tests in
-`tests/e2e/media-and-cast.spec.ts` cover each row.
+Usage is recorded **at take creation** (`addTake` → `recordTakeUsage`), for every character in the shot, with
+production, shot, take and time, in the append-only `character_usage` table. A refused command rolls back its whole
+batch. `APPEARANCE_LOCKED` and `ASSET_PROTECTED` answer HTTP 423. `/api/studio` carries the usage records, so the
+profile lists the productions a character was used in, take by take.
 
-## How the server enforces it
-
-The same pure reducers that run in the browser run on the server for every command, so the rule is applied where it
-cannot be bypassed:
-
-1. Usage is recorded **at take creation** (`addTake` → `recordTakeUsage`), for every character in the shot, with
-   production, shot, take and time, in the append-only `character_usage` table. Removing or rejecting a take marks
-   the record; nothing deletes it except a full studio reset.
-2. Any command that would change a used character's appearance — `updateCharacter` touching an appearance field,
-   `setCharacterAppearance`, replacing the portrait, adding or removing reference views — is **refused** with
-   `APPEARANCE_LOCKED` (HTTP 409) and the whole batch is rolled back. Deleting a picture a used character's
-   appearance rests on is refused with `ASSET_PROTECTED` (423). The API tests send exactly these requests.
-3. A character with no usage information is treated as used until the history is established.
-4. Voice changes and uploads stay independent of this rule (a used character can get a new recording).
-5. `/api/studio` carries the usage records, so the interface shows where a character was used, take by take.
+Tests: `tests/unit/actions.test.ts` ("character continuity"), `tests/unit/canonical-image.test.ts`,
+`tests/unit/canonical-appearance.test.ts`, the browser tests `tests/e2e/continuity.spec.ts` and journey 08
+(`tests/e2e/journeys/08-identity-locking.spec.ts`).
