@@ -33,8 +33,9 @@ const QUALITY = { steps: 24, cfg: 4.0 } as const;
 const DRAFT = { steps: 4, cfg: 1.0 } as const;
 
 /** Edit-2511 loaders and the model chain: UNET → (Lightning unless quality) → extra LoRAs in order → AuraFlow shift.
- *  Returns the link to feed the sampler. Node ids are fixed so the version hash is stable. */
-function editModel(g: Graph, opts: { quality?: boolean; extraLoras?: ExtraLora[] }): [string, number] {
+ *  Returns the link to feed the sampler. Node ids are fixed so the version hash is stable. Exported for the
+ *  canonical-image graphs (canonical-image.ts). */
+export function editModel(g: Graph, opts: { quality?: boolean; extraLoras?: ExtraLora[] }): [string, number] {
   g['1'] = { class_type: 'UNETLoader', inputs: { unet_name: MODELS.qwenEditDit, weight_dtype: 'default' }, _meta: { title: 'Qwen-Image-Edit-2511' } };
   g['2'] = { class_type: 'CLIPLoader', inputs: { clip_name: MODELS.qwenClip, type: 'qwen_image', device: 'default' } };
   g['3'] = { class_type: 'VAELoader', inputs: { vae_name: MODELS.qwenVae } };

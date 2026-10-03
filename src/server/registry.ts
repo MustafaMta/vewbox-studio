@@ -4,7 +4,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, faceCheck, minimaxH3Video, minimaxMusic3Song, qwenEdit, qwenIdentitySheet, qwenTextToImage, qwenView, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, faceCheck, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenIdentitySheet, qwenReferenceCanonical, qwenTextToImage, qwenView, referenceReadGraph, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -33,6 +33,11 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     { name: 'qwen-image.identity-sheet-from-face', graph: qwenIdentitySheet({ portrait: 'a.png', faceCrop: 'b.png', prompt: '', quality: false }) },
     { name: 'qwen-image.view', graph: qwenView({ references: ['a.png', 'b.png', 'c.png'], view: 'FULL_BODY', prompt: '', angleLora: true }) },
     { name: 'qwen-image.face-check', graph: faceCheck({ image: 'a.png', mask: true }) },
+    // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2)
+    { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
+    { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
+    { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
+    { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
     { name: 'ace-step-1.5.song', graph: aceStepSong({ caption: '', lyrics: '', seconds: 60 }) },
