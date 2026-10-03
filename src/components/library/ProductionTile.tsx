@@ -4,11 +4,12 @@ import { useId, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { nextStep, productionHref } from '@/studio/selectors';
+import { nextStep } from '@/studio/selectors';
 import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { Button, Menu, MenuItem, MenuLink, Status, type Tone } from '@/components/ui/kit';
 import { IconDelete, IconDuplicate, IconOpen } from '@/components/ui/icons';
+import { nextTab, workspaceHref } from '@/components/workspace/model';
 
 /** Shared bits for productions in libraries and headers: the stage as a status line, and the overflow menu with
  *  the next step, Duplicate and Delete. Delete asks in a real dialog that names what goes and what stays (§5.17's
@@ -26,24 +27,23 @@ export function ProductionMenu({ p }: { p: Production }) {
   const toast = useToast();
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
-  const href = productionHref(p);
   const next = nextStep(p);
-  const nextTab = p.kind === 'MUSIC_VIDEO' ? (next.tab === 'story' ? 'song' : next.tab === 'cast' ? 'performers' : next.tab) : next.tab === 'cast' ? 'characters' : next.tab;
-  const remove = () => { dialog.current?.close(); act('deleteProduction', p.id); toast.ok(T('toast.deleted')); router.refresh(); };
+  const remove = () => { dialog.current?.close(); act('deleteProduction', p.id); toast.ok('Deleted.'); router.refresh(); };
   return (
     <>
-      <Menu label={`${p.title}: ${T('nav.more')}`}>
-        <MenuLink href={`${href}?tab=${nextTab}`} icon={<IconOpen />}>{T.dyn(next.key)}</MenuLink>
-        <MenuItem icon={<IconDuplicate />} onClick={() => { const r = act('duplicateProduction', p.id); if (r.production) toast.ok(T('toast.created'), { label: T('btn.open'), href: productionHref(r.production) }); }}>{T('btn.duplicate')}</MenuItem>
-        <MenuItem icon={<IconDelete />} tone="danger" onClick={() => dialog.current?.showModal()}>{T('btn.delete')}</MenuItem>
+      <Menu label={`${p.title}: ${'More'}`}>
+        <MenuLink href={workspaceHref(p, nextTab(p))} icon={<IconOpen />}>{T.dyn(next.key)}</MenuLink>
+        <MenuLink href={workspaceHref(p)} icon={<IconOpen />}>Open the production map</MenuLink>
+        <MenuItem icon={<IconDuplicate />} onClick={() => { const r = act('duplicateProduction', p.id); if (r.production) toast.ok('Created.', { label: 'Open', href: workspaceHref(r.production) }); }}>{'Duplicate'}</MenuItem>
+        <MenuItem icon={<IconDelete />} tone="danger" onClick={() => dialog.current?.showModal()}>{'Delete'}</MenuItem>
       </Menu>
       <dialog ref={dialog} className="dlg w-[min(92vw,26rem)]" aria-labelledby={`${id}-h`} aria-describedby={`${id}-d`}>
         <div className="p-5">
           <h2 id={`${id}-h`} className="h2" dir="auto">{T.f('media.delete.title', { title: p.title })}</h2>
-          <p id={`${id}-d`} className="mt-2 text-sm text-muted">{T('media.delete.body')}</p>
+          <p id={`${id}-d`} className="mt-2 text-sm text-muted">{'Its story, shots and takes go with it. Characters, locations and files stay in the studio.'}</p>
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => dialog.current?.close()} autoFocus>{T('btn.cancel')}</Button>
-            <Button variant="destructive" onClick={remove}>{T('btn.delete')}</Button>
+            <Button variant="quiet" onClick={() => dialog.current?.close()} autoFocus>{'Cancel'}</Button>
+            <Button variant="destructive" onClick={remove}>{'Delete'}</Button>
           </div>
         </div>
       </dialog>

@@ -5,73 +5,81 @@ import type { Beat, Line, Production, Scene } from '@/domain/types';
 import { TIMES_OF_DAY, type TimeOfDay } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
-import { briefOriginKey, castOf, worldOf } from '@/studio/selectors';
-import { T } from '@/lib/copy';
+import { castOf, worldOf } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
-import { Block } from '@/components/ui/cinema';
-import { Button, Checkbox, Field, Input, Menu, MenuItem, Modal, Notice, Select, Status, Textarea } from '@/components/ui/kit';
-import { JobButton } from '@/components/ui/jobs';
-import { IconAuto, IconDelete, IconGenerate, IconManual, IconPlus } from '@/components/ui/icons';
-import { words } from '@/lib/format';
+import { Button, Checkbox, Field, Input, Menu, MenuItem, Modal, SectionHead, Select, StateWord, Textarea } from '@/components/ui/kit';
+import { IconAuto, IconDelete, IconGenerate, IconPlus } from '@/components/ui/icons';
+import { useStageApproved } from '@/components/studio/Approve';
+import { GenButton, type StudioGate } from '../gate';
+import { vocab } from '../model';
 
-/** STORY — the brief it started from, the synopsis, and the script: scenes, beats and lines. For a music video the
- *  song sits here too. Every edit is yours; the story engine drafts on request (Develop the story / Write the script). */
-export function StoryTab({ p }: { p: Production }) {
+/** STORY AND SCENE PLANNING (docs/DESIGN-SYSTEM-V5.md §8.10) — the logline and the synopsis, the brief the story
+ *  started from, then the script by scene, beat and line. Each scene carries its settings (where, when, who is in it,
+ *  what it is for). A line in an Arabic production is written in Arabic (Iraqi dialect when the production says so),
+ *  isolated and right-to-left inside the English page, with its English beside it for review. The story engine drafts
+ *  on request; every edit is the producer's. */
+export function StoryTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const { state, act } = useStudio();
   const toast = useToast();
   const cast = castOf(state, p); const world = worldOf(state, p);
   const dev = p.brief.development;
+  const approved = useStageApproved(p.id, 'STORY');
   const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, briefText: p.brief.text, hook: dev?.hook ?? '', ending: dev?.ending ?? '' });
-  useUnsavedGuard(dirty, T('shot.leave'));
-  // D23: the hook and the ending of an Auto Idea travel into every later prompt as the story's promise, so they are
-  // the producer's to correct like the rest of the brief
-  const save = () => { act('updateProduction', p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText, ...(dev ? { development: { ...dev, hook: draft.hook.trim(), ending: draft.ending.trim() } } : {}) } }); toast.ok(T('toast.saved')); };
+  useUnsavedGuard(dirty, 'You have unsaved changes. Leave anyway?');
+  // D23: the hook and the ending of an Auto Idea travel into every later prompt as the story's promise
+  const save = () => { act('updateProduction', p.id, { logline: draft.logline, synopsis: draft.synopsis, brief: { ...p.brief, text: draft.briefText, ...(dev ? { development: { ...dev, hook: draft.hook.trim(), ending: draft.ending.trim() } } : {}) } }); toast.ok('Saved.'); };
+  const origin = p.brief.mode === 'AUTO_IDEA' ? (p.brief.fromSampleProposal ? 'Started from Auto Idea (the written example)' : 'Started from Auto Idea') : 'Started from your brief';
+  const lines = p.scenes.reduce((a, sc) => a + sc.beats.reduce((b, bt) => b + bt.lines.length, 0), 0);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="space-y-8">
-        <section aria-labelledby="synopsis">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="synopsis" className="h2">{T('label.synopsis')}</h2>
-            <div className="flex items-center gap-2">
-              {dirty && <Status tone="warn">{T('shot.unsaved')}</Status>}
-              {dirty && <Button size="sm" variant="ghost" onClick={reset}>{T('btn.discard')}</Button>}
-              <Button size="sm" variant={dirty ? 'primary' : 'secondary'} disabled={!dirty} onClick={save}>{dirty ? T('btn.save') : T('btn.saved')}</Button>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <Field label={T('label.logline')}><Input value={draft.logline} onChange={(e) => patch({ logline: e.target.value })} /></Field>
-            <Field label={T('label.synopsis')} help={T('story.writeHint')}><Textarea value={draft.synopsis} onChange={(e) => patch({ synopsis: e.target.value })} rows={6} /></Field>
-          </div>
-        </section>
-
-        <Block title={T('story.script')} count={p.scenes.length} actions={<div className="flex flex-wrap items-center gap-2">
-          <JobButton type="DEVELOP_STORY" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconAuto />} title={T('gen.writeStory.hint')} confirm={p.scenes.some((sc) => sc.beats.length > 0) ? undefined : undefined}>{T('gen.writeStory')}</JobButton>
-          <JobButton type="WRITE_SCRIPT" payload={{ productionId: p.id }} target={{ productionId: p.id }} size="sm" icon={<IconGenerate />} disabled={p.scenes.length === 0} title={p.scenes.length === 0 ? T('empty.scenes') : undefined}>{T('gen.writeScript')}</JobButton>
-          <AddScene p={p} /></div>}>
-          {p.scenes.length === 0 ? <Notice tone="info">{T('empty.scenes')}</Notice> : (
-            <ol className="space-y-6">{p.scenes.map((sc) => <SceneEditor key={sc.id} p={p} scene={sc} cast={cast.map((c) => ({ id: c.id, name: c.name }))} locations={world.map((l) => ({ id: l.id, name: l.name }))} />)}</ol>
-          )}
-          {p.scenes.length > 0 && p.stage === 'STORY' && <div className="mt-4"><Button size="sm" onClick={() => { act('markStepDone', p.id, 'STORY'); toast.ok(T('toast.saved')); }}>{T('btn.markDone')}</Button></div>}
-        </Block>
+    <div className="ws-main ws-story-pane">
+      <div className="ws-pane-head">
+        <h1 className="t-section">Story</h1>
+        <span className="ws-pane-state">{approved === null ? null : approved ? <StateWord tone="done">You approved the story</StateWord> : <StateWord tone="waiting">Waits for your approval</StateWord>}</span>
       </div>
-
-      <aside className="space-y-6">
-        <section className="panel p-4">
-          <h2 className="h3 mb-2 flex items-center gap-2">{p.brief.mode === 'AUTO_IDEA' ? <IconAuto className="size-4 text-accent-text" /> : <IconManual className="size-4 text-accent-text" />}{T('story.brief')}</h2>
-          <p className="mb-2 text-xs text-muted">{T(briefOriginKey(p.brief))}{p.brief.mode === 'AUTO_IDEA' && p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}</p>
-          <Textarea value={draft.briefText} onChange={(e) => patch({ briefText: e.target.value })} rows={5} aria-label={T('story.brief')} />
-          {dev && (
-            <div className="mt-4 space-y-3">
-              <p className="text-xs text-muted">{T('film.brief.promiseHelp')}</p>
-              <Field label={T('film.brief.hook')}><Textarea value={draft.hook} onChange={(e) => patch({ hook: e.target.value })} rows={3} /></Field>
-              <Field label={T('film.brief.ending')}><Textarea value={draft.ending} onChange={(e) => patch({ ending: e.target.value })} rows={3} /></Field>
-              {dirty && <Button size="sm" variant="primary" onClick={save}>{T('btn.save')}</Button>}
+      <div className="ws-split">
+        <div className="ws-split-main">
+          <section className="ws-sec-tight" aria-labelledby="ws-syn-h">
+            <SectionHead id="ws-syn-h" title="Logline and synopsis" level={2} action={<span className="ws-actions">
+              {dirty && <Button size="sm" variant="quiet" onClick={reset}>Discard</Button>}
+              <Button size="sm" variant={dirty ? 'primary' : 'secondary'} disabled={!dirty} onClick={save}>{dirty ? 'Save' : 'Saved'}</Button>
+            </span>} />
+            <div className="ws-form">
+              <Field label="Logline"><Input value={draft.logline} onChange={(e) => patch({ logline: e.target.value })} dir="auto" /></Field>
+              <Field label="Synopsis" help="Write the story in your own words, or let “Develop the story” draft it from the brief; every edit is yours."><Textarea value={draft.synopsis} onChange={(e) => patch({ synopsis: e.target.value })} rows={6} dir="auto" /></Field>
             </div>
-          )}
-        </section>
-      </aside>
+          </section>
+
+          <section className="ws-sec" aria-labelledby="ws-script-h">
+            <SectionHead id="ws-script-h" title="Script" count={p.scenes.length || null} description={`${p.scenes.length} ${p.scenes.length === 1 ? 'scene' : 'scenes'} · ${lines} ${lines === 1 ? 'line' : 'lines'} of dialogue${p.language === 'AR' ? ' · in Arabic, with English for review' : ''}`} action={<AddScene p={p} />} />
+            <div className="ws-gen-row">
+              <GenButton gate={gate} engine="story" type="DEVELOP_STORY" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconAuto aria-hidden />}>Develop the story</GenButton>
+              <GenButton gate={gate} engine="story" type="WRITE_SCRIPT" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />} disabled={p.scenes.length === 0} reason="Add a scene first.">Write the script</GenButton>
+            </div>
+            {p.scenes.length === 0 ? <p className="t-body ws-empty">No scenes yet. Add one, or develop the story from the brief.</p> : (
+              <ol className="ws-scenes" role="list">{p.scenes.map((sc) => <SceneEditor key={sc.id} p={p} scene={sc} cast={cast.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))} locations={world.map((l) => ({ id: l.id, name: l.name }))} />)}</ol>
+            )}
+            {p.scenes.length > 0 && p.stage === 'STORY' && <div className="ws-gen-row"><Button size="sm" onClick={() => { act('markStepDone', p.id, 'STORY'); toast.ok('Saved.'); }}>Mark the story done</Button></div>}
+          </section>
+        </div>
+
+        <aside className="ws-split-side" aria-labelledby="ws-brief-h">
+          <div className="card ws-side-card">
+            <h2 id="ws-brief-h" className="t-title">The brief</h2>
+            <p className="t-meta">{origin}{p.brief.mode === 'AUTO_IDEA' && p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}</p>
+            <Textarea value={draft.briefText} onChange={(e) => patch({ briefText: e.target.value })} rows={5} aria-label="The brief" dir="auto" />
+            {dev && (
+              <>
+                <p className="t-meta">The story’s promise: how it opens and how it ends. Every later step of the story keeps to it.</p>
+                <Field label="The opening"><Textarea value={draft.hook} onChange={(e) => patch({ hook: e.target.value })} rows={3} dir="auto" /></Field>
+                <Field label="The ending"><Textarea value={draft.ending} onChange={(e) => patch({ ending: e.target.value })} rows={3} dir="auto" /></Field>
+              </>
+            )}
+            {dirty && <Button size="sm" variant="primary" onClick={save}>Save</Button>}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -81,69 +89,77 @@ export function AddScene({ p }: { p: Production }) {
   const world = worldOf(state, p);
   const [title, setTitle] = useState(''); const [loc, setLoc] = useState(''); const [tod, setTod] = useState<TimeOfDay>('MIDDAY');
   return (
-    <Modal title={T('btn.addScene')} trigger={(open) => <Button size="sm" variant="primary" icon={<IconPlus />} onClick={open}>{T('btn.addScene')}</Button>}>
+    <Modal title="Add a scene" trigger={(open) => <Button size="sm" icon={<IconPlus aria-hidden />} onClick={open}>Add a scene</Button>}>
       {(close) => (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; act('addScene', p.id, { title, locationId: loc || undefined, timeOfDay: tod }); toast.ok(T('toast.created')); setTitle(''); close(); }}>
-          <Field label={T('label.title')} required><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus required /></Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={T('label.location')}><Select value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="—" options={world.map((l) => ({ value: l.id, label: l.name }))} /></Field>
-            <Field label={T('label.timeOfDay')}><Select value={tod} onChange={(e) => setTod(e.target.value as TimeOfDay)} options={TIMES_OF_DAY.map((t) => ({ value: t, label: words(t) }))} /></Field>
+        <form className="ws-form" onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; act('addScene', p.id, { title, locationId: loc || undefined, timeOfDay: tod }); toast.ok('Scene added.'); setTitle(''); close(); }}>
+          <Field label="Title" required><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus required dir="auto" /></Field>
+          <div className="ws-form-grid">
+            <Field label="Location"><Select value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="—" options={world.map((l) => ({ value: l.id, label: l.name }))} /></Field>
+            <Field label="Time of day"><Select value={tod} onChange={(e) => setTod(e.target.value as TimeOfDay)} options={TIMES_OF_DAY.map((t) => ({ value: t, label: vocab(t) }))} /></Field>
           </div>
-          <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{T('btn.cancel')}</Button><Button type="submit" variant="primary">{T('btn.add')}</Button></div>
+          <div className="ws-form-foot"><Button variant="quiet" onClick={close}>Cancel</Button><Button type="submit" variant="primary">Add</Button></div>
         </form>
       )}
     </Modal>
   );
 }
 
-export function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Array<{ id: string; name: string }>; locations: Array<{ id: string; name: string }> }) {
+type Person = { id: string; name: string; nameAr?: string };
+
+/** One scene of the script: its settings, then its beats, each beat's action and its lines. */
+export function SceneEditor({ p, scene, cast, locations }: { p: Production; scene: Scene; cast: Person[]; locations: Array<{ id: string; name: string }> }) {
   const { act } = useStudio(); const toast = useToast();
   const set = (patch: Partial<Scene>) => act('updateScene', p.id, scene.id, patch);
   const setBeat = (id: string, patch: Partial<Beat>) => set({ beats: scene.beats.map((b) => (b.id === id ? { ...b, ...patch } : b)) });
   const setLine = (bid: string, lid: string, patch: Partial<Line>) => setBeat(bid, { lines: scene.beats.find((b) => b.id === bid)!.lines.map((l) => (l.id === lid ? { ...l, ...patch } : l)) });
-  const nameOf = (id: string) => cast.find((c) => c.id === id)?.name ?? '?';
+  const speakers = scene.characterIds.length ? cast.filter((c) => scene.characterIds.includes(c.id)) : cast;
+  const arabic = p.language === 'AR';
   return (
-    <li className="panel p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="badge badge-accent">{T('label.scene')} {scene.number}</span>
-        <Input value={scene.title} onChange={(e) => set({ title: e.target.value })} aria-label={`${T('label.scene')} ${scene.number} ${T('label.title')}`} className="min-w-0 flex-1 basis-40 font-medium" />
-        <Select aria-label={T('label.location')} value={scene.locationId ?? ''} onChange={(e) => set({ locationId: e.target.value || undefined })} placeholder="—" options={locations.map((l) => ({ value: l.id, label: l.name }))} className="w-auto" />
-        <Select aria-label={T('label.timeOfDay')} value={scene.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value as TimeOfDay })} options={TIMES_OF_DAY.map((t) => ({ value: t, label: words(t) }))} className="w-auto" />
-        <Menu label={`${T('label.scene')} ${scene.number}`}><MenuItem icon={<IconDelete />} tone="danger" onClick={() => { if (window.confirm(`${T('btn.delete')} ${T('label.scene')} ${scene.number}?`)) { act('deleteScene', p.id, scene.id); toast.ok(T('toast.deleted')); } }}>{T('btn.delete')}</MenuItem></Menu>
+    <li className="card ws-scene-card" aria-labelledby={`ws-sc-${scene.id}`}>
+      <div className="ws-scene-card-head">
+        <span id={`ws-sc-${scene.id}`} className="t-label">Scene {scene.number}</span>
+        <Input value={scene.title} onChange={(e) => set({ title: e.target.value })} aria-label={`Scene ${scene.number} title`} dir="auto" className="ws-scene-title-input" />
+        <Menu label={`Scene ${scene.number}: more`}><MenuItem icon={<IconDelete aria-hidden />} tone="danger" onClick={() => { if (window.confirm(`Delete scene ${scene.number}?`)) { act('deleteScene', p.id, scene.id); toast.ok('Deleted.'); } }}>Delete the scene</MenuItem></Menu>
       </div>
-      {/* D23: what the scene is for — the script writer and the shot planner read it, so the producer must see and edit it */}
-      <Field label={T('film.scene.purpose')} help={T('film.scene.purposeHelp')} className="mb-4"><Textarea value={scene.purpose ?? ''} onChange={(e) => set({ purpose: e.target.value })} rows={2} /></Field>
-      <fieldset className="mb-4">
-        <legend className="mb-1.5 text-xs font-medium text-muted">{T('story.present')}</legend>
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">{cast.map((c) => <Checkbox key={c.id} label={c.name} checked={scene.characterIds.includes(c.id)} onChange={(e) => set({ characterIds: e.target.checked ? [...scene.characterIds, c.id] : scene.characterIds.filter((x) => x !== c.id) })} />)}{cast.length === 0 && <span className="text-xs text-faint">{T('empty.cast')}</span>}</div>
+      <div className="ws-form-grid">
+        <Field label="Location"><Select value={scene.locationId ?? ''} onChange={(e) => set({ locationId: e.target.value || undefined })} placeholder="—" options={locations.map((l) => ({ value: l.id, label: l.name }))} /></Field>
+        <Field label="Time of day"><Select value={scene.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value as TimeOfDay })} options={TIMES_OF_DAY.map((t) => ({ value: t, label: vocab(t) }))} /></Field>
+      </div>
+      <Field label="What the scene is for" help="The script writer and the shot planner read it."><Textarea value={scene.purpose ?? ''} onChange={(e) => set({ purpose: e.target.value })} rows={2} dir="auto" /></Field>
+      <fieldset className="ws-fieldset">
+        <legend className="t-label">In the scene</legend>
+        <div className="ws-checks">{cast.map((c) => <Checkbox key={c.id} label={<bdi>{c.name}</bdi>} checked={scene.characterIds.includes(c.id)} onChange={(e) => set({ characterIds: e.target.checked ? [...scene.characterIds, c.id] : scene.characterIds.filter((x) => x !== c.id) })} />)}{cast.length === 0 && <span className="t-meta">No cast yet.</span>}</div>
       </fieldset>
-      <ol className="space-y-3">
+      <ol className="ws-beats" role="list">
         {scene.beats.map((b, bi) => (
-          <li key={b.id} className="rounded-lg bg-surface-2 p-3">
-            <div className="flex items-start gap-2">
-              <span className="mono mt-2 text-faint">{bi + 1}</span>
-              <Textarea value={b.action} onChange={(e) => setBeat(b.id, { action: e.target.value })} rows={2} aria-label={`${T('label.action')} ${scene.number}.${bi + 1}`} className="min-h-0 bg-elev" />
-              <Button variant="ghost" size="xs" aria-label={`${T('btn.remove')} ${bi + 1}`} icon={<IconDelete />} onClick={() => set({ beats: scene.beats.filter((x) => x.id !== b.id) })} />
+          <li key={b.id} className="ws-beat">
+            <div className="ws-beat-head">
+              <span className="ws-ro ws-beat-n">{scene.number}.{bi + 1}</span>
+              <Textarea value={b.action} onChange={(e) => setBeat(b.id, { action: e.target.value })} rows={2} aria-label={`Beat ${scene.number}.${bi + 1}: what happens`} dir="auto" />
+              <Button variant="quiet" size="sm" aria-label={`Remove beat ${scene.number}.${bi + 1}`} icon={<IconDelete aria-hidden />} onClick={() => set({ beats: scene.beats.filter((x) => x.id !== b.id) })} />
             </div>
             {b.lines.length > 0 && (
-              <ul className="mt-2 space-y-1.5 ps-6">
-                {b.lines.map((l) => (
-                  <li key={l.id} className="grid gap-1.5 sm:grid-cols-[9rem_1fr_auto]">
-                    <Select aria-label={T('label.role')} value={l.characterId} onChange={(e) => setLine(b.id, l.id, { characterId: e.target.value })} options={[...(scene.characterIds.length ? scene.characterIds : cast.map((c) => c.id)).map((id) => ({ value: id, label: nameOf(id) }))]} />
-                    <div className="grid gap-1.5">
-                      <Input value={l.text} onChange={(e) => setLine(b.id, l.id, { text: e.target.value })} placeholder={p.language === 'AR' ? 'English (for review)' : T('label.dialogue')} aria-label={T('label.dialogue')} />
-                      {p.language === 'AR' && <Input value={l.textAr ?? ''} dir="rtl" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="The line in Arabic" aria-label={`${T('label.dialogue')} (${T('label.arabic')})`} />}
-                    </div>
-                    <Button variant="ghost" size="xs" aria-label={T('btn.remove')} icon={<IconDelete />} onClick={() => setBeat(b.id, { lines: b.lines.filter((x) => x.id !== l.id) })} />
-                  </li>
-                ))}
+              <ul className="ws-lines" role="list">
+                {b.lines.map((l) => {
+                  const who = cast.find((c) => c.id === l.characterId);
+                  return (
+                    <li key={l.id} className="ws-line">
+                      <Select aria-label="Who speaks" value={l.characterId} onChange={(e) => setLine(b.id, l.id, { characterId: e.target.value })} options={speakers.map((c) => ({ value: c.id, label: c.name }))} />
+                      <div className="ws-line-texts">
+                        {arabic && <Input value={l.textAr ?? ''} dir="rtl" lang="ar" onChange={(e) => setLine(b.id, l.id, { textAr: e.target.value })} placeholder="The line in Arabic" aria-label={`${who?.name ?? 'Line'}: the line in Arabic`} className="ws-line-ar" />}
+                        <Input value={l.text} onChange={(e) => setLine(b.id, l.id, { text: e.target.value })} placeholder={arabic ? 'English, for review' : 'The line'} aria-label={`${who?.name ?? 'Line'}: ${arabic ? 'English, for review' : 'the line'}`} dir="auto" />
+                      </div>
+                      <Button variant="quiet" size="sm" aria-label="Remove the line" icon={<IconDelete aria-hidden />} onClick={() => setBeat(b.id, { lines: b.lines.filter((x) => x.id !== l.id) })} />
+                    </li>
+                  );
+                })}
               </ul>
             )}
-            <div className="mt-2 ps-6"><Button size="xs" variant="ghost" icon={<IconPlus />} disabled={cast.length === 0} onClick={() => setBeat(b.id, { lines: [...b.lines, { id: nid('line'), characterId: scene.characterIds[0] ?? cast[0]?.id ?? '', text: '' }] })}>{T('btn.addLine')}</Button></div>
+            <div className="ws-beat-foot"><Button size="sm" variant="quiet" icon={<IconPlus aria-hidden />} disabled={cast.length === 0} onClick={() => setBeat(b.id, { lines: [...b.lines, { id: nid('line'), characterId: scene.characterIds[0] ?? cast[0]?.id ?? '', text: '' }] })}>Add a line</Button></div>
           </li>
         ))}
       </ol>
-      <div className="mt-3"><Button size="sm" icon={<IconPlus />} onClick={() => set({ beats: [...scene.beats, { id: nid('beat'), action: '', lines: [] }] })}>{T('btn.addBeat')}</Button></div>
+      <div><Button size="sm" icon={<IconPlus aria-hidden />} onClick={() => set({ beats: [...scene.beats, { id: nid('beat'), action: '', lines: [] }] })}>Add a beat</Button></div>
     </li>
   );
 }
