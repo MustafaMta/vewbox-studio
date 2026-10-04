@@ -10,8 +10,8 @@ import { api } from '@/studio/api';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { shortWhen } from '@/components/home/model';
-import { Button, ErrorNotice, Field, FormFooter, Input, JobDot, Notice, Segmented, Select, Skeleton, Textarea } from '@/components/ui/kit';
-import { IconAuto, IconCheck, IconChevronRight, IconManual } from '@/components/ui/icons';
+import { Button, DisclosureCard, ErrorNotice, Field, FormFooter, Input, JobDot, Notice, Segmented, Select, Skeleton, StageSteps, StageStepsSkeleton, Textarea } from '@/components/ui/kit';
+import { IconAuto, IconChevronRight, IconManual } from '@/components/ui/icons';
 import { Panel, PickGrid, StylePicker, castItems, placeItems } from './parts';
 import { SongPanel, type SongDraft } from './Song';
 import { Review } from './Review';
@@ -125,22 +125,11 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
         <Panel id="create-dev-h" title={failed ? 'Where it stopped' : 'The studio is developing your idea'}
           description={failed ? undefined : 'The story team researches, writes and reviews it. You can leave this page; the idea waits for you here.'}
           end={view?.job.createdAt ? <span className="t-ro t-ro-md create-clock">{elapsed(view.job.startedAt ?? view.job.createdAt, view.job.finishedAt)}</span> : undefined}>
-          {!view ? (
-            <div className="create-steps" aria-busy="true"><span className="sr-only" role="status">Reading the idea’s progress…</span>{Array.from({ length: 8 }, (_, i) => <div key={i} className="create-step"><Skeleton.Block width={24} height={24} radius="pill" /><span className="create-step-words"><Skeleton.Line width="40%" /></span></div>)}</div>
-          ) : (
-            <ol className="create-steps">
-              {rows.map((r) => (
-                <li key={r.stage} className="create-step" data-state={r.state} aria-current={r.state === 'running' ? 'step' : undefined}>
-                  <span className="create-step-mark" aria-hidden>{r.state === 'done' ? <IconCheck /> : null}</span>
-                  <span className="create-step-words">
-                    <span className="create-step-title"><span className="t-card">{r.label}</span><span className="t-meta">{r.who}</span></span>
-                    {r.state === 'running' ? <JobDot>{r.note ?? 'Working…'}</JobDot> : r.note ? <span className="t-meta create-step-note">{r.note}</span> : null}
-                  </span>
-                  <span className="t-ro create-step-time">{r.state === 'running' || r.state === 'done' ? elapsed(r.startedAt, r.finishedAt) : r.state === 'skipped' ? 'Skipped' : r.state === 'failed' ? 'Stopped' : ''}</span>
-                  <span className="sr-only">{r.state === 'done' ? 'done' : r.state === 'running' ? 'running' : r.state === 'skipped' ? 'skipped' : r.state === 'failed' ? 'failed' : 'waiting'}</span>
-                </li>
-              ))}
-            </ol>
+          {!view ? <StageStepsSkeleton count={8} label="Reading the idea’s progress…" /> : (
+            <StageSteps label="The story team’s stages" stages={rows.map((r) => ({
+              id: r.stage, label: r.label, who: r.who, state: r.state, note: r.note,
+              time: r.state === 'running' || r.state === 'done' ? elapsed(r.startedAt, r.finishedAt) : r.state === 'skipped' ? 'Skipped' : r.state === 'failed' ? 'Stopped' : '',
+            }))} />
           )}
         </Panel>
         <FormFooter start={<Button variant="quiet" onClick={() => goIdea(null)}>Back</Button>}>
@@ -178,9 +167,8 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
           <Field label="One line or a theme" optional>
             <Textarea id="create-idea" rows={3} maxLength={3000} value={line} onChange={(e) => setLine(e.target.value)} />
           </Field>
-          <details className="create-prefs">
-            <summary className="create-prefs-summary"><span className="t-card">Preferences</span><span className="t-meta">{Object.values(prefs).filter((v) => (Array.isArray(v) ? v.length : v && v !== 'AUTO')).length ? 'Some are set' : 'All up to the studio'}</span></summary>
-            <div className="create-stack create-prefs-body">
+          <DisclosureCard variant="inline" title="Preferences" description={Object.values(prefs).filter((v) => (Array.isArray(v) ? v.length : v && v !== 'AUTO')).length ? 'Some are set' : 'All up to the studio'}>
+            <div className="create-stack">
               {!inShow && <StylePicker value={prefs.style ?? null} auto="Studio decides" onChange={(s) => setPref({ style: s ?? undefined })} />}
               {!inShow && (
                 <div className="create-row">
@@ -214,7 +202,7 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
                 </div>
               )}
             </div>
-          </details>
+          </DisclosureCard>
         </div>
       </Panel>
 

@@ -9,7 +9,7 @@ import { splitLyrics } from '@/domain/lyrics';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
-import { Button, Field, FormFooter, Input, Notice, Segmented, Select, SettingsSummary, Textarea } from '@/components/ui/kit';
+import { Button, DisclosureCard, Field, FormFooter, Input, Notice, Segmented, Select, SettingsSummary, Textarea } from '@/components/ui/kit';
 import { AudioRow } from '@/components/players/Controls';
 import { nameLang } from '@/components/home/model';
 import { IconShuffle } from '@/components/ui/icons';
@@ -146,9 +146,8 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
       </Panel>
 
       {d && (
-        <details className="card create-panel create-more">
-          <summary className="create-more-summary"><span className="t-title">How the studio developed this</span><span className="t-body">{researchSentence}</span></summary>
-          <div className="create-stack create-more-body">
+        <DisclosureCard title="How the studio developed this" description={researchSentence}>
+          <div className="create-stack">
             {d.concepts && d.concepts.concepts.length > 0 && (
               <div className="create-field">
                 <p className="label">{d.concepts.concepts.length} concepts were considered</p>
@@ -181,7 +180,7 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
               </div>
             )}
           </div>
-        </details>
+        </DisclosureCard>
       )}
       {d?.openIssues && d.openIssues.length > 0 && (
         <Notice tone="warn" title="The studio’s checks still note">

@@ -2,8 +2,7 @@
    and docs/design/VISUAL-STANDARD-V5.1.md. Layout only: every colour, radius, duration and type size is a token or a
    kit class. The skeletons (CreateHubSkeleton, CreateFlowSkeleton) use the same classes, so nothing moves when the
    content arrives.
-   Temporary page-local parts until the kit has them (change requests to DS): the picker tile (§5.6 "Selected
-   (pickers)"), the vertical stage stepper (§5.21 job rows) and the disclosure card. */
+   The style picker, the stage stepper and the disclosure card are the kit's (kit/Pickers.tsx, media/StylePicker.tsx). */
 @layer components {
   /* ---------------------------------------------------------------------------------------------------- the hub */
   .create-hub { display: flex; flex-direction: column; }
@@ -86,39 +85,13 @@
   .create-field .seg { max-inline-size: 100%; }
   .create-clock { flex: none; color: var(--text-3); }
 
-  /* a disclosure card ("More control", "How the studio developed this") and the preferences inside a panel */
-  .create-more { gap: 0; }
-  .create-more-summary, .create-prefs-summary { position: relative; display: flex; flex-direction: column; gap: 4px; padding-inline-end: 28px; cursor: pointer; list-style: none; border-radius: var(--r-xs); }
-  .create-more-summary::-webkit-details-marker, .create-prefs-summary::-webkit-details-marker { display: none; }
-  .create-more-summary::after, .create-prefs-summary::after { content: ''; position: absolute; inset-inline-end: 6px; inset-block-start: 6px; inline-size: 7px; block-size: 7px; border-inline-end: 1.5px solid var(--text-2); border-block-end: 1.5px solid var(--text-2); transform: rotate(45deg); transition: transform var(--dur-2) var(--ease-out); }
-  details[open] > .create-more-summary::after, details[open] > .create-prefs-summary::after { transform: rotate(-135deg); inset-block-start: 10px; }
-  .create-more-summary:hover::after, .create-prefs-summary:hover::after { border-color: var(--text-1); }
-  .create-more-summary > *, .create-prefs-summary > * { margin: 0; }
-  .create-more-body { margin-block-start: 24px; }
-  .create-prefs { padding-block-start: 20px; border-block-start: 1px solid var(--line-strong); }
-  .create-prefs-summary { flex-direction: row; align-items: baseline; gap: 12px; }
-  .create-prefs-body { margin-block-start: 20px; }
   .create-settings { padding-block-start: 4px; }
 
   /* the picker tiles: the object in its own shape, chosen with a 2 px outline and a check badge (§5.6) */
   .create-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 16px 12px; margin: 0; padding: 4px; list-style: none; margin-inline: -4px; }
   .create-picks[data-shape='plate'] { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
-  .create-picks[data-shape='style'] { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .create-picks > li { display: flex; min-inline-size: 0; }
-  .create-pick { display: flex; flex: 1; flex-direction: column; min-inline-size: 0; padding: 0; border: 0; background: none; color: var(--text-1); font: inherit; text-align: start; cursor: pointer; border-radius: var(--r-md); }
-  .create-pick:focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
-  .create-pick:disabled { cursor: default; }
-  .create-pick-frame { position: relative; display: block; overflow: hidden; border-radius: var(--r-md); background: var(--surface-2); }
-  .create-picks[data-shape='style'] .create-pick-frame { aspect-ratio: 16 / 9; }
   .create-picks > li > :is(.fcard, .mtile) { inline-size: 100%; }
-  .create-pick-frame > .frame, .create-pick-frame > .tcard { inline-size: 100%; block-size: 100%; }
-  .create-pick[aria-checked='true'] .create-pick-frame { outline: 2px solid var(--text-1); outline-offset: 3px; }
-  .create-pick:hover .create-drawing { opacity: .92; }
-  .create-pick-name { display: block; margin-block-start: 12px; min-block-size: 20px; }
-  .create-pick-sub { display: block; margin-block-start: 2px; min-block-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .create-pick-auto { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
-  .create-pick-auto svg { inline-size: 24px; block-size: 24px; }
-  .create-drawing { display: block; inline-size: 100%; block-size: 100%; }
   .create-aspect { display: inline-block; flex: none; border: 1.5px solid currentColor; border-radius: 2px; }
 
   /* the live preview */
@@ -133,22 +106,6 @@
   .create-preview-facts { display: flex; flex-wrap: wrap; margin: 4px 0 0; min-block-size: 18px; }
   .create-preview-song { margin: 8px 0 0; }
 
-  /* the development stages (a vertical stepper driven by the real child jobs) */
-  .create-steps { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
-  .create-step { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding-block: 10px; }
-  .create-step:not(:last-child)::before { content: ''; position: absolute; inset-inline-start: 11.25px; inset-block: 38px -6px; inline-size: 1.5px; background: var(--line-strong); }
-  .create-step-mark { position: relative; display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); box-shadow: inset 0 0 0 1.5px var(--line-control); color: var(--ok); }
-  .create-step-mark svg { inline-size: 14px; block-size: 14px; stroke-width: 2.5; }
-  .create-step[data-state='running'] .create-step-mark { box-shadow: inset 0 0 0 2px var(--text-1); }
-  .create-step[data-state='done'] .create-step-mark { background: var(--ok-soft); box-shadow: none; }
-  .create-step[data-state='skipped'] .create-step-mark { box-shadow: none; border: 1.5px dashed var(--line-control); }
-  .create-step[data-state='failed'] .create-step-mark { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); }
-  .create-step[data-state='waiting'] .t-card { color: var(--text-2); }
-  .create-step-words { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; padding-block-start: 2px; }
-  .create-step-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-  .create-step-note { overflow-wrap: anywhere; }
-  .create-step .job-dot { font-weight: 400; overflow-wrap: anywhere; }
-  .create-step-time { padding-block-start: 4px; color: var(--text-3); white-space: nowrap; }
 
   /* the proposal's structure, concepts, reviews and sources */
   .create-structure { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; list-style: none; }
@@ -186,15 +143,8 @@
     .create-panel { padding: 16px; gap: 16px; }
     .create-picks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
     .create-picks[data-shape='plate'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .create-picks[data-shape='style'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .create-picks[data-shape='style'][data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .create-idea { flex-wrap: wrap; gap: 8px 12px; }
     .create-idea-words { flex-basis: 100%; }
     .create-idea .job-dot { max-inline-size: none; }
-    .create-step { grid-template-columns: 24px minmax(0, 1fr); }
-    .create-step-time { grid-column: 2; padding-block-start: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .create-more-summary::after, .create-prefs-summary::after { transition: none; }
   }
 }
