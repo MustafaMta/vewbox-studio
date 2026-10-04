@@ -15,9 +15,17 @@ import { assertIntakeOpen, intakeState } from './intake';
 
 const undef = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
 
+/** A WAITING parent (step 14) is shown as the running job it is to every reader (status GENERATING, `waiting: true`):
+ *  the job list, the event stream and the pages keep their statuses. */
 export function rowToJob(r: typeof schema.jobs.$inferSelect): Job {
-  return { id: r.id, type: r.type as JobType, status: r.status as JobStatus, priority: r.priority, payload: r.payload, result: undef(r.result), progress: undef(r.progress), error: undef(r.error), attempts: r.attempts, maxAttempts: r.maxAttempts, runAfter: undef(r.runAfter), startedAt: undef(r.startedAt), finishedAt: undef(r.finishedAt), heartbeatAt: undef(r.heartbeatAt), cancelRequested: r.cancelRequested, providerTaskId: undef(r.providerTaskId), parentId: undef(r.parentId), productionId: undef(r.productionId), sceneId: undef(r.sceneId), shotId: undef(r.shotId), takeId: undef(r.takeId), characterId: undef(r.characterId), locationId: undef(r.locationId), createdAt: r.createdAt, updatedAt: r.updatedAt };
+  const waiting = r.status === WAITING;
+  return { ...(waiting ? { waiting: true } : {}), ...(r.wakes ? { wakes: r.wakes } : {}), ...(r.plan ? { plan: r.plan } : {}), id: r.id, type: r.type as JobType, status: (waiting ? 'GENERATING' : r.status) as JobStatus, priority: r.priority, payload: r.payload, result: undef(r.result), progress: undef(r.progress), error: undef(r.error), attempts: r.attempts, maxAttempts: r.maxAttempts, runAfter: undef(r.runAfter), startedAt: undef(r.startedAt), finishedAt: undef(r.finishedAt), heartbeatAt: undef(r.heartbeatAt), cancelRequested: r.cancelRequested, providerTaskId: undef(r.providerTaskId), parentId: undef(r.parentId), productionId: undef(r.productionId), sceneId: undef(r.sceneId), shotId: undef(r.shotId), takeId: undef(r.takeId), characterId: undef(r.characterId), locationId: undef(r.locationId), createdAt: r.createdAt, updatedAt: r.updatedAt };
 }
+
+/** The stored status of a parent waiting for its children (never a JobStatus a reader sees: rowToJob). */
+export const WAITING = 'WAITING';
+/** A child is SETTLED for its parent once nothing more happens to it without a person. */
+export const SETTLED_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'] as const;
 
 export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
 
@@ -91,7 +99,7 @@ export function isUniqueViolation(e: unknown, constraint?: string): boolean {
 
 /** An active job for the same target of the same type, if any — the UI uses it to show one spinner, not two. */
 export async function findActive(type: JobType, where: Partial<Pick<Job, 'productionId' | 'shotId' | 'characterId' | 'locationId'>>): Promise<Job | undefined> {
-  const conds = [eq(schema.jobs.type, type), inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'])];
+  const conds = [eq(schema.jobs.type, type), inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', WAITING])];
   if (where.productionId) conds.push(eq(schema.jobs.productionId, where.productionId));
   if (where.shotId) conds.push(eq(schema.jobs.shotId, where.shotId));
   if (where.characterId) conds.push(eq(schema.jobs.characterId, where.characterId));
@@ -108,7 +116,7 @@ export async function getJob(id: string): Promise<Job | undefined> {
 export async function listJobs(opts: { productionId?: string; activeOnly?: boolean; limit?: number; since?: string } = {}): Promise<Job[]> {
   const conds = [];
   if (opts.productionId) conds.push(eq(schema.jobs.productionId, opts.productionId));
-  if (opts.activeOnly) conds.push(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'AWAITING_REVIEW']));
+  if (opts.activeOnly) conds.push(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'AWAITING_REVIEW', WAITING]));
   if (opts.since) conds.push(dsql`${schema.jobs.updatedAt} > ${opts.since}`);
   const rows = await db().select().from(schema.jobs).where(conds.length ? and(...conds) : undefined).orderBy(desc(schema.jobs.createdAt)).limit(opts.limit ?? 200);
   return rows.map(rowToJob);
@@ -138,10 +146,11 @@ export async function requestCancel(id: string): Promise<Job> {
   // (the row is CANCELLED: claim skips it). Both CASEs read the row's old status.
   const rows = await db().update(schema.jobs).set({
     cancelRequested: true,
-    status: dsql`case when ${schema.jobs.status} = 'QUEUED' then 'CANCELLED' else ${schema.jobs.status} end`,
-    finishedAt: dsql`case when ${schema.jobs.status} = 'QUEUED' then ${now}::timestamptz else ${schema.jobs.finishedAt} end`,
+    // a QUEUED job, or a parent WAITING for its children (no worker holds it: step 14), is cancelled at once
+    status: dsql`case when ${schema.jobs.status} in ('QUEUED', 'WAITING') then 'CANCELLED' else ${schema.jobs.status} end`,
+    finishedAt: dsql`case when ${schema.jobs.status} in ('QUEUED', 'WAITING') then ${now}::timestamptz else ${schema.jobs.finishedAt} end`,
     updatedAt: now,
-  }).where(and(eq(schema.jobs.id, id), inArray(schema.jobs.status, [...ACTIVE_STATUSES, 'AWAITING_REVIEW']))).returning({ status: schema.jobs.status });
+  }).where(and(eq(schema.jobs.id, id), inArray(schema.jobs.status, [...ACTIVE_STATUSES, 'AWAITING_REVIEW', WAITING]))).returning({ status: schema.jobs.status });
   if (rows.length === 0) {
     const job = await getJob(id);
     if (!job) throw new StudioError('NOT_FOUND', `Job ${id} not found`);
@@ -151,6 +160,11 @@ export async function requestCancel(id: string): Promise<Job> {
   // children follow the parent
   const children = await db().select({ id: schema.jobs.id }).from(schema.jobs).where(and(eq(schema.jobs.parentId, id), inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'])));
   for (const c of children) await requestCancel(c.id);
+  if (rows[0].status === 'CANCELLED') {
+    // a waiting parent's run was left open between its passes: it ends here, with the job
+    await db().update(schema.agentRuns).set({ finishedAt: now, outcome: 'CANCELLED', failureClass: 'CANCELLED' }).where(and(eq(schema.agentRuns.jobId, id), isNull(schema.agentRuns.outcome)));
+    await wakeParents([id]);
+  }
   await notifyJobs(id, 'CANCEL_REQUESTED');
   return (await getJob(id))!;
 }
@@ -180,7 +194,7 @@ const RUNNING_STATUSES: JobStatus[] = ['PREPARING', 'GENERATING', 'DOWNLOADING',
  *    crashes its worker is not retried forever; the retry endpoint can still revive it on purpose.
  *  Each is one conditional UPDATE (the row must still be stale and running when it is written), safe to run from
  *  every worker at once. Returns the jobs it settled. */
-export async function reapStale(now = new Date()): Promise<{ cancelled: string[]; failed: string[] }> {
+export async function reapStale(now = new Date()): Promise<{ cancelled: string[]; failed: string[]; woken?: string[] }> {
   const nowIso = now.toISOString();
   const staleBefore = new Date(now.getTime() - LEASE_SECONDS * 1000).toISOString();
   const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)));
@@ -192,7 +206,61 @@ export async function reapStale(now = new Date()): Promise<{ cancelled: string[]
   }).where(and(stale, eq(schema.jobs.cancelRequested, false), dsql`${schema.jobs.attempts} >= ${schema.jobs.maxAttempts}`)).returning({ id: schema.jobs.id, lockedBy: schema.jobs.lockedBy });
   for (const r of cancelled) { await addEvent(r.id, 'info', 'cancelled: its worker had stopped before reaching a checkpoint').catch(() => undefined); await notifyJobs(r.id, 'CANCELLED').catch(() => undefined); }
   for (const r of failed) { log.warn({ jobId: r.id }, 'job failed: its worker was lost on every attempt'); await addEvent(r.id, 'error', 'failed: its worker was lost on every attempt', { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' }).catch(() => undefined); await notifyJobs(r.id, 'FAILED').catch(() => undefined); }
-  return { cancelled: cancelled.map((r) => r.id), failed: failed.map((r) => r.id) };
+  // their parents may be waiting for them; and a parent whose wake-up was missed is woken here (the backstop)
+  const woken = [...await wakeParents([...cancelled, ...failed].map((r) => r.id)), ...await wakeReady()];
+  return { cancelled: cancelled.map((r) => r.id), failed: failed.map((r) => r.id), ...(woken.length ? { woken } : {}) };
+}
+
+// ------------------------------------------------------------------------------- orchestration as data (step 14)
+
+/** A PARENT WAITS FOR ITS CHILDREN (docs/BACKEND-AUDIT-2026-10.md M1). Instead of holding a worker slot and polling
+ *  them, a planner's pass ends by recording what it waits for (job_dependencies) and its plan (`jobs.plan`), and its
+ *  job becomes WAITING with no lease. When the last child it waits for settles (completed, failed for good, cancelled,
+ *  or waiting for a person), the parent is QUEUED again and the next pass continues from its plan. Fenced on the
+ *  pass's lease. The children are read FOR SHARE: a child settling at the same moment either committed first (it is
+ *  seen settled, and the parent is queued again at once) or waits for this to commit (and then wakes it).
+ *  Returns 'waiting', 'ready' (everything was already settled: queued again at once), or 'lost' (the lease). */
+export async function suspend(id: string, dependsOn: string[], opts: { lease?: Lease; progress?: JobProgress; plan?: Record<string, unknown> } = {}): Promise<'waiting' | 'ready' | 'lost'> {
+  const now = new Date().toISOString();
+  const deps = Array.from(new Set(dependsOn.filter((d) => d && d !== id)));
+  const out = await db().transaction(async (tx) => {
+    if (deps.length) await tx.insert(schema.jobDependencies).values(deps.map((d) => ({ jobId: id, dependsOn: d, createdAt: now }))).onConflictDoNothing();
+    const children = deps.length ? await tx.select({ id: schema.jobs.id, status: schema.jobs.status }).from(schema.jobs).where(inArray(schema.jobs.id, deps)).for('share') : [];
+    const open = children.filter((c) => !(SETTLED_STATUSES as readonly string[]).includes(c.status)).length;
+    const ready = open === 0;
+    const rows = await tx.update(schema.jobs).set({
+      ...(ready ? { status: 'QUEUED', wakes: dsql`${schema.jobs.wakes} + 1`, maxAttempts: dsql`${schema.jobs.maxAttempts} + 1`, runAfter: null } : { status: WAITING }),
+      lockedBy: null, lockedAt: null, heartbeatAt: null, updatedAt: now,
+      progress: opts.progress ?? { phase: 'waiting', message: `waiting for ${open} job(s)` }, ...(opts.plan ? { plan: opts.plan } : {}),
+    }).where(owned(id, opts.lease)).returning({ id: schema.jobs.id });
+    if (!rows.length) return 'lost' as const;
+    return ready ? ('ready' as const) : ('waiting' as const);
+  });
+  if (out === 'lost') { await leaseLost(id, opts.lease, 'suspension'); return out; }
+  await addEvent(id, 'info', out === 'ready' ? 'continues at once: what it waits for has settled' : `waiting for ${deps.length} job(s)`, { dependsOn: deps });
+  await notifyJobs(id, out === 'ready' ? 'QUEUED' : 'GENERATING');
+  return out;
+}
+
+/** Queue again every WAITING parent of these children whose children have all settled. A wake is not an attempt: the
+ *  attempt budget grows with it (`attempts - wakes` stays the failure round). Returns the woken parents. */
+export async function wakeParents(childIds: string[]): Promise<string[]> {
+  if (!childIds.length) return [];
+  const now = new Date().toISOString();
+  const rows = await db().execute<{ id: string }>(dsql`
+    update jobs p set status = 'QUEUED', wakes = p.wakes + 1, max_attempts = p.max_attempts + 1, run_after = null, updated_at = ${now}
+    where p.status = 'WAITING'
+      and p.id in (select job_id from job_dependencies where depends_on in (${dsql.join(childIds.map((c) => dsql`${c}`), dsql`, `)}))
+      and not exists (select 1 from job_dependencies d join jobs c on c.id = d.depends_on where d.job_id = p.id and c.status not in ('COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'))
+    returning p.id`);
+  for (const r of rows) { await addEvent(r.id, 'info', 'woken: everything it waited for has settled').catch(() => undefined); await notifyJobs(r.id, 'QUEUED').catch(() => undefined); }
+  return rows.map((r) => r.id);
+}
+
+/** The backstop: every WAITING parent whose children have all settled (a wake-up that was missed). */
+export async function wakeReady(): Promise<string[]> {
+  const waiting = await db().select({ id: schema.jobDependencies.dependsOn }).from(schema.jobDependencies).innerJoin(schema.jobs, eq(schema.jobs.id, schema.jobDependencies.jobId)).where(eq(schema.jobs.status, WAITING));
+  return wakeParents(Array.from(new Set(waiting.map((w) => w.id))));
 }
 
 /** Claim the next runnable job of the given types. Stale leases (no heartbeat within the lease) are taken over. */
@@ -257,6 +325,7 @@ export async function complete(id: string, result: Record<string, unknown>, stat
   if (lease && rows.length === 0) return leaseLost(id, lease, 'result');
   await addEvent(id, 'info', status === 'COMPLETED' ? 'completed' : 'awaiting review', result);
   await notifyJobs(id, status);
+  await wakeParents([id]);
   return true;
 }
 
@@ -281,6 +350,7 @@ export async function fail(id: string, error: JobError, attempts: number, maxAtt
     if (lease && rows.length === 0) return leaseLost(id, lease, 'failure');
     await addEvent(id, 'error', 'failed', { error });
     await notifyJobs(id, 'FAILED');
+    await wakeParents([id]);
   }
   return true;
 }
@@ -292,6 +362,7 @@ export async function cancelled(id: string, lease?: Lease): Promise<boolean> {
   if (lease && rows.length === 0) return leaseLost(id, lease, 'cancellation');
   await addEvent(id, 'info', 'cancelled');
   await notifyJobs(id, 'CANCELLED');
+  await wakeParents([id]);
   return true;
 }
 

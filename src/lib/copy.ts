@@ -282,6 +282,7 @@ const COPY = {
   // the phases character and voice jobs report (progress.phase), read as `jp.${phase}` (finding 14)
   'jp.preparing': 'Preparing',
   'jp.recovering': 'Recovering',
+  'jp.waiting': 'Waiting for its jobs',
   'jp.design': 'Designing',
   'jp.designing': 'Designing',
   'jp.appearance': 'Drawing the portrait',

@@ -340,6 +340,10 @@ export const jobs = pgTable('jobs', {
   takeId: text('take_id'),
   characterId: text('character_id'),
   locationId: text('location_id'),
+  /** ORCHESTRATION AS DATA (step 14): how often a WAITING parent was woken by its children (a wake is not an attempt:
+   *  attempts - wakes is the failure round), and the plan an orchestrator keeps between its passes */
+  wakes: integer('wakes').notNull().default(0),
+  plan: jsonb('plan').$type<Record<string, unknown>>(),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 }, (t) => [uniqueIndex('jobs_idempotency_idx').on(t.idempotencyKey), index('jobs_status_idx').on(t.status, t.priority, t.createdAt), index('jobs_production_idx').on(t.productionId), index('jobs_parent_idx').on(t.parentId),
@@ -347,6 +351,14 @@ export const jobs = pgTable('jobs', {
   // two concurrent requests can never both insert one (audit H4)
   uniqueIndex('jobs_one_active_per_character').on(t.type, t.characterId).where(sql`status in ('QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and type in ('VOICE_BUILD', 'VOICE_DESIGN', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS') and character_id is not null`)]);
 
+/** WHAT A JOB WAITS FOR (docs/BACKEND-AUDIT-2026-10.md M1, step 14). A parent that has queued its children suspends as
+ *  WAITING with one row per child; the child's completion, failure or cancellation (or review) wakes the parent once
+ *  every child it waits for has settled (src/server/jobs/queue.ts suspend / wakeParents). */
+export const jobDependencies = pgTable('job_dependencies', {
+  jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  dependsOn: text('depends_on').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [primaryKey({ columns: [t.jobId, t.dependsOn] }), index('job_dependencies_depends_on_idx').on(t.dependsOn)]);
 export const jobEvents = pgTable('job_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),

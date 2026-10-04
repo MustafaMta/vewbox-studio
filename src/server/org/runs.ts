@@ -83,6 +83,15 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   return id;
 }
 
+/** A woken orchestrator's next pass (step 14) continues the run its earlier passes left open; without one (the first
+ *  pass crashed and the run was closed) a new run starts. */
+export async function resumeRun(job: Job, agentId: string): Promise<string> {
+  const open = await db().select({ id: schema.agentRuns.id }).from(schema.agentRuns).where(and(eq(schema.agentRuns.jobId, job.id), isNull(schema.agentRuns.outcome), isNull(schema.agentRuns.parentRunId))).orderBy(desc(schema.agentRuns.startedAt)).limit(1);
+  if (!open[0]) return startRun(job, agentId);
+  await recordRunPhase(open[0].id, { phase: 'PREPARING', at: new Date().toISOString(), message: `woken (pass ${(job.wakes ?? 0) + 1})` });
+  return open[0].id;
+}
+
 /** THE RUN'S FIRST PHASES (docs/CONTRACTS-REDESIGN-BACKEND.md B9): QUEUED from the moment the job could run (its
  *  creation, or the retry's `runAfter` when later) and PREPARING from the claim. Pure. */
 export function initialPhases(job: Pick<Job, 'createdAt' | 'runAfter'>, claimedAt: string): RunPhaseEvent[] {

@@ -9,7 +9,8 @@ import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
 import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
-import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, reapStale, setProgress, type Lane } from '@/server/jobs/queue';
+import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, reapStale, setProgress, suspend, type Lane } from '@/server/jobs/queue';
+import { waitRequestOf } from './handlers/wait';
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
@@ -21,7 +22,7 @@ import { step } from './handlers/step';
 import { gpuLease } from './gpu';
 import type { FailureClass } from '@/server/org/model';
 import { syncRegistry } from '@/server/registry';
-import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, startRun, studioEvent } from '@/server/org/runs';
+import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, resumeRun, startRun, studioEvent } from '@/server/org/runs';
 import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
 
@@ -83,7 +84,8 @@ async function run(job: Job, lane: Lane) {
   const record = async (what: string, fn: () => Promise<void>) => { try { await fn(); } catch (e) { jl.error({ err: (e as Error).message, what }, 'could not record the job outcome'); } };
   // the agent run: who is doing this, which attempt, what it calls
   let runId = '';
-  await record('start run', async () => { runId = await startRun(job, agent.id); });
+  // a woken orchestrator (step 14) continues the run its earlier passes left open
+  await record('start run', async () => { runId = job.wakes ? await resumeRun(job, agent.id) : await startRun(job, agent.id); });
   const label = JOB_LABELS[job.type] ?? job.type;
   // THE RUN'S PHASES (B9): startRun recorded QUEUED and PREPARING; every later progress report that moves the job
   // to another phase (GENERATING, CHECKING, FINISHING) is appended to the run as a timed event and announced, so
@@ -120,6 +122,17 @@ async function run(job: Job, lane: Lane) {
     // is let go of after ABORT_GRACE_MS so its lane slot is freed — its late writes are fenced on the lease
     const result = await raceAbort(runInJobScope({ jobId: job.id, signal: jobCtrl.signal, lease }, () => handler(ctx)), jobCtrl.signal, ABORT_GRACE_MS);
     const ms = Date.now() - t0;
+    // A PLANNER'S PASS THAT WAITS (step 14): its dependencies and plan are recorded and the job becomes WAITING with no
+    // lease — the slot is free; the jobs it waits for wake it. The run stays open across passes.
+    const wait = waitRequestOf(result);
+    if (wait) {
+      const outcome = { state: 'lost' as 'waiting' | 'ready' | 'lost' };
+      await record('suspend', async () => { outcome.state = await suspend(job.id, wait.jobIds, { lease, progress: wait.progress, plan: wait.plan }); });
+      const { state } = outcome;
+      if (state === 'lost' && runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before the pass could wait: another worker reclaimed the job', ms }));
+      jl.info({ ms, waitingFor: wait.jobIds.length, state }, state === 'ready' ? 'pass done; continues at once' : 'pass done; waiting for its jobs');
+      return;
+    }
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
     await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
     if (leaseLost) {

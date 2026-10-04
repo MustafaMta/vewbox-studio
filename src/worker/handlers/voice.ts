@@ -440,14 +440,15 @@ export const voicePreview: Handler = async (ctx) => {
 // --------------------------------------------------------------------------------------------- DIALOGUE_AUDIO
 
 export const dialogueAudio: Handler = async (ctx) => {
-  const { productionId, shotIds, force } = ctx.job.payload as { productionId: string; shotIds?: string[]; force?: boolean };
+  const { productionId, shotIds, lineIds, force } = ctx.job.payload as { productionId: string; shotIds?: string[]; lineIds?: string[]; force?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === productionId) as Production | undefined;
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   const cast = castOf(state, p);
   const dir = await tmpDir('dialogue');
   const refs = new Map<string, Reference | null>();
-  const lines = p.shots.filter((sh) => !shotIds?.length || shotIds.includes(sh.id)).flatMap((sh) => sh.dialogue.filter((d) => { const c = cast.find((x) => x.id === d.characterId); return force || !c || !lineRecordingCurrent(d, c, state.assets); }).map((d) => ({ sh, d })));
+  // lineIds: exactly these lines, recorded again whatever their state (targeted regeneration, step 14)
+  const lines = p.shots.filter((sh) => !shotIds?.length || shotIds.includes(sh.id)).flatMap((sh) => sh.dialogue.filter((d) => { if (lineIds?.length) return lineIds.includes(d.id); const c = cast.find((x) => x.id === d.characterId); return force || !c || !lineRecordingCurrent(d, c, state.assets); }).map((d) => ({ sh, d })));
   if (lines.length === 0) return { lines: 0, message: 'every line already has a current recording' };
   let done = 0; let flagged = 0; let unverified = 0;
   for (const { sh, d } of lines) {

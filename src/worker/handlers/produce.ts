@@ -11,6 +11,7 @@ import * as comfy from '@/server/providers/comfy';
 import { requireApproval } from '@/server/org/gates';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { ensurePin, establishApprovedCuts } from '@/server/world';
+import { waitFor as waitForJobs } from './wait';
 
 /** PRODUCE — the "make everything" button: for each shot without an accepted take, draw the opening frame (when
  *  missing, and never for a continuation, which starts from the previous take's tail) and then generate a take;
@@ -57,7 +58,9 @@ export function pilotVerdict(job: Pick<Job, 'status' | 'result' | 'error'> | und
   return { passed: true, takeId, reason: 'the pilot passed its checks' };
 }
 
-export const produce: Handler = async (ctx) => {
+/** The orchestrator before step 14 (it held a worker slot and polled its children every 5 s): the rollback,
+ *  PRODUCE_DAG=off, for one release. */
+export const produceLegacy: Handler = async (ctx) => {
   const { productionId, shotIds, framesOnly, respeak } = ctx.job.payload as { productionId: string; shotIds?: string[]; framesOnly?: boolean; respeak?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === productionId);
@@ -174,6 +177,164 @@ export const produce: Handler = async (ctx) => {
   if (remaining === 0) await assembleIfNeeded(after);
   await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${outcome.completed} of ${targets.length} shot(s) generated${outcome.failed ? `, ${outcome.failed} failed` : ''}${blocked.length ? `, ${blocked.length} held back by a pilot or a predecessor` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed: outcome.completed, failed: outcome.failed, remaining, blocked: blocked.length });
   return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, world: pin, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
+};
+
+// ------------------------------------------------------------------------------- PRODUCE as a dependency graph
+
+/** What PRODUCE remembers between its passes (`jobs.plan`, step 14). Shot ids, the child jobs it queued for them, the
+ *  pilot gate's verdicts and what it held back. Everything else is read again on every pass. */
+export interface ProducePlan {
+  v: 1; round: number;
+  targets: string[];
+  imagesReady: boolean;
+  world?: Record<string, unknown>;
+  /** shotId → its SHOT_FRAMES job */
+  frames: Record<string, string>;
+  /** the scenes in cut order: their pilot (if unproven) and the other shots to generate */
+  scenes?: Array<{ sceneId: string; pilot?: string; rest: string[] }>;
+  /** shotId → its GENERATE_TAKE job */
+  takes: Record<string, string>;
+  verdicts?: Array<{ sceneId: string; sceneNumber?: number; shotId: string; passed: boolean; takeId?: string; reason: string }>;
+  blocked: Array<{ shotId: string; reason: string }>;
+  assembleJob?: string;
+  /** nothing to generate: this run only assembles a stale cut */
+  assembleOnly?: boolean;
+}
+
+const settledJob = (j: Job | undefined) => Boolean(j && settled(j.status));
+
+/** PRODUCE — THE PLANNER (docs/BACKEND-AUDIT-2026-10.md M1, step 14). The same film as before (frames → the pilot of
+ *  every unproven scene → the rest of each scene whose pilot passed, a continuation after its predecessor's accepted
+ *  take → the cut), but as a dependency graph in the queue: every pass queues what is ready (idempotency keys
+ *  `produce:<job>:<kind>:<shot>:<round>`, so a pass run twice queues nothing twice), records what it waits for and
+ *  ends; the job WAITS without a worker slot and its children wake it. A crash mid-film resumes from the plan and the
+ *  child jobs. A failed shot fails alone: its job is in the result (`failedShots`), and it is regenerated on its own
+ *  (POST /api/productions/<id>/regenerate, or a retry of that job) — never by producing the film again.
+ *  PRODUCE_DAG=off runs the polling orchestrator instead (rollback). */
+export const produce: Handler = async (ctx) => {
+  if (process.env.PRODUCE_DAG === 'off') return produceLegacy(ctx);
+  const { productionId, shotIds, framesOnly, respeak } = ctx.job.payload as { productionId: string; shotIds?: string[]; framesOnly?: boolean; respeak?: boolean };
+  // the failure round: a wake is not an attempt (src/server/jobs/queue.ts suspend), so the children's keys are stable
+  // across passes and change only when the job itself is retried
+  const round = ctx.job.attempts - (ctx.job.wakes ?? 0);
+  const stored = ctx.job.plan as ProducePlan | undefined;
+  let { state } = await readState();
+  const prod = () => { const x = state.productions.find((y) => y.id === productionId); if (!x) throw new StudioError('NOT_FOUND', 'Production not found'); return x; };
+  let p = prod();
+  const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
+  const enqueueChild = async (req: { type: 'SHOT_FRAMES' | 'GENERATE_TAKE' | 'ASSEMBLE'; payload: Record<string, unknown>; key: string; priority?: number }) => {
+    const input = { type: req.type, payload: req.payload, parentId: ctx.job.id, idempotencyKey: req.key, ...(req.priority !== undefined ? { priority: req.priority } : {}) };
+    return (await ctx.tool('jobs.enqueue', () => enqueue(input), { label: req.type, input })).job.id;
+  };
+  const waitOn = (plan: ProducePlan, ids: string[], phase: string, done = 0, total = ids.length) => waitForJobs({ jobIds: ids, plan: plan as unknown as Record<string, unknown>, progress: { phase, message: `${phase}: ${done}/${total} finished`, step: done, total, percent: total ? Math.round((done / total) * 100) : null } });
+  const needsAssembly = (q: Production) => !q.shots.some((sh) => needsTake(sh)) && !(q.cutAssetId && !q.cutStale);
+
+  // ---- the first pass: the gates, the world pin, what to film, the frames ----
+  let plan: ProducePlan;
+  if (!stored || stored.round !== round) {
+    if (p.shots.length === 0) throw new StudioError('INVALID', 'Plan the shots before producing.');
+    await step(ctx, 'quality-director', `story-gate: “${p.title}”`, () => requireApproval(productionId, 'STORY'));
+    const world = await step(ctx, 'world-continuity', `world-pin: “${p.title}”`, async () => {
+      const established = await establishApprovedCuts(state, p, { jobId: ctx.job.id });
+      const fresh = established.some((e) => e.added) ? (await readState()).state : state;
+      const out = await ensurePin(fresh, fresh.productions.find((x) => x.id === p.id) ?? p, { jobId: ctx.job.id, by: 'world-continuity' });
+      await ctx.event(out.blocking.length ? 'warn' : 'info', `World Bible: ${out.message}`, { revision: out.view.revision.number, action: out.action, established: established.filter((e) => e.added), blocking: out.blocking });
+      return { revision: out.view.revision.number, pinned: out.view.pinned, action: out.action, established: established.reduce((n, e) => n + e.added, 0), blocking: out.blocking.length };
+    });
+    const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh)));
+    plan = { v: 1, round, targets: targets.map((s) => s.id), imagesReady: false, world, frames: {}, takes: {}, blocked: [] };
+    if (targets.length === 0) {
+      if (respeak || framesOnly || !needsAssembly(p)) return { message: respeak ? 'every speaking shot already has a verified take' : 'every shot already has a chosen take', shots: 0 };
+      plan.assembleOnly = true;
+      plan.assembleJob = await enqueueChild({ type: 'ASSEMBLE', payload: { productionId }, key: `produce:${ctx.job.id}:assemble:${round}` });
+      return waitOn(plan, [plan.assembleJob], p.cutStale ? 'assembling again (the cut was out of date)' : 'assembling');
+    }
+    plan.imagesReady = await comfy.health().then(async (h) => h.ok && (await comfy.listModels('diffusion_models').catch(() => [] as string[])).some((m) => m.includes('qwen_image'))).catch(() => false);
+    if (!plan.imagesReady) await ctx.event('warn', 'image engine not ready: opening frames skipped, takes generated from prompt and references');
+    await ctx.activity('PRODUCTION_STARTED', `“${p.title}”: ${targets.length} shot(s) to ${respeak ? 're-record' : 'generate'}${framesOnly ? ' (frames only)' : ''}`, { shots: targets.length, respeak: Boolean(respeak) });
+    // frames first (local GPU, fast); a continuation starts from the previous take's tail and gets none
+    for (const sh of targets) {
+      if (sh.openingFrameAssetId || !plan.imagesReady || effectiveRelation(p, sh).relation === 'CONTINUATION') continue;
+      plan.frames[sh.id] = await enqueueChild({ type: 'SHOT_FRAMES', payload: { productionId, shotId: sh.id }, key: `produce:${ctx.job.id}:frame:${sh.id}:${round}`, priority: 2 });
+    }
+    const frameJobs = Object.values(plan.frames);
+    if (frameJobs.length) return waitOn(plan, frameJobs, 'drawing frames');
+  } else plan = { ...stored, frames: { ...stored.frames }, takes: { ...stored.takes }, blocked: [...stored.blocked] };
+
+  if (plan.assembleOnly) {
+    const a = plan.assembleJob ? await getJob(plan.assembleJob) : undefined;
+    if (a && !settledJob(a)) return waitOn(plan, [a.id], 'assembling');
+    return { message: 'every shot already has a chosen take; the cut was out of date and was assembled again', shots: 0, assembled: true, ...(a?.status === 'FAILED' ? { assembleFailed: true, assembleJobId: a.id } : {}) };
+  }
+  if (framesOnly) return { frames: Object.keys(plan.frames).length, shots: plan.targets.length };
+  const targets = plan.targets.map((id) => p.shots.find((s) => s.id === id)).filter((s): s is Shot => Boolean(s));
+  const queueTake = async (sh: Shot) => { plan.takes[sh.id] = await enqueueChild({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, key: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 }); };
+
+  // ---- 1) the pilots: the first shot of every unproven scene, generated alone ----
+  if (!plan.scenes) {
+    plan.scenes = planPilots(p, targets).map((s) => ({ sceneId: s.sceneId, pilot: s.pilot?.id, rest: s.rest.map((x) => x.id) }));
+    for (const s of plan.scenes) if (s.pilot) { const sh = targets.find((x) => x.id === s.pilot); if (sh) await queueTake(sh); }
+    const pilotJobs = plan.scenes.flatMap((s) => (s.pilot && plan.takes[s.pilot] ? [plan.takes[s.pilot]] : []));
+    if (pilotJobs.length) return waitOn(plan, pilotJobs, `pilot shot${pilotJobs.length > 1 ? 's' : ''} (the first of ${pilotJobs.length > 1 ? 'each scene' : 'the scene'})`);
+  }
+  // ---- the pilot gate (the Quality Director's step), once every pilot has settled ----
+  if (!plan.verdicts) {
+    plan.verdicts = [];
+    for (const s of plan.scenes.filter((x) => x.pilot)) {
+      const sceneNumber = p.scenes.find((sc) => sc.id === s.sceneId)?.number;
+      const v = await step(ctx, 'quality-director', `pilot-gate: scene ${sceneNumber ?? '?'} of “${p.title}”`, async () => {
+        const verdict = pilotVerdict(await getJob(plan.takes[s.pilot!]), state, productionId, s.pilot!);
+        await ctx.event(verdict.passed ? 'info' : 'warn', `scene ${sceneNumber ?? '?'}: ${verdict.reason}${verdict.passed ? '' : `; its other ${s.rest.length} shot(s) are not generated`}`, { sceneId: s.sceneId, shotId: s.pilot, takeId: verdict.takeId, waiting: s.rest.length });
+        return verdict;
+      });
+      plan.verdicts.push({ sceneId: s.sceneId, sceneNumber, shotId: s.pilot!, ...v });
+      if (!v.passed) for (const id of s.rest) plan.blocked.push({ shotId: id, reason: `scene ${sceneNumber ?? '?'}: its pilot did not pass` });
+    }
+  }
+
+  // ---- 2) the rest of every open scene, in cut order: whatever is ready is queued now; a continuation waits for the
+  //         pass after its predecessor's take settled, and is held back when that take was not accepted ----
+  const isBlocked = (id: string) => plan.blocked.some((b) => b.shotId === id);
+  const waitingOn: string[] = [];
+  for (const s of plan.scenes) {
+    for (const id of s.rest) {
+      if (plan.takes[id] || isBlocked(id)) continue;
+      const sh = p.shots.find((x) => x.id === id);
+      if (!sh) { plan.blocked.push({ shotId: id, reason: 'the shot no longer exists' }); continue; }
+      const { relation, previous } = effectiveRelation(p, sh);
+      if (relation === 'CONTINUATION' && previous) {
+        if (isBlocked(previous.id)) { plan.blocked.push({ shotId: id, reason: `continues shot ${previous.number}, which was not generated` }); continue; }
+        const prevJobId = plan.takes[previous.id];
+        if (prevJobId) {
+          const prevJob = await getJob(prevJobId);
+          if (!settledJob(prevJob)) { waitingOn.push(prevJobId); continue; }
+          if (!pilotVerdict(prevJob, state, productionId, previous.id).passed) { plan.blocked.push({ shotId: id, reason: `continues shot ${previous.number}, whose take was not accepted` }); continue; }
+        }
+      }
+      await queueTake(sh);
+    }
+  }
+  const takeJobs = Object.values(plan.takes);
+  const jobs = await Promise.all(takeJobs.map((id) => getJob(id)));
+  const open = takeJobs.filter((_, i) => !settledJob(jobs[i]));
+  if (open.length || waitingOn.length) return waitOn(plan, Array.from(new Set([...open, ...waitingOn])), respeak ? 're-recording speaking shots' : 'generating takes', takeJobs.length - open.length, takeJobs.length);
+
+  // ---- 3) every take settled: the cut, then the report ----
+  state = (await readState()).state; p = prod();
+  const remaining = p.shots.filter((sh) => needsTake(sh)).length;
+  if (!respeak && remaining === 0 && needsAssembly(p) && !plan.assembleJob) {
+    plan.assembleJob = await enqueueChild({ type: 'ASSEMBLE', payload: { productionId }, key: `produce:${ctx.job.id}:assemble:${round}` });
+    return waitOn(plan, [plan.assembleJob], p.cutStale ? 'assembling again (the cut was out of date)' : 'assembling');
+  }
+  if (plan.assembleJob) { const a = await getJob(plan.assembleJob); if (a && !settledJob(a)) return waitOn(plan, [a.id], 'assembling'); }
+  const completed = jobs.filter((j) => j?.status === 'COMPLETED' || j?.status === 'AWAITING_REVIEW').length;
+  const byId = new Map(takeJobs.map((id, i) => [id, jobs[i]] as const));
+  const failedShots = Object.entries(plan.takes).flatMap(([shotId, jobId]) => { const j = byId.get(jobId); return j && (j.status === 'FAILED' || j.status === 'CANCELLED') ? [{ shotId, jobId, reason: j.error?.message?.slice(0, 200) ?? j.status.toLowerCase() }] : []; });
+  const failed = failedShots.length;
+  const pilotsReport = (plan.verdicts ?? []).map((v) => ({ scene: v.sceneNumber, shotId: v.shotId, passed: v.passed, reason: v.reason }));
+  if (respeak) { const still = p.shots.filter(unverified).length; return { shots: plan.targets.length, completed, failed, failedShots, pilots: pilotsReport, blocked: plan.blocked, world: plan.world, stillUnverified: still, awaitingReview: still > 0 || plan.blocked.length > 0 }; }
+  await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${completed} of ${plan.targets.length} shot(s) generated${failed ? `, ${failed} failed (each can be regenerated on its own)` : ''}${plan.blocked.length ? `, ${plan.blocked.length} held back by a pilot or a predecessor` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed, failed, remaining, blocked: plan.blocked.length });
+  return { shots: plan.targets.length, completed, failed, failedShots, pilots: pilotsReport, blocked: plan.blocked, world: plan.world, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
 };
 
 /** A child job is settled when it is terminal or waits for a person (AWAITING_REVIEW is not terminal, but nothing more
