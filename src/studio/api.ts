@@ -14,7 +14,7 @@ export interface EngineStatus { video: EngineHealth; story: EngineHealth; images
 /** contract §1.2 — the validation `POST /api/assets` returns for `purpose: 'character-reference'`. */
 export interface ImageReferenceValidation { ok: boolean; width: number; height: number; sharpness?: number; faces?: number; faceBoxHeight?: number; reasons: string[] }
 /** `notes`: the Screening Room notes (docs/CONTRACTS-REDESIGN-BACKEND.md B2), beside the state, never in its hash. */
-export interface SnapshotResponse { state: StudioState; version: number; hash: string; seeded: { kind: string | null; at: string | null; version: number } | null; capabilities: Capabilities; notes: CutNote[] }
+export interface SnapshotResponse { state: StudioState; version: number; hash: string; seeded: { kind: string | null; at: string | null; version: number } | null; capabilities: Capabilities; notes: CutNote[]; /** which settings take effect today (src/domain/settings.ts) */ settingsHonoured?: import('@/domain/settings').SettingsHonoured }
 /** What `POST /api/jobs` may add to a queued character job: the preflight's warnings (e.g. "identity not approved",
  *  "an approved image is replaced by a draft"). The job runs; the producer is told. */
 export interface JobWarning { name: string; detail: string; characterIds?: string[] }
