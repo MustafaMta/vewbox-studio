@@ -46,7 +46,7 @@ export function CreateFlow({ kind }: { kind: CreateKind }) {
     return (
       <div className="create create-missing">
         <ErrorState kind="page" title={show ? 'This show has no season yet' : 'This show isn’t in the studio'} back={show ? { href: `/new/season?show=${show.id}`, label: 'New season' } : { href: '/shows', label: 'Back to Shows' }}>
-          {show ? 'Add a season first; its episodes follow.' : `A ${info.noun} belongs to a show. Open the show and add it from there.`}
+          {show ? 'Add a season first; its episodes follow.' : `${/^[aeiou]/.test(info.noun) ? 'An' : 'A'} ${info.noun} belongs to a show. Open the show and add it from there.`}
         </ErrorState>
       </div>
     );

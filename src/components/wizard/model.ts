@@ -177,13 +177,13 @@ export function stageRows(v: DevelopmentView | null): StageRow[] {
     const step = steps.find((s) => s.stage === stage);
     const base = { stage, label: w.label, who: w.who, startedAt: kid?.startedAt, finishedAt: kid?.finishedAt };
     if (step) return { ...base, state: step.status === 'done' ? 'done' : step.status, note: step.status === 'skipped' ? step.reason : step.status === 'failed' ? step.reason : undefined };
-    if (kid?.status === 'FAILED' || kid?.status === 'CANCELLED') return { ...base, state: 'failed', note: kid.error?.message };
+    if (kid?.status === 'FAILED' || kid?.status === 'CANCELLED') return { ...base, state: 'failed', note: kid.status === 'CANCELLED' ? 'Stopped here.' : 'It stopped here; the reason is under Details.' };
     if (kid && isActiveStatus(kid.status)) return { ...base, state: 'running', note: kid.progress?.message ?? (phase === stagePhase(stage) ? v?.job.progress?.message : undefined) };
     if (kid?.status === 'COMPLETED') return { ...base, state: 'done' };
     if (active && phase === stagePhase(stage)) return { ...base, state: 'running', note: v?.job.progress?.message };
     if (stage === 'PROPOSAL' && v?.proposal) return { ...base, state: 'done' };
     if (finished) return { ...base, state: stage === 'REVISION' ? 'skipped' : 'done', note: stage === 'REVISION' ? 'No revision was needed.' : undefined };
-    if (v?.job.status === 'FAILED' && phase === stagePhase(stage)) return { ...base, state: 'failed', note: v.job.error?.message };
+    if (v?.job.status === 'FAILED' && phase === stagePhase(stage)) return { ...base, state: 'failed', note: 'It stopped here; the reason is under Details.' };
     return { ...base, state: 'waiting' };
   });
 }
@@ -194,8 +194,8 @@ export function elapsed(from?: string, to?: string, now = Date.now()): string {
   const a = Date.parse(from.includes('T') ? from : from.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'));
   const b = to ? Date.parse(to.includes('T') ? to : to.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')) : now;
   if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return '';
-  const s = Math.round((b - a) / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const s = Math.round((b - a) / 1000); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60);
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
 // ------------------------------------------------------------------------------------------------- engines

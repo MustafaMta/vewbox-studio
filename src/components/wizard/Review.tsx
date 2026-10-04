@@ -109,7 +109,7 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
           <ol className="create-structure">
             {p.structure.map((x, i) => (
               <li key={i}>
-                <span className="t-ro-md create-structure-n">{i + 1}</span>
+                <span className="t-ro t-ro-md create-structure-n">{i + 1}</span>
                 <span className="create-structure-words"><span className="t-card content-para" dir="auto">{x.title}</span><span className="t-body content-para" dir="auto">{x.summary}</span></span>
               </li>
             ))}

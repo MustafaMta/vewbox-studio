@@ -124,7 +124,7 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
         )}
         <Panel id="create-dev-h" title={failed ? 'Where it stopped' : 'The studio is developing your idea'}
           description={failed ? undefined : 'The story team researches, writes and reviews it. You can leave this page; the idea waits for you here.'}
-          end={view?.job.createdAt ? <span className="t-ro-md create-clock">{elapsed(view.job.startedAt ?? view.job.createdAt, view.job.finishedAt)}</span> : undefined}>
+          end={view?.job.createdAt ? <span className="t-ro t-ro-md create-clock">{elapsed(view.job.startedAt ?? view.job.createdAt, view.job.finishedAt)}</span> : undefined}>
           {!view ? (
             <div className="create-steps" aria-busy="true"><span className="sr-only" role="status">Reading the idea’s progress…</span>{Array.from({ length: 8 }, (_, i) => <div key={i} className="create-step"><Skeleton.Block width={24} height={24} radius="pill" /><span className="create-step-words"><Skeleton.Line width="40%" /></span></div>)}</div>
           ) : (

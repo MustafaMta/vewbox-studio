@@ -34,8 +34,15 @@ const dev = idea ? await (await fetch(`${base}/api/development/${idea.id}`)).jso
 const midway = (failed) => {
   if (!dev) return null;
   const order = ['RESEARCH', 'AUDIENCE', 'CONCEPTS'];
-  const stages = dev.stages.filter((s) => order.includes(s.stage)).map((s) => (s.stage === 'CONCEPTS' ? { ...s, status: failed ? 'FAILED' : 'GENERATING', finishedAt: null, error: failed ? { code: 'PROVIDER', message: 'The story engine stopped answering while the concepts were written.' } : null, progress: { phase: 'concepts', message: 'Writing three concepts from the audience patterns' } } : s));
-  return { ...dev, ideaJobId: 'job-capture-idea', proposal: null, job: { ...dev.job, id: 'job-capture-idea', status: failed ? 'FAILED' : 'GENERATING', result: null, finishedAt: null, error: failed ? { code: 'PROVIDER', message: 'The story engine stopped answering while the concepts were written.' } : null, progress: { phase: 'concepts', step: 3, total: 8, message: 'Writing three concepts from the audience patterns' } }, stages };
+  // the real stages, re-timed to end now (their own durations kept; the concepts have run 42 s)
+  const at = (ms) => new Date(Date.now() - ms).toISOString();
+  const span = (s) => (s.startedAt && s.finishedAt ? Math.max(1000, Date.parse(s.finishedAt) - Date.parse(s.startedAt)) : 20000);
+  const kept = dev.stages.filter((s) => order.includes(s.stage) && s.stage !== 'CONCEPTS');
+  let t = 42000 + kept.reduce((a, s) => a + span(s), 0);
+  const timed = kept.map((s) => { const start = t; t -= span(s); return { ...s, startedAt: at(start), finishedAt: at(t) }; });
+  const concepts = dev.stages.find((s) => s.stage === 'CONCEPTS') ?? { stage: 'CONCEPTS', jobId: 'concepts', type: 'IDEA_CONCEPTS', attempts: 1 };
+  const stages = [...timed, { ...concepts, startedAt: at(42000), status: failed ? 'FAILED' : 'GENERATING', finishedAt: null, error: failed ? { code: 'PROVIDER', message: 'The story engine stopped answering while the concepts were written.' } : null, progress: { phase: 'concepts', message: 'Writing three concepts from the audience patterns' } }];
+  return { ...dev, ideaJobId: 'job-capture-idea', proposal: null, job: { ...dev.job, createdAt: at(42000 + kept.reduce((a, s) => a + span(s), 0) + 2000), startedAt: at(42000 + kept.reduce((a, s) => a + span(s), 0)), id: 'job-capture-idea', status: failed ? 'FAILED' : 'GENERATING', result: null, finishedAt: null, error: failed ? { code: 'PROVIDER', message: 'The story engine stopped answering while the concepts were written.' } : null, progress: { phase: 'concepts', step: 3, total: 8, message: 'Writing three concepts from the audience patterns' } }, stages };
 };
 
 const ENGINES = {
@@ -173,5 +180,5 @@ for (const size of SIZES) {
   }
 }
 await browser.close();
-await fs.writeFile(`${out}/acceptance.json`, `${JSON.stringify({ checked: new Date().toISOString(), base, idea: idea?.id ?? null, report }, null, 2)}\n`);
+await fs.writeFile(`${out}/${only ? `acceptance-rerun-${only.join('+')}` : 'acceptance'}.json`, `${JSON.stringify({ checked: new Date().toISOString(), base, idea: idea?.id ?? null, report }, null, 2)}\n`);
 process.exitCode = failed ? 1 : 0;
