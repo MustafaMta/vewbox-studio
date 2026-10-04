@@ -12,7 +12,7 @@ import { cls } from '@/components/ui/kit';
  *  engine offline (GET /api/status, per engine). A control whose job cannot be taken renders disabled with the reason
  *  in words beside it; nothing here starts a job by itself. */
 
-const PAUSED = 'Intake is paused: new work waits until the studio resumes.';
+const PAUSED = 'Intake is paused; new work waits.';
 
 export type Engine ='video' | 'images' | 'voice' | 'story' | 'music';
 interface Health { intake?: { paused: boolean; since?: string | null; reason?: string | null } | null }
@@ -66,12 +66,15 @@ export function GenButton<K extends JobType>({ gate, engine, type, payload, targ
   gate: StudioGate; /** the engine the job needs; none for work the studio's own machine does (assembling, exporting) */ engine?: Engine; type: K; payload: JobPayload<K>; target: { productionId?: string; shotId?: string }; children: ReactNode; icon?: ReactNode;
   variant?: 'primary' | 'secondary' | 'quiet'; size?: 'sm' | 'xs'; /** a reason of the page's own (a gate, missing frames) */ disabled?: boolean; reason?: string | null; confirm?: string; className?: string; /** repeated in a list: the reason is said to assistive technology and in the tooltip, the page's studio line says it once */ compact?: boolean;
 }) {
-  // while the server has not answered, the control waits in its disabled shape (no layout change when it answers paused)
-  const why = gate.paused === null ? 'Checking whether the studio can take new work…' : (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
+  // while the server has not answered, the control waits in its disabled shape and the reason's line holds its place
+  // without words (the answer never moves the page, and no 'checking…' sits beside a settled sentence)
+  const checking = gate.paused === null;
+  const why = checking ? null : (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
   return (
     <span className={cls('ws-gen', className)}>
-      <JobButton type={type} payload={payload} target={target} variant={variant} size={size} icon={icon} disabled={Boolean(why) || disabled} title={why ?? undefined} confirm={confirm}>{children}</JobButton>
-      {why && <span className={compact ? 'sr-only' : 'ws-gen-why'}>{why}</span>}
+      <JobButton type={type} payload={payload} target={target} variant={variant} size={size} icon={icon} disabled={checking || Boolean(why) || disabled} title={why ?? undefined} confirm={confirm}>{children}</JobButton>
+      {!compact && <span className="ws-gen-why" aria-hidden={why ? undefined : true}>{why}</span>}
+      {compact && why && <span className="sr-only">{why}</span>}
     </span>
   );
 }
