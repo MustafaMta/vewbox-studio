@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MenuButton, MenuLink, Skeleton } from '@/components/ui/kit';
+import { MenuButton, MenuLink } from '@/components/ui/kit';
 import { IconChevronDown, IconPlus } from '@/components/ui/icons';
 import { NEW_SHORT } from './model';
 
@@ -19,7 +19,5 @@ export function NewShortButton() {
   );
 }
 
-/** One line box of the role it stands in (its own line height), with the placeholder bar set inside it, so a skeleton's text keeps the real line heights. */
-export function SkLine({ width, height = 12, className }: { width: string; height?: number | string; className?: string }) {
-  return <span className={className} style={{ display: 'block' }}><Skeleton.Block width={width} height={height} radius="media" style={{ display: 'inline-block', verticalAlign: 'top', marginBlockStart: '0.25em' }} /></span>;
-}
+/** The skeleton line box lives with the skeletons (./skeletons); re-exported for the parts that build on it. */
+export { SkLine } from './skeletons';

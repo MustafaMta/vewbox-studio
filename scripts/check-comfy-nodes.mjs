@@ -8,12 +8,16 @@ const base = (process.env.COMFYUI_URL || 'http://127.0.0.1:8188').replace(/\/$/,
 
 const NEEDED = {
   // video: local MiniMax H3
-  UNETLoader: ['unet_name', 'weight_dtype'], CLIPLoader: ['clip_name', 'type'], VAELoader: ['vae_name'], LoraLoaderModelOnly: ['model', 'lora_name', 'strength_model'],
+  UNETLoader: ['unet_name', 'weight_dtype'], CLIPLoader: ['clip_name', 'type', 'device'], VAELoader: ['vae_name'], LoraLoaderModelOnly: ['model', 'lora_name', 'strength_model'],
   MiniMaxH3SigmaShift: ['model', 'shift_video', 'shift_audio'], MiniMaxH3ImageToVideo: ['clip', 'vae', 'prompt', 'width', 'height', 'length', 'first_frame', 'last_frame'],
   MiniMaxH3ReferenceToVideo: ['clip', 'vae', 'audio_vae', 'prompt', 'width', 'height', 'length', 'ref_image_size', 'ref_images', 'ref_audios'],
   RandomNoise: ['noise_seed'], KSamplerSelect: ['sampler_name'], BasicScheduler: ['model', 'scheduler', 'steps', 'denoise'], BasicGuider: ['model', 'conditioning'],
   SamplerCustomAdvanced: ['noise', 'guider', 'sampler', 'sigmas', 'latent_image'], VAEDecode: ['samples', 'vae'], VAEDecodeAudio: ['samples', 'vae'],
   CreateVideo: ['images', 'audio', 'fps'], SaveVideo: ['video', 'filename_prefix', 'format', 'codec'], LoadImage: ['image'], LoadAudio: ['audio'],
+  // the continuation graph (src/server/workflows/minimax-h3.ts guides): the previous take's tail is loaded as a video,
+  // split into its frames and its sound, and both are anchored at frame 0 of the target timeline by one AddGuide
+  // (docs/research/STORYBUILDER-INTEGRATION.md §f.9) — an upgrade that renamed any of these failed at job time before
+  MiniMaxH3AddGuide: ['positive', 'latent', 'frame_idx', 'vae', 'audio_vae', 'image', 'audio'], LoadVideo: ['file'], GetVideoComponents: ['video'],
   // images: Qwen-Image / Qwen-Image-Edit
   ModelSamplingAuraFlow: ['model', 'shift'], DualCLIPLoader: ['clip_name1', 'clip_name2', 'type', 'device'], CLIPTextEncode: ['clip', 'text'], EmptySD3LatentImage: ['width', 'height', 'batch_size'],
   KSampler: ['model', 'positive', 'negative', 'latent_image', 'seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'], SaveImage: ['images', 'filename_prefix'],

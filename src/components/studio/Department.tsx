@@ -6,10 +6,10 @@ import { plannedRolesOf, skillStatusOf, useDepartment, useOrg, type AgentRunRow,
 import { deriveCompany, pipelineNeighbours } from '@/studio/company';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { Button, ErrorState, LinkButton, PanelCard, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
+import { Button, ErrorState, LinkButton, PanelCard, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
-import { PanelCardSkeleton } from '@/components/media/Skeletons';
-import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
+import { EmptyLine, PageHead, Row, Rows, Section } from './parts';
+import { DepartmentSkeleton } from './skeletons';
 import {
   agentStateWords, checksLine, departmentCodes, departmentName, departmentsInOrder, duration, failureWords, handoffTarget, jobWords, outcomeWords, percent, plural,
   recordOf, resourceWords, shortWhen, skillKindWords, spanWords, stageName, teamOf,
@@ -230,15 +230,5 @@ export function ToolsAndSkills({ tools, skills, agents }: { tools: OrgTool[]; sk
   );
 }
 
-/** The department while its record loads: head, facts panel, place, members grid and the work rows (§5.22). */
-export function DepartmentSkeleton() {
-  return (
-    <SkeletonRegion label="Reading the department’s record…" className="cp dept">
-      <HeadSkeleton back kicker />
-      <PanelCardSkeleton cells={4} className="cp-facts" />
-      <div className="cp-section"><SectionHeadSkeleton width="12rem" /><div className="card dp-place"><Skeleton.Text lines={2} /></div></div>
-      <div className="cp-section"><SectionHeadSkeleton width="11rem" /><div className="dp-members">{Array.from({ length: 3 }, (_, i) => <div key={i} className="card dp-agent"><Skeleton.Line width="30%" /><Skeleton.Line width="60%" /><Skeleton.Text lines={2} /></div>)}</div></div>
-      <div className="cp-section"><SectionHeadSkeleton width="5rem" /><RowsSkeleton n={4} /></div>
-    </SkeletonRegion>
-  );
-}
+/** The department's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { DepartmentSkeleton };

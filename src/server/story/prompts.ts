@@ -2,6 +2,7 @@ import type { Character, Location, Production, Shot } from '@/domain/types';
 import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
+import { cutTime, markTime, scrubSpeech } from './beats';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
  *  described by appearance (never by name), the production direction's visual language goes first, and dialogue is
@@ -117,6 +118,9 @@ export interface H3Binding {
   ending?: boolean;
   /** voice-timbre clips connected as reference audio, in order (`<Audio j>` ↔ the j-th) */
   audioRefs?: Array<{ characterId: string }>;
+  /** characters in the shot with no picture (no canonical image, or beyond the budget): declared from their
+   *  description as weak_reference subjects after the pictured ones, so nobody silently vanishes or appears unbound */
+  described?: Array<{ characterId: string }>;
 }
 
 export type ShotRelationKind = 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
@@ -162,18 +166,48 @@ export const frameContinuityLine = (sh: Shot, cast: Character[], imageOf: Map<st
  *  non_diegetic_music. Every connected picture is named; each character's canonical image is bound to a subject, the
  *  plate to the place; dialogue is `<Subject k> (Sx) says, <d>[Language] exact line.</d>`; people are described by
  *  appearance, never by name. */
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string } = { relation: 'CUT' }): string {
+/** Cast names in a planner's or producer's text, replaced by the bound subject (`<Subject k>`) or the described
+ *  person: people are never named in a prompt (the lint's `no-names` rule), and a bound subject keeps its identity. */
+export function bindNames(text: string, cast: Character[], subjectOf: (id: string) => string | undefined): string {
+  let out = text;
+  for (const c of [...cast].sort((x, y) => y.name.length - x.name.length)) {
+    const who = subjectOf(c.id) ?? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}`;
+    for (const name of [c.name, c.nameAr].filter((n): n is string => Boolean(n && n.trim().length > 1))) {
+      out = out.replace(new RegExp(`(^|[^\\p{L}])${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'gu'), `$1${who}`);
+    }
+  }
+  return out;
+}
+
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[] } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
+  // SUBJECT NUMBERING: the pictured characters (Subject k = Picture k), the place, then the characters declared from
+  // their description (no picture), then the extras — every person in the shot is a subject, pictured or not
   const subjectNo = new Map(b.subjects.map((s, i) => [s.characterId, i + 1]));
   const placeNo = b.location ? b.subjects.length + 1 : undefined;
+  const described = (b.described ?? []).filter((x) => !subjectNo.has(x.characterId) && cast.some((c) => c.id === x.characterId) && sh.characterIds.includes(x.characterId));
+  let next = b.subjects.length + (b.location ? 1 : 0);
+  for (const x of described) subjectNo.set(x.characterId, ++next);
+  const extras = sh.staging?.extras ?? [];
+  const extraNo = extras.map(() => ++next);
   const subjectOf = (id: string) => { const k = subjectNo.get(id); if (!k) return undefined; const s = ids.get(id); return `<Subject ${k}>${s ? ` (S${s})` : ''}`; };
   const speaker: SpeakerLabel = (id) => subjectOf(id) ?? describedSpeaker(cast)(id);
+  const plainSubject = (id: string) => { const k = subjectNo.get(id); return k ? `<Subject ${k}>` : undefined; };
+  const bind = (text: string) => bindNames(text, cast, plainSubject);
   const tasks: string[] = [];
   const anchored = Boolean(b.opening || b.ending);
   if (anchored) tasks.push('keyframe completion');
   tasks.push('reference generation');
   if (b.audioRefs?.length) tasks.push('audio reference');
+  // THE SHOTS INSIDE THE TAKE (an in-take hard cut, `[Shot N] At MM:SS.mmm`): only on the local engine, whose prompt
+  // grammar was trained on them; the hosted request keeps the beats as point marks
+  const beats = sh.staging?.beats ?? [];
+  const cutsAllowed = b.labels === 'LOCAL';
+  const shotNoOfBeat: number[] = []; let shotCount = 1;
+  for (const bt of beats) { if (bt.cut && cutsAllowed && bt.at > 0) shotCount++; shotNoOfBeat.push(shotCount); }
+  const shotTags = Array.from({ length: shotCount }, (_, i) => `[Shot ${i + 1}]`).join(', ');
+  const pov = sh.staging?.pov && subjectNo.has(sh.staging.pov) ? sh.staging.pov : undefined;
   // subject_definitions
   const defs: string[] = [];
   for (const [i, s] of b.subjects.entries()) {
@@ -186,34 +220,66 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     const features = [clean(loc.description), loc.landmarks.length ? loc.landmarks.slice(0, 4).map(clean).join(', ') : '', loc.props.length ? loc.props.slice(0, 5).map(clean).join(', ') : ''].filter(Boolean).join('; ');
     defs.push(`<Subject ${placeNo}> is the ${loc.kind === 'INTERIOR' ? 'interior' : 'exterior'} environment in ${pictureLabel(b, b.location.picture)}${features ? `, featuring ${features}` : ''}.`);
   }
-  const action = lowerFirst(clean(sh.action).replace(/\.$/, ''));
+  // a character without a picture is declared from the description alone (never silently dropped, never unbound)
+  for (const x of described) {
+    const c = cast.find((k) => k.id === x.characterId)!;
+    const [first, ...rest] = describeCharacter(c).split(', ');
+    defs.push(`<Subject ${subjectNo.get(c.id)}> is the ${first}${rest.length ? `, ${rest.join(', ')}` : ''}; no reference picture: render them from this description alone, the same person in every frame.`);
+  }
+  // crowds and extras are described, never referenced: each one a separate individual, none wearing a cast member's face
+  const pictured = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
+  extras.forEach((e, i) => defs.push(`<Subject ${extraNo[i]}> is the group of ${e.count ? `${e.count} ` : ''}${clean(e.description)}; each one a separate individual with their own face, hair and clothes${pictured.length ? `, none of them sharing the face, hair or clothes of ${pictured.join(' or ')}` : ''}; no reference picture.`));
+  const action = lowerFirst(clean(bind(sh.action)).replace(/\.$/, ''));
   if (b.opening?.kind === 'FRAME' && b.opening.picture) defs.push(`${pictureLabel(b, b.opening.picture)} is the first frame of [Shot 1], showing how ${action}.`);
   (b.audioRefs ?? []).forEach((a, j) => { const who = subjectOf(a.characterId); if (who) defs.push(`${audioLabel(b, j + 1)} is the voice-timbre reference for ${who}.`); });
   // summary
-  const cast2 = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
+  const cast2 = [...b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`), ...described.map((x) => `<Subject ${subjectNo.get(x.characterId)}>`)].filter((tag) => !pov || tag !== `<Subject ${subjectNo.get(pov)}>`);
   const where = placeNo ? ` in <Subject ${placeNo}>` : '';
+  // THE BOUNDARY (src/domain/types.ts ShotBoundary): a continuous shot continues the anchored tail; a cut is a new
+  // camera on the same moment (same people, place and state); a transition opens a new place or time from the
+  // destination's references and the story state there — nothing of the previous shot
+  const storyState = scene?.entryState?.trim() ? ` ${bindNames(clean(scene.entryState), cast, plainSubject).replace(/\.?$/, '.')}` : '';
   const relationLine = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL'
     ? `It continues the previous shot without a cut: the first ${b.opening.seconds.toFixed(1)} seconds are the end of the previous shot, anchored on the timeline, and the action carries on from there.`
-    : b.opening?.kind === 'FRAME' ? `It begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}${opts.relation === 'CUT' ? ', a new camera angle on the same moment as the previous shot' : ''}.` : '';
-  const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}`.trim();
-  // retention_analysis
+    : b.opening?.kind === 'FRAME' ? `It begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}${opts.relation === 'CUT' ? ', a new camera angle on the same moment as the previous shot' : opts.relation === 'STORY_TRANSITION' ? `, the opening of a new scene.${storyState}` : ''}.`.replace(/\.\.$/, '.')
+    : opts.relation === 'CUT' ? 'It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes.'
+    : opts.relation === 'STORY_TRANSITION' ? `It opens a new scene${placeNo ? ` in <Subject ${placeNo}>` : ''}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}; nothing continues from the previous shot.${storyState}` : '';
+  const pace = sh.staging?.pace === 'DWELL' ? ' One continuous moment: the camera lingers on it, no cuts.' : sh.staging?.pace === 'MONTAGE' ? ' A run of distinct actions, each one complete before the next.' : '';
+  const hardCuts = shotCount > 1 ? ` The take holds ${shotCount} shots; every shot change is a hard cut: no dissolve, no fade, no on-screen text.` : '';
+  const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}${pace}${hardCuts}`.trim();
+  // retention_analysis (every subject appears in every shot of the take)
   const ret: string[] = [];
-  for (const [i, s] of b.subjects.entries()) ret.push(`<Subject ${i + 1}> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly.`);
-  if (b.location && placeNo) ret.push(`<Subject ${placeNo}> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of ${pictureLabel(b, b.location.picture)} are kept; the camera position and framing may differ.`);
+  for (const [i, s] of b.subjects.entries()) ret.push(s.characterId === pov ? `<Subject ${i + 1}> (appears in ${shotTags}): weak_reference - the camera is their own eyes; they are never seen in frame.` : `<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly.`);
+  if (b.location && placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): partially_preserved - the architecture, layout, materials and fixed props of ${pictureLabel(b, b.location.picture)} are kept; the camera position and framing may differ.`);
+  for (const x of described) ret.push(`<Subject ${subjectNo.get(x.characterId)}> (appears in ${shotTags}): weak_reference - ${x.characterId === pov ? 'the camera is their own eyes; they are never seen in frame' : 'described, no picture; the same face, hair and clothes in every frame of the take'}.`);
+  extras.forEach((_e, i) => ret.push(`<Subject ${extraNo[i]}> (appears in ${shotTags}): weak_reference - distinct extras, never a cast member's likeness.`));
   if (b.opening?.kind === 'FRAME' && b.opening.picture) ret.push(`${pictureLabel(b, b.opening.picture)} ([Shot 1] first frame): fully_preserved - the video starts exactly from ${pictureLabel(b, b.opening.picture)}'s framing, positions and light.`);
   (b.audioRefs ?? []).forEach((a, j) => { if (subjectOf(a.characterId)) ret.push(`${audioLabel(b, j + 1)}: reference - guides the voice timbre of ${subjectOf(a.characterId)} without copying the original signal.`); });
   // detailed_description
   const includeDialogue = opts.includeDialogue !== false;
+  // a shot without lines says so: continuing from a speaking tail, H3 otherwise invents new words (C1,
+  // docs/evidence/minimax-p1: "Talk with her, Patrick. Do you need her?" in a shot with no dialogue) — and its words
+  // carry no speech verb either (src/server/story/beats.ts scrubSpeech)
+  const silent = includeDialogue && p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length === 0;
+  const quiet = (s: string) => (silent ? scrubSpeech(s).replace(/\s*Mouths stay closed; nobody speaks\.$/, '') : s);
   // the planner's own direction (tags stripped), else a body that leans on the bindings: the people and the place are
   // defined above, so the middle is the action, the camera and the light
-  const body = opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : [`${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`, `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, ${sh.cameraMove === 'STATIC' ? 'static camera' : sh.cameraMove.toLowerCase().replace(/_/g, ' ')}.`].join(' '));
+  const body = quiet(bind(opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : [`${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`, `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, ${sh.cameraMove === 'STATIC' ? 'static camera' : sh.cameraMove.toLowerCase().replace(/_/g, ' ')}.`].join(' '))));
   const opening = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL' ? 'The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there:' : b.opening?.kind === 'FRAME' ? `The shot begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}.` : '';
+  const povLine = pov ? `The camera is <Subject ${subjectNo.get(pov)}>'s own eyes: what they see fills the frame, and they are never seen.` : '';
   const cont = continuitySentence(sh, cast, subjectOf, body);
-  // a shot without lines says so: continuing from a speaking tail, H3 otherwise invents new words (C1,
-  // docs/evidence/minimax-p1: "Talk with her, Patrick. Do you need her?" in a shot with no dialogue)
-  const silent = includeDialogue && p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length === 0;
-  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot.' : dialogueTags(p, sh, cast, speaker, 'says,');
-  const detailed = [`${d.visual}.`, '[Shot 1]', opening, body, cont, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : dialogueTags(p, sh, cast, speaker, 'says,');
+  // THE TIMED BEATS: `[M:SS]` point marks inside a shot (never read as cuts); a beat with a cut opens the next
+  // `[Shot N] At MM:SS.mmm, hard cut to …`
+  const marks: string[] = [];
+  beats.forEach((bt, i) => {
+    const text = quiet(bind(clean(bt.action))).replace(/\.?$/, '.');
+    if (bt.cut && cutsAllowed && bt.at > 0 && shotNoOfBeat[i] > (shotNoOfBeat[i - 1] ?? 1)) {
+      const place = bt.cut.locationId && bt.cut.locationId !== loc?.id ? opts.locations?.find((l) => l.id === bt.cut!.locationId) : undefined;
+      marks.push(`[Shot ${shotNoOfBeat[i]}] At ${cutTime(bt.at)}, hard cut to ${clean(bt.cut.camera)}${place ? ` in ${clean(place.description) || place.name}` : placeNo ? ` in <Subject ${placeNo}>` : ''}. ${text}`);
+    } else marks.push(`[${markTime(bt.at)}] ${text}`);
+  });
+  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, cont, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [
@@ -246,6 +312,8 @@ export function lintH3Prompt(prompt: string, expect: { labels: 'LOCAL' | 'HOSTED
   add('audio-tags-connected', unknownAud.length === 0, true, unknownAud.length ? `names audio ${unknownAud.join(', ')} of ${expect.audios} connected` : undefined);
   const unnamedAud = Array.from({ length: expect.audios }, (_, i) => i + 1).filter((n) => !auds.includes(n));
   add('every-audio-named', unnamedAud.length === 0, true, unnamedAud.length ? `audio ${unnamedAud.join(', ')} connected but never named` : undefined);
+  // a subject is defined by `<Subject k> is the …` — a pictured one (`… in <Picture i>`), one described from words
+  // (`… ; no reference picture`) or a group of extras
   const defined = new Set([...prompt.matchAll(/<Subject (\d+)> is the\b/g)].map((m) => Number(m[1])));
   const usedSubjects = [...new Set([...prompt.matchAll(/<Subject (\d+)>/g)].map((m) => Number(m[1])))];
   const undefinedSubjects = usedSubjects.filter((n) => !defined.has(n));

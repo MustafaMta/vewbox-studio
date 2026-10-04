@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { Aspect, Dialect, Language, Style } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { seasonById, showById } from '@/studio/selectors';
-import { ErrorState, Segmented, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { ErrorState, Segmented, ShapeGlyph } from '@/components/ui/kit';
 import { IconAuto, IconChevronLeft, IconManual } from '@/components/ui/icons';
 import { Preview } from './parts';
 import { emptySong, type SongDraft } from './Song';
@@ -86,29 +86,5 @@ export function CreateFlow({ kind }: { kind: CreateKind }) {
   );
 }
 
-/** The flow while the studio's first snapshot loads: the head, the switch, two panels and the preview in their real
- *  sizes (the same classes size them). */
-export function CreateFlowSkeleton() {
-  const pathname = usePathname() ?? '';
-  const k = pathname.split('/')[2] ?? 'short';
-  const ratio = KIND_INFO[k as CreateKind]?.ratio ?? '2/3';
-  return (
-    <SkeletonRegion label="Opening the studio…" className="create create-skeleton">
-      <div className="create-head">
-        <span className="create-back"><Skeleton.Line width="5rem" /></span>
-        <div className="create-title-row"><span className="create-glyph" /><span className="t-page create-title"><Skeleton.Line size="title" width="12rem" /></span></div>
-        <span className="t-lead create-lead"><Skeleton.Line width="22rem" /></span>
-        <div className="create-mode"><Skeleton.Block width={176} height={36} radius="md" /><span className="t-meta create-mode-hint"><Skeleton.Line width="18rem" /></span></div>
-      </div>
-      <div className="create-body">
-        <div className="create-main">
-          <div className="create-flow">
-            <Skeleton.Block className="create-panel" width="100%" height={280} radius="md" />
-            <Skeleton.Block className="create-panel" width="100%" height={200} radius="md" />
-          </div>
-        </div>
-        <div className="create-aside"><div className="create-preview-card"><span className="t-label"><Skeleton.Line width="4rem" /></span><div className="create-preview-frame" data-ratio={ratio}><Skeleton.Media ratio={ratio} /></div></div></div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The flow's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { CreateFlowSkeleton } from './skeletons';

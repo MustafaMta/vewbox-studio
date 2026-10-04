@@ -33,6 +33,16 @@ describe('normalizeIraqi', () => {
     expect(normalizeIraqi('٢٥ دينار')).toBe('25 دينار');
     expect(normalizeIraqi('ميتين وخمسين')).toBe('250');
   });
+  it('reads hundreds, thousands and millions as Arabic counts them, and the fractions of the hour', () => {
+    expect(normalizeIraqi('ثلثمية')).toBe('300'); expect(normalizeIraqi('ثلاثمائة وخمسة')).toBe('305'); expect(normalizeIraqi('تسعمية وتسعة وتسعين')).toBe('999');
+    expect(normalizeIraqi('مائة دينار')).toBe('100 دينار'); expect(normalizeIraqi('مائتين')).toBe('200');
+    expect(normalizeIraqi('ميتين وخمسين الف')).toBe('250000'); expect(normalizeIraqi('250 ألف')).toBe('250000');
+    expect(normalizeIraqi('ثلاث تالاف وخمسمية')).toBe('3500'); expect(normalizeIraqi('ثلاثة آلاف')).toBe('3000'); expect(normalizeIraqi('الفين وستة وعشرين')).toBe('2026');
+    expect(normalizeIraqi('مليونين وخمسمية الف')).toBe('2500000');
+    expect(normalizeIraqi('الساعة سبعة ونص')).toBe('الساعه 7 30'); expect(normalizeIraqi('7:30')).toBe('7 30'); expect(normalizeIraqi('ثمانية الا ربع')).toBe('7 45'); expect(normalizeIraqi('واحد الا ربع')).toBe('12 45');
+    // a count beside a noun is not a run
+    expect(normalizeIraqi('عندي 3 طيارات')).toBe('عندي 3 طيارات');
+  });
   it('attaches ما, و, يا and لا to the next word and collapses stretched letters', () => {
     expect(normalizeIraqi('ما ظل أحد')).toBe(normalizeIraqi('ماظل احد'));
     expect(normalizeIraqi('سمير و أمينة')).toBe(normalizeIraqi('سمير وأمينة'));

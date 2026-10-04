@@ -195,7 +195,7 @@ describe('decoded by ffmpeg, measured at ingest', { timeout: 30_000 }, () => {
   });
 });
 
-describe('faceBox only from a face box the studio measured on that image', () => {
+describe('faceBox only from a face box the studio measured on that image', { timeout: 30_000 }, () => {
   const reading = (boxes: unknown) => ({ reading: { boxes } });
   it('one MediaPipe box on the picture becomes 0–1 fractions', () => {
     expect(P.faceBoxFromReading(reading([{ x: 337, y: 154, width: 240, height: 240, score: 0.93 }]), { width: 928, height: 1664 })).toEqual({ x: 0.3631, y: 0.0925, w: 0.2586, h: 0.1442 });

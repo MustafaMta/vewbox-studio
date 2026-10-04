@@ -2,11 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
 import { ShortCard } from '@/components/library/ShortCard';
-import { MediaCardSkeleton, StartCard } from '@/components/media';
+import { StartCard } from '@/components/media';
 import { NEW_SHORT, shortsCatalogue, type PosterCard } from './model';
-import { NewShortButton, SkLine } from './parts';
+import { NewShortButton } from './parts';
+
+/** The catalogue's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { ShortsSkeleton } from './skeletons';
 
 /** SHORTS — the catalogue of single films (docs/DESIGN-SYSTEM-V5.md §8.4 under docs/design/VISUAL-STANDARD-V5.1.md):
  *  the page title and one line, New short as the page's primary (split: let the studio propose, or
@@ -29,6 +32,7 @@ export function ShortsCatalogue() {
   const shown = cards.filter(FILTERS.find((f) => f.id === filter)!.keep);
   return (
     <div className="shorts">
+      <ProductionsSwitch />
       <header className="shorts-head">
         <div className="shorts-head-words">
           <h1 className="t-page shorts-title">Shorts</h1>
@@ -50,23 +54,5 @@ export function ShortsCatalogue() {
         {filter !== 'finished' && <li><StartCard href={NEW_SHORT.auto} ratio="2/3" title={cards.length ? 'New short' : 'Your first short'} line={cards.length ? 'Your next film' : 'A line is enough to start'} /></li>}
       </ul>
     </div>
-  );
-}
-
-/** The catalogue while the studio's first snapshot loads: the head and ten posters in the grid's exact sizes. */
-export function ShortsSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the shorts…" className="shorts shorts-skeleton">
-      <div className="shorts-head">
-        <div className="shorts-head-words">
-          <div className="t-page shorts-title"><SkLine width="7rem" height="0.8em" /></div>
-          <div className="t-body shorts-lead"><SkLine width="15rem" /></div>
-        </div>
-        <Skeleton.Block width={152} height="var(--control-h)" radius="pill" />
-      </div>
-      <div className="shorts-grid">
-        {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="2/3" /></div>)}
-      </div>
-    </SkeletonRegion>
   );
 }

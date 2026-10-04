@@ -19,7 +19,7 @@
 
   /* ---- history and the job log ---------------------------------------------------------------------------------- */
   .ctl-anchor { display: block; block-size: 0; }
-  .ctl-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 16px; max-inline-size: 100%; }
+  .ctl-filter { display: flex; flex-wrap: wrap; gap: 8px; min-block-size: 32px; margin-block-end: 16px; max-inline-size: 100%; } /* the chip row's height is reserved from the first paint */
   .ctl-filter .seg { max-inline-size: 100%; }
   .ctl-seg-count { margin-inline-start: 6px; color: var(--text-3); }
   .ctl-log { display: flex; flex-direction: column; gap: 20px; }

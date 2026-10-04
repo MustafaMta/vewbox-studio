@@ -9,7 +9,7 @@ import { artVars } from '@/studio/presentation';
 import { assetById, assignmentsOf, productionHref, shotHref, shotLabel } from '@/studio/selectors';
 import { posterOf } from '@/studio/selectors/poster';
 import { useToast } from '@/components/ui/toast';
-import { Button, MenuButton, MenuItem, MenuSeparator, Notice, Skeleton, SkeletonRegion, StateWord, Textarea, useConfirm } from '@/components/ui/kit';
+import { Button, MenuButton, MenuItem, MenuSeparator, Notice, StateWord, Textarea, useConfirm } from '@/components/ui/kit';
 import { IconClose, IconDelete, IconEdit } from '@/components/ui/icons';
 import { Frame } from '@/components/media/Frame';
 import { words } from '@/lib/format';
@@ -20,7 +20,7 @@ import { IdentityBlock } from './ImagePanel';
 import { VoiceSection, VoiceSummary } from './VoiceSection';
 import { SecondaryMaterial } from './SecondaryMaterial';
 import { DetailsDialog, LookDialog, STYLE_WORD, languageWords } from './EditDialogs';
-import { MediaCard, PosterCard } from '@/components/media';
+import { MediaTile, PosterCard } from '@/components/media';
 import { BackLink, CastSection, figureOf, nameLang, usable } from './parts';
 
 /** Old links named a tab or a section; the profile is one page, so they land on the matching section. */
@@ -156,9 +156,10 @@ function AppearsIn({ c }: { c: Character }) {
       {shotCount > 0 && (
         <>
           <h3 className="t-title char-sub">Shots <span className="shead-count">{shotCount}</span></h3>
+          {/* the media tile anatomy (§5.6): the label and the film under the frame, never printed over a face (M5) */}
           <ul className="char-frames" role="list">
             {list.flatMap(({ p, shots }) => shots.map((sh) => (
-              <li key={sh.id}><MediaCard href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={p.title} /></li>
+              <li key={sh.id}><MediaTile href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={[p.title]} /></li>
             )))}
           </ul>
         </>
@@ -212,23 +213,5 @@ function JustCreated({ c }: { c: Character }) {
   );
 }
 
-/** The profile while the studio's first snapshot loads: the figure at 928:1664 in its column, then the slate, the name,
- *  the role, the state, the actions and the voice row at their real sizes. */
-export function CharacterSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the character…" className="pc-page pc-skeleton">
-      <div className="char">
-        <div className="char-figure"><Skeleton.Media ratio="928/1664" className="char-figure-frame" /></div>
-        <div className="char-main">
-          <span className="pc-back"><Skeleton.Line width="6rem" /></span>
-          <div className="t-meta char-slate"><Skeleton.Line width="16rem" /></div>
-          <div className="t-hero char-name"><Skeleton.Line size="title" width="14rem" /></div>
-          <div className="t-lead char-role"><Skeleton.Line width="80%" /></div>
-          <div className="char-state"><Skeleton.Line width="10rem" /></div>
-          <div className="char-acts"><Skeleton.Block width={112} height={40} radius="pill" /><Skeleton.Block width={104} height={40} radius="pill" /><Skeleton.Block width={128} height={40} radius="pill" /></div>
-          <div className="char-voice"><Skeleton.Block width="100%" height={64} radius="md" /></div>
-        </div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The profile's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { CharacterSkeleton } from './skeletons';

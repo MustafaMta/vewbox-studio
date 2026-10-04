@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type CSSProperties } from 'react';
 import { cls } from '@/components/ui/kit/cls';
 import { fmtClock } from './time';
 
@@ -78,7 +78,8 @@ export function Waveform({ src, progress, onSeek, height = 56, buckets, pitch = 
       {sections && sections.length > 0 && (
         <div className="wave-sections" aria-hidden>{sections.map((s, i) => <span key={i} className="wave-section" style={{ insetInlineStart: `${Math.min(1, Math.max(0, s.at)) * 100}%` }}><span className="wave-section-label">{s.label}</span></span>)}</div>
       )}
-      <div className="wave-body" style={{ blockSize: height }}>
+      {/* --wave-h lets the hit area grow to 44 on a coarse pointer (players.css) while the bars keep this height */}
+      <div className="wave-body" style={{ blockSize: height, '--wave-h': `${height}px` } as CSSProperties}>
         <svg className="wave-svg" viewBox={`0 0 ${W} 100`} preserveAspectRatio="none" aria-hidden focusable="false">
           <defs><clipPath id={`${id}-c`}><rect x={0} y={0} width={W * p} height={100} /></clipPath></defs>
           <g className="wave-rest">{rects}</g>

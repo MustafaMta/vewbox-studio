@@ -58,6 +58,21 @@ transliterated twin, and the same words («باچر», «گلتلي», «هوا�
 pronunciation consistency; per row: engine and fallback, seconds, LUFS, true peak, clipping, WER, CER, coverage, verdict.
 The published table in `docs/evidence/iraqi-suite.md` was made with synthesised references and is historical.
 
+## What the engine hears
+
+Before `/synthesize`, `prepareLineText` (src/server/providers/iraqi-text.ts) spells digits as Baghdadi number words
+(«7:30» → «سبعة ونص», «250 ألف» → «ميتين وخمسين ألف», «3 سنين» → «ثلاث سنين»), removes the tatweel and the characters
+the Iraqi engine's vocabulary would cut (curly double quotes, zero-width marks, line breaks), and turns a Latin «?»
+after Arabic letters into «؟». The script stays as written and the line is verified against it. A line may still be
+written with digits, but spelled Iraqi numerals are the clearer script.
+
+## The evaluation set
+
+`docs/voice/IRAQI-EVAL-SET-2026-10.md` and `tests/fixtures/voice/iraqi-eval-set.json`: 60 Baghdadi lines (features,
+gloss, emotion, expected sex, whether an MSA reading would sound wrong), spoken by `scripts/voice-eval.mjs` against the
+real services and rated by a native listener on its `review.html` (natural / understandable / wrong, dialect, emotion,
+same voice). The pass bar and what "verified" may claim before the review are in that document (§6).
+
 ## What the machine cannot decide
 
 Whisper proves the words are intelligible, not that the dialect sounds Baghdadi. Dialect authenticity, accent and

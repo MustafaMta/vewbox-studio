@@ -10,7 +10,8 @@
   .mv-cat-title, .mv-cat-desc { margin: 0; }
   .mv-new { flex: none; }
   .mv-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 24px; }
-  .mv-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+  /* sleeves at the kit's one sleeve width (tokens.css --card-sleeve: 216; two across on phones), packed from the start (M6) */
+  .mv-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--card-sleeve)); justify-content: start; gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
   /* a sleeve card and, over its top end, the play disc (a sibling of the card's link): on hover, focus and touch */
   .mv-item { position: relative; min-inline-size: 0; }
   .mv-disc { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
@@ -19,12 +20,8 @@
   .mv-grid > li { display: flex; min-inline-size: 0; }
   .mv-grid > li > * { flex: 1; min-inline-size: 0; }
 
-  /* the empty catalogue: the two ways in, in the sleeve's shape, then what follows the song */
+  /* the empty catalogue (§5.23): the kit's empty page; the two ways in, in the sleeve's shape */
   .mv-empty .start-card { max-inline-size: 280px; }
-  .mv-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-inline-size: 960px; margin: 40px 0 0; padding: 0; list-style: none; }
-  .mv-steps > li { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
-  .mv-step-n { color: var(--text-3); }
-  .mv-steps .t-body { margin: 0; }
 
   /* --------------------------------------------------------------------------------------------- title page */
   .mv-page { --mv-sleeve: clamp(280px, 25vw, 440px); --mv-bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; flex-direction: column; }
@@ -50,6 +47,12 @@
   .mv-performer { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--r-pill); color: var(--text-1); text-decoration: none; }
   .mv-performer-name { font-weight: 500; color: var(--text-1); transition: color var(--dur-1) var(--ease-out); }
   .mv-performer:hover .mv-performer-name { color: var(--text-2); }
+  /* coarse pointers (M7): the back link and the performers' links reach 44 high without moving the layout */
+  @media (pointer: coarse) {
+    .mv-back { block-size: auto; min-block-size: 44px; margin-block: -12px 8px; }
+    .mv-performer { min-block-size: 44px; margin-block: -8px; }
+    .mv-person { min-block-size: 44px; }
+  }
   .mv-transport { margin-block-start: 24px; }
   .mv-nosong { margin: 24px 0 0; max-inline-size: 56ch; }
   .mv-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 16px; }
@@ -100,7 +103,6 @@
     .mv-side { grid-column: 8 / span 5; }
   }
   @media (max-width: 1023px) {
-    .mv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mv-head { grid-template-columns: minmax(0, 1fr); row-gap: 24px; }
     .mv-sleeve { inline-size: min(100%, 320px); }
     .mv-body { grid-template-columns: minmax(0, 1fr); }
@@ -108,10 +110,10 @@
   }
   @media (max-width: 639px) {
     .mv-cat-head { margin-block-end: 20px; }
-    .mv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .mv-steps { grid-template-columns: minmax(0, 1fr); margin-block-start: 32px; }
+    .mv-grid { gap: 20px 12px; }
     .mv-page.hero::before { inset-block-start: -12px; }
     .mv-back { margin-block-end: 16px; }
+    @media (pointer: coarse) { .mv-back { margin-block: -12px 4px; } }
     .mv-acts { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
     .mv-acts > .btn-primary { grid-column: 1 / -1; }
   }

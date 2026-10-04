@@ -1,0 +1,8 @@
+{
+  "source": "Habibi-TTS Specialized/IRQ vocab.txt as mounted on the vewbox_models volume (tts/habibi/Specialized/IRQ/vocab.txt), read 2026-10-04 without starting a container",
+  "sha256": "55484bc3dda8b8e6a7fbf04261b47a8788d4b553a85b93dc46dac6fd39c9fd88",
+  "entries": 2712,
+  "singleCharacterEntries": 1386,
+  "note": "The single-character entries that Arabic or English dialogue could contain (Arabic blocks, Latin, digits, punctuation, symbols); CJK, Hangul, Cyrillic, Greek and the multi-character pinyin entries are left out. F5-TTS maps a character outside the vocab to index 0 (the space), so a line is spoken with such a character cut out of its word.",
+  "chars": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~¡¢£¥§¨©«®¯°±²³´·¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāăąćČčĐđēėęěĝğħīįİıŁłńņňŋŌōőœřŚśŞşŠšŤťũūźŻżŽžơưǎǐǒǔǚșțɑɔɕəɛɜɡɣɪɫɴɹɾʃʊʌʒʔʰʷ˙˜ˢ־،؛؟ءآأؤإئابةتثجحخدذرزسشصضطظعغـفقكلمنهوىيًٌٍَُِّْٓٗ٠١٢٣٤٥٦٧٨٩٪ٰٱٹپچڈڜڤڨکڭگھۃیۖۗۙۚ۞ۡۢۥ۩ۭ۰۱۲۳۷۸۹ḍḤḥṁṃṅṇṚṛṢṣṬṭạảẤấầậắằẻẽếềểễệịọỏốồộớờởụủứữ᾽‑‒–—―‖‘’†‡•…‧′″‹›⁄⁰⁴⁵⁶⁷⁸⁹₁₂₃€₱₹₽℃№™⅓⅔⅛→∂∈∑−∗√∞∫≈≠≡≤≥⋅⋯█●♪⟨⟩、。《》「」【】・ﭽﯽﯾ﴾﴿ﷲﷺﷻﺃﺄﺆﺇﺍﺎﺐﺑﺒﺔﺖﺗﺘﺛﺟﺠﺣﺤﺧﺨﺩﺪﺬﺮﺱﺳﺴﺷﺸﺻﺿﻀﻂﻄﻈﻋﻌﻏﻓﻔﻗﻘﻚﻛﻜﻞﻟﻠﻡﻢﻣﻤﻥﻦﻧﻨﻪﻫﻬﻭﻮﻰﻲﻳﻴﻵﻷﻹﻻﻼ！，？�"
+}

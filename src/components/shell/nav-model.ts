@@ -9,8 +9,11 @@
  *              Home · Shows · Shorts · Music Videos · Characters · Studio Company
  *              Workspace:   Locations · Production (needs-you count) · Screening Room · Files
  *              footer:      the studio's state · Settings · Help & shortcuts
- *    phone     Home · Productions (→ Shows; Shorts and Music Videos are reached from there) · Characters · Studio · More
- *              More:        Locations · Production (count) · Screening Room · Files · Settings · Help & shortcuts · the state */
+ *    phone     Home · Productions (→ Shows; Shows | Shorts | Music Videos is a switch at the top of the three
+ *              catalogues: shell/ProductionsSwitch) · Characters · Studio · More
+ *              More:        Productions: Shows · Shorts · Music Videos (Design QA M4: every catalogue reachable from
+ *                           the bars) · Workspace: Locations · Production (count) · Screening Room · Files · Settings ·
+ *                           Help & shortcuts · the state */
 
 export type NavIcon = 'home' | 'shows' | 'shorts' | 'musicVideos' | 'characters' | 'company' | 'production' | 'screening' | 'locations' | 'files' | 'settings';
 export interface NavItem {

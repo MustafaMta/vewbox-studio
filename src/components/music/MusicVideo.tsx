@@ -6,8 +6,7 @@ import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { Frame, FaceCircle } from '@/components/media';
-import { EmptyState, ErrorState, PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { PanelCardSkeleton, SectionHeadSkeleton } from '@/components/media';
+import { EmptyState, ErrorState, PanelCard, SectionHead } from '@/components/ui/kit';
 import { InlinePlayer } from '@/components/players/InlinePlayer';
 import { AudioRow } from '@/components/players/Controls';
 import { usePlayer, useTrackState } from '@/components/players/PlayerProvider';
@@ -167,40 +166,5 @@ function Section({ sec, live, onPlay }: { sec: LyricSectionView; live: boolean; 
   );
 }
 
-/** The title page while the studio's first snapshot loads (§5.22): the hero (sleeve, words, audio row, actions) and
- *  the lyrics beside the facts and the cast, in their final sizes (the same classes size them). */
-export function MusicVideoSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the music video…" className="hero mv-page mv-sk">
-      <div className="mv-hero">
-        <div className="t-body mv-back"><Skeleton.Line width="7rem" /></div>
-        <div className="mv-head">
-          <div className="mv-sleeve"><Skeleton.Media ratio="1/1" className="mv-sleeve-frame" /></div>
-          <div className="mv-words">
-            <div className="t-meta mv-meta"><Skeleton.Line width="16rem" /></div>
-            <div className="t-display mv-title"><Skeleton.Line size="title" width="60%" /></div>
-            <div className="mv-performers"><Skeleton.Line width="10rem" /></div>
-            <Skeleton.Block className="mv-transport mv-sk-transport" width="100%" radius="md" style={{ blockSize: undefined }} />
-            <div className="mv-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={176} height={40} radius="pill" /></div>
-          </div>
-        </div>
-      </div>
-      <div className="mv-body">
-        <div className="mv-lyrics">
-          <SectionHeadSkeleton titleWidth="5rem" description />
-          <div className="mv-sections">
-            {[3, 2, 2].map((n, i) => (
-              <div key={i} className="mv-sec">
-                <div className="mv-sec-head"><Skeleton.Line width="9rem" /></div>
-                <div className="mv-sec-lines">{Array.from({ length: n }, (_, k) => <div key={k} className="lyric mv-line"><Skeleton.Line width={k % 2 ? '52%' : '70%'} /></div>)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mv-side">
-          <PanelCardSkeleton title cells={6} className="mv-facts" />
-        </div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The title page's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { MusicVideoSkeleton } from './skeletons';

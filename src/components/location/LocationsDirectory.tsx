@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { search } from '@/studio/selectors';
-import { CatalogueBar, MenuButton, MenuLink, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaTileSkeleton, StartCard } from '@/components/media';
+import { CatalogueBar, MenuButton, MenuLink } from '@/components/ui/kit';
+import { StartCard } from '@/components/media';
 import { IconChevronDown } from '@/components/ui/icons';
 import { LocationCard } from '@/components/library/LocationCard';
 import { CastSection, PageHead } from '@/components/character/parts';
@@ -55,17 +55,5 @@ export function LocationsDirectory() {
   );
 }
 
-export function LocationsSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the locations…" className="pc-page pc-skeleton">
-      <div className="pc-head">
-        <div className="pc-head-words">
-          <div className="t-page pc-head-title"><Skeleton.Line size="title" width="9rem" /></div>
-          <div className="t-body pc-head-desc"><Skeleton.Line width="26rem" /></div>
-        </div>
-        <div className="pc-head-acts"><Skeleton.Block width={160} height={40} radius="pill" /></div>
-      </div>
-      <div className="pc-plates">{Array.from({ length: 3 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}</div>
-    </SkeletonRegion>
-  );
-}
+/** The board's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { LocationsSkeleton } from './skeletons';

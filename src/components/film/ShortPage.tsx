@@ -7,11 +7,10 @@ import { useStudio } from '@/studio/store';
 import { useLive, useProductionPipeline } from '@/studio/org';
 import { artVars } from '@/studio/presentation';
 import { FigureCard, Frame, MediaTile } from '@/components/media';
-import { PanelCard, SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { PanelCard, SectionHead, Skeleton } from '@/components/ui/kit';
 import { IconChevronLeft, IconDownload, IconPlay } from '@/components/ui/icons';
 import { runtime } from '@/components/home/model';
 import { InlinePlayer, type PlayerHandle } from '@/components/players/InlinePlayer';
-import { SkLine } from './parts';
 import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, type FilmPage, type StripScene, type StripShot } from './model';
 
 /** A SHORT'S TITLE PAGE (docs/DESIGN-SYSTEM-V5.md §8.5 under docs/design/VISUAL-STANDARD-V5.1.md) — the film presented
@@ -259,35 +258,5 @@ function Credits({ p }: { p: Production }) {
 
 // ------------------------------------------------------------------------------------------------- the skeleton
 
-
-/** The title page while the studio's first snapshot loads (§5.22): the head, the poster beside the player with its
- *  docked transport and the strip, in their final sizes — the same classes size them, so nothing moves. */
-export function ShortSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the film…" className="film film-skeleton">
-      <div className="film-head">
-        <span className="shead-link film-back"><Skeleton.Line width="4rem" /></span>
-        <div className="film-head-row">
-          <div className="film-words">
-            <div className="film-meta"><Skeleton.Block width={64} height={22} radius="pill" /><Skeleton.Line width="18rem" /></div>
-            <div className="t-display film-title"><SkLine width="min(28rem, 80%)" height="0.8em" /></div>
-            <div className="t-lead film-logline"><SkLine width="92%" /><SkLine width="64%" /><SkLine width="88%" className="film-sk-phone" /><SkLine width="40%" className="film-sk-phone" /></div>
-          </div>
-          <div className="film-acts"><Skeleton.Block width={141} height="var(--control-h)" radius="pill" /><Skeleton.Block width={112} height="var(--control-h)" radius="pill" /></div>
-        </div>
-      </div>
-      <div className="film-stage">
-        <div className="film-poster"><Skeleton.Media ratio="2/3" className="film-poster-frame" /><span className="t-meta film-poster-cap"><Skeleton.Line width="9rem" /></span></div>
-        <div className="film-screen"><div className="film-player"><Skeleton.Media ratio="16/9" className="film-player-pic" /><div className="film-transport" /></div></div>
-        <div className="film-strip">
-          {[1, 1].map((_, i) => (
-            <div key={i} className="film-strip-scene" style={{ flexGrow: 1 }}>
-              <div className="film-strip-shots">{Array.from({ length: 4 }, (_, j) => <div key={j} style={{ flexGrow: 1 }}><span className="film-strip-shot"><Skeleton.Media ratio="16/9" className="film-strip-frame" /></span></div>)}</div>
-              <span className="t-meta film-strip-label"><Skeleton.Line width="8rem" /></span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The title page's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { ShortSkeleton } from './skeletons';

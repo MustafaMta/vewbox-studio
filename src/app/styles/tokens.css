@@ -107,6 +107,11 @@
   /* ── density: controls (§5.3, §5.15) ──────────────────────────────────────────────────────────────────── */
   --control-h: 40px; --control-h-sm: 32px; --control-h-lg: 48px; --row-h: 48px; --body-fs: 14px; --body-lh: 20px;
 
+  /* ── §5.6 card widths: ONE size per object everywhere — Home's shelves and every catalogue grid read these (Design
+     QA 2026-10-04 M6: the producer's "small consistent cards"; Krea keeps one card size). Phones: two across for
+     posters, sleeves and figures (the grid's 12 px gap), the full column for a 16:9 card. ───────────────────── */
+  --card-wide: 288px; --card-poster: 184px; --card-sleeve: 216px; --card-figure: 168px; --card-tool: 240px;
+
   /* ── §4.1 type families (src/app/fonts.ts declares --font-geist and --font-geist-mono) ─────────────────── */
   --font-ui:    var(--font-geist, 'Geist'), 'Segoe UI', 'Geeza Pro', 'SF Arabic', 'Noto Sans Arabic', system-ui, sans-serif;
   --font-mono:  var(--font-geist-mono, 'Geist Mono'), ui-monospace, 'Cascadia Mono', Consolas, monospace;
@@ -190,7 +195,7 @@
 @media (min-width: 640px)  { :root { --pad: 24px; --gutter: 16px; --cols: 8; --section-gap: 48px; } }
 @media (min-width: 1024px) { :root { --pad: 32px; --cols: 12; --section-gap: 56px; } }
 @media (min-width: 1280px) { :root { --pad: 48px; } }
-@media (max-width: 639px)  { :root { --wash-end: 400px; } }
+@media (max-width: 639px)  { :root { --wash-end: 400px; --card-wide: 100%; --card-poster: calc((100% - 12px) / 2); --card-sleeve: calc((100% - 12px) / 2); --card-figure: calc((100% - 12px) / 2); --card-tool: calc((100% - 12px) / 2); } }
 @media (pointer: coarse)   { :root { --control-h: 44px; --control-h-sm: 44px; } }
 /* below 1024 the top bar is on top (§5.2); at 1024 and wider the sidebar is beside the content, nothing is on top */
 @media (max-width: 1023px) { :root { --sticky-top: var(--topbar-h); } }

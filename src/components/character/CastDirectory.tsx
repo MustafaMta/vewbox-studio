@@ -6,10 +6,10 @@ import type { Character } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { search } from '@/studio/selectors';
 import { useShell } from '@/components/shell/context';
-import { Button, CatalogueBar, MenuButton, MenuLink, Skeleton, SkeletonRegion, useCatalogueParams, type Facet } from '@/components/ui/kit';
+import { Button, CatalogueBar, MenuButton, MenuLink, useCatalogueParams, type Facet } from '@/components/ui/kit';
 import { IconChevronDown } from '@/components/ui/icons';
 import { identityStatus, voiceState } from './identity';
-import { FigureCardSkeleton, StartCard } from '@/components/media';
+import { StartCard } from '@/components/media';
 import { CastCard, CastSection, PageHead, figureOf, voiceTrackOf } from './parts';
 
 /** CHARACTERS — the casting directory (docs/DESIGN-SYSTEM-V5.md §8.7 on the v5.1 standard): one refined grid of the
@@ -101,20 +101,5 @@ export function CastDirectory() {
   );
 }
 
-/** The directory while the studio's first snapshot loads: the head, the search field and a row of figure cards in
- *  their final shapes (the same classes size them), so nothing moves when the cast arrives. */
-export function CharactersSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the cast…" className="pc-page pc-skeleton">
-      <div className="pc-head">
-        <div className="pc-head-words">
-          <div className="t-page pc-head-title"><Skeleton.Line size="title" width="10rem" /></div>
-          <div className="t-body pc-head-desc"><Skeleton.Line width="24rem" /></div>
-        </div>
-        <div className="pc-head-acts"><Skeleton.Block width={168} height={40} radius="pill" /></div>
-      </div>
-      <div className="pc-bar"><Skeleton.Block width="min(28rem, 100%)" height={40} radius="md" /></div>
-      <div className="pc-grid">{Array.from({ length: 6 }, (_, i) => <div key={i}><FigureCardSkeleton /></div>)}</div>
-    </SkeletonRegion>
-  );
-}
+/** The directory's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { CharactersSkeleton } from './skeletons';

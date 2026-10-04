@@ -15,6 +15,7 @@ import { command, commands, readState, stampCommands, type CommandSpec } from '@
 import { castOf, worldOf } from '@/studio/selectors';
 import { recordMetric } from '@/server/jobs/queue';
 import { continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { planCoverage } from '@/server/story/beats';
 import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
@@ -288,7 +289,7 @@ export const planShots: Handler = async (ctx) => {
   // continuity carries over from the last planned shot before the first target
   const firstIdx = targets.length ? p.scenes.findIndex((sc) => sc.id === targets[0].id) : -1;
   const prior = p.shots.filter((sh) => p.scenes.findIndex((sc) => sc.id === sh.sceneId) < firstIdx).at(-1);
-  if (prior?.continuity) previous = { shot: { purpose: prior.purpose, action: prior.action, framing: prior.framing, cameraMove: prior.cameraMove, durationSeconds: prior.durationSeconds, characterIds: prior.characterIds, dialogue: prior.dialogue, transition: prior.transition, continuity: prior.continuity, prompt: prior.prompt ?? '' } };
+  if (prior?.continuity) previous = { shot: { purpose: prior.purpose, action: prior.action, framing: prior.framing, cameraMove: prior.cameraMove, durationSeconds: prior.durationSeconds, characterIds: prior.characterIds, dialogue: prior.dialogue, transition: prior.transition, continuity: prior.continuity, prompt: prior.prompt ?? '', boundary: prior.boundary } };
   let total = 0;
   for (const [i, scene] of targets.entries()) {
     await ctx.progress('GENERATING', { phase: 'planning', message: `Planning scene ${scene.number}: ${scene.title}`, step: i + 1, total: targets.length });
@@ -296,7 +297,12 @@ export const planShots: Handler = async (ctx) => {
     // TIMING FIT (the Shot Planner's step): the scene's shots stretched evenly to fill its running-time budget
     const shots = await step(ctx, 'shot-planner', `timing-fit: scene ${scene.number}`, async () => fitDurations(draft.shots, draft.budget, draft.maxShot));
     await ctx.checkpoint();
-    await command('replaceSceneShots', [p.id, scene.id, shots.map((sh) => ({ sceneId: scene.id, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, continuity: { ...sh.continuity, version: 1 }, prompt: sh.prompt })), Boolean(force)], 'worker');
+    // what the shaping changed (src/server/story/beats.ts), and the scene's written beats no shot covers
+    const shaped = shots.flatMap((sh, i) => (sh.notes ?? []).map((n) => `shot ${i + 1}: ${n}`));
+    if (shaped.length) await ctx.event('info', `scene ${scene.number}: the plan was shaped — ${shaped.join('; ')}`, { notes: shaped });
+    const coverage = planCoverage(scene.beats, shots);
+    if (coverage.uncovered.length) await ctx.event('warn', `scene ${scene.number}: ${coverage.uncovered.length} written beat(s) are covered by no shot: ${coverage.uncovered.map((b) => `“${b.action.slice(0, 60)}”`).join('; ')}`, { uncovered: coverage.uncovered });
+    await command('replaceSceneShots', [p.id, scene.id, shots.map((sh) => ({ sceneId: scene.id, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, continuity: { ...sh.continuity, version: 1 }, prompt: sh.prompt, boundary: sh.boundary, staging: sh.staging })), Boolean(force)], 'worker');
     previous = { shot: shots[shots.length - 1], sceneExit: scene.exitState };
     total += shots.length;
   }

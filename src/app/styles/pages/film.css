@@ -13,7 +13,8 @@
   .shorts-head-words { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
   .shorts-title, .shorts-lead { margin: 0; }
   .shorts-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 24px; }
-  .shorts-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gutter); margin: 24px 0 0; padding: 0; list-style: none; }
+  /* posters at the kit's one poster width (tokens.css --card-poster: 184; two across on phones), packed from the start */
+  .shorts-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--card-poster)); justify-content: start; gap: 24px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
   .shorts-grid > * { min-inline-size: 0; }
   .short-card { position: relative; }
   .short-card-link { display: block; }
@@ -75,7 +76,7 @@
   .film-synopsis { margin: 0; }
 
   /* the cast as standing figures, then the locations' plates at the figures' height; one row that scrolls */
-  .film-cast { --fig-w: 168px; --fig-h: calc(var(--fig-w) * 1664 / 928); display: flex; gap: 12px; margin: -4px; padding: 4px; list-style: none; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+  .film-cast { --fig-w: var(--card-figure); --fig-h: calc(var(--fig-w) * 1664 / 928); display: flex; gap: 12px; margin: -4px; padding: 4px; list-style: none; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
   .film-cast::-webkit-scrollbar { display: none; }
   .film-cast > li { flex: none; scroll-snap-align: start; }
   .film-person { inline-size: var(--fig-w); }
@@ -87,6 +88,11 @@
   .film-credit-name a { color: var(--text-1); text-decoration: none; }
   .film-credit-name a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
   .film-credit-name, .film-credit-made { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* coarse pointers (M7): a credit's link is a 44 px target (the name may wrap; the clip would cut the hit area) */
+  @media (pointer: coarse) {
+    .film-credit-name:has(a) { overflow: visible; white-space: normal; }
+    .film-credit-name a { display: inline-block; padding-block: 9px; margin-block: -9px; }
+  }
 
   /* ------------------------------------------------------------------------------------------- the skeletons */
   .film-skeleton .film-title { display: block; }
@@ -99,13 +105,12 @@
     .film-credits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 1023px) {
-    .shorts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .film-files { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .film-story { grid-template-columns: minmax(0, 1fr); }
     .film-credits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 639px) {
-    .shorts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-block-start: 20px; }
+    .shorts-grid { gap: 20px 12px; margin-block-start: 20px; }
     .shorts-head { flex-direction: column; align-items: flex-start; }
     /* the phone: the player first (no poster), the strip under it, then the words; actions share the row */
     .film-back { display: none; }
@@ -120,7 +125,7 @@
     .film-strip-shots > * { min-inline-size: 72px; }
     .film-transport { gap: 4px; padding-inline: 8px; }
     .film-files { grid-template-columns: minmax(0, 1fr); }
-    .film-cast { --fig-w: 136px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
+    .film-cast { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
     .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     /* a typical slate wraps to two lines and a logline to four on a phone */
     .film-skeleton .film-meta { min-block-size: 66px; align-content: flex-start; }

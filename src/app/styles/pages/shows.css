@@ -18,8 +18,9 @@
   .shows-search { flex: 0 1 320px; min-inline-size: 0; }
   .shows-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  /* --------------------------------------------------------------------- grids: 3 · 2 · 1 columns of 16:9 */
-  .shows-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px var(--gutter); margin: 24px 0 0; padding: 0; list-style: none; }
+  /* ------------------------------------- grids: 16:9 tiles at the kit's one wide width (tokens.css --card-wide: 288;
+     the column on phones), as many as fit, packed from the start (M6) */
+  .shows-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--card-wide)); justify-content: start; gap: 32px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
   .shows-section .shows-grid { margin-block-start: 0; }
   .shows-grid > li { display: flex; min-inline-size: 0; }
   .shows-grid > li > * { flex: 1; min-inline-size: 0; }
@@ -57,8 +58,8 @@
   .show-arc { margin: -4px 0 20px; max-inline-size: var(--measure); }
 
   /* cast (whole figures) and world (plates) */
-  .show-figures { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px var(--gutter); margin: 0; padding: 0; list-style: none; }
-  .show-plates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px var(--gutter); margin: 0; padding: 0; list-style: none; }
+  .show-figures { display: grid; grid-template-columns: repeat(auto-fill, var(--card-figure)); justify-content: start; gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
+  .show-plates { display: grid; grid-template-columns: repeat(auto-fill, var(--card-wide)); justify-content: start; gap: 32px 16px; margin: 0; padding: 0; list-style: none; }
 
   /* the bible: four level-1 cards, two across */
   .show-bible { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
@@ -69,14 +70,8 @@
   .show-bible-none { margin: 0; color: var(--text-3); }
 
   /* ------------------------------------------------------------------------------------ the empty catalogue */
-  .shows-empty { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); margin-block-start: 24px; }
-  .shows-empty-start { position: relative; grid-column: span 2; display: flex; align-items: flex-end; aspect-ratio: 16 / 9; padding: 40px; border-radius: var(--r-md); background: var(--surface-1); }
-  .shows-empty-words { position: relative; display: flex; flex-direction: column; gap: 12px; max-inline-size: 52ch; }
-  .shows-empty-words > * { margin: 0; }
-  .shows-empty-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 8px; }
-  .shows-empty-steps { display: flex; flex-direction: column; justify-content: center; gap: 28px; margin: 0; padding: 32px 24px; list-style: none; }
-  .shows-empty-steps > li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; }
-  .shows-empty-steps > li > span:last-child { display: flex; flex-direction: column; gap: 4px; }
+  /* the empty catalogue (§5.23): the kit's empty page; the start cards at Home's 16:9 card width */
+  .shows-empty .start-card { max-inline-size: 288px; }
   .shows-step-n { display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); }
 
   /* ------------------------------------------------------------------------------------ season and episode */
@@ -101,36 +96,29 @@
 
   /* ------------------------------------------------------------------------------------------------ narrower */
   @media (max-width: 1279px) {
-    .show-figures { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .ep-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 1023px) {
-    .shows-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .show-plates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .show-caption, .show-caption[data-poster] { grid-template-columns: 96px minmax(0, 1fr); }
     .show-caption:not([data-poster]) { grid-template-columns: minmax(0, 1fr); }
     .show-poster { inline-size: 96px; }
     .show-acts { grid-column: 1 / -1; justify-content: flex-start; }
-    .shows-empty { grid-template-columns: minmax(0, 1fr); }
-    .shows-empty-start { grid-column: auto; }
   }
   @media (max-width: 639px) {
     .shows-page-acts { inline-size: 100%; }
-    .shows-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .shows-grid { gap: 28px 12px; }
     .shows-search { flex-basis: 100%; }
     .show-hero-frame { block-size: auto; aspect-ratio: 4 / 3; border-radius: var(--r-md); }
     .show-caption, .show-caption[data-poster] { grid-template-columns: minmax(0, 1fr); margin-block-start: 16px; }
     .show-poster { display: none; }
     .show-acts > .btn { flex: 1; }
     .show-acts > .btn-primary { order: -1; flex-basis: 100%; }
-    .show-figures { display: flex; gap: var(--gutter); margin-inline: calc(-1 * var(--pad)); padding: 4px var(--pad); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); scrollbar-width: none; }
+    .show-figures { display: flex; gap: 12px; margin-inline: calc(-1 * var(--pad)); padding: 4px var(--pad); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); scrollbar-width: none; }
     .show-figures::-webkit-scrollbar { display: none; }
-    .show-figures > li { flex: none; inline-size: 136px; scroll-snap-align: start; }
-    .show-plates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px var(--gutter); }
+    .show-figures > li { flex: none; inline-size: var(--card-figure); scroll-snap-align: start; }
+    .show-plates { gap: 24px 12px; }
     .show-bible { grid-template-columns: minmax(0, 1fr); }
     .show-bible-card { padding: 16px; }
-    .shows-empty-start { aspect-ratio: auto; min-block-size: 320px; padding: 24px; }
-    .shows-empty-steps { padding: 24px 20px; }
     .ep-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .show-dialog-cols { grid-template-columns: minmax(0, 1fr); }
   }
