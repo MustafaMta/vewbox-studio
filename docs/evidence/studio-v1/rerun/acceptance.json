@@ -1,0 +1,262 @@
+{
+  "checked": "2026-10-04T00:34:39.879Z",
+  "base": "http://localhost:4260",
+  "report": [
+    {
+      "page": "studio",
+      "size": "1440×900",
+      "starts": [
+        288,
+        288,
+        288,
+        288,
+        288,
+        288
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 0,
+      "broken": [],
+      "cls": 0.00021744264202353393,
+      "shifts": [],
+      "skeleton": true,
+      "height": 2391,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "studio",
+      "size": "390×844",
+      "starts": [
+        16,
+        16,
+        16,
+        16,
+        16,
+        16
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 0,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 4363,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "production",
+      "size": "1440×900",
+      "starts": [
+        288,
+        288,
+        288,
+        288,
+        288
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 4,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 2497,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "production",
+      "size": "1920×1080",
+      "starts": [
+        400,
+        400,
+        400,
+        400,
+        400
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 4,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 2533,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "production",
+      "size": "390×844",
+      "starts": [
+        16,
+        16,
+        16,
+        16,
+        16
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 4,
+      "broken": [],
+      "cls": 0.0049956114055078596,
+      "shifts": [
+        {
+          "value": 0.0049956114055078596,
+          "t": 52776,
+          "nodes": [
+            "tabs -mx-4 px-4 sm:mx-0 sm:px-0 ctl-er-tabs",
+            "tabpanel cp-tabpanel"
+          ]
+        }
+      ],
+      "skeleton": true,
+      "height": 4208,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "files",
+      "size": "1440×900",
+      "starts": [
+        288,
+        288,
+        288,
+        288,
+        288
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 77,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 10848,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    },
+    {
+      "page": "files",
+      "size": "390×844",
+      "starts": [
+        16,
+        16,
+        16,
+        16,
+        16
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 77,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 15067,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    }
+  ]
+}

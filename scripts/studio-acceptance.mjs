@@ -26,8 +26,9 @@ const PAGES = [
   { name: 'settings', path: '/settings', ready: '.settings:not(.sk-region) #generation', rows: [] },
   { name: 'files', path: '/assets', ready: '.files:not(.sk-region) .fl-bar', rows: [] },
 ].filter((p) => !opt('pages', '') || opt('pages', '').split(',').includes(p.name));
-const SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
+const SIZES_ALL = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
 
+const SIZES = SIZES_ALL.filter((s) => !opt('sizes', '') || opt('sizes', '').split(',').includes(String(s.w)));
 const browser = await chromium.launch();
 let failed = 0;
 const report = [];
@@ -38,7 +39,7 @@ for (const pg of PAGES) {
     await page.route('**/api/**', (route) => (['GET', 'HEAD'].includes(route.request().method()) ? route.continue() : route.fulfill({ status: 403, body: '{"error":"read-only acceptance"}' })));
     const cdp = await ctx.newCDPSession(page);
     await cdp.send('Network.enable');
-    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
+    if (!args.includes('--fast')) await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 });
     await page.addInitScript(() => {
       window.__shifts = []; window.__sk = false;
       new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: e.value, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => s.node?.className?.toString?.().slice(0, 60) ?? s.node?.nodeName) }); }).observe({ type: 'layout-shift', buffered: true });

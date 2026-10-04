@@ -1,0 +1,41 @@
+{
+  "checked": "2026-10-04T00:55:59.055Z",
+  "base": "http://localhost:4260",
+  "report": [
+    {
+      "page": "files",
+      "size": "1920×1080",
+      "starts": [
+        400,
+        400,
+        400,
+        400,
+        400
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 77,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "height": 10072,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
+    }
+  ]
+}
