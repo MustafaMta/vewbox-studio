@@ -65,7 +65,9 @@ export async function prepare(page, { fixture = null, motion = '' } = {}) {
       return route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'capture: writes are not sent' } } });
     }
     if (p === '/api/studio') {
-      const res = await route.fetch();
+      // one retry of this idempotent GET: a reused keep-alive connection the dev server closes at the same moment
+      // (its 5 s idle timeout) fails with "socket hang up" and is not the studio's answer
+      const res = await route.fetch().catch(async (e) => { if (!/socket hang up|ECONNRESET/.test(String(e?.message ?? e))) throw e; return route.fetch(); });
       if (!res.ok()) return route.fulfill({ response: res }); // a dev server hiccup: the page retries on its own
       const body = await res.json();
       if (fixture) { body.state = structuredClone(fixture.state); body.version = 1; body.hash = 'fixture'; }

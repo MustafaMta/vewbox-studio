@@ -256,8 +256,13 @@ test('keyboard: the mode switch and the pickers show the focus ring and move wit
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Tab');
   await expect(anime).toBeFocused();
-  const ring = await anime.evaluate((e) => { const cs = getComputedStyle(e); return { s: cs.outlineStyle, w: cs.outlineWidth, fv: e.matches(':focus-visible') }; });
-  expect(ring).toEqual({ s: 'solid', w: '2px', fv: true });
+  // the ring as it settles (a first read right after the key can still see the tile mid-update); the diagnostics
+  // are reported only if it never does
+  const ring = () => anime.evaluate((e) => {
+    const cs = getComputedStyle(e);
+    return { s: cs.outlineStyle, w: cs.outlineWidth, fv: e.matches(':focus-visible'), diag: { outline: cs.outline, tabIndex: (e as HTMLElement).tabIndex, hover: e.matches(':hover'), motion: document.documentElement.getAttribute('data-motion') } };
+  });
+  await expect.poll(async () => { const r = await ring(); return { s: r.s, w: r.w, fv: r.fv }; }, { timeout: 5_000, message: async () => JSON.stringify((await ring()).diag) }).toEqual({ s: 'solid', w: '2px', fv: true });
 });
 
 test('phone 390: no horizontal overflow on the hub and the flows @mobile', async ({ page }) => {
