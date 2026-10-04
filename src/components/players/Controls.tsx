@@ -70,7 +70,7 @@ export function AudioRow({ track, meta, waveform = true, className }: { track: T
   const seekTo = (f: number) => { const t = f * (st.duration || 0); if (st.mine) p.seek(t); else p.play(track, t); };
   return (
     <div className={cls('arow', className)} role="group" aria-label={track.title} dir="ltr">
-      <TrackButton track={track} primary />
+      <TrackButton track={track} primary labelPlay={`Play ${track.title}`} labelPause={`Pause ${track.title}`} />
       <span className="arow-words">
         <span className="arow-title"><bdi>{track.title}</bdi></span>
         {(meta ?? track.subtitle) && <span className="arow-meta">{meta ?? track.subtitle}</span>}

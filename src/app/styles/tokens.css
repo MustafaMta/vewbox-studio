@@ -60,6 +60,7 @@
   --selection: rgb(245 245 244 / .85);
   --buffered: #3A3A3A;          /* a player's buffered range; unplayed waveform bars */
   --split-on-primary: rgb(0 0 0 / .14);
+  --split-on-secondary: rgb(0 0 0 / .45);   /* the split divider on a secondary fill (surface-2 / surface-3) */
 
   /* the two gradients that remain (§3.1): the art wash (heroes of Show, Short, Music video, Location) and the frame
      poster scrim. The v5 hero scrims are retired; their names stay for pages that still draw them, until Q2. */

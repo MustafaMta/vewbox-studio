@@ -85,16 +85,19 @@
   .spinner { display: inline-block; flex: none; inline-size: 14px; block-size: 14px; border-radius: var(--r-pill); border: 1.5px solid currentColor; border-block-start-color: transparent; animation: kit-spin 700ms linear infinite; }
   @keyframes kit-spin { to { transform: rotate(360deg); } }
   /* the split button (§5.3): one pill, two parts that hover alone, a 1 px divider inset 8 px */
+  /* the split button (§5.3): one pill in two parts that hover alone, a 1 px divider inset 8 px between them. Every
+     composition the kit allows draws it: Button/LinkButton/<a class=btn> + Button, + MenuButton (its .menu-wrap) or
+     + Popover (.popover-wrap). The divider belongs to the second part (z 1, so the part's own fill never hides it):
+     dark on the light primary, darker than the fill on a secondary. */
   .btn-split { display: inline-flex; flex: none; border-radius: var(--r-pill); }
-  .btn-split > .btn { border-radius: 0; }
+  .btn-split > :is(.menu-wrap, .popover-wrap) { position: relative; display: inline-flex; }
+  .btn-split > .btn, .btn-split > :is(.menu-wrap, .popover-wrap) > .btn { border-radius: 0; }
   .btn-split > .btn:first-child { padding-inline-end: 12px; border-start-start-radius: var(--r-pill); border-end-start-radius: var(--r-pill); }
-  .btn-split > .btn:last-child { inline-size: 32px; padding: 0; border-start-end-radius: var(--r-pill); border-end-end-radius: var(--r-pill); }
-  .btn-split > .btn:last-child svg { inline-size: 14px; block-size: 14px; }
-  .btn-split > .btn + .btn::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--line-strong); }
-  .btn-split > .btn-primary + .btn-primary::before { background: var(--split-on-primary); }
-  .btn-split > .menu-wrap > .btn { border-radius: 0 var(--r-pill) var(--r-pill) 0; inline-size: 32px; padding: 0; }
-  .btn-split > .menu-wrap > .btn::before { content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--line-strong); }
-  .btn-split > .btn-primary + .menu-wrap > .btn-primary::before { background: var(--split-on-primary); }
+  .btn-split > .btn:last-child, .btn-split > :is(.menu-wrap, .popover-wrap):last-child > .btn { inline-size: 32px; min-inline-size: 32px; padding: 0; border-start-end-radius: var(--r-pill); border-end-end-radius: var(--r-pill); }
+  .btn-split > .btn:last-child svg, .btn-split > :is(.menu-wrap, .popover-wrap):last-child > .btn svg { inline-size: 14px; block-size: 14px; }
+  .btn-split > :not(:first-child)::before { content: ''; position: absolute; z-index: 1; inset-block: 8px; inset-inline-start: 0; inline-size: 1px; background: var(--split-on-secondary); pointer-events: none; }
+  .btn-split:has(> .btn-primary:first-child) > :not(:first-child)::before { background: var(--split-on-primary); }
+  @media (pointer: coarse) { .btn-split > .btn:last-child, .btn-split > :is(.menu-wrap, .popover-wrap):last-child > .btn { inline-size: 44px; min-inline-size: 44px; } }
   /* a drawn state (the specimen) */
   .is-focus { outline: 2px solid var(--text-1); outline-offset: 2px; }
 
