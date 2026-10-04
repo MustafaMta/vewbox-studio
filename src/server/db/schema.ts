@@ -551,7 +551,30 @@ export const approvals = pgTable('approvals', {
   by: text('by').notNull(),
   note: text('note'),
   createdAt: ts('created_at').notNull(),
+  /** WHAT WAS APPROVED (docs/BACKEND-AUDIT-2026-10.md H9, step 9): the hash of the subject as the producer saw it
+   *  (src/domain/approvals.ts) and the studio version then. A gate opens only while the subject still hashes the
+   *  same. Null on approvals recorded before step 9 (accepted as they were). */
+  subjectHash: text('subject_hash'),
+  subjectVersion: integer('subject_version'),
 }, (t) => [index('approvals_production_idx').on(t.productionId, t.createdAt)]);
+
+/** THE COMMAND JOURNAL (docs/BACKEND-AUDIT-2026-10.md H10, step 9): every batch applied to the studio — a page's, a
+ *  worker's, the server's — with its commands exactly as run (name, args, seed, clock), who sent it, the result and
+ *  the studio version after. Written in the batch's own transaction. A page re-sending a batch it already sent (a
+ *  network error after the commit) gets the stored result back instead of applying it twice: (client_id, batch_id)
+ *  is unique among accepted batches. The seeds and clocks make the log replayable (src/server/studio/journal.ts). */
+export const commandLog = pgTable('command_log', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  clientId: text('client_id').notNull(),
+  batchId: text('batch_id').notNull(),
+  origin: text('origin').notNull(),
+  jobId: text('job_id'),
+  commands: jsonb('commands').$type<Array<{ name: string; args: unknown[]; seed: string; at: string }>>().notNull(),
+  ok: boolean('ok').notNull(),
+  result: jsonb('result').$type<Record<string, unknown>>().notNull(),
+  studioVersion: integer('studio_version').notNull(),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [uniqueIndex('command_log_batch_idx').on(t.clientId, t.batchId).where(sql`ok`), index('command_log_created_idx').on(t.createdAt)]);
 
 /** The studio's activity feed: real work, attributed to the department and agent that did it. */
 export const studioEvents = pgTable('studio_events', {

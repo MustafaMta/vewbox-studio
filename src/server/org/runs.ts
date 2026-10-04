@@ -203,9 +203,10 @@ export async function recordQaReport(r: NewQaReport & { id?: string }): Promise<
   return id;
 }
 
-export async function recordApproval(a: { productionId: string; stage: PipelineStage; subjectKind: string; subjectId: string; decision: 'APPROVED' | 'REJECTED' | 'CHANGES'; by: string; note?: string }): Promise<string> {
+/** `subjectHash`/`subjectVersion`: what was approved (src/domain/approvals.ts) and the studio version then (step 9). */
+export async function recordApproval(a: { productionId: string; stage: PipelineStage; subjectKind: string; subjectId: string; decision: 'APPROVED' | 'REJECTED' | 'CHANGES'; by: string; note?: string; subjectHash?: string; subjectVersion?: number }): Promise<string> {
   const id = nid('appr');
-  await db().insert(schema.approvals).values({ id, ...a, note: a.note ?? null, createdAt: new Date().toISOString() });
+  await db().insert(schema.approvals).values({ id, ...a, note: a.note ?? null, subjectHash: a.subjectHash ?? null, subjectVersion: a.subjectVersion ?? null, createdAt: new Date().toISOString() });
   await studioEvent({ departmentId: 'EXECUTIVE', productionId: a.productionId, kind: `APPROVAL_${a.decision}`, message: `${a.by} ${a.decision.toLowerCase()} ${a.subjectKind.toLowerCase()} at ${a.stage}${a.note ? `: ${a.note}` : ''}`, data: { approvalId: id, subjectId: a.subjectId } });
   return id;
 }
