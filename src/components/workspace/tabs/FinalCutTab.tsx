@@ -11,7 +11,7 @@ import { Button, Field, PanelCard, SectionHead, Select, StateWord } from '@/comp
 import { useStartJob } from '@/components/ui/jobs';
 import { CanvasPlayer } from '@/components/players/CanvasPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
-import { StageGate, useStageApproved } from '@/components/studio/Approve';
+import { ApprovalGate, StaleCut, useGate } from '../Decide';
 import { runtime, shortWhen } from '@/components/home/model';
 import { fmtBytes } from '@/lib/format';
 import { GenButton, type StudioGate } from '../gate';
@@ -37,7 +37,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const lines = shots.reduce((a, sh) => a + sh.dialogue.length, 0);
   const voiced = shots.reduce((a, sh) => a + sh.dialogue.filter((d) => d.audioAssetId).length, 0);
   const cast = castOf(state, p);
-  const cutApproved = useStageApproved(p.id, 'EDIT');
+  const cutApproved = useGate(p, 'EDIT').approved;
   const { start, busy } = useStartJob();
   const [format, setFormat] = useState<'mp4-h264' | 'mp4-h265' | 'mov-prores'>('mp4-h264');
   const [res, setRes] = useState<'720' | '1080' | '2160'>('1080');
@@ -68,6 +68,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
                 <p className="t-body">{missing > 0 ? `${missing} ${missing === 1 ? 'shot needs' : 'shots need'} a selected take before the cut can be assembled.` : anySample ? 'A sample clip is still in the sequence; film a real take for it first.' : 'Every shot has a selected take: assemble the cut.'}</p>
               </div>
             )}
+            <StaleCut p={p} gate={gate} />
             <div className="ws-gen-row">
               <GenButton gate={gate} type="ASSEMBLE" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconFinalCut aria-hidden />} variant={current ? 'secondary' : 'primary'}
                 disabled={missing > 0 || anySample} reason={missing > 0 ? 'Every shot needs a selected take first.' : 'A sample clip is in the sequence.'}>{current ? 'Assemble a new cut' : 'Assemble the cut'}</GenButton>
@@ -104,7 +105,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
         </div>
 
         <aside className="ws-split-side" aria-label="Approval, subtitles and exports">
-          {current && !anySample && <StageGate productionId={p.id} stage="EDIT" title="Approve the cut before it is exported" hint="Watch the cut; approve it to allow an export, or request changes." />}
+          {current && !anySample && <ApprovalGate p={p} stage="EDIT" what="cut" />}
 
           <div className="card ws-side-card" aria-labelledby="ws-subs-h">
             <h2 id="ws-subs-h" className="t-title">Subtitles</h2>

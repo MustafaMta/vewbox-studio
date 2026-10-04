@@ -12,7 +12,7 @@ import { decisionCard, displaySrc, runtime, shortWhen } from '@/components/home/
 import { DecisionCard } from '@/components/media/Cards';
 import { Frame } from '@/components/media/Frame';
 import { SectionHead, StateWord } from '@/components/ui/kit';
-import { useStageApproved } from '@/components/studio/Approve';
+import { ApprovalGate, RecentlyRemoved, StaleCut, useGate } from './Decide';
 import { IconCheck, IconProduce } from '@/components/ui/icons';
 import { GenButton, type StudioGate } from './gate';
 import { RunningRow } from './Running';
@@ -33,7 +33,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
   const lead = leadOf(p, flow, cuts, lastExport?.createdAt);
   const waiting = decisionsOf(p, decisions.items);
   const running = runningOf(p, jobs);
-  const storyApproved = useStageApproved(p.id, 'STORY');
+  const storyApproved = useGate(p, 'STORY').approved;
   const bd = breakdownOf(p);
   const allSelected = p.shots.length > 0 && p.shots.every((sh) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); return t && t.provider !== 'SAMPLE'; });
   const ratio = frameRatioOf(p);
@@ -80,11 +80,11 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
         <div className="ws-story">
           {p.logline ? <p className="t-lead ws-logline" dir="auto">{p.logline}</p> : <p className="t-body ws-empty">No logline yet.</p>}
           <ul className="ws-story-facts" role="list">
-            <li>{storyApproved === null ? <StateWord tone="idle">Story approval: checking</StateWord> : storyApproved ? <StateWord tone="done">You approved the story</StateWord> : <StateWord tone="waiting">The story waits for your approval</StateWord>}</li>
             <li className="t-meta">{flow.scenes} {flow.scenes === 1 ? 'scene' : 'scenes'} · {flow.scriptLines} {flow.scriptLines === 1 ? 'line' : 'lines'} of dialogue</li>
             {(p.genre || p.mood) && <li className="t-meta" dir="auto">{[p.genre, p.mood].filter(Boolean).join(' · ')}</li>}
           </ul>
         </div>
+        {p.scenes.length > 0 && <ApprovalGate p={p} stage="STORY" what="story" />}
       </section>
 
       <section className="ws-sec" aria-labelledby="ws-bd-h" id="breakdown">
@@ -152,6 +152,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
 
       <section className="ws-sec" aria-labelledby="ws-cut-h" id="cut">
         <SectionHead id="ws-cut-h" title="Final cut" link={{ href: workspaceHref(p, 'final'), label: 'Open the final cut', short: 'Open' }} />
+        <StaleCut p={p} gate={gate} />
         <CutLine p={p} />
         {cuts.length === 0 ? <p className="t-body ws-empty">{flow.selected === p.shots.length && p.shots.length ? 'Every shot has a take: the cut can be assembled.' : 'The cut is assembled once every shot has a selected take.'}</p> : (
           <ol className="ws-versions" role="list">
@@ -167,6 +168,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
         )}
       </section>
 
+      <RecentlyRemoved p={p} />
       <ProductionDetails p={p} />
     </div>
   );

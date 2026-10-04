@@ -11,7 +11,7 @@ import { Button, Segmented, StateWord } from '@/components/ui/kit';
 import { Frame } from '@/components/media/Frame';
 import { displaySrc } from '@/components/home/model';
 import { IconCheck, IconFrame, IconProduce, IconTake, IconVoice } from '@/components/ui/icons';
-import { useStageApproved } from '@/components/studio/Approve';
+import { useGate } from '../Decide';
 import { GenButton, type StudioGate } from '../gate';
 import { canUseTake, frameRatioOf, orderedShots, shotState, vocab, workspaceHref } from '../model';
 
@@ -29,7 +29,7 @@ export function ProduceTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const voiced = p.shots.reduce((a, sh) => a + sh.dialogue.filter((d) => d.audioAssetId).length, 0);
   // speaking shots whose chosen take never proved its words against the script (older takes, or a failing check)
   const unverified = p.shots.filter((sh) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); }).length;
-  const storyApproved = useStageApproved(p.id, 'STORY');
+  const storyApproved = useGate(p, 'STORY').approved;
   const notStory = storyApproved === false ? 'The story waits for your approval.' : null;
   const ratio = frameRatioOf(p);
   const select = (sh: Shot, id: string) => { try { act('selectTake', p.id, sh.id, id); toast.ok('Take selected for the cut.'); } catch (e) { toast.bad((e as Error).message); } };

@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
 import { Button, Checkbox, Field, Input, Menu, MenuItem, Modal, SectionHead, Select, StateWord, Textarea } from '@/components/ui/kit';
 import { IconAuto, IconDelete, IconGenerate, IconPlus } from '@/components/ui/icons';
-import { useStageApproved } from '@/components/studio/Approve';
+import { ApprovalGate, useGate } from '../Decide';
 import { GenButton, type StudioGate } from '../gate';
 import { vocab } from '../model';
 
@@ -24,7 +24,7 @@ export function StoryTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const toast = useToast();
   const cast = castOf(state, p); const world = worldOf(state, p);
   const dev = p.brief.development;
-  const approved = useStageApproved(p.id, 'STORY');
+  const approved = useGate(p, 'STORY').approved;
   const { draft, patch, dirty, reset } = useDraft({ logline: p.logline, synopsis: p.synopsis, briefText: p.brief.text, hook: dev?.hook ?? '', ending: dev?.ending ?? '' });
   useUnsavedGuard(dirty, 'You have unsaved changes. Leave anyway?');
   // D23: the hook and the ending of an Auto Idea travel into every later prompt as the story's promise
@@ -65,6 +65,7 @@ export function StoryTab({ p, gate }: { p: Production; gate: StudioGate }) {
         </div>
 
         <aside className="ws-split-side" aria-labelledby="ws-brief-h">
+          {p.scenes.length > 0 && <ApprovalGate p={p} stage="STORY" what="story" />}
           <div className="card ws-side-card">
             <h2 id="ws-brief-h" className="t-title">The brief</h2>
             <p className="t-meta">{origin}{p.brief.mode === 'AUTO_IDEA' && p.brief.ideaTitle ? `: ${p.brief.ideaTitle}` : ''}</p>

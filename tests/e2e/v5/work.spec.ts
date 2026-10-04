@@ -166,6 +166,34 @@ test('the final cut: versions on the canvas, subtitles, exports, and export held
   await expect(page.getByRole('link', { name: /Download/ }).first()).toBeVisible();
 });
 
+test('the decisions on the map: a bound approval refused as changed, the stale cut, and what was removed comes back', async ({ page }) => {
+  let posted: Record<string, unknown> | null = null; let restored: Record<string, unknown> | null = null;
+  await (prepare as Prep)(page, { motion: 'reduce' });
+  // the story is not approved yet; the cut is out of date; one shot was removed by a re-run story step
+  await page.route(`**/api/studio/org/productions/${FILM}`, async (r) => {
+    if (r.request().method() === 'POST') { posted = r.request().postDataJSON(); return r.fulfill({ status: 409, json: { error: { code: 'CONFLICT', message: 'The story changed while you were looking at it.' } } }); }
+    const res = await r.fetch(); const body = await res.json();
+    body.stages = body.stages.map((s: { id: string }) => (s.id === 'STORY' ? { ...s, status: 'AWAITING_APPROVAL', approval: null } : s));
+    return r.fulfill({ response: res, json: body });
+  });
+  await page.route('**/api/studio', async (r) => { const res = await r.fetch(); const body = await res.json(); body.state.productions = body.state.productions.map((p: { id: string }) => (p.id === FILM ? { ...p, cutStale: true } : p)); return r.fulfill({ response: res, json: body }); });
+  await page.route('**/api/studio/deleted?*', (r) => r.fulfill({ json: { items: [{ kind: 'shot', id: 'shot-gone', productionId: FILM, label: 'Shot 1.5 · The radio hums', deletedAt: '2026-10-03T10:00:00Z', deletedBy: 'story-developer', takes: 2 }] } }));
+  await page.route('**/api/studio/restore', (r) => { restored = r.request().postDataJSON(); return r.fulfill({ json: { restored: { shows: [], seasons: [], productions: [], scenes: [], shots: ['shot-gone'], takes: [] }, skipped: [], version: 2 } }); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MAP, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.ws:not(.ws-skeleton) .ws-map', { timeout: 90_000 });
+  const story = page.locator('#story');
+  await story.getByRole('button', { name: 'Approve' }).click();
+  await expect(story).toContainText('The story changed while you were looking at it');
+  expect(posted).toMatchObject({ stage: 'STORY', decision: 'APPROVED', subjectHash: expect.any(String) });
+  await expect(page.locator('#cut')).toContainText('The cut is out of date');
+  await expect(page.locator('#cut').getByRole('button', { name: 'Assemble the cut again' })).toBeVisible();
+  const removed = page.locator('#removed');
+  await expect(removed).toContainText('Shot 1.5 · The radio hums');
+  await removed.getByRole('button', { name: 'Restore' }).click();
+  await expect.poll(() => restored).toEqual({ kind: 'shot', id: 'shot-gone' });
+});
+
 test('the loading state: the workspace skeleton keeps the real panels', async ({ page }) => {
   await page.route('**/api/studio', async (r) => { await new Promise((x) => setTimeout(x, 2500)); await r.continue(); });
   await page.setViewportSize({ width: 1440, height: 900 });
