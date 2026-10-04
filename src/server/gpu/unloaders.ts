@@ -52,13 +52,19 @@ export function enginesToUnload(from: GpuFamily | null, to: GpuFamily, list: Eng
   return list.filter((e) => !e.serves.includes(to) || (from !== null && e.serves.includes(from)));
 }
 
-/** Unload them, timed and logged; failures are logged, never thrown. */
+/** The metric each unload leaves (labels: engine, from, to, ok). */
+export const UNLOAD_METRIC = 'gpu.unload_ms';
+
+/** Unload them, timed, logged and recorded; failures are logged, never thrown. */
 export async function unloadFor(from: GpuFamily | null, to: GpuFamily, list: Engine[] = engines()): Promise<string[]> {
   const done: string[] = [];
   for (const e of enginesToUnload(from, to, list)) {
     const t0 = Date.now();
-    try { await e.unload(); done.push(e.name); } catch (err) { log.warn({ engine: e.name, err: (err as Error).message }, 'gpu: unload failed'); }
+    let ok = true;
+    try { await e.unload(); done.push(e.name); } catch (err) { ok = false; log.warn({ engine: e.name, err: (err as Error).message }, 'gpu: unload failed'); }
     log.debug({ engine: e.name, ms: Date.now() - t0, from, to }, 'gpu: engine unloaded');
+    // kept as a metric: the engine room lists the last unloads (GET /api/studio/gpu)
+    await (await import('../jobs/queue')).recordMetric(UNLOAD_METRIC, Date.now() - t0, 'ms', { engine: e.name, from: from ?? 'unknown', to, ok }).catch(() => undefined);
   }
   return done;
 }
