@@ -1,5 +1,5 @@
 {
-  "checked": "2026-10-04T20:24:57.476Z",
+  "checked": "2026-10-04T20:28:55.992Z",
   "base": "http://localhost:4261",
   "report": [
     {
@@ -1632,6 +1632,251 @@
         }
       ],
       "targetsTotal": 14,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "characters",
+      "path": "/characters",
+      "width": 390,
+      "error": "page.evaluate: Execution context was destroyed, most likely because of a navigation"
+    },
+    {
+      "page": "character-en",
+      "path": "/characters/char-56c47abc59",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 51258,
+      "skeleton": {
+        "at": 9267,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 9287,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 9589,
+          "state": "page",
+          "height": 960
+        },
+        {
+          "t": 50197,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 50448,
+          "state": "content",
+          "height": 3971
+        }
+      ],
+      "title": "Elias Moore · Characters · Vewbox Studio",
+      "h1": "Elias Moore",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 3907,
+      "pageHeight": 4027,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.t-hero.char-name \"Elias Moore\"",
+          "div.shead",
+          "h2.t-section.shead-title \"About\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Voice\"",
+          "div.pc-card-head",
+          "div.shead",
+          "h2.t-section.shead-title \"Appears in\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Notes for the writers\"",
+          "form.char-form"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "article.pc-page",
+      "textNodes": 97,
+      "fonts": {
+        "Geist": 86,
+        "Geist Mono": 11
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button.btn.btn-secondary",
+          "text": "Edit",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(41, 41, 41)",
+          "ratio": 2.1,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        }
+      ],
+      "onArt": 16,
+      "arabicUi": [],
+      "images": 9,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.arow-title \"“Hello. My name is Elias Moore, and this\"",
+        "span.arow-meta \"Designed voice, not a real person · Engl\"",
+        "span.arow-title \"“Did you see the 1987 storm, Clara? Thir\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [
+        "button.btn.btn-secondary \"Saved\""
+      ],
+      "targets": [
+        {
+          "el": "a.pc-back",
+          "name": "Characters",
+          "w": 85,
+          "h": 18
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "Edit details",
+          "w": 127,
+          "h": 40
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "More for Elias Moore",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "button.pt-play",
+          "name": "Play “Hello. My name is Elias ",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "div.wave-hit.wave-hit-on",
+          "name": "Seek “Hello. My name is Elias ",
+          "w": 86,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-quiet",
+          "name": "Voice settings",
+          "w": 110,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "I listened",
+          "w": 97,
+          "h": 32
+        },
+        {
+          "el": "input.input",
+          "name": "",
+          "w": 202,
+          "h": 40
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "Speak it",
+          "w": 108,
+          "h": 40
+        },
+        {
+          "el": "button.pt-play",
+          "name": "Play “Did you see the 1987 sto",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "div.wave-hit.wave-hit-on",
+          "name": "Seek “Did you see the 1987 sto",
+          "w": 86,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "Edit",
+          "w": 66,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "Saved",
+          "w": 62,
+          "h": 32
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 15,
       "cls": 0,
       "shifts": [],
       "focus": {
