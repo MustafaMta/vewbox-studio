@@ -822,13 +822,15 @@
   .pcard { display: block; padding: 20px; }
   .pcard-title { margin: 0 0 16px; color: var(--text-1); }
   .pcard-grid { display: grid; grid-template-columns: repeat(var(--pcard-cols, 4), minmax(0, 1fr)); gap: 20px 24px; margin: 0; }
-  .pcard-grid[data-cols='2'] { --pcard-cols: 2; } .pcard-grid[data-cols='3'] { --pcard-cols: 3; }
+  /* the column count is in :where(), so the responsive rules below win at every data-cols value */
+  .pcard-grid:where([data-cols='2']) { --pcard-cols: 2; } .pcard-grid:where([data-cols='3']) { --pcard-cols: 3; } .pcard-grid:where([data-cols='4']) { --pcard-cols: 4; }
   .pcard-cell { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; margin: 0; }
   .pcard-cell .t-label { margin: 0; }
   .pcard-value { margin: 0; font-size: 14px; line-height: 20px; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; }
   .pcard-sub { margin: 0; font-size: 14px; line-height: 20px; color: var(--text-2); }
+  /* below 1024 two across; on phones one, or two where the cells are short (data-phone='2', PanelCard phoneColumns) */
   @media (max-width: 1023px) { .pcard-grid { --pcard-cols: 2; } }
-  @media (max-width: 639px) { .pcard { padding: 16px; } }
+  @media (max-width: 639px) { .pcard { padding: 16px; } .pcard-grid { --pcard-cols: 1; } .pcard-grid:where([data-phone='2']) { --pcard-cols: 2; } }
 
   /* ---- empty and error states (§5.23) --------------------------------------------------------------------------- */
   .empty-section { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
