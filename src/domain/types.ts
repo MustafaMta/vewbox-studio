@@ -865,8 +865,8 @@ export interface WorldLocation {
 
 export interface WorldProp { id: string; name: string; ownerCharacterId?: string; fixedAtLocationId?: string; description?: string; last?: { state?: string; position?: string; productionId: string; sceneId: string; shotId: string } }
 
-/** A fact on the story timeline, in story order. */
-export interface WorldEvent { id: string; order: number; text: string; productionId?: string; sceneId?: string; timeOfDay?: TimeOfDay; source: 'SHOW_BIBLE' | 'SCENE' | 'PRODUCER' }
+/** A fact on the story timeline, in story order. A SCENE event names its place, so a later scene there is a return. */
+export interface WorldEvent { id: string; order: number; text: string; productionId?: string; sceneId?: string; locationId?: string; timeOfDay?: TimeOfDay; source: 'SHOW_BIBLE' | 'SCENE' | 'PRODUCER' }
 
 /** The state of the world when a scene ends (its last shot's continuity): where people are, what they wear and hold,
  *  where the props are, the light and the weather. The next scene at that place starts from it. */

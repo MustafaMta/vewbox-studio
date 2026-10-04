@@ -230,13 +230,15 @@ export const writeScript: Handler = async (ctx) => {
   if (p.scenes.length === 0) throw new StudioError('INVALID', 'There are no scenes to write yet. Develop the story first.');
   const cast = castOf(state, p); const world = worldOf(state, p);
   const targets = sceneIds?.length ? p.scenes.filter((sc) => sceneIds.includes(sc.id)) : p.scenes;
+  // the writer works inside the World Bible: the pinned revision once the story is approved, else the latest
+  const bible = targets.length ? await readBible(ctx, p.id, 'before writing the script') : undefined;
   // in batches so long episodes stay within the model's attention
   const batches: Scene[][] = [];
   for (let i = 0; i < targets.length; i += 4) batches.push(targets.slice(i, i + 4));
   let written = 0;
   for (const [bi, batch] of batches.entries()) {
     await ctx.progress('GENERATING', { phase: 'writing', message: `Writing scenes ${batch[0].number}–${batch[batch.length - 1].number}`, step: bi + 1, total: batches.length });
-    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
+    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
     await ctx.checkpoint();
     const byName = (n: string) => cast.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim());
     for (const sc of out.scenes) {

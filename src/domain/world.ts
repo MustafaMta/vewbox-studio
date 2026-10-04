@@ -122,7 +122,7 @@ function timelineOf(prev: WorldEvent[], state: Pick<StudioState, 'seasons' | 'lo
     for (const sc of scenesInOrder(p)) {
       const where = state.locations.find((l) => l.id === sc.locationId)?.name;
       const what = sc.exitState || sc.purpose || sc.title;
-      events.push({ id: `ev-${sc.id}`, order: pi * 1000 + sc.number, productionId: p.id, sceneId: sc.id, timeOfDay: sc.timeOfDay, text: `${p.title} — scene ${sc.number} “${sc.title}”${where ? ` at ${where}` : ''} (${sc.timeOfDay.toLowerCase().replace('_', ' ')}): ${what}`, source: 'SCENE' });
+      events.push({ id: `ev-${sc.id}`, order: pi * 1000 + sc.number, productionId: p.id, sceneId: sc.id, locationId: sc.locationId, timeOfDay: sc.timeOfDay, text: `${p.title} — scene ${sc.number} “${sc.title}”${where ? ` at ${where}` : ''} (${sc.timeOfDay.toLowerCase().replace('_', ' ')}): ${what}`, source: 'SCENE' });
     }
   });
   // the show bible's entries ("S1E2: …") sit after their episode's scenes; untagged ones at the end
@@ -339,16 +339,20 @@ export function worldForPlanner(bible: WorldBible, p: Production, scene: Scene):
   const rules = bible.rules.filter((r) => r.scope === 'WORLD' || r.source === 'PRODUCER').map((r) => r.text);
   if (rules.length) parts.push(`World rules: ${rules.join(' ')}`);
   const wl = scene.locationId ? bible.locations.find((l) => l.locationId === scene.locationId) : undefined;
-  // the scene's own place in story order: states of scenes before this one (earlier productions, earlier scenes)
-  const prods = bible.scope.kind === 'SHOW' ? uniq(bible.states.map((s) => s.productionId)) : [p.id];
-  const myOrder = Math.max(0, prods.indexOf(p.id)) * 1000 + scene.number;
+  // the scene's own place in story order (the production's index in the scope, from its own timeline events or
+  // states): states of scenes before this one (earlier productions, earlier scenes)
+  const own = bible.timeline.find((e) => e.source === 'SCENE' && e.productionId === p.id) ?? bible.states.find((s) => s.productionId === p.id);
+  const myOrder = (own ? Math.floor(own.order / 1000) : 0) * 1000 + scene.number;
   const before = bible.states.filter((s) => s.order < myOrder && s.sceneId !== scene.id);
   if (wl) {
     const est = wl.plates.filter((x) => x.role === 'ESTABLISHED');
     const canon = [wl.canon.architecture, wl.canon.fixedFeatures.length ? `fixed features: ${wl.canon.fixedFeatures.join(', ')}` : '', wl.canon.spatial].filter(Boolean).join('; ');
     const here = before.filter((s) => s.locationId === wl.locationId).at(-1);
-    if (here || est.length) {
-      parts.push(`RETURNING LOCATION (World Bible): ${wl.name} was already shown${est.length ? ` in an approved cut — its established frames are reused by id (${est.map((x) => `${x.label}${x.timeOfDay ? `, ${tod(x.timeOfDay)}` : ''}`).join('; ')})` : ''}. Same architecture, layout and fixed features; do not redesign it${canon ? ` (${canon})` : ''}.${here ? ` Left at the end of an earlier scene: ${JSON.stringify({ light: here.environment.lighting, weather: here.environment.weather, state: here.environment.state, props: here.props.map((x) => `${x.name}${x.position ? ` (${x.position})` : ''}${x.state ? ` ${x.state}` : ''}`) })}.` : ''} Only light, weather, time of day and movable things may differ now, and the shots should say how.`);
+    // a scene at this place earlier in the story (this production or an earlier episode), even one whose shots carry
+    // no continuity record yet: the place is a return by id, never a redesign
+    const earlier = bible.timeline.filter((e) => e.source === 'SCENE' && e.locationId === wl.locationId && e.order < myOrder && e.sceneId !== scene.id);
+    if (here || est.length || earlier.length) {
+      parts.push(`RETURNING LOCATION (World Bible): ${wl.name} was already shown${est.length ? ` in an approved cut — its established frames are reused by id (${est.map((x) => `${x.label}${x.timeOfDay ? `, ${tod(x.timeOfDay)}` : ''}`).join('; ')})` : earlier.length ? ` in ${earlier.length} earlier scene${earlier.length > 1 ? 's' : ''} (its plates are reused by id)` : ''}. Same architecture, layout and fixed features; do not redesign it${canon ? ` (${canon})` : ''}.${here ? ` Left at the end of an earlier scene: ${JSON.stringify({ light: here.environment.lighting, weather: here.environment.weather, state: here.environment.state, props: here.props.map((x) => `${x.name}${x.position ? ` (${x.position})` : ''}${x.state ? ` ${x.state}` : ''}`) })}.` : ''} Only light, weather, time of day and movable things may differ now, and the shots should say how.`);
     } else if (canon) parts.push(`The place's canon (World Bible): ${canon}.`);
   }
   const present = new Set(scene.characterIds);
