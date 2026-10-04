@@ -57,7 +57,7 @@
   :is(.btn-sm, .btn-xs) svg { inline-size: 14px; block-size: 14px; }
   .btn-lg { block-size: var(--control-h-lg); padding: 0 20px; font-size: 15px; line-height: 20px; }
   .btn-lg svg { inline-size: 18px; block-size: 18px; }
-  @media (pointer: coarse) { .btn, .btn-sm, .btn-xs { min-block-size: 44px; } .tab { min-block-size: 44px; } }
+  @media (pointer: coarse) { .btn, .btn-sm, .btn-xs { min-block-size: 44px; } .tab { min-inline-size: 44px; min-block-size: 44px; justify-content: center; } }
   /* the icon button: a circle, 40 (sm 32), quiet or secondary fill */
   .btn-icon { inline-size: var(--control-h); padding: 0; }
   .btn-icon svg { inline-size: 18px; block-size: 18px; }
@@ -448,7 +448,7 @@
   .catalogue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .catalogue-search { position: relative; flex: 0 1 28rem; min-inline-size: 0; max-inline-size: 100%; }
   .catalogue-search > svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; translate: 0 -50%; inline-size: 16px; block-size: 16px; color: var(--text-3); pointer-events: none; }
-  .catalogue-search .input { block-size: 40px; line-height: 38px; padding-inline-start: 36px; }
+  .catalogue-search .input { block-size: var(--control-h); line-height: calc(var(--control-h) - 2px); padding-inline-start: 36px; }
   .catalogue-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .catalogue-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   @media (max-width: 639px) {

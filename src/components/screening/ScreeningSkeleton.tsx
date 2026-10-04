@@ -1,22 +1,28 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Room } from '@/components/shell/Room';
 import { MediaCardSkeleton } from '@/components/media/Skeletons';
 import { Skeleton, SkeletonRegion } from '@/components/ui/kit';
 
-const subscribeNone = () => () => {};
-/** `?p=` asks for the theatre; the server (and the first client render) assume it, the list is the exception. */
-export function useWantsTheatre(): boolean {
-  return useSyncExternalStore(subscribeNone, () => new URLSearchParams(window.location.search).has('p'), () => true);
+/** The Screening Room while the studio's first snapshot loads (§5.22): the theatre in its exact shapes (the same
+ *  classes size the stage, the docked transport, the review pane and the programme) when the address names a film
+ *  (`?p=`), else the poster list. The address is read with useSearchParams on the server as well as the client (as
+ *  the create pages' skeletons do), so the first paint already has the right one of the two and nothing swaps at
+ *  hydration or when the content lands (the QA of 2026-10-05 measured CLS 0.35 on /screening at 390 when the server
+ *  assumed the theatre). A small module of its own, so the shell draws it synchronously. */
+export function ScreeningSkeleton({ view }: { view?: 'theatre' | 'list' }) {
+  if (view) return <ScreeningSkeletonFor view={view} />;
+  return <Suspense fallback={<ScreeningSkeletonFor view="theatre" />}><FromAddress /></Suspense>;
 }
 
-/** The Screening Room while the studio's first snapshot loads (§5.22): the theatre in its exact shapes (the same
- *  classes size the stage, the docked transport, the review pane and the programme), or the poster grid for the list.
- *  A small module of its own, so the shell can draw it synchronously on the server and the client alike. */
-export function ScreeningSkeleton({ view }: { view?: 'theatre' | 'list' }) {
-  const wants = useWantsTheatre();
-  const v = view ?? (wants ? 'theatre' : 'list');
+function FromAddress() {
+  return <ScreeningSkeletonFor view={useSearchParams().has('p') ? 'theatre' : 'list'} />;
+}
+
+/** The skeleton of one view. */
+export function ScreeningSkeletonFor({ view: v }: { view: 'theatre' | 'list' }) {
   if (v === 'list') {
     return (
       <SkeletonRegion label="Opening the Screening Room…" className="theatre-lobby theatre-skeleton">

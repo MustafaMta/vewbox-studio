@@ -51,6 +51,7 @@
   @media (pointer: coarse) {
     .mv-back { block-size: auto; min-block-size: 44px; margin-block: -12px 8px; }
     .mv-performer { min-block-size: 44px; margin-block: -8px; }
+    .mv-person { min-block-size: 44px; }
   }
   .mv-transport { margin-block-start: 24px; }
   .mv-nosong { margin: 24px 0 0; max-inline-size: 56ch; }

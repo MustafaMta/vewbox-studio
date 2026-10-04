@@ -14,6 +14,13 @@
   .cp-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; min-block-size: 24px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color var(--dur-1) var(--ease-out); }
   .cp-back:hover { color: var(--text-1); }
   .cp-back svg { inline-size: 16px; block-size: 16px; }
+  /* coarse pointers (M7): the back link, the state line's link and a row's inline link reach 44 px; the layout keeps
+     its lines (the padding is given back as margin) */
+  @media (pointer: coarse) {
+    .cp-back { min-block-size: 44px; margin-block: -10px; }
+    .co-state-link { min-block-size: 44px; margin-block: -12px; }
+    .cp-link { display: inline-block; padding-block: 13px; margin-block: -13px; }
+  }
   .cp-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
   .cp-head-words { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .cp-kicker, .cp-title, .cp-lead { margin: 0; }
