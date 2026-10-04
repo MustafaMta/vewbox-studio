@@ -305,6 +305,8 @@ services:
         exit $$rc
 
   # One-shot: fetch pinned model weights into the shared volume (resumable, verified). `docker compose --profile models run --rm models`
+  # MODEL_GROUPS is read from .env / the shell when compose parses this file, NOT from `run -e`: to fetch one group, pass the
+  # arguments instead: `docker compose --profile models run --rm models --manifest manifest.json --root /models --groups stack-2026-10`
   models:
     logging: *logging
     build: { context: ., dockerfile: docker/models/Dockerfile }
