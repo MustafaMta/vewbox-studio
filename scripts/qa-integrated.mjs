@@ -93,13 +93,19 @@ export const PAGES = [
 
 const SIZE = { 1440: { w: 1440, h: 900, touch: false }, 1920: { w: 1920, h: 1080, touch: false }, 390: { w: 390, h: 844, touch: true } };
 const THROTTLE = { offline: false, latency: 150, downloadThroughput: (1.5 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 };
+// loaded = the page's own content, held for 800 ms: no busy region, no skeleton primitive, no skeleton class in main
+// (the kit page keeps specimen skeletons on purpose: its own readiness is its title)
 const LOADED = () => {
   const main = document.querySelector('main');
   if (!main) return false;
-  if (/Reconnecting/.test(document.body.innerText)) return false;
-  if (main.querySelector('[aria-busy="true"], .shell-skeleton')) return false;
-  return main.innerText.trim().length > 20;
+  const kit = /^\/kit/.test(location.pathname);
+  const bare = () => !/Reconnecting/.test(document.body.innerText) && (kit ? Boolean(main.querySelector('h1')) : !main.querySelector('[aria-busy="true"], .sk, .shell-skeleton, [class*="skeleton"]') && main.innerText.trim().length > 20);
+  if (!bare()) { window.__loadedSince = 0; return false; }
+  const now = performance.now();
+  if (!window.__loadedSince) { window.__loadedSince = now; return false; }
+  return now - window.__loadedSince > 800;
 };
+const STILL_LOADED = () => { const main = document.querySelector('main'); return Boolean(main) && (/^\/kit/.test(location.pathname) || !main.querySelector('[aria-busy="true"], .sk, .shell-skeleton, [class*="skeleton"]')); };
 
 // ---- the measurements, run inside the loaded page -------------------------------------------------------------------
 const MEASURE = (touch) => {
@@ -132,6 +138,9 @@ const MEASURE = (touch) => {
     if (!(cs.display === 'grid' || (cs.display === 'flex' && cs.flexWrap === 'wrap') || g.classList.contains('shelf-track'))) continue;
     const kids = [...g.children].filter(vis);
     if (kids.length < 2) continue;
+    // a row of like things (tiles, cards, steps): the children share a class; a stage of different panels is not a row
+    const first = (k) => (k.querySelector('.card, .mtile, .fcard, .mcard, .pcard, .tool-card, [class*="-tile"], [class*="-card"]') ?? k).className?.toString().split(/\s+/)[0] ?? '';
+    if (new Set(kids.map(first)).size !== 1) continue;
     const byTop = new Map();
     for (const k of kids) { const b = k.getBoundingClientRect(); const t = R(b.top); byTop.set(t, [...(byTop.get(t) ?? []), R(b.height)]); }
     for (const [top, hs] of byTop) if (hs.length > 1 && new Set(hs).size > 1) rows.push({ grid: sig(g), top, heights: hs });
@@ -218,6 +227,7 @@ const MEASURE = (touch) => {
     if (!vis(nm)) continue;
     const box = nm.closest('a, li, article, .card, .mtile, .fcard, .mcard'); if (!box) continue;
     const frame = box.querySelector('.frame, [class*="-frame"], .mcard-media, img'); if (!frame || !vis(frame)) continue;
+    if (frame.contains(nm) || nm.closest('.scrim, [class*="scrim"], [class*="overlay"]')) continue; // words over the poster scrim sit inside the frame by design
     const dl = R(nm.getBoundingClientRect().left) - R(frame.getBoundingClientRect().left);
     if (dl !== 0) nameMis.push({ name: name(nm).slice(0, 24), dx: dl });
   }
@@ -330,7 +340,7 @@ async function runPages(browser) {
     const size = SIZE[width];
     for (const pg of pages) {
       const tag = `${pg.name}-${width}`;
-      for (let attempt = 1; attempt <= 2; attempt++) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
         const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
         const page = await ctx.newPage();
         try {
@@ -341,7 +351,7 @@ async function runPages(browser) {
             new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: Math.round(e.value * 10000) / 10000, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => (typeof s.node?.className === 'string' ? s.node.className : s.node?.nodeName)?.toString().slice(0, 50)) }); }).observe({ type: 'layout-shift', buffered: true });
             window.__skel = null;
             const look = () => { const m = document.querySelector('main'); if (!m) return; const sk = m.querySelectorAll('.sk, .shell-skeleton, [aria-busy="true"]'); if (sk.length) window.__skel = { at: Math.round(performance.now()), parts: sk.length, height: m.scrollHeight, generic: Boolean(m.querySelector('.shell-skeleton')), label: m.querySelector('[aria-busy="true"]')?.getAttribute('aria-label') ?? '' }; };
-            new MutationObserver(look).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy', 'class'] });
+            new MutationObserver(look).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy', 'class'] });
           });
           const t0 = Date.now();
           await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
@@ -356,6 +366,7 @@ async function runPages(browser) {
           await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120_000 }).catch(() => {});
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(1200);
+          if (!(await page.evaluate(STILL_LOADED))) throw new Error('the skeleton came back after the page had loaded (stream reconnect?)');
           await page.screenshot({ path: path.join(out, `${tag}-first.png`) });
           await page.screenshot({ path: path.join(out, `${tag}.png`), fullPage: true });
           const m = await page.evaluate(MEASURE, size.touch);
@@ -398,15 +409,17 @@ async function runPages(browser) {
           break;
         } catch (e) {
           await page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {}); await ctx.close().catch(() => {});
-          if (attempt === 2) { report.push({ page: pg.name, path: pg.path, width, error: e.message.split('\n')[0] }); console.log(`${tag}: ✗ never ready (${e.message.split('\n')[0]})`); }
+          if (attempt === 3) { report.push({ page: pg.name, path: pg.path, width, error: e.message.split('\n')[0] }); console.log(`${tag}: ✗ never ready (${e.message.split('\n')[0]})`); }
           else console.log(`  retrying ${tag}`);
         }
       }
     }
   }
-  await fs.writeFile(path.join(out, 'report.json'), `${JSON.stringify({ checked: new Date().toISOString(), base, report }, null, 2)}\n`);
+  // one report per run; a single-width run names it by the width so three widths can run side by side
+  const file = path.join(out, widths.length === 1 ? `report-${widths[0]}.json` : 'report.json');
+  await fs.writeFile(file, `${JSON.stringify({ checked: new Date().toISOString(), base, report }, null, 2)}\n`);
   const failed = report.filter((r) => r.error || r.bad?.length).length;
-  console.log(`\n${report.length} page captures, ${failed} with a failed check → ${path.join(out, 'report.json')}`);
+  console.log(`\n${report.length} page captures, ${failed} with a failed check → ${file}`);
 }
 
 // ---- interactions ---------------------------------------------------------------------------------------------------
@@ -480,7 +493,7 @@ async function runInteractions(browser) {
 
     await open(page, `/screening?p=${SHORT}`);
     await step('/screening?p: notes composer posts a note (to this server only)', async () => { allowNote = true; const composer = page.getByRole('form', { name: 'New note' }); await composer.waitFor({ timeout: 10_000 }); const ta = composer.locator('textarea, input[type="text"]').first(); const text = `Design QA note ${Date.now()}`; await ta.fill(text); await shot(page, 'screening-composer'); await composer.locator('button[type="submit"]').click(); await page.locator('.theatre-note', { hasText: text }).waitFor({ timeout: 15_000 }); allowNote = false; await shot(page, 'screening-note-posted'); const st = await page.getByRole('status').allTextContents(); return `note listed · status: ${st.map((s) => s.trim()).filter(Boolean).join(' | ').slice(0, 80)}`; });
-    await step('/screening?p: Play puts the lights down, Esc / Pause restores', async () => { await page.getByRole('button', { name: 'Play', exact: true }).first().click(); await page.waitForTimeout(2500); const lights = await page.locator('.shell').getAttribute('data-lights'); await shot(page, 'screening-playing'); await page.getByRole('button', { name: 'Pause', exact: true }).first().click(); await page.waitForTimeout(500); const after = await page.locator('.shell').getAttribute('data-lights'); return `playing: data-lights=${lights} · paused: ${after}`; });
+    await step('/screening?p: Play puts the lights down, Esc / Pause restores', async () => { const play = page.getByRole('button', { name: 'Play', exact: true }).first(); await play.scrollIntoViewIfNeeded(); const under = await play.evaluate((b) => { const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return e && !b.contains(e) && e !== b ? `${e.tagName.toLowerCase()}.${e.className}` : ''; }); if (under) throw new Error(`Play is covered by ${under}`); await play.click({ timeout: 10_000 }); await page.waitForTimeout(2500); const lights = await page.locator('.shell').getAttribute('data-lights'); await shot(page, 'screening-playing'); await page.getByRole('button', { name: 'Pause', exact: true }).first().click(); await page.waitForTimeout(500); const after = await page.locator('.shell').getAttribute('data-lights'); return `playing: data-lights=${lights} · paused: ${after}`; });
     await step('/screening?p: tabs (Notes / Shots / Export) reachable', async () => { const tabs = await page.getByRole('tab').allTextContents(); await page.getByRole('tab', { name: /^Shots/ }).click(); await page.waitForTimeout(300); const sel = await page.getByRole('tab', { selected: true }).textContent(); return `${tabs.map((t) => t.trim()).join(' | ')} → selected "${sel?.trim()}"`; });
 
     await open(page, '/production');
@@ -503,7 +516,7 @@ async function runInteractions(browser) {
     await step('390: top bar and bottom bar', async () => page.evaluate(() => { const t = document.querySelector('.phone-bar')?.getBoundingClientRect(); const b = document.querySelector('.bottom-nav')?.getBoundingClientRect(); const tabs = [...document.querySelectorAll('.bottom-tab')].map((e) => `${e.querySelector('.bottom-tab-label')?.textContent} ${Math.round(e.getBoundingClientRect().width)}×${Math.round(e.getBoundingClientRect().height)}`); return `top ${Math.round(t?.height ?? 0)} · bottom ${Math.round(b?.height ?? 0)} at y ${Math.round(b?.top ?? 0)} · ${tabs.join(' | ')}`; }));
     await step('390: More opens the sheet; Esc closes it', async () => { await page.getByRole('button', { name: /^More/ }).click(); await page.waitForSelector('dialog[open]', { timeout: 3000 }); await page.waitForTimeout(500); const items = await page.locator('dialog[open] .sheet-item').allTextContents(); await shot(page, 'phone-more-sheet'); const sizes = await page.evaluate(() => [...document.querySelectorAll('dialog[open] .sheet-item')].map((e) => Math.round(e.getBoundingClientRect().height))); await page.keyboard.press('Escape'); await page.waitForTimeout(400); if (await page.locator('dialog[open]').count()) throw new Error('sheet still open'); return `${items.map((t) => t.trim().replace(/\s+/g, ' ')).join(' | ')} · item heights ${[...new Set(sizes)].join('/')}`; });
     await step('390: top-bar Search opens the palette', async () => { await page.getByRole('button', { name: 'Search the studio' }).click(); await page.waitForSelector('dialog[open] .palette-input', { timeout: 3000 }); await shot(page, 'phone-palette'); await page.keyboard.press('Escape'); await page.waitForTimeout(300); return 'ok'; });
-    await step('390: Productions tab → /shows with the segmented control', async () => { await page.getByRole('link', { name: /^Productions/ }).click(); await page.waitForFunction(LOADED, null, { timeout: 60_000 }); const seg = await page.locator('main [role="radiogroup"] [role="radio"], main .seg-option, main [role="tablist"] [role="tab"]').allTextContents(); await shot(page, 'phone-productions'); return `${new URL(page.url()).pathname} · ${seg.map((t) => t.trim()).join(' | ')}`; });
+    await step('390: Productions tab → /shows with the segmented control', async () => { await page.getByRole('link', { name: /^Productions/ }).click(); await page.waitForURL(/\/shows/, { timeout: 30_000 }); await page.waitForFunction(LOADED, null, { timeout: 60_000 }); await page.waitForTimeout(600); const seg = await page.locator('main [role="radiogroup"] [role="radio"], main .seg-option, main [role="tablist"] [role="tab"]').allTextContents(); await shot(page, 'phone-productions'); return `${new URL(page.url()).pathname} · ${seg.map((t) => t.trim()).join(' | ')}`; });
     await open(page, `/shorts/${SHORT}`);
     await step('390: player transport hit areas', async () => page.evaluate(() => [...document.querySelectorAll('main .ptransport button, main .ptransport input')].map((e) => { const b = e.getBoundingClientRect(); return `${e.getAttribute('aria-label')} ${Math.round(b.width)}×${Math.round(b.height)}`; }).join(' · ')));
     await open(page, '/characters');
@@ -546,6 +559,8 @@ async function runKrea(browser) {
   }
 }
 
+// the dev server can reset a connection under several browsers; the page retries its own reads, the pass goes on
+process.on('unhandledRejection', (e) => console.log(`  unhandled: ${String(e?.message ?? e).split('\n')[0].slice(0, 120)}`));
 const browser = await chromium.launch();
 try {
   if (flag('annotate')) await annotate(browser, JSON.parse(await fs.readFile(opt('annotate', ''), 'utf8')));
