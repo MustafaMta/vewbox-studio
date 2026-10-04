@@ -9,7 +9,7 @@ import { splitLyrics } from '@/domain/lyrics';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
-import { Button, Field, FormFooter, Input, LinkButton, Segmented, Select, Textarea } from '@/components/ui/kit';
+import { Button, DisclosureCard, Field, FormFooter, Input, LinkButton, Segmented, Select, Textarea } from '@/components/ui/kit';
 import { AspectGlyph, Panel, PickGrid, StylePicker, castItems, placeItems } from './parts';
 import { SongPanel, type SongDraft } from './Song';
 import { ASPECT_WORDS, KIND_INFO, dialectWords, firstError, lengthWords, titleFrom, validateManual, type CreateKind, type ManualErrors } from './model';
@@ -168,9 +168,8 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
       {isMV && <Panel id="create-performers-h" title="Performers" description="Who sings it on screen. Choose one or more, or let the studio cast them later.">{castPanel}</Panel>}
 
       {kind !== 'season' && (
-        <details className="card create-panel create-more" open={Boolean(errors.seconds) || undefined}>
-          <summary className="create-more-summary"><span className="t-title">More control</span><span className="t-body">{isMV ? 'Locations, treatment, genre and an exact length' : kind === 'show' ? 'Cast, locations, genre and an Arabic title' : 'Cast, locations, genre and an exact length'}</span></summary>
-          <div className="create-stack create-more-body">
+        <DisclosureCard title="More control" description={isMV ? 'Locations, treatment, genre and an exact length' : kind === 'show' ? 'Cast, locations, genre and an Arabic title' : 'Cast, locations, genre and an exact length'} forceOpen={Boolean(errors.seconds)}>
+          <div className="create-stack">
             {!isMV && castPanel}
             {placesPanel}
             {isMV && (
@@ -181,7 +180,7 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
             )}
             <div className="create-row">
               <Field label="Genre" optional className="create-field"><Input value={genre} maxLength={60} onChange={(e) => setGenre(e.target.value)} /></Field>
-              {!inShow && <Field label="Arabic title" optional className="create-field"><Input value={titleAr} dir="rtl" lang="ar" maxLength={120} onChange={(e) => setTitleAr(e.target.value)} /></Field>}
+              {!inShow && <Field label="Arabic title" optional className="create-field"><Input value={titleAr} dir="auto" lang="ar" maxLength={120} onChange={(e) => setTitleAr(e.target.value)} /></Field>}
               {info.durations && (
                 <Field label="Exact length in seconds" optional error={errors.seconds} className="create-field">
                   <Input id="create-seconds" type="number" inputMode="numeric" min={5} max={3600} value={seconds ?? ''} onChange={(e) => { setSeconds(e.target.value === '' ? null : Number(e.target.value)); setErrors((x) => ({ ...x, seconds: undefined })); }} />
@@ -189,7 +188,7 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
               )}
             </div>
           </div>
-        </details>
+        </DisclosureCard>
       )}
 
       <FormFooter start={<span className="t-meta">Nothing is generated until you start production.</span>}>

@@ -1,20 +1,17 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { Asset, Character, Location, StudioState } from '@/domain/types';
-import type { Aspect, Style } from '@/domain/vocabulary';
-import { STYLES } from '@/domain/vocabulary';
+import type { Aspect } from '@/domain/vocabulary';
 import { primaryImageOf } from '@/domain/identity';
 import { TitleCard } from '@/components/media/TitleCard';
 import { nameLang } from '@/components/home/model';
 import { FigureCard, MediaTile } from '@/components/media';
-import { rovingIndex, rovingStep } from '@/components/ui/kit';
-import { IconAuto, IconCheck } from '@/components/ui/icons';
-import { STYLE_WORDS, type ContentRatio } from './model';
+import type { ContentRatio } from './model';
 
-/** THE CREATION FLOWS' SHARED PARTS — the picker tiles (§5.6 "Selected (pickers)": the object in its own shape, a
- *  2 px outline at offset 3 and a check badge when chosen), the style choice with its three drawings, the format
- *  glyph, a section card with its head, and the live preview in the content's own shape. Layout lives in
+/** THE CREATION FLOWS' SHARED PARTS — the picker grids (the kit's FigureCard / MediaTile as toggles), the format glyph,
+ *  a section card with its head, and the live preview in the content's own shape. The style choice, the stage stepper
+ *  and the disclosure card are the kit's (StylePicker, StageSteps, DisclosureCard). Layout lives in
  *  src/app/styles/pages/create.css; colours, radii and type are the kit's tokens and roles. */
 
 // ------------------------------------------------------------------------------------------------- a section
@@ -74,46 +71,8 @@ export function placeItems(s: StudioState, locked?: (l: Location) => string | un
 }
 // ------------------------------------------------------------------------------------------------- style
 
-/** The three looks as drawings (not pictures from anywhere): one radio group, arrows move the choice. */
-export function StylePicker({ value, onChange, label = 'Style', auto }: { value: Style | null; onChange: (s: Style | null) => void; label?: string; /** "Studio decides" as a fourth choice (Auto's preferences) */ auto?: string }) {
-  const opts: Array<Style | null> = auto ? [null, ...STYLES] : [...STYLES];
-  const labelId = useId();
-  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const step = rovingStep(e.key, { orientation: 'both' }); if (!step) return;
-    const from = Math.max(0, opts.indexOf(value));
-    const next = rovingIndex(step, from, opts.map(() => false)); if (next < 0) return;
-    e.preventDefault(); onChange(opts[next]);
-    e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
-  };
-  return (
-    <div className="create-field">
-      <p id={labelId} className="label">{label}</p>
-      <div role="radiogroup" aria-labelledby={labelId} className="create-picks" data-shape="style" data-count={opts.length} onKeyDown={onKey}>
-        {opts.map((s) => {
-          const on = value === s;
-          const words = s ? STYLE_WORDS[s] : { label: auto!, hint: 'From the story' };
-          return (
-            <button key={s ?? 'auto'} type="button" role="radio" aria-checked={on} tabIndex={on || (value === undefined && s === opts[0]) ? 0 : -1} className="create-pick" onClick={() => onChange(s)}>
-              <span className="create-pick-frame">
-                {s ? <StyleDrawing style={s} /> : <span className="create-pick-auto" aria-hidden><IconAuto /></span>}
-                {on && <span className="card-check" aria-hidden><IconCheck /></span>}
-              </span>
-              <span className="t-card create-pick-name">{words.label}</span>
-              <span className="t-meta create-pick-sub">{words.hint}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** Three small drawings that say what a style is, without a picture from anywhere (decorative). */
-export function StyleDrawing({ style }: { style: Style }) {
-  if (style === 'CARTOON') return <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="create-drawing" aria-hidden><rect width="160" height="90" fill="#e8c46a" /><circle cx="52" cy="46" r="24" fill="#d9573b" /><rect x="88" y="26" width="46" height="40" rx="8" fill="#2f6fb5" /><path d="M0 74 Q40 58 80 74 T160 74 V90 H0Z" fill="#3f8a5a" /></svg>;
-  if (style === 'ANIME') return <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="create-drawing" aria-hidden><defs><linearGradient id="create-an" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c9b8e8" /><stop offset="1" stopColor="#7a5aa6" /></linearGradient></defs><rect width="160" height="90" fill="url(#create-an)" /><circle cx="118" cy="26" r="12" fill="#fff6d6" /><path d="M0 90 L30 44 L52 70 L78 30 L110 68 L130 52 L160 90 Z" fill="#2b2140" /><path d="M0 90 L30 44 L52 70 L78 30" fill="none" stroke="#f3eefc" strokeWidth="1.2" /></svg>;
-  return <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="create-drawing" aria-hidden><defs><linearGradient id="create-re" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#5f7ea0" /><stop offset="1" stopColor="#1a1712" /></linearGradient><radialGradient id="create-rg" cx="0.7" cy="0.3" r="0.6"><stop offset="0" stopColor="#f2d59a" stopOpacity="0.9" /><stop offset="1" stopColor="#f2d59a" stopOpacity="0" /></radialGradient></defs><rect width="160" height="90" fill="url(#create-re)" /><rect width="160" height="90" fill="url(#create-rg)" /><ellipse cx="60" cy="64" rx="14" ry="26" fill="#14110d" opacity="0.9" /><rect y="80" width="160" height="10" fill="#0c0a08" /></svg>;
-}
+/** The style choice is the kit's (src/components/media/StylePicker.tsx, on PicturePicker). */
+export { StylePicker } from '@/components/media/StylePicker';
 
 /** The format's own shape at 14 px (decorative). */
 export function AspectGlyph({ a }: { a: Aspect }) {

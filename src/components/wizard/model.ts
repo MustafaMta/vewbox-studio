@@ -47,11 +47,8 @@ export const modeOf = (sp: { get: (k: string) => string | null }): CreateMode =>
 
 // ------------------------------------------------------------------------------------------------- words
 
-export const STYLE_WORDS: Record<Style, { label: string; hint: string }> = {
-  CARTOON: { label: 'Cartoon', hint: 'Bold and warm' },
-  ANIME: { label: 'Anime', hint: 'Clean lines, painted skies' },
-  REALISTIC: { label: 'Realistic', hint: 'Cinematic light' },
-};
+import { STYLE_WORDS } from '@/components/media/styles';
+export { STYLE_WORDS };
 export const LANGUAGE_WORDS: Record<Language, string> = { EN: 'English', AR: 'Arabic' };
 export const dialectWords = (d: Dialect | undefined) => (d ? DIALECT_LABELS[d].en : '');
 export const ASPECT_WORDS: Record<Aspect, { label: string; hint: string }> = {
