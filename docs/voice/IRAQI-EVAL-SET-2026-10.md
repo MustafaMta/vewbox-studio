@@ -153,6 +153,90 @@ Each line lists the features it tests. The tags, and what to listen for:
 | film-fx-03 | film | منو مات؟ | Who died? (Abu Samir) | منو, question-intonation, one-breath | dry | M | yes | fixture The Opening Hour s1e1 d3 |
 | film-fx-04 | film | شيل هذا. هنا ما نسوي هيچ. | Put that away. We don't do that here. (Abu Samir) | شيل, ما-negation, نسوي, هيچ, چ-for-ك, firm | firm | M | yes | fixture The Opening Hour s1e1 d4 |
 
+## 4. The harness: `scripts/voice-eval.mjs`
+
+Built and tested without a GPU (dry runs, unit tests on `tests/fixtures/speech-en.wav` and synthetic ffmpeg files);
+it runs the moment the voice containers are up. It never touches the studio: `--base` is required, explicit, and a URL
+with port 4200 or a path under `/api` is refused; it only ever `GET`s `/health` and `POST`s `/synthesize` and
+`/transcribe` on the service origins it was given.
+
+**The model-phase command** (both voices of the example config are *designed* seeds, hence `--allow-synthetic`; with
+consented Iraqi recordings in the config the flag is not needed and the report is not stamped):
+
+```
+pnpm exec tsx scripts/voice-eval.mjs --base http://127.0.0.1:8021 --asr http://127.0.0.1:8030 --indextts http://127.0.0.1:8020 \
+    --voices tests/fixtures/voice/iraqi-eval-voices.example.json --allow-synthetic --prepare both \
+    --out docs/evidence/iraqi-eval/2026-10-run1
+```
+
+Then open `docs/evidence/iraqi-eval/2026-10-run1/review.html` from that folder (the players load `wavs/…` relative to
+the page), have the native listener rate every line, save the JSON, and merge it:
+
+```
+pnpm exec tsx scripts/voice-eval.mjs --merge-review docs/evidence/iraqi-eval/2026-10-run1/review-<name>-<date>.json --out docs/evidence/iraqi-eval/2026-10-run1
+```
+
+`--dry-run` validates everything (arguments, the set, the references, their provenance tags) and writes `plan.json`
+with no request at all; it was run on 2026-10-04: 109 synthesis calls for 60 lines × 2 voices (the two code-switched
+lines need `--indextts`, else they are listed as skipped, never spoken by the Iraqi engine).
+
+### 4.1 What one run produces
+
+`<out>/`:
+
+- `plan.json`: services, parameters, voices (sha256, duration, provenance tag, reference transcript), every planned
+  call with the text as spoken.
+- `wavs/<voice>-<lineId>[-raw]-<engine>-s<seed>.wav`: the audio, as the service returned it (its own −1 dBTP limiter,
+  its provenance tag in the WAV INFO chunk).
+- `asr/<same>.json`: the full transcript with word timings and the model that transcribed it.
+- `report.json`: per line — the text, what was actually sent (`spoken`, after preparation, and the `changes`), gloss,
+  features, emotion, expected sex, voice and engine, seed and engine version, synthesis time, duration, sample rate,
+  integrated loudness, true peak, loudness range, silence (leading, trailing, longest inner pause, ratio), letters per
+  second of speech, the transcript, the ASR model, WER (orthographic), CER (orthographic and dialect-folded), coverage,
+  the studio's own CER / coverage / verdict (`normalizeIraqi` fold, when run under tsx), the MSA heuristic (§4.3), and
+  `flags`. Plus the measured summary per voice, category and engine, and `listening: PENDING`.
+- `review.html`: the reviewer's page (§6).
+- After the merge: `REVIEW.md` and `report.listening` with the pass/fail per voice.
+
+### 4.2 Measurements and flags
+
+| Measurement | How | Flag |
+|---|---|---|
+| intelligibility | the ASR (Arabic → `whisper-large-v3-arabic-dialectal-v2` via `language=ar`; the response's `model` is recorded and `ASR_NOT_DIALECT_MODEL` raised if plain large-v3 answered); WER on `normalizeArabicEval` (hamza forms, ة/ه, ى/ي, diacritics, tatweel, zero-width marks, both digit sets, Persian ک/ی, punctuation); CER raw and after the letter fold (گ ق ك one class, چ ج تش one class) | `CER_ABOVE_GATE` (> 0.15 folded), `UNINTELLIGIBLE` (> 0.35) |
+| level | ffmpeg `loudnorm` pass 1: integrated LUFS, true peak, LRA | `LOUDNESS_OUT_OF_RANGE` (outside −23…−16 LUFS), `PEAK_ABOVE_CEILING` (> −0.95 dBTP), `SILENT` |
+| timing | ffprobe duration; ffmpeg `silencedetect` (−35 dB, ≥ 0.25 s): leading, trailing, longest inner pause, ratio; letters per second of speech | `MOSTLY_SILENCE` (> 50 %), `TOO_SHORT` (< 0.3 s), `TOO_LONG_FOR_TEXT` (> 0.4 s per letter + 2 s) |
+| provenance | the WAV tag the voice service writes | `NO_PROVENANCE_TAG` (not the studio's service) |
+| MSA reading | §4.3 | `MSA_LIKE` |
+
+None of these is a quality verdict; together they stop a broken run (wrong engine, unconverted ASR model, clipping,
+silence, a reference heard as English) from reaching a listener, and they put a number next to every line the listener
+rates.
+
+### 4.3 The MSA-reading heuristic
+
+The dialect-tuned ASR writes dialect speech in dialect spelling. So when the text carries a Baghdadi marker and the
+transcript carries its MSA counterpart instead, one of two things happened: the engine read the line as MSA, or the ASR
+normalised dialect speech toward MSA. The heuristic (`msaReadingFlags` in `scripts/lib/voice-eval-metrics.mjs`):
+
+1. Both sides go through `normalizeArabicEval`. A marker table pairs Iraqi forms with the MSA forms an ASR writes
+   (شلون → كيف / كيف حالك; شنو → ماذا; وين → أين; منو → من هو; ليش → لماذا; شوكت → متى; هسه → الآن; ماكو → لا يوجد;
+   اكو → يوجد / هناك; هواية → كثيراً / جداً; باچر → غداً; مو → ليس; اني → أنا; احنا → نحن; زين → جيد; لعد → إذن;
+   شوية → قليلاً; بس → فقط / لكن; راح → سوف; ويا → مع; هيچ → هكذا; تدري → تعرف; بعده → لا يزال; تجي/يجي → تأتي/يأتي;
+   نسوي → نفعل; ورة → وراء; اثنعش → اثنا عشر; خمسطعش → خمسة عشر; اربعطعش → أربعة عشر; ميتين → مئتان; تسعمية →
+   تسعمائة; مية → مائة; دير بالك → انتبه; عفية → أحسنت; خوش → جميل). Words match whole, with an attached و/ب/ل/ف/ال.
+2. A **substitution** is counted when the text has the Iraqi form, the transcript has the MSA form, and the transcript
+   does not also have the Iraqi form (then the ASR merely added a word).
+3. **Grammar**: لم / لن / سوف / ليس / ليست / لست / سيكون in the transcript but not in the text.
+4. **Tanween** (case endings) in the transcript is counted and shown, never flagged alone: the ASR writes it on its own.
+5. **Letters**: for every گ/چ word in the text, how the transcript spelled it (as such, with another letter, or not
+   found) — reported for the listener, not counted: ق for گ is a transcription convention as much as a pronunciation
+   (the A/B wrote غ for گ 15 times out of 18 on a real Iraqi clip).
+6. `msaLike` = two or more substitutions, or one when the line has at most two markers, or any grammar word.
+
+Limits, stated plainly: the heuristic cannot see an MSA *accent* on a line whose words are all dialect-neutral
+(name-03, short-03), cannot tell a /q/ from a /g/, and can be fooled by the ASR in both directions. It is a pointer for
+the listener, and the review form asks the listener directly.
+
 ## 6. The listening review protocol
 
 **Who reviews.** A native Iraqi listener who grew up with Baghdadi Arabic (two when possible, as the model-stack plan
