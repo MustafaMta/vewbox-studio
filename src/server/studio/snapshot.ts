@@ -1,4 +1,4 @@
-import { asc } from 'drizzle-orm';
+import { asc, isNull } from 'drizzle-orm';
 import type { Asset, AssetTier, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
 import { STATE_VERSION } from '@/domain/version';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
@@ -16,7 +16,12 @@ export interface RowHashes {
   usage: Map<string, string>; settings: string;
 }
 
-export interface Snapshot { state: StudioState; hashes: RowHashes; version: number }
+/** Each aggregate's version (step 11), outside the state: the browser's copy and its hash never carry it. */
+export interface AggregateVersions { productions: Map<string, number>; shows: Map<string, number>; characters: Map<string, number>; locations: Map<string, number> }
+export type AggregateKind = 'production' | 'show' | 'character' | 'location';
+export const versionOf = (v: AggregateVersions, kind: AggregateKind, id: string): number | undefined => ({ production: v.productions, show: v.shows, character: v.characters, location: v.locations })[kind].get(id);
+
+export interface Snapshot { state: StudioState; hashes: RowHashes; version: number; versions: AggregateVersions }
 
 type Tx = Db | Parameters<Parameters<Db['transaction']>[0]>[0];
 
@@ -76,12 +81,13 @@ export function characterFromRow(c: CharacterRowRead, videos: VideoUsage[], asse
 
 export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const [showRows, seasonRows, productionRows, sceneRows, shotRows, takeRows, characterRows, usageRows, locationRows, assetRows, settingsRows, metaRows] = await Promise.all([
-    tx.select().from(schema.shows).orderBy(asc(schema.shows.createdAt)),
-    tx.select().from(schema.seasons).orderBy(asc(schema.seasons.number)),
-    tx.select().from(schema.productions).orderBy(asc(schema.productions.createdAt)),
-    tx.select().from(schema.scenes).orderBy(asc(schema.scenes.position)),
-    tx.select().from(schema.shots).orderBy(asc(schema.shots.position)),
-    tx.select().from(schema.takes).orderBy(asc(schema.takes.position)),
+    // the live studio: tombstoned rows (step 10) are not part of it
+    tx.select().from(schema.shows).where(isNull(schema.shows.deletedAt)).orderBy(asc(schema.shows.createdAt)),
+    tx.select().from(schema.seasons).where(isNull(schema.seasons.deletedAt)).orderBy(asc(schema.seasons.number)),
+    tx.select().from(schema.productions).where(isNull(schema.productions.deletedAt)).orderBy(asc(schema.productions.createdAt)),
+    tx.select().from(schema.scenes).where(isNull(schema.scenes.deletedAt)).orderBy(asc(schema.scenes.position)),
+    tx.select().from(schema.shots).where(isNull(schema.shots.deletedAt)).orderBy(asc(schema.shots.position)),
+    tx.select().from(schema.takes).where(isNull(schema.takes.deletedAt)).orderBy(asc(schema.takes.position)),
     tx.select().from(schema.characters).orderBy(asc(schema.characters.createdAt)),
     tx.select().from(schema.characterUsage).orderBy(asc(schema.characterUsage.id)),
     tx.select().from(schema.locations).orderBy(asc(schema.locations.createdAt)),
@@ -128,7 +134,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
     scenesByProduction.set(sc.productionId, [...(scenesByProduction.get(sc.productionId) ?? []), scene]);
   }
   const productions: Production[] = productionRows.map((p) => {
-    const production: Production = { id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes: scenesByProduction.get(p.id) ?? [], shots: shotsByProduction.get(p.id) ?? [], song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), exports: undef(p.exports), framePosterAssetId: undef(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt };
+    const production: Production = { id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes: scenesByProduction.get(p.id) ?? [], shots: shotsByProduction.get(p.id) ?? [], song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), cutStale: p.cutStale || undefined, exports: undef(p.exports), framePosterAssetId: undef(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt };
     hashes.productions.set(p.id, h({ ...production, scenes: undefined, shots: undefined }));
     return production;
   });
@@ -154,5 +160,6 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const settings: Settings = settingsRows[0]?.data ?? DEFAULT_SETTINGS;
   hashes.settings = h(settings);
 
-  return { state: { version: STATE_VERSION, shows, seasons, productions, characters, locations, assets, settings }, hashes, version: metaRows[0]?.version ?? 0 };
+  const versions: AggregateVersions = { productions: new Map(productionRows.map((r) => [r.id, r.version])), shows: new Map(showRows.map((r) => [r.id, r.version])), characters: new Map(characterRows.map((r) => [r.id, r.version])), locations: new Map(locationRows.map((r) => [r.id, r.version])) };
+  return { state: { version: STATE_VERSION, shows, seasons, productions, characters, locations, assets, settings }, hashes, version: metaRows[0]?.version ?? 0, versions };
 }

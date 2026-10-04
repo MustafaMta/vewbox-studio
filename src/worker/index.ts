@@ -14,6 +14,7 @@ import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
 import { isFencedWrite } from '@/server/jobs/fence';
+import { sweepJobFiles } from '@/server/jobs/outputs';
 import { settleDialogueReviews } from '@/server/jobs/reviews';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { step } from './handlers/step';
@@ -109,6 +110,9 @@ async function run(job: Job, lane: Lane) {
     signal: jobCtrl.signal,
   };
   await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_STARTED', message: `${agent.name} started: ${label}${job.attempts > 1 ? ` (attempt ${job.attempts} of ${job.maxAttempts})` : ''}`, data: { attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
+  // THE JOB GC (audit C2/M5, step 6): files an earlier attempt of this job stored but never committed (it crashed, or
+  // lost its lease, between the two) are removed before this attempt starts; their commits can no longer happen
+  if (job.attempts > 1) await record('sweep earlier attempts', async () => { await sweepJobFiles(job.id, { attempts: (a) => a !== undefined && a < job.attempts, reason: `earlier attempts of the job, before attempt ${job.attempts}` }); });
   try {
     const handler = HANDLERS[job.type];
     if (!handler) throw Object.assign(new Error(`No handler for ${job.type}`), { retryable: false });
@@ -173,6 +177,10 @@ async function run(job: Job, lane: Lane) {
   } finally {
     if (deadlineTimer) clearTimeout(deadlineTimer);
     stopHeartbeat();
+    // this attempt is over (its outcome recorded, or its lease lost — a late write of it is fenced either way): the
+    // files it — or an earlier attempt still finishing when it started — stored and did not commit are removed; a
+    // later attempt's files are never touched
+    await record('sweep this attempt', async () => { await sweepJobFiles(job.id, { attempts: (a) => a !== undefined && a <= job.attempts, reason: `attempt ${job.attempts} ended` }); });
     running[lane].delete(job.id);
   }
 }

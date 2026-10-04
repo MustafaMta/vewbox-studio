@@ -35,12 +35,17 @@ export function assertSafeId(id: string): string {
   return id;
 }
 
-/** Where a new file of this kind goes, relative to the library root. */
-export function libraryPathFor(assetId: string, kind: AssetKind, ext: string): string {
+const SAFE_TAG = /^a\d{1,6}$/;
+
+/** Where a new file of this kind goes, relative to the library root. `tag` (a job attempt, `a2`) is written into the
+ *  file name — `{id}.a2.{ext}` — so two attempts of one job that mint the same deterministic asset id never write the
+ *  same file, and the GC can tell which attempt wrote a file (src/server/jobs/outputs.ts). */
+export function libraryPathFor(assetId: string, kind: AssetKind, ext: string, tag?: string): string {
   assertSafeId(assetId);
+  if (tag !== undefined && !SAFE_TAG.test(tag)) throw new StudioError('INVALID', 'Malformed file tag.');
   const d = new Date();
   const safeExt = ext.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin';
-  return path.posix.join(kind.toLowerCase(), String(d.getUTCFullYear()), String(d.getUTCMonth() + 1).padStart(2, '0'), `${assetId}.${safeExt}`);
+  return path.posix.join(kind.toLowerCase(), String(d.getUTCFullYear()), String(d.getUTCMonth() + 1).padStart(2, '0'), `${assetId}${tag ? `.${tag}` : ''}.${safeExt}`);
 }
 
 /** Resolve a stored relative path to an absolute path inside the allowed root; refuses anything that escapes. */
@@ -161,13 +166,13 @@ async function presentationAtIngest(kind: AssetKind, absPath: string, probe?: Pr
 }
 
 /** Write bytes into the library under a fresh asset id, verifying type and decodability. */
-export async function storeBuffer(assetId: string, buf: Buffer, opts: { declaredType?: string; expectKind?: AssetKind; probe?: boolean } = {}): Promise<StoredFile> {
+export async function storeBuffer(assetId: string, buf: Buffer, opts: { declaredType?: string; expectKind?: AssetKind; probe?: boolean; tag?: string } = {}): Promise<StoredFile> {
   const max = env().MAX_UPLOAD_MB * 1024 * 1024;
   if (buf.length === 0) throw new StudioError('INVALID', 'The file is empty.');
   if (buf.length > max) throw new StudioError('INVALID', `The file is larger than ${env().MAX_UPLOAD_MB} MB.`);
   const { mime, kind, ext } = await sniff(buf, opts.declaredType);
   if (opts.expectKind && kind !== opts.expectKind) throw new StudioError('INVALID', `Expected ${opts.expectKind.toLowerCase()}, got ${kind.toLowerCase()}.`);
-  const relPath = libraryPathFor(assetId, kind, ext);
+  const relPath = libraryPathFor(assetId, kind, ext, opts.tag);
   const absPath = resolveLibrary(relPath);
   await fsp.mkdir(path.dirname(absPath), { recursive: true });
   const tmp = `${absPath}.part`;
@@ -184,13 +189,13 @@ export async function storeBuffer(assetId: string, buf: Buffer, opts: { declared
 }
 
 /** Move a file the worker produced (already on disk, e.g. an ffmpeg output) into the library. */
-export async function adoptFile(assetId: string, srcAbs: string, opts: { expectKind?: AssetKind } = {}): Promise<StoredFile> {
+export async function adoptFile(assetId: string, srcAbs: string, opts: { expectKind?: AssetKind; tag?: string } = {}): Promise<StoredFile> {
   const head = Buffer.alloc(4100);
   const fh = await fsp.open(srcAbs, 'r');
   try { await fh.read(head, 0, 4100, 0); } finally { await fh.close(); }
   const { mime, kind, ext } = await sniff(head);
   if (opts.expectKind && kind !== opts.expectKind) throw new StudioError('INVALID', `Expected ${opts.expectKind.toLowerCase()}, got ${kind.toLowerCase()}.`);
-  const relPath = libraryPathFor(assetId, kind, ext);
+  const relPath = libraryPathFor(assetId, kind, ext, opts.tag);
   const absPath = resolveLibrary(relPath);
   await fsp.mkdir(path.dirname(absPath), { recursive: true });
   const probe = kind === 'SUBTITLE' ? undefined : await ffprobe(srcAbs);

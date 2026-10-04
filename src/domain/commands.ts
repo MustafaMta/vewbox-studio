@@ -13,6 +13,7 @@ export const COMMANDS = {
   addSeason: A.addSeason, updateSeason: A.updateSeason, deleteSeason: A.deleteSeason,
   addProduction: A.addProduction, updateProduction: A.updateProduction, deleteProduction: A.deleteProduction, duplicateProduction: A.duplicateProduction,
   setStage: A.setStage, markStepDone: A.markStepDone, recordExport: A.recordExport, setCut: A.setCut,
+  addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, fillProductionFields: A.fillProductionFields,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
   selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
@@ -174,6 +175,8 @@ export const SYSTEM_COMMANDS = [
   'recordExport', 'setCut', 'replaceScript', 'replaceSceneShots', 'setShotFrames', 'setDialogueAudio',
   'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
   'setCanonicalImage', 'addLocationRefs', 'addAsset', 'updateAsset',
+  // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
+  'addCastMember', 'addLocationMember', 'updateShowBible', 'fillProductionFields',
 ] as const satisfies readonly CommandName[];
 export type SystemCommandName = (typeof SYSTEM_COMMANDS)[number];
 export type ClientCommandName = Exclude<CommandName, SystemCommandName>;
@@ -221,7 +224,7 @@ const NewProduction = z.object({ kind: z.enum(KINDS), showId: id.optional(), sea
 /** cutAssetId, exports and the frame poster come from ASSEMBLE/EXPORT; scenes and shots (with their takes) from the
  *  structural commands — a production patch from a page carries none of them. */
 const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.number().int().positive(), title: z.string().min(1).max(300), titleAr: titleText, logline: line(8000), synopsis: line(40000), style, language, dialect, aspect, targetSeconds: z.number().positive().max(4 * 3600), stage, brief: Brief, castIds: idList, locationIds: idList, song: Song, coverAssetId: id, posterAssetId: id, artist: line(300), concept: z.enum(['PERFORMANCE', 'NARRATIVE', 'MIXED']), genre: line(200), mood: line(200) })
-  .partial().extend(owned('id', 'kind', 'createdAt', 'scenes', 'shots', 'cutAssetId', 'exports', 'framePosterAssetId')).passthrough();
+  .partial().extend(owned('id', 'kind', 'createdAt', 'scenes', 'shots', 'cutAssetId', 'cutStale', 'exports', 'framePosterAssetId')).passthrough();
 
 const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();

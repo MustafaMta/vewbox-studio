@@ -4,28 +4,61 @@ import { type Command, type CommandName, type CommandResult, isCommandName, runC
 import { hashState } from '@/domain/hash';
 import { StudioError } from '@/domain/errors';
 import { db, schema, sql } from '../db/client';
-import { loadSnapshot } from './snapshot';
+import { loadSnapshot, versionOf, type AggregateKind, type AggregateVersions } from './snapshot';
 import { persistState } from './persist';
 import { log } from '../log';
 import { assertLeaseHeld } from '../jobs/fence';
+import { jobScope } from '../jobs/context';
+import { derivedBatchId, findReplay, recordBatch } from './journal';
 
 /** THE COMMAND ENGINE — apply a batch of commands to the authoritative state under one lock, in one transaction,
  *  and tell every listener the studio changed. The browser runs the same commands optimistically; the hash it gets
  *  back tells it whether its copy still matches. */
 
-export type BatchResult = { ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } };
+export type BatchResult = ({ ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } }) & { /** the batch was applied before: this is the stored result (step 9) */ replayed?: boolean };
 
 const LOCK_KEY = 'vewbox-studio';
 
+export type Tx = Parameters<Parameters<ReturnType<typeof db>['transaction']>[0]>[0];
+
+/** `also`: rows outside the studio document that belong to the same result (a take's QA reports, its World Bible
+ *  read), written in the SAME transaction after the commands persisted — all of it commits, or none (audit C2). It
+ *  runs only when every command was accepted.
+ *  `batchId` (with the sender, `origin`): the batch's identity in the command journal — the same batch sent again
+ *  returns its stored result (audit H10, step 9); derived from the commands' seeds when not given. */
+export interface ApplyOptions {
+  also?: (tx: Tx, results: unknown[]) => Promise<void>; batchId?: string;
+  /** COMPARE-AND-SET (docs/BACKEND-AUDIT-2026-10.md H3, step 11): the aggregate versions the sender read. When one
+   *  moved since (someone else changed that production, show, character or location), nothing is applied and the
+   *  batch throws CONFLICT with reason STALE_VERSION — the sender re-reads and re-decides (intent commands make that
+   *  safe). */
+  expect?: ExpectedVersion[];
+}
+export interface ExpectedVersion { kind: AggregateKind; id: string; version: number }
+
 /** Run commands as one unit: all or nothing. */
-export async function applyCommands(commands: Command[], origin = 'server'): Promise<BatchResult> {
+export async function applyCommands(commands: Command[], origin = 'server', opts: ApplyOptions = {}): Promise<BatchResult> {
   for (const c of commands) if (!isCommandName(c.name)) throw new StudioError('INVALID', `Unknown command ${String(c.name)}`);
   const t0 = Date.now();
+  const batchId = opts.batchId ?? derivedBatchId(commands);
+  const jobId = jobScope()?.jobId || undefined;
   const out = await db().transaction(async (tx) => {
     await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${LOCK_KEY}))`);
     // a worker's commands are fenced on its lease, in this transaction (src/server/jobs/fence.ts, audit C1)
     await assertLeaseHeld(tx, `commands ${commands.map((c) => c.name).join(', ')}`);
+    // THE JOURNAL (step 9): a batch this sender already got accepted is answered from the log, not applied again
+    const earlier = await findReplay(tx, origin, batchId);
+    if (earlier) {
+      const same = earlier.commands.length === commands.length && earlier.commands.every((c, i) => c.name === commands[i].name && c.seed === commands[i].seed);
+      if (!same) throw new StudioError('CONFLICT', `Batch ${batchId} was already applied with other commands; a new batch needs a new id.`, { batchId });
+      log.info({ origin, batchId, commands: commands.map((c) => c.name) }, 'batch already applied: answered from the command journal');
+      return { ...(earlier.result as BatchResult), replayed: true as const, changed: false, report: { inserted: 0, updated: 0, deleted: 0 } };
+    }
     const snap = await loadSnapshot(tx);
+    for (const x of opts.expect ?? []) {
+      const actual = versionOf(snap.versions, x.kind, x.id);
+      if (actual !== x.version) throw new StudioError('CONFLICT', `The ${x.kind} changed since it was read (version ${x.version}, now ${actual ?? 'gone'}); read it again before writing.`, { reason: 'STALE_VERSION', kind: x.kind, id: x.id, expected: x.version, actual: actual ?? null });
+    }
     let state: StudioState = snap.state;
     const results: unknown[] = [];
     for (let i = 0; i < commands.length; i++) {
@@ -35,12 +68,16 @@ export async function applyCommands(commands: Command[], origin = 'server'): Pro
       } catch (e) {
         if (e instanceof StudioError) {
           log.warn({ command: commands[i].name, code: e.code, msg: e.message }, 'command refused');
-          return { ok: false as const, version: snap.version, hash: hashState(snap.state), results, failedAt: i, error: { code: e.code, message: e.message, details: e.details } };
+          const refused = { ok: false as const, version: snap.version, hash: hashState(snap.state), results, failedAt: i, error: { code: e.code, message: e.message, details: e.details } };
+          await recordBatch(tx, { clientId: origin, batchId, origin, jobId, commands, result: refused });
+          return refused;
         }
         throw e;
       }
     }
-    const report = await persistState(tx, snap.hashes, state);
+    // what this batch removes is tombstoned with the batch's name on it (step 10)
+    const report = await persistState(tx, snap.hashes, state, { deletedBy: `${origin}: ${Array.from(new Set(commands.map((c) => c.name))).join(', ')}` });
+    if (opts.also) await opts.also(tx, results);
     const changed = report.inserted + report.updated + report.deleted > 0;
     let version = snap.version;
     if (changed) {
@@ -48,17 +85,18 @@ export async function applyCommands(commands: Command[], origin = 'server'): Pro
       const rows = await tx.insert(schema.studioMeta).values({ id: 'studio', version: 1, updatedAt: now }).onConflictDoUpdate({ target: schema.studioMeta.id, set: { version: dsql`${schema.studioMeta.version} + 1`, updatedAt: now } }).returning({ version: schema.studioMeta.version });
       version = rows[0].version;
     }
-    return { ok: true as const, version, hash: hashState(state), results, changed, report };
+    const accepted = { ok: true as const, version, hash: hashState(state), results };
+    await recordBatch(tx, { clientId: origin, batchId, origin, jobId, commands, result: accepted });
+    return { ...accepted, changed, report };
   });
   if (out.ok && out.changed) {
     log.debug({ ms: Date.now() - t0, commands: commands.map((c) => c.name), ...out.report }, 'commands applied');
     await notifyChange(out.version, origin);
   }
   if (!out.ok) return out;
-  const { changed: _c, report: _r, ...rest } = out; void _c; void _r;
+  const { changed: _c, report: _r, ...rest } = out as typeof out & { changed?: boolean; report?: unknown }; void _c; void _r;
   return rest;
 }
-
 /** Convenience for server code and workers: one command, its result, or a thrown StudioError. */
 export async function command<K extends CommandName>(name: K, args: Command<K>['args'], origin = 'server'): Promise<CommandResult<K>> {
   const cmd: Command<K> = { name, args, seed: `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`, at: new Date().toISOString() };
@@ -79,17 +117,17 @@ export function stampCommands(list: CommandSpec[], opts: { seed?: string; at?: s
   return list.map((c, i) => ({ name: c.name, args: c.args, seed: `${seed}-${i}`, at }) as Command);
 }
 
-export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } = {}): Promise<unknown[]> {
+export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } & ApplyOptions = {}): Promise<unknown[]> {
   const cmds = stampCommands(list, opts);
-  const r = await applyCommands(cmds, origin);
+  const r = await applyCommands(cmds, origin, { also: opts.also, expect: opts.expect });
   if (!r.ok) throw new StudioError(r.error.code as StudioError['code'], r.error.message, { ...r.error.details, failedAt: r.failedAt, command: cmds[r.failedAt]?.name });
   return r.results;
 }
 
 /** The current state, for readers that do not change anything. */
-export async function readState(): Promise<{ state: StudioState; version: number; hash: string }> {
+export async function readState(): Promise<{ state: StudioState; version: number; hash: string; versions: AggregateVersions }> {
   const snap = await loadSnapshot();
-  return { state: snap.state, version: snap.version, hash: hashState(snap.state) };
+  return { state: snap.state, version: snap.version, hash: hashState(snap.state), versions: snap.versions };
 }
 
 export async function currentVersion(): Promise<number> {

@@ -85,6 +85,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const bumpVersion = useCallback((v: number) => { knownVersion.current = Math.max(knownVersion.current, v); setVersion(v); }, []);
   const pending = useRef<Command[]>([]);
   const inflight = useRef<Command[]>([]);
+  /** A batch whose send failed (a network error: it may or may not have been applied). It is sent again AS IT WAS,
+   *  with the same batch id, before anything newer — the server answers a batch it already applied from its command
+   *  journal, so a resend never applies an edit twice (audit H10, step 9). */
+  const unsent = useRef<{ id: string; commands: Command[] } | null>(null);
+  /** Everything not yet confirmed by the server, oldest first. */
+  const unconfirmed = () => [...(unsent.current?.commands ?? []), ...inflight.current, ...pending.current];
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jobsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,7 +101,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [stream, setStream] = useState<Api['stream']>({ state: 'connecting', lastDataAt: null });
   const reopenStream = useRef<() => void>(() => {});
   /** Re-derive the save state from the queue (called wherever pending, inflight or failures change). */
-  const syncSaving = useCallback(() => setSaving(saveStateOf({ pending: pending.current.length, inflight: inflight.current.length, failures: failures.current })), []);
+  const syncSaving = useCallback(() => setSaving(saveStateOf({ pending: pending.current.length + (unsent.current?.commands.length ?? 0), inflight: inflight.current.length, failures: failures.current })), []);
 
   const raise = useCallback((code: string, message: string) => { errorSeq.current += 1; setLastError({ id: errorSeq.current, code, message }); }, []);
 
@@ -106,7 +112,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     try {
       const snap = await api.snapshot();
       let s = snap.state;
-      for (const c of [...inflight.current, ...pending.current]) { try { s = runCommand(s, c).state; } catch { /* the server will say */ } }
+      for (const c of unconfirmed()) { try { s = runCommand(s, c).state; } catch { /* the server will say */ } }
       applyLocal(s); bumpVersion(snap.version); setSeeded(snap.seeded ? { kind: snap.seeded.kind, at: snap.seeded.at } : null); setCapabilities(snap.capabilities); setReady(true);
       // while the stream is open the data is current anyway; otherwise this read is the newest known data
       setStream((x) => (x.state === 'open' ? x : { ...x, lastDataAt: Date.now() }));
@@ -119,10 +125,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const scheduleJobs = useCallback((ms = 250) => { if (jobsTimer.current) clearTimeout(jobsTimer.current); jobsTimer.current = setTimeout(() => { jobsTimer.current = null; void loadJobs(); }, ms); }, [loadJobs]);
 
   const flush = useCallback(async () => {
-    if (inflight.current.length > 0 || pending.current.length === 0) return;
-    inflight.current = pending.current; pending.current = []; syncSaving();
+    if (inflight.current.length > 0) return;
+    // a batch that failed to send goes first, unchanged and under its own id; then whatever was queued since
+    let batch: { id: string; commands: Command[] };
+    if (unsent.current) { batch = unsent.current; unsent.current = null; }
+    else { if (pending.current.length === 0) return; batch = { id: newSeed(), commands: pending.current }; pending.current = []; }
+    inflight.current = batch.commands; syncSaving();
     try {
-      const r = await api.commands(me.current, inflight.current);
+      const r = await api.commands(me.current, inflight.current, batch.id);
       failures.current = 0; setConnected(true);
       if (r.ok) {
         bumpVersion(r.version);
@@ -139,14 +149,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         scheduleRefresh(0);
       }
     } catch (e) {
-      // network trouble: keep the commands and try again with a growing delay
-      pending.current = [...inflight.current, ...pending.current]; inflight.current = [];
+      // network trouble: keep the batch as it was (same id: the server may have applied it) and try again with a
+      // growing delay
+      unsent.current = batch; inflight.current = [];
       failures.current += 1; setConnected(false); syncSaving();
       if (failures.current === 1) raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'Changes could not be saved; retrying.');
       flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, Math.min(30_000, 1000 * 2 ** failures.current));
       return;
     }
-    if (pending.current.length > 0) { flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 50); }
+    if (pending.current.length > 0 || unsent.current) { flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 50); }
   }, [bumpVersion, raise, scheduleRefresh, syncSaving]);
 
   const scheduleFlush = useCallback(() => { if (flushTimer.current) return; flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 120); }, [flush]);
@@ -173,7 +184,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         try {
           const e = JSON.parse((ev as MessageEvent).data) as { version: number; origin: string };
           const ours = e.origin === me.current;
-          const landedAfterOurSnapshot = ours && e.version > knownVersion.current && inflight.current.length === 0 && pending.current.length === 0;
+          const landedAfterOurSnapshot = ours && e.version > knownVersion.current && unconfirmed().length === 0;
           if (!ours || landedAfterOurSnapshot) scheduleRefresh(); else bumpVersion(e.version);
         } catch { /* ignore */ }
       });
@@ -196,7 +207,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     open();
     // "Try now": drop the waiting retry (or an attempt still hanging) and connect again at once
     reopenStream.current = () => { if (closed) return; if (retry) clearTimeout(retry); retry = null; es?.close(); es = null; backoff = 1000; open(); };
-    const flushNow = () => { if (pending.current.length && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ clientId: me.current, commands: pending.current })], { type: 'application/json' }); if (navigator.sendBeacon('/api/commands', body)) pending.current = []; } };
+    const beacon = (batchId: string, commands: Command[]) => navigator.sendBeacon('/api/commands', new Blob([JSON.stringify({ clientId: me.current, batchId, commands })], { type: 'application/json' }));
+    const flushNow = () => {
+      if (!navigator.sendBeacon) return;
+      if (unsent.current && beacon(unsent.current.id, unsent.current.commands)) unsent.current = null;
+      if (!unsent.current && pending.current.length && beacon(newSeed(), pending.current)) pending.current = [];
+    };
     window.addEventListener('pagehide', flushNow);
     return () => { closed = true; if (retry) clearTimeout(retry); es?.close(); window.removeEventListener('pagehide', flushNow); };
   }, [refresh, loadJobs, scheduleRefresh, scheduleJobs, bumpVersion]);
@@ -226,7 +242,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [applyLocal]);
 
-  const startEmpty = useCallback(async () => { pending.current = []; syncSaving(); await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs, syncSaving]);
+  const startEmpty = useCallback(async () => { pending.current = []; unsent.current = null; syncSaving(); await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs, syncSaving]);
 
   const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
     const r = await api.startJob(type, payload, opts);
