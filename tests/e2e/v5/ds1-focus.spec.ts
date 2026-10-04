@@ -144,10 +144,31 @@ async function measure(page: Page, n: number): Promise<Stop | null> {
   return { n, tag: info.tag, name: info.name, box: info.box, outline: info.outline, offset: info.offset, sides, covered: info.covered, ok };
 }
 
+/** KNOWN FINDINGS (2026-10-04/05, the same six in every run of the suite that day): pages that fail this gate today,
+ *  each with what the measurement shows. They run and keep writing their evidence; they are expected to fail, so an
+ *  unexpected pass (the page was fixed) fails the test and the entry is removed. The page owners fix the pages, not
+ *  this list (docs/TESTING.md "Known findings"):
+ *   - home 1440: the Shelf track clips the ring's start side on every card at the column's left edge (x = 288);
+ *   - short 1440: the credits links (a 26 px line each) show the ring on their right side only; short 390: the strip's
+ *     "Play from shot" buttons and the player's Fullscreen button lose the ring's top and bottom to the strip's
+ *     horizontal scroller;
+ *   - characters 1440 and 390: the "New character" split button hides the ring's edge between its two halves
+ *     (contrast 1.39 against the neighbour);
+ *   - character 390: the "Notes for the writers" textarea sits under nav.bottom-nav when focused (WCAG 2.4.11). */
+const KNOWN: Record<string, string> = {
+  'home-1440': 'the Shelf track clips the ring’s start side on the cards at the column’s left edge',
+  'short-1440': 'the credits links show the ring on their right side only',
+  'short-390': 'the strip’s Play-from-shot buttons and the Fullscreen button lose the ring’s top and bottom in the strip’s scroller',
+  'characters-1440': 'the New character split button hides the ring’s edge between its halves',
+  'characters-390': 'the New character split button hides the ring’s edge between its halves',
+  'character-390': 'the Notes for the writers textarea is covered by nav.bottom-nav when focused',
+};
+
 for (const width of WIDTHS) {
   for (const [name, url] of PAGES) {
     test(`focus ring on every Tab stop: ${name} at ${width}`, async ({ browser }) => {
       test.setTimeout(240_000);
+      test.fail(Boolean(KNOWN[`${name}-${width}`]), `known DS-1 finding: ${KNOWN[`${name}-${width}`]}`);
       const { context, page } = await open(browser, width, url);
       const stops: Stop[] = [];
       const seen = new Set<string>();

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { chromium } from '@playwright/test';
 import { TEST_PORT } from '../../src/server/test-guard';
 import { describeDb, e2eLibraryRoot, resolveE2EDatabaseUrl } from '../../scripts/lib/test-db';
 import { FIXTURE_PATH, readFixture } from '../../scripts/e2e-fixture';
@@ -12,7 +13,8 @@ import { FIXTURE_PATH, readFixture } from '../../scripts/e2e-fixture';
  *   2. one dev server is started on http://127.0.0.1:4210 with VEWBOX_ALLOW_RESET=1, that database and that library
  *      (scripts/test-server.ts), unless one is already there — and then only if it is a TEST server on THAT database
  *      (its /api/health says so); a server on another database, or the producer's studio, stops the run here;
- *   3. the routes the specs visit are opened once, so the dev server has compiled them before a test waits on them.
+ *   3. the routes the specs visit are opened once in a browser, so the dev server has compiled them — server side and
+ *      client chunks — before a test waits on them.
  *  The server this setup started is stopped when the run ends. STUDIO_URL points the suite at a server you run
  *  yourself (it must still be a test server on the e2e database; the seed is applied to that database all the same). */
 
@@ -21,6 +23,16 @@ type Health = { ok?: boolean; testServer?: boolean; testDatabase?: string; versi
 
 const health = async (base: string): Promise<Health | null> => { try { const r = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(10_000) }); return (await r.json()) as Health; } catch { return null; } };
 const say = (s: string) => console.log(`[e2e] ${s}`);
+
+/** TCP sockets in TIME_WAIT and ESTABLISHED on this machine (netstat), when that is above what a run needs. */
+function socketPressure(): { timeWait: number; established: number } | null {
+  try {
+    const out = spawnSync(process.platform === 'win32' ? 'netstat' : 'ss', process.platform === 'win32' ? ['-ano', '-p', 'tcp'] : ['-tan'], { encoding: 'utf8', timeout: 20_000 }).stdout ?? '';
+    const timeWait = (out.match(/TIME_WAIT/g) ?? []).length;
+    const established = (out.match(/ESTAB/g) ?? []).length;
+    return timeWait > 6000 || established > 3000 ? { timeWait, established } : null;
+  } catch { return null; }
+}
 
 /** The pages the specs open, one per route, so the first test never waits on a cold compile. */
 function routesToWarm(): string[] {
@@ -43,6 +55,14 @@ function routesToWarm(): string[] {
 
 export default async function globalSetup() {
   const base = process.env.STUDIO_URL || DEFAULT;
+  // the QA journeys (scripts/qa-journeys.mjs) bring their own test server (`QA_JOURNEYS=1 pnpm test:server`, a worker
+  // beside it) and seed through the API themselves: only the test-server check applies to them
+  if (process.env.QA_JOURNEYS === '1') {
+    const j = await health(base);
+    if (!j) throw new Error(`No studio answers at ${base}. Start the isolated test server with \`QA_JOURNEYS=1 pnpm test:server\`.`);
+    if (j.testServer !== true) throw new Error(`Refusing to run the journeys against ${base}: it is not a test server (its /api/health does not report testServer: true).`);
+    return;
+  }
   const managed = base === DEFAULT;
   const dbUrl = resolveE2EDatabaseUrl();
   const dbName = describeDb(dbUrl);
@@ -50,6 +70,12 @@ export default async function globalSetup() {
   const logDir = path.resolve('test-results');
   fs.mkdirSync(logDir, { recursive: true });
   const logFile = path.join(logDir, 'e2e-server.log');
+
+  // ---- 0. the machine: a run under socket pressure fails for no reason of its own ----------------------------------
+  // (a browser that cannot open a connection reports net::ERR_NO_BUFFER_SPACE — Windows' ephemeral ports, 16 384 by
+  // default, all in TIME_WAIT from other suites, servers or containers; the run itself needs a few hundred)
+  const pressure = socketPressure();
+  if (pressure) say(`WARNING: ${pressure.timeWait} sockets in TIME_WAIT and ${pressure.established} established before the run — other test runs or servers on this machine? Expect stalls and ERR_NO_BUFFER_SPACE; run the suite on a quiet machine (docs/TESTING.md).`);
 
   // ---- 1. whoever is on the port must be OUR test server ------------------------------------------------------
   let h = await health(base);
@@ -81,14 +107,25 @@ export default async function globalSetup() {
   } else say(`reusing the test server on ${base} (${h.testDatabase ?? 'test database'})`);
 
   // ---- 4. warm the routes --------------------------------------------------------------------------------------------
+  // in a real browser: a plain GET compiles a route's server side only, and its client chunks are then compiled on the
+  // first browser request — which in a test is a click, and on a busy dev server can take longer than an expectation
   const t0 = Date.now();
   let slow = 0;
-  for (const route of routesToWarm()) {
-    const t = Date.now();
-    try { await fetch(`${base}${route}`, { signal: AbortSignal.timeout(180_000), redirect: 'manual' }); } catch (e) { say(`warm ${route}: ${(e as Error).message}`); }
-    if (Date.now() - t > 5000) slow++;
-  }
-  say(`routes warm in ${Math.round((Date.now() - t0) / 1000)} s (${slow} compiled slowly)`);
+  const browser = await chromium.launch();
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.addInitScript(() => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ motion: true })); } catch { /* fine */ } });
+  try {
+    for (const route of routesToWarm()) {
+      const t = Date.now();
+      try {
+        await page.goto(`${base}${route}`, { waitUntil: 'load', timeout: 180_000 });
+        await page.waitForFunction(() => document.querySelector('main h1, main h2'), null, { timeout: 60_000 }).catch(() => {});
+      } catch (e) { say(`warm ${route}: ${(e as Error).message.split('\n')[0]}`); }
+      if (Date.now() - t > 5000) slow++;
+    }
+  } finally { await browser.close(); }
+  say(`${routesToWarm().length} routes warm in ${Math.round((Date.now() - t0) / 1000)} s (${slow} compiled slowly)`);
 
   return async () => {
     if (!child?.pid || child.exitCode !== null) return;

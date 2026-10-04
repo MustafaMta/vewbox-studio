@@ -14,6 +14,8 @@ async function open(page: Page, path: string, ready: string, width = 1440, heigh
   await page.setViewportSize({ width, height });
   await (prepare as (p: Page, o: { motion?: string }) => Promise<void>)(page, { motion: 'reduce' });
   await page.goto(path, { waitUntil: 'domcontentloaded' });
+  // the skeletons draw the same frames (.film-stage, .shorts-grid) before the records are in: wait for the page itself
+  await page.waitForFunction(() => !document.querySelector('.film-skeleton, .shorts-skeleton'), null, { timeout: 120_000 });
   await page.waitForSelector(ready, { timeout: 120_000 });
   await page.evaluate(() => document.fonts.ready);
 }
