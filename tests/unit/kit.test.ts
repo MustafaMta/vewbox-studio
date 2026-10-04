@@ -15,7 +15,7 @@ import { sectionInView } from '@/components/ui/kit/Tabs';
 
 /** The interface kit (docs/DESIGN-SYSTEM-V4.md §5, package F2): the keyboard rules as pure functions, the markup
  *  each component promises (rendered on the server: there is no DOM here — the browser behaviour is driven by
- *  tests/e2e/v4 on /kit), the v3 exports kept for the pages, and AUDIT D6. */
+ *  tests/e2e/v5 on /kit), the v3 exports kept for the pages, and AUDIT D6. */
 
 const html = (el: ReactElement) => renderToStaticMarkup(el);
 

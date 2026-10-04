@@ -92,10 +92,14 @@ test('short, Manual: the minimal brief validates, then creates a draft short thr
   await page.getByRole('radio', { name: /Anime/ }).click();
   await page.getByRole('radio', { name: 'English' }).click();
   await page.getByRole('radio', { name: '9:16' }).click();
-  // advanced controls stay behind the disclosure until asked for
-  await expect(page.locator('.create-more .fcard').first()).toBeHidden();
-  await page.locator('.create-more-summary').click();
-  const first = page.locator('.create-more .fcard').first();
+  // advanced controls stay behind the kit's disclosure (DS-3: DisclosureCard — a head button with aria-expanded, a
+  // region that is inert while closed; a closed region keeps a box, so its state, not visibility, is what counts)
+  const more = page.locator('button.disclosure-head', { hasText: 'More control' });
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.disclosure-region', { has: page.locator('.fcard') })).toHaveAttribute('inert', '');
+  await more.click();
+  await expect(more).toHaveAttribute('aria-expanded', 'true');
+  const first = page.locator('.disclosure-region .fcard').first();
   await first.click();
   await expect(first).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Create short' }).click();
@@ -159,17 +163,18 @@ test('short, Auto: one line, then the real stages, then the proposal to pick, th
   await page.route((u) => u.pathname === '/api/proposals/proposal-e2e', (route) => route.fulfill({ json: { ...proposal, id: 'proposal-e2e', jobId: 'job-e2e-1' } }));
 
   await page.getByLabel('One line or a theme').fill('A night-shift baker finds a letter in the flour');
-  await page.locator('.create-prefs-summary').click();
+  await page.locator('button.disclosure-head', { hasText: 'Preferences' }).click();
   await page.getByRole('radiogroup', { name: 'Length' }).getByRole('radio', { name: '1 min 30 s' }).click();
   await page.getByRole('button', { name: 'Develop an idea' }).click();
   await expect.poll(() => sent.jobs.length).toBe(1);
   expect(sent.jobs[0]).toMatchObject({ type: 'AUTO_IDEA', payload: { kind: 'SHORT', brief: 'A night-shift baker finds a letter in the flour', preferences: { durationSeconds: 90, research: 'AUTO' } } });
   await expect(page).toHaveURL(/idea=job-e2e-1/);
-  const running = page.locator('.create-step[data-state="running"]');
+  // the stages are the kit's StageSteps (DS-3): one li.stage per stage with its state
+  const running = page.locator('.stage[data-state="running"]');
   await expect(running).toContainText('Concepts');
   await expect(running).toContainText('Writing three concepts');
-  await expect(page.locator('.create-step[data-state="done"]')).toHaveCount(2);
-  await expect(page.locator('.create-step[data-state="waiting"]')).toHaveCount(5);
+  await expect(page.locator('.stage[data-state="done"]')).toHaveCount(2);
+  await expect(page.locator('.stage[data-state="waiting"]')).toHaveCount(5);
 
   phase = 'done';
   await expect(page.locator('#create-review-title')).toHaveValue(proposal.proposal.title, { timeout: 15_000 });
@@ -185,7 +190,7 @@ test('short, Auto: one line, then the real stages, then the proposal to pick, th
 
 test('show, Auto: develops a show idea with the producer’s preferences', async ({ page }) => {
   const sent = await open(page, '/new/show?mode=auto');
-  await page.locator('.create-prefs-summary').click();
+  await page.locator('button.disclosure-head', { hasText: 'Preferences' }).click();
   await page.getByRole('radiogroup', { name: 'Style' }).getByRole('radio', { name: /Realistic/ }).click();
   await page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'Arabic' }).click();
   await expect(page.getByLabel('Dialect')).toHaveValue('IRAQI_BAGHDADI');
@@ -247,10 +252,19 @@ test('keyboard: the mode switch and the pickers show the focus ring and move wit
   const anime = page.getByRole('radiogroup', { name: 'Style' }).getByRole('radio', { name: /Anime/ });
   await expect(anime).toBeFocused();
   await expect(anime).toHaveAttribute('aria-checked', 'true');
+  // leave the group and come back by Tab: the roving tabindex must bring focus to the chosen tile, with the ring
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Tab');
-  const ring = await anime.evaluate((e) => { const cs = getComputedStyle(e); return { s: cs.outlineStyle, w: cs.outlineWidth }; });
-  expect(ring).toEqual({ s: 'solid', w: '2px' });
+  await expect(anime).toBeFocused();
+  // the ring as it settles (a first read right after the key can still see the tile mid-update); the diagnostics
+  // are reported only if it never does
+  const ring = () => anime.evaluate((e) => {
+    const cs = getComputedStyle(e);
+    return { s: cs.outlineStyle, w: cs.outlineWidth, fv: e.matches(':focus-visible'), diag: { outline: cs.outline, tabIndex: (e as HTMLElement).tabIndex, hover: e.matches(':hover'), motion: document.documentElement.getAttribute('data-motion') } };
+  });
+  try {
+    await expect.poll(async () => { const r = await ring(); return { s: r.s, w: r.w, fv: r.fv }; }, { timeout: 5_000 }).toEqual({ s: 'solid', w: '2px', fv: true });
+  } catch (e) { throw new Error(`${(e as Error).message}\nthe tile as last seen: ${JSON.stringify((await ring()).diag)}`); }
 });
 
 test('phone 390: no horizontal overflow on the hub and the flows @mobile', async ({ page }) => {

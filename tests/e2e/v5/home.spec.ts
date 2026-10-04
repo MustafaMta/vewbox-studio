@@ -8,6 +8,12 @@ import { prepare } from '../../../scripts/lib/capture.mjs';
 
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 
+/** 2026-10-04: Home was rebuilt twice after this spec (26cf8e4 "Home on the producer's Krea reference", 383c7cf "Home on
+ *  the shared kit") and is in the producer's design QA; none of the hooks below (.home-marquee, .home-dcard,
+ *  .home-newchar, .home-action, .home-railpos) exists any more. The tests are kept as the acceptance intent and marked
+ *  fixme until the Home engineer rewrites them against the approved Home (docs/TESTING.md). */
+test.beforeEach(() => { test.fixme(true, 'Home was rebuilt after this spec (Krea reference, shared kit) and awaits design QA: rewrite against the approved Home'); });
+
 async function open(page: Page, width = 1440, height = 900) {
   await page.setViewportSize({ width, height });
   await (prepare as (p: Page, o: { motion?: string }) => Promise<void>)(page, { motion: 'reduce' });

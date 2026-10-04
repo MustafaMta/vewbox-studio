@@ -1,20 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { openKit } from './f3-helpers';
+import { openKit } from './kit-helpers';
 
-/** DESIGN-SYSTEM-V4 §1.2 rule 10, §5.6, §5.14, §5.20 (WCAG 2.5.7, 2.1.1): every drag has a button and a keyboard
- *  path, and a rail is one Tab stop. Read-only (the specimens keep their state in the page). */
+/** THE CUTTING ROOM'S KEYBOARD AND BUTTONS on the /kit specimen (docs/DESIGN-SYSTEM-V4.md §1.2 rule 10, §5.6, §5.14,
+ *  §5.20; WCAG 2.5.7, 2.1.1; kept under v5): every drag has a button and a keyboard path — the timeline's trim and
+ *  zoom, the ruler and the clips, the dock splitter, the dual-scale window and the lyric timing. Read-only (the
+ *  specimens keep their state in the page). The shelf's arrows are covered by kit.spec.ts. Migrated from
+ *  tests/e2e/v4/f3-keys.spec.ts. */
 
-test('a shelf pages with its prev/next buttons (the pointer alternative to dragging the row)', async ({ page }) => {
-  await openKit(page, '#media');
-  const shelf = page.locator('#media .shelf').first();
-  const track = shelf.locator('.shelf-track');
-  const next = shelf.getByRole('button', { name: /^Next/ });
-  await expect(next).toBeVisible();
-  await expect(shelf.getByRole('button', { name: /^Previous/ })).toBeDisabled();
-  const before = await track.evaluate((el) => el.scrollLeft);
-  await next.click();
-  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
-});
+test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
+
 test('the timeline: trim by ±1 frame buttons, the ruler and the clips by keyboard, zoom by buttons', async ({ page }) => {
   await openKit(page, '#edit');
   const tl = page.locator('#edit .tl');
@@ -47,7 +41,8 @@ test('the dock splitter moves 16 px per arrow and collapses with Enter; Reset la
   expect(await v()).toBe(v0 + 16);
   await page.keyboard.press('Enter');
   await expect(page.locator('#edit .dock-rail')).toHaveCount(1);
-  await page.locator('#edit .dock-bar summary').click();
+  // the bar's menu is the kit's Menu ("Layout: More")
+  await page.locator('#edit .dock-bar').getByRole('button', { name: /^Layout/ }).click();
   await page.getByRole('menuitem', { name: 'Reset layout' }).click();
   await expect(page.locator('#edit .dock-rail')).toHaveCount(0);
   expect(await v()).toBe(280);

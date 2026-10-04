@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import postgres from 'postgres';
@@ -42,3 +43,46 @@ export function testLibraryRoot(tag: string): string {
 }
 
 export const describeDb = (url: string) => databaseName(url) ?? '(unknown)';
+
+// ------------------------------------------------------------------------------------- the browser suite (docs/TESTING.md)
+
+/** The Playwright suite's own database: E2E_DATABASE_URL, else DATABASE_URL renamed to `vewbox_e2e`. Separate from the
+ *  API/worker suites' `vewbox_test` so a `pnpm test:api` run and a `pnpm test:e2e` run never seed over each other.
+ *  Never the live database (checked). */
+export const E2E_DATABASE = 'vewbox_e2e';
+export function resolveE2EDatabaseUrl(): string {
+  const env = { ...readEnvFiles(), ...process.env };
+  const explicit = env.E2E_DATABASE_URL?.trim();
+  const url = explicit || (env.DATABASE_URL ? withDatabase(env.DATABASE_URL, E2E_DATABASE) : '');
+  assertNotLiveDatabase(url, 'e2e database');
+  return url;
+}
+
+/** The browser suite's scratch library: E2E_LIBRARY_ROOT, else `vewbox-e2e-library` under the OS temp dir (marked). */
+export function e2eLibraryRoot(): string {
+  return markTestLibrary(process.env.E2E_LIBRARY_ROOT || path.join(os.tmpdir(), 'vewbox-e2e-library'));
+}
+
+/** Where the producer's library is, READ-ONLY, so the e2e setup can copy the files its fixture names: E2E_SOURCE_LIBRARY,
+ *  else LIBRARY_ROOT (.env/.env.local) resolved against this checkout, else against the main checkout of a git worktree
+ *  (`.git` as a file pointing at the common dir). Undefined when nothing exists: the setup then makes stand-ins. */
+export function liveLibraryRoot(): string | undefined {
+  const env = { ...readEnvFiles(), ...process.env };
+  if (env.E2E_SOURCE_LIBRARY) return fs.existsSync(env.E2E_SOURCE_LIBRARY) ? path.resolve(env.E2E_SOURCE_LIBRARY) : undefined;
+  const rel = env.LIBRARY_ROOT || './var/library';
+  if (path.isAbsolute(rel)) return fs.existsSync(rel) ? rel : undefined;
+  const here = path.resolve(process.cwd(), rel);
+  if (fs.existsSync(here)) return here;
+  try {
+    const dotGit = path.join(process.cwd(), '.git');
+    const text = fs.statSync(dotGit).isFile() ? fs.readFileSync(dotGit, 'utf8') : '';
+    const m = /^gitdir:\s*(.+)$/m.exec(text);
+    if (m) {
+      // <main>/.git/worktrees/<name> → <main>
+      const main = path.resolve(path.dirname(m[1].trim()), '..', '..');
+      const there = path.resolve(main, rel);
+      if (fs.existsSync(there)) return there;
+    }
+  } catch { /* not a worktree */ }
+  return undefined;
+}

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { loadFixture, prepare } from '../../../scripts/lib/capture.mjs';
+import { PHONE } from './shell-helpers';
 
 /** MUSIC VIDEOS (P-Music): the catalogue and the title page, read-only. The live studio has no music videos, so the
  *  populated pages run on the capture fixture (`sample`, plus a finished cut): the helper answers the browser's own
@@ -126,12 +127,13 @@ test('Continue and Edit the song open the production at their tabs; the back lin
 test('playback controls: play from a section, the section lights up, pause', async ({ page }) => {
   await open(page, '/music-videos/river-lights', sample);
   await page.getByRole('button', { name: 'Play from Chorus' }).click();
-  const disc = page.locator('.mv-transport').getByRole('button', { name: 'Pause', exact: true });
+  // the transport is the kit's AudioRow: its button is "Pause River Lights" / "Play River Lights"
+  const disc = page.locator('.mv-transport').getByRole('button', { name: 'Pause River Lights' });
   await expect(disc).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.mv-lyrics')).toHaveAttribute('data-playing');
   await expect(page.locator('.mv-sec').nth(2)).toHaveAttribute('data-live');
   await disc.click();
-  await expect(page.locator('.mv-transport').getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.locator('.mv-transport').getByRole('button', { name: 'Play River Lights' })).toBeVisible();
 });
 
 test('More: Delete asks first, and Cancel keeps the music video', async ({ page }) => {
@@ -177,14 +179,18 @@ test('loading: each page shows its own skeleton, then the content without moving
   }
 });
 
-test('phone 390: two sleeves across, the disc shown for touch, no horizontal overflow @mobile', async ({ page }) => {
-  await open(page, '/music-videos', sample, 390, 844);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-  const boxes = await page.locator('.mv-card').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
-  expect(new Set(boxes).size).toBe(1);
-  await expect(page.locator('.mv-disc').first()).toHaveCSS('opacity', '1');
-  await open(page, '/music-videos/rooftop-radio', sample, 390, 844);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-  const primary = await page.locator('.mv-acts .btn-primary').boundingBox();
-  expect(Math.round(primary!.width)).toBe(358);
+test.describe('on a phone', () => {
+  // a touch phone (hover: none, pointer: coarse), so the disc shows without hover; the viewport is the 390 of the brief
+  test.use({ ...PHONE, viewport: { width: 390, height: 844 } });
+  test('phone 390: two sleeves across, the disc shown for touch, no horizontal overflow @mobile', async ({ page }) => {
+    await open(page, '/music-videos', sample, 390, 844);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+    const boxes = await page.locator('.mv-card').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    expect(new Set(boxes).size).toBe(1);
+    await expect(page.locator('.mv-disc').first()).toHaveCSS('opacity', '1');
+    await open(page, '/music-videos/rooftop-radio', sample, 390, 844);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+    const primary = await page.locator('.mv-acts .btn-primary').boundingBox();
+    expect(Math.round(primary!.width)).toBe(358);
+  });
 });

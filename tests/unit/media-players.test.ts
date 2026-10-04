@@ -26,7 +26,8 @@ import { artStyle, faceBoxOf, faceCrop, initials, objectPosition } from '@/compo
 
 /** DESIGN-SYSTEM-V4 §5.12–5.14, §2.6, §8.5 F3: media time runs left to right in both languages, the waveform meets its
  *  contrast, and the small pure parts (time, keys, the sync bus, crops) do what the components rely on. The browser
- *  test tests/e2e/v4/f3-ltr.spec.ts checks the same in the Arabic interface, computed. */
+ *  tests of the players on /kit live in tests/e2e/v5/kit-players.spec.ts (the Arabic interface is gone: English-only
+ *  since 2026-10-03). */
 
 const html = (el: ReactElement) => renderToStaticMarkup(h(PlayerProvider, null, el));
 const track: Track = { id: 't', src: '/sample/audio/river-lights-sample.m4a', title: 'River Lights', duration: 48 };

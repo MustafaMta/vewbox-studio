@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
  *  - a row of choices is one Tab stop; → and ← move along it (the interface is always left to right), Home and End jump to the ends, disabled items are skipped;
  *  - an overlay keeps Tab inside itself and gives focus back to whatever opened it.
  *  The pure parts (`rovingStep`, `rovingIndex`, `tabStops`) are unit-tested; the browser parts are driven by the
- *  Playwright specs in tests/e2e/v4 on /kit. */
+ *  Playwright specs in tests/e2e/v5 (kit.spec.ts, kit-keyboard.spec.ts) on /kit. */
 
 export type RovingStep = 'next' | 'prev' | 'first' | 'last';
 
