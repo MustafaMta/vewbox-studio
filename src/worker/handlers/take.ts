@@ -302,7 +302,7 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const prompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
     : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene)].filter(Boolean).join(' '));
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
@@ -413,7 +413,7 @@ export const generateTake: Handler = async (ctx) => {
   }
   // PEOPLE ON SCREEN (the Visual Quality Inspector's step, D33): the new frames sampled every half second and counted
   // by the vision model; anyone extra at any moment — a stranger, a duplicated character — fails the take
-  const expectedPeople = peopleExpected(sh, sh.characterIds);
+  const expectedPeople = peopleExpected(sh, sh.characterIds.filter((id) => pack.subjects.some((s) => s.characterId === id) || pack.unreferenced.some((u) => u.characterId === id)));
   if (expectedPeople !== undefined && backend === 'local' && await canCountPeople()) {
     try {
       const samples = await step(ctx, 'visual-quality-inspector', `people-check: shot ${sh.number}`, (tool) => countPeopleOverTime(ctx, tool, 'image.describe_reference', result.file, { from: trimStartFrames / H3_FPS, to: probe.durationSeconds ?? expectSeconds, label: `${p.title} ${sh.number} — people on screen` }));

@@ -14,12 +14,15 @@ import { frameAt, tmpDir } from '@/server/media/ffmpeg';
 
 export const PEOPLE_COUNT_PROMPT = 'How many people are physically present in this picture? Count every person, child or figure standing or sitting in the room, even when partly hidden. Do not count people who only appear in a photograph, portrait, poster or painting on the wall. Answer with the number only.';
 
-/** How many people a picture of the shot should hold: the shot's people — unless its action brings in others (a
- *  crowd, customers, passers-by), which the studio does not count. */
-export function peopleExpected(sh: Pick<Shot, 'action'>, people: unknown[]): number | undefined {
-  if (!people.length) return undefined;
+/** How many people a picture of the shot should hold: the shot's people, less the one whose eyes the camera is (a
+ *  point-of-view shot) — unless its staging declares extras or its action brings in others (a crowd, customers,
+ *  passers-by), which the studio does not count. */
+export function peopleExpected(sh: Pick<Shot, 'action' | 'staging'>, people: unknown[]): number | undefined {
+  const seen = sh.staging?.pov ? people.filter((id) => id !== sh.staging!.pov) : people;
+  if (!seen.length) return undefined;
+  if (sh.staging?.extras?.length) return undefined;
   if (/\b(crowd|people|customers|passers?-?by|strangers|children|guests|audience|others|everyone|onlookers|patrons|workers|soldiers)\b/i.test(sh.action)) return undefined;
-  return people.length;
+  return seen.length;
 }
 
 /** The shot's action features a picture or a reflection of a person: the counter can take it for one (2.4 of "The

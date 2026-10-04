@@ -95,6 +95,52 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(unbound).toMatch(/the \d+-year-old (woman|man), [^.]+ is gone\./);
   });
 
+  it('the staging in the grammar: timed [M:SS] beats, an in-take [Shot 2] hard cut (local only), the pace, a described character, a group of extras, a point of view; retention per shot; lint passes', () => {
+    const { p, cast: pictured, loc, state } = setup();
+    const base = shotOf(p, 's12');
+    const [a, b] = base.characterIds;
+    const third = state.characters.find((c) => !base.characterIds.includes(c.id))!;
+    const cast = [...pictured, third];
+    const sh = { ...base, characterIds: [a, b, third.id], dialogue: [], action: `${cast.find((c) => c.id === a)!.name} sets the box down; the shoppers turn.`, staging: { pace: 'MONTAGE' as const, pov: b, extras: [{ description: 'four tired shoppers in winter coats', count: 4 }], beats: [{ at: 0, action: 'She sets the box on the counter.' }, { at: 2.5, action: `${third.name} says nothing and watches from the door.` }, { at: 4, action: 'Her hands close the lid.', cut: { camera: 'a close-up on her hands' } }, { at: 5.5, action: 'The lid clicks shut.' }] } };
+    const binding: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }, { characterId: b, picture: 2 }], location: { picture: 3 }, described: [{ characterId: third.id }] };
+    const prompt = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT', locations: state.locations });
+    // the pictured subjects, the place, then the described character and the extras — all defined
+    expect(prompt).toMatch(/<Subject 4> is the [^\n]+; no reference picture: render them from this description alone/);
+    expect(prompt).toContain('<Subject 5> is the group of 4 four tired shoppers in winter coats; each one a separate individual with their own face, hair and clothes, none of them sharing the face, hair or clothes of <Subject 1> or <Subject 2>; no reference picture.');
+    // retention per shot of the take; the POV subject is never seen; described and extras are weak references
+    expect(prompt).toContain('<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved');
+    expect(prompt).toContain('<Subject 2> (appears in [Shot 1], [Shot 2]): weak_reference - the camera is their own eyes');
+    expect(prompt).toContain('<Subject 4> (appears in [Shot 1], [Shot 2]): weak_reference - described, no picture');
+    expect(prompt).toContain('<Subject 5> (appears in [Shot 1], [Shot 2]): weak_reference - distinct extras');
+    // the summary: the people on screen (not the POV), the pace, the hard-cut clause; names bound to subjects
+    expect(prompt).toContain('The target video shows <Subject 1> and <Subject 4> in <Subject 3>: <Subject 1> sets the box down; the shoppers turn.');
+    expect(prompt).toContain('A run of distinct actions, each one complete before the next. The take holds 2 shots; every shot change is a hard cut: no dissolve, no fade, no on-screen text.');
+    // the beats: marks, then the cut, then marks; speech scrubbed from the silent shot; names bound
+    expect(prompt).toContain("The camera is <Subject 2>'s own eyes: what they see fills the frame, and they are never seen.");
+    expect(prompt).toContain('[0:00] She sets the box on the counter. [0:02] <Subject 4> stays silent nothing and watches from the door. [Shot 2] At 00:04.000, hard cut to a close-up on her hands in <Subject 3>. Her hands close the lid. [0:05] The lid clicks shut.');
+    expect(prompt).toContain('Nobody speaks in this shot; mouths stay closed.');
+    for (const c of cast) expect(prompt).not.toContain(c.name);
+    expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 3, audios: 0, lines: [], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
+    // the hosted request keeps the beats as marks: no in-take shot, one [Shot 1]
+    const hosted = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, { ...binding, labels: 'HOSTED' }, { relation: 'CUT', locations: state.locations });
+    expect(hosted).not.toContain('[Shot 2]');
+    expect(hosted).toContain('[0:04] Her hands close the lid.');
+    expect(hosted).toContain('(appears in [Shot 1]): fully_preserved');
+    // a cut to another place names it
+    const away = h3ReferencePrompt(p, { ...sh, staging: { beats: [{ at: 0, action: 'She waits.' }, { at: 3, action: 'He steps out.', cut: { camera: 'a wide shot', locationId: 'loc-street' } }] } }, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT', locations: state.locations });
+    expect(away).toContain('[Shot 2] At 00:03.000, hard cut to a wide shot in a small pharmacy with a white counter and wooden shelves. He steps out.');
+  });
+
+  it('a described speaker gets its subject and speaker id; a speaking shot is never scrubbed', () => {
+    const { p, cast, loc } = setup();
+    const sh = shotOf(p, 's12');
+    const [a, b] = sh.characterIds;
+    const prompt = h3ReferencePrompt(p, { ...sh, staging: { beats: [{ at: 0, action: 'She says the words slowly.' }] } }, cast, loc, { timeOfDay: 'DUSK' }, { labels: 'LOCAL', subjects: [{ characterId: b, picture: 1 }], location: { picture: 2 }, described: [{ characterId: a }] }, { relation: 'CUT' });
+    expect(prompt).toContain('<Subject 3> (S1) says, <d>[English] We close in ten minutes.</d>');
+    expect(prompt).toContain('[0:00] She says the words slowly.');
+    expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 2, audios: 0, lines: ['We close in ten minutes.'], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
+  });
+
   it('a continuation says it continues the anchored tail and still binds the references; no opening picture', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');
@@ -123,7 +169,7 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's13');
     const prompt = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, { labels: 'LOCAL', subjects: [{ characterId: sh.characterIds[0], picture: 1 }], location: { picture: 2 }, opening: { kind: 'TAIL', seconds: 22 / 24 } }, { relation: 'CONTINUATION' });
-    expect(prompt).toContain('Nobody speaks in this shot.');
+    expect(prompt).toContain('Nobody speaks in this shot; mouths stay closed.');
     expect(prompt).toMatch(/overall_soundscape:\nIndoor ambience of the place at dusk; no dialogue and no voices\./);
     expect(prompt).not.toContain('<d>');
   });

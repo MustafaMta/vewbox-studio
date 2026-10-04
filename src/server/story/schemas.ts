@@ -103,6 +103,12 @@ export const ShotPlanSchema = z.preprocess(aliases({ shots: ['shotList', 'shot_l
     prompt: str(1600).optional(),
     /** how the shot joins the one before it (src/domain/types.ts ShotBoundary); absent: from continuity.relationToPrevious */
     boundary: z.preprocess((v) => (v === null || v === '' ? undefined : v), boundary.optional()),
+    /** the staging inside the shot (src/domain/types.ts ShotStaging; src/server/story/beats.ts) */
+    beats: looseArray(z.preprocess(aliases({ seconds: ['duration', 'length', 'durationSeconds', 'secs'], action: ['text', 'beat', 'description'], cut: ['shot', 'newShot', 'hardCut'] }), z.object({ seconds: looseNumber.pipe(z.number().min(0.1).max(15)).optional().default(1), action: req(400), cut: z.preprocess((v) => (v === null || v === false || v === '' ? undefined : typeof v === 'string' ? { camera: v } : v === true ? { camera: 'a new angle' } : v), z.preprocess(aliases({ camera: ['angle', 'framing', 'to'], locationName: ['location', 'place'] }), z.object({ camera: str(200), locationName: str(80).optional() })).optional()) })), { max: 10 }).optional(),
+    pace: looseEnum(['DWELL', 'NORMAL', 'MONTAGE'], { SLOW: 'DWELL', HOLD: 'DWELL', LINGER: 'DWELL', STILL: 'DWELL', FAST: 'MONTAGE', QUICK: 'MONTAGE', RAPID: 'MONTAGE', SEQUENCE: 'MONTAGE', MEDIUM: 'NORMAL', REGULAR: 'NORMAL', NONE: 'NORMAL' }, 'NORMAL').optional(),
+    pov: z.preprocess((v) => (v === null || v === '' || v === false ? undefined : v), str(80).optional()),
+    extras: looseArray(z.preprocess((v) => (typeof v === 'string' ? { description: v } : v), z.preprocess(aliases({ description: ['group', 'who', 'people', 'text'], count: ['size', 'number', 'n'] }), z.object({ description: req(300), count: looseNumber.pipe(z.number().int().min(1).max(500)).optional() }))), { max: 6 }).optional(),
+    actions: strs(300, 20).optional(),
   })), { min: 1, max: 14 }),
 }));
 export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;

@@ -176,6 +176,13 @@
       "when": 1791146488774,
       "tag": "0024_shot_boundary",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791147104334,
+      "tag": "0025_shot_staging",
+      "breakpoints": true
     }
   ]
 }

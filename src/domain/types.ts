@@ -227,7 +227,23 @@ export interface Shot {
   prompt?: string;
   /** How this shot joins the one before it (see `ShotBoundary`); set by the planner, read by the worker and the preflight. */
   boundary?: ShotBoundary;
+  /** The staging inside the shot (see `ShotStaging`): timed beats, in-take cuts, pace, point of view, extras. */
+  staging?: ShotStaging;
 }
+
+/** THE STAGING OF ONE SHOT (docs/research/STORYBUILDER-INTEGRATION.md §d, §f.6–f.7; src/server/story/beats.ts):
+ *  - `beats`: the observable actions inside the take, each at its second (from the first new frame), timed by how long
+ *    the action takes and tiled over the shot — rendered as `[M:SS]` marks; a beat with `cut` opens a new `[Shot N]`
+ *    inside the one generation (an editorial cut with identity carried in one latent; at most two, never near the
+ *    ends, never on the hosted engine);
+ *  - `pace`: DWELL (one moment, no cuts), NORMAL, MONTAGE (a run of distinct actions);
+ *  - `pov`: the character whose eyes the camera is (they are not seen);
+ *  - `extras`: unnamed people described as a group, never referenced by a picture (so no extra wears a hero's face);
+ *  - `actions`: the discrete visible actions the shot covers (the scene's action coverage). */
+export type ShotPace = 'DWELL' | 'NORMAL' | 'MONTAGE';
+export interface ShotBeat { at: number; action: string; cut?: { camera: string; locationId?: string } }
+export interface ShotExtras { description: string; count?: number }
+export interface ShotStaging { beats?: ShotBeat[]; pace?: ShotPace; pov?: string; extras?: ShotExtras[]; actions?: string[] }
 
 export interface LyricSection {
   id: string;

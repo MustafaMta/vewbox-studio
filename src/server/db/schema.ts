@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
+import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, ShotStaging, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
 import type { RunPhaseEvent } from '@/domain/phases';
 import type { JobError, JobProgress } from '@/domain/jobs';
 import type { Presentation } from '@/domain/presentation';
@@ -137,6 +137,8 @@ export const shots = pgTable('shots', {
   prompt: text('prompt'),
   /** continuous | cut | transition (src/domain/types.ts ShotBoundary) */
   boundary: text('boundary'),
+  /** timed beats, in-take cuts, pace, point of view, extras (src/domain/types.ts ShotStaging) */
+  staging: jsonb('staging').$type<ShotStaging>(),
   ...tombstone(),
 }, (t) => [index('shots_production_idx').on(t.productionId), index('shots_scene_idx').on(t.sceneId)]);
 

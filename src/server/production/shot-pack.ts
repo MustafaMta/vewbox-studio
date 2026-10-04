@@ -224,6 +224,8 @@ export function bindingOf(pack: ShotPack, audioRefs: Array<{ characterId: string
     opening: pack.opening.kind === 'TAIL' ? { kind: 'TAIL', seconds: pack.opening.frames / H3_FPS } : pack.opening.kind === 'FRAME' && pack.backend === 'local' ? { kind: 'FRAME', picture: pack.openingPicture } : undefined,
     ending: Boolean(pack.ending && pack.backend === 'local'),
     audioRefs,
+    // a character with no picture (no canonical image, or beyond the budget) is declared from their description
+    described: pack.unreferenced.map((u) => ({ characterId: u.characterId })),
   };
 }
 

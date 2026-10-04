@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Character, type ContinuityState, type IdeaPreferences, type IdeaProposal, type Location, type Production, type Scene, type ShotBoundary, type StudioState, type WorldBible } from '@/domain/types';
+import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Character, type ContinuityState, type IdeaPreferences, type IdeaProposal, type Location, type Production, type Scene, type ShotBoundary, type ShotStaging, type StudioState, type WorldBible } from '@/domain/types';
+import { closeFramingFor, limitCuts, reconcileCast, scrubSpeech, timeBeats } from './beats';
 import { worldForPlanner, worldForStory } from '@/domain/world';
 import type { Dialect, Language, Style } from '@/domain/vocabulary';
 import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
@@ -439,7 +440,7 @@ export function establishedAt(p: Production, scene: Scene): string {
   return `RETURNING LOCATION: this place already appeared in scene${scenes.length > 1 ? 's' : ''} ${scenes.join(', ')}. It is the same place with the same architecture, layout and fixed features; do not redesign it. Last seen: ${compact({ environment: last.continuity?.environment, camera: last.continuity?.camera })}. Props established here: ${props.join('; ') || 'none noted'}. Only light, weather, time of day and movable things may differ now, and the shots should say how.`;
 }
 
-export interface PlannedShot { purpose: string; action: string; framing: ShotPlanOut['shots'][number]['framing']; cameraMove: ShotPlanOut['shots'][number]['cameraMove']; durationSeconds: number; characterIds: string[]; dialogue: Array<{ id: string; characterId: string; text: string; textAr?: string }>; transition: ShotPlanOut['shots'][number]['transition']; continuity: Omit<ContinuityState, 'version'>; prompt: string; /** how the shot joins the one before it (src/domain/types.ts ShotBoundary) */ boundary?: ShotBoundary }
+export interface PlannedShot { purpose: string; action: string; framing: ShotPlanOut['shots'][number]['framing']; cameraMove: ShotPlanOut['shots'][number]['cameraMove']; durationSeconds: number; characterIds: string[]; dialogue: Array<{ id: string; characterId: string; text: string; textAr?: string }>; transition: ShotPlanOut['shots'][number]['transition']; continuity: Omit<ContinuityState, 'version'>; prompt: string; /** how the shot joins the one before it (src/domain/types.ts ShotBoundary) */ boundary?: ShotBoundary; /** the staging inside the shot (src/domain/types.ts ShotStaging) */ staging?: ShotStaging; /** what the shaping changed, for the planner's record */ notes?: string[] }
 
 /** A scene's planned shots before the timing fit, with the running-time budget and per-shot cap they are fitted to. */
 export interface ShotPlanDraft { shots: PlannedShot[]; budget: number; maxShot: number }
@@ -471,8 +472,9 @@ Camera rules for this direction: ${d.camera}
 For each shot write "prompt": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look ("${d.visual.slice(0, 80)}…" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. If the shot has dialogue, do not write the spoken words or any <d> tag: say who speaks (by appearance) and how they deliver it; the studio appends the exact script lines. Do not describe what to avoid.
 Continuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.
 THE BOUNDARY of each shot ("boundary"), how it joins the shot before it — decide it deliberately, it decides how the shot is filmed: "continuous" = the same action carries straight on without a cut (the previous shot's last moment is handed to this one; the camera may keep moving but nothing jumps); "cut" = an editorial cut on the same moment — same people, same place, same story state, an intentional new camera setup (a reverse, a closer size, an insert); "transition" = a new place or a new time (the story moves on; the first shot of a scene is always a transition). Use "continuous" only when the action truly flows and the previous shot is in this scene; prefer "cut" for a change of angle; never hide a jump in time or place behind "continuous".
-Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?}, prompt }] }.
-Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","boundary":"transition","continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"]}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot."},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
+THE STAGING inside each shot: "beats" — 2 to 6 observable actions in order, each with "seconds" timed by how long the action really takes (a glance about 1 s, opening a door 3–4 s, crossing a room 5 s or more, a spoken line about 3 words a second), uneven, never equal slices; "actions" — every discrete visible action the shot covers (a comma list is several); "pace" — DWELL (one moment expanded, no cuts), NORMAL, or MONTAGE (a run of distinct actions); a beat may carry "cut": {"camera": "…", "location": "…"} when the story needs a new angle or a new place INSIDE the shot — at most two, never in the first or last 3 seconds, never to hide a jump; "pov": the character whose eyes the camera is (only when a barrier justifies it — a peephole, a door crack; they are not seen); "extras": unnamed people present, as groups described in words ({"description": "four tired shoppers in winter coats", "count": 4}) — never invent a named character and never make a group look like a cast member. Stage the events, never the telling: shoot the listener, not the talker; show a place in use. Everyone who acts in a beat is in characterNames. A shot with no dialogue line names no speech at all: no "says", no "whispers", no quoted words, not even as a trailing scrap. With a character on screen the framing is MEDIUM, MEDIUM_CLOSE_UP or CLOSE_UP (or TWO_SHOT / OVER_THE_SHOULDER for two) — never WIDE for a speaking face; nobody looks at the camera.
+Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, beats:[{seconds,action,cut?}], actions[], pace, pov?, extras:[{description,count}], continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?}, prompt }] }.
+Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","boundary":"transition","beats":[{"seconds":1.5,"action":"She stops at the gate, hand on the latch."},{"seconds":3.5,"action":"She pushes the gate open and steps through."}],"actions":["stops at the gate","pushes the gate open","steps through"],"pace":"NORMAL","extras":[],"continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"]}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot."},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
 Every continuity.characters entry must use the key "characterName" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.
 framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
@@ -481,7 +483,7 @@ framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, 
   const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
   const r = await llmJson(schema, messages, { ...opts, maxTokens: 9000, temperature: 0.6 });
   opts.onResult?.(r.result);
-  const shots = shapeShotPlan(r.data, { cast, scene, lines, maxShot, firstOfProduction: !previous.shot });
+  const shots = shapeShotPlan(r.data, { cast, scene, lines, maxShot, firstOfProduction: !previous.shot, locations: world, musicVideo: p.kind === 'MUSIC_VIDEO' });
   return { shots, budget, maxShot };
 }
 
@@ -493,29 +495,57 @@ export interface PlanLine { id: string; characterId: string; characterName: stri
  *  THE BOUNDARY set on every shot — the planner's explicit `boundary`, else its `relationToPrevious`; the first shot
  *  of a scene is never `continuous` (it opens the scene: a transition), and `continuity.relationToPrevious` is kept
  *  in step with the boundary for the readers of older plans. */
-export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene: Scene; lines: PlanLine[]; maxShot: number; firstOfProduction?: boolean }): PlannedShot[] {
+export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene: Scene; lines: PlanLine[]; maxShot: number; firstOfProduction?: boolean; locations?: Location[]; musicVideo?: boolean }): PlannedShot[] {
   const { cast, scene, lines, maxShot } = ctx;
   const norm = (s: string) => s.trim().toLowerCase().replace(/^(the|a|an)\s+/, '');
   const byName = (name: string) => { const n = norm(name); return cast.find((c) => norm(c.name) === n || c.nameAr?.trim() === name.trim()) ?? cast.find((c) => n.includes(norm(c.name)) || norm(c.name).includes(n) || (c.nameAr && name.includes(c.nameAr))); };
+  const locByName = (name?: string) => (name ? ctx.locations?.find((l) => norm(l.name) === norm(name) || l.nameAr?.trim() === name.trim()) : undefined);
   const used = new Set<number>();
   const shots: PlannedShot[] = data.shots.map((sh, i) => {
+    const notes: string[] = [];
     const dialogue = (sh.dialogueLineIndexes ?? []).filter((k) => k >= 0 && k < lines.length && !used.has(k)).map((k) => { used.add(k); const l = lines[k]; return { id: l.id || nid('line'), characterId: l.characterId, text: l.text, textAr: l.textAr }; });
     // who is in frame: the names given, else the continuity entries, else whoever speaks in the shot
     const named = sh.characterNames.map((n) => byName(n)?.id).filter((x): x is string => Boolean(x));
     const fromContinuity = sh.continuity.characters.map((c) => byName(c.characterName)?.id).filter((x): x is string => Boolean(x));
-    const characterIds = Array.from(new Set([...named, ...(named.length ? [] : fromContinuity), ...dialogue.map((d) => d.characterId)]));
+    let characterIds = Array.from(new Set([...named, ...(named.length ? [] : fromContinuity), ...dialogue.map((d) => d.characterId)]));
     const cont = sh.continuity;
     // the boundary: explicit, else from the relation; a scene's first shot opens it (a transition), never continues
     let boundary: ShotBoundary = sh.boundary ?? RELATION_BOUNDARY[cont.relationToPrevious];
     if (i === 0 && boundary !== 'transition') boundary = 'transition';
+    const durationSeconds = Math.min(maxShot, Math.max(3, Math.round(sh.durationSeconds)));
+    // THE STAGING (src/server/story/beats.ts): timed beats tiled over the shot, cuts policed, the point of view and
+    // the extras resolved, the discrete actions kept
+    const pace = sh.pace;
+    const drafted = (sh.beats ?? []).map((b) => ({ seconds: b.seconds ?? 1, action: b.action, cut: b.cut ? { camera: b.cut.camera || 'a new angle', ...(locByName(b.cut.locationName) ? { locationId: locByName(b.cut.locationName)!.id } : {}) } : undefined }));
+    const cutsAsked = drafted.filter((b) => b.cut).length;
+    const beats = limitCuts(timeBeats(drafted, durationSeconds), durationSeconds, { pace });
+    const cutsKept = beats.filter((b) => b.cut).length;
+    if (cutsAsked > cutsKept) notes.push(`${cutsAsked - cutsKept} in-take cut(s) dropped (inside the margins, over the limit of two, or a dwell)`);
+    const pov = sh.pov ? byName(sh.pov)?.id : undefined;
+    if (pov && !characterIds.includes(pov)) characterIds.push(pov);
+    const extras = (sh.extras ?? []).map((e) => ({ description: e.description, ...(e.count ? { count: e.count } : {}) }));
+    // THE CAST AGAINST THE ACTIONS: whoever acts is in the shot
+    const reconciled = reconcileCast(characterIds, [sh.action, sh.prompt ?? '', ...beats.map((b) => b.action), ...(sh.actions ?? [])], cast);
+    if (reconciled.added.length) { notes.push(`added to the cast from the actions: ${reconciled.added.map((id) => cast.find((c) => c.id === id)?.name ?? id).join(', ')}`); characterIds = reconciled.characterIds; }
+    // A SILENT SHOT carries no speech in its words: the model invents dialogue from a speech verb (C1)
+    const silent = !ctx.musicVideo && dialogue.length === 0;
+    const scrub = (s: string) => (silent && /\b(say|says|said|speak|speaks|talk|talks|whisper|whispers|shout|shouts|ask|asks|repl(?:y|ies)|tell|tells|mutter|mutters|call|calls|sing|sings|laugh|laughs|dialogue|conversation)\b/i.test(s) ? scrubSpeech(s) : s);
+    const action = scrub(sh.action);
+    const prompt = scrub(sh.prompt?.trim() ?? '');
+    const scrubbedBeats = beats.map((b) => ({ ...b, action: scrub(b.action) }));
+    if (silent && (action !== sh.action || prompt !== (sh.prompt?.trim() ?? '') || scrubbedBeats.some((b, k) => b.action !== beats[k].action))) notes.push('speech words scrubbed from a silent shot');
+    // A SPEAKING FACE IS FRAMED CLOSE
+    const framing = closeFramingFor(sh.framing, { people: characterIds.filter((id) => id !== pov).length, dialogue: dialogue.length > 0 });
+    if (framing !== sh.framing) notes.push(`framing ${sh.framing} → ${framing} (a speaking face is framed close)`);
+    const staging: ShotStaging | undefined = scrubbedBeats.length || pace || pov || extras.length || sh.actions?.length ? { ...(scrubbedBeats.length ? { beats: scrubbedBeats } : {}), ...(pace ? { pace } : {}), ...(pov ? { pov } : {}), ...(extras.length ? { extras } : {}), ...(sh.actions?.length ? { actions: sh.actions } : {}) } : undefined;
     const continuity: Omit<ContinuityState, 'version'> = {
       characters: cont.characters.map((c) => ({ characterId: byName(c.characterName)?.id ?? c.characterName, wardrobe: c.wardrobe, pose: c.pose, position: c.position, screenDirection: c.screenDirection, eyeline: c.eyeline, emotion: c.emotion, holding: c.holding })),
       props: cont.props.map((pr) => ({ name: pr.name, ownerCharacterId: pr.ownerCharacterName ? byName(pr.ownerCharacterName)?.id : undefined, state: pr.state, position: pr.position })),
       environment: { locationId: scene.locationId, timeOfDay: cont.environment.timeOfDay ?? scene.timeOfDay, weather: cont.environment.weather, lighting: cont.environment.lighting, state: cont.environment.state },
-      camera: { framing: sh.framing, move: sh.cameraMove, lensIntent: cont.camera.lensIntent, angle: cont.camera.angle },
+      camera: { framing, move: sh.cameraMove, lensIntent: cont.camera.lensIntent, angle: cont.camera.angle },
       relationToPrevious: BOUNDARY_RELATION[boundary], notes: cont.notes,
     };
-    return { purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: Math.min(maxShot, Math.max(3, Math.round(sh.durationSeconds))), characterIds, dialogue, transition: sh.transition, continuity, prompt: sh.prompt?.trim() ?? '', boundary };
+    return { purpose: sh.purpose, action, framing, cameraMove: sh.cameraMove, durationSeconds, characterIds, dialogue, transition: sh.transition, continuity, prompt, boundary, ...(staging ? { staging } : {}), ...(notes.length ? { notes } : {}) };
   });
   if (shots.length === 0) throw new StudioError('PROVIDER', 'The story engine returned no shots.');
   // lines the model forgot: spread in script order over the shots, each line going to the next shot (from where the
@@ -538,7 +568,7 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
 /** The model plans shots near the short end of the range, so a scene comes out well under its running time.
  *  Stretch every shot by the same factor (rounded to whole seconds, never above maxShot) until the scene fills at
  *  least 90 % of its budget; a plan that already fits is left alone. Longer shots mean longer generations, not more. */
-export function fitDurations<T extends { durationSeconds: number }>(shots: T[], budget: number, maxShot = 10, minShot = 3): T[] {
+export function fitDurations<T extends { durationSeconds: number; staging?: ShotStaging }>(shots: T[], budget: number, maxShot = 10, minShot = 3): T[] {
   const sum = shots.reduce((a, s) => a + s.durationSeconds, 0);
   if (!shots.length || sum <= 0 || sum >= budget * 0.9) return shots;
   const factor = budget / sum;
@@ -546,7 +576,8 @@ export function fitDurations<T extends { durationSeconds: number }>(shots: T[], 
   // rounding and the cap may leave a gap: hand spare seconds to the shots with room, one at a time, in order
   let gap = budget - out.reduce((a, s) => a + s.durationSeconds, 0);
   for (let i = 0; gap > 0 && out.some((s) => s.durationSeconds < maxShot); i = (i + 1) % out.length) if (out[i].durationSeconds < maxShot) { out[i] = { ...out[i], durationSeconds: out[i].durationSeconds + 1 }; gap--; }
-  return out;
+  // the timed beats keep their ratios on the stretched shot (the cuts' margins were judged on the ratios too)
+  return out.map((s, i) => (s.staging?.beats?.length && s.durationSeconds !== shots[i].durationSeconds ? { ...s, staging: { ...s.staging, beats: s.staging.beats.map((b) => ({ ...b, at: Number(((b.at * s.durationSeconds) / shots[i].durationSeconds).toFixed(3)) })) } } : s));
 }
 
 // ------------------------------------------------------------------------------------------ performance plan

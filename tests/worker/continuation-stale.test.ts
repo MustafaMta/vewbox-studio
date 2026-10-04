@@ -20,9 +20,12 @@ describe('takes.stale in the database', () => {
     const { scene } = await command('addScene', [id, { title: 'S', timeOfDay: 'DAWN' }]);
     const shotInput = { sceneId: scene.id, purpose: '', action: '', framing: 'MEDIUM' as const, cameraMove: 'STATIC' as const, durationSeconds: 5, characterIds: [] as string[], dialogue: [], transition: 'CUT' as const };
     const { shot: a } = await command('addShot', [id, shotInput]);
-    const { shot: b } = await command('addShot', [id, { ...shotInput, boundary: 'continuous', continuity: { version: 1, characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CONTINUATION' } }]);
-    // the boundary (shots.boundary) survives the round trip too
-    expect((await readState()).state.productions.find((x) => x.id === id)!.shots.map((s) => s.boundary)).toEqual([undefined, 'continuous']);
+    const staging = { beats: [{ at: 0, action: 'She waits.' }, { at: 2.5, action: 'He turns.', cut: { camera: 'reverse' } }], pace: 'NORMAL' as const, extras: [{ description: 'two shoppers', count: 2 }], actions: ['waits', 'turns'] };
+    const { shot: b } = await command('addShot', [id, { ...shotInput, boundary: 'continuous', staging, continuity: { version: 1, characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CONTINUATION' } }]);
+    // the boundary (shots.boundary) and the staging (shots.staging) survive the round trip too
+    const stored = (await readState()).state.productions.find((x) => x.id === id)!.shots;
+    expect(stored.map((s) => s.boundary)).toEqual([undefined, 'continuous']);
+    expect(stored[1].staging).toEqual(staging);
     const a1 = (await command('addTake', [id, a.id, { assetId, provider: 'MINIMAX' }])).take;
     const a2 = (await command('addTake', [id, a.id, { assetId, provider: 'MINIMAX' }])).take;
     await command('selectTake', [id, a.id, a1.id]);
