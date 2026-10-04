@@ -33,7 +33,7 @@ export function runPhaseOf(status: JobStatus, progressPhase?: string): RunPhase 
 /** Studio event kinds that are bookkeeping, not activity: kept for the status row and the run's record, never shown in
  *  an activity list (Production activity, Studio Company recent work, a department's, an agent's or a character's
  *  recent work) and never a reason for an open page to refetch. `listStudioEvents` leaves them out by default. */
-export const ACTIVITY_HIDDEN_KINDS = ['RUN_PHASE'] as const;
+export const ACTIVITY_HIDDEN_KINDS = ['RUN_PHASE', 'TOOL_CALL'] as const;
 export const isActivityNoise = (kind: string | null | undefined): boolean => Boolean(kind) && (ACTIVITY_HIDDEN_KINDS as readonly string[]).includes(kind!);
 
 /** Each phase's duration from the events (the last one runs to `endAt`, the run's end or now). Pure. */

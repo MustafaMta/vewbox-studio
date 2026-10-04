@@ -206,6 +206,9 @@ export async function reapStale(now = new Date()): Promise<{ cancelled: string[]
   }).where(and(stale, eq(schema.jobs.cancelRequested, false), dsql`${schema.jobs.attempts} >= ${schema.jobs.maxAttempts}`)).returning({ id: schema.jobs.id, lockedBy: schema.jobs.lockedBy });
   for (const r of cancelled) { await addEvent(r.id, 'info', 'cancelled: its worker had stopped before reaching a checkpoint').catch(() => undefined); await notifyJobs(r.id, 'CANCELLED').catch(() => undefined); }
   for (const r of failed) { log.warn({ jobId: r.id }, 'job failed: its worker was lost on every attempt'); await addEvent(r.id, 'error', 'failed: its worker was lost on every attempt', { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' }).catch(() => undefined); await notifyJobs(r.id, 'FAILED').catch(() => undefined); }
+  // the attempt the lost worker never finished is closed on its row (step 15)
+  const settledIds = [...cancelled, ...failed].map((r) => r.id);
+  if (settledIds.length) await db().execute(dsql`update job_attempts a set finished_at = ${nowIso}, outcome = case when j.status = 'CANCELLED' then 'CANCELLED' else 'FAILED' end, failure_class = case when j.status = 'CANCELLED' then 'CANCELLED' else 'INFRASTRUCTURE' end, failure_message = 'its worker stopped responding (WORKER_LOST)' from jobs j where a.job_id = j.id and a.attempt = j.attempts and a.outcome is null and j.id in (${dsql.join(settledIds.map((x) => dsql`${x}`), dsql`, `)})`).catch((e) => log.warn({ err: (e as Error).message }, 'could not close the attempts of reaped jobs'));
   // their parents may be waiting for them; and a parent whose wake-up was missed is woken here (the backstop)
   const woken = [...await wakeParents([...cancelled, ...failed].map((r) => r.id)), ...await wakeReady()];
   return { cancelled: cancelled.map((r) => r.id), failed: failed.map((r) => r.id), ...(woken.length ? { woken } : {}) };

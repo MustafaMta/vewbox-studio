@@ -626,8 +626,32 @@ export const studioEvents = pgTable('studio_events', {
   message: text('message').notNull(),
   data: jsonb('data').$type<Record<string, unknown>>(),
   jobId: text('job_id'),
-}, (t) => [index('studio_events_at_idx').on(t.at), index('studio_events_production_idx').on(t.productionId, t.at)]);
+  /** the agent run an event belongs to (a TOOL_CALL row: one per tool call, step 15) */
+  runId: text('run_id'),
+}, (t) => [index('studio_events_at_idx').on(t.at), index('studio_events_production_idx').on(t.productionId, t.at), index('studio_events_run_idx').on(t.runId)]);
 
+/** ONE ROW PER ATTEMPT OF A JOB (docs/BACKEND-AUDIT-2026-10.md M4, step 15): who ran it, when, how it ended, and — for a
+ *  failure — its class, its message, what was changed before the next attempt and whether a later attempt resolved
+ *  it. Replaces reliability_events (no longer written; kept read-only for one release). An orchestrator's passes are
+ *  attempts too (claimed once each). */
+export const jobAttempts = pgTable('job_attempts', {
+  jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  attempt: integer('attempt').notNull(),
+  jobType: text('job_type').notNull(),
+  productionId: text('production_id'),
+  shotId: text('shot_id'),
+  workerId: text('worker_id'),
+  runId: text('run_id'),
+  startedAt: ts('started_at').notNull(),
+  finishedAt: ts('finished_at'),
+  /** COMPLETED | AWAITING_REVIEW | WAITING | FAILED | CANCELLED | LEASE_LOST; null while it runs */
+  outcome: text('outcome'),
+  failureClass: text('failure_class'),
+  failureMessage: text('failure_message'),
+  changeMade: text('change_made'),
+  resolved: boolean('resolved').notNull().default(false),
+  ms: integer('ms'),
+}, (t) => [primaryKey({ columns: [t.jobId, t.attempt] }), index('job_attempts_failure_idx').on(t.failureClass, t.finishedAt)]);
 /** A repeated attempt, investigated: what failed, why, what changed. */
 export const reliabilityEvents = pgTable('reliability_events', {
   id: text('id').primaryKey(),

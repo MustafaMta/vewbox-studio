@@ -24,7 +24,7 @@ export function makeToolRunner(agent: AgentDef, runId: string, log: Logger): Too
     const contract = CONTRACTS[toolId];
     const at = new Date().toISOString();
     const t0 = Date.now();
-    const record = (ok: boolean, extra: { error?: string; failureClass?: FailureClass } = {}) => void recordToolCall(runId, { tool: toolId, version: def.version, ms: Date.now() - t0, ok, at, ...extra }).catch(() => undefined);
+    const record = (ok: boolean, extra: { error?: string; failureClass?: FailureClass } = {}) => void recordToolCall(runId, { tool: toolId, version: def.version, ms: Date.now() - t0, ok, at, ...extra }, { agentId: agent.id, departmentId: agent.department }).catch(() => undefined);
     if (opts.input !== undefined && contract) {
       const parsed = contract.input.safeParse(opts.input);
       if (!parsed.success) {

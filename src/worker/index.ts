@@ -22,7 +22,7 @@ import { step } from './handlers/step';
 import { gpuLease } from './gpu';
 import type { FailureClass } from '@/server/org/model';
 import { syncRegistry } from '@/server/registry';
-import { agentForJob, classifyFailure, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, resumeRun, startRun, studioEvent } from '@/server/org/runs';
+import { agentForJob, classifyFailure, finishAttempt, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, resumeRun, startAttempt, startRun, studioEvent } from '@/server/org/runs';
 import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
 
@@ -86,6 +86,9 @@ async function run(job: Job, lane: Lane) {
   let runId = '';
   // a woken orchestrator (step 14) continues the run its earlier passes left open
   await record('start run', async () => { runId = job.wakes ? await resumeRun(job, agent.id) : await startRun(job, agent.id); });
+  // THE ATTEMPT'S ROW (step 15): one row per attempt in job_attempts — who, when, how it ended, why it failed
+  await record('start attempt', () => startAttempt(job, workerId, runId));
+  const attemptEnded = (outcome: Parameters<typeof finishAttempt>[2]['outcome'], extra: { failureClass?: FailureClass; failureMessage?: string } = {}) => record('finish attempt', () => finishAttempt(job.id, job.attempts, { outcome, ms: Date.now() - t0, ...extra }));
   const label = JOB_LABELS[job.type] ?? job.type;
   // THE RUN'S PHASES (B9): startRun recorded QUEUED and PREPARING; every later progress report that moves the job
   // to another phase (GENERATING, CHECKING, FINISHING) is appended to the run as a timed event and announced, so
@@ -129,12 +132,14 @@ async function run(job: Job, lane: Lane) {
       const outcome = { state: 'lost' as 'waiting' | 'ready' | 'lost' };
       await record('suspend', async () => { outcome.state = await suspend(job.id, wait.jobIds, { lease, progress: wait.progress, plan: wait.plan }); });
       const { state } = outcome;
+      await attemptEnded(state === 'lost' ? 'LEASE_LOST' : 'WAITING');
       if (state === 'lost' && runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before the pass could wait: another worker reclaimed the job', ms }));
       jl.info({ ms, waitingFor: wait.jobIds.length, state }, state === 'ready' ? 'pass done; continues at once' : 'pass done; waiting for its jobs');
       return;
     }
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
     await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
+    await attemptEnded(leaseLost ? 'LEASE_LOST' : outcome);
     if (leaseLost) {
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before completion: another worker reclaimed the job; this attempt’s result was discarded', ms }));
       jl.warn('lease lost before completion; the result was discarded (another attempt owns the job)');
@@ -154,9 +159,11 @@ async function run(job: Job, lane: Lane) {
     if (leaseLost || e instanceof LeaseLost || isFencedWrite(e)) {
       // another worker reclaimed this job: its attempt owns the record now; only this run is closed
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost: another worker reclaimed the job; this attempt’s writes were refused', ms }));
+      await attemptEnded('LEASE_LOST');
       jl.warn('lease lost; this attempt stopped without writing the job');
     } else if (e instanceof JobCancelled || cancelRequested) {
       await record('cancelled', async () => { await cancelled(job.id, lease); });
+      await attemptEnded('CANCELLED');
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'CANCELLED', failureClass: 'CANCELLED', ms }));
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_CANCELLED', message: `${agent.name} stopped: ${label} was cancelled`, jobId: job.id });
       jl.info('job cancelled');
@@ -184,6 +191,7 @@ async function run(job: Job, lane: Lane) {
       const { failureClass, retryable } = verdict;
       jl.error({ err: err.message, code, failureClass, retryable, stack: err.stack?.split('\n').slice(0, 4).join(' | ') }, 'job failed');
       await record('fail', async () => { if (!(await fail(job.id, { code, message: err.message, retryable, details: { ...(isStudioError(e) ? e.details : err.details), failureClass } }, job.attempts, job.maxAttempts, lease))) jl.warn('lease lost before the failure was written; another attempt owns the job'); });
+      await attemptEnded('FAILED', { failureClass, failureMessage: err.message });
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass, errorMessage: err.message, ms }));
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_FAILED', message: `${agent.name} failed: ${label} — ${failureClass}: ${err.message.slice(0, 200)}`, data: { failureClass, code, attempt: job.attempts, retryable, shotId: job.shotId }, jobId: job.id });
     }
