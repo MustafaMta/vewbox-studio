@@ -149,7 +149,7 @@
   .loc-hero-acts { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 8px; }
   .loc-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-block-start: 12px; }
   .loc-switch .seg-wrap { flex-direction: row; align-items: center; gap: 12px; }
-  .loc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .loc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; } /* §8.4: one height per row */
   .loc-cols > .char-card { margin: 0; }
   .loc-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
   .loc-list > li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 44px; padding-block: 10px; border-block-start: 1px solid var(--line-strong); font-size: 14px; line-height: 20px; color: var(--text-1); }

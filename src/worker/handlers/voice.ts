@@ -15,6 +15,7 @@ import { engineOutputTag, formatTags, pickReferenceWindow, speechRegions, trimRe
 import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
+import { prepareLineText } from '@/server/providers/iraqi-text';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -201,7 +202,12 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   if (route.fallback) await ctx.event('info', `engine fallback for “${text.slice(0, 40)}”: ${route.fallback}`, { characterId: c.id, engine: route.engine, pinned: identity?.model, script: route.script });
   const refText = route.engine === 'habibi' ? await referenceText(ctx, c, ref) : undefined;
   const params = identity?.params ?? { speed: speedForPace(c.voice.pace), emotionAlpha: 1 };
-  const local = { text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine };
+  // what the engine hears (src/server/providers/iraqi-text.ts): digits as Baghdadi (or MSA) number words, no tatweel
+  // or invisible marks, line breaks as sentence ends — the script stays as written and is what the line is verified
+  // against (the dialect fold reads spelled numbers back to digits)
+  const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect });
+  if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
+  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine };
   const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };
 }

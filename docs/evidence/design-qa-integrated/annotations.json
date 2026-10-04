@@ -1,0 +1,18 @@
+[
+  { "src": "docs/evidence/design-qa-integrated/character-new-auto-1440-skeleton-vs-loaded.png", "out": "docs/evidence/design-qa-integrated/annotated-M1-characters-new-generic-skeleton-1440.png", "clip": [0, 0, 2960, 996],
+    "boxes": [[300, 150, 1160, 560, "M1: generic ShellSkeleton (title bars + a tile grid)"], [1770, 420, 1150, 560, "the page that replaces it: a two-column form (CLS 0.16)"]] },
+  { "src": "docs/evidence/design-qa-integrated/workspace-1440-skeleton-vs-loaded.png", "out": "docs/evidence/design-qa-integrated/annotated-M2-workspace-skeleton-mismatch-1440.png", "clip": [0, 0, 2960, 996],
+    "boxes": [[380, 330, 1070, 640, "M2: skeleton = one tile grid"], [1850, 330, 1070, 640, "loaded = decision cards + text sections (CLS 0.063)"]] },
+  { "src": "docs/evidence/design-qa-integrated/home-390-skeleton-vs-loaded.png", "out": "docs/evidence/design-qa-integrated/annotated-M3-loading-sequence-390.png", "clip": [0, 0, 1266, 940],
+    "boxes": [[24, 60, 392, 850, "M3: a 1.5 Mbps load shows SSR skeleton -> generic shell skeleton (40.7 s) -> page skeleton -> content"]] },
+  { "src": "docs/evidence/design-qa-integrated/ix-phone-productions.png", "out": "docs/evidence/design-qa-integrated/annotated-M4-phone-productions-no-segmented-390.png", "clip": [0, 0, 390, 844],
+    "boxes": [[8, 64, 374, 100, "M4: no Shows | Shorts | Music Videos control"], [70, 784, 100, 56, "Productions tab leads only to Shows"]] },
+  { "src": "docs/evidence/design-qa-integrated/character-en-1440.png", "out": "docs/evidence/design-qa-integrated/annotated-M5-shot-labels-over-faces-1440.png", "clip": [720, 2180, 720, 440],
+    "boxes": [[958, 2280, 130, 44, "M5: label over the face"], [1182, 2280, 130, 44, "label over the face"], [958, 2416, 130, 44, "over the figure"]] },
+  { "src": "docs/evidence/design-qa-integrated/home-1440.png", "out": "docs/evidence/design-qa-integrated/annotated-M6a-home-poster-184-1440.png", "clip": [260, 1120, 700, 400],
+    "boxes": [[288, 1200, 184, 276, "M6: Home poster 184 x 276"]] },
+  { "src": "docs/evidence/design-qa-integrated/shorts-1440.png", "out": "docs/evidence/design-qa-integrated/annotated-M6b-shorts-poster-208-1440.png", "clip": [260, 20, 700, 460],
+    "boxes": [[288, 112, 208, 312, "M6: Shorts poster 208 x 312 (Screening Room 264 x 396)"]] },
+  { "src": "docs/evidence/design-qa-integrated/home-390.png", "out": "docs/evidence/design-qa-integrated/annotated-M7-phone-buttons-40px-390.png", "clip": [0, 330, 390, 380],
+    "boxes": [[16, 421, 176, 40, "M7: 40 px high on a coarse pointer"], [200, 421, 174, 40, "40 px"], [36, 648, 86, 32, "Review 32 px"]] }
+]

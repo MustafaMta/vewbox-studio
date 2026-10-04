@@ -31,10 +31,11 @@ async function open(page: Page, path: string, fixture: Fixture = STATES, size = 
   return sent;
 }
 
-test('an empty studio: the page title, the first show’s start in the key art’s shape, Auto and Manual', async ({ page }) => {
+test('an empty studio: the page title, one sentence, and the two start cards in the key art’s shape (Auto and Manual)', async ({ page }) => {
   await open(page, '/shows', EMPTY);
   await expect(page.getByRole('heading', { level: 1, name: 'Shows' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Your first show' })).toBeVisible();
+  await expect(page.locator('.shows-empty .empty-page-sentence')).toHaveCount(1);
+  await expect(page.locator('.shows-empty .start-card')).toHaveCount(2);
   await expect(page.getByRole('link', { name: 'Let the studio propose' })).toHaveAttribute('href', '/new/show?mode=auto');
   await expect(page.getByRole('link', { name: 'Write it yourself' })).toHaveAttribute('href', '/new/show?mode=manual');
   // one primary: the head's New show is not repeated beside the start
