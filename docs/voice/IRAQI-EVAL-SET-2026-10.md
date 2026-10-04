@@ -177,8 +177,9 @@ pnpm exec tsx scripts/voice-eval.mjs --merge-review docs/evidence/iraqi-eval/202
 ```
 
 `--dry-run` validates everything (arguments, the set, the references, their provenance tags) and writes `plan.json`
-with no request at all; it was run on 2026-10-04: 109 synthesis calls for 60 lines × 2 voices (the two code-switched
-lines need `--indextts`, else they are listed as skipped, never spoken by the Iraqi engine).
+with no request at all; it was run on 2026-10-04 with the command above minus `--indextts`: 107 synthesis calls for
+60 lines × 2 voices (105 prepared lines plus num-04 raw for each voice; the two code-switched lines need `--indextts`,
+else they are listed as skipped, never spoken by the Iraqi engine).
 
 ### 4.1 What one run produces
 
@@ -236,6 +237,70 @@ normalised dialect speech toward MSA. The heuristic (`msaReadingFlags` in `scrip
 Limits, stated plainly: the heuristic cannot see an MSA *accent* on a line whose words are all dialect-neutral
 (name-03, short-03), cannot tell a /q/ from a /g/, and can be fooled by the ASR in both directions. It is a pointer for
 the listener, and the review form asks the listener directly.
+
+## 5. Text preparation review: what the engine hears
+
+**What the app did before this work.** `speakLine` (src/worker/handlers/voice.ts) sent the line to `/synthesize`
+exactly as written in `textAr`; docker/tts/app.py trims it and checks its length (≤ 2000 characters), and Habibi's
+`infer_process` chunks it at punctuation. No digit, tatweel, line-break or quote handling anywhere on the Iraqi path.
+IndexTTS (`infer_v2_5.py`) has no Arabic normaliser either (research VOICE-IDENTITY-V2 §2.5). The ASR side had the
+dialect fold `normalizeIraqi` for the gate, with spelled numbers up to «ميتين» and «الف».
+
+**What the engine's vocabulary says** (`vocab.txt` of Habibi IRQ, read from the model volume, sha256 in
+`tests/fixtures/voice/habibi-irq-vocab-chars.json`): 2 712 entries (the F5-TTS base vocabulary with pinyin, Korean,
+Cyrillic… plus the Arabic letters). F5-TTS maps a character outside it to index 0, the space, so an unknown character
+is cut out of its word. In the vocabulary: both digit sets, «، ؟ ؛ … — –», the diacritics and the tatweel, گ چ پ ڤ ک ی,
+««»» and the single curly quotes. **Not** in it: the curly double quotes “ ” „, the zero-width joiners, the Arabic
+letter mark, the no-break space, the Persian digits ۴ ۵ ۶, line breaks and tabs. Every line of the set passes the
+vocabulary check as written (a unit test), and again after preparation.
+
+**Implemented (pure text, unit-tested in `tests/unit/iraqi-text.test.ts`, wired into `speakLine` for both local
+engines; the hosted MiniMax path keeps its own normaliser).** `prepareLineText(text, { engine, language, dialect })` in
+`src/server/providers/iraqi-text.ts`; the job log carries what changed (`line prepared for habibi: …`) and the text as
+spoken. The script is never rewritten and the line is verified against the original:
+
+| Rule | Before | What the engine hears | Why |
+|---|---|---|---|
+| digits → Baghdadi number words | «الموعد الساعة 7:30 يوم 15 من الشهر، والسعر 250 ألف.» | «الموعد الساعة سبعة ونص يوم خمسطعش من الشهر، والسعر ميتين وخمسين ألف.» | digits have no stable Iraqi reading in ASR-derived training text; a Baghdadi says اثنعش، خمسطعش، ميتين، ثلاث تالاف، ميت الف، مليونين |
+| construct form before a noun | «3 سنين», «1 دينار» | «ثلاث سنين», «دينار واحد» | «ثلاثة سنين» is a reading, not speech |
+| times | «19:45», «8:20», «12:00» | «ثمانية الا ربع», «ثمانية وثلث», «اثنعش» | the 12-hour clock with ونص / وربع / الا ربع / وثلث; other minutes «وخمس دقايق» |
+| percentages, decimals, separators | «25%», «7.5», «2,500» | «خمسة وعشرين بالمية», «سبعة ونص», «الفين وخمسمية» | |
+| Arabic-Indic / Persian digits | «٣٥», «۱۵» | «خمسة وثلاثين», «خمسطعش» | ۴ ۵ ۶ are not even in the vocabulary |
+| MSA lines (IndexTTS, no Iraqi dialect) | «250 ألف» | «مئتان وخمسون ألف» | the reading form, no case endings (the engine would read them as letters) |
+| English lines | unchanged | unchanged | IndexTTS normalises English itself |
+| tatweel, Arabic/Latin boundary | «شغّل الـwifi» | «شغّل ال wifi» | the tatweel is a typographic stretch; a glued «الwifi» is one unreadable token for IndexTTS |
+| line breaks | «سطر اول⏎سطر ثاني» | «سطر اول. سطر ثاني» | a line break is not in the vocabulary; a sentence end gives the pause |
+| curly double quotes, zero-width marks, NBSP, presentation forms | «يقول “مرحبا”», «ما‌كو», «ﻻ» | «يقول مرحبا», «ماكو», «لا» | would be cut out of the word |
+| Latin ? , ; after Arabic letters; runs of marks | «شنو, زين?», «هسه؟!!» | «شنو، زين؟», «هسه؟!» | the Arabic marks are what the engine heard with a question's intonation; a run of marks is one |
+| hand diacritics, گ چ | «ويّاي للسوگ باچر» | unchanged | kept as written (research: no automatic diacritisation; the fold is for evaluation only) |
+
+**The gate keeps up** (`normalizeIraqi` in `src/server/providers/speech.ts`, tests in `tests/unit/voice-metrics.test.ts`):
+hundreds 300–900 in Iraqi and MSA spellings («ثلثمية», «ثلاثمائة»), «مائة / مائتين» (previously folded to «مايه» and
+never to 100), «الفين», «تالاف / آلاف», «مليون / مليونين / ملايين»; a spelled number is read as Arabic counts
+(«ميتين وخمسين الف» → 250000, «ثلاث تالاف وخمسمية» → 3500, «مليونين وخمسمية الف» → 2500000); thousands separators;
+«%» ≡ «بالمية»; the fractions of the hour («سبعة ونص» ≡ «7:30», «ثمانية الا ربع» ≡ «19:45», 12-hour on both sides).
+So a perfect transcript of a prepared digit line scores CER 0 and coverage 1 against the original script (a test
+proves it on six lines).
+
+**Needs the engines running (not done here, listed for the model phase):**
+
+- **A/B raw vs prepared digits** (`--prepare both` on num-04): does Habibi read «7» at all, and is «سبعة ونص» said
+  naturally? The harness writes both WAVs side by side.
+- **Question intonation.** The Iraqi engine has no intonation control: the only levers are the «؟» in the text (kept,
+  and Latin «?» mapped to it) and the reference recording's own prosody. Whether a «؟» raises the tail is a listening
+  item on q-01…q-08, short-02 and film-ss-02 (the «مو؟» tag). If it does not, the fix is an emotion-tagged reference
+  set per voice (MODEL-STACK §3.10), not text.
+- **Pauses.** Whether «...» gives a pause or a restart (emo-sad-02, emo-fear-01, film-ss-04): listening item; the
+  harness reports the longest inner pause per line.
+- **«ك» said as /g/** (film-fx-01 «تكدر»): if the engine reads it /k/, the fixture and the writing rule (skill:
+  «گ written as such») disagree and the fixture line should be written «تگدر». Listening item.
+- **Code-switched lines on IndexTTS** (mix-01, mix-02 against mix-03 on Habibi): whether the English words are
+  readable and the Arabic stays Baghdadi, and how far the timbre moves between the two engines on one voice
+  (VOICE-STACK D4's "new risk"); the harness records ECAPA only when the design service is added later — for now the
+  reviewer's "same voice" rating covers it.
+- **Emotion words in `delivery`** («muttering, eyes narrowing at the radio» in The Static Sky): `emotion_vector` in
+  docker/tts/app.py matches whole English keywords (angry, sad, whisper is not one) and Habibi ignores it entirely;
+  the mapping from a free-text direction to a delivery is a separate piece of work and not text preparation.
 
 ## 6. The listening review protocol
 
