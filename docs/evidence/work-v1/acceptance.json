@@ -1,11 +1,56 @@
 {
-  "checked": "2026-10-04T01:08:30.696Z",
+  "checked": "2026-10-04T01:41:42.279Z",
   "base": "http://localhost:4258",
   "report": [
     {
       "page": "map",
       "size": "1920×1080",
-      "error": "not ready in 6 minutes on the throttled line"
+      "outline": 280,
+      "inspector": 0,
+      "canvas": 0,
+      "paneX": 384,
+      "heads": [
+        384,
+        384,
+        384,
+        384,
+        384,
+        384,
+        384,
+        384,
+        384
+      ],
+      "startOk": true,
+      "unequal": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 27,
+      "broken": [],
+      "cls": 0.003128375771604938,
+      "shifts": [
+        {
+          "value": 0.003128375771604938,
+          "t": 60719,
+          "nodes": [
+            "ws-sec"
+          ]
+        }
+      ],
+      "checks": {
+        "outline 280 (≥1280) / hidden (<1280)": true,
+        "shared start edge": true,
+        "equal heights in a row": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true,
+        "skeleton shown while loading": true
+      }
     },
     {
       "page": "shot",
@@ -28,11 +73,11 @@
       "overflow": 0,
       "images": 19,
       "broken": [],
-      "cls": 0.002149065370912905,
+      "cls": 0.002472239239225662,
       "shifts": [
         {
-          "value": 0.002131622942386831,
-          "t": 57813,
+          "value": 0.002454796810699588,
+          "t": 56827,
           "nodes": [
             "ws-disc",
             "ws-gen",
@@ -75,11 +120,11 @@
       "overflow": 0,
       "images": 17,
       "broken": [],
-      "cls": 0.0060333859165018966,
+      "cls": 0.010958154435020417,
       "shifts": [
         {
           "value": 0.0018727213541666666,
-          "t": 58065,
+          "t": 57810,
           "nodes": [
             "ws-sec",
             "card ws-side-card",
@@ -88,135 +133,13 @@
           ]
         },
         {
-          "value": 0.004068287037037037,
-          "t": 61739,
+          "value": 0.008993055555555556,
+          "t": 61504,
           "nodes": [
             "card ws-side-card",
             "card ws-side-card",
             "card ws-side-card",
             "card pcard"
-          ]
-        }
-      ],
-      "checks": {
-        "outline 280 (≥1280) / hidden (<1280)": true,
-        "shared start edge": true,
-        "equal heights in a row": true,
-        "fonts Geist": true,
-        "no text < 12 px": true,
-        "no horizontal overflow": true,
-        "no broken images": true,
-        "CLS < 0.02": true,
-        "skeleton shown while loading": true
-      }
-    },
-    {
-      "page": "map",
-      "size": "390×844",
-      "outline": 0,
-      "inspector": 0,
-      "canvas": 0,
-      "paneX": 16,
-      "heads": [
-        16,
-        16,
-        16,
-        16,
-        16,
-        16,
-        16,
-        16,
-        16
-      ],
-      "startOk": true,
-      "unequal": [],
-      "fonts": [
-        "Geist",
-        "Geist Mono"
-      ],
-      "small": [],
-      "overflow": 0,
-      "images": 27,
-      "broken": [],
-      "cls": 0.00009419442078327773,
-      "shifts": [],
-      "checks": {
-        "outline 280 (≥1280) / hidden (<1280)": true,
-        "shared start edge": true,
-        "equal heights in a row": true,
-        "fonts Geist": true,
-        "no text < 12 px": true,
-        "no horizontal overflow": true,
-        "no broken images": true,
-        "CLS < 0.02": true,
-        "skeleton shown while loading": true
-      }
-    },
-    {
-      "page": "shot",
-      "size": "390×844",
-      "outline": 0,
-      "inspector": 390,
-      "canvas": 358,
-      "paneX": 16,
-      "heads": [
-        16,
-        16
-      ],
-      "startOk": true,
-      "unequal": [],
-      "fonts": [
-        "Geist",
-        "Geist Mono"
-      ],
-      "small": [],
-      "overflow": 0,
-      "images": 19,
-      "broken": [],
-      "cls": 0,
-      "shifts": [],
-      "checks": {
-        "outline 280 (≥1280) / hidden (<1280)": true,
-        "inspector 360 (≥1280)": true,
-        "shared start edge": true,
-        "equal heights in a row": true,
-        "fonts Geist": true,
-        "no text < 12 px": true,
-        "no horizontal overflow": true,
-        "no broken images": true,
-        "CLS < 0.02": true,
-        "skeleton shown while loading": true
-      }
-    },
-    {
-      "page": "final",
-      "size": "390×844",
-      "outline": 0,
-      "inspector": 0,
-      "canvas": 0,
-      "paneX": 16,
-      "heads": [
-        16,
-        16,
-        16
-      ],
-      "startOk": true,
-      "unequal": [],
-      "fonts": [
-        "Geist",
-        "Geist Mono"
-      ],
-      "small": [],
-      "overflow": 0,
-      "images": 17,
-      "broken": [],
-      "cls": 0.0013464484708743036,
-      "shifts": [
-        {
-          "value": 0.0011263276290243902,
-          "t": 61931,
-          "nodes": [
-            "ws-pane-state"
           ]
         }
       ],

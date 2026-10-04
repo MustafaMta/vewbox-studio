@@ -142,7 +142,7 @@
   .ws-table th { font-family: var(--font-ui); padding: 0 12px 10px 0; border-block-end: 1px solid var(--line); text-align: start; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-3); white-space: nowrap; }
   .ws-table td { padding: 12px 12px 12px 0; border-block-end: 1px solid var(--line); }
   .ws-table tfoot td { border-block-end: 0; color: var(--text-1); font-weight: 500; }
-  .ws-table .ws-num { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ws-table td.ws-num { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ws-table td .name { max-inline-size: 320px; }
   .ws-gate-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-block-start: 16px; }
 
