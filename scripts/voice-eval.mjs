@@ -206,9 +206,11 @@ async function transcribe(file, language) {
   const fd = new FormData(); fd.set('file', new Blob([await fs.readFile(file)]), path.basename(file)); fd.set('language', language); fd.set('words', '1');
   return (await post(`${ASR}/transcribe`, fd, 10 * 60_000)).json();
 }
-async function speak(url, engine, text, voice) {
+async function speak(url, engine, text, voice, language = 'ar') {
   const fd = new FormData();
-  fd.set('text', text); fd.set('language', 'ar'); fd.set('dialect', 'IRAQI_BAGHDADI'); fd.set('engine', engine);
+  // the language follows the line's script (a Latin-script line through IndexTTS is English; the service maps
+  // language=ar onto its Arabic path, which an English line must not take — found by the English set, 2026-10-05)
+  fd.set('text', text); fd.set('language', language); if (language === 'ar') fd.set('dialect', 'IRAQI_BAGHDADI'); fd.set('engine', engine);
   fd.set('reference', new Blob([await fs.readFile(voice.file)]), path.basename(voice.file));
   if (engine === 'habibi' && voice.text) fd.set('reference_text', voice.text);
   fd.set('seed', String(params.seed)); fd.set('speed', String(params.speed));
@@ -242,7 +244,7 @@ for (const p of plan) {
   const base = { key, id: l.id, category: l.category, text: l.text, spoken: p.spoken, changes: p.changes, variant: p.variant, gloss: l.gloss, features: l.features, emotion: l.emotion, sex: l.sex, msaWouldSoundWrong: l.msaWouldSoundWrong, voice: v.id, voiceSex: v.sex, engine: route.engine, script: route.script, fallback: route.fallback, asrLanguage: route.asrLanguage };
   process.stdout.write(`[${n}/${plan.length}] ${key} (${route.engine}) `);
   try {
-    const s = await speak(route.url, route.engine, p.spoken, v);
+    const s = await speak(route.url, route.engine, p.spoken, v, route.asrLanguage);
     versions[s.engine] = s.engineVersion;
     const name = `${v.id}-${l.id}${p.variant === 'raw' && prepareMode === 'both' ? '-raw' : ''}-${s.engine}-s${s.seed}.wav`;
     const file = path.join(OUT, 'wavs', name);

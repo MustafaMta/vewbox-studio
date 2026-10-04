@@ -240,7 +240,14 @@ services:
         if [ -f "$$ASR_CT2_DIR/model.bin" ]; then echo "already converted: $$ASR_CT2_DIR"; exit 0; fi
         test -f "$$ASR_HF_DIR/model.safetensors" || { echo "fetch group stack-2026-10 first (no $$ASR_HF_DIR/model.safetensors)"; exit 2; }
         pip install --no-cache-dir "transformers==4.57.1"
-        ct2-transformers-converter --model "$$ASR_HF_DIR" --output_dir "$$ASR_CT2_DIR.partial" --quantization float16 --copy_files tokenizer.json --force
+        # the fine-tune's tokenizer_config.json was written by transformers 5.x (extra_special_tokens as a LIST), which
+        # 4.x refuses ("'list' object has no attribute 'keys'", 2026-10-05): convert from a temporary copy whose config
+        # drops that key (tokenizer.json already carries the tokens); the weights are linked, not copied
+        TMP=/tmp/asr-hf; rm -rf "$$TMP"; mkdir -p "$$TMP"
+        for f in config.json generation_config.json tokenizer.json processor_config.json; do cp "$$ASR_HF_DIR/$$f" "$$TMP/"; done
+        ln -s "$$ASR_HF_DIR/model.safetensors" "$$TMP/model.safetensors"
+        python3 -c "import json; t=json.load(open('$$ASR_HF_DIR/tokenizer_config.json')); t.pop('extra_special_tokens', None); json.dump(t, open('$$TMP/tokenizer_config.json','w'))"
+        ct2-transformers-converter --model "$$TMP" --output_dir "$$ASR_CT2_DIR.partial" --quantization float16 --copy_files tokenizer.json --force
         cp "$$ASR_BASE_DIR/preprocessor_config.json" "$$ASR_CT2_DIR.partial/"
         rm -rf "$$ASR_CT2_DIR" && mv "$$ASR_CT2_DIR.partial" "$$ASR_CT2_DIR"
         ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"

@@ -1,0 +1,6 @@
+{
+  "note": "Voices for the English run of scripts/voice-eval.mjs (tests/fixtures/voice/english-eval-set.json): the repository's English speech fixture (tests/fixtures/speech-en.wav, 6.3 s, 22.05 kHz mono), a recording, not engine output. The reference transcript is taken from the ASR when 'text' is absent.",
+  "voices": [
+    { "id": "fixture-en", "sex": "M", "file": "../speech-en.wav", "label": "tests/fixtures/speech-en.wav (the acceptance runs' English recording)", "origin": "FIXTURE" }
+  ]
+}
