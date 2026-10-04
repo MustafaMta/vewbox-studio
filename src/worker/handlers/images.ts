@@ -525,7 +525,7 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   const own = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
-  const plate = read?.location && read.location.locationId === loc?.id ? { assetId: read.location.assetId, why: read.location.why } : (own?.assetId ?? loc?.masterAssetId) ? { assetId: (own?.assetId ?? loc?.masterAssetId)!, why: own?.role === 'STATE' ? 'the location’s plate for this time of day (no World Bible read)' : 'the location’s master plate (no World Bible read)' } : undefined;
+  const plate = read?.location?.assetId && read.location.locationId === loc?.id ? { assetId: read.location.assetId, why: read.location.why } : (own?.assetId ?? loc?.masterAssetId) ? { assetId: (own?.assetId ?? loc?.masterAssetId)!, why: own?.role === 'STATE' ? 'the location’s plate for this time of day (no World Bible read)' : 'the location’s master plate (no World Bible read)' } : undefined;
   const refs: Asset[] = [];
   const notes: string[] = [];
   const plateAsset = byId(plate?.assetId);

@@ -11,7 +11,7 @@ import type { Asset, Production, Shot, StudioState, WorldBible } from '@/domain/
  *  the take recording its relation and the take it continues. CUT: the opening frame anchored and bound, the ending
  *  frame anchored. Hosted continuation: the previous take's last frame as the first frame, nothing silently dropped. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>>, /** what the written tail clip counts as (frames, sound) */ tailClip: { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 } as { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number }, /** what the generated take's head measures against the tail */ head: { frames: 22, takeFrames: 158, tailFrames: 22, perFrame: [], meanDiff: 1.2, maxDiff: 2, tailMotionP95: 3, lastMatchIndex: 21, lastMatchDiff: 1, plannedLastDiff: 1, threshold: 12, repeats: true, trimStartFrames: 22, corrected: false, detail: 'the head repeats the tail' }, headCalls: [] as unknown[][], /** the joined dialogue's length */ dialogueSeconds: 2.55 }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>>, established: [] as Array<Record<string, unknown>>, /** what the written tail clip counts as (frames, sound) */ tailClip: { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 } as { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number }, /** what the generated take's head measures against the tail */ head: { frames: 22, takeFrames: 158, tailFrames: 22, perFrame: [], meanDiff: 1.2, maxDiff: 2, tailMotionP95: 3, lastMatchIndex: 21, lastMatchDiff: 1, plannedLastDiff: 1, threshold: 12, repeats: true, trimStartFrames: 22, corrected: false, detail: 'the head repeats the tail' }, headCalls: [] as unknown[][], /** the joined dialogue's length */ dialogueSeconds: 2.55 }));
 
 vi.mock('@/server/studio/engine', () => ({
   readState: async () => ({ state: fake.state, version: 1, hash: 'h' }),
@@ -37,6 +37,7 @@ vi.mock('@/server/world', async () => {
       return { state: s, read, outcome: { view: {}, action: 'KEPT', message: 'pinned to World Bible revision 3', blocking: [] } };
     },
     recordWorldRead: async (r: Record<string, unknown>) => { fake.reads.push(r); },
+    establishFromTake: async (_s: StudioState, _p: Production, e: Record<string, unknown>) => { fake.established.push(e); return { revision: { number: 4 }, created: true }; },
   };
 });
 vi.mock('@/server/media/ffmpeg', async (orig) => ({
@@ -88,7 +89,7 @@ const ctx = (productionId: string, shotId: string) => ({
 const addTake = () => fake.commands.find((c) => c.name === 'addTake')!.args[2] as Record<string, unknown> & { references: Array<Record<string, unknown>>; soundtrack: { lines: Array<{ from: number; to: number }> } };
 
 beforeEach(async () => {
-  fake.requests = []; fake.commands = []; fake.ffmpegArgs = []; fake.tails = []; fake.closing = []; fake.frames = []; fake.qaExpect = []; fake.reads = []; fake.bible = undefined;
+  fake.requests = []; fake.commands = []; fake.ffmpegArgs = []; fake.tails = []; fake.closing = []; fake.frames = []; fake.qaExpect = []; fake.reads = []; fake.bible = undefined; fake.established = [];
   fake.tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'vb-take-'));
   fake.backend = 'local';
   fake.tailClip = { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 };
@@ -293,12 +294,36 @@ describe('GENERATE_TAKE by relation', () => {
     const { state, p } = fixture(); fake.state = state;
     await generateTake(ctx(p.id, 's13'));
     expect(addTake().params).toMatchObject({ identity: { rule: 'identity-reapplication', ok: true, characters: [{ characterId: p.castIds[0], assetId: 'canon-a', picture: 1 }], location: { locationId: 'loc-pharmacy', assetId: 'plate-dusk', picture: 2 } } });
-    // a place without a usable plate: refused as MISSING_REFERENCE by the rule (the preflight carries it), nothing sent
+    // a place without a usable plate: refused as MISSING_REFERENCE by the location plate rule, as its own error class
+    // (the preflight carries it as location-plate), nothing sent
     fake.requests = []; fake.commands = [];
     fake.state = { ...state, locations: state.locations.map((l) => (l.id === 'loc-pharmacy' ? { ...l, refs: [], masterAssetId: undefined } : l)) };
-    await expect(generateTake(ctx(p.id, 's13'))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE', message: expect.stringMatching(/identity-conditioning \(Corner Pharmacy has no usable plate: draw the place first\)/) });
+    await expect(generateTake(ctx(p.id, 's13'))).rejects.toMatchObject({ name: 'UnestablishedLocationError', code: 'MISSING_REFERENCE', failureClass: 'MISSING_REFERENCE', rule: 'location-identity', message: expect.stringMatching(/Shot 3 of “[^”]+” cannot be generated: Corner Pharmacy has no plate: draw its plates first \(LOCATION_PLATES\), or mark the scene "establish here"/) });
     expect(fake.requests).toEqual([]);
     expect(fake.commands.some((c) => c.name === 'addTake')).toBe(false);
+  });
+
+  it('ESTABLISH HERE: a scene marked establishLocation films a plate-less place from its identity line; the accepted take’s frame becomes the master plate (in the commit) and an established frame of the World Bible', async () => {
+    const { state: base, p: p0 } = fixture();
+    const p = { ...p0, scenes: p0.scenes.map((sc) => (sc.id === 'sc1' ? { ...sc, establishLocation: true } : sc)) };
+    fake.state = { ...base, locations: base.locations.map((l) => (l.id === 'loc-pharmacy' ? { ...l, refs: [], masterAssetId: undefined } : l)), productions: base.productions.map((x) => (x.id === p.id ? p : x)) };
+    await generateTake(ctx(p.id, 's13'));
+    const req = fake.requests[0] as { referenceImages: Array<{ file: string }>; prompt: string };
+    // no plate travels; the place is a described subject with its identity line, and the prompt lints clean
+    expect(req.referenceImages.map((r) => r.file)).toEqual(['/lib/img/canon-a.png', '/lib/img/open-13.png']);
+    expect(req.prompt).toMatch(/<Subject 2> is the interior environment: a small pharmacy with a white counter and wooden shelves; fixed features: a green cross sign; permanent props: a cash register \(place identity v1\); no reference picture: this shot establishes the place/);
+    // the frame a quarter second after the first kept frame becomes the place's MASTER plate, in the take's commit
+    expect(fake.frames.at(-1)).toEqual([expect.stringMatching(/take\.mp4$/), expect.stringMatching(/established\.png$/), 6]);
+    const refs = fake.commands.find((c) => c.name === 'addLocationRefs')!;
+    expect(refs.args[0]).toBe('loc-pharmacy');
+    expect(refs.args[1]).toEqual([expect.objectContaining({ role: 'MASTER', assetId: expect.stringMatching(/^gen-/), timeOfDay: 'DUSK', label: expect.stringMatching(/Corner Pharmacy — established in/) })]);
+    const plateId = (refs.args[1] as Array<{ assetId: string }>)[0].assetId;
+    expect(fake.commands.find((c) => c.name === 'addAsset' && (c.args[0] as { id: string }).id === plateId)!.args[0]).toMatchObject({ tags: ['location', 'established'], provenance: expect.objectContaining({ locationId: 'loc-pharmacy', view: 'ESTABLISHED', establishedHere: true, frame: 6 }) });
+    // the World Bible gets the frame as an ESTABLISHED plate of the place, by id
+    expect(fake.established).toEqual([expect.objectContaining({ locationId: 'loc-pharmacy', shotId: 's13', takeId: takeIdOf('job-take'), imageAssetId: plateId, frame: 6, timeOfDay: 'DUSK', framing: 'MEDIUM' })]);
+    const t = addTake();
+    expect(t.params).toMatchObject({ world: { location: { locationId: 'loc-pharmacy', identityVersion: 1, establishedHere: true } }, identity: { location: { locationId: 'loc-pharmacy' } } });
+    expect((t.params as { world: { plate?: unknown } }).world.plate).toBeUndefined();
   });
 
   it('refuses a producer prompt that names a picture the request does not connect (PROMPT_AMBIGUITY), before the engine', async () => {

@@ -31,12 +31,14 @@ export interface TakeCommit {
   take: Omit<NewTakeInput, 'id'>;
   qa: Array<NewQaReport & { name: string }>;
   worldRead?: Omit<WorldReadRecord, 'takeId'>;
+  /** what else the take's result records in the same batch (a place established by this take: its new master plate) */
+  commands?: CommandSpec[];
 }
 
 /** Commit a take's result as one unit. Returns the take as recorded. */
 export async function commitTake(c: TakeCommit): Promise<Take> {
   const id = takeIdOf(c.jobId);
-  const batch: CommandSpec[] = [...c.assets.map((a) => ({ name: 'addAsset' as const, args: [a] as [typeof a] })), { name: 'addTake', args: [c.productionId, c.shotId, { ...c.take, id }] }];
+  const batch: CommandSpec[] = [...c.assets.map((a) => ({ name: 'addAsset' as const, args: [a] as [typeof a] })), { name: 'addTake', args: [c.productionId, c.shotId, { ...c.take, id }] }, ...(c.commands ?? [])];
   const reports = c.qa.map(({ name, ...r }) => ({ ...r, id: outputId(c.jobId, `qa:${name}`, 'qa'), subjectId: id }));
   const results = await commands(batch, 'worker', {
     seed: `${c.jobId}:take-commit`,
@@ -46,5 +48,5 @@ export async function commitTake(c: TakeCommit): Promise<Take> {
     },
   });
   for (const r of reports) await announceQaReport(r.id, r).catch(() => undefined);
-  return (results.at(-1) as { take: Take }).take;
+  return (results[c.assets.length] as { take: Take }).take;
 }

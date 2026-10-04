@@ -1,6 +1,7 @@
 import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take } from '@/domain/types';
 import { orderedShots, shotWindowFrames } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+import { locationIdentity } from '@/domain/location';
 import { castOf, worldOf } from '@/studio/selectors';
 import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
 import type { H3Binding } from '@/server/story/prompts';
@@ -44,7 +45,13 @@ export interface ShotPack {
   /** local: REF2VA or FL2VA; hosted: REFERENCE (pictures), FRAMES (first/last frame) or TEXT */
   graph: 'REF2VA' | 'FL2VA' | 'REFERENCE' | 'FRAMES' | 'TEXT';
   subjects: Array<{ characterId: string; assetId: string; source: 'CANONICAL' | 'PORTRAIT'; approved: boolean; picture: number }>;
-  location?: { locationId: string; assetId: string; role: 'STATE' | 'MASTER'; picture: number };
+  /** the place's plate (the World Bible's choice when overlaid: an established frame rides as a STATE ref) and the
+   *  identity it stands for (src/domain/location.ts: the version and the line every prompt carries) */
+  location?: { locationId: string; assetId: string; role: 'STATE' | 'MASTER'; picture: number; identity: { version: number; line: string } };
+  /** "ESTABLISH HERE" (types.ts Scene.establishLocation): the scene's place has no plate and the production declared
+   *  this its first appearance — the take is conditioned on the identity line alone and its first frame becomes the
+   *  place's plate. Never set when the place has a plate. */
+  establishing?: { locationId: string; name: string; identity: { version: number; line: string } };
   /** reference pictures in connection order (picture i is index i-1) */
   pictures: PackPicture[];
   opening: PackOpening;
@@ -196,7 +203,12 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     return { characterId: c.id, assetId, source: primaryImageSourceOf(c) ?? 'PORTRAIT', approved: isCanonicalApproved(c), picture: pictures.length };
   });
   let location: ShotPack['location'];
-  if (plate && loc && !hostedFrames) { pictures.push({ assetId: plate.assetId, role: 'LOCATION', locationId: loc.id, binding: '' }); location = { locationId: loc.id, assetId: plate.assetId, role: plate.role, picture: pictures.length }; }
+  const identity = loc ? locationIdentity(loc) : undefined;
+  if (plate && loc && identity && !hostedFrames) { pictures.push({ assetId: plate.assetId, role: 'LOCATION', locationId: loc.id, binding: '' }); location = { locationId: loc.id, assetId: plate.assetId, role: plate.role, picture: pictures.length, identity: { version: identity.version, line: identity.line } }; }
+  // the place has no plate: only a scene declared "establish here" may film it (from its identity line); the first
+  // accepted take's opening frame then becomes its plate (take.ts)
+  const establishing: ShotPack['establishing'] = !plate && loc && identity && scene?.establishLocation ? { locationId: loc.id, name: loc.name, identity: { version: identity.version, line: identity.line } } : undefined;
+  if (establishing) notes.push(`establish here: ${loc!.name} has no plate yet; the take is filmed from its identity line and its first frame becomes the place's plate`);
   const hasRefs = pictures.length > 0;
   let openingPicture: number | undefined;
   if (wantsOpeningPicture && hasRefs && opening.kind === 'FRAME') { pictures.push({ assetId: opening.assetId, role: 'OPENING_FRAME', binding: '' }); openingPicture = pictures.length; }
@@ -212,7 +224,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (opening.kind === 'FRAME' || ending) { lowering = 'hosted reference mode: the drawn opening/ending frame is not sent (frame and reference roles cannot be mixed); identity from the canonical images and the plate'; }
   } else graph = opening.kind === 'FRAME' || ending ? 'FRAMES' : 'TEXT';
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */
@@ -221,6 +233,7 @@ export function bindingOf(pack: ShotPack, audioRefs: Array<{ characterId: string
     labels: pack.backend === 'local' ? 'LOCAL' : 'HOSTED',
     subjects: pack.subjects.map((s) => ({ characterId: s.characterId, picture: s.picture })),
     location: pack.location ? { picture: pack.location.picture } : undefined,
+    describedLocation: Boolean(pack.establishing),
     opening: pack.opening.kind === 'TAIL' ? { kind: 'TAIL', seconds: pack.opening.frames / H3_FPS } : pack.opening.kind === 'FRAME' && pack.backend === 'local' ? { kind: 'FRAME', picture: pack.openingPicture } : undefined,
     ending: Boolean(pack.ending && pack.backend === 'local'),
     audioRefs,

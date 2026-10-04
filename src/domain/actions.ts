@@ -12,6 +12,7 @@ import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
 import { cutInputsHash } from './cut';
 import { reconcileContinuationChain } from './continuation';
+import { advanceIdentity, withLocationIdentity } from './location';
 
 export { nid } from './ids';
 
@@ -217,9 +218,9 @@ function withProduction(s: S, id: string, fn: (p: Production) => Production): S 
 /** The cut is out of date (only when there is one). */
 const markCutStale = (p: Production): Production => (p.cutAssetId ? { ...p, cutStale: true } : p);
 
-export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats'] }): { state: S; scene: Scene } {
+export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats']; establishLocation?: boolean }): { state: S; scene: Scene } {
   const p = mustFind(s.productions, productionId, 'Production');
-  const scene: Scene = { id: nid('scene'), number: p.scenes.length + 1, title: input.title.trim(), locationId: input.locationId || undefined, timeOfDay: input.timeOfDay, characterIds: input.characterIds ?? [], beats: input.beats ?? [], purpose: input.purpose, emotionalObjective: input.emotionalObjective, entryState: input.entryState, exitState: input.exitState };
+  const scene: Scene = { id: nid('scene'), number: p.scenes.length + 1, title: input.title.trim(), locationId: input.locationId || undefined, timeOfDay: input.timeOfDay, characterIds: input.characterIds ?? [], beats: input.beats ?? [], purpose: input.purpose, emotionalObjective: input.emotionalObjective, entryState: input.entryState, exitState: input.exitState, ...(input.establishLocation ? { establishLocation: true } : {}) };
   return { state: withProduction(s, productionId, (x) => ({ ...x, scenes: [...x.scenes, scene] })), scene };
 }
 
@@ -852,13 +853,21 @@ export type LocationInput = Omit<Location, 'id' | 'createdAt' | 'updatedAt' | 'r
 export function addLocation(s: S, input: LocationInput): { state: S; location: Location } {
   const t = now();
   if (!input.name?.trim()) throw new StudioError('INVALID', 'A location needs a name.');
-  const location: Location = { ...input, name: input.name.trim(), id: nid('loc'), refs: input.refs ?? [], createdAt: t, updatedAt: t };
+  // the identity (the Location Bible) is the studio's: version 1 of what the place holds, never a caller's
+  const { identity: _given, ...fields } = input as LocationInput & { identity?: unknown };
+  void _given;
+  const location: Location = withLocationIdentity({ ...fields, name: input.name.trim(), id: nid('loc'), refs: input.refs ?? [], createdAt: t, updatedAt: t }, t);
   return { state: { ...s, locations: [...s.locations, location] }, location };
 }
 
+/** A change of the place: its identity version moves on when the canon changed (src/domain/location.ts) — a patch
+ *  never writes the identity itself. */
 export function updateLocation(s: S, id: string, patch: Partial<Omit<Location, 'id' | 'createdAt'>>): S {
   mustFind(s.locations, id, 'Location');
-  return { ...s, locations: s.locations.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: now() } : l)) };
+  const t = now();
+  const { identity: _given, ...fields } = patch as typeof patch & { identity?: unknown };
+  void _given;
+  return { ...s, locations: s.locations.map((l) => (l.id === id ? advanceIdentity(l, { ...l, ...fields, updatedAt: t }, t) : l)) };
 }
 
 /** The studio drew plates for a location. A new MASTER starts a new plate set (the views and states made from the

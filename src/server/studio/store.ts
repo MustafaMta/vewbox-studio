@@ -237,7 +237,7 @@ export async function saveScoped(tx: Tx, snap: ScopedSnapshot, after: StudioStat
       const hash = h(l); const p = before.locations.get(l.id);
       if (p === hash) continue;
       touched.locations.add(l.id);
-      const row = { id: l.id, name: l.name, nameAr: nul(l.nameAr), kind: l.kind, description: l.description, style: l.style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: nul(l.masterAssetId), layout: nul(l.layout), createdAt: l.createdAt, updatedAt: l.updatedAt };
+      const row = { id: l.id, name: l.name, nameAr: nul(l.nameAr), kind: l.kind, description: l.description, style: l.style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: nul(l.masterAssetId), layout: nul(l.layout), identity: nul(l.identity), createdAt: l.createdAt, updatedAt: l.updatedAt };
       if (p === undefined) { report.inserted++; ops.push(() => tx.insert(schema.locations).values(row)); } else { report.updated++; ops.push(() => tx.update(schema.locations).set(row).where(eq(schema.locations.id, l.id))); }
     }
     const gone = [...before.locations.keys()].filter((id) => !seen.has(id));

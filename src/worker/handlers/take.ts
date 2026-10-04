@@ -13,7 +13,7 @@ import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechA
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
 import { jobOutputs, stableSeed } from '@/server/jobs/outputs';
-import { commitTake, committedTake, type TakeCommit } from './take-commit';
+import { commitTake, committedTake, takeIdOf, type TakeCommit } from './take-commit';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
@@ -27,6 +27,10 @@ import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
+import { assertLocationPlate } from '@/server/production/location-rule';
+import { establishFromTake } from '@/server/world';
+import { outputId } from '@/server/jobs/outputs';
+import type { CommandSpec } from '@/server/studio/engine';
 import { guideHeadRecord, measureGuideHead } from '@/server/media/guide-head';
 import { recordProducedTake } from '@/server/studio/notes';
 
@@ -83,6 +87,9 @@ export const generateTake: Handler = async (ctx) => {
     await ctx.event(preflight.ok ? (preflight.warnings.length ? 'warn' : 'info') : 'error', `preflight ${preflight.ok ? (preflight.warnings.length ? `passed with ${preflight.warnings.length} warning(s): ${preflight.warnings.map((w) => w.detail ?? w.name).join('; ').slice(0, 300)}` : 'passed') : 'FAILED'}`, { checks: preflight.checks, warnings: preflight.warnings });
     if (!preflight.ok) {
       const failed = preflight.checks.filter((c) => !c.ok);
+      // THE LOCATION PLATE RULE (src/server/production/location-rule.ts): a place without a plate is refused as its own
+      // error class, the two ways out named — never filmed from words
+      if (failed.some((c) => c.name === 'location-plate')) assertLocationPlate(resolveShotPack(state, p, sh, { backend }), p, sh, scene, loc);
       throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
     }
   });
@@ -459,6 +466,23 @@ export const generateTake: Handler = async (ctx) => {
   await webReady(result.file, playable, probe);
   const poster = path.join(dir, 'poster.jpg');
   await thumbnail(playable, poster, { at: Math.min(0.5, (probe.durationSeconds ?? 1) / 4) });
+  // "ESTABLISH HERE" (the World Continuity step; src/server/production/location-rule.ts): a take that passed its checks
+  // in a place that had no plate — by the scene's own declaration — establishes the place: a quarter second after its
+  // first kept frame (the opening of the shot, as an approved cut establishes it) becomes the place's master plate,
+  // written in the take's commit, and an ESTABLISHED frame of the World Bible (below, after the commit)
+  const extraAssets: Array<Omit<Asset, 'createdAt'>> = [];
+  const extraCommands: CommandSpec[] = [];
+  let established: { imageAssetId: string; frame: number } | undefined;
+  if (pack.establishing && loc && scene && report.ok) {
+    const frame = Math.max(trimStartFrames, Math.min(trimStartFrames + 6, clip.frames - 1));
+    const png = await frameAt(playable, path.join(dir, 'established.png'), frame);
+    const { id: plateId, stored: storedPlate } = await out.adopt('established-plate', png, { expectKind: 'IMAGE' });
+    const label = `${loc.name} — established in “${p.title}”, scene ${scene.number} shot ${sh.number} (${sh.framing.toLowerCase().replace(/_/g, ' ')})`;
+    extraAssets.push(assetFromStored(plateId, storedPlate, { label, tags: ['location', 'established'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { takeId: takeIdOf(ctx.job.id), shotId: sh.id, frame, productionId: p.id, locationId: loc.id, view: 'ESTABLISHED', establishedHere: true, identityVersion: pack.establishing.identity.version } }));
+    extraCommands.push({ name: 'addLocationRefs', args: [loc.id, [{ id: outputId(ctx.job.id, 'established-plate-ref', 'ref'), role: 'MASTER', assetId: plateId, label, timeOfDay: scene.timeOfDay }]] });
+    established = { imageAssetId: plateId, frame };
+    await ctx.event('info', `${loc.name} is established by this take: frame ${frame} becomes its master plate (${plateId})`, { locationId: loc.id, assetId: plateId, frame });
+  } else if (pack.establishing && !report.ok) await ctx.event('warn', `${pack.establishing.name} is not established by this take: it failed its checks; the next accepted take establishes it`, { locationId: pack.establishing.locationId });
 
   // files into the library (named for this job and attempt), then every record in ONE commit
   const { id: posterId, stored: storedPoster } = await out.adopt('poster', poster, { expectKind: 'IMAGE' });
@@ -473,7 +497,7 @@ export const generateTake: Handler = async (ctx) => {
   // a head kept because it did not repeat the tail is new picture: the whole take is the window then
   const headKept = Boolean(guideRecord?.head && !guideRecord.head.repeats);
   const takeTimeline = { newFrames: headKept ? clip.frames : Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.frames - trimStartFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
-  const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
+  const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location?.assetId ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, location: loc ? { locationId: loc.id, identityVersion: pack.location?.identity.version ?? pack.establishing?.identity.version, establishedHere: Boolean(established) } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
   // THE QUALITY TIER (B6): what the take was really made at. The local MiniMax H3 path has one tier today (the
   // official template: turbo LoRA, 4 or 8 steps — the standard, not a draft) and the hosted API has none, so every
   // take is `final`; a `draft` request is kept as asked so the page can say it was not honoured. No second path is
@@ -494,14 +518,25 @@ export const generateTake: Handler = async (ctx) => {
   newAssets.push(
     assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } }),
     assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` }),
+    ...extraAssets.map((a) => ({ ...a, provenance: { ...(a.provenance ?? {}), from: videoId } })),
   );
   const take = await commitTake({
     jobId: ctx.job.id, productionId: p.id, shotId: sh.id, assets: newAssets, qa: qaReports,
     take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
     // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
     worldRead: { productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id },
+    // a place established by this take: its new master plate, in the same commit
+    commands: extraCommands,
   });
   const r = { take };
+  // the established frame goes into the World Bible as a new revision (by id; the place is locked from now on)
+  if (established && loc && scene) {
+    await step(ctx, 'world-continuity', `establish-here: shot ${sh.number}`, async () => {
+      const fresh = (await readState()).state;
+      const rev = await establishFromTake(fresh, fresh.productions.find((x) => x.id === p.id) ?? p, { locationId: loc.id, sceneId: scene.id, shotId: sh.id, takeId: take.id, videoAssetId: videoId, frame: established!.frame, imageAssetId: established!.imageAssetId, timeOfDay: scene.timeOfDay, framing: sh.framing, label: `${loc.name} — established in “${p.title}”, scene ${scene.number} shot ${sh.number}` }, { jobId: ctx.job.id });
+      await ctx.event('info', `World Bible revision ${rev.revision.number}${rev.created ? ' written' : ' unchanged'}: ${loc.name} established by take ${take.id} (frame ${established!.frame}), locked`, { revision: rev.revision.number, locationId: loc.id, takeId: take.id });
+    });
+  }
   // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
   if (soundtrack?.kind === 'DIALOGUE' && soundtrackId) {
     await recordHandoff({ id: out.id('handoff:audio-prep', 'handoff'), productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [soundtrackId, ...(dialogueLineAssets ?? [])], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length, recordedNow: spokenChecks.length }, validation: { ok: flaggedLines === 0 && unverifiedLines === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices (${spokenChecks.length} recorded now)` }, { name: 'lines-verified-by-transcription', ok: flaggedLines === 0 && unverifiedLines === 0, detail: flaggedLines || unverifiedLines ? `${flaggedLines} line(s) drifted, ${unverifiedLines} not heard back` : undefined }] }, jobId: ctx.job.id });

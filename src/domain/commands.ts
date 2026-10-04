@@ -228,8 +228,8 @@ const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.nu
 
 const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();
-const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional() }).passthrough();
-const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000) }).partial().extend(owned('id', 'number')).passthrough();
+const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional(), establishLocation: z.boolean().optional() }).passthrough();
+const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000), establishLocation: z.boolean() }).partial().extend(owned('id', 'number')).passthrough();
 
 const ShotDialogue = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Continuity = z.object({ characters: z.array(z.object({ characterId: id }).passthrough()).max(50), props: z.array(z.object({ name: line(300) }).passthrough()).max(100), environment: z.object({}).passthrough(), camera: z.object({}).passthrough() }).partial().passthrough();
@@ -245,8 +245,9 @@ const UploadedTake = z.object({ assetId: id, provider: z.literal('UPLOAD'), labe
 
 const LocationRef = z.object({ id, role: z.enum(LOCATION_REF_ROLES), assetId: id, label: titleText, timeOfDay: timeOfDay.optional() }).passthrough();
 const locationFields = { name: z.string().min(1).max(200), nameAr: titleText, kind: z.enum(['INTERIOR', 'EXTERIOR']), description: line(8000), style, lighting: z.array(timeOfDay).max(20), landmarks: textList(400), props: textList(400), refs: z.array(LocationRef).max(200), masterAssetId: id, layout: z.object({}).passthrough() };
-const LocationInput = z.object(locationFields).partial().required({ name: true, kind: true, style: true }).extend(owned('id', 'createdAt')).passthrough();
-const LocationPatch = z.object(locationFields).partial().extend(owned('id', 'createdAt')).passthrough();
+/** the identity (its version) is the studio's: derived by the reducers, never sent by a page */
+const LocationInput = z.object(locationFields).partial().required({ name: true, kind: true, style: true }).extend(owned('id', 'createdAt', 'identity')).passthrough();
+const LocationPatch = z.object(locationFields).partial().extend(owned('id', 'createdAt', 'identity')).passthrough();
 
 const SettingsPatch = z.object({ reducedMotion: z.boolean(), defaults: z.object({ style, language, dialect, aspect }).partial().passthrough(), generation: z.object({ videoModel: line(200), videoResolution: line(40), llmProvider: line(80), voiceProvider: z.enum(['LOCAL_TTS', 'MINIMAX']) }).partial().passthrough(), voice: z.object({ allowDesignedIraqi: z.boolean() }).partial().passthrough(), research: z.object({ enabled: z.boolean(), cacheHours: z.number().min(1).max(168) }).partial().passthrough() }).partial().passthrough();
 

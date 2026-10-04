@@ -101,10 +101,11 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 12)', () => {
+describe('the studio organisation (ORG_VERSION 13)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
-    expect(ORG_VERSION).toBe(12);
+    // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first take)
+    expect(ORG_VERSION).toBe(13);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -114,7 +115,7 @@ describe('the studio organisation (ORG_VERSION 12)', () => {
     // 35: World Continuity staffed (the World Bible: sync, pin, per-take read, established frames) and v8's five
     // research-driven Auto Idea development agents in Story Development
     expect(AGENTS).toHaveLength(35);
-    expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations']);
+    expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations', 'establish-here']);
   });
 
   it('every job type is executed by exactly one agent; a payload route narrows PLAN_SHOTS to the singing agent', () => {

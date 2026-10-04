@@ -117,6 +117,17 @@ export async function establishFromApprovedCut(state: StudioState, p: Production
   return { added: frames.length, revision, reason: `${frames.length} frame(s) established` };
 }
 
+/** "ESTABLISH HERE" (the Location Bible): a take filmed in a place that had no plate, by the scene's own declaration
+ *  (Scene.establishLocation), establishes the place — its opening frame (already the place's master plate in the
+ *  studio, written in the take's commit) is registered as an ESTABLISHED plate of the World Bible in a new revision,
+ *  reused by id from now on, and the place is locked. Idempotent: a frame already registered adds nothing. */
+export async function establishFromTake(state: StudioState, p: Production, e: { locationId: string; sceneId: string; shotId: string; takeId: string; videoAssetId: string; frame: number; imageAssetId: string; timeOfDay: EstablishCandidate['timeOfDay']; framing: EstablishCandidate['framing']; label: string }, opts: { jobId?: string } = {}): Promise<{ revision: WorldRevision; created: boolean }> {
+  const scope = worldScopeOf(p);
+  const now = new Date().toISOString();
+  const candidate: EstablishCandidate = { locationId: e.locationId, sceneId: e.sceneId, shotId: e.shotId, takeId: e.takeId, videoAssetId: e.videoAssetId, frame: e.frame, timeOfDay: e.timeOfDay, framing: e.framing };
+  return appendRevision(scope, (latest) => withEstablished(deriveWorld(state, scope, latest?.bible, now), [{ candidate, imageAssetId: e.imageAssetId, productionId: p.id, label: e.label }], now), { author: AGENT, reason: `established here: ${e.label}`, jobId: opts.jobId });
+}
+
 /** The producer's audio policy for a world (how the cut treats speech and songs), as a new revision by a person.
  *  A production follows it at its next pin check (a policy change never changes a filmed picture: it is safe). */
 export async function setAudioPolicy(state: StudioState, p: Production, audio: WorldRevision['bible']['audio'], by: string): Promise<WorldRevision> {
