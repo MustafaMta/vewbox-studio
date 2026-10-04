@@ -7,8 +7,8 @@ import type { Production, StudioState, Take } from '@/domain/types';
  *  pass before the scene's other shots are queued; a failed pilot stops its scene only; a continuation is queued only
  *  after the take it continues was accepted; a continuation gets no opening frame. */
 
-type Outcome = 'pass' | 'reject' | 'fail' | 'review';
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, jobs: new Map<string, Job>(), order: [] as string[], outcome: {} as Record<string, Outcome>, imagesReady: false, events: [] as string[], world: [] as string[] }));
+type Outcome = 'pass' | 'reject' | 'fail' | 'review' | 'slow';
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, jobs: new Map<string, Job>(), byKey: new Map<string, string>(), order: [] as string[], outcome: {} as Record<string, Outcome>, imagesReady: false, events: [] as string[], world: [] as string[] }));
 
 vi.mock('@/server/studio/engine', () => ({ readState: async () => ({ state: fake.state, version: 1, hash: 'h' }) }));
 vi.mock('@/server/org/gates', () => ({ requireApproval: async () => { fake.world.push('story-gate'); } }));
@@ -21,14 +21,18 @@ vi.mock('@/server/providers/comfy', () => ({ health: async () => ({ ok: fake.ima
 vi.mock('@/server/jobs/queue', () => ({
   listJobs: async () => [],
   getJob: async (id: string) => fake.jobs.get(id),
-  enqueue: async (input: { type: Job['type']; payload: { productionId: string; shotId?: string } }) => {
+  enqueue: async (input: { type: Job['type']; payload: { productionId: string; shotId?: string }; idempotencyKey?: string }) => {
+    // the real queue: an idempotency key it has seen returns that job
+    if (input.idempotencyKey && fake.byKey.has(input.idempotencyKey)) return { job: fake.jobs.get(fake.byKey.get(input.idempotencyKey)!)!, created: false };
     const id = `job-${fake.jobs.size + 1}`;
+    if (input.idempotencyKey) fake.byKey.set(input.idempotencyKey, id);
     const shotId = input.payload.shotId;
     fake.order.push(`${input.type}${shotId ? `:${shotId}` : ''}`);
     let status: JobStatus = 'COMPLETED'; let result: Record<string, unknown> | undefined; let error: Job['error'];
     if (input.type === 'GENERATE_TAKE' && shotId) {
       const o = fake.outcome[shotId] ?? 'pass';
       if (o === 'fail') { status = 'FAILED'; error = { code: 'INVALID', message: 'Preflight failed' }; }
+      else if (o === 'slow') status = 'GENERATING';
       else {
         const take: Take = { id: `take-${shotId}`, label: 'Take 1', assetId: 'vid-a', createdAt: 'x', status: o === 'reject' ? 'REJECTED' : 'READY', provider: 'MINIMAX', qa: { ok: o !== 'reject', checks: [{ name: 'decodable', ok: o !== 'reject' }] }, rejectionReason: o === 'reject' ? 'Automatic checks failed: script-spoken' : undefined };
         fake.state = { ...fake.state, productions: fake.state.productions.map((p) => (p.id !== input.payload.productionId ? p : { ...p, shots: p.shots.map((s) => (s.id !== shotId ? s : { ...s, takes: [...s.takes, take], selectedTakeId: o === 'pass' ? take.id : s.selectedTakeId })) })) };
@@ -42,8 +46,25 @@ vi.mock('@/server/jobs/queue', () => ({
   },
 }));
 
-import { planPilots, pilotVerdict, produce, takeAccepted } from '@/worker/handlers/produce';
+import { planPilots, pilotVerdict, produce as producePass, takeAccepted } from '@/worker/handlers/produce';
+import { waitRequestOf } from '@/worker/handlers/wait';
 import { fixture, shotOf, TAKE_A } from './continuity-fixture';
+
+/** PRODUCE is a planner (step 14): each pass queues what is ready and ends WAITING for it; the queue wakes it when its
+ *  children settle. Here the fake children settle at once, so the next pass runs straight away — as the worker would
+ *  run it once woken (the plan carried over, a wake counted). Returns the final result and the number of passes. */
+let passes = 0;
+async function produce(c: Parameters<typeof producePass>[0]) {
+  passes = 0;
+  for (;;) {
+    passes++;
+    const r = await producePass(c);
+    const w = waitRequestOf(r);
+    if (!w) return r as Record<string, unknown>;
+    expect(w.jobIds.length).toBeGreaterThan(0);
+    c.job = { ...c.job, plan: w.plan, wakes: (c.job.wakes ?? 0) + 1, attempts: c.job.attempts + 1 };
+  }
+}
 
 const unproven = () => fixture({ shots: (shots) => shots.map((s) => ({ ...s, takes: [], selectedTakeId: undefined })) });
 const ctx = (productionId: string) => ({
@@ -53,7 +74,7 @@ const ctx = (productionId: string) => ({
   event: async (_l: string, m: string) => { fake.events.push(m); },
 }) as unknown as Parameters<typeof produce>[0];
 
-beforeEach(() => { fake.jobs = new Map(); fake.order = []; fake.outcome = {}; fake.imagesReady = false; fake.events = []; fake.world = []; });
+beforeEach(() => { fake.byKey = new Map(); fake.jobs = new Map(); fake.order = []; fake.outcome = {}; fake.imagesReady = false; fake.events = []; fake.world = []; });
 
 describe('pure: pilots, verdicts', () => {
   it('the first shot to generate in each unproven scene is its pilot; a scene with an accepted chosen take is open', () => {
@@ -145,5 +166,61 @@ describe('PRODUCE and a stale cut (audit M2, step 12)', () => {
     const current = await produce(ctx(p.id));
     expect(fake.order).toEqual([]);
     expect(current).toMatchObject({ shots: 0 });
+  });
+});
+describe('PRODUCE is a dependency graph (step 14)', () => {
+  it('the first pass queues the pilots and waits for them alone; the rest is queued by a later pass', async () => {
+    const { state, p } = unproven(); fake.state = state;
+    const c = ctx(p.id);
+    const first = waitRequestOf(await producePass(c))!;
+    expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21']);
+    expect(first.jobIds).toEqual(['job-1', 'job-2']);
+    expect(first.plan).toMatchObject({ round: 0, targets: ['s11', 's12', 's13', 's21'], takes: { s11: 'job-1', s21: 'job-2' } });
+    // the rest takes two more passes: the other shots (they settle at once here, so the same pass queues the cut), the report
+    c.job = { ...c.job, plan: first.plan, wakes: 1, attempts: 1 };
+    await produce(c);
+    expect(passes).toBe(2);
+    expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13', 'ASSEMBLE']);
+  });
+
+  it('a pass run again (a crash before it could wait) queues nothing twice', async () => {
+    const { state, p } = unproven(); fake.state = state;
+    fake.outcome = { s11: 'slow', s21: 'slow' }; // still filming when the worker died
+    await producePass(ctx(p.id));
+    await producePass(ctx(p.id));
+    expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21']);
+  });
+
+  it('a continuation waits — as a dependency, holding no slot — for the take it continues, then is queued', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => ({ ...s, takes: [], selectedTakeId: undefined, ...(s.id === 's13' ? { continuity: { ...s.continuity!, relationToPrevious: 'CONTINUATION' as const } } : {}) })) });
+    fake.state = state; fake.outcome = { s12: 'slow' };
+    const c = ctx(p.id);
+    const pilots = waitRequestOf(await producePass(c))!;
+    c.job = { ...c.job, plan: pilots.plan, wakes: 1, attempts: 1 };
+    const rest = waitRequestOf(await producePass(c))!;
+    expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12']);
+    const s12 = (rest.plan.takes as Record<string, string>).s12;
+    expect(rest.jobIds).toContain(s12);
+    // s12's take arrives and is accepted: the next pass queues s13
+    const take = { ...TAKE_A, id: 'take-s12' };
+    fake.state = { ...fake.state, productions: fake.state.productions.map((x) => (x.id !== p.id ? x : { ...x, shots: x.shots.map((s) => (s.id === 's12' ? { ...s, takes: [take], selectedTakeId: take.id } : s)) })) };
+    fake.jobs.set(s12, { ...fake.jobs.get(s12)!, status: 'COMPLETED', result: { takeId: take.id } });
+    c.job = { ...c.job, plan: rest.plan, wakes: 2, attempts: 2 };
+    await producePass(c);
+    expect(fake.order.slice(3)).toEqual(['GENERATE_TAKE:s13', 'ASSEMBLE']);
+  });
+
+  it('a failed shot fails alone: the others are generated and the report names its job, to regenerate it on its own', async () => {
+    const { state, p } = unproven(); fake.state = state;
+    fake.outcome = { s13: 'fail' };
+    const r = await produce(ctx(p.id));
+    expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13']);
+    expect(r).toMatchObject({ completed: 3, failed: 1, failedShots: [{ shotId: 's13', jobId: 'job-4', reason: 'Preflight failed' }] });
+  });
+
+  it('PRODUCE_DAG=off runs the polling orchestrator (rollback): the same film in one pass', async () => {
+    const { state, p } = unproven(); fake.state = state;
+    process.env.PRODUCE_DAG = 'off';
+    try { const r = await producePass(ctx(p.id)); expect(waitRequestOf(r)).toBeUndefined(); expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13', 'ASSEMBLE']); } finally { delete process.env.PRODUCE_DAG; }
   });
 });

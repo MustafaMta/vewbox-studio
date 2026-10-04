@@ -13,7 +13,6 @@ export const H3_MIN_FRAMES = 124;
 export const H3_MAX_FRAMES = 362;
 /** Reference limits of `MiniMaxH3ReferenceToVideo` (autogrow max): 9 images, 3 videos (+ their soundtracks), 3 audios. */
 export const H3_MAX_REF_IMAGES = 9;
-export const H3_MAX_REF_VIDEOS = 3;
 export const H3_MAX_REF_AUDIOS = 3;
 
 /** ComfyUI's `align_frame_count`: the next frame count on the 17k+5 grid at or above n (never below 5). */
@@ -29,9 +28,6 @@ export function h3FrameCount(seconds: number): number {
   const raw = Math.max(5, Math.round(seconds * H3_FPS));
   return Math.min(H3_MAX_FRAMES, Math.max(H3_MIN_FRAMES, h3AlignFrames(raw)));
 }
-
-/** The seconds a clip of `seconds` really lasts once its frames are snapped. */
-export const h3Seconds = (seconds: number) => h3FrameCount(seconds) / H3_FPS;
 
 /** Frames `MiniMaxH3AddGuide` keeps of an image batch: fewer than 5 → the first image only; otherwise snapped DOWN to
  *  5, 22, 39 … (17k+5) (`nodes_minimax_h3.py` MiniMaxH3AddGuide.execute). */

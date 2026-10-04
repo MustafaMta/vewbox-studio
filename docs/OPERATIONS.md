@@ -125,8 +125,8 @@ Backoff after a retryable failure: 15 s, 1 min, 4 min, then 15 min, with jitter.
   `pnpm exec tsx --env-file=.env --env-file=.env.local src/server/db/cli.ts migrate` applies it now. A running dev web
   process keeps its cached bootstrap: restart it after adding a migration.
 - **Recover**: a stuck job (no heartbeat) is reclaimed automatically; a job in `FAILED` with a non-transient class
-  needs its correction and then Retry; the database is backed up with `docker exec vewbox-db-1 pg_dump -U vewbox vewbox
-  > var/backups/<name>.sql`, the library by copying `var/library/`.
+  needs its correction and then Retry; back up with `scripts/backup.ts` (a consistent pg_dump plus the library manifest)
+  and restore with `scripts/restore.ts` into a new, verified database — the procedure is docs/OPERATIONS-BACKUP.md.
 
 ## Several workers
 
@@ -158,13 +158,13 @@ removed from the models volume.
 
 | Volume / path | Contents | Backup |
 |---|---|---|
-| `pgdata` volume | the database | `docker compose exec db pg_dump -U vewbox vewbox > backup.sql` |
-| `LIBRARY_DIR` (default `./var/library`) | every uploaded and generated file, by asset id | copy the directory |
+| `pgdata` volume | the database | `scripts/backup.ts` (docs/OPERATIONS-BACKUP.md) |
+| `LIBRARY_DIR` (default `./var/library`) | every uploaded and generated file, by asset id | copy the directory; `scripts/backup.ts` writes the manifest it is verified against |
 | `models` volume | model weights (re-downloadable) | not needed |
 | `comfyout`, `comfyin`, `workertmp` | scratch | not needed |
 | `ollama` volume | the local story model | not needed |
 
-Restore: `psql` the dump into a fresh `db`, put the library directory back, `docker compose up -d`.
+Restore: `scripts/restore.ts` into a new database, verified against the library copy (docs/OPERATIONS-BACKUP.md).
 
 ## Resetting
 

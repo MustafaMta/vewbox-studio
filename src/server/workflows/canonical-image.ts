@@ -443,8 +443,6 @@ export function faceCropRect(box: PxRect, image: { width: number; height: number
   return { x: Math.round(x), y: Math.round(y), width: s, height: s };
 }
 
-export const FACE_CROP_OUTPUT = 'save_face';
-
 // ---------------------------------------------------------------- vision-language model (Qwen3.5-4B, ComfyUI)
 
 /** PreviewAny node id that carries the generated text for an item (`textOutput(run.outputs, vlmOutput(key))`). */

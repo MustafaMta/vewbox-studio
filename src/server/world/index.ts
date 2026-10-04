@@ -10,7 +10,7 @@ import { frameAt, tmpDir } from '../media/ffmpeg';
 import { command } from '../studio/engine';
 import { appendPin, appendRevision, currentPin, latestRevision, revisionById } from './store';
 
-export { insertWorldRead, recordWorldRead, saveAudioTimeline, worldReads, latestRevision, listRevisions, pinHistory, currentPin } from './store';
+export { insertWorldRead, recordWorldRead, saveAudioTimeline, worldReads, latestRevision, pinHistory, currentPin } from './store';
 
 /** THE WORLD BIBLE SERVICE — what the jobs call (docs/research/MINIMAX-CONTINUITY.md §4):
  *  - `syncWorld`: the scope's bible derived from the studio, a new revision when anything changed (story development,

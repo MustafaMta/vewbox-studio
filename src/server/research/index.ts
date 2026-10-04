@@ -15,7 +15,7 @@ import type { ResearchOptions, ResearchRequest, ResearchSourceStatus } from './t
 
 export type { ResearchRequest, ResearchOptions, ResearchSourceStatus } from './types';
 export { planTopics, regionOf } from './topics';
-export { dbStore, memoryStore, cacheKey } from './store';
+export { memoryStore, cacheKey } from './store';
 export type { ResearchStore } from './store';
 
 const LABEL: Record<ResearchPlatform, string> = { TIKTOK: 'TikTok', INSTAGRAM: 'Instagram', FACEBOOK: 'Facebook', YOUTUBE: 'YouTube', NEWS: 'news (GDELT)', WIKIPEDIA: 'Wikipedia' };

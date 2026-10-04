@@ -13,6 +13,7 @@ import { isActivityNoise } from '@/domain/phases';
 import { api, type Capabilities, type StartedJob } from './api';
 import { JOB_LIST_LIMIT, applyJobEvent, jobEventNeedsReload, mergeJob, type JobEvent } from './job-list';
 import { saveStateOf, type SaveState } from './save-state';
+import { sendFailure } from './send-policy';
 
 /** THE STORE — the studio as the server holds it, mirrored in React state. Every change is a named command: it is
  *  applied here at once (so the interface never waits) and sent to the server in small batches, where the same
@@ -149,8 +150,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         scheduleRefresh(0);
       }
     } catch (e) {
-      // network trouble: keep the batch as it was (same id: the server may have applied it) and try again with a
-      // growing delay
+      // a REFUSAL (403, 400/422, any 4xx but 408/429): sending it again would be refused again. The batch is dropped,
+      // its optimistic changes are rolled back (the snapshot is read again, with only the later edits on top) and the
+      // refusal is shown once (src/studio/send-policy.ts)
+      if (sendFailure(e) === 'refused') {
+        inflight.current = []; failures.current = 0; setConnected(true); syncSaving();
+        raise(isStudioError(e) ? e.code : 'INVALID', isStudioError(e) ? e.message : 'The server refused these changes.');
+        scheduleRefresh(0);
+        if (pending.current.length > 0) flushTimer.current = setTimeout(() => { flushTimer.current = null; void flush(); }, 50);
+        return;
+      }
+      // network trouble or a 5xx: keep the batch as it was (same id: the server may have applied it) and try again with
+      // a growing delay
       unsent.current = batch; inflight.current = [];
       failures.current += 1; setConnected(false); syncSaving();
       if (failures.current === 1) raise(isStudioError(e) ? e.code : 'UNAVAILABLE', isStudioError(e) ? e.message : 'Changes could not be saved; retrying.');

@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, isNull, notInArray, sql as dsql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull, notInArray, sql as dsql } from 'drizzle-orm';
 import type { Job } from '@/domain/jobs';
 import { ACTIVITY_HIDDEN_KINDS, type RunPhaseEvent } from '@/domain/phases';
 import { isStudioError } from '@/domain/errors';
@@ -8,6 +8,7 @@ import { log } from '../log';
 import { AGENTS, FAILURE_CLASSES, ORG_VERSION, PIPELINE, agentById, agentIdForJob, toolById, type AgentDef, type DepartmentId, type FailureClass, type PipelineStage } from './model';
 import { skillVersions } from './skills';
 import { fenced } from '../jobs/fence';
+import { jobScope } from '../jobs/context';
 
 /** THE RECORD OF WORK — every job runs as an agent and leaves an agent run (tool calls, outcome, failure class), the
  *  departments leave handoffs and QA reports, people leave approvals, and everything that happened is a studio event
@@ -83,6 +84,15 @@ export async function startRun(job: Job, agentId: string): Promise<string> {
   return id;
 }
 
+/** A woken orchestrator's next pass (step 14) continues the run its earlier passes left open; without one (the first
+ *  pass crashed and the run was closed) a new run starts. */
+export async function resumeRun(job: Job, agentId: string): Promise<string> {
+  const open = await db().select({ id: schema.agentRuns.id }).from(schema.agentRuns).where(and(eq(schema.agentRuns.jobId, job.id), isNull(schema.agentRuns.outcome), isNull(schema.agentRuns.parentRunId))).orderBy(desc(schema.agentRuns.startedAt)).limit(1);
+  if (!open[0]) return startRun(job, agentId);
+  await recordRunPhase(open[0].id, { phase: 'PREPARING', at: new Date().toISOString(), message: `woken (pass ${(job.wakes ?? 0) + 1})` });
+  return open[0].id;
+}
+
 /** THE RUN'S FIRST PHASES (docs/CONTRACTS-REDESIGN-BACKEND.md B9): QUEUED from the moment the job could run (its
  *  creation, or the retry's `runAfter` when later) and PREPARING from the claim. Pure. */
 export function initialPhases(job: Pick<Job, 'createdAt' | 'runAfter'>, claimedAt: string): RunPhaseEvent[] {
@@ -93,12 +103,6 @@ export function initialPhases(job: Pick<Job, 'createdAt' | 'runAfter'>, claimedA
 /** Append a phase change to the run (never rewritten; the worker calls it only when the phase changed). */
 export async function recordRunPhase(runId: string, event: RunPhaseEvent) {
   await db().update(schema.agentRuns).set({ phases: dsql`${schema.agentRuns.phases} || ${JSON.stringify([event])}::jsonb` }).where(eq(schema.agentRuns.id, runId));
-}
-
-/** The phases of the runs of a job, newest attempt first (the status row reads the current attempt's). */
-export async function runPhasesOf(jobId: string): Promise<Array<{ runId: string; attempt: number; startedAt: string; finishedAt: string | null; outcome: string | null; phases: RunPhaseEvent[] }>> {
-  const rows = await db().select({ runId: schema.agentRuns.id, attempt: schema.agentRuns.attempt, startedAt: schema.agentRuns.startedAt, finishedAt: schema.agentRuns.finishedAt, outcome: schema.agentRuns.outcome, phases: schema.agentRuns.phases, parentRunId: schema.agentRuns.parentRunId }).from(schema.agentRuns).where(and(eq(schema.agentRuns.jobId, jobId), isNull(schema.agentRuns.parentRunId))).orderBy(desc(schema.agentRuns.startedAt));
-  return rows.map(({ parentRunId: _p, ...r }) => { void _p; return r; });
 }
 
 /** A DELEGATED STEP — a specialist's real piece of work inside another agent's job (a check, a selection, a
@@ -112,8 +116,40 @@ export async function startDelegatedRun(input: { job: Pick<Job, 'id' | 'type' | 
   return id;
 }
 
-export async function recordToolCall(runId: string, call: ToolCall) {
-  await db().update(schema.agentRuns).set({ toolCalls: dsql`${schema.agentRuns.toolCalls} || ${JSON.stringify([call])}::jsonb` }).where(eq(schema.agentRuns.id, runId));
+/** THE KIND OF A TOOL-CALL EVENT (step 15): one studio_events row per call, joined to its run by `run_id`, instead of
+ *  appending to the run's JSONB array (which rewrote the whole run row on every call). Bookkeeping: never in an
+ *  activity list (src/domain/phases.ts ACTIVITY_HIDDEN_KINDS) and never announced. */
+export const TOOL_CALL_KIND = 'TOOL_CALL';
+
+export async function recordToolCall(runId: string, call: ToolCall, who: { agentId?: string; departmentId?: string; jobId?: string } = {}) {
+  const job = jobScope();
+  await db().insert(schema.studioEvents).values({ at: call.at, departmentId: who.departmentId ?? 'EXECUTIVE', agentId: who.agentId ?? null, productionId: null, kind: TOOL_CALL_KIND, message: `${call.tool} ${call.ok ? 'ok' : 'failed'} in ${call.ms} ms`, data: call as unknown as Record<string, unknown>, jobId: who.jobId ?? (job?.jobId || null), runId });
+}
+
+/** The tool calls of these runs: the JSONB arrays runs kept before step 15, then their TOOL_CALL events, by time. */
+export async function toolCallsOf(runs: Array<{ id: string; toolCalls: ToolCall[] | null }>): Promise<Map<string, ToolCall[]>> {
+  const out = new Map(runs.map((r) => [r.id, [...(r.toolCalls ?? [])]]));
+  if (!runs.length) return out;
+  const rows = await db().select({ runId: schema.studioEvents.runId, data: schema.studioEvents.data }).from(schema.studioEvents).where(and(eq(schema.studioEvents.kind, TOOL_CALL_KIND), inArray(schema.studioEvents.runId, runs.map((r) => r.id)))).orderBy(schema.studioEvents.id);
+  for (const r of rows) if (r.runId) out.get(r.runId)?.push(r.data as unknown as ToolCall);
+  for (const list of out.values()) list.sort((a, b) => a.at.localeCompare(b.at));
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ job attempts
+
+/** An attempt begins (the worker claimed the job): its row in job_attempts (step 15). A pass of an orchestrator is an
+ *  attempt too. */
+export async function startAttempt(job: Pick<Job, 'id' | 'type' | 'attempts' | 'productionId' | 'shotId'>, workerId: string, runId?: string) {
+  const now = new Date().toISOString();
+  await db().insert(schema.jobAttempts).values({ jobId: job.id, attempt: job.attempts, jobType: job.type, productionId: job.productionId ?? null, shotId: job.shotId ?? null, workerId, runId: runId || null, startedAt: now })
+    .onConflictDoUpdate({ target: [schema.jobAttempts.jobId, schema.jobAttempts.attempt], set: { workerId, runId: runId || null, startedAt: now, finishedAt: null, outcome: null } });
+}
+
+/** How an attempt ended. A failure's class and message are written by `reliabilityEvent` (the classification step). */
+export async function finishAttempt(jobId: string, attempt: number, out: { outcome: 'COMPLETED' | 'AWAITING_REVIEW' | 'WAITING' | 'FAILED' | 'CANCELLED' | 'LEASE_LOST'; ms?: number; failureClass?: FailureClass; failureMessage?: string }) {
+  await db().update(schema.jobAttempts).set({ finishedAt: new Date().toISOString(), outcome: out.outcome, ...(out.ms !== undefined ? { ms: out.ms } : {}), ...(out.failureClass ? { failureClass: out.failureClass } : {}), ...(out.failureMessage ? { failureMessage: out.failureMessage.slice(0, 2000) } : {}) })
+    .where(and(eq(schema.jobAttempts.jobId, jobId), eq(schema.jobAttempts.attempt, attempt)));
 }
 
 export async function finishRun(runId: string, out: { outcome: 'COMPLETED' | 'AWAITING_REVIEW' | 'FAILED' | 'CANCELLED'; failureClass?: FailureClass; errorMessage?: string; ms: number; costUsd?: number }) {
@@ -157,13 +193,33 @@ export async function listStudioEvents(opts: StudioEventQuery = {}): Promise<Stu
 
 // ------------------------------------------------------------------------------------------- reliability events
 
+/** A failed attempt, classified (the Reliability Engineer's step): its class, message and the automatic change, on
+ *  the attempt's row in job_attempts (step 15; reliability_events is no longer written). */
 export async function reliabilityEvent(e: { job: Job; failureClass: FailureClass; failureMessage?: string; changeMade?: string }) {
-  await db().insert(schema.reliabilityEvents).values({ id: nid('rel'), jobId: e.job.id, jobType: e.job.type, productionId: e.job.productionId ?? null, shotId: e.job.shotId ?? null, attempt: e.job.attempts, failureClass: e.failureClass, failureMessage: e.failureMessage?.slice(0, 2000) ?? null, changeMade: e.changeMade ?? null, resolved: false, createdAt: new Date().toISOString() });
+  const now = new Date().toISOString();
+  const failure = { finishedAt: now, outcome: 'FAILED', failureClass: e.failureClass, failureMessage: e.failureMessage?.slice(0, 2000) ?? null, changeMade: e.changeMade ?? null, resolved: false };
+  await db().insert(schema.jobAttempts).values({ jobId: e.job.id, attempt: e.job.attempts, jobType: e.job.type, productionId: e.job.productionId ?? null, shotId: e.job.shotId ?? null, startedAt: now, ...failure })
+    .onConflictDoUpdate({ target: [schema.jobAttempts.jobId, schema.jobAttempts.attempt], set: failure });
 }
 
-/** A later successful attempt resolves the open events of its job. */
+/** A later successful attempt resolves the open failures of its job. */
 export async function resolveReliability(jobId: string, changeMade: string) {
-  await db().update(schema.reliabilityEvents).set({ resolved: true, changeMade: dsql`coalesce(${schema.reliabilityEvents.changeMade}, ${changeMade})` }).where(and(eq(schema.reliabilityEvents.jobId, jobId), eq(schema.reliabilityEvents.resolved, false)));
+  await db().update(schema.jobAttempts).set({ resolved: true, changeMade: dsql`coalesce(${schema.jobAttempts.changeMade}, ${changeMade})` }).where(and(eq(schema.jobAttempts.jobId, jobId), isNotNull(schema.jobAttempts.failureClass), eq(schema.jobAttempts.resolved, false)));
+}
+
+/** The producer says what was changed before a retry: on the job's open failures. */
+export async function recordChangeMade(jobId: string, changeMade: string) {
+  await db().update(schema.jobAttempts).set({ changeMade }).where(and(eq(schema.jobAttempts.jobId, jobId), isNotNull(schema.jobAttempts.failureClass), eq(schema.jobAttempts.resolved, false)));
+}
+
+/** Failures as the reliability lists show them (the shape reliability_events had). */
+export interface FailureRow { id: string; jobId: string; jobType: string; productionId: string | null; shotId: string | null; attempt: number; failureClass: string; failureMessage: string | null; changeMade: string | null; resolved: boolean; createdAt: string }
+export async function listFailures(opts: { jobIds?: string[]; since?: string; limit?: number }): Promise<FailureRow[]> {
+  const conds = [isNotNull(schema.jobAttempts.failureClass)];
+  if (opts.jobIds) { if (!opts.jobIds.length) return []; conds.push(inArray(schema.jobAttempts.jobId, opts.jobIds)); }
+  if (opts.since) conds.push(gt(schema.jobAttempts.startedAt, opts.since));
+  const rows = await db().select().from(schema.jobAttempts).where(and(...conds)).orderBy(desc(dsql`coalesce(${schema.jobAttempts.finishedAt}, ${schema.jobAttempts.startedAt})`)).limit(Math.min(500, opts.limit ?? 50));
+  return rows.map((r) => ({ id: `${r.jobId}#${r.attempt}`, jobId: r.jobId, jobType: r.jobType, productionId: r.productionId, shotId: r.shotId, attempt: r.attempt, failureClass: r.failureClass!, failureMessage: r.failureMessage, changeMade: r.changeMade, resolved: r.resolved, createdAt: r.finishedAt ?? r.startedAt }));
 }
 
 // ------------------------------------------------------------------------------------------- handoffs, QA, approvals
@@ -268,8 +324,9 @@ export async function agentStats(hours = 24 * 30): Promise<AgentStat[]> {
       count(*) filter (where attempt <= 1 and outcome is not null and outcome <> 'CANCELLED') as firsts,
       percentile_cont(0.5) within group (order by ms) filter (where outcome in ('COMPLETED','AWAITING_REVIEW')) as p50_ms,
       max(started_at) as last_run_at,
-      coalesce(sum(jsonb_array_length(tool_calls)), 0) as tool_calls,
-      coalesce(sum((select count(*) from jsonb_array_elements(tool_calls) c where (c->>'ok') = 'false')), 0) as tool_failures
+      -- tool calls: the JSONB arrays of runs before step 15, plus their TOOL_CALL events
+      coalesce(sum(jsonb_array_length(tool_calls)), 0) + coalesce(sum((select count(*) from studio_events e where e.run_id = agent_runs.id and e.kind = 'TOOL_CALL')), 0) as tool_calls,
+      coalesce(sum((select count(*) from jsonb_array_elements(tool_calls) c where (c->>'ok') = 'false')), 0) + coalesce(sum((select count(*) from studio_events e where e.run_id = agent_runs.id and e.kind = 'TOOL_CALL' and (e.data->>'ok') = 'false')), 0) as tool_failures
     from agent_runs where started_at > ${since} group by agent_id`);
   return rows.map((r) => ({ agentId: r.agent_id, runs: Number(r.runs), completed: Number(r.completed), failed: Number(r.failed), cancelled: Number(r.cancelled), running: Number(r.running), firstAttemptOk: Number(r.first_ok), firstAttempts: Number(r.firsts), p50Ms: r.p50_ms === null ? null : Number(r.p50_ms), lastRunAt: r.last_run_at, toolCalls: Number(r.tool_calls), toolFailures: Number(r.tool_failures) }));
 }
@@ -283,7 +340,9 @@ export async function listAgentRuns(opts: { agentId?: string; departmentId?: str
   if (opts.productionId) conds.push(eq(schema.agentRuns.productionId, opts.productionId));
   if (opts.jobId) conds.push(eq(schema.agentRuns.jobId, opts.jobId));
   const rows = await db().select().from(schema.agentRuns).where(conds.length ? and(...conds) : undefined).orderBy(desc(schema.agentRuns.startedAt)).limit(Math.min(500, opts.limit ?? 50));
-  return rows as AgentRunRow[];
+  // the run's tool calls as before: its old JSONB array and its TOOL_CALL events (step 15), by time
+  const calls = await toolCallsOf(rows as Array<{ id: string; toolCalls: ToolCall[] }>);
+  return rows.map((r) => ({ ...r, toolCalls: calls.get(r.id) ?? [] })) as AgentRunRow[];
 }
 
 export interface ReliabilitySummary {
@@ -298,7 +357,7 @@ export interface ReliabilitySummary {
   openEvents: Array<{ id: string; jobId: string; jobType: string; productionId: string | null; shotId: string | null; attempt: number; failureClass: string; failureMessage: string | null; changeMade: string | null; resolved: boolean; createdAt: string }>;
 }
 
-/** The reliability dashboard, from agent runs, reliability events, QA reports and job rows. */
+/** The reliability dashboard, from agent runs, job attempts (failures), QA reports and job rows. */
 export async function reliabilitySummary(hours = 24 * 7): Promise<ReliabilitySummary> {
   const since = new Date(Date.now() - hours * 3600_000).toISOString();
   const [tech] = await db().execute<{ ok: string; total: string }>(dsql`select count(*) filter (where outcome in ('COMPLETED','AWAITING_REVIEW')) as ok, count(*) as total from agent_runs where attempt <= 1 and outcome is not null and outcome <> 'CANCELLED' and started_at > ${since}`);
@@ -308,7 +367,7 @@ export async function reliabilitySummary(hours = 24 * 7): Promise<ReliabilitySum
     from agent_runs r join lateral (select decision from qa_reports where subject_kind = 'TAKE' and job_id = r.job_id order by created_at asc limit 1) q on true
     where r.job_type = 'GENERATE_TAKE' and r.attempt <= 1 and r.started_at > ${since}`);
   const [retry] = await db().execute<{ retried: string; jobs: string }>(dsql`select count(*) filter (where attempts > 1) as retried, count(*) as jobs from jobs where created_at > ${since} and status in ('COMPLETED','FAILED','AWAITING_REVIEW')`);
-  const classes = await db().execute<{ failure_class: string; count: string; resolved: string }>(dsql`select failure_class, count(*) as count, count(*) filter (where resolved) as resolved from reliability_events where created_at > ${since} group by failure_class order by count desc`);
+  const classes = await db().execute<{ failure_class: string; count: string; resolved: string }>(dsql`select failure_class, count(*) as count, count(*) filter (where resolved) as resolved from job_attempts where failure_class is not null and started_at > ${since} group by failure_class order by count desc`);
   const [shots] = await db().execute<{ takes: string; accepted: string; mean_ms: number | null; mean_attempts: number | null; cost: number | null }>(dsql`
     select count(*) as takes,
       count(*) filter (where outcome in ('COMPLETED','AWAITING_REVIEW')) as accepted,
@@ -318,7 +377,7 @@ export async function reliabilitySummary(hours = 24 * 7): Promise<ReliabilitySum
     from agent_runs where job_type = 'GENERATE_TAKE' and started_at > ${since}`);
   const [qa] = await db().execute<{ reports: string; rejected: string; review: string }>(dsql`select count(*) as reports, count(*) filter (where decision = 'REJECT') as rejected, count(*) filter (where decision = 'REVIEW') as review from qa_reports where created_at > ${since}`);
   const [exp] = await db().execute<{ ok: string; total: string }>(dsql`select count(*) filter (where outcome = 'COMPLETED') as ok, count(*) as total from agent_runs where job_type = 'EXPORT' and outcome is not null and started_at > ${since}`);
-  const open = await db().select().from(schema.reliabilityEvents).where(gt(schema.reliabilityEvents.createdAt, since)).orderBy(desc(schema.reliabilityEvents.createdAt)).limit(50);
+  const open = await listFailures({ since, limit: 50 });
   return {
     hours,
     firstAttemptTechnical: { ok: Number(tech?.ok ?? 0), total: Number(tech?.total ?? 0) },

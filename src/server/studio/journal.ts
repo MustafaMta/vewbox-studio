@@ -1,8 +1,9 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import type { StudioState } from '@/domain/types';
 import { runCommand, type Command } from '@/domain/commands';
 import { canonical, hashString } from '@/domain/hash';
 import { db, schema } from '../db/client';
+import { batchScope } from './scope';
 
 /** THE COMMAND JOURNAL (docs/BACKEND-AUDIT-2026-10.md H10, step 9). Every batch the studio applies is written to
  *  `command_log` in the batch's own transaction: who sent it (the page's client id, or `worker`/`server`), the job it
@@ -47,4 +48,36 @@ export function replayLog(state: StudioState, entries: Array<Pick<LogEntry, 'ok'
     for (const c of e.commands) s = runCommand(s, c).state;
   }
   return s;
+}
+
+/** A journal entry as the engine room shows it (GET /api/studio/commands): WHO sent WHAT command to WHICH aggregate and
+ *  how it ended — never the arguments (they carry the producer's text, prompts, file paths and provenance) and never
+ *  the seeds (with the client and batch ids they would let a caller forge a replay). `sender` is `worker`, `server`,
+ *  `seed`, `restore`… or `page:` plus the first six characters of the page's session id. */
+export interface CommandLogView {
+  id: number; at: string; sender: string; jobId: string | null; ok: boolean; studioVersion: number;
+  commands: Array<{ name: string; /** the aggregates it was classified to write: `production:<id>`, `character:<id>`, … (`studio` for a whole-studio command) */ touches: string[] }>;
+  /** a refused batch: which command and why */
+  refused?: { failedAt: number; code: string; message: string };
+  replayed?: boolean;
+}
+
+const SYSTEM_SENDERS = new Set(['worker', 'server', 'seed', 'restore', 'bench', 'reset']);
+export const senderOf = (origin: string): string => (SYSTEM_SENDERS.has(origin) ? origin : `page:${origin.slice(0, 6)}`);
+
+/** Pure: a command_log row as the engine room sees it. */
+export function commandLogView(r: { id: number; origin: string; jobId: string | null; commands: Array<{ name: string; args: unknown[] }>; ok: boolean; result: Record<string, unknown>; studioVersion: number; createdAt: string }): CommandLogView {
+  const commands = r.commands.map((c) => {
+    const sc = batchScope([{ name: c.name as Command['name'], args: (Array.isArray(c.args) ? c.args : []) as never }]);
+    return { name: c.name, touches: sc.full ? ['studio'] : [...sc.locks].map((k) => k.replace(/^studio:/, '')).sort() };
+  });
+  const err = r.result.error as { code?: string; message?: string } | undefined;
+  return { id: r.id, at: r.createdAt, sender: senderOf(r.origin), jobId: r.jobId, ok: r.ok, studioVersion: r.studioVersion, commands, ...(!r.ok ? { refused: { failedAt: Number(r.result.failedAt ?? 0), code: String(err?.code ?? 'UNKNOWN'), message: String(err?.message ?? '').slice(0, 300) } } : {}) };
+}
+
+/** The newest `limit` journal entries (1–200, default 50), newest first. */
+export async function recentCommands(limit = 50): Promise<CommandLogView[]> {
+  const n = Math.min(200, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 50)));
+  const rows = await db().select({ id: schema.commandLog.id, origin: schema.commandLog.origin, jobId: schema.commandLog.jobId, commands: schema.commandLog.commands, ok: schema.commandLog.ok, result: schema.commandLog.result, studioVersion: schema.commandLog.studioVersion, createdAt: schema.commandLog.createdAt }).from(schema.commandLog).orderBy(desc(schema.commandLog.id)).limit(n);
+  return rows.map(commandLogView);
 }

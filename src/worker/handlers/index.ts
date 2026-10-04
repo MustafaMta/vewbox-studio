@@ -37,10 +37,6 @@ export interface HandlerContext {
 
 export type Handler = (ctx: HandlerContext) => Promise<(Record<string, unknown> & { awaitingReview?: boolean }) | void>;
 
-/** `step(ctx, '<agent>', '<step id>: <detail>', fn)` — a specialist's delegated step; see ./step.ts (import it from
- *  there inside a handler, so the handler does not import this table). */
-export { step } from './step';
-
 import { mediaProbe } from './media-probe';
 import { designCharacter, developStory, episodeContinuity, writeScript, planShots } from './story';
 import { autoIdea, ideaAudience, ideaConcepts, ideaResearch, ideaReview, ideaWrite } from './development';

@@ -63,5 +63,5 @@ export { identitySeedFor, seedFromId } from './identity';
 // the canonical character image and its identity line (docs/CONTRACTS-IDENTITY-PACK.md v2; the handler is
 // src/worker/handlers/images.ts)
 export * from './canonical-image';
-export { minimaxH3Video, h3FrameCount, h3AlignFrames, h3GuideClipFrames, h3GuideFits, h3Seconds, h3GraphKind, H3_FPS, H3_MIN_FRAMES, H3_MAX_FRAMES, H3_GUIDE_FRAMES } from './minimax-h3';
+export { minimaxH3Video, h3FrameCount, h3GraphKind, H3_FPS } from './minimax-h3';
 export { aceStepSong, minimaxMusic3Song } from './music';

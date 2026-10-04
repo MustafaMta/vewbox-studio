@@ -16,15 +16,18 @@ const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: tru
 
 describe('phase events stay out of the activity lists', () => {
   it('RUN_PHASE is the bookkeeping kind; real work is not', () => {
-    expect(ACTIVITY_HIDDEN_KINDS).toEqual(['RUN_PHASE']);
+    // TOOL_CALL (step 15): one row per tool call, the run's record — never activity
+    expect(ACTIVITY_HIDDEN_KINDS).toEqual(['RUN_PHASE', 'TOOL_CALL']);
     expect(isActivityNoise('RUN_PHASE')).toBe(true);
+    expect(isActivityNoise('TOOL_CALL')).toBe(true);
     for (const k of ['RUN_STARTED', 'RUN_COMPLETED', 'RUN_FAILED', 'TAKE_ACCEPTED', 'NOTE_ADDED', 'HANDOFF', undefined, null, '']) expect(isActivityNoise(k)).toBe(false);
   });
   it('every activity query leaves RUN_PHASE out unless the status row asks for it', () => {
     for (const opts of [{}, { productionId: 'p' }, { departmentId: 'VIDEO' }, { agentId: 'video-director' }, { since: '2026-10-03T00:00:00.000Z' }]) {
       const q = where(opts);
-      expect(q.sql).toMatch(/"studio_events"\."kind" not in \(\$\d+\)/);
+      expect(q.sql).toMatch(/"studio_events"\."kind" not in \(\$\d+, \$\d+\)/);
       expect(q.params).toContain('RUN_PHASE');
+      expect(q.params).toContain('TOOL_CALL');
     }
     const q = where({ jobId: 'job-1', includeBookkeeping: true });
     expect(q.sql).not.toMatch(/not in/);
@@ -35,7 +38,7 @@ describe('phase events stay out of the activity lists', () => {
     const readers = files.filter((f) => /from\(schema\.studioEvents\)/.test(fs.readFileSync(f, 'utf8')));
     expect(readers.map((f) => f.replace(/\\/g, '/'))).toEqual(['src/server/org/runs.ts']);
     const routes = files.filter((f) => /listStudioEvents\(/.test(fs.readFileSync(f, 'utf8')) && !f.endsWith('runs.ts'));
-    expect(routes.length).toBeGreaterThanOrEqual(5); // org, events, department, production, agent
+    expect(routes.length).toBeGreaterThanOrEqual(4); // org, department, production, agent (the unused /api/studio/org/events route was removed, step 17)
     for (const f of routes) expect(fs.readFileSync(f, 'utf8')).not.toMatch(/includeBookkeeping/);
   });
   it('the browser does not refetch on a phase notice', () => {

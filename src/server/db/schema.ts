@@ -340,6 +340,10 @@ export const jobs = pgTable('jobs', {
   takeId: text('take_id'),
   characterId: text('character_id'),
   locationId: text('location_id'),
+  /** ORCHESTRATION AS DATA (step 14): how often a WAITING parent was woken by its children (a wake is not an attempt:
+   *  attempts - wakes is the failure round), and the plan an orchestrator keeps between its passes */
+  wakes: integer('wakes').notNull().default(0),
+  plan: jsonb('plan').$type<Record<string, unknown>>(),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 }, (t) => [uniqueIndex('jobs_idempotency_idx').on(t.idempotencyKey), index('jobs_status_idx').on(t.status, t.priority, t.createdAt), index('jobs_production_idx').on(t.productionId), index('jobs_parent_idx').on(t.parentId),
@@ -347,6 +351,14 @@ export const jobs = pgTable('jobs', {
   // two concurrent requests can never both insert one (audit H4)
   uniqueIndex('jobs_one_active_per_character').on(t.type, t.characterId).where(sql`status in ('QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and type in ('VOICE_BUILD', 'VOICE_DESIGN', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS') and character_id is not null`)]);
 
+/** WHAT A JOB WAITS FOR (docs/BACKEND-AUDIT-2026-10.md M1, step 14). A parent that has queued its children suspends as
+ *  WAITING with one row per child; the child's completion, failure or cancellation (or review) wakes the parent once
+ *  every child it waits for has settled (src/server/jobs/queue.ts suspend / wakeParents). */
+export const jobDependencies = pgTable('job_dependencies', {
+  jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  dependsOn: text('depends_on').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [primaryKey({ columns: [t.jobId, t.dependsOn] }), index('job_dependencies_depends_on_idx').on(t.dependsOn)]);
 export const jobEvents = pgTable('job_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
@@ -392,14 +404,6 @@ export const metrics = pgTable('metrics', {
   unit: text('unit'),
   labels: jsonb('labels').$type<Record<string, string | number | boolean>>(),
 }, (t) => [index('metrics_name_idx').on(t.name, t.at)]);
-
-export const continuityVersions = pgTable('continuity_versions', {
-  id: bigserial('id', { mode: 'number' }).primaryKey(),
-  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'cascade' }),
-  version: integer('version').notNull(),
-  state: jsonb('state').$type<ContinuityState>().notNull(),
-  createdAt: ts('created_at').notNull(),
-}, (t) => [index('continuity_shot_idx').on(t.shotId, t.version)]);
 
 // ------------------------------------------------------------------------------------------- the studio organisation
 // Departments, agents, tools and skills are defined in code (src/server/org/model.ts) and persisted here with their
@@ -614,8 +618,32 @@ export const studioEvents = pgTable('studio_events', {
   message: text('message').notNull(),
   data: jsonb('data').$type<Record<string, unknown>>(),
   jobId: text('job_id'),
-}, (t) => [index('studio_events_at_idx').on(t.at), index('studio_events_production_idx').on(t.productionId, t.at)]);
+  /** the agent run an event belongs to (a TOOL_CALL row: one per tool call, step 15) */
+  runId: text('run_id'),
+}, (t) => [index('studio_events_at_idx').on(t.at), index('studio_events_production_idx').on(t.productionId, t.at), index('studio_events_run_idx').on(t.runId)]);
 
+/** ONE ROW PER ATTEMPT OF A JOB (docs/BACKEND-AUDIT-2026-10.md M4, step 15): who ran it, when, how it ended, and — for a
+ *  failure — its class, its message, what was changed before the next attempt and whether a later attempt resolved
+ *  it. Replaces reliability_events (no longer written; kept read-only for one release). An orchestrator's passes are
+ *  attempts too (claimed once each). */
+export const jobAttempts = pgTable('job_attempts', {
+  jobId: text('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  attempt: integer('attempt').notNull(),
+  jobType: text('job_type').notNull(),
+  productionId: text('production_id'),
+  shotId: text('shot_id'),
+  workerId: text('worker_id'),
+  runId: text('run_id'),
+  startedAt: ts('started_at').notNull(),
+  finishedAt: ts('finished_at'),
+  /** COMPLETED | AWAITING_REVIEW | WAITING | FAILED | CANCELLED | LEASE_LOST; null while it runs */
+  outcome: text('outcome'),
+  failureClass: text('failure_class'),
+  failureMessage: text('failure_message'),
+  changeMade: text('change_made'),
+  resolved: boolean('resolved').notNull().default(false),
+  ms: integer('ms'),
+}, (t) => [primaryKey({ columns: [t.jobId, t.attempt] }), index('job_attempts_failure_idx').on(t.failureClass, t.finishedAt)]);
 /** A repeated attempt, investigated: what failed, why, what changed. */
 export const reliabilityEvents = pgTable('reliability_events', {
   id: text('id').primaryKey(),

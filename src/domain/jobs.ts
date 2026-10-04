@@ -71,6 +71,12 @@ export interface Job {
   locationId?: string;
   createdAt: string;
   updatedAt: string;
+  /** an orchestrator between its passes, waiting for the jobs it queued (step 14): its status reads GENERATING */
+  waiting?: boolean;
+  /** how often its children woke it (a wake is not an attempt) */
+  wakes?: number;
+  /** an orchestrator's plan, kept between its passes */
+  plan?: Record<string, unknown>;
 }
 
 export interface JobEvent { id: number; jobId: string; at: string; level: 'info' | 'warn' | 'error'; message: string; data?: Record<string, unknown> }
@@ -131,7 +137,8 @@ export const JOB_PAYLOADS = {
    *  heard through the line engine; the producer then builds with VOICE_BUILD { mode: 'DESIGN', designId, candidate }. */
   VOICE_DESIGN: z.object({ characterId: id, description: z.string().trim().min(3).max(300).optional(), text: z.string().trim().min(10).max(400).optional(), seed: z.number().int().min(0).max(2 ** 31 - 4).optional(), n: z.number().int().min(1).max(3).optional() }),
   VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
-  DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), force: z.boolean().optional() }),
+  /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
+  DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
   ASSEMBLE: z.object({ productionId: id }),
   EXPORT: z.object({ productionId: id, format: z.enum(['mp4-h264', 'mp4-h265', 'mov-prores']), resolution: z.enum(['720', '1080', '2160']), subtitles: z.enum(['none', 'ar', 'en', 'both']) }),

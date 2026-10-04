@@ -18,12 +18,6 @@ export function criteriaFor(kind: IdeaContext['kind']): ReviewCriterion[] {
   return REVIEW_CRITERIA.filter((c) => (c === 'CONTINUITY' ? kind === 'SEASON' || kind === 'EPISODE' : c === 'MUSIC_FIT' ? kind === 'MUSIC_VIDEO' : c === 'DIALOGUE' ? kind !== 'MUSIC_VIDEO' : true));
 }
 
-/** What each reviewer reads for: the Story Editor the craft, the Audience Experience Agent the viewer's experience. */
-export const FOCUS: Record<Reviewer, ReviewCriterion[]> = {
-  STORY_EDITOR: ['CLARITY', 'CHARACTER', 'CONFLICT', 'PROGRESSION', 'ENDING', 'DIALOGUE', 'CONTINUITY', 'MUSIC_FIT', 'ORIGINALITY'],
-  AUDIENCE_EXPERIENCE: ['OPENING', 'CURIOSITY', 'EMOTION', 'PACING', 'VISUAL', 'ENDING', 'ORIGINALITY', 'MUSIC_FIT'],
-};
-
 const slug = (s: string) => s.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 const SYN: Record<string, ReviewCriterion> = { HOOK: 'OPENING', BEGINNING: 'OPENING', ORIGINAL: 'ORIGINALITY', CHARACTERS: 'CHARACTER', RHYTHM: 'PACING', STAKES: 'CONFLICT', SUSPENSE: 'CURIOSITY', VISUALS: 'VISUAL', ARC: 'PROGRESSION', PAYOFF: 'ENDING', LINES: 'DIALOGUE', DIALECT: 'DIALOGUE', SONG: 'MUSIC_FIT', MUSIC: 'MUSIC_FIT' };
 

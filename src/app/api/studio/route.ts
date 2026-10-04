@@ -5,6 +5,7 @@ import { capabilities } from '@/server/env';
 import { json, route } from '@/server/http';
 import { bootstrap } from '@/server/bootstrap';
 import { listNotes } from '@/server/studio/notes';
+import { settingsHonoured } from '@/domain/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,10 @@ export const dynamic = 'force-dynamic';
  *  Beside the state (not inside it, so the hash stays the state's): the Screening Room notes (B2). */
 export const GET = route(async () => {
   await bootstrap();
-  const { state, version, hash } = await readState();
+  // serialised as it is: no copy (one consistent snapshot, read once per studio version — step 13c)
+  const { state, version, hash } = await readState({ shared: true });
   const [meta, notes] = await Promise.all([db().select().from(schema.studioMeta).where(eq(schema.studioMeta.id, 'studio')), listNotes()]);
-  return json({ state, version, hash, seeded: meta[0] ? { kind: meta[0].seedKind, at: meta[0].seededAt, version: meta[0].seedVersion } : null, capabilities: capabilities(), notes }, { headers: { 'Cache-Control': 'no-store' } });
+  const caps = capabilities();
+  // beside the state (never in its hash): which settings take effect today
+  return json({ state, version, hash, seeded: meta[0] ? { kind: meta[0].seedKind, at: meta[0].seededAt, version: meta[0].seedVersion } : null, capabilities: caps, notes, settingsHonoured: settingsHonoured({ minimax: caps.minimax }) }, { headers: { 'Cache-Control': 'no-store' } });
 });

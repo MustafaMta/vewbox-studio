@@ -953,6 +953,22 @@ export function deleteAsset(s: S, id: string): S {
 
 // ------------------------------------------------------------------------------------------------- Auto Idea
 
+/** A name as a key for "is this the same character or place": Unicode-compatibility folded, case and diacritics
+ *  dropped (Latin accents; Arabic harakat, hamza and madda marks), tatweel removed, Arabic alef forms, alef maqsura and
+ *  taa marbuta unified, apostrophes dropped (Elias's = Elias’s = Eliass), other punctuation and runs of whitespace one
+ *  space. Pure. */
+export function nameKey(name: string): string {
+  return name.normalize('NFKD').replace(/\p{M}/gu, '').replace(/ـ/g, '').replace(/[ٱأإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .toLowerCase().replace(/['‘’ʼ`´]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/** The record whose name (or Arabic name) has the same `nameKey`, if any. */
+export function findByName<T extends { name: string; nameAr?: string }>(xs: T[], name: string): T | undefined {
+  const k = nameKey(name);
+  if (!k) return undefined;
+  return xs.find((x) => nameKey(x.name) === k || (x.nameAr !== undefined && nameKey(x.nameAr) === k));
+}
+
 /** Accept a reviewed proposal: create the new characters and places the producer kept (with no appearance yet),
  *  then the production — or, for a show, the show with its first season and first episode — with the structure as
  *  scenes. Nothing else is invented: kept existing characters and places are linked, not copied. */
@@ -962,11 +978,17 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
   let castIds: string[] = []; let locationIds: string[] = [];
   for (const c of pr.cast.filter((x) => input.keepCast.includes(x.key))) {
     if (c.characterId) { castIds.push(c.characterId); continue; }
+    // a proposal may name someone the studio already has without their id: the existing character is linked, never
+    // copied (case-, spacing-, apostrophe- and Arabic-spelling-insensitive, on the name and the Arabic name)
+    const known = findByName(st.characters, c.name);
+    if (known) { castIds.push(known.id); continue; }
     const r = addCharacter(st, { name: c.name, role: c.role, style: pr.style, sex: c.sex ?? 'FEMALE', ageYears: c.ageYears ?? 30, build: '', face: c.appearance ?? '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: c.personality ?? c.reason, language: pr.language, dialect: pr.dialect, notes: pr.sample ? 'Proposed by Auto Idea (sample proposal).' : `Proposed by Auto Idea for “${pr.title}”: ${c.reason}` });
     st = r.state; castIds.push(r.character.id);
   }
   for (const l of pr.locations.filter((x) => input.keepLocations.includes(x.key))) {
     if (l.locationId) { locationIds.push(l.locationId); continue; }
+    const known = findByName(st.locations, l.name);
+    if (known) { locationIds.push(known.id); continue; }
     const r = addLocation(st, { name: l.name, kind: l.kind ?? 'EXTERIOR', description: l.description, style: pr.style, lighting: [], landmarks: [], props: [] });
     st = r.state; locationIds.push(r.location.id);
   }

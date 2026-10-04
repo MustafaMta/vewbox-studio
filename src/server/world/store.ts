@@ -27,10 +27,6 @@ export async function revisionById(id: string): Promise<WorldRevision | undefine
   return rows[0] ? toRevision(rows[0]) : undefined;
 }
 
-export async function listRevisions(key: string, limit = 50): Promise<WorldRevision[]> {
-  return (await db().select().from(schema.worldRevisions).where(eq(schema.worldRevisions.scopeKey, key)).orderBy(desc(schema.worldRevisions.number)).limit(limit)).map(toRevision);
-}
-
 /** Append the next revision of a scope: `build` gets the latest revision (or none) and returns the next bible. Under
  *  the scope's lock; a bible identical to the latest (same hash) is not written and the latest comes back. */
 export async function appendRevision(scope: WorldScope, build: (latest: WorldRevision | undefined) => WorldBible, meta: { author: WorldRevision['author']; reason: string; jobId?: string }): Promise<{ revision: WorldRevision; created: boolean }> {

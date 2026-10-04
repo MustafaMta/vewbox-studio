@@ -1,9 +1,8 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import { execFileP } from './exec';
 import { DEFAULT_FOCAL, type Presentation } from '@/domain/presentation';
 import { ffmpeg } from './ffmpeg';
-import { oklchToRgb8, parseOklch } from './presentation';
+import { oklchToRgb8, parseOklch, probeImage } from './presentation';
 
 // ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
 
@@ -105,12 +104,6 @@ export async function encodeToBudget(input: string, out: string, o: EncodeOpts):
 
 /** Pixel format with an alpha channel (rgba, bgra, ya8, pal8 with transparency, …). */
 export const hasAlphaFormat = (pixFmt?: string): boolean => Boolean(pixFmt && /a|pal8/.test(pixFmt.replace(/^gray/, '')) && !/^yuv(j)?4\d\dp(\d+)?(le|be)?$/.test(pixFmt));
-
-async function probeImage(file: string): Promise<{ width: number; height: number; pixFmt?: string }> {
-  const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height,pix_fmt', '-of', 'json', file], { maxBuffer: 1024 * 1024, timeout: 30_000 });
-  const s = (JSON.parse(stdout) as { streams?: Array<{ width?: number; height?: number; pix_fmt?: string }> }).streams?.[0];
-  return { width: Number(s?.width) || 0, height: Number(s?.height) || 0, pixFmt: s?.pix_fmt };
-}
 
 export interface MadeFile { width: number; height: number; bytes: number }
 
