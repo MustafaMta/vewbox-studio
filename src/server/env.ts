@@ -31,6 +31,11 @@ const Schema = z.object({
   OPENAI_COMPATIBLE_BASE_URL: z.string().optional().default(''),
   OPENAI_COMPATIBLE_API_KEY: z.string().optional().default(''),
   OPENAI_COMPATIBLE_MODEL: z.string().optional().default(''),
+  /** The local Ollama only (the OpenAI-compatible server on :11434): the context window asked for per request (num_ctx;
+   *  the llm service's OLLAMA_CONTEXT_LENGTH carries the same value) and how long a model stays loaded after a request
+   *  (keep_alive; the lease unloads it earlier with keep_alive 0 when another family takes the card). */
+  OLLAMA_CONTEXT_LENGTH: z.coerce.number().int().positive().default(16384),
+  OLLAMA_KEEP_ALIVE: z.string().default('2m'),
   /** Local GPU services. */
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),

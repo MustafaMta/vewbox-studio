@@ -353,6 +353,42 @@ large-v3). Log the CPU int8 real-time factor for the D-phase take gate.
 - **Keep dated copies of:** the H3 and Music 3 licences; the Habibi README (per-dialect Apache grant vs the repo-wide
   NC tag); the bilibili licence ("may not improve other models").
 
+## 7. Verified artefacts (2026-10-04)
+
+DevOps, 2026-10-04, from the primary sources linked below. These are the exact artefacts the Docker files pin
+(`docker/models/manifest.json` group `stack-2026-10`, `compose.yaml` services `llm`, `llm-pull`, `asr`,
+`asr-convert`). The quality tests in §5 still decide what replaces what; nothing current is removed.
+
+### 7.1 Gemma 4 31B-it (planning LLM + VLM)
+
+| Item | Value |
+|---|---|
+| Hugging Face | [`google/gemma-4-31B-it`](https://huggingface.co/google/gemma-4-31B-it): Apache-2.0, **not gated**, task `image-text-to-text`, 31.27B parameters |
+| Ollama tag chosen | [`gemma4:31b-it-qat`](https://ollama.com/library/gemma4/tags): **19 GB**, Q4_0 (quantisation-aware), 256K context, text + image input |
+| Alternatives on the same page | `gemma4:31b-it-q4_K_M` 20 GB; `gemma4:31b-it-q8_0` 34 GB (does not fit the card with a KV cache) |
+| Ollama image | the pinned `ollama/ollama:0.12.3` predates Gemma 4. Docker Hub's newest stable on 2026-10-04 is **`0.35.1`**: `compose.yaml` pins `ollama/ollama:0.35.1` |
+| Where it lives | the `vewbox_ollama` volume (`/root/.ollama`), pulled by Ollama itself, **not** by the fetcher (see `llm-pull` in `compose.yaml`) |
+| Pull (model phase, needs the `llm` container) | `docker compose up -d llm` then `docker compose exec llm ollama pull gemma4:31b-it-qat`; or the one-off `docker compose --profile models run --rm llm-pull` (pulls `OLLAMA_PULL_MODELS`, default `qwen3:14b,gemma4:31b-it-qat`) |
+| Runtime settings | `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`, `OLLAMA_CONTEXT_LENGTH=16384` (the app sends it as `num_ctx`; the previous hard-coded 32768 is kept only as the documented upper bound to measure), `OLLAMA_KEEP_ALIVE=2m`, one model at a time |
+
+### 7.2 Iraqi Whisper (ASR, `language=ar`)
+
+| Item | Value |
+|---|---|
+| Hugging Face | [`oddadmix/whisper-large-v3-arabic-dialectal-v2`](https://huggingface.co/oddadmix/whisper-large-v3-arabic-dialectal-v2), Apache-2.0, base `openai/whisper-large-v3`, **transformers format** (no CTranslate2 conversion exists on the Hub) |
+| Pinned revision | `540fc225947aae2c0e990f05374f5f18d0a95066` |
+| `model.safetensors` | 6,174,112,552 bytes, sha256 `a4876ef7f2425f4c4c237228cb85add93bbbdce182794b310df3565c8bed5ac6` |
+| Other files (small, not LFS: the fetcher records their sha256 on download) | `config.json`, `generation_config.json`, `tokenizer.json`, `tokenizer_config.json`, `processor_config.json`, `dialect_wer.json` |
+| Reported quality (`dialect_wer.json`) | Iraqi WER 0.2544 / CER 0.0682, n = 200 (in-domain held-out clips) |
+| On the volume | `asr/whisper-large-v3-arabic-dialectal-v2-hf` (the seven files, group `stack-2026-10`) → one-off conversion `ct2-transformers-converter --quantization float16` → `asr/whisper-large-v3-arabic-dialectal-v2-ct2` (≈ 3.1 GB, what the `asr` service loads: `ASR_MODEL_DIR_AR`) |
+| Conversion command (after the download) | `docker compose --profile models run --rm asr-convert` (the `asr` image, no GPU; installs `transformers` for the run, copies `preprocessor_config.json` from the large-v3 folder because the fine-tune ships none and faster-whisper would default to 80 mel bins) |
+
+### 7.3 Volumes seen on the machine
+
+`docker volume ls` shows **`volexar-studio_models` (0 B, empty) beside `vewbox_models` (≈ 186 GB used, 655 GB free)**.
+It is a leftover from a compose run under the folder's default project name, before `name: vewbox`. It is left
+alone; it can be removed with `docker volume rm volexar-studio_models` once the producer confirms nothing mounts it.
+
 ## Sources (fetched 2026-10-04 unless marked)
 
 - **MiniMax H3:** [MiniMaxAI/MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) ·

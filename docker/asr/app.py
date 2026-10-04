@@ -4,6 +4,11 @@ POST /transcribe  multipart: file, language (ar|en|auto), prompt (optional), wor
 POST /separate    multipart: file, stems (two|four)  -> zip of WAV stems (vocals + no_vocals, or the four htdemucs stems)
 POST /unload      drop the models from the GPU (the worker calls this when another family needs the card)
 GET  /health      model names, loaded flags, GPU memory
+
+Two Whisper models, one on the card at a time (docs/research/MODEL-STACK-2026-10.md §3.9, §7.2): ASR_MODEL_DIR serves
+every language; ASR_MODEL_DIR_AR (the CTranslate2 copy of whisper-large-v3-arabic-dialectal-v2) serves `language=ar`
+when its model.bin exists. Each is loaded lazily on first use, and loading one drops the other first. The response's
+`model` says which one transcribed.
 """
 from __future__ import annotations
 
@@ -22,13 +27,32 @@ from fastapi.responses import JSONResponse, Response
 
 MODEL_DIR = os.environ.get("ASR_MODEL_DIR", "/models/asr/faster-whisper-large-v3")
 MODEL_NAME = os.environ.get("ASR_MODEL_NAME", "large-v3")
+# the Arabic-dialect model; empty = Arabic stays on the default model
+MODEL_DIR_AR = os.environ.get("ASR_MODEL_DIR_AR", "")
+MODEL_NAME_AR = os.environ.get("ASR_MODEL_NAME_AR", "large-v3-arabic-dialectal-v2")
 COMPUTE = os.environ.get("ASR_COMPUTE_TYPE", "float16")
 IRAQI_PROMPT = "شلونك؟ هواية زين. شنو صار؟ وين چنت؟ اكو شي؟ ماكو. خوش. گلب."
+
+# the Whisper models by key: "default" (every language) and "ar" (language=ar when its weights exist)
+MODELS: dict[str, dict[str, str]] = {"default": {"dir": MODEL_DIR, "name": MODEL_NAME}}
+if MODEL_DIR_AR:
+    MODELS["ar"] = {"dir": MODEL_DIR_AR, "name": MODEL_NAME_AR}
 
 app = FastAPI(title="vewbox-asr")
 _lock = threading.Lock()
 _model: Any = None
+_model_key: str | None = None  # which of MODELS is on the card
 _loaded_at: float | None = None
+
+
+def weights_present(key: str) -> bool:
+    return os.path.exists(os.path.join(MODELS[key]["dir"], "model.bin"))
+
+
+def model_key_for(lang: str | None) -> str:
+    """`ar` goes to the dialect model when it is configured and converted; everything else (and `ar` before the
+    conversion) to the default model."""
+    return "ar" if lang == "ar" and "ar" in MODELS and weights_present("ar") else "default"
 
 
 def gpu_mem() -> dict[str, int] | None:
@@ -43,17 +67,34 @@ def gpu_mem() -> dict[str, int] | None:
         return None
 
 
-def model():
-    global _model, _loaded_at
+def model(key: str = "default"):
+    """The Whisper model for `key`, loaded lazily. One model is on the card at a time: a different key drops the
+    loaded one (and its VRAM) before loading."""
+    global _model, _model_key, _loaded_at
     with _lock:
+        if _model is not None and _model_key != key:
+            print(f"[asr] dropping {_model_key} for {key}", flush=True)
+            _model = None
+            _model_key = None
+            try:
+                import gc
+
+                gc.collect()
+                import torch  # type: ignore
+
+                torch.cuda.empty_cache()
+            except Exception:  # noqa: BLE001
+                pass
         if _model is None:
             from faster_whisper import WhisperModel
 
-            path = MODEL_DIR if os.path.isdir(MODEL_DIR) and os.path.exists(os.path.join(MODEL_DIR, "model.bin")) else MODEL_NAME
+            spec = MODELS[key]
+            path = spec["dir"] if weights_present(key) else spec["name"]
             t0 = time.time()
             _model = WhisperModel(path, device="cuda", compute_type=COMPUTE)
+            _model_key = key
             _loaded_at = time.time()
-            print(f"[asr] loaded {path} ({COMPUTE}) in {time.time() - t0:.1f}s", flush=True)
+            print(f"[asr] loaded {key}: {path} ({COMPUTE}) in {time.time() - t0:.1f}s", flush=True)
         return _model
 
 
@@ -79,7 +120,19 @@ def demucs_model():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "model": MODEL_NAME, "compute": COMPUTE, "loaded": _model is not None, "demucs": DEMUCS_MODEL, "demucs_loaded": _demucs is not None, "gpu": gpu_mem(), "weights_present": os.path.exists(os.path.join(MODEL_DIR, "model.bin"))}
+    return {
+        "ok": True,
+        "model": MODEL_NAME,
+        "compute": COMPUTE,
+        "loaded": _model is not None,
+        "loaded_model": MODELS[_model_key]["name"] if _model_key else None,
+        # per key: the folder, whether its model.bin exists, whether it is the one on the card
+        "models": {k: {"name": v["name"], "dir": v["dir"], "weights_present": weights_present(k), "loaded": _model_key == k} for k, v in MODELS.items()},
+        "demucs": DEMUCS_MODEL,
+        "demucs_loaded": _demucs is not None,
+        "gpu": gpu_mem(),
+        "weights_present": weights_present("default"),
+    }
 
 
 @app.post("/separate")
@@ -158,9 +211,10 @@ def release_host_memory() -> dict[str, Any]:
 
 @app.post("/unload")
 def unload():
-    global _model, _demucs
+    global _model, _model_key, _demucs
     with _lock:
         _model = None
+        _model_key = None
     with _demucs_lock:
         _demucs = None
     try:
@@ -177,7 +231,7 @@ def unload():
 
 @app.post("/transcribe")
 async def transcribe(file: UploadFile = File(...), language: str = Form("auto"), prompt: str = Form(""), words: str = Form("1"), beam_size: int = Form(5)):
-    if not os.path.exists(os.path.join(MODEL_DIR, "model.bin")):
+    if not weights_present("default"):
         raise HTTPException(status_code=503, detail="Whisper weights are not downloaded yet (docker/models: asr-whisper)")
     data = await file.read()
     if not data:
@@ -197,13 +251,14 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("auto"),
         audio = np.frombuffer(pcm, dtype=np.float32)
         if audio.size == 0:
             raise HTTPException(status_code=400, detail="no audio could be decoded from the file")
-        m = model()
+        key = model_key_for(lang)
+        m = model(key)
         with _lock:
             segments, info = m.transcribe(audio, language=lang, task="transcribe", beam_size=beam_size, word_timestamps=words == "1", vad_filter=True, vad_parameters={"min_silence_duration_ms": 300}, initial_prompt=initial, condition_on_previous_text=False)
             out = []
             for s in segments:
                 out.append({"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip(), "avg_logprob": round(s.avg_logprob, 3), "no_speech_prob": round(s.no_speech_prob, 3), "words": [{"start": round(w.start, 3), "end": round(w.end, 3), "word": w.word, "probability": round(w.probability, 3)} for w in (s.words or [])]})
-        return JSONResponse({"language": info.language, "language_probability": round(info.language_probability, 3), "duration": round(info.duration, 3), "segments": out, "text": " ".join(x["text"] for x in out).strip(), "ms": int((time.time() - t0) * 1000), "model": MODEL_NAME})
+        return JSONResponse({"language": info.language, "language_probability": round(info.language_probability, 3), "duration": round(info.duration, 3), "segments": out, "text": " ".join(x["text"] for x in out).strip(), "ms": int((time.time() - t0) * 1000), "model": MODELS[key]["name"]})
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
     finally:
