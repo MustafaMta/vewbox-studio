@@ -15,6 +15,11 @@ Naturalness, dialect fidelity, emotional delivery, rhythm and speaker consistenc
 form in §6. Until that review is recorded, no voice is "verified"; the labels stay "Iraqi dialect not yet verified by a
 native listener" (`dialectStatus: UNVERIFIED`).
 
+**Status on 2026-10-04.** Ready to run: the set (§1–3), the harness (§4, dry-run proven, unit-tested on
+`tests/fixtures/speech-en.wav` and synthetic audio), the review page (opened in a browser on a sample report), the text
+preparation in the app (§5). Not run: no line has been spoken, no WAV exists, no listener has heard anything; every
+claim about the voices waits for the model phase and the review (§6).
+
 Files:
 
 - `tests/fixtures/voice/iraqi-eval-set.json`: the 60 lines, machine-readable (the harness and the unit tests read it).
