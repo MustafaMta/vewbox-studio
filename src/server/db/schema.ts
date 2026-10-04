@@ -14,6 +14,13 @@ const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string
 /** `characters.canonical_image`: the canonical image without its asset id (that is `canonical_asset_id`). */
 export type StoredCanonicalImage = Omit<CanonicalImage, 'assetId'>;
 
+/** TOMBSTONES (docs/BACKEND-AUDIT-2026-10.md C4, step 10): shows, seasons, productions, scenes, shots and takes are
+ *  never deleted by the studio. Removing one (a deleted scene, a replaced script, a deleted production, a removed take)
+ *  sets `deleted_at` (and what removed it): the row, the take's media and its files stay, and the studio can restore it
+ *  (src/server/studio/tombstones.ts). The foreign keys between them are RESTRICT, so no cascade can ever take a take
+ *  with it. The studio's state is the rows that are not tombstoned. */
+const tombstone = () => ({ deletedAt: ts('deleted_at'), deletedBy: text('deleted_by') });
+
 export const shows = pgTable('shows', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
@@ -30,24 +37,29 @@ export const shows = pgTable('shows', {
   castIds: text('cast_ids').array().notNull().default([]),
   locationIds: text('location_ids').array().notNull().default([]),
   bible: jsonb('bible').$type<NonNullable<import('@/domain/types').Show['bible']>>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
+  ...tombstone(),
 });
 
 export const seasons = pgTable('seasons', {
   id: text('id').primaryKey(),
-  showId: text('show_id').notNull().references(() => shows.id, { onDelete: 'cascade' }),
+  showId: text('show_id').notNull().references(() => shows.id, { onDelete: 'restrict' }),
   number: integer('number').notNull(),
   title: text('title').notNull(),
   arc: text('arc').notNull().default(''),
   createdAt: ts('created_at').notNull(),
+  ...tombstone(),
 }, (t) => [index('seasons_show_idx').on(t.showId)]);
 
 export const productions = pgTable('productions', {
   id: text('id').primaryKey(),
   kind: text('kind').notNull(),
-  showId: text('show_id').references(() => shows.id, { onDelete: 'cascade' }),
-  seasonId: text('season_id').references(() => seasons.id, { onDelete: 'cascade' }),
+  showId: text('show_id').references(() => shows.id, { onDelete: 'restrict' }),
+  seasonId: text('season_id').references(() => seasons.id, { onDelete: 'restrict' }),
   episodeNumber: integer('episode_number'),
   title: text('title').notNull(),
   titleAr: text('title_ar'),
@@ -70,17 +82,23 @@ export const productions = pgTable('productions', {
   genre: text('genre'),
   mood: text('mood'),
   cutAssetId: text('cut_asset_id'),
+  /** the cut is out of date (docs/BACKEND-AUDIT-2026-10.md M2, step 12): set by the reducers, cleared by a current cut */
+  cutStale: boolean('cut_stale').notNull().default(false),
   exports: jsonb('exports').$type<ExportRecord[]>(),
   /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
    *  made by the backfill for a production without key art; the page renders the title over it. */
   framePosterAssetId: text('frame_poster_asset_id'),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
+  ...tombstone(),
 }, (t) => [index('productions_show_idx').on(t.showId), index('productions_season_idx').on(t.seasonId)]);
 
 export const scenes = pgTable('scenes', {
   id: text('id').primaryKey(),
-  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'cascade' }),
+  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'restrict' }),
   position: integer('position').notNull(),
   number: integer('number').notNull(),
   title: text('title').notNull(),
@@ -92,12 +110,13 @@ export const scenes = pgTable('scenes', {
   emotionalObjective: text('emotional_objective'),
   entryState: text('entry_state'),
   exitState: text('exit_state'),
+  ...tombstone(),
 }, (t) => [index('scenes_production_idx').on(t.productionId)]);
 
 export const shots = pgTable('shots', {
   id: text('id').primaryKey(),
-  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'cascade' }),
-  sceneId: text('scene_id').notNull().references(() => scenes.id, { onDelete: 'cascade' }),
+  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'restrict' }),
+  sceneId: text('scene_id').notNull().references(() => scenes.id, { onDelete: 'restrict' }),
   position: integer('position').notNull(),
   number: integer('number').notNull(),
   purpose: text('purpose').notNull().default(''),
@@ -116,11 +135,12 @@ export const shots = pgTable('shots', {
   notes: text('notes'),
   continuity: jsonb('continuity').$type<ContinuityState>(),
   prompt: text('prompt'),
+  ...tombstone(),
 }, (t) => [index('shots_production_idx').on(t.productionId), index('shots_scene_idx').on(t.sceneId)]);
 
 export const takes = pgTable('takes', {
   id: text('id').primaryKey(),
-  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'cascade' }),
+  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'restrict' }),
   productionId: text('production_id').notNull(),
   position: integer('position').notNull(),
   label: text('label').notNull(),
@@ -158,6 +178,7 @@ export const takes = pgTable('takes', {
   ratingReason: text('rating_reason'),
   ratedBy: text('rated_by'),
   ratedAt: ts('rated_at'),
+  ...tombstone(),
 }, (t) => [index('takes_shot_idx').on(t.shotId), index('takes_production_idx').on(t.productionId)]);
 
 export const characters = pgTable('characters', {
@@ -192,6 +213,9 @@ export const characters = pgTable('characters', {
    *  is assembled from both (src/server/studio/canonical-image.ts). */
   canonicalAssetId: text('canonical_asset_id').references(() => assets.id, { onDelete: 'restrict' }),
   canonicalImage: jsonb('canonical_image').$type<StoredCanonicalImage>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -225,6 +249,9 @@ export const locations = pgTable('locations', {
   refs: jsonb('refs').$type<LocationRef[]>().notNull().default([]),
   masterAssetId: text('master_asset_id'),
   layout: jsonb('layout').$type<NonNullable<import('@/domain/types').Location['layout']>>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -328,6 +355,33 @@ export const jobEvents = pgTable('job_events', {
   message: text('message').notNull(),
   data: jsonb('data').$type<Record<string, unknown>>(),
 }, (t) => [index('job_events_job_idx').on(t.jobId, t.id)]);
+
+/** THE SHARED GPU LEASE (docs/BACKEND-AUDIT-2026-10.md H7, step 8): one row per process asking for, or holding, a
+ *  resource (`gpu0`, the one RTX 5090). Every process — the host worker, a compose worker, the web server measuring a
+ *  voice reference — goes through these rows, so one model family is on the card at a time. Admission is FIFO by
+ *  `ticket`: a request never overtakes an earlier one of another family (no starvation). A row's `expires_at` is
+ *  renewed while its process lives; a dead process's row expires and is removed by the next admission. */
+export const resourceLeases = pgTable('resource_leases', {
+  resource: text('resource').notNull(),
+  holder: text('holder').notNull(),
+  ticket: bigserial('ticket', { mode: 'number' }).notNull(),
+  family: text('family').notNull(),
+  /** WAITING | HOLDING */
+  state: text('state').notNull(),
+  jobId: text('job_id'),
+  process: text('process').notNull(),
+  requestedAt: ts('requested_at').notNull(),
+  grantedAt: ts('granted_at'),
+  expiresAt: ts('expires_at').notNull(),
+}, (t) => [primaryKey({ columns: [t.resource, t.holder] }), index('resource_leases_queue_idx').on(t.resource, t.ticket)]);
+
+/** What a resource last had loaded (the family of its last holder), so the next family to take it knows what to
+ *  unload. */
+export const resourceState = pgTable('resource_state', {
+  resource: text('resource').primaryKey(),
+  loadedFamily: text('loaded_family'),
+  updatedAt: ts('updated_at').notNull(),
+});
 
 export const metrics = pgTable('metrics', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
@@ -524,7 +578,30 @@ export const approvals = pgTable('approvals', {
   by: text('by').notNull(),
   note: text('note'),
   createdAt: ts('created_at').notNull(),
+  /** WHAT WAS APPROVED (docs/BACKEND-AUDIT-2026-10.md H9, step 9): the hash of the subject as the producer saw it
+   *  (src/domain/approvals.ts) and the studio version then. A gate opens only while the subject still hashes the
+   *  same. Null on approvals recorded before step 9 (accepted as they were). */
+  subjectHash: text('subject_hash'),
+  subjectVersion: integer('subject_version'),
 }, (t) => [index('approvals_production_idx').on(t.productionId, t.createdAt)]);
+
+/** THE COMMAND JOURNAL (docs/BACKEND-AUDIT-2026-10.md H10, step 9): every batch applied to the studio — a page's, a
+ *  worker's, the server's — with its commands exactly as run (name, args, seed, clock), who sent it, the result and
+ *  the studio version after. Written in the batch's own transaction. A page re-sending a batch it already sent (a
+ *  network error after the commit) gets the stored result back instead of applying it twice: (client_id, batch_id)
+ *  is unique among accepted batches. The seeds and clocks make the log replayable (src/server/studio/journal.ts). */
+export const commandLog = pgTable('command_log', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  clientId: text('client_id').notNull(),
+  batchId: text('batch_id').notNull(),
+  origin: text('origin').notNull(),
+  jobId: text('job_id'),
+  commands: jsonb('commands').$type<Array<{ name: string; args: unknown[]; seed: string; at: string }>>().notNull(),
+  ok: boolean('ok').notNull(),
+  result: jsonb('result').$type<Record<string, unknown>>().notNull(),
+  studioVersion: integer('studio_version').notNull(),
+  createdAt: ts('created_at').notNull(),
+}, (t) => [uniqueIndex('command_log_batch_idx').on(t.clientId, t.batchId).where(sql`ok`), index('command_log_created_idx').on(t.createdAt)]);
 
 /** The studio's activity feed: real work, attributed to the department and agent that did it. */
 export const studioEvents = pgTable('studio_events', {

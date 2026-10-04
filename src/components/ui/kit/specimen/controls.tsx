@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { T } from '@/lib/copy';
 import { IconAuto, IconClose, IconEdit, IconImageAdd, IconManual, IconPlus, IconScript } from '../../icons';
-import { Button, type ButtonVariant } from '../Button';
+import { Button, LinkButton, type ButtonVariant } from '../Button';
+import { MenuButton, MenuItem, Popover } from '../Overlay';
+import { IconChevronDown } from '../../icons';
 import { CatalogueBar, type Facet, type Filters, type View } from '../CatalogueBar';
 import { ChoiceTiles, Segmented } from '../Choice';
 import { cls } from '../cls';
@@ -31,6 +33,13 @@ export function ButtonsSpec() {
           <Cell state={'Loading'}><Button variant={v} loading>{label}</Button></Cell>
         </SpecRow>
       ))}
+      <SpecRow label="Split (every composition)">
+        <Cell state="Button + Button"><span className="btn-split"><Button variant="primary" icon={<IconPlus />}>New show</Button><Button variant="primary" aria-label="More ways" icon={<IconChevronDown />} /></span></Cell>
+        <Cell state="Link + MenuButton"><span className="btn-split"><LinkButton href="/kit#buttons" variant="primary" icon={<IconPlus />}>New music video</LinkButton><MenuButton label="Choose how to start" iconOnly icon={<IconChevronDown aria-hidden />} variant="primary"><MenuItem>Let the studio write the song</MenuItem><MenuItem>Bring your own song</MenuItem></MenuButton></span></Cell>
+        <Cell state="Secondary + MenuButton"><span className="btn-split"><Button icon={<IconPlus />}>New character</Button><MenuButton label="More ways to cast" iconOnly icon={<IconChevronDown aria-hidden />}><MenuItem>Describe them</MenuItem><MenuItem>From a picture</MenuItem></MenuButton></span></Cell>
+        <Cell state="Secondary + Popover"><span className="btn-split"><Button>Sort</Button><Popover label={<IconChevronDown aria-hidden />} title="Sort options" align="end"><p className="t-body">Recently updated</p></Popover></span></Cell>
+        <Cell state="On a card"><span className="card kit-spec-sample"><span className="btn-split"><Button icon={<IconPlus />}>New take</Button><MenuButton label="More ways" iconOnly icon={<IconChevronDown aria-hidden />}><MenuItem>From the frame</MenuItem></MenuButton></span></span></Cell>
+      </SpecRow>
       <SpecRow label={'Sizes'}>
         <Cell state="lg"><Button variant="primary" size="lg" icon={<IconPlus />}>New show</Button></Cell>
         <Cell state="40"><Button icon={<IconEdit />}>Edit</Button></Cell>

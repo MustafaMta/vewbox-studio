@@ -79,8 +79,20 @@ export const produce: Handler = async (ctx) => {
   // failing it) get a new take through the audio-first pipeline; a passing new take becomes the choice
   const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
   const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh)));
-  if (targets.length === 0) return { message: respeak ? 'every speaking shot already has a verified take' : 'every shot already has a chosen take', shots: 0 };
   const round = ctx.job.attempts;
+  // the cut is assembled when there is none yet, or when it is out of date (another take chosen, a shot changed —
+  // audit M2, step 12): also when every shot already has its take
+  const assembleIfNeeded = async (q: Production) => {
+    if (q.shots.some((sh) => needsTake(sh)) || (q.cutAssetId && !q.cutStale)) return false;
+    const req = { type: 'ASSEMBLE' as const, payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` };
+    const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'ASSEMBLE', input: req });
+    await waitFor(ctx, [r.job.id], q.cutStale ? 'assembling again (the cut was out of date)' : 'assembling');
+    return true;
+  };
+  if (targets.length === 0) {
+    const assembled = !respeak && !framesOnly && (await assembleIfNeeded(p));
+    return { message: respeak ? 'every speaking shot already has a verified take' : `every shot already has a chosen take${assembled ? '; the cut was out of date and was assembled again' : ''}`, shots: 0, ...(assembled ? { assembled: true } : {}) };
+  }
   const children: string[] = [];
   // a reclaimed or retried run adopts the children it already queued and that are still working, so a shot never
   // gets a second generation in flight (and no duplicate MiniMax request)
@@ -159,11 +171,7 @@ export const produce: Handler = async (ctx) => {
   const remaining = after.shots.filter((sh) => needsTake(sh)).length;
   const pilotsReport = verdicts.map((v) => ({ scene: v.sceneNumber, shotId: v.shotId, passed: v.passed, reason: v.reason }));
   if (respeak) { const still = after.shots.filter(unverified).length; return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, world: pin, stillUnverified: still, awaitingReview: still > 0 || blocked.length > 0 }; }
-  if (remaining === 0 && !after.cutAssetId) {
-    const req = { type: 'ASSEMBLE' as const, payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:assemble:${round}` };
-    const r = await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'ASSEMBLE', input: req });
-    await waitFor(ctx, [r.job.id], 'assembling');
-  }
+  if (remaining === 0) await assembleIfNeeded(after);
   await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${outcome.completed} of ${targets.length} shot(s) generated${outcome.failed ? `, ${outcome.failed} failed` : ''}${blocked.length ? `, ${blocked.length} held back by a pilot or a predecessor` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed: outcome.completed, failed: outcome.failed, remaining, blocked: blocked.length });
   return { shots: targets.length, completed: outcome.completed, failed: outcome.failed, pilots: pilotsReport, blocked, world: pin, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
 };

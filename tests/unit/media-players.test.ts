@@ -10,6 +10,8 @@ import { TheatrePlayer } from '@/components/players/TheatrePlayer';
 import { PlayerBar } from '@/components/players/PlayerBar';
 import { Waveform, barsOf } from '@/components/players/Waveform';
 import { SongTransport } from '@/components/players/music/SongTransport';
+import { AudioPlayer } from '@/components/players/Controls';
+import { PanelCardSkeleton } from '@/components/media/Skeletons';
 import { activeLine } from '@/components/players/music/LyricView';
 import { createSyncBus, handOff } from '@/components/players/sync';
 import { timecode } from '@/components/players/time';
@@ -150,3 +152,20 @@ describe('art helpers render nothing without data', () => {
 });
 
 vi.restoreAllMocks();
+
+describe('kit requests (Music Videos)', () => {
+  it("the audio row's play button names its track", () => {
+    const out = html(h(AudioPlayer, { src: '/a.m4a', title: 'River Lights', duration: 48 }));
+    expect(out).toContain('aria-label="Play River Lights"');
+  });
+  it('a panel skeleton mirrors its panel’s columns', () => {
+    expect(renderToStaticMarkup(h(PanelCardSkeleton, { cells: 6, columns: 3 }))).toContain('data-cols="3"');
+    expect(renderToStaticMarkup(h(PanelCardSkeleton, { cells: 2 }))).toContain('data-cols="2"');
+  });
+  it('every split composition draws the divider on its second part (§5.3)', () => {
+    const css = fs.readFileSync(path.resolve('src/app/styles/kit.css'), 'utf8');
+    expect(css).toContain(".btn-split > :not(:first-child)::before");
+    expect(css).toContain(".btn-split > :is(.menu-wrap, .popover-wrap) { position: relative;");
+    expect(css).toContain(".btn-split:has(> .btn-primary:first-child) > :not(:first-child)::before { background: var(--split-on-primary); }");
+  });
+});

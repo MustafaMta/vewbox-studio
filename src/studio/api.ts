@@ -20,7 +20,7 @@ export interface SnapshotResponse { state: StudioState; version: number; hash: s
 export interface JobWarning { name: string; detail: string; characterIds?: string[] }
 /** A job as `startJob` hands it back: the queued record plus any warnings that came with it. */
 export type StartedJob = Job & { warnings?: JobWarning[] };
-export type BatchResponse = { ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } };
+export type BatchResponse = ({ ok: true; version: number; hash: string; results: unknown[] } | { ok: false; version: number; hash: string; results: unknown[]; failedAt: number; error: { code: string; message: string; details?: Record<string, unknown> } }) & { replayed?: boolean };
 
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
@@ -39,8 +39,10 @@ const jsonInit = (method: string, body: unknown): RequestInit => { const text = 
 
 export const api = {
   snapshot: () => fetch('/api/studio', { cache: 'no-store' }).then((r) => parse<SnapshotResponse>(r)),
-  commands: async (clientId: string, commands: Command[]): Promise<BatchResponse> => {
-    const res = await fetch('/api/commands', jsonInit('POST', { clientId, commands }));
+  /** `batchId`: the batch's identity; sending the same batch again (after a network error) with the same id is answered
+   *  from the server's command journal instead of being applied twice. */
+  commands: async (clientId: string, commands: Command[], batchId?: string): Promise<BatchResponse> => {
+    const res = await fetch('/api/commands', jsonInit('POST', { clientId, commands, ...(batchId ? { batchId } : {}) }));
     if (res.status === 409) return (await res.json()) as BatchResponse;
     return parse<BatchResponse>(res);
   },

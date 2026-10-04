@@ -147,9 +147,9 @@ export const createCharacter: Handler = async (ctx) => {
     characterId = probe.result.character.id;
     if (state.characters.some((c) => c.id === characterId)) await ctx.event('info', `character ${characterId} already written by an earlier attempt; adopted`, { characterId });
     else {
+      // the seat is an intent (audit H3, step 11): added to the cast as it is when the batch runs
       const batch: CommandSpec[] = [{ name: 'addCharacter', args: [input] }];
-      if (p) batch.push({ name: 'updateProduction', args: [p.id, { castIds: Array.from(new Set([...p.castIds, characterId])) }] });
-      if (show) batch.push({ name: 'updateShow', args: [show.id, { castIds: Array.from(new Set([...show.castIds, characterId])) }] });
+      if (p || show) batch.push({ name: 'addCastMember', args: [{ productionId: p?.id, showId: show?.id }, [characterId]] });
       await commands(batch, 'worker', stamp);
       await ctx.activity('CHARACTER_CREATED', `${name} added from the written sheet`, { characterId });
     }

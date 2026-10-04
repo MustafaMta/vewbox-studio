@@ -39,8 +39,20 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
   try { return await Promise.race([p, timeout]); } finally { if (t) clearTimeout(t); }
 }
 
+/** A chat with the story model. The LOCAL model (Ollama on this machine's GPU) runs under the shared GPU lease as the
+ *  LLM family (docs/BACKEND-AUDIT-2026-10.md H7, step 8): it waits its turn for the card, and the engines of other
+ *  families unload first; when another family takes the card, Ollama is told to unload (`keep_alive: 0`). A hosted
+ *  model needs no card. */
 export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promise<LlmResult> {
   const cfg = resolveProvider(opts.provider);
+  if (cfg.provider === 'openai-compatible' && /:11434(\/|$)/.test(cfg.baseUrl)) {
+    const { gpuLease } = await import('../gpu/lease');
+    return gpuLease('LLM', 12000, () => chatWith(cfg, messages, opts), { jobId: opts.jobId });
+  }
+  return chatWith(cfg, messages, opts);
+}
+
+async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMessage[], opts: LlmOptions): Promise<LlmResult> {
   const t0 = Date.now();
   const timeoutMs = opts.timeoutMs ?? 300_000;
   const ctrl = new AbortController();

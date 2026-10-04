@@ -3,10 +3,10 @@ import path from 'node:path';
 import type { Handler } from './index';
 import { step } from './step';
 import { StudioError } from '@/domain/errors';
-import { nid } from '@/domain/ids';
 import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFile, assetFromStored, fileFor } from '@/server/media';
+import { assetFile, assetFromStored, fileFor } from '@/server/media';
+import { committedOutput, jobOutputs, stableSeed } from '@/server/jobs/outputs';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { separateStems, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
@@ -75,8 +75,11 @@ export const generateSong: Handler = async (ctx) => {
 
 async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullable<Awaited<ReturnType<typeof readState>>['state']['productions'][number]>; caption: string; lyrics: string; seconds: number; instrumental: boolean; language: string; t0: number; engine?: Engine }) {
   const engine = a.engine && a.engine !== 'minimax-api' ? a.engine : await pickLocalEngine();
-  const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en' });
-  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
+  // the song's seed and prompt key are the job's (audit H8, step 7): every attempt builds the same graph, and a restarted
+  // attempt re-attaches to the composition it already asked for instead of composing a second one
+  const seed = stableSeed(ctx.job.id, `song:${engine}`);
+  const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, seed }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en', seed });
+  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { promptKey: `:song:${engine}`, timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'audio');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no audio.');
   const dir = await tmpDir('song');
@@ -87,12 +90,21 @@ async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullabl
 
 async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnType<typeof readState>>['state']['productions'][number]; file: string; model: string; requestId?: string; workflowVersion?: string; engine: Engine; caption: string; lyrics: string; seconds: number; t0: number; dir: string }) {
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the recording' });
-  const id = nid('gen');
-  const stored = await adoptFile(id, a.file, { expectKind: 'AUDIO' });
-  await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
-  const duration = stored.probe?.durationSeconds ?? a.seconds;
+  // the song's asset id is the job's (step 6/7): a retry that finds it recorded reuses it instead of a second copy
+  const earlier = await committedOutput(ctx.job.id, 'song');
+  let id: string; let duration: number;
+  if (earlier) {
+    id = earlier.id; duration = earlier.durationSeconds ?? a.seconds;
+    await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
+    await ctx.event('info', `the song was already recorded by an earlier attempt of this job (${id}); reused`, { assetId: id });
+  } else {
+    const st = await jobOutputs(ctx.job).adopt('song', a.file, { expectKind: 'AUDIO' });
+    id = st.id; const stored = st.stored;
+    await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
+    duration = stored.probe?.durationSeconds ?? a.seconds;
+    await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { provider: a.engine.startsWith('minimax') ? 'MINIMAX' : 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id } })], 'worker');
+  }
   const genMs = Date.now() - a.t0;
-  await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { provider: a.engine.startsWith('minimax') ? 'MINIMAX' : 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id } })], 'worker');
   // re-time the sections over the real duration, keeping singer assignments
   const fresh = (await readState()).state.productions.find((x) => x.id === a.p.id)!;
   const singers = fresh.song?.singerIds ?? castOf((await readState()).state, fresh).map((c) => c.id);
@@ -161,8 +173,10 @@ export async function makeStems(ctx: Parameters<Handler>[0], productionId: strin
     const out: { vocals?: string; instrumental?: string } = {};
     for (const [key, file] of [['vocals', r.files.vocals], ['instrumental', r.files.no_vocals]] as const) {
       if (!file) continue;
-      const sid = nid('gen');
-      const stored = await adoptFile(sid, file, { expectKind: 'AUDIO' });
+      const name = `stem:${songAssetId}:${key}`;
+      const earlier = await committedOutput(ctx.job.id, name);
+      if (earlier) { out[key] = earlier.id; continue; }
+      const { id: sid, stored } = await jobOutputs(ctx.job).adopt(name, file, { expectKind: 'AUDIO' });
       await command('addAsset', [assetFromStored(sid, stored, { label: `${title} — ${key}`, tags: ['song', 'stem', key], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: songAssetId, model: r.model, ms: r.ms, productionId } })], 'worker');
       out[key] = sid;
     }
