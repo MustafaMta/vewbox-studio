@@ -105,7 +105,7 @@ function GateCard({ d, card, priority }: { d: Decision; card: CardModel; priorit
 // -------------------------------------------------------------------------------------------------------- history
 
 function History() {
-  const { jobs, state } = useStudio();
+  const { jobs, jobsReady, state } = useStudio();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -119,9 +119,12 @@ function History() {
   // a link to one job (from an agent's runs, or the old /jobs?job=) lands on the history with the job open
   useEffect(() => { if (openId) document.getElementById('history')?.scrollIntoView({ block: 'start' }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <Section id="history" title="History" count={counts.all} description="Every job the studio finished, stopped or parked for review, newest first.">
+    <Section id="history" title="History" count={jobsReady ? counts.all : undefined} description="Every job the studio finished, stopped or parked for review, newest first.">
       {/* the old /jobs address lands on #activity (src/components/shell/redirects.ts) */}
       <span id="activity" className="ctl-anchor" aria-hidden />
+      {/* the job list is read after the snapshot: until it is, the chips and rows keep their places (m7), so no
+          count changes and nothing moves once the page has painted */}
+      {!jobsReady ? <SkeletonRegion label="Reading the record…"><HistoryFilterSkeleton /><RowsSkeleton n={6} /></SkeletonRegion> : <>
       <div className="ctl-filter">
         <FilterChips label="Show" value={filter === 'all' ? [] : [filter]} onChange={(v) => { setFilter((v[0] as HistoryFilter | undefined) ?? 'all'); setLimit(12); }}
           options={HISTORY_FILTERS.filter((f) => f.value !== 'all').map((f) => ({ value: f.value, label: f.label, count: counts[f.value], disabled: counts[f.value] === 0, reason: 'Nothing in the record' }))} />
@@ -142,6 +145,7 @@ function History() {
           {list.length > limit && <Button size="sm" variant="quiet" className="cp-more" onClick={() => setLimit((n) => n + 24)}>Show more · {list.length - limit} older</Button>}
         </>
       )}
+      </>}
       <Drawer open={Boolean(open)} onClose={() => setOpen(null)} title={open ? jobTitle(open) : 'Job'} description={open ? subjectOf(open, state)?.label : undefined} size="md">
         {open && <JobLog job={open} />}
       </Drawer>
@@ -187,6 +191,12 @@ function JobLog({ job }: { job: Job }) {
 
 // ------------------------------------------------------------------------------------------------------- skeleton
 
+/** The history filter's row before the record is known: the four chips at their real height (32, pill), so the
+ *  rows under them do not move when the counts arrive (m7). */
+function HistoryFilterSkeleton() {
+  return <div className="ctl-filter" aria-hidden><div className="filter-chips">{[88, 128, 76, 96].map((w) => <Skeleton.Block key={w} width={w} height={32} radius="pill" />)}</div></div>;
+}
+
 /** Production while the studio opens: the head, the decision cards at their real size, the running row, the history
  *  rows and the engine room (§5.22). */
 export function ControlRoomSkeleton() {
@@ -202,8 +212,7 @@ export function ControlRoomSkeleton() {
         </div>
       </div>
       <div className="cp-section"><SectionHeadSkeleton width="9rem" /><RowsSkeleton n={1} /></div>
-      {/* the history filter: the four chips at their real height (32, pill), so the rows under them do not move (m7) */}
-      <div className="cp-section"><SectionHeadSkeleton width="6rem" description /><div className="ctl-filter"><div className="filter-chips">{[88, 128, 76, 96].map((w) => <Skeleton.Block key={w} width={w} height={32} radius="pill" />)}</div></div><RowsSkeleton n={6} /></div>
+      <div className="cp-section"><SectionHeadSkeleton width="6rem" description /><HistoryFilterSkeleton /><RowsSkeleton n={6} /></div>
       <EngineRoomSkeleton />
     </SkeletonRegion>
   );
