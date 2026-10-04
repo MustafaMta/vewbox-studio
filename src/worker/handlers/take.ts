@@ -25,6 +25,7 @@ import { env } from '@/server/env';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { recordProducedTake } from '@/server/studio/notes';
 
 /** GENERATE A TAKE — the heart of production. Resolve the shot pack (relation to the previous shot, every character's
@@ -95,7 +96,10 @@ export const generateTake: Handler = async (ctx) => {
   const references: TakeReference[] = [];
   const work = await tmpDir('take-prep');
   const guides: NonNullable<Parameters<typeof generateVideo>[0]['guides']> = [];
-  const trimStartFrames = pack.trimStartFrames;
+  // the frames the cut will drop: the guide length the node REALLY keeps of the tail clip (validated below), never
+  // the pack's planned constant on trust
+  let trimStartFrames = pack.trimStartFrames;
+  let guideRecord: GuideRecord | undefined;
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
   let dialogueLineAssets: string[] | undefined;
@@ -181,8 +185,8 @@ export const generateTake: Handler = async (ctx) => {
   if (backend === 'local' && songAsset && songAsset.kind === 'AUDIO' && window && window.to > window.from && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') {
     soundtrackFile = await trimAudio(assetFile(songAsset), path.join(work, `${sh.id}-song.wav`), window.from, Math.min(window.to, window.from + seconds));
     soundtrack = { kind: 'SONG', assetId: songAsset.id, lines: [] };
-    references.push({ kind: 'AUDIO', assetId: songAsset.id, note: `song ${window.from.toFixed(2)}–${Math.min(window.to, window.from + seconds).toFixed(2)} s`, binding: `guide@${trimStartFrames}` });
   }
+  const songReference = soundtrack?.kind === 'SONG' && songAsset && window ? { kind: 'AUDIO' as const, assetId: songAsset.id, note: `song ${window.from.toFixed(2)}–${Math.min(window.to, window.from + seconds).toFixed(2)} s` } : undefined;
   // 3) WHAT THE CLIP STARTS FROM, by relation. CONTINUATION: the previous take's last frames AND their sound anchored
   //    at frame 0 in one guide (the template's continuation idiom), dropped again in the cut — under a song master the
   //    sound of those frames is the song's, since that is what the audience hears there. Hosted: the previous take's
@@ -202,9 +206,16 @@ export const generateTake: Handler = async (ctx) => {
     const cutShort = end && end.totalFrames && end.endFrame < end.totalFrames ? end.endFrame : undefined;
     const tail = await tailClip(assetFile(prevAsset), path.join(work, 'tail.mp4'), pack.opening.frames, ...(cutShort ? [CLOCK_FPS, cutShort] as const : []));
     const songTail = soundtrack?.kind === 'SONG' && songAsset && window ? await trimAudio(assetFile(songAsset), path.join(work, 'tail-song.wav'), Math.max(0, window.from - pack.opening.frames / H3_FPS), window.from) : undefined;
-    guides.push(songTail ? { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
+    // THE GUIDE IS VALIDATED BEFORE THE ENGINE IS TOUCHED (gap V1): the clip is counted, and a count the node would
+    // silently floor (a short tail → 5 frames while the cut still dropped 22) is a WRONG_PARAMETERS refusal, not a take
+    const verdict = validateGuideClip(tail, { frames: pack.opening.frames, withAudio: pack.opening.withAudio && !songTail });
+    await ctx.event(verdict.ok ? 'info' : 'error', `continuation guide: ${tail.frames} frame(s) counted${tail.hasAudio ? `, ${(tail.audioSeconds ?? 0).toFixed(3)} s of sound` : ', no sound'}; the node keeps ${verdict.frames} (${verdict.audioLatentSteps} audio latent steps)${verdict.ok ? '' : `; REFUSED: ${verdict.problems.join('; ')}`}`, { guide: { ...tail, file: undefined }, verdict });
+    if (!verdict.ok) throw Object.assign(new StudioError('INVALID', `The continuation guide for shot ${sh.number} is unusable: ${verdict.problems.join('; ')}`, { guide: { frames: tail.frames, audioSeconds: tail.audioSeconds, hasAudio: tail.hasAudio }, verdict }), { failureClass: 'WRONG_PARAMETERS' });
+    trimStartFrames = verdict.frames;
+    guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame };
+    guides.push(songTail ? { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
     continuesTakeId = pack.opening.takeId;
-    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${pack.opening.frames} frames the cut shows of the previous take${cutShort ? ` (ending at its frame ${cutShort})` : ''} with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
+    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${verdict.frames} frames the cut shows of the previous take${cutShort ? ` (ending at its frame ${cutShort})` : ''} with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
   } else if (pack.opening.kind === 'LAST_FRAME_AS_FIRST') {
     const prevAsset = byId(pack.opening.assetId)!;
     const end = prevEnd(pack.opening);
@@ -214,8 +225,10 @@ export const generateTake: Handler = async (ctx) => {
     references.push({ kind: 'FIRST_FRAME', assetId: prevAsset.id, binding: 'first_frame', note: 'hosted continuation: the previous take’s last frame' });
   }
   if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
-  // the clip: the new content plus the guide frames, snapped up to the engine's grid and held in its trained range
-  const clip = clipSecondsFor(pack, seconds);
+  if (songReference) references.push({ ...songReference, binding: `guide@${trimStartFrames}` });
+  // the clip: the new content plus the guide frames (the length the node keeps), snapped up to the engine's grid and
+  // held in its trained range
+  const clip = clipSecondsFor({ trimStartFrames }, seconds);
   if (clip.truncated) await ctx.event('warn', `a continuation carries at most ${clip.newFrames} new frames after its guide: the shot is cut short of ${seconds} s`, { frames: clip.frames, newFrames: clip.newFrames });
 
   // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the primary image of each character in the shot (the
@@ -416,7 +429,7 @@ export const generateTake: Handler = async (ctx) => {
   // invented here.
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}) };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization

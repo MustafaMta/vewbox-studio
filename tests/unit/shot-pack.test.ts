@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bindingOf, clipSecondsFor, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
+import { bindingOf, clipSecondsFor, continuationSource, continuationTail, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
 import type { Character } from '@/domain/types';
 import { VideoGenerateInput } from '@/server/org/contracts';
 import { fixture, shotOf, TAKE_A } from './continuity-fixture';
@@ -81,6 +81,24 @@ describe('relations', () => {
     const pack = resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' });
     expect(pack.opening).toEqual({ kind: 'NONE' });
     expect(pack.notes.join(' ')).toMatch(/no chosen real take/);
+    expect(continuationTail(state, p, shotOf(p, 's11'))).toEqual({ problem: 'shot 1 has no chosen real take yet' });
+  });
+
+  it('a predecessor whose window on the cut is shorter than the guide has no usable tail (the node would floor the clip)', () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...TAKE_A, params: { timeline: { newFrames: 15 } } }] } : s)) });
+    const tail = continuationTail(state, p, shotOf(p, 's11'));
+    expect(tail.source).toBeUndefined();
+    expect(tail).toMatchObject({ windowFrames: 15, problem: expect.stringMatching(/shows only 15 frames in the cut, fewer than the 22-frame guide \(the node would silently keep 5\)/) });
+    expect(continuationSource(state, p, shotOf(p, 's11'))).toBeUndefined();
+    const pack = resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' });
+    expect(pack.opening).toEqual({ kind: 'NONE' });
+    expect(pack.notes[0]).toMatch(/no usable tail: shot 1's take shows only 15 frames/);
+    // the whole 124-frame take (no recorded window): 124 frames shown, the tail is usable
+    const { state: s2, p: p2 } = fixture();
+    expect(continuationTail(s2, p2, shotOf(p2, 's11'))).toEqual({ source: { shotId: 's11', takeId: 'take-a', assetId: 'vid-a' }, windowFrames: 124 });
+    // a 39-frame guide against a 30-frame window: refused for that length too
+    const p3 = { ...p2, shots: p2.shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...TAKE_A, params: { timeline: { newFrames: 30 } } }] } : s)) };
+    expect(continuationTail(s2, p3, shotOf(p3, 's11'), 39).problem).toMatch(/30 frames in the cut, fewer than the 39-frame guide/);
   });
 });
 

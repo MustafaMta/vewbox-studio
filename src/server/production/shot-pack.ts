@@ -1,8 +1,8 @@
 import type { Asset, Character, Location, Production, Shot, ShotRelation, StudioState, Take } from '@/domain/types';
-import { orderedShots } from '@/domain/timeline';
+import { orderedShots, shotWindowFrames } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
-import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideFits } from '@/server/workflows/minimax-h3';
+import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
 import type { H3Binding } from '@/server/story/prompts';
 
 /** THE SHOT PACK — what one take of a shot is conditioned on, resolved once from the studio records by a pure
@@ -78,12 +78,27 @@ export function effectiveRelation(p: Production, sh: Shot): { relation: ShotRela
   return { relation: sameScene ? 'CUT' : 'STORY_TRANSITION', planned, previous: prev };
 }
 
-/** The take a continuation anchors: the previous shot's chosen, real (generated or uploaded) video. */
-export function continuationSource(state: Pick<StudioState, 'assets'>, prev: Shot | undefined): { shotId: string; takeId: string; assetId: string } | undefined {
-  const t = prev?.takes.find((x) => x.id === prev.selectedTakeId);
-  if (!prev || !t || t.provider === 'SAMPLE') return undefined;
+export interface ContinuationSource { shotId: string; takeId: string; assetId: string }
+
+/** The tail a continuation can anchor, or why there is none: the previous shot's chosen, real (generated or
+ *  uploaded) video, whose window on the cut (what the audience sees of it, src/domain/timeline.ts) holds at least
+ *  the guide's frames — a shorter window would hand the node a clip it silently floors (gap V1), so it is refused
+ *  here, before any file is cut. */
+export function continuationTail(state: Pick<StudioState, 'assets'>, p: Production, prev: Shot | undefined, guideFrames = H3_GUIDE_FRAMES): { source?: ContinuationSource; windowFrames?: number; problem?: string } {
+  if (!prev) return { problem: 'there is no previous shot to continue' };
+  const t = prev.takes.find((x) => x.id === prev.selectedTakeId);
+  if (!t || t.provider === 'SAMPLE') return { problem: `shot ${prev.number} has no chosen real take yet` };
   const a = state.assets.find((x) => x.id === t.assetId);
-  return a && a.kind === 'VIDEO' && !a.sample && !a.unavailable ? { shotId: prev.id, takeId: t.id, assetId: a.id } : undefined;
+  if (!a || a.kind !== 'VIDEO' || a.sample || a.unavailable) return { problem: `the file of shot ${prev.number}'s chosen take is ${a ? (a.unavailable ? 'missing from the library' : 'not a video') : 'gone'}` };
+  const w = shotWindowFrames(p, prev, t, a);
+  const windowFrames = Math.min(w.frames, w.available);
+  if (windowFrames < guideFrames) return { windowFrames, problem: `shot ${prev.number}'s take shows only ${windowFrames} frame${windowFrames === 1 ? '' : 's'} in the cut, fewer than the ${guideFrames}-frame guide (the node would silently keep ${h3GuideClipFrames(windowFrames)})` };
+  return { source: { shotId: prev.id, takeId: t.id, assetId: a.id }, windowFrames };
+}
+
+/** The take a continuation anchors (see `continuationTail`), or nothing. */
+export function continuationSource(state: Pick<StudioState, 'assets'>, p: Production, prev: Shot | undefined): ContinuationSource | undefined {
+  return continuationTail(state, p, prev).source;
 }
 
 /** Whether a take's speech reaches into its last `frames` frames: from the take's placed line windows (take-relative,
@@ -115,10 +130,12 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   const notes: string[] = [];
   const local = opts.backend === 'local';
   // what the clip starts from
-  const source = relation === 'CONTINUATION' ? continuationSource(state, previous) : undefined;
+  const tail = relation === 'CONTINUATION' ? continuationTail(state, p, previous) : undefined;
+  const source = tail?.source;
   let opening: PackOpening = { kind: 'NONE' };
   let lowering: string | undefined;
   if (relation === 'CONTINUATION') {
+    if (tail?.problem) notes.push(`no usable tail: ${tail.problem}`);
     // the tail carries its sound — except into a shot without lines when the previous take speaks in its tail: with
     // that sound anchored H3 kept talking after the head ("take what you need. See you, Madhya." in a silent shot),
     // without it the shot was silent (docs/evidence/minimax-p1, C1/C1b vs C1c; one seed each)
@@ -127,7 +144,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (muteTail) notes.push(`shot ${previous!.number} speaks in its last ${H3_GUIDE_FRAMES} frames and this shot has no lines: its tail is anchored without its sound`);
     if (source && local) opening = { kind: 'TAIL', ...source, frames: H3_GUIDE_FRAMES, withAudio: !muteTail };
     else if (source) { opening = { kind: 'LAST_FRAME_AS_FIRST', ...source }; lowering = 'hosted continuation: the previous take\'s last frame as the first frame (no anchored tail, no references in frame mode)'; }
-    else notes.push(`the shot continues shot ${previous?.number ?? '?'}, which has no chosen real take yet`);
+    else notes.push(`the shot continues shot ${previous?.number ?? '?'}, which has no usable tail`);
   } else if (usableImage(byId(sh.openingFrameAssetId))) opening = { kind: 'FRAME', assetId: sh.openingFrameAssetId! };
   const ending = usableImage(byId(sh.endingFrameAssetId)) ? { assetId: sh.endingFrameAssetId! } : undefined;
   // identity: every character in the shot, in the shot's order, by primary image; the place by its plate

@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { StudioError } from '@/domain/errors';
 import type { QaCheck, QaReport } from '@/domain/types';
 import { ffprobe, type Probe } from '../media';
+import { execFileP } from './exec';
 import { log } from '../log';
 import { jobSignal } from '../jobs/context';
 
@@ -146,16 +147,33 @@ export function tailClipArgs(video: string, out: string, frames: number, totalFr
   return ['-y', '-v', 'error', '-ss', (startFrame / fps).toFixed(6), '-i', video, '-t', (n / fps).toFixed(6), '-frames:v', String(n), '-vf', `fps=${fps}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '12', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '1', out];
 }
 
+/** What a guide clip really holds, counted (not read from the container's header): the decoded picture frames, and the
+ *  sound's length and rate. `ffprobe -count_frames` decodes the file, so the number is the one `LoadVideo` will hand
+ *  `MiniMaxH3AddGuide`. */
+export interface GuideClipProbe { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number }
+export async function probeGuideClip(file: string): Promise<GuideClipProbe> {
+  const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-count_frames', '-show_entries', 'stream=codec_type,nb_read_frames,duration,sample_rate', '-of', 'json', file], { maxBuffer: 8 * 1024 * 1024 });
+  const streams = (JSON.parse(stdout) as { streams?: Array<{ codec_type: string; nb_read_frames?: string; duration?: string; sample_rate?: string }> }).streams ?? [];
+  const v = streams.find((s) => s.codec_type === 'video'); const a = streams.find((s) => s.codec_type === 'audio');
+  const audioSeconds = a?.duration !== undefined ? Number(a.duration) : undefined;
+  return { frames: v?.nb_read_frames ? Number(v.nb_read_frames) : 0, hasAudio: Boolean(a), audioSeconds: audioSeconds !== undefined && Number.isFinite(audioSeconds) ? audioSeconds : undefined, sampleRate: a?.sample_rate ? Number(a.sample_rate) : undefined };
+}
+
+/** A continuation's tail clip: the file, what it really holds (counted), and where it was cut from. */
+export interface TailClip extends GuideClipProbe { file: string; /** the source frame after the last one in the clip */ sourceEndFrame: number; sourceTotalFrames: number }
+
 /** The last `frames` frames of a clip as a small video WITH its audio, for a continuation guide: both streams are
  *  anchored together at frame 0 of the next take (the template's continuation idiom). `endFrame`: where the previous
  *  shot's window ends in its take (the audio timeline) — the guide is what the audience sees last, not the take's
- *  own last frames when the cut leaves those out. */
-export async function tailClip(video: string, out: string, frames: number, fps = 24, endFrame?: number): Promise<string> {
+ *  own last frames when the cut leaves those out. The clip is COUNTED after it is written (frames and sound), so the
+ *  caller validates what the node will see (src/server/production/guide.ts) instead of trusting the request. */
+export async function tailClip(video: string, out: string, frames: number, fps = 24, endFrame?: number): Promise<TailClip> {
   const p = await ffprobe(video);
   const total = p.frames ?? Math.round((p.durationSeconds ?? 0) * fps);
   const mov = out.replace(/\.mp4$/, '.mov');
   await ffmpeg(tailClipArgs(video, mov, frames, total, fps, endFrame));
-  return mov;
+  const end = endFrame !== undefined && endFrame > 0 ? (total ? Math.min(endFrame, total) : endFrame) : total;
+  return { file: mov, ...(await probeGuideClip(mov)), sourceEndFrame: end, sourceTotalFrames: total };
 }
 
 /** The ffmpeg arguments that write frame `frame` of a clip as a PNG (an established plate of a place). */

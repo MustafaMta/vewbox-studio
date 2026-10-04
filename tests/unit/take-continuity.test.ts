@@ -11,7 +11,7 @@ import type { Asset, Production, Shot, StudioState, WorldBible } from '@/domain/
  *  the take recording its relation and the take it continues. CUT: the opening frame anchored and bound, the ending
  *  frame anchored. Hosted continuation: the previous take's last frame as the first frame, nothing silently dropped. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>> }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>>, /** what the written tail clip counts as (frames, sound) */ tailClip: { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 } as { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number } }));
 
 vi.mock('@/server/studio/engine', () => ({
   readState: async () => ({ state: fake.state, version: 1, hash: 'h' }),
@@ -44,7 +44,7 @@ vi.mock('@/server/media/ffmpeg', async (orig) => ({
   ffmpeg: async (args: string[]) => { fake.ffmpegArgs.push(args); return { stderr: '', ms: 1 }; },
   joinSpeech: async (_lines: unknown[], out: string) => ({ file: out, durationSeconds: 2.55, windows: [{ from: 0.4, to: 2.2 }] }),
   qaTake: async (_file: string, expect: { durationSeconds: number }) => { fake.qaExpect.push(expect); return { report: { ok: true, checks: [{ name: 'decodable', ok: true }] }, probe: { durationSeconds: 158 / 24, width: 1280, height: 736, hasAudio: true } }; },
-  tailClip: async (...a: unknown[]) => { fake.tails.push(a); return '/tmp/tail.mov'; },
+  tailClip: async (...a: unknown[]) => { fake.tails.push(a); return { file: '/tmp/tail.mov', ...fake.tailClip, sourceEndFrame: 124, sourceTotalFrames: 124 }; },
   frameAt: async (...a: unknown[]) => { fake.frames.push(a); return '/tmp/last.png'; },
   lastFrame: async (video: string) => { fake.closing.push(video); return '/tmp/last.png'; },
   thumbnail: async (_v: string, out: string) => out,
@@ -87,6 +87,7 @@ beforeEach(async () => {
   fake.requests = []; fake.commands = []; fake.ffmpegArgs = []; fake.tails = []; fake.closing = []; fake.frames = []; fake.qaExpect = []; fake.reads = []; fake.bible = undefined;
   fake.tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'vb-take-'));
   fake.backend = 'local';
+  fake.tailClip = { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 };
 });
 
 describe('GENERATE_TAKE by relation', () => {
@@ -118,9 +119,30 @@ describe('GENERATE_TAKE by relation', () => {
       expect.objectContaining({ kind: 'LOCATION', assetId: 'plate-dusk', binding: '<Picture 3> = <Subject 3>' }),
     ]));
     expect(t.references.some((r) => r.assetId === 'open-12')).toBe(false);
-    // the take records the window it was made for (the cut shows exactly these frames) and the World Bible it read
-    expect(t.params).toMatchObject({ timeline: { newFrames: 120, headFrames: 22, basis: 'DIALOGUE' }, world: { revisionId: 'wrev-3', revision: 3, pinned: true, plate: { assetId: 'plate-dusk', role: 'STATE' } } });
+    // the take records the window it was made for (the cut shows exactly these frames), the guide the node really
+    // kept (counted from the written clip: the trim reads this), and the World Bible it read
+    expect(t.params).toMatchObject({ timeline: { newFrames: 120, headFrames: 22, basis: 'DIALOGUE' }, guide: { frames: 22, sourceFrames: 22, withAudio: true, audioLatentSteps: 36.67, sourceEndFrame: 124 }, world: { revisionId: 'wrev-3', revision: 3, pinned: true, plate: { assetId: 'plate-dusk', role: 'STATE' } } });
     expect(fake.reads).toEqual([expect.objectContaining({ productionId: p.id, shotId: 's12', takeId: takeIdOf('job-take'), jobType: 'GENERATE_TAKE', read: expect.objectContaining({ revisionNumber: 3, pinned: true }) })]);
+  });
+
+  it('a tail clip the node would silently floor (21 frames → 5) is refused as WRONG_PARAMETERS before the engine is asked', async () => {
+    const { state, p } = fixture(); fake.state = state;
+    fake.tailClip = { frames: 21, hasAudio: true, audioSeconds: 21 / 24, sampleRate: 48000 };
+    await expect(generateTake(ctx(p.id, 's12'))).rejects.toMatchObject({ failureClass: 'WRONG_PARAMETERS', message: expect.stringMatching(/21 frames, not the 22 planned \(the node would silently keep 5\)/) });
+    expect(fake.requests).toEqual([]);
+    expect(fake.commands.some((c) => c.name === 'addTake')).toBe(false);
+    // a tail without its sound when the guide anchors the sound: refused too
+    fake.tailClip = { frames: 22, hasAudio: false };
+    await expect(generateTake(ctx(p.id, 's12'))).rejects.toMatchObject({ failureClass: 'WRONG_PARAMETERS', message: expect.stringMatching(/carries no sound/) });
+    expect(fake.requests).toEqual([]);
+  });
+
+  it('a predecessor whose window shows fewer frames than the guide is refused by the preflight (no file is cut)', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...TAKE_A, params: { timeline: { newFrames: 15 } } }] } : s)) });
+    fake.state = state;
+    await expect(generateTake(ctx(p.id, 's12'))).rejects.toMatchObject({ failureClass: 'INCONSISTENT_PLAN', message: expect.stringMatching(/continuation-source-ready.*shows only 15 frames in the cut, fewer than the 22-frame guide/) });
+    expect(fake.tails).toEqual([]);
+    expect(fake.requests).toEqual([]);
   });
 
   it('CONTINUATION of a take the cut shows only in part: the guide is cut from where its window ends (the audio timeline)', async () => {

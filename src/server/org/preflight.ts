@@ -1,7 +1,7 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
-import { clipSecondsFor, continuationSource, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
@@ -105,12 +105,14 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const song = byId(p.song?.assetId);
     add('song-present', usableAudio(song), 'MISSING_REFERENCE', usableAudio(song) ? undefined : 'the music video has no generated or uploaded song yet');
   }
-  // a continuation needs the take it continues
+  // a continuation needs the take it continues, with a usable tail: a chosen real take whose window on the cut holds
+  // the guide's frames (a shorter one would be floored by the node, gap V1)
   if (sh.continuity?.relationToPrevious === 'CONTINUATION') {
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-    const ok = !sameScene || Boolean(continuationSource(state, prev));
-    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
+    const tail = sameScene ? continuationTail(state, p, prev) : undefined;
+    const ok = !sameScene || Boolean(tail?.source);
+    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0; its window shows ${tail?.windowFrames ?? '?'} frames` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `this shot continues shot ${prev?.number}: ${tail?.problem ?? 'no usable tail'}`);
   }
   return { ok: checks.every((c) => c.ok), checks, warnings };
 }
