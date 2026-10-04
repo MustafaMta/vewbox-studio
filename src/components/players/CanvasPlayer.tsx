@@ -5,7 +5,7 @@ import { cls } from '@/components/ui/kit/cls';
 import { IconAddNote, IconBack5, IconClose, IconFit, IconForward5, IconNextFrame, IconPause, IconPlay, IconPrevFrame } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
 import type { PlayerHandle } from './InlinePlayer';
-import { coreKeys, MediaFailure, SeekBar, usePlayerCore } from './PlayerCore';
+import { coreKeys, handleOf, MediaFailure, SeekBar, usePlayerCore } from './PlayerCore';
 import type { SyncBus } from './sync';
 import { timecode } from './time';
 import { useShortcutScope } from './useShortcutScope';
@@ -28,7 +28,7 @@ export const CanvasPlayer = forwardRef<PlayerHandle, { src: string; poster?: str
     const setMarks = (m: Marks) => { if (onMarks) onMarks(m); else setOwn(m); };
     const markIn = () => setMarks({ ...marks, in: c.time, out: marks.out !== undefined && marks.out < c.time ? undefined : marks.out });
     const markOut = () => setMarks({ ...marks, out: c.time, in: marks.in !== undefined && marks.in > c.time ? undefined : marks.in });
-    useImperativeHandle(ref, () => ({ play: c.play, pause: c.pause, seek: c.seek, el: () => c.video.current }), [c.play, c.pause, c.seek, c.video]);
+    useImperativeHandle(ref, () => handleOf(c), [c]);
     const keys = useShortcutScope(coreKeys(c, { k: () => c.pause(), i: markIn, o: markOut, ...(onAddNote ? { n: () => onAddNote(c.time) } : {}) }));
     const fps0 = fps && fps > 0 ? fps : 24;
     const ticks = [marks.in, marks.out].filter((x): x is number => x !== undefined).map((at) => ({ at, kind: 'mark' as const }));
