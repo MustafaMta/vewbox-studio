@@ -773,6 +773,7 @@ const COPY = {
   'toast.emptied': 'The studio is empty.',
 
   // empty states
+  'empty.characters': 'No characters yet.',
   'empty.locations': 'No locations yet.',
   'empty.assets': 'The library is empty.',
 
