@@ -148,13 +148,42 @@ export function deleteScene(s: S, productionId: string, sceneId: string): S {
   return withProduction(s, productionId, (p) => ({ ...p, scenes: renumberScenes(p.scenes.filter((sc) => sc.id !== sceneId)), shots: renumberShots(p.shots.filter((sh) => sh.sceneId !== sceneId)) }));
 }
 
-/** Replace the script wholesale (the story engine wrote it): scenes with beats and lines. Shots of scenes that no
- *  longer exist are dropped; shots of scenes that stay keep their id. Scenes are matched by id when given. */
-export function replaceScript(s: S, productionId: string, scenes: Array<Omit<Scene, 'number'> & { id?: string }>): S {
+/** Which existing scene each incoming scene of a new script is (docs/BACKEND-AUDIT-2026-10.md C4, step 10): an id
+ *  the production already has, else the same title, else the same place in the order — each existing scene claimed
+ *  once. Pure. Returns the id each incoming scene keeps (undefined: a new scene). */
+export function matchScenes(existing: Array<Pick<Scene, 'id' | 'title'>>, incoming: Array<{ id?: string; title: string }>): Array<string | undefined> {
+  const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const claimed = new Set<string>();
+  const out: Array<string | undefined> = incoming.map((sc) => (sc.id && existing.some((e) => e.id === sc.id) && !claimed.has(sc.id) ? (claimed.add(sc.id), sc.id) : undefined));
+  incoming.forEach((sc, i) => {
+    if (out[i]) return;
+    const byTitle = existing.find((e) => !claimed.has(e.id) && norm(e.title) === norm(sc.title));
+    if (byTitle) { claimed.add(byTitle.id); out[i] = byTitle.id; }
+  });
+  incoming.forEach((_sc, i) => {
+    if (out[i]) return;
+    const atPlace = existing[i];
+    if (atPlace && !claimed.has(atPlace.id)) { claimed.add(atPlace.id); out[i] = atPlace.id; }
+  });
+  return out;
+}
+
+/** Replace the script wholesale (the story engine wrote it): scenes with beats and lines. The new scenes KEEP THE IDS
+ *  of the scenes they match (`matchScenes`), so the shots of every matched scene — and their takes — stay where they
+ *  are, under the same ids. Shots of a scene the new script no longer has leave the studio with it; nothing is lost:
+ *  the server tombstones them (src/server/studio/persist.ts) and they can be restored with their takes. */
+export function replaceScript(s: S, productionId: string, scenes: Array<Omit<Scene, 'number' | 'id'> & { id?: string }>, opts: { keepWritten?: boolean } = {}): S {
   return withProduction(s, productionId, (p) => {
-    const next: Scene[] = scenes.map((sc, i) => ({ ...sc, id: sc.id ?? nid('scene'), number: i + 1 }));
+    // `keepWritten` (the story engine's re-run): decided on the state the command runs on, never on a read taken
+    // before a minutes-long model call — once a scene has written lines, the script is the producer's
+    if (opts.keepWritten && p.scenes.some((sc) => sc.beats.some((b) => b.lines.length > 0))) throw new StudioError('CONFLICT', 'The scenes already carry written lines; the developed story does not replace them.', { productionId, reason: 'SCRIPT_WRITTEN' });
+    const kept = matchScenes(p.scenes, scenes);
+    const next: Scene[] = scenes.map((sc, i) => ({ ...sc, id: kept[i] ?? sc.id ?? nid('scene'), number: i + 1 }));
     const keep = new Set(next.map((x) => x.id));
-    return { ...p, scenes: next, shots: renumberShots(p.shots.filter((sh) => keep.has(sh.sceneId))) };
+    // the shots follow the new scene order (within a scene, their own order)
+    const order = new Map(next.map((sc, i) => [sc.id, i]));
+    const shots = p.shots.filter((sh) => keep.has(sh.sceneId)).map((sh, i) => ({ sh, i })).sort((a, b) => order.get(a.sh.sceneId)! - order.get(b.sh.sceneId)! || a.i - b.i).map((x) => x.sh);
+    return { ...p, scenes: next, shots: renumberShots(shots) };
   });
 }
 

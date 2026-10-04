@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql as dsql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql as dsql } from 'drizzle-orm';
 import type { Asset, Character, Production, Scene, Shot, StudioState, Take, VideoUsage } from '@/domain/types';
 import { canonical, hashString } from '@/domain/hash';
 import { schema, type Db } from '../db/client';
@@ -36,8 +36,24 @@ export function usageRow(characterId: string, v: VideoUsage) {
   return { characterId, productionId: v.productionId, productionTitle: v.productionTitle, shotId: v.shotId, shotLabel: v.shotLabel, takeId: v.takeId, takeLabel: v.takeLabel, recordedAt: v.recordedAt, status: v.status, canonicalImageVersion: nul(v.canonicalImageVersion) };
 }
 
-export async function persistState(tx: Tx, before: RowHashes, state: StudioState): Promise<PersistReport> {
+/** `deletedBy`: what removed the rows this save takes out of the studio (the batch's commands) — recorded on their
+ *  tombstones. Shows, seasons, productions, scenes, shots and takes are never deleted here (docs/BACKEND-AUDIT-2026-10.md
+ *  C4, step 10): a row that left the state is TOMBSTONED (`deleted_at` set, one instant for the whole save, so a
+ *  restore can bring back exactly what one change removed), and a row that comes back under the same id is revived.
+ *  Characters, locations and assets are deleted as before (an asset only by the producer's explicit deletion). */
+export interface PersistOptions { deletedBy?: string }
+
+export async function persistState(tx: Tx, before: RowHashes, state: StudioState, opts: PersistOptions = {}): Promise<PersistReport> {
   const report: PersistReport = { inserted: 0, updated: 0, deleted: 0 };
+  const deletedAt = new Date().toISOString();
+  const deletedBy = (opts.deletedBy ?? 'studio').slice(0, 200);
+  const live = { deletedAt: null, deletedBy: null };
+  type Tombstoned = typeof schema.shows | typeof schema.seasons | typeof schema.productions | typeof schema.scenes | typeof schema.shots | typeof schema.takes;
+  const tombstone = async (table: Tombstoned, ids: string[]) => {
+    if (!ids.length) return;
+    await tx.update(table).set({ deletedAt, deletedBy }).where(and(inArray(table.id, ids), isNull(table.deletedAt)));
+    report.deleted += ids.length;
+  };
 
   // ---- assets (first: other rows point at them — characters' canonical image column with a foreign key) ----
   // Rows that went away are deleted LAST, after every row that pointed at them has been rewritten or deleted.
@@ -64,10 +80,9 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       const hash = h(s); const prev = before.shows.get(s.id);
       if (prev === hash) continue;
       const row = { id: s.id, title: s.title, titleAr: nul(s.titleAr), logline: s.logline, genre: s.genre, style: s.style, language: s.language, dialect: nul(s.dialect), aspect: s.aspect, synopsis: nul(s.synopsis), coverAssetId: nul(s.coverAssetId), posterAssetId: nul(s.posterAssetId), castIds: s.castIds, locationIds: s.locationIds, bible: nul(s.bible), createdAt: s.createdAt, updatedAt: s.updatedAt };
-      if (prev === undefined) { await tx.insert(schema.shows).values(row); report.inserted++; } else { await tx.update(schema.shows).set(row).where(eq(schema.shows.id, s.id)); report.updated++; }
+      if (prev === undefined) { await tx.insert(schema.shows).values(row).onConflictDoUpdate({ target: schema.shows.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.shows).set(row).where(eq(schema.shows.id, s.id)); report.updated++; }
     }
-    const gone = [...before.shows.keys()].filter((id) => !seen.has(id));
-    if (gone.length) { await tx.delete(schema.shows).where(inArray(schema.shows.id, gone)); report.deleted += gone.length; }
+    await tombstone(schema.shows, [...before.shows.keys()].filter((id) => !seen.has(id)));
   }
 
   // ---- seasons ----
@@ -78,10 +93,9 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       const hash = h(s); const prev = before.seasons.get(s.id);
       if (prev === hash) continue;
       const row = { id: s.id, showId: s.showId, number: s.number, title: s.title, arc: s.arc, createdAt: s.createdAt };
-      if (prev === undefined) { await tx.insert(schema.seasons).values(row); report.inserted++; } else { await tx.update(schema.seasons).set(row).where(eq(schema.seasons.id, s.id)); report.updated++; }
+      if (prev === undefined) { await tx.insert(schema.seasons).values(row).onConflictDoUpdate({ target: schema.seasons.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.seasons).set(row).where(eq(schema.seasons.id, s.id)); report.updated++; }
     }
-    const gone = [...before.seasons.keys()].filter((id) => !seen.has(id));
-    if (gone.length) { await tx.delete(schema.seasons).where(inArray(schema.seasons.id, gone)); report.deleted += gone.length; }
+    await tombstone(schema.seasons, [...before.seasons.keys()].filter((id) => !seen.has(id)));
   }
 
   // ---- characters (+ usage) ----
@@ -130,14 +144,14 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       const hash = h({ ...p, scenes: undefined, shots: undefined }); const prev = before.productions.get(p.id);
       if (prev !== hash) {
         const row = productionRow(p);
-        if (prev === undefined) { await tx.insert(schema.productions).values(row); report.inserted++; } else { await tx.update(schema.productions).set(row).where(eq(schema.productions.id, p.id)); report.updated++; }
+        if (prev === undefined) { await tx.insert(schema.productions).values(row).onConflictDoUpdate({ target: schema.productions.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.productions).set(row).where(eq(schema.productions.id, p.id)); report.updated++; }
       }
       // scenes first (shots reference them)
       for (let i = 0; i < p.scenes.length; i++) {
         const sc = p.scenes[i]; seenSc.add(sc.id);
         const sh = h(sc); const sprev = before.scenes.get(sc.id);
         const row = sceneRow(p.id, i, sc);
-        if (sprev === undefined) { await tx.insert(schema.scenes).values(row); report.inserted++; }
+        if (sprev === undefined) { await tx.insert(schema.scenes).values(row).onConflictDoUpdate({ target: schema.scenes.id, set: { ...row, ...live } }); report.inserted++; }
         else if (sprev !== sh) { await tx.update(schema.scenes).set(row).where(eq(schema.scenes.id, sc.id)); report.updated++; }
         else { await tx.update(schema.scenes).set({ position: i }).where(and(eq(schema.scenes.id, sc.id), dsql`${schema.scenes.position} <> ${i}`)); }
       }
@@ -148,7 +162,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
         const sh = p.shots[i]; seenSh.add(sh.id);
         const hh = h({ ...sh, takes: undefined }); const sprev = before.shots.get(sh.id);
         const row = shotRow(p.id, i, sh);
-        if (sprev === undefined) { await tx.insert(schema.shots).values(row); report.inserted++; }
+        if (sprev === undefined) { await tx.insert(schema.shots).values(row).onConflictDoUpdate({ target: schema.shots.id, set: { ...row, ...live } }); report.inserted++; }
         else if (sprev !== hh) { await tx.update(schema.shots).set(row).where(eq(schema.shots.id, sh.id)); report.updated++; }
         else { await tx.update(schema.shots).set({ position: i }).where(and(eq(schema.shots.id, sh.id), dsql`${schema.shots.position} <> ${i}`)); }
         if (sprev !== hh && sh.continuity) {
@@ -158,19 +172,16 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
           const t = sh.takes[j]; seenT.add(t.id);
           const th = h(t); const tprev = before.takes.get(t.id);
           const trow = takeRow(p.id, sh.id, j, t);
-          if (tprev === undefined) { await tx.insert(schema.takes).values(trow); report.inserted++; }
+          if (tprev === undefined) { await tx.insert(schema.takes).values(trow).onConflictDoUpdate({ target: schema.takes.id, set: { ...trow, ...live } }); report.inserted++; }
           else if (tprev !== th) { await tx.update(schema.takes).set(trow).where(eq(schema.takes.id, t.id)); report.updated++; }
         }
       }
     }
-    const goneT = [...before.takes.keys()].filter((id) => !seenT.has(id));
-    if (goneT.length) { await tx.delete(schema.takes).where(inArray(schema.takes.id, goneT)); report.deleted += goneT.length; }
-    const goneSh = [...before.shots.keys()].filter((id) => !seenSh.has(id));
-    if (goneSh.length) { await tx.delete(schema.shots).where(inArray(schema.shots.id, goneSh)); report.deleted += goneSh.length; }
-    const goneSc = [...before.scenes.keys()].filter((id) => !seenSc.has(id));
-    if (goneSc.length) { await tx.delete(schema.scenes).where(inArray(schema.scenes.id, goneSc)); report.deleted += goneSc.length; }
-    const goneP = [...before.productions.keys()].filter((id) => !seenP.has(id));
-    if (goneP.length) { await tx.delete(schema.productions).where(inArray(schema.productions.id, goneP)); report.deleted += goneP.length; }
+    // what left the studio is tombstoned, never deleted: a take, its media and its provenance stay recoverable
+    await tombstone(schema.takes, [...before.takes.keys()].filter((id) => !seenT.has(id)));
+    await tombstone(schema.shots, [...before.shots.keys()].filter((id) => !seenSh.has(id)));
+    await tombstone(schema.scenes, [...before.scenes.keys()].filter((id) => !seenSc.has(id)));
+    await tombstone(schema.productions, [...before.productions.keys()].filter((id) => !seenP.has(id)));
   }
 
   // ---- assets that went away: nothing points at them any more ----

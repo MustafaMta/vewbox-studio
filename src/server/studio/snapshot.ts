@@ -1,4 +1,4 @@
-import { asc } from 'drizzle-orm';
+import { asc, isNull } from 'drizzle-orm';
 import type { Asset, AssetTier, Character, Location, Production, Scene, Season, Settings, Shot, Show, StudioState, Take, VideoUsage, Voice, VoiceIdentity } from '@/domain/types';
 import { STATE_VERSION } from '@/domain/version';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
@@ -76,12 +76,13 @@ export function characterFromRow(c: CharacterRowRead, videos: VideoUsage[], asse
 
 export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const [showRows, seasonRows, productionRows, sceneRows, shotRows, takeRows, characterRows, usageRows, locationRows, assetRows, settingsRows, metaRows] = await Promise.all([
-    tx.select().from(schema.shows).orderBy(asc(schema.shows.createdAt)),
-    tx.select().from(schema.seasons).orderBy(asc(schema.seasons.number)),
-    tx.select().from(schema.productions).orderBy(asc(schema.productions.createdAt)),
-    tx.select().from(schema.scenes).orderBy(asc(schema.scenes.position)),
-    tx.select().from(schema.shots).orderBy(asc(schema.shots.position)),
-    tx.select().from(schema.takes).orderBy(asc(schema.takes.position)),
+    // the live studio: tombstoned rows (step 10) are not part of it
+    tx.select().from(schema.shows).where(isNull(schema.shows.deletedAt)).orderBy(asc(schema.shows.createdAt)),
+    tx.select().from(schema.seasons).where(isNull(schema.seasons.deletedAt)).orderBy(asc(schema.seasons.number)),
+    tx.select().from(schema.productions).where(isNull(schema.productions.deletedAt)).orderBy(asc(schema.productions.createdAt)),
+    tx.select().from(schema.scenes).where(isNull(schema.scenes.deletedAt)).orderBy(asc(schema.scenes.position)),
+    tx.select().from(schema.shots).where(isNull(schema.shots.deletedAt)).orderBy(asc(schema.shots.position)),
+    tx.select().from(schema.takes).where(isNull(schema.takes.deletedAt)).orderBy(asc(schema.takes.position)),
     tx.select().from(schema.characters).orderBy(asc(schema.characters.createdAt)),
     tx.select().from(schema.characterUsage).orderBy(asc(schema.characterUsage.id)),
     tx.select().from(schema.locations).orderBy(asc(schema.locations.createdAt)),

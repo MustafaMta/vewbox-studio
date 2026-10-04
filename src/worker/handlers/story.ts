@@ -181,9 +181,16 @@ export const developStory: Handler = async (ctx) => {
   const scenes: Array<Omit<Scene, 'number'>> = out.scenes.map((sc) => ({ id: nid('scene'), title: sc.title, locationId: resolveLoc(sc.locationName), timeOfDay: sc.timeOfDay, characterIds: sc.characterNames.map(resolveChar).filter((x): x is string => Boolean(x)), beats: [], purpose: sc.purpose, emotionalObjective: sc.emotionalObjective, entryState: sc.entryState, exitState: sc.exitState }));
   await command('updateProduction', [p.id, { logline: out.logline, synopsis: out.synopsis, genre: out.genre ?? p.genre, mood: out.mood ?? p.mood, titleAr: p.titleAr ?? out.titleAr, castIds, locationIds }], 'worker');
   // keep existing scenes that already carry written lines; a skeleton (an accepted proposal's structure: a summary
-  // beat, no lines, no place) is replaced by the developed, located and cast scenes
-  const keepBeats = p.scenes.some((sc) => sc.beats.some((b) => b.lines.length > 0));
-  if (!keepBeats) await command('replaceScript', [p.id, scenes], 'worker');
+  // beat, no lines, no place) is replaced by the developed, located and cast scenes — decided by the command on the
+  // studio as it is NOW (the model call took minutes: a producer may have written lines meanwhile), and matched to
+  // the existing scenes so their shots and takes keep their ids (audit C4, step 10)
+  let keepBeats = false;
+  try { await command('replaceScript', [p.id, scenes, { keepWritten: true }], 'worker'); }
+  catch (e) {
+    if ((e as { details?: { reason?: string } }).details?.reason !== 'SCRIPT_WRITTEN') throw e;
+    keepBeats = true;
+    await ctx.event('info', 'the scenes already carry written lines: the developed story did not replace them');
+  }
   // an episode's new people and places join the show's canon, so later seasons and episodes inherit them
   if (p.showId) { const show = state.shows.find((x) => x.id === p.showId); if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, ...castIds])), locationIds: Array.from(new Set([...show.locationIds, ...locationIds])) }], 'worker'); }
   await command('markStepDone', [p.id, 'STORY'], 'worker');

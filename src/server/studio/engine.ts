@@ -63,7 +63,8 @@ export async function applyCommands(commands: Command[], origin = 'server', opts
         throw e;
       }
     }
-    const report = await persistState(tx, snap.hashes, state);
+    // what this batch removes is tombstoned with the batch's name on it (step 10)
+    const report = await persistState(tx, snap.hashes, state, { deletedBy: `${origin}: ${Array.from(new Set(commands.map((c) => c.name))).join(', ')}` });
     if (opts.also) await opts.also(tx, results);
     const changed = report.inserted + report.updated + report.deleted > 0;
     let version = snap.version;

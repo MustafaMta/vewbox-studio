@@ -14,6 +14,13 @@ const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string
 /** `characters.canonical_image`: the canonical image without its asset id (that is `canonical_asset_id`). */
 export type StoredCanonicalImage = Omit<CanonicalImage, 'assetId'>;
 
+/** TOMBSTONES (docs/BACKEND-AUDIT-2026-10.md C4, step 10): shows, seasons, productions, scenes, shots and takes are
+ *  never deleted by the studio. Removing one (a deleted scene, a replaced script, a deleted production, a removed take)
+ *  sets `deleted_at` (and what removed it): the row, the take's media and its files stay, and the studio can restore it
+ *  (src/server/studio/tombstones.ts). The foreign keys between them are RESTRICT, so no cascade can ever take a take
+ *  with it. The studio's state is the rows that are not tombstoned. */
+const tombstone = () => ({ deletedAt: ts('deleted_at'), deletedBy: text('deleted_by') });
+
 export const shows = pgTable('shows', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
@@ -32,22 +39,24 @@ export const shows = pgTable('shows', {
   bible: jsonb('bible').$type<NonNullable<import('@/domain/types').Show['bible']>>(),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
+  ...tombstone(),
 });
 
 export const seasons = pgTable('seasons', {
   id: text('id').primaryKey(),
-  showId: text('show_id').notNull().references(() => shows.id, { onDelete: 'cascade' }),
+  showId: text('show_id').notNull().references(() => shows.id, { onDelete: 'restrict' }),
   number: integer('number').notNull(),
   title: text('title').notNull(),
   arc: text('arc').notNull().default(''),
   createdAt: ts('created_at').notNull(),
+  ...tombstone(),
 }, (t) => [index('seasons_show_idx').on(t.showId)]);
 
 export const productions = pgTable('productions', {
   id: text('id').primaryKey(),
   kind: text('kind').notNull(),
-  showId: text('show_id').references(() => shows.id, { onDelete: 'cascade' }),
-  seasonId: text('season_id').references(() => seasons.id, { onDelete: 'cascade' }),
+  showId: text('show_id').references(() => shows.id, { onDelete: 'restrict' }),
+  seasonId: text('season_id').references(() => seasons.id, { onDelete: 'restrict' }),
   episodeNumber: integer('episode_number'),
   title: text('title').notNull(),
   titleAr: text('title_ar'),
@@ -76,11 +85,12 @@ export const productions = pgTable('productions', {
   framePosterAssetId: text('frame_poster_asset_id'),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
+  ...tombstone(),
 }, (t) => [index('productions_show_idx').on(t.showId), index('productions_season_idx').on(t.seasonId)]);
 
 export const scenes = pgTable('scenes', {
   id: text('id').primaryKey(),
-  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'cascade' }),
+  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'restrict' }),
   position: integer('position').notNull(),
   number: integer('number').notNull(),
   title: text('title').notNull(),
@@ -92,12 +102,13 @@ export const scenes = pgTable('scenes', {
   emotionalObjective: text('emotional_objective'),
   entryState: text('entry_state'),
   exitState: text('exit_state'),
+  ...tombstone(),
 }, (t) => [index('scenes_production_idx').on(t.productionId)]);
 
 export const shots = pgTable('shots', {
   id: text('id').primaryKey(),
-  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'cascade' }),
-  sceneId: text('scene_id').notNull().references(() => scenes.id, { onDelete: 'cascade' }),
+  productionId: text('production_id').notNull().references(() => productions.id, { onDelete: 'restrict' }),
+  sceneId: text('scene_id').notNull().references(() => scenes.id, { onDelete: 'restrict' }),
   position: integer('position').notNull(),
   number: integer('number').notNull(),
   purpose: text('purpose').notNull().default(''),
@@ -116,11 +127,12 @@ export const shots = pgTable('shots', {
   notes: text('notes'),
   continuity: jsonb('continuity').$type<ContinuityState>(),
   prompt: text('prompt'),
+  ...tombstone(),
 }, (t) => [index('shots_production_idx').on(t.productionId), index('shots_scene_idx').on(t.sceneId)]);
 
 export const takes = pgTable('takes', {
   id: text('id').primaryKey(),
-  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'cascade' }),
+  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'restrict' }),
   productionId: text('production_id').notNull(),
   position: integer('position').notNull(),
   label: text('label').notNull(),
@@ -158,6 +170,7 @@ export const takes = pgTable('takes', {
   ratingReason: text('rating_reason'),
   ratedBy: text('rated_by'),
   ratedAt: ts('rated_at'),
+  ...tombstone(),
 }, (t) => [index('takes_shot_idx').on(t.shotId), index('takes_production_idx').on(t.productionId)]);
 
 export const characters = pgTable('characters', {
