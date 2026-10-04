@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 import { ShellSkeleton } from './ShellSkeleton';
+import { ProductionWorkspaceSkeleton, ShotWorkspaceSkeleton } from '@/components/workspace/WorkspaceSkeleton';
 
 /** ROUTE SKELETONS — what the main area shows while the studio's first snapshot is on its way (the shell renders a
  *  page only once the store is ready). The standard for every page (VISUAL-STANDARD-V5.1 §5.22, §6.1): a page whose
@@ -23,9 +24,11 @@ const lazy = (load: () => Promise<unknown>, name: string): ComponentType =>
 export const ROUTE_SKELETONS: Entry[] = [
   // Home (P-Home): src/components/home/Home.tsx exports HomeSkeleton
   { match: (p) => p === '/', Skeleton: lazy(() => import('@/components/home/Home'), 'HomeSkeleton') },
-  // the production workspace (P-Work): src/components/workspace/WorkspaceSkeleton.tsx
-  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/production\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ProductionWorkspaceSkeleton') },
-  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/shots\/[^/]+\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ShotWorkspaceSkeleton') },
+  // the production workspace (P-Work): src/components/workspace/WorkspaceSkeleton.tsx — imported statically: these routes
+  // already ship it in their loading.tsx, and a lazy copy here drew the generic shell skeleton for ~200 ms between the
+  // page's own skeleton and its content on a slow line (Design QA M3)
+  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/production\/?$/.test(p), Skeleton: ProductionWorkspaceSkeleton },
+  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/shots\/[^/]+\/?$/.test(p), Skeleton: ShotWorkspaceSkeleton },
   // Shows (P-Shows): the catalogue, a show, a season, an episode's lobby (after the workspace routes above)
   { match: (p) => p === '/shows', Skeleton: lazy(() => import('@/components/show/ShowsCatalogue'), 'ShowsSkeleton') },
   { match: (p) => /^\/shows\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/ShowPage'), 'ShowSkeleton') },

@@ -55,6 +55,8 @@ interface Api {
   startEmpty: () => Promise<void>;
   refresh: () => Promise<void>;
   jobs: Job[];
+  /** the job list has been read once (before that an empty list means 'not known yet', not 'nothing running') */
+  jobsReady: boolean;
   /** Counts up whenever the studio records an activity event (an agent started, finished, handed off, inspected);
    *  pages that show the organisation refetch on it. */
   activityTick: number;
@@ -78,6 +80,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [lastError, setLastError] = useState<Api['lastError']>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsReady, setJobsReady] = useState(false);
   const [activityTick, setActivityTick] = useState(0);
   const latest = useRef(state); latest.current = state;
   /** The newest server version this page has seen. A change event from our own client id for a newer version than
@@ -122,7 +125,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const scheduleRefresh = useCallback((ms = 150) => { if (refreshTimer.current) clearTimeout(refreshTimer.current); refreshTimer.current = setTimeout(() => { refreshTimer.current = null; void refresh(); }, ms); }, [refresh]);
 
-  const loadJobs = useCallback(async () => { try { setJobs(await api.jobs({ limit: JOB_LIST_LIMIT })); } catch { /* shown by connected flag */ } }, []);
+  const loadJobs = useCallback(async () => { try { setJobs(await api.jobs({ limit: JOB_LIST_LIMIT })); } catch { /* shown by connected flag */ } finally { setJobsReady(true); } }, []);
   const scheduleJobs = useCallback((ms = 250) => { if (jobsTimer.current) clearTimeout(jobsTimer.current); jobsTimer.current = setTimeout(() => { jobsTimer.current = null; void loadJobs(); }, ms); }, [loadJobs]);
 
   const flush = useCallback(async () => {
@@ -267,7 +270,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setLastError(null), []);
 
-  const value = useMemo<Api>(() => ({ state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, activityTick, startJob, cancelJob, retryJob]);
+  const value = useMemo<Api>(() => ({ state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, jobsReady, activityTick, startJob, cancelJob, retryJob }), [state, ready, seeded, saving, connected, stream, reconnect, version, capabilities, lastError, clearError, act, addFile, removeAsset, startEmpty, refresh, jobs, jobsReady, activityTick, startJob, cancelJob, retryJob]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

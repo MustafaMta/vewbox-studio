@@ -22,7 +22,8 @@ export function RegenerateShot({ p, shotId, gate, compact }: { p: Production; sh
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const running = activeShotJob(p, shotId, jobs);
-  const why = gate.paused === null ? 'Checking whether the studio can take new work…' : gate.blocked('video') ?? (running ? 'This shot is being made now.' : null);
+  const checking = gate.paused === null;
+  const why = checking ? null : gate.blocked('video') ?? (running ? 'This shot is being made now.' : null);
   const go = async () => {
     setBusy(true);
     try {
@@ -34,8 +35,9 @@ export function RegenerateShot({ p, shotId, gate, compact }: { p: Production; sh
   };
   return (
     <span className="ws-gen">
-      <Button size="sm" icon={<IconRetry aria-hidden />} loading={busy} disabled={Boolean(why)} title={why ?? undefined} onClick={() => void go()}>Regenerate this shot</Button>
-      {why && <span className={compact ? 'sr-only' : 'ws-gen-why'}>{why}</span>}
+      <Button size="sm" icon={<IconRetry aria-hidden />} loading={busy} disabled={checking || Boolean(why)} title={why ?? undefined} onClick={() => void go()}>Regenerate this shot</Button>
+      {!compact && <span className="ws-gen-why" aria-hidden={why ? undefined : true}>{why}</span>}
+      {compact && why && <span className="sr-only">{why}</span>}
     </span>
   );
 }
