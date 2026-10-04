@@ -224,7 +224,7 @@ const NewProduction = z.object({ kind: z.enum(KINDS), showId: id.optional(), sea
 /** cutAssetId, exports and the frame poster come from ASSEMBLE/EXPORT; scenes and shots (with their takes) from the
  *  structural commands — a production patch from a page carries none of them. */
 const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.number().int().positive(), title: z.string().min(1).max(300), titleAr: titleText, logline: line(8000), synopsis: line(40000), style, language, dialect, aspect, targetSeconds: z.number().positive().max(4 * 3600), stage, brief: Brief, castIds: idList, locationIds: idList, song: Song, coverAssetId: id, posterAssetId: id, artist: line(300), concept: z.enum(['PERFORMANCE', 'NARRATIVE', 'MIXED']), genre: line(200), mood: line(200) })
-  .partial().extend(owned('id', 'kind', 'createdAt', 'scenes', 'shots', 'cutAssetId', 'exports', 'framePosterAssetId')).passthrough();
+  .partial().extend(owned('id', 'kind', 'createdAt', 'scenes', 'shots', 'cutAssetId', 'cutStale', 'exports', 'framePosterAssetId')).passthrough();
 
 const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();

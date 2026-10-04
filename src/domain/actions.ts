@@ -10,6 +10,7 @@ import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonica
 import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
+import { cutInputsHash } from './cut';
 
 export { nid } from './ids';
 
@@ -99,7 +100,7 @@ export function duplicateProduction(s: S, id: string): { state: S; production: P
   const src = s.productions.find((p) => p.id === id);
   if (!src) return { state: s, production: null };
   const t = now();
-  const copy: Production = structuredClone({ ...src, id: nid('copy'), title: `${src.title} (copy)`, titleAr: undefined, stage: 'STORY', createdAt: t, updatedAt: t, cutAssetId: undefined, exports: [] });
+  const copy: Production = structuredClone({ ...src, id: nid('copy'), title: `${src.title} (copy)`, titleAr: undefined, stage: 'STORY', createdAt: t, updatedAt: t, cutAssetId: undefined, cutStale: undefined, exports: [] });
   copy.scenes = copy.scenes.map((sc) => ({ ...sc }));
   copy.shots = copy.shots.map((sh) => ({ ...sh, id: nid('shot'), takes: [], selectedTakeId: undefined, continuity: undefined }));
   if (copy.kind === 'EPISODE' && copy.seasonId) copy.episodeNumber = s.productions.filter((p) => p.seasonId === copy.seasonId).length + 1;
@@ -190,7 +191,12 @@ export function recordExport(s: S, id: string, rec: Omit<ExportRecord, 'id' | 'c
   return { state: updateProduction(s, id, { exports: [...(p.exports ?? []), ex] }), export: ex };
 }
 
-export function setCut(s: S, id: string, cutAssetId: string | undefined): S { return updateProduction(s, id, { cutAssetId }); }
+/** The assembled cut. inputs: the cutInputsHash it was rendered from (src/domain/cut.ts) — when the production
+ *  moved on while it was rendering, the new cut is already stale; without it the cut is taken as current. */
+export function setCut(s: S, id: string, cutAssetId: string | undefined, opts: { inputs?: string } = {}): S {
+  const p = mustFind(s.productions, id, 'Production');
+  return updateProduction(s, id, { cutAssetId, cutStale: cutAssetId && opts.inputs && opts.inputs !== cutInputsHash(p) ? true : undefined });
+}
 
 // ------------------------------------------------------------------------------------------------------ scenes
 
@@ -198,8 +204,14 @@ function withProduction(s: S, id: string, fn: (p: Production) => Production): S 
   const p = mustFind(s.productions, id, 'Production');
   const next = fn(p);
   if (next === p) return s; // nothing changed: same state, so callers and effects can tell
-  return { ...s, productions: s.productions.map((x) => (x.id === id ? touchProduction(next) : x)) };
+  // A STALE CUT (audit M2, step 12): a change to what the assembled cut was made from — a shot added, removed, moved
+  // or edited in a way the cut shows, a line recorded again, another take chosen — leaves the cut out of date
+  const stale = p.cutAssetId && !next.cutStale && cutInputsHash(next) !== cutInputsHash(p) ? { ...next, cutStale: true } : next;
+  return { ...s, productions: s.productions.map((x) => (x.id === id ? touchProduction(stale) : x)) };
 }
+
+/** The cut is out of date (only when there is one). */
+const markCutStale = (p: Production): Production => (p.cutAssetId ? { ...p, cutStale: true } : p);
 
 export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats'] }): { state: S; scene: Scene } {
   const p = mustFind(s.productions, productionId, 'Production');
@@ -345,12 +357,13 @@ export function setShotContinuity(s: S, productionId: string, shotId: string, co
 export function selectTake(s: S, productionId: string, shotId: string, takeId: string | undefined): S {
   return withProduction(s, productionId, (p) => {
     const sh = mustFind(p.shots, shotId, 'Shot');
+    if ((sh.selectedTakeId ?? undefined) === (takeId ?? undefined)) return p;
     if (takeId) {
       const t = mustFind(sh.takes, takeId, 'Take');
       if (t.status === 'REJECTED') throw new StudioError('INVALID', 'A rejected take cannot be chosen for the cut.', { takeId, by: 'status' });
       if (t.rating === 'REJECTED') throw new StudioError('INVALID', `This take was rejected${t.ratingReason ? ` (${t.ratingReason})` : ''}; a rejected take cannot be chosen for the cut.`, { takeId, by: 'rating' });
     }
-    return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) };
+    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) });
   });
 }
 
@@ -371,7 +384,7 @@ export function rateTake(s: S, productionId: string, shotId: string, takeId: str
       ? { ...t, rating: undefined, ratingReason: undefined, ratedBy: undefined, ratedAt: undefined }
       : { ...t, rating, ratingReason: reason, ratedBy: opts.by?.trim() || 'producer', ratedAt: now() };
     const selectedTakeId = rating === 'REJECTED' && sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId;
-    return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId, takes: x.takes.map((y) => (y.id === takeId ? judged : y)) } : x)) };
+    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId, takes: x.takes.map((y) => (y.id === takeId ? judged : y)) } : x)) });
   });
 }
 
@@ -386,7 +399,7 @@ export function rejectTake(s: S, productionId: string, shotId: string, takeId: s
 
 /** Removing a take keeps the fact that its characters were in a video (see rules.ts). */
 export function removeTake(s: S, productionId: string, shotId: string, takeId: string): S {
-  const next = withProduction(s, productionId, (p) => ({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, takes: sh.takes.filter((t) => t.id !== takeId), selectedTakeId: sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId } : sh)) }));
+  const next = withProduction(s, productionId, (p) => (p.shots.some((sh) => sh.id === shotId && sh.takes.some((t) => t.id === takeId)) ? markCutStale({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, takes: sh.takes.filter((t) => t.id !== takeId), selectedTakeId: sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId } : sh)) }) : p));
   return next === s ? s : { ...next, characters: markTakeRemoved(next.characters, shotId, takeId) };
 }
 
@@ -932,7 +945,7 @@ export function deleteAsset(s: S, id: string): S {
     locations: s.locations.map((l) => ({ ...l, refs: l.refs.filter((r) => r.assetId !== id), masterAssetId: not(l.masterAssetId) })),
     shows: s.shows.map((sh) => ({ ...sh, coverAssetId: not(sh.coverAssetId), posterAssetId: not(sh.posterAssetId) })),
     productions: s.productions.map((p) => ({
-      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), framePosterAssetId: not(p.framePosterAssetId), cutAssetId: not(p.cutAssetId), exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
+      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), framePosterAssetId: not(p.framePosterAssetId), cutAssetId: not(p.cutAssetId), cutStale: p.cutAssetId === id ? undefined : p.cutStale, exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
       shots: p.shots.map((sh) => { const takes = sh.takes.filter((t) => t.assetId !== id); return { ...sh, openingFrameAssetId: not(sh.openingFrameAssetId), endingFrameAssetId: not(sh.endingFrameAssetId), takes, selectedTakeId: takes.some((t) => t.id === sh.selectedTakeId) ? sh.selectedTakeId : undefined, dialogue: sh.dialogue.map((d) => (d.audioAssetId === id ? { ...d, audioAssetId: undefined, durationSeconds: undefined } : d)) }; }),
     })),
   };

@@ -82,6 +82,8 @@ export const productions = pgTable('productions', {
   genre: text('genre'),
   mood: text('mood'),
   cutAssetId: text('cut_asset_id'),
+  /** the cut is out of date (docs/BACKEND-AUDIT-2026-10.md M2, step 12): set by the reducers, cleared by a current cut */
+  cutStale: boolean('cut_stale').notNull().default(false),
   exports: jsonb('exports').$type<ExportRecord[]>(),
   /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
    *  made by the backfill for a production without key art; the page renders the title over it. */

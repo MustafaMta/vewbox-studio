@@ -5,6 +5,7 @@ import { step } from './step';
 import { StudioError } from '@/domain/errors';
 import type { Asset, StudioState } from '@/domain/types';
 import { timelineDigest } from '@/domain/timeline';
+import { cutInputsHash } from '@/domain/cut';
 import { commands, readState, type CommandSpec } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { assetFile, assetFromStored } from '@/server/media';
@@ -150,7 +151,8 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await fsp.rm(outDir, { recursive: true, force: true }).catch(() => {});
   await recordMetric(`${opts.kind}.render_ms`, Date.now() - t0, 'ms', { shots: timeline.items.length, seconds: Math.round(result.durationSeconds) }, ctx.job.id);
-  return { videoId, posterId, sidecars, assets, digest, durationSeconds: result.durationSeconds, loudness: result.loudness, size, shots: timeline.items.length, p, mix, sync, validation, joins };
+  // what this cut was made from: setCut compares it with the production when the cut is recorded (step 12)
+  return { inputs: cutInputsHash(p), videoId, posterId, sidecars, assets, digest, durationSeconds: result.durationSeconds, loudness: result.loudness, size, shots: timeline.items.length, p, mix, sync, validation, joins };
 }
 
 /** Commit a rendered cut or export as ONE batch: its assets, then `then` (setCut / recordExport, markStepDone).
@@ -188,7 +190,7 @@ export const assemble: Handler = async (ctx) => {
     return { cutAssetId: done.id, durationSeconds: done.durationSeconds, resumedFromCommit: true };
   }
   const r = await render(ctx, { productionId, format: 'mp4-h264', resolution: '1080', subtitles: 'none', kind: 'cut' });
-  const audioTimelineRevision = await commitRender(ctx, r, [{ name: 'setCut', args: [productionId, r.videoId] }, { name: 'markStepDone', args: [productionId, 'PRODUCE'] }]);
+  const audioTimelineRevision = await commitRender(ctx, r, [{ name: 'setCut', args: [productionId, r.videoId, { inputs: r.inputs }] }, { name: 'markStepDone', args: [productionId, 'PRODUCE'] }]);
   const judged = r.joins.filter((j) => j.judged);
   const jumps = judged.filter((j) => !j.ok);
   await recordHandoff({ id: outputId(ctx.job.id, 'handoff:edit', 'handoff'), productionId, stage: 'EDIT', producerDepartment: 'POST', receiverDepartment: 'EXECUTIVE', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { cut: r.videoId, shots: r.shots, audioTimeline: audioTimelineRevision }, validation: { ok: r.validation.ok && jumps.length === 0, checks: [{ name: 'cut-validated', ok: r.validation.ok }, { name: 'one-sound-per-stretch', ok: true, detail: `${r.mix.tracks.length} track(s): ${Array.from(new Set(r.mix.tracks.map((t) => t.kind))).join(', ')}; audited (no source, song or voice twice)` }, { name: 'loudness-at-target', ok: r.loudness ? Math.abs(r.loudness.integrated - r.mix.targetLufs) <= 1.5 : true, detail: r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS for ${r.mix.targetLufs}` : 'not measured' }, { name: 'continuation-joins', ok: jumps.length === 0, detail: judged.length ? `${judged.length - jumps.length} of ${judged.length} continuation join(s) within the shots' own change${jumps.length ? `; jumps into ${jumps.map((j) => j.toShotId).join(', ')}` : ''}` : 'no continuation join' }, ...(r.sync.length ? [{ name: 'performers-aligned', ok: true, detail: `${r.sync.filter((s) => s.droppedFrames).length} of ${r.sync.length} take(s) shifted` }] : [])] }, jobId: ctx.job.id });
