@@ -77,19 +77,19 @@ async function open(size, path, ready) {
 
 for (const size of SIZES) {
   // ---- the theatre
-  const t = await open(size, `/screening?p=${encodeURIComponent(pid)}`, '.theatre-room:not(.theatre-skeleton) .theatre-video');
+  const t = await open(size, `/screening?p=${encodeURIComponent(pid)}`, '.theatre-room:not(.theatre-skeleton) .theatre-stage video');
   await t.shot(`theatre-loading-${size.w}.png`);
   await t.settle();
-  await t.page.waitForFunction(() => { const v = document.querySelector('.theatre-video'); return v && v.readyState >= 1; }, null, { timeout: 300000 }).catch(() => {});
+  await t.page.waitForFunction(() => { const v = document.querySelector('.theatre-stage video'); return v && v.readyState >= 1; }, null, { timeout: 300000 }).catch(() => {});
   await t.page.waitForTimeout(600);
   await t.page.screenshot({ path: `${out}/theatre-${size.w}.png`, fullPage: true });
   const m = await t.page.evaluate(({ textChecks }) => {
     const box = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), r: Math.round(b.right), b: Math.round(b.bottom) }; };
-    const pic = box('.theatre-pic'), tr = box('.theatre-transport'), stage = box('.theatre-stage'), pane = box('.theatre-pane'), prog = box('.theatre-prog'), title = box('.theatre-title');
-    const v = document.querySelector('.theatre-video');
-    const picEl = document.querySelector('.theatre-pic');
+    const pic = box('.theatre-stage .iplayer-box'), tr = box('.theatre-stage .ptransport'), stage = box('.theatre-stage .iplayer'), pane = box('.theatre-pane'), prog = box('.theatre-prog'), title = box('.theatre-title');
+    const v = document.querySelector('.theatre-stage video');
+    const picEl = document.querySelector('.theatre-stage .iplayer-box');
     const over = [...document.querySelectorAll('main *')].filter((e) => !picEl.contains(e) && !e.contains(picEl)).filter((e) => { const b = e.getBoundingClientRect(); const p = picEl.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < p.right - 1 && b.right > p.left + 1 && b.top < p.bottom - 1 && b.bottom > p.top + 1; }).map((e) => e.className?.toString?.().slice(0, 40) ?? e.nodeName);
-    const insidePic = [...picEl.querySelectorAll('*')].filter((e) => !e.matches('video, track, .theatre-pins, .theatre-pin, .theatre-pin *, .pfail, .pfail *')).map((e) => e.className?.toString?.() ?? e.nodeName);
+    const insidePic = [...picEl.querySelectorAll('*')].filter((e) => !e.matches('video, track, .iplayer-overlay, .theatre-pins, .theatre-pin, .theatre-pin *, .pfail, .pfail *')).map((e) => e.className?.toString?.() ?? e.nodeName);
     const tracks = v ? [...v.textTracks].map((x) => `${x.language}:${x.mode}`) : [];
     // eslint-disable-next-line no-new-func
     const tc = new Function(`return (${textChecks})()`)();
@@ -160,11 +160,11 @@ for (const size of SIZES) {
   });
   await page.goto(`${base}/screening?p=${encodeURIComponent(pid)}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-note', { timeout: 300000 });
-  await page.waitForFunction(() => document.querySelector('.theatre-video')?.readyState >= 2, null, { timeout: 60000 });
+  await page.waitForFunction(() => document.querySelector('.theatre-stage video')?.readyState >= 2, null, { timeout: 60000 });
   await page.getByRole('button', { name: /^Jump to 0:09/ }).click();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${out}/theatre-notes-fixture-1440.png` });
-  await page.evaluate(() => { const v = document.querySelector('.theatre-video'); v.muted = true; });
+  await page.evaluate(() => { const v = document.querySelector('.theatre-stage video'); v.muted = true; });
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await page.mouse.move(700, 820);
   await page.waitForTimeout(3200);

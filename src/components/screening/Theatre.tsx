@@ -1,31 +1,36 @@
 'use client';
 
-import { useCallback, useRef, type CSSProperties } from 'react';
+import { forwardRef, useCallback } from 'react';
 import { Crosshair } from 'lucide-react';
-import { IconBack5, IconCaptions, IconExitFullscreen, IconForward5, IconFullscreen, IconPause, IconPlay } from '@/components/ui/icons';
 import type { CutNote } from '@/domain/types';
-import { VolumeControl } from '@/components/players/Controls';
-import { MediaFailure, SeekBar, TimeReadout, coreKeys, type PlayerCore } from '@/components/players/PlayerCore';
-import { useShortcutScope } from '@/components/players/useShortcutScope';
+import { IconBack5, IconForward5 } from '@/components/ui/icons';
+import { InlinePlayer, type PlayerHandle } from '@/components/players/InlinePlayer';
+import type { PlayerCore } from '@/components/players/PlayerCore';
 import { clock, type CutView } from './model';
 
-/** THE THEATRE (docs/DESIGN-SYSTEM-V5.md §5.13 "Theatre transport", §8.12) — the cut at its native ratio on the black
- *  surround, never larger than the screen allows, with the transport DOCKED UNDER THE PICTURE: it is always visible and
- *  never covers the frame or its captions (soft English captions from the cut's own VTT sidecar, or the words burned
- *  into an export). Nothing is drawn over the frame except a note's pin. The transport: play, ±5 s, the time, the seek
- *  bar with the shot marks and the note ticks, English subtitles, volume and fullscreen; it stays LTR.
- *
- *  Keyboard, while focus is in the theatre (single keys obey the shortcut preference): Space/K play · J/L ±5 s ·
- *  ←/→ one frame · Shift+←/→ one second · Home/End · M mute · S subtitles · F fullscreen · C a note at this time ·
- *  [ ] the previous / next shot.
- *
- *  This is a page-local composition of the shared player core (src/components/players): the docked theatre chrome is
- *  being lifted into the kit; once it lands this wrapper is replaced by it. */
+/** THE THEATRE (docs/DESIGN-SYSTEM-V5.md §5.13 "Theatre transport", §8.12) — the kit's InlinePlayer in its theatre
+ *  mode (the cut at its native ratio on black, the transport docked under the picture: it never covers the frame or
+ *  its captions), with what only the Screening Room adds:
+ *    - the note pins, the one thing drawn over the frame (the `overlay` slot), and the click that places a new pin;
+ *    - the shot marks and note ticks on the seek bar (`ticks`);
+ *    - ±5 s and the subtitles' language readout in the dock (`transportStart` / `transportEnd`);
+ *    - the keys C (a note at this time), S (subtitles) and [ ] (the previous / next shot), over the player's own
+ *      Space/K, J/L, arrows, Home/End, M and F (single keys obey the shortcut preference). */
 
 export interface PinView { note: CutNote; n: number }
 
-export function Theatre({ core: c, cut, title, pins, activeId, onSelectNote, pinMode, draftPin, onPlacePin, onNote, onShot }: {
-  core: PlayerCore;
+/** Where the picture really is inside the player's box (the video is letterboxed when the box is capped), in % of the
+ *  box: pins are placed and drawn relative to the picture, never to the black bars. */
+function pictureRect(c: PlayerCore): { left: number; top: number; width: number; height: number } {
+  const v = c.video.current;
+  const box = v?.parentElement?.getBoundingClientRect();
+  if (!v || !box || !v.videoWidth || !v.videoHeight || box.width === 0 || box.height === 0) return { left: 0, top: 0, width: 100, height: 100 };
+  const scale = Math.min(box.width / v.videoWidth, box.height / v.videoHeight);
+  const w = (v.videoWidth * scale) / box.width, h = (v.videoHeight * scale) / box.height;
+  return { left: ((1 - w) / 2) * 100, top: ((1 - h) / 2) * 100, width: w * 100, height: h * 100 };
+}
+
+export const Theatre = forwardRef<PlayerHandle, {
   cut: CutView;
   title: string;
   /** the pinned notes of this cut, numbered as the notes list numbers them */
@@ -37,64 +42,49 @@ export function Theatre({ core: c, cut, title, pins, activeId, onSelectNote, pin
   draftPin: { x: number; y: number } | null;
   onPlacePin: (p: { x: number; y: number }) => void;
   onNote: () => void;
-  onShot: (dir: -1 | 1) => void;
-}) {
-  const pic = useRef<HTMLDivElement>(null);
-  const keys = useShortcutScope(coreKeys(c, { c: () => onNote(), s: () => { if (c.hasCaptions) c.toggleCc(); }, '[': () => onShot(-1), ']': () => onShot(1) }), { scope: 'theatre' });
-
-  const place = useCallback((e: React.MouseEvent) => {
-    const r = pic.current?.getBoundingClientRect();
-    if (!r || r.width === 0) return;
+  onShot: (dir: -1 | 1, c: PlayerCore) => void;
+  onState: (s: { time: number; duration: number; playing: boolean }) => void;
+}>(function Theatre({ cut, title, pins, activeId, onSelectNote, pinMode, draftPin, onPlacePin, onNote, onShot, onState }, ref) {
+  const place = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    if (r.width === 0) return;
     const round = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 1000) / 1000;
     onPlacePin({ x: round((e.clientX - r.left) / r.width), y: round((e.clientY - r.top) / r.height) });
   }, [onPlacePin]);
 
-  // a pin shows while the playhead is on its note (± 1.5 s, or inside its range) and while its note is selected
-  const near = (n: CutNote) => n.id === activeId || (c.time >= n.timecode - 1.5 && c.time <= Math.max(n.rangeEnd ?? n.timecode, n.timecode) + 1.5);
   const ticks = [
     ...cut.timeline.filter((s) => s.start > 0).map((s) => ({ at: s.start, label: `Shot ${s.label}`, kind: 'mark' as const })),
     ...pins.map(({ note }) => ({ at: note.timecode, label: note.text, kind: 'note' as const })),
   ];
-  const style = { '--tw': cut.width, '--th': cut.height } as CSSProperties;
+  // a pin shows while the playhead is on its note (± 1.5 s, or inside its range) and while its note is selected
+  const near = (n: CutNote, t: number) => n.id === activeId || (t >= n.timecode - 1.5 && t <= Math.max(n.rangeEnd ?? n.timecode, n.timecode) + 1.5);
 
   return (
-    <div ref={c.wrap} className="theatre-stage" style={style} data-full={c.full || undefined} data-pinning={pinMode || undefined}
-      tabIndex={0} role="group" aria-label={`${title}, cut ${cut.version.version}`} onKeyDown={keys}>
-      <div ref={pic} className="theatre-pic">
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption -- the English track is below when the cut has one */}
-        <video {...c.videoProps} poster={cut.poster} className="theatre-video" onClick={c.toggle} aria-label={`${title}, cut ${cut.version.version}`}>
-          {cut.captions.map((t) => <track key={t.src} kind="subtitles" src={t.src} srcLang={t.lang} label={t.label} />)}
-        </video>
-        {pinMode && <button type="button" className="theatre-pinlayer" aria-label="Place the pin here (click on the frame)" onClick={place} />}
-        <div className="theatre-pins">
-          {pins.filter((p) => p.note.pin && near(p.note)).map(({ note, n }) => (
-            <button key={note.id} type="button" className="theatre-pin" data-active={note.id === activeId || undefined} data-resolved={note.status === 'resolved' || undefined}
-              style={{ insetInlineStart: `${note.pin!.x * 100}%`, insetBlockStart: `${note.pin!.y * 100}%` }}
-              aria-label={`Note ${n} at ${clock(note.timecode)}: ${note.text}`} onClick={() => onSelectNote(note.id)}>{n}</button>
-          ))}
-          {draftPin && <span className="theatre-pin" data-draft style={{ insetInlineStart: `${draftPin.x * 100}%`, insetBlockStart: `${draftPin.y * 100}%` }} aria-hidden><Crosshair /></span>}
-        </div>
-        {c.failed && <MediaFailure onRetry={c.retry} fileHref={cut.src} />}
-      </div>
-
-      {/* the kit's docked transport (players.css .ptransport), with the theatre's own parts: ±5 s, the shot marks and
-          note ticks on the seek bar, and the subtitles button with its language as a readout */}
-      <div className="ptransport theatre-transport" dir="ltr" role="group" aria-label="Transport">
-        <button type="button" className="pt-play" aria-label={c.playing ? 'Pause' : 'Play'} onClick={c.toggle} disabled={c.failed}>{c.playing ? <IconPause aria-hidden /> : <IconPlay aria-hidden />}</button>
-        <span className="pt-group theatre-wide">
-          <button type="button" className="pt-btn" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)} disabled={!c.ready}><IconBack5 aria-hidden /></button>
-          <button type="button" className="pt-btn" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)} disabled={!c.ready}><IconForward5 aria-hidden /></button>
-        </span>
-        <TimeReadout time={c.time} duration={c.duration || cut.duration} className="pt-time theatre-time" />
-        <SeekBar time={c.time} duration={c.duration} buffered={c.buffered} step={c.frame} onSeek={c.seek} label="Seek" tone="docked" disabled={!c.ready || c.failed} ticks={ticks} className="pt-seek theatre-seek" />
-        {cut.captions.length > 0 && (
-          <button type="button" className="pt-btn theatre-cc" aria-pressed={c.cc} aria-label="English subtitles" onClick={c.toggleCc} disabled={!c.hasCaptions}>
-            <IconCaptions aria-hidden /><span className="t-ro" aria-hidden>EN</span>
-          </button>
+    <div className="theatre-stage" data-pinning={pinMode || undefined}>
+      <InlinePlayer ref={ref} theatre src={cut.src} poster={cut.poster} fps={24} aspect={`${cut.width} / ${cut.height}`} title={`${title}, cut ${cut.version.version}`}
+        captions={cut.captions} fileHref={cut.src} ticks={ticks} onState={onState} className="theatre-player"
+        keys={(c) => ({ c: () => onNote(), s: () => { if (c.hasCaptions) c.toggleCc(); }, '[': () => onShot(-1, c), ']': () => onShot(1, c) })}
+        overlay={(c) => {
+          const r = pictureRect(c);
+          return (
+            <div className="theatre-pins" style={{ insetInlineStart: `${r.left}%`, insetBlockStart: `${r.top}%`, inlineSize: `${r.width}%`, blockSize: `${r.height}%` }}>
+              {pinMode && <button type="button" className="theatre-pinlayer" aria-label="Place the pin here (click on the frame)" onClick={place} />}
+              {pins.filter((p) => p.note.pin && near(p.note, c.time)).map(({ note, n }) => (
+                <button key={note.id} type="button" className="theatre-pin" data-active={note.id === activeId || undefined} data-resolved={note.status === 'resolved' || undefined}
+                  style={{ insetInlineStart: `${note.pin!.x * 100}%`, insetBlockStart: `${note.pin!.y * 100}%` }}
+                  aria-label={`Note ${n} at ${clock(note.timecode)}: ${note.text}`} onClick={() => onSelectNote(note.id)}>{n}</button>
+              ))}
+              {draftPin && <span className="theatre-pin" data-draft style={{ insetInlineStart: `${draftPin.x * 100}%`, insetBlockStart: `${draftPin.y * 100}%` }} aria-hidden><Crosshair /></span>}
+            </div>
+          );
+        }}
+        transportStart={(c) => (
+          <span className="theatre-wide">
+            <button type="button" className="pt-btn" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)} disabled={!c.ready}><IconBack5 aria-hidden /></button>
+            <button type="button" className="pt-btn" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)} disabled={!c.ready}><IconForward5 aria-hidden /></button>
+          </span>
         )}
-        <span className="theatre-wide"><VolumeControl volume={c.volume} muted={c.muted} onVolume={c.setVolume} onMute={c.toggleMute} popover /></span>
-        <button type="button" className="pt-btn" aria-label={c.full ? 'Exit full screen' : 'Full screen'} onClick={c.fullscreen}>{c.full ? <IconExitFullscreen aria-hidden /> : <IconFullscreen aria-hidden />}</button>
-      </div>
+        transportEnd={cut.captions.length > 0 ? (c) => <span className="t-ro theatre-cc" title="Subtitles: English" data-on={c.cc || undefined}>EN</span> : undefined} />
     </div>
   );
-}
+});

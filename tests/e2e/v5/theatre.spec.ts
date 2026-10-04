@@ -34,10 +34,10 @@ async function film(request: APIRequestContext) {
 
 async function open(page: Page, path: string) {
   await page.goto(path, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-video', { timeout: 90_000 });
-  await page.waitForFunction(() => (document.querySelector('video.theatre-video') as HTMLVideoElement | null)?.readyState! >= 1, null, { timeout: 60_000 });
+  await page.waitForSelector('.theatre-room:not(.theatre-skeleton) .theatre-stage video', { timeout: 90_000 });
+  await page.waitForFunction(() => (document.querySelector('.theatre-stage video') as HTMLVideoElement | null)?.readyState! >= 1, null, { timeout: 60_000 });
 }
-const video = (page: Page) => page.evaluate(() => { const v = document.querySelector('video.theatre-video') as HTMLVideoElement; return { paused: v.paused, t: v.currentTime, src: v.currentSrc, tracks: [...v.textTracks].map((x) => ({ lang: x.language, mode: x.mode, cues: x.activeCues ? [...x.activeCues].map((c) => (c as VTTCue).text) : [] })) }; });
+const video = (page: Page) => page.evaluate(() => { const v = document.querySelector('.theatre-stage video') as HTMLVideoElement; return { paused: v.paused, t: v.currentTime, src: v.currentSrc, tracks: [...v.textTracks].map((x) => ({ lang: x.language, mode: x.mode, cues: x.activeCues ? [...x.activeCues].map((c) => (c as VTTCue).text) : [] })) }; });
 const near = (a: number, b: number, tol = 0.3) => Math.abs(a - b) <= tol;
 const seekTo = async (page: Page, t: number) => { await page.getByRole('slider', { name: 'Seek' }).fill(String(t)); await expect.poll(async () => near((await video(page)).t, t, 0.15)).toBe(true); };
 
@@ -58,7 +58,7 @@ test('play and pause from the transport; the lights go down while it plays and c
   const { p } = await film(request);
   await open(page, `/screening?p=${p.id}`);
   // the transport is docked under the picture and never over it
-  const pic = await page.locator('.theatre-pic').boundingBox(); const tr = await page.locator('.theatre-transport').boundingBox();
+  const pic = await page.locator('.theatre-stage .iplayer-box').boundingBox(); const tr = await page.locator('.theatre-stage .ptransport').boundingBox();
   expect(Math.round(tr!.y)).toBe(Math.round(pic!.y + pic!.height));
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect.poll(async () => (await video(page)).paused).toBe(false);
@@ -75,7 +75,7 @@ test('seek: the seek bar, ±5 s and a shot in the Shots tab move the playhead an
   const { p, timeline } = await film(request);
   await open(page, `/screening?p=${p.id}`);
   await seekTo(page, 30);
-  await expect(page.locator('.theatre-time')).toContainText('0:30');
+  await expect(page.locator('.theatre-stage .pt-time')).toContainText('0:30');
   await page.getByRole('button', { name: 'Forward 5 seconds' }).click();
   await expect.poll(async () => near((await video(page)).t, 35)).toBe(true);
   await page.getByRole('button', { name: 'Back 5 seconds' }).click();
@@ -114,7 +114,7 @@ test('notes: add one at the current time with a pin, jump to it, send it to its 
   await expect(composer).toContainText('Note at 0:12');
   // a pin on the frame: the next click lands on the picture instead of playing it
   await composer.getByRole('button', { name: 'Pin on the frame' }).click();
-  const pic = (await page.locator('.theatre-pic').boundingBox())!;
+  const pic = (await page.locator('.theatre-stage .iplayer-box').boundingBox())!;
   await page.mouse.click(pic.x + pic.width * 0.7, pic.y + pic.height * 0.25);
   await expect(composer.getByRole('button', { name: 'Remove the pin' })).toBeVisible();
   expect((await video(page)).paused).toBe(true);
@@ -156,7 +156,7 @@ test('notes: add one at the current time with a pin, jump to it, send it to its 
   await row.getByRole('button', { name: 'Reopen' }).click();
   await expect(row).not.toHaveAttribute('data-resolved', /.*/);
   // the note tick sits on the seek bar
-  await expect(page.locator('.theatre-seek .seek-tick[data-kind="note"]')).not.toHaveCount(0);
+  await expect(page.locator('.theatre-stage .seek-tick[data-kind="note"]')).not.toHaveCount(0);
 });
 
 test('an empty notes pane: one sentence and the composer', async ({ page, request }) => {
@@ -171,14 +171,14 @@ test('an empty notes pane: one sentence and the composer', async ({ page, reques
 test('keyboard: K, J/L, arrows, S, C and [ ] while the theatre has focus; the focus ring is visible', async ({ page, request }) => {
   const { p, timeline } = await film(request);
   await open(page, `/screening?p=${p.id}`);
-  await page.locator('.theatre-stage').focus();
-  await expect(page.locator('.theatre-stage')).toHaveCSS('outline-style', 'solid');
+  await page.locator('.theatre-stage .iplayer').focus();
+  await expect(page.locator('.theatre-stage .iplayer')).toHaveCSS('outline-style', 'solid');
   await page.keyboard.press('k');
   await expect.poll(async () => (await video(page)).paused).toBe(false);
   await page.keyboard.press('k');
   await expect.poll(async () => (await video(page)).paused).toBe(true);
   await seekTo(page, 20);
-  await page.locator('.theatre-stage').focus();
+  await page.locator('.theatre-stage .iplayer').focus();
   await page.keyboard.press('l');
   await expect.poll(async () => near((await video(page)).t, 25)).toBe(true);
   await page.keyboard.press('j');
@@ -194,7 +194,7 @@ test('keyboard: K, J/L, arrows, S, C and [ ] while the theatre has focus; the fo
     await page.keyboard.press('[');
     await expect.poll(async () => near((await video(page)).t, timeline[1].start, 0.1)).toBe(true);
   }
-  const cc = page.getByRole('button', { name: 'English subtitles' });
+  const cc = page.getByRole('button', { name: 'Captions' });
   await expect(cc).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('s');
   await expect(cc).toHaveAttribute('aria-pressed', 'false');
@@ -203,7 +203,7 @@ test('keyboard: K, J/L, arrows, S, C and [ ] while the theatre has focus; the fo
   await page.keyboard.press('c');
   await expect(page.getByLabel(/^Note at/)).toBeFocused();
   // Tab from the stage reaches the play button with a visible ring
-  await page.locator('.theatre-stage').focus();
+  await page.locator('.theatre-stage .iplayer').focus();
   await page.keyboard.press('Tab');
   const focused = page.locator(':focus');
   await expect(focused).toHaveAttribute('aria-label', /^(Play|Pause)$/);
@@ -213,7 +213,7 @@ test('keyboard: K, J/L, arrows, S, C and [ ] while the theatre has focus; the fo
 test('subtitles: the English track shows by default, its words appear at their time, and the toggle hides them', async ({ page, request }) => {
   const { p } = await film(request);
   await open(page, `/screening?p=${p.id}`);
-  const cc = page.getByRole('button', { name: 'English subtitles' });
+  const cc = page.getByRole('button', { name: 'Captions' });
   await expect(cc).toHaveAttribute('aria-pressed', 'true');
   expect((await video(page)).tracks).toEqual([expect.objectContaining({ lang: 'en', mode: 'showing' })]);
   await seekTo(page, 9);
@@ -251,9 +251,9 @@ test('phone 390: the picture edge to edge, the transport under it, no horizontal
   const { p } = await film(request);
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page, `/screening?p=${p.id}`);
-  const pic = (await page.locator('.theatre-pic').boundingBox())!;
+  const pic = (await page.locator('.theatre-stage .iplayer-box').boundingBox())!;
   expect(Math.round(pic.x)).toBe(0); expect(Math.round(pic.width)).toBe(390);
-  const tr = (await page.locator('.theatre-transport').boundingBox())!;
+  const tr = (await page.locator('.theatre-stage .ptransport').boundingBox())!;
   expect(Math.round(tr.y)).toBe(Math.round(pic.y + pic.height));
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
 });
