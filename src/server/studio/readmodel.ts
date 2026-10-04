@@ -1,5 +1,6 @@
 import type { StudioState } from '@/domain/types';
 import { canonical, hashString } from '@/domain/hash';
+import type { AggregateVersions } from './snapshot';
 
 /** THE READ MODEL (docs/BACKEND-AUDIT-2026-10.md H2, step 13) — the last whole studio this process knows, with the
  *  studio version it belongs to and its hash. A scoped write that commits version N while this holds N-1 puts its
@@ -8,16 +9,22 @@ import { canonical, hashString } from '@/domain/hash';
  *  batch's answer carries, which the browser compares with its own copy) and readState(). Never mutated in place: a
  *  new version replaces it. */
 
-export interface ReadModel { version: number; state: StudioState; hash: string }
+export interface ReadModel {
+  version: number; state: StudioState; hash: string;
+  /** read whole from the database at that version (readState serves only these); otherwise assembled from a batch's result */
+  fromDatabase?: boolean;
+  /** the aggregates' versions, when read from the database */
+  versions?: AggregateVersions;
+}
 
 const g = globalThis as unknown as { __vewboxReadModel?: ReadModel };
 
 export const readModel = (): ReadModel | undefined => g.__vewboxReadModel;
 export const readModelAt = (version: number): ReadModel | undefined => (g.__vewboxReadModel?.version === version ? g.__vewboxReadModel : undefined);
 /** Keep `state` as the studio at `version` (an older version never replaces a newer one). */
-export function remember(version: number, state: StudioState, hash = hashStateCached(state)): ReadModel {
+export function remember(version: number, state: StudioState, hash = hashStateCached(state), from: { fromDatabase?: boolean; versions?: AggregateVersions } = {}): ReadModel {
   const cur = g.__vewboxReadModel;
-  const next = { version, state, hash };
+  const next: ReadModel = { version, state, hash, ...from };
   if (!cur || cur.version <= version) g.__vewboxReadModel = next;
   return next;
 }

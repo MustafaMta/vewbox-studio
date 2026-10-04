@@ -150,7 +150,7 @@ async function applyScoped(commands: Command[], origin: string, opts: ApplyOptio
  *  as of the same instant, the studio version with them), kept as the read model. */
 export async function currentReadModel(): Promise<ReadModel> {
   const snap = await db().transaction((tx) => loadSnapshot(tx), { isolationLevel: 'repeatable read', accessMode: 'read only' });
-  return readModelAt(snap.version) ?? remember(snap.version, snap.state);
+  return remember(snap.version, snap.state, undefined, { fromDatabase: true, versions: snap.versions });
 }
 
 /** THE WHOLE-STUDIO RUN — every batch under STUDIO_STORE=v1, and under v2 the batches whose scope is the whole studio
@@ -242,9 +242,25 @@ export async function commands(list: CommandSpec[], origin = 'server', opts: { s
 }
 
 /** The current state, for readers that do not change anything. */
-export async function readState(): Promise<{ state: StudioState; version: number; hash: string; versions: AggregateVersions }> {
-  const snap = await loadSnapshot();
-  return { state: snap.state, version: snap.version, hash: hashState(snap.state), versions: snap.versions };
+/** THE STUDIO AS IT IS NOW, for readers that change nothing (docs/BACKEND-AUDIT-2026-10.md H2, step 13c).
+ *  - ONE CONSISTENT SNAPSHOT: every table is read in one repeatable-read, read-only transaction, so a reader never sees
+ *    half of a batch (before this the twelve tables were read on separate pool connections, outside any transaction,
+ *    and a batch committing in between could be seen half applied).
+ *  - READ ONCE PER VERSION: the whole studio read at a studio version is kept (src/server/studio/readmodel.ts); while
+ *    the version has not moved, a read costs one query. Only a studio read from the database is served this way —
+ *    never one assembled from a batch's own result — so a read is always exactly what a fresh read returns.
+ *  The caller gets its own copy (workers may change what they read); `shared: true` (a route that only serialises it)
+ *  skips the copy. STUDIO_STORE=v1 reads as before. */
+export async function readState(opts: { shared?: boolean } = {}): Promise<{ state: StudioState; version: number; hash: string; versions: AggregateVersions }> {
+  if (storeMode() === 'v1') {
+    const snap = await loadSnapshot();
+    return { state: snap.state, version: snap.version, hash: hashState(snap.state), versions: snap.versions };
+  }
+  const now = (await db().select({ version: schema.studioMeta.version }).from(schema.studioMeta).where(eq(schema.studioMeta.id, 'studio')))[0]?.version ?? 0;
+  const hit = readModelAt(now);
+  const m = hit?.fromDatabase && hit.versions ? hit : await currentReadModel();
+  const out = { state: m.state, version: m.version, hash: m.hash, versions: m.versions! };
+  return opts.shared ? out : structuredClone(out);
 }
 
 export async function currentVersion(): Promise<number> {

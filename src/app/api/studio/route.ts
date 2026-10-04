@@ -13,7 +13,8 @@ export const dynamic = 'force-dynamic';
  *  Beside the state (not inside it, so the hash stays the state's): the Screening Room notes (B2). */
 export const GET = route(async () => {
   await bootstrap();
-  const { state, version, hash } = await readState();
+  // serialised as it is: no copy (one consistent snapshot, read once per studio version — step 13c)
+  const { state, version, hash } = await readState({ shared: true });
   const [meta, notes] = await Promise.all([db().select().from(schema.studioMeta).where(eq(schema.studioMeta.id, 'studio')), listNotes()]);
   const caps = capabilities();
   // beside the state (never in its hash): which settings take effect today

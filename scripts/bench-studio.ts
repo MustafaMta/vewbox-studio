@@ -5,8 +5,9 @@
 //   - a typical command: one `updateShot` (a producer's edit of one shot) and one `updateCharacter`, sent the way the
 //     command route sends them (applyCommands with a client id and a batch id) — median and p95 of `runs`;
 //   - eight producers editing eight different productions at once: the wall time of the eight batches;
-//   - the snapshot: `readState()` (what GET /api/studio and every worker read call) — median and p95, and the size of
-//     the JSON GET /api/studio sends ({ state, version, hash }).
+//   - the snapshot: `readState()` (what GET /api/studio and every worker read call) — right after a write (cold), and
+//     again while nothing changed (warm; and warm without the caller's copy, as the route reads it) — median and p95,
+//     and the size of the JSON GET /api/studio sends ({ state, version, hash }).
 // STUDIO_STORE=v1|v2 picks the saver (src/server/studio/engine.ts), so the same script measures before and after.
 // Output: one JSON object per scale on stdout.
 import { assertNotLiveDatabase } from '../src/server/test-guard';
@@ -84,11 +85,15 @@ for (const k of scales) {
   for (let r = 0; r < Math.max(5, Math.floor(runs / 4)); r++) {
     parallel.push(await time(() => Promise.all(eight.map((p, i) => applyCommands([cmd('updateShot', [p.id, p.shots[0].id, { notes: `parallel ${r}.${i}` }])], `bench-client-${i}`, { batchId: `p-${k}-${r}-${i}-${seq}` })))));
   }
+  // the snapshot while nothing changes: GET /api/studio read again at the same version (warm), shared as the route reads it
+  const warm: number[] = []; const warmShared: number[] = [];
+  await readState();
+  for (let i = 0; i < runs; i++) { warm.push(await time(() => readState())); warmShared.push(await time(() => readState({ shared: true } as never))); }
   const r = await readState();
   const body = JSON.stringify({ state: r.state, version: r.version, hash: r.hash });
   const ok = r.hash === hashState(r.state);
   const counts = { productions: r.state.productions.length, shots: r.state.productions.reduce((n, p) => n + p.shots.length, 0), takes: r.state.productions.reduce((n, p) => n + p.shots.reduce((m, s) => m + s.takes.length, 0), 0), characters: r.state.characters.length, assets: r.state.assets.length };
-  const out = { store: process.env.STUDIO_STORE ?? 'default', scale: k, counts, updateShotMs: stats(shot), updateCharacterMs: stats(character), eightParallelBatchesMs: stats(parallel), parallelProductions: eight.length, readStateMs: stats(snap), snapshotBytes: Buffer.byteLength(body), hashConsistent: ok };
+  const out = { store: process.env.STUDIO_STORE ?? 'default', scale: k, counts, updateShotMs: stats(shot), updateCharacterMs: stats(character), eightParallelBatchesMs: stats(parallel), parallelProductions: eight.length, readStateMs: stats(snap), readStateWarmMs: stats(warm), readStateWarmSharedMs: stats(warmShared), snapshotBytes: Buffer.byteLength(body), hashConsistent: ok };
   console.log(JSON.stringify(out));
   results.push(out);
 }
