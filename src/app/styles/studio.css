@@ -46,6 +46,7 @@
   .cp-details-label { margin: 16px 0 0; }
   .cp-list { margin: 8px 0 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 4px; }
   .co-bad { color: var(--bad); }
+  .co-stale { margin-inline-start: 8px; vertical-align: middle; }
   .co-chev { flex: none; inline-size: 16px; block-size: 16px; color: var(--text-3); transition: color var(--dur-1) var(--ease-out); }
   a:hover > .co-chev, a:hover .co-chev { color: var(--text-1); }
 

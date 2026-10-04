@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Keyboard
 import { useLive, useOrg, type HandoffRow, type OrgDepartment, type OrgResponse } from '@/studio/org';
 import { RING, VIEW, deriveCompany, edgeGeometry, seats, type Company, type CompanyEdge, type NodeState, type Seat } from '@/studio/company';
 import { useStudio } from '@/studio/store';
+import { approvalSubjectHash, isGatedStage } from '@/domain/approvals';
 import { useShell } from '@/components/shell/context';
 import { Button, ErrorState, JobDot, LinkButton, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
@@ -408,10 +409,16 @@ function OnRecord({ org }: { org: OrgResponse }) {
       <TabPanel idBase="co-rec" id="approvals" current={tab} className="cp-tabpanel">
         {org.approvals.length === 0 ? <EmptyLine>You have not approved anything yet.</EmptyLine> : (
           <Rows label="Your approvals">
-            {org.approvals.map((a) => { const w = DECISION_WORDS[a.decision] ?? { tone: 'done' as const, words: a.decision }; const t = title(a.productionId); return (
+            {org.approvals.map((a) => {
+              const w = DECISION_WORDS[a.decision] ?? { tone: 'done' as const, words: a.decision }; const t = title(a.productionId);
+              // a bound approval (step 9) given to another version of its subject than the one there now
+              const hash = (a as typeof a & { subjectHash?: string | null }).subjectHash;
+              const prod = state.productions.find((x) => x.id === a.productionId);
+              const stale = Boolean(hash && prod && isGatedStage(a.stage) && approvalSubjectHash(prod, a.stage) !== hash);
+              return (
               <Row key={a.id} start={<StateWord tone={w.tone}>{w.words}</StateWord>}
-                title={<>{a.stage === 'EDIT' ? 'The cut' : stageName(org, a.stage)}{t && <> of <bdi>{t}</bdi></>}</>}
-                meta={a.note ? <span dir="auto">{a.note}</span> : `By the ${a.by}`}
+                title={<>{a.stage === 'EDIT' ? 'The cut' : stageName(org, a.stage)}{t && <> of <bdi>{t}</bdi></>}{stale && <span className="badge badge-neutral co-stale">An earlier version</span>}</>}
+                meta={a.note ? <span dir="auto">{a.note}</span> : stale ? `By the ${a.by}; it has changed since, so it waits for you again` : `By the ${a.by}`}
                 end={<span className="t-ro cp-time">{shortWhen(a.createdAt)}</span>} />
             ); })}
           </Rows>
