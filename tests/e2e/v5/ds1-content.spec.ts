@@ -10,7 +10,8 @@ import { prepare } from '../../../scripts/lib/capture.mjs';
  *  never a last-resort font), right to left, aligned to their own start edge, isolated from the LTR interface around
  *  them; the page itself stays lang="en" dir="ltr". Read-only. Crops: docs/evidence/v5-ds1/content-arabic-*.png. */
 
-const OUT = path.join('docs', 'evidence', 'v5-ds1');
+// the crops go to test-results by default; E2E_EVIDENCE_DIR=docs/evidence/v5-ds1 refreshes the committed evidence
+const OUT = process.env.E2E_EVIDENCE_DIR ?? path.join('test-results', 'evidence', 'v5-ds1');
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 
 async function open(page: Page, url: string) {

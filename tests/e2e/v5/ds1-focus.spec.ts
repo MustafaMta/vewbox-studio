@@ -29,7 +29,8 @@ const PAGES: Array<[string, string]> = [
 ];
 const WIDTHS = [1440, 390];
 const MAX_STOPS = Number(process.env.FOCUS_MAX_STOPS ?? 60);
-const OUT = path.join('docs', 'evidence', 'v5-ds1');
+// the summaries go to test-results by default; E2E_EVIDENCE_DIR=docs/evidence/v5-ds1 refreshes the committed evidence
+const OUT = process.env.E2E_EVIDENCE_DIR ?? path.join('test-results', 'evidence', 'v5-ds1');
 
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'ignoreErrors' }); });
 

@@ -16,6 +16,8 @@
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:server": "tsx scripts/test-server.ts",
+    "test:e2e": "playwright test --project=v5",
+    "test:e2e:fixture": "tsx scripts/e2e-fixture.ts",
     "e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/server/db/cli.ts migrate",

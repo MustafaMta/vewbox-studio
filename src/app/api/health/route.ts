@@ -15,6 +15,7 @@ export const GET = route(async () => {
   const t0 = Date.now();
   let dbOk = false; let error: string | undefined;
   try { await bootstrap(); await db().execute(dsql`select 1`); dbOk = true; } catch (e) { error = (e as Error).message; }
-  const body = { ok: dbOk, service: 'web', dbMs: Date.now() - t0, version: dbOk ? await currentVersion() : null, queue: dbOk ? await queueStats() : null, intake: dbOk ? await intakeState() : null, capabilities: capabilities(), codeVersion: process.env.CODE_VERSION ?? 'dev', /** a test server (src/server/test-guard.ts): the suites refuse any server where this is false */ testServer: resetAllowed().ok, error };
+  const allowed = resetAllowed();
+  const body = { ok: dbOk, service: 'web', dbMs: Date.now() - t0, version: dbOk ? await currentVersion() : null, queue: dbOk ? await queueStats() : null, intake: dbOk ? await intakeState() : null, capabilities: capabilities(), codeVersion: process.env.CODE_VERSION ?? 'dev', /** a test server (src/server/test-guard.ts): the suites refuse any server where this is false */ testServer: allowed.ok, /** on a test server only: which test database it serves, so a suite can tell its own server from another suite's */ ...(allowed.ok ? { testDatabase: allowed.database } : {}), error };
   return json(body, { status: dbOk ? 200 : 503 });
 });
