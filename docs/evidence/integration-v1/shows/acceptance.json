@@ -1,0 +1,546 @@
+{
+  "checked": "2026-10-04T02:16:01.607Z",
+  "base": "http://localhost:4200",
+  "report": [
+    {
+      "page": "shows-empty",
+      "size": "1440×900",
+      "firstMs": 7992,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 0,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "shows",
+      "size": "1440×900",
+      "firstMs": 9175,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show",
+      "size": "1440×900",
+      "firstMs": 9128,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 11,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1104×403",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show-no-episodes",
+      "size": "1440×900",
+      "firstMs": 9102,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 3,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1104×403",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "season",
+      "size": "1440×900",
+      "firstMs": 9146,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "episode",
+      "size": "1440×900",
+      "firstMs": 9123,
+      "starts": [
+        288
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 6,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1104×403",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "shows-empty",
+      "size": "1920×1080",
+      "firstMs": 9104,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 0,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "shows",
+      "size": "1920×1080",
+      "firstMs": 9152,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show",
+      "size": "1920×1080",
+      "firstMs": 9086,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 11,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1360×420",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show-no-episodes",
+      "size": "1920×1080",
+      "firstMs": 9192,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 3,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1360×420",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "season",
+      "size": "1920×1080",
+      "firstMs": 10097,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "episode",
+      "size": "1920×1080",
+      "firstMs": 9163,
+      "starts": [
+        400
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 6,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "1360×420",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "shows-empty",
+      "size": "390×844",
+      "firstMs": 9063,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 0,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "shows",
+      "size": "390×844",
+      "firstMs": 9070,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show",
+      "size": "390×844",
+      "firstMs": 9129,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 11,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "358×269",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "show-no-episodes",
+      "size": "390×844",
+      "firstMs": 9183,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 3,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "358×269",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "season",
+      "size": "390×844",
+      "firstMs": 9060,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 2,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": null,
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    },
+    {
+      "page": "episode",
+      "size": "390×844",
+      "firstMs": 9054,
+      "starts": [
+        16
+      ],
+      "rows": [],
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "images": 6,
+      "broken": [],
+      "cls": 0,
+      "shifts": [],
+      "skeleton": true,
+      "hero": "358×269",
+      "checks": {
+        "shared start edge": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no broken images": true,
+        "CLS < 0.02": true
+      }
+    }
+  ]
+}

@@ -58,18 +58,18 @@ const STATES = [
   { name: 'hub-empty', path: '/new', empty: true },
   { name: 'short-auto-paused', path: '/new/short', cls: true },
   { name: 'short-auto-ready', path: '/new/short', engines: 'ready' },
-  { name: 'short-auto-preferences', path: '/new/short', engines: 'ready', act: async (p) => { await p.click('.create-prefs-summary'); } },
+  { name: 'short-auto-preferences', path: '/new/short', engines: 'ready', act: async (p) => { await p.click('button.disclosure-head:has-text("Preferences")'); } },
   { name: 'short-auto-checking', path: '/new/short', engines: 'checking' },
   { name: 'short-auto-story-offline', path: '/new/short', engines: 'storyOffline' },
   { name: 'auto-developing', path: `/new/${ideaKind}?mode=auto&idea=job-capture-idea`, engines: 'ready', dev: midway(false) },
   { name: 'auto-failed', path: `/new/${ideaKind}?mode=auto&idea=job-capture-idea`, engines: 'ready', dev: midway(true) },
   ...(idea ? [{ name: 'auto-pick', path: `/new/${ideaKind}?mode=auto&idea=${idea.id}`, engines: 'ready', wait: '#create-review-title' },
-    { name: 'auto-pick-developed', path: `/new/${ideaKind}?mode=auto&idea=${idea.id}`, engines: 'ready', wait: '#create-review-title', act: async (p) => { await p.click('.create-more-summary'); } },
+    { name: 'auto-pick-developed', path: `/new/${ideaKind}?mode=auto&idea=${idea.id}`, engines: 'ready', wait: '#create-review-title', act: async (p) => { await p.click('button.disclosure-head:has-text("How the studio developed this")'); } },
     { name: 'auto-pick-error', path: `/new/${ideaKind}?mode=auto&idea=${idea.id}`, engines: 'ready', wait: '#create-review-title', act: async (p) => { await p.fill('#create-review-title', ''); await p.click('button[type=submit]'); } }] : []),
   { name: 'short-manual', path: '/new/short?mode=manual' },
   { name: 'short-manual-errors', path: '/new/short?mode=manual', act: async (p) => { await p.click('button[type=submit]'); } },
-  { name: 'short-manual-more', path: '/new/short?mode=manual', act: async (p) => { await p.click('.create-more-summary'); } },
-  { name: 'short-manual-empty-studio', path: '/new/short?mode=manual', empty: true, act: async (p) => { await p.click('.create-more-summary'); } },
+  { name: 'short-manual-more', path: '/new/short?mode=manual', act: async (p) => { await p.click('button.disclosure-head:has-text("More control")'); } },
+  { name: 'short-manual-empty-studio', path: '/new/short?mode=manual', empty: true, act: async (p) => { await p.click('button.disclosure-head:has-text("More control")'); } },
   { name: 'short-loading', path: '/new/short', loading: true },
   { name: 'show-auto', path: '/new/show', engines: 'ready' },
   { name: 'show-manual', path: '/new/show?mode=manual' },
@@ -150,7 +150,7 @@ for (const size of SIZES) {
       } else {
         await page.waitForSelector(st.wait ?? 'main h1', { timeout: st.cls ? 240000 : 60000 });
         await page.waitForFunction(() => !document.querySelector('.create-skeleton, .sk-region'), null, { timeout: 60000 }).catch(() => {});
-        if (st.dev) await page.waitForSelector('.create-step', { timeout: 30000 });
+        if (st.dev) await page.waitForSelector('.stages .stage', { timeout: 30000 });  // the kit's StageSteps
         if (st.act) await st.act(page);
         await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); } window.scrollTo(0, 0); await document.fonts.ready; });
         await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 30000 }).catch(() => {});
