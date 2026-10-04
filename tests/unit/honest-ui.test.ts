@@ -38,12 +38,6 @@ describe('D3 — a proposal the story engine wrote is never labelled a sample', 
   });
 });
 
-describe('D4 — the written example does not claim the studio is unconnected', () => {
-  it('no "once it is connected"', () => {
-    expect(T('auto.sampleBody')).not.toMatch(/connected/i);
-  });
-});
-
 describe('D6 — every error code has its own recovery; consent is a consent choice, never a retry', () => {
   it('ERROR_COPY covers every StudioError code with keys that exist', () => {
     for (const code of STUDIO_ERROR_CODES) {

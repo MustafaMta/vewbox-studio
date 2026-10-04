@@ -132,6 +132,30 @@ async def separate(file: UploadFile = File(...), stems: str = Form("two")):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def release_host_memory() -> dict[str, Any]:
+    """Hand the heap the dropped models lived in back to the system: freed memory stays in glibc's arenas after gc
+    (docs/research/MODEL-STACK-2026-10.md §1.2); malloc_trim(0) returns it. Reports resident memory after."""
+    import gc
+
+    gc.collect()
+    trimmed = False
+    try:
+        import ctypes
+
+        trimmed = bool(ctypes.CDLL("libc.so.6").malloc_trim(0))
+    except Exception:  # noqa: BLE001
+        pass
+    rss_mb = None
+    try:
+        with open("/proc/self/status", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    rss_mb = int(line.split()[1]) // 1024
+    except Exception:  # noqa: BLE001
+        pass
+    return {"malloc_trim": trimmed, "rss_mb": rss_mb}
+
+
 @app.post("/unload")
 def unload():
     global _model, _demucs
@@ -148,7 +172,7 @@ def unload():
         torch.cuda.empty_cache()
     except Exception:  # noqa: BLE001
         pass
-    return {"ok": True, "gpu": gpu_mem()}
+    return {"ok": True, "gpu": gpu_mem(), "host": release_host_memory()}
 
 
 @app.post("/transcribe")

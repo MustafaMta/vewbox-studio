@@ -97,6 +97,52 @@ describe('ComfyUI client: prompt id before submit (C1)', () => {
   });
 });
 
+describe('ComfyUI prompt keys everywhere (audit H8, step 7)', () => {
+  it('inside a job, a graph without an explicit key gets the job as its key: a reclaimed attempt re-attaches instead of submitting again', async () => {
+    const { runInJobScope } = await import('@/server/jobs/context');
+    const g = { a: { class_type: 'X', inputs: { seed: 7 } } };
+    // attempt 1 submitted the prompt and its worker died; ComfyUI is still running it
+    const f = fakeComfy({ known: { [comfy.promptIdFromKey('job-reclaimed:graph', g)]: 'in_progress' } });
+    const r = await runInJobScope({ jobId: 'job-reclaimed', signal: new AbortController().signal, lease: { workerId: 'w2', attempt: 2 } }, () => comfy.run(g, fast));
+    expect(r.resumed).toBe(true);
+    expect(r.promptId).toBe(comfy.promptIdFromKey('job-reclaimed:graph', g));
+    expect(f.calls.filter((c) => c.path === '/prompt')).toHaveLength(0);
+  });
+
+  it('a finished prompt of an earlier attempt is adopted with its outputs (no second drawing)', async () => {
+    const g = { a: { class_type: 'X', inputs: { seed: 9 } } };
+    const f = fakeComfy({ known: { [comfy.promptIdFromKey('job-done:plate:master', g)]: 'completed' } });
+    const r = await comfy.run(g, { ...fast, promptKey: 'job-done:plate:master' });
+    expect(r.resumed).toBe(true);
+    expect(r.outputs['11'].images?.[0].filename).toBe('x.png');
+    expect(f.calls.filter((c) => c.path === '/prompt')).toHaveLength(0);
+  });
+
+  it('the job\'s stable seed makes every attempt build the same image graph, so its key finds the same prompt', async () => {
+    const { stableSeed } = await import('@/server/jobs/outputs');
+    const { qwenTextToImage } = await import('@/server/workflows');
+    const build = () => qwenTextToImage({ prompt: 'a lighthouse', width: 1344, height: 768, seed: stableSeed('job-plates', 'image:plate:master') });
+    expect(build()).toEqual(build());
+    expect(comfy.promptIdFromKey('job-plates:plate:master', build())).toBe(comfy.promptIdFromKey('job-plates:plate:master', build()));
+    // without the job's seed (the old behaviour) two attempts built two different graphs
+    expect(qwenTextToImage({ prompt: 'a lighthouse', width: 1344, height: 768 })).not.toEqual(qwenTextToImage({ prompt: 'a lighthouse', width: 1344, height: 768 }));
+  });
+
+  it('every ComfyUI submission in the worker names a prompt key (images, people, music)', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const dir = path.resolve('src/worker/handlers');
+    const calls: Array<{ file: string; call: string }> = [];
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.ts'))) {
+      const text = fs.readFileSync(path.join(dir, f), 'utf8');
+      // the options object of each call: from `comfy.run(` to the first ` }` that closes it on the same line
+      for (const m of text.matchAll(/comfy\.run\([^\n]*?\{([^\n]*?)\}\)/g)) calls.push({ file: f, call: m[0] });
+    }
+    expect(calls.map((c) => c.file).sort()).toEqual(['images.ts', 'music.ts', 'people.ts']);
+    for (const c of calls) expect(c.call, `${c.file}: ${c.call.slice(0, 120)}`).toMatch(/promptKey:/);
+  });
+});
+
 describe('ComfyUI client: classified failures (C2, C3)', () => {
   it('a missing model file is a non-retryable INFRASTRUCTURE failure that names the file', async () => {
     fakeComfy({ reject: { error: { type: 'prompt_outputs_failed_validation', message: 'Prompt outputs failed validation', details: '', extra_info: {} }, node_errors: { lora1: { class_type: 'LoraLoaderModelOnly', dependent_outputs: ['11'], errors: [{ type: 'value_not_in_list', message: 'Value not in list', details: "lora_name: 'missing.safetensors' not in [...]", extra_info: { input_name: 'lora_name', received_value: 'missing.safetensors' } }] } } } });

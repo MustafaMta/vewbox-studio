@@ -65,8 +65,15 @@ export async function appendPin(pin: Omit<WorldPin, 'id' | 'createdAt'>): Promis
   return toPin(row);
 }
 
-export async function recordWorldRead(r: { productionId: string; read: WorldRead; jobId?: string; jobType: string; shotId?: string; takeId?: string }): Promise<void> {
-  await fenced('world read', (tx) => tx.insert(schema.worldReads).values({ productionId: r.productionId, revisionId: r.read.revisionId, revisionNumber: r.read.revisionNumber, pinned: r.read.pinned, jobId: r.jobId ?? null, jobType: r.jobType, shotId: r.shotId ?? null, takeId: r.takeId ?? null, read: r.read, createdAt: new Date().toISOString() }));
+export type WorldReadRecord = { productionId: string; read: WorldRead; jobId?: string; jobType: string; shotId?: string; takeId?: string };
+
+/** The read's row, in the caller's transaction (a take's result commit writes it with the take, step 6). */
+export async function insertWorldRead(tx: Pick<ReturnType<typeof db>, 'insert'>, r: WorldReadRecord): Promise<void> {
+  await tx.insert(schema.worldReads).values({ productionId: r.productionId, revisionId: r.read.revisionId, revisionNumber: r.read.revisionNumber, pinned: r.read.pinned, jobId: r.jobId ?? null, jobType: r.jobType, shotId: r.shotId ?? null, takeId: r.takeId ?? null, read: r.read, createdAt: new Date().toISOString() });
+}
+
+export async function recordWorldRead(r: WorldReadRecord): Promise<void> {
+  await fenced('world read', (tx) => insertWorldRead(tx, r));
 }
 
 export async function worldReads(filter: { takeId?: string; productionId?: string }): Promise<Array<{ productionId: string; revisionId: string; revisionNumber: number; pinned: boolean; jobType: string; shotId: string | null; takeId: string | null; read: WorldRead }>> {

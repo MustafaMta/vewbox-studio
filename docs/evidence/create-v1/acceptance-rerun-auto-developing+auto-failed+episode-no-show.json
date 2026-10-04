@@ -1,0 +1,337 @@
+{
+  "checked": "2026-10-04T00:59:22.212Z",
+  "base": "http://localhost:4257",
+  "idea": "job-d82a1c637e",
+  "report": [
+    {
+      "state": "auto-developing",
+      "size": "1440×900",
+      "file": "docs/evidence/create-v1/auto-developing-1440.png",
+      "starts": [
+        288
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.0019457814911265432,
+      "shifts": [
+        {
+          "value": 0.0018992537133487655,
+          "t": 2338,
+          "nodes": [
+            "form-footer",
+            "tcard-title"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "auto-failed",
+      "size": "1440×900",
+      "file": "docs/evidence/create-v1/auto-failed-1440.png",
+      "starts": [
+        288
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.03500962791495199,
+      "shifts": [
+        {
+          "value": 0.03496310013717421,
+          "t": 1842,
+          "nodes": [
+            "card create-panel",
+            "form-footer"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "episode-no-show",
+      "size": "1440×900",
+      "file": "docs/evidence/create-v1/episode-no-show-1440.png",
+      "starts": [
+        288
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0,
+      "shifts": [],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "auto-developing",
+      "size": "1920×1080",
+      "file": "docs/evidence/create-v1/auto-developing-1920.png",
+      "starts": [
+        400
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.0011624105947989005,
+      "shifts": [
+        {
+          "value": 0.0011366944489655671,
+          "t": 3127,
+          "nodes": [
+            "form-footer",
+            "tcard-title"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "auto-failed",
+      "size": "1920×1080",
+      "file": "docs/evidence/create-v1/auto-failed-1920.png",
+      "starts": [
+        400
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.02112213461291152,
+      "shifts": [
+        {
+          "value": 0.021096418467078187,
+          "t": 1046,
+          "nodes": [
+            "card create-panel",
+            "form-footer"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "episode-no-show",
+      "size": "1920×1080",
+      "file": "docs/evidence/create-v1/episode-no-show-1920.png",
+      "starts": [
+        400
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0,
+      "shifts": [],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "auto-developing",
+      "size": "390×844",
+      "file": "docs/evidence/create-v1/auto-developing-390.png",
+      "starts": [
+        16
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.002573983830880155,
+      "shifts": [
+        {
+          "value": 0.002573983830880155,
+          "t": 985,
+          "nodes": [
+            "form-footer-actions"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "auto-failed",
+      "size": "390×844",
+      "file": "docs/evidence/create-v1/auto-failed-390.png",
+      "starts": [
+        16
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0.13734780302467461,
+      "shifts": [
+        {
+          "value": 0.11820489207340355,
+          "t": 1166,
+          "nodes": [
+            "card create-panel"
+          ]
+        },
+        {
+          "value": 0.01914291095127105,
+          "t": 2316,
+          "nodes": [
+            "create-body",
+            "t-meta create-mode-hint",
+            "phone-action",
+            "phone-action",
+            "[object SVGAnimatedString]"
+          ]
+        }
+      ],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    },
+    {
+      "state": "episode-no-show",
+      "size": "390×844",
+      "file": "docs/evidence/create-v1/episode-no-show-390.png",
+      "starts": [
+        16
+      ],
+      "startOk": true,
+      "offenders": [],
+      "cardsEqual": true,
+      "picksEqual": true,
+      "fonts": [
+        "Geist"
+      ],
+      "small": [],
+      "overflow": 0,
+      "unavailable": 0,
+      "cls": 0,
+      "shifts": [],
+      "checks": {
+        "shared start edge": true,
+        "hub cards equal": true,
+        "picker rows equal": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no horizontal overflow": true,
+        "no frame unavailable": true
+      }
+    }
+  ]
+}

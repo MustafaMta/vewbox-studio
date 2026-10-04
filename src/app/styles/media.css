@@ -102,7 +102,7 @@
   /* ---- media tiles (§5.6): no card box. Frame → 12 → name (.t-card, one line) → 2 → meta (.t-meta, one line).
      One link wraps frame and text; hover zooms the picture only; focus is the ring 3 px around the whole tile;
      selected (pickers) is a 2 px light outline and a 24 px check. ---------------------------------------------------- */
-  .mtile { position: relative; min-inline-size: 0; container-type: inline-size; }
+  .mtile { position: relative; display: block; min-inline-size: 0; container-type: inline-size; }
   .mtile-link { display: flex; flex-direction: column; align-items: stretch; inline-size: 100%; padding: 0; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
   .mtile-link:focus-visible { outline-offset: 3px; }
   div.mtile-link { cursor: default; }

@@ -56,7 +56,9 @@ export async function measureVoiceReference(file: string, opts: { expectLanguage
   }
   const window = { from: m.window.from, to: m.window.to };
   const trimmed = await trimReference(file, opts.trimmedOut, window);
-  const t = await (opts.transcribe ?? transcribe)(trimmed.file, { language: 'auto' });
+  // the web server transcribes on the GPU too: under the SHARED lease, never around it (audit H7, step 8)
+  const leased: typeof transcribe = async (f, o) => (await import('../gpu/lease')).gpuLease('ASR', 4000, () => transcribe(f, o));
+  const t = await (opts.transcribe ?? leased)(trimmed.file, { language: 'auto' });
   const speech = heardSpeech(t);
   // a recording heard, with confidence, in a language that is neither Arabic nor English is the wrong language too
   const foreign = Boolean(opts.expectLanguage && t.language && t.language !== 'ar' && t.language !== 'en' && t.languageProbability >= REFERENCE_RULES.languageConfidence);

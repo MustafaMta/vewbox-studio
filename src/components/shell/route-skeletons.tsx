@@ -26,6 +26,9 @@ export const ROUTE_SKELETONS: Entry[] = [
   // the production workspace (P-Work): src/components/workspace/WorkspaceSkeleton.tsx
   { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/production\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ProductionWorkspaceSkeleton') },
   { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/shots\/[^/]+\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ShotWorkspaceSkeleton') },
+  // Create (P-Create): src/components/wizard/CreateHub.tsx and CreateFlow.tsx
+  { match: (p) => p === '/new', Skeleton: lazy(() => import('@/components/wizard/CreateHub'), 'CreateHubSkeleton') },
+  { match: (p) => /^\/new\/(show|season|episode|short|music-video)$/.test(p), Skeleton: lazy(() => import('@/components/wizard/CreateFlow'), 'CreateFlowSkeleton') },
 ];
 
 export function RouteSkeleton({ pathname }: { pathname: string }) {
