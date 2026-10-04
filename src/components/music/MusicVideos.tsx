@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
 import { EmptyState, MenuButton, MenuLink } from '@/components/ui/kit';
 import { StartCard } from '@/components/media';
 import { IconAuto, IconChevronDown, IconUpload } from '@/components/ui/icons';
@@ -42,6 +43,7 @@ export function MusicVideos() {
   if (empty) {
     return (
       <div className="mv-cat" data-state="empty">
+        <ProductionsSwitch />
         <EmptyState kind="page" title="Music videos" className="mv-empty"
           cards={<><StartCard href={NEW_AUTO} ratio="1/1" title="Write the song" line="From one line of yours" /><StartCard href={NEW_MANUAL} ratio="1/1" title="Bring your own song" line="Upload your own track" /></>}>
           It starts with its song. Write it with the studio from one line, or bring a track you already have.
@@ -52,6 +54,7 @@ export function MusicVideos() {
 
   return (
     <div className="mv-cat" data-state="list">
+      <ProductionsSwitch />
       <header className="mv-cat-head">
         <div className="mv-cat-words">
           <h1 className="t-page mv-cat-title">Music videos</h1>

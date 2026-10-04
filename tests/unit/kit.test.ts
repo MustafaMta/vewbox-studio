@@ -105,6 +105,13 @@ describe('choices and tabs render as one radiogroup / tablist with one Tab stop'
     expect(out).toContain('Needs X');
     expect(out).toMatch(/disabled="" aria-describedby="[^"]+"/);
   });
+  it('SegmentedLinks: a nav of links on the segmented track, the current place aria-current (the §5.2 catalogue switch)', () => {
+    const out = html(h(Kit.SegmentedLinks, { label: 'Productions', current: '/shorts', items: [{ href: '/shows', label: 'Shows' }, { href: '/shorts', label: 'Shorts' }, { href: '/music-videos', label: 'Music Videos' }] }));
+    expect(out).toMatch(/<nav[^>]*aria-label="Productions"[^>]*class="seg seg-links"/);
+    expect(out.match(/<a /g)).toHaveLength(3);
+    expect(out).toMatch(/<a [^>]*aria-current="page"[^>]*href="\/shorts"|<a [^>]*href="\/shorts"[^>]*aria-current="page"/);
+    expect(out).not.toContain('role="radio');
+  });
   it('Segmented: the reason of a disabled option is text beside the control', () => {
     const out = html(h(Kit.Segmented<'song' | 'video'>, { label: 'Mode', value: 'song', onChange: () => undefined, options: [{ value: 'song', label: 'Song' }, { value: 'video', label: 'Video', disabled: true, reason: 'No cut yet' }] }));
     expect(out).toContain('No cut yet');

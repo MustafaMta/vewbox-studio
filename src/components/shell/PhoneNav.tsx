@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { VewboxGlyph } from '@/components/ui/brand';
 import { IconHelp, IconPlus, IconSearch } from '@/components/ui/icons';
-import { HOME, PHONE_TABS, currentTab } from './nav-model';
+import { HOME, PHONE_TABS, PRODUCTION_ITEMS, currentTab } from './nav-model';
 import { useShell } from './context';
 import { ShellDialog } from './ShellDialog';
 import { NAV_ICONS, NavLink, StudioStateItem, needsYouLabel, useNeedsYou } from './Sidebar';
@@ -15,7 +15,8 @@ import { NAV_ICONS, NavLink, StudioStateItem, needsYouLabel, useNeedsYou } from 
  *    No hamburger: everything lives in the bottom bar and More.
  *  - the bottom bar (64 + the safe area, fixed, a 1 px top edge; `data-bottom-nav`, so tokens.css pads the scroll for
  *    it): Home · Productions · Characters · Studio · More. Productions opens Shows (Shows | Shorts | Music Videos are a
- *    segmented control at the top of those pages); More opens a sheet with Locations, Production (the count, which
+ *    segmented control at the top of those pages: ProductionsSwitch); More opens a sheet with the three productions
+ *    first (so every catalogue is reachable from the bars, Design QA M4), then Locations, Production (the count, which
  *    also badges the More tab), Screening Room, Files, Settings, Help & shortcuts and the studio's state. */
 
 export function PhoneBar() {
@@ -62,6 +63,9 @@ export function BottomNav() {
       </ul>
       <ShellDialog open={more} onClose={close} title="More" placement="sheet" className="phone-sheet">
         <ul role="list" className="sheet-list">
+          <li className="sheet-group t-label" aria-hidden>Productions</li>
+          {PRODUCTION_ITEMS.map((item) => <li key={item.href}><NavLink item={item} onNavigate={close} className="nav-item sheet-item" /></li>)}
+          <li className="sheet-group t-label" aria-hidden>Workspace</li>
           {PHONE_TABS.flatMap((t) => ('items' in t ? t.items : [])).map((item) => <li key={item.href}><NavLink item={item} onNavigate={close} className="nav-item sheet-item" /></li>)}
           <li>
             <button type="button" className="nav-item sheet-item" onClick={() => { close(); openShortcuts(); }}>

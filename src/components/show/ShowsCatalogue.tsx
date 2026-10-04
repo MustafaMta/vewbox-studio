@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
 import { EmptyState, FilterChips, SearchField } from '@/components/ui/kit';
 import { StartCard } from '@/components/media';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
@@ -30,9 +31,10 @@ export function ShowsCatalogue() {
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((x) => [x.id, filterShows(cards, '', x.id).length])) as Record<ShowFilter, number>, [cards]);
   const filters = cards.length > 6;
 
-  if (cards.length === 0) return <div className="shows" data-state="empty"><EmptyShows /></div>;
+  if (cards.length === 0) return <div className="shows" data-state="empty"><ProductionsSwitch /><EmptyShows /></div>;
   return (
     <div className="shows" data-state="shows">
+      <ProductionsSwitch />
       <header className="shows-page-head">
         <div className="shows-page-title">
           <h1 className="t-page shows-head-h">Shows{cards.length > 0 && <span className="shows-count t-ro t-ro-md">{cards.length}</span>}</h1>

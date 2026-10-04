@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
 import { ShortCard } from '@/components/library/ShortCard';
 import { StartCard } from '@/components/media';
 import { NEW_SHORT, shortsCatalogue, type PosterCard } from './model';
@@ -31,6 +32,7 @@ export function ShortsCatalogue() {
   const shown = cards.filter(FILTERS.find((f) => f.id === filter)!.keep);
   return (
     <div className="shorts">
+      <ProductionsSwitch />
       <header className="shorts-head">
         <div className="shorts-head-words">
           <h1 className="t-page shorts-title">Shorts</h1>

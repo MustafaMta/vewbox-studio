@@ -175,6 +175,7 @@
   .seg > :is([aria-selected='true'], [aria-pressed='true'], [aria-checked='true'], [aria-current='page'], .is-selected) { background: var(--surface-3); color: var(--text-1); }
   .seg > :is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); cursor: not-allowed; }
   .seg > *:focus-visible { outline-offset: -2px; }
+  .seg > a { text-decoration: none; }
   @media (pointer: coarse) { .seg > * { min-block-size: 44px; min-inline-size: 44px; } }
   .seg-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; max-inline-size: 100%; }
   .seg-reason { font-size: 12px; line-height: 16px; color: var(--text-3); }
