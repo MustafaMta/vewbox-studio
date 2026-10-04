@@ -13,7 +13,7 @@ import { catalogue, filterItems, type CatalogueFilter } from './model';
  *  record shelf of square sleeves (the kit's SleeveCard, Home's shelf card), five across on desktop, three on a tablet,
  *  two on a phone; each with the song's title, who sings it, its length and its status, and the real song to preview
  *  on hover, focus or touch. One primary action starts a new one, by the studio (Auto) or from the producer's own song
- *  (Manual). An empty studio shows the two ways in, in the sleeve's own shape, and what follows the song. */
+ *  (Manual). An empty studio shows the title, one sentence and the two ways in, in the sleeve's own shape (§5.23). */
 
 export const NEW_AUTO = '/new/music-video?mode=auto';
 export const NEW_MANUAL = '/new/music-video?mode=manual';
@@ -46,11 +46,6 @@ export function MusicVideos() {
           cards={<><StartCard href={NEW_AUTO} ratio="1/1" title="Write the song" line="From one line of yours" /><StartCard href={NEW_MANUAL} ratio="1/1" title="Bring your own song" line="Upload your own track" /></>}>
           It starts with its song. Write it with the studio from one line, or bring a track you already have.
         </EmptyState>
-        <ol className="mv-steps" role="list" aria-label="What follows the song">
-          <li><span className="t-ro mv-step-n">1</span><span className="t-card">The song</span><span className="t-body">Lyrics, music and the voices that sing it, section by section.</span></li>
-          <li><span className="t-ro mv-step-n">2</span><span className="t-card">The performers</span><span className="t-body">Your characters sing it: each section has its singer.</span></li>
-          <li><span className="t-ro mv-step-n">3</span><span className="t-card">The video</span><span className="t-body">Storyboarded to the song’s sections and cut to its beat.</span></li>
-        </ol>
       </div>
     );
   }
