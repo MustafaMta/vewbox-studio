@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 
 const Body = z.object({
   clientId: z.string().min(1).max(64),
+  /** the batch's identity in the command journal (step 9): the same batch sent again is answered from the journal */
+  batchId: z.string().min(4).max(80).optional(),
   commands: z.array(z.object({ name: z.string(), args: z.array(z.unknown()), seed: z.string().min(4).max(80), at: z.string().datetime() })).min(1).max(200),
 });
 
@@ -40,9 +42,9 @@ export const POST = route(async (req) => {
     try { validateClientCommand(c.name, c.args, { allowSystem: legacy }); } catch (e) { if (e instanceof StudioError) throw new StudioError(e.code, e.message, { ...e.details, failedAt: i }); throw e; }
     commands.push(c as unknown as Command);
   }
-  const result = await applyCommands(commands, parsed.data.clientId);
+  const result = await applyCommands(commands, parsed.data.clientId, { batchId: parsed.data.batchId });
   // kept recordings may settle a DIALOGUE_AUDIO review (src/server/jobs/reviews.ts); the batch is committed either way
   const kept = commands.filter((c) => c.name === 'keepLineRecordings').map((c) => String((c.args as unknown[])[0]));
-  if (result.ok && kept.length) await settleDialogueReviews([...new Set(kept)]).catch((e) => log.error({ err: (e as Error).message }, 'settling dialogue reviews failed'));
+  if (result.ok && !result.replayed && kept.length) await settleDialogueReviews([...new Set(kept)]).catch((e) => log.error({ err: (e as Error).message }, 'settling dialogue reviews failed'));
   return json(result, { status: result.ok ? 200 : 409 });
 });

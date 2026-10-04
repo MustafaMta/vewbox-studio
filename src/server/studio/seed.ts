@@ -26,9 +26,14 @@ export async function replaceStudio(kind: SeedKind, keepSettings = true): Promis
     const snap = await loadSnapshot(tx);
     const settings = keepSettings ? snap.state.settings : DEFAULT_SETTINGS;
     const next: StudioState = kind === 'sample' ? { ...sampleState(), settings: keepSettings ? settings : sampleState().settings } : emptyStudio(settings);
-    // usage rows are append-only in ordinary operation; a reset is the one place they are allowed to go
+    // usage rows are append-only in ordinary operation; a reset is the one place they are allowed to go — and the one
+    // place shows, seasons, productions, scenes, shots and takes are deleted for good (tombstones included), bottom up
+    // (the foreign keys between them RESTRICT, step 10). Library files are the reset route's (a marked test library only).
     await tx.delete(schema.characterUsage);
-    const before = { ...snap.hashes, usage: new Map<string, string>() };
+    await tx.delete(schema.takes); await tx.delete(schema.shots); await tx.delete(schema.scenes);
+    await tx.delete(schema.productions); await tx.delete(schema.seasons); await tx.delete(schema.shows);
+    const none = () => new Map<string, string>();
+    const before = { ...snap.hashes, usage: none(), shows: none(), seasons: none(), productions: none(), scenes: none(), shots: none(), takes: none() };
     const report = await persistState(tx, before, next);
     const now = new Date().toISOString();
     const rows = await tx.insert(schema.studioMeta).values({ id: 'studio', version: 1, seedVersion: 1, seededAt: now, seedKind: kind, updatedAt: now }).onConflictDoUpdate({ target: schema.studioMeta.id, set: { version: dsql`${schema.studioMeta.version} + 1`, seedVersion: dsql`${schema.studioMeta.version} + 1`, seededAt: now, seedKind: kind, updatedAt: now } }).returning({ version: schema.studioMeta.version });

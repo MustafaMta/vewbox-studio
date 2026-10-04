@@ -73,8 +73,10 @@ import { characterAppearance, characterRefs } from '@/worker/handlers/images';
 import type { HandlerContext } from '@/worker/handlers';
 import type { Job } from '@/domain/jobs';
 
+// every call is its own job (a job reuses the pictures IT already drew, step 7: one id for two jobs would share them)
+let jobSeq = 0;
 const ctx = (type: string, payload: Record<string, unknown>): HandlerContext => ({
-  job: { id: 'job-ap', type, status: 'PREPARING', priority: 0, payload, attempts: 1, maxAttempts: 2, cancelRequested: false, createdAt: 'x', updatedAt: 'x' } as Job,
+  job: { id: `job-ap-${++jobSeq}`, type, status: 'PREPARING', priority: 0, payload, attempts: 1, maxAttempts: 2, cancelRequested: false, createdAt: 'x', updatedAt: 'x' } as Job,
   log: { info() {}, warn() {}, error() {}, debug() {}, child() { return this; } } as unknown as HandlerContext['log'], workerId: 'w', agent: { id: 'character-designer', name: 'Character Designer', department: 'CASTING', tools: [] } as unknown as HandlerContext['agent'], runId: 'run',
   tool: (id, fn) => { fake.tools.push(id); return fn(); }, activity: async () => {}, checkpoint: async () => {}, progress: async () => {}, event: async (level, message) => { fake.events.push({ level, message }); }, gpu: async (_f, _mb, fn) => fn(),
 });
@@ -105,7 +107,7 @@ describe('CHARACTER_APPEARANCE: the canonical image from text', () => {
     expect(prompt).toMatch(/^(3D animated feature-film character design|Japanese anime character design|Photorealistic full-length studio photograph)/);
     expect(prompt).toContain('the whole figure from the top of the head to the soles of the feet');
     const img = fake.state.characters.find((x) => x.id === c.id)!.canonicalImage!;
-    expect(img).toMatchObject({ status: 'DRAFT', version: 1, jobId: 'job-ap', seed: identitySeedFor(c), check: { ok: true } });
+    expect(img).toMatchObject({ status: 'DRAFT', version: 1, jobId: expect.stringMatching(/^job-ap-/), seed: identitySeedFor(c), check: { ok: true } });
     expect(img.identityLine).toMatch(/^Identity: (stylized 3D animated character|Japanese anime character|photorealistic real person), /);
     expect(img.engine).toMatch(/Qwen-Image-2512/);
     expect(asset(img.assetId).tier).toBe('CANONICAL');

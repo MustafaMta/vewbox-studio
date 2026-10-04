@@ -350,6 +350,11 @@ export interface Production {
   /** The assembled cut, when one has been rendered, and every export made from it. Earlier cuts stay in the
    *  library: `cutVersionsOf` (src/studio/selectors/cuts.ts) lists them in order. */
   cutAssetId?: string;
+  /** THE CUT IS OUT OF DATE (docs/BACKEND-AUDIT-2026-10.md M2, step 12): true once something the cut was made from
+   *  changed after it was assembled — another take chosen, a take rated or removed, a shot edited, added, removed or
+   *  moved, a line re-recorded, the song replaced. PRODUCE assembles again; a page can say "the cut is out of date".
+   *  Cleared when a cut assembled from the current inputs is set. Absent: current (or no cut). */
+  cutStale?: boolean;
   exports?: ExportRecord[];
   /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
    *  made when there is no key art (`posterAssetId`); it carries no text — the page renders the title. */

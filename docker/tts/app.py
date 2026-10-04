@@ -331,6 +331,31 @@ def health():
     return {"ok": True, "engine": ENGINE, "engines": [ENGINE], "engine_version": ENGINE_VERSION, "loaded": _engine is not None, "weights_present": weights_present(), "gpu": gpu_mem(), "peak_ceiling_dbtp": PEAK_CEILING_DBTP}
 
 
+def release_host_memory() -> dict[str, Any]:
+    """Hand the heap the dropped model lived in back to the system. Freed Python/torch CPU memory stays in glibc's
+    arenas after gc (docs/research/MODEL-STACK-2026-10.md §1.2: ~21 GB of host RAM held after a GPU unload);
+    malloc_trim(0) returns it. Reports the process's resident memory after."""
+    import gc
+
+    gc.collect()
+    trimmed = False
+    try:
+        import ctypes
+
+        trimmed = bool(ctypes.CDLL("libc.so.6").malloc_trim(0))
+    except Exception:  # noqa: BLE001
+        pass
+    rss_mb = None
+    try:
+        with open("/proc/self/status", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    rss_mb = int(line.split()[1]) // 1024
+    except Exception:  # noqa: BLE001
+        pass
+    return {"malloc_trim": trimmed, "rss_mb": rss_mb}
+
+
 @app.post("/unload")
 def unload():
     global _engine
@@ -345,7 +370,7 @@ def unload():
         torch.cuda.empty_cache()
     except Exception:  # noqa: BLE001
         pass
-    return {"ok": True, "gpu": gpu_mem()}
+    return {"ok": True, "gpu": gpu_mem(), "host": release_host_memory()}
 
 
 @app.post("/synthesize")
