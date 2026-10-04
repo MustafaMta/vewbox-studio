@@ -1,5 +1,5 @@
 {
-  "checked": "2026-10-04T20:12:32.236Z",
+  "checked": "2026-10-04T20:26:42.414Z",
   "base": "http://localhost:4261",
   "report": [
     {
@@ -14313,6 +14313,1389 @@
       },
       "bad": [
         "names on the frame edge"
+      ]
+    },
+    {
+      "page": "engine-room",
+      "path": "/production#engine-room",
+      "fixture": false,
+      "width": 1440,
+      "loadedMs": 108766,
+      "skeleton": {
+        "at": 1134,
+        "parts": 71,
+        "height": 1548,
+        "generic": false,
+        "label": ""
+      },
+      "title": "(4) Production · Vewbox Studio",
+      "h1": "Production",
+      "contentLeft": 288,
+      "contentWidth": 1104,
+      "mainHeight": 2588,
+      "pageHeight": 2588,
+      "sidebar": 240,
+      "bottomBar": 0,
+      "topBar": 0,
+      "edges": {
+        "288": [
+          "header.cp-head",
+          "div.cp-head-row",
+          "div.cp-head-words",
+          "h1.t-page.cp-title \"Production\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Needs you\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Running now\"",
+          "div.shead",
+          "h2.t-section.shead-title \"History\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Engine room\""
+        ]
+      },
+      "edgeKeys": [
+        288
+      ],
+      "headLefts": [
+        288
+      ],
+      "rows": [],
+      "container": "h1.t-page.cp-title",
+      "textNodes": 205,
+      "fonts": {
+        "Geist": 184,
+        "Geist Mono": 21
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 4,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [
+        {
+          "name": "Hana Mori",
+          "dx": 16
+        },
+        {
+          "name": "Salam",
+          "dx": 16
+        },
+        {
+          "name": "Two lines to hear again",
+          "dx": 16
+        },
+        {
+          "name": "The production pass",
+          "dx": 16
+        }
+      ],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "span.dcard-desc.t-body \"Drawn again: this is version 2. Approve \"",
+        "span.dcard-desc.t-body \"Drawn from the reference picture you upl\""
+      ],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0.0163,
+      "shifts": [
+        {
+          "value": 0.0163,
+          "t": 43807,
+          "nodes": [
+            "cp-section",
+            "chip",
+            "chip",
+            "chip"
+          ]
+        }
+      ],
+      "focus": {
+        "firstMain": 17,
+        "count": 40,
+        "noRing": [],
+        "hidden": [],
+        "stops": [
+          {
+            "tag": "a.skip-link",
+            "name": "Skip to content",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": false,
+            "w": 121,
+            "h": 34
+          },
+          {
+            "tag": "a.nav-brand",
+            "name": "Vewbox Studio, Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 89,
+            "h": 22
+          },
+          {
+            "tag": "button.nav-collapse",
+            "name": "Collapse the sidebar",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 28,
+            "h": 28
+          },
+          {
+            "tag": "button.nav-search",
+            "name": "Search the studio",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shows",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shorts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Music Videos",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Characters",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Studio Company",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Locations",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Production, 4 decisions waiting for you",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Screening Room",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Files",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item.nav-state",
+            "name": "Studio paused",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Settings",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "button.nav-item",
+            "name": "Help & shortcuts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.dcard.ctl-dcard",
+            "name": "Character image · version 2Hana MoriDraw",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "3px",
+            "visible": true,
+            "inMain": true,
+            "w": 264,
+            "h": 313
+          },
+          {
+            "tag": "a.dcard.ctl-dcard",
+            "name": "Character image · version 1SalamDrawn fr",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "3px",
+            "visible": true,
+            "inMain": true,
+            "w": 264,
+            "h": 313
+          },
+          {
+            "tag": "a.dcard.ctl-dcard",
+            "name": "1.3 · 2.2Dialogue · The Static SkyTwo li",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "3px",
+            "visible": true,
+            "inMain": true,
+            "w": 264,
+            "h": 313
+          },
+          {
+            "tag": "a.dcard.ctl-dcard",
+            "name": "15 takesProduction review · The Static S",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "3px",
+            "visible": true,
+            "inMain": true,
+            "w": 264,
+            "h": 313
+          },
+          {
+            "tag": "button.chip",
+            "name": "Finished68",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 96,
+            "h": 32
+          },
+          {
+            "tag": "button.chip",
+            "name": "Waits for review3",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 135,
+            "h": 32
+          },
+          {
+            "tag": "button.chip",
+            "name": "Failed1",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 74,
+            "h": 32
+          },
+          {
+            "tag": "button.chip",
+            "name": "Cancelled1",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 98,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "Najm",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 35,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 94,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 94,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky · shot 2.3",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 156,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky · shot 2.3",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 156,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 94,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky · shot 2.4",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 157,
+            "h": 18
+          },
+          {
+            "tag": "button.btn.btn-quiet",
+            "name": "Details",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 67,
+            "h": 32
+          },
+          {
+            "tag": "a.cp-link",
+            "name": "The Static Sky · shot 2.3",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 156,
+            "h": 18
+          }
+        ]
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": false,
+        "focus ring on every stop": true
+      },
+      "bad": [
+        "names on the frame edge"
+      ]
+    },
+    {
+      "page": "settings",
+      "path": "/settings",
+      "fixture": false,
+      "width": 1440,
+      "loadedMs": 68336,
+      "skeleton": {
+        "at": 13595,
+        "parts": 58,
+        "height": 1767,
+        "generic": false,
+        "label": ""
+      },
+      "title": "Settings · Vewbox Studio",
+      "h1": "Settings",
+      "contentLeft": 288,
+      "contentWidth": 1104,
+      "mainHeight": 2236,
+      "pageHeight": 2236,
+      "sidebar": 240,
+      "bottomBar": 0,
+      "topBar": 0,
+      "edges": {
+        "288": [
+          "header.cp-head",
+          "div.cp-head-row",
+          "div.cp-head-words",
+          "h1.t-page.cp-title \"Settings\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Generation\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Research\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Motion\"",
+          "div.shead",
+          "h2.t-section.shead-title \"New work\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Elsewhere\""
+        ],
+        "1340": [
+          "div.cp-head-end"
+        ]
+      },
+      "edgeKeys": [
+        288,
+        1340
+      ],
+      "headLefts": [
+        288
+      ],
+      "rows": [],
+      "container": "h1.t-page.cp-title",
+      "textNodes": 75,
+      "fonts": {
+        "Geist": 72,
+        "Geist Mono": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button",
+          "text": "MiniMax, hosted",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(31, 31, 31)",
+          "ratio": 2.38,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        },
+        {
+          "el": "span.toggle-label",
+          "text": "Facebook",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(31, 31, 31)",
+          "ratio": 2.38,
+          "need": 4.5,
+          "size": 14,
+          "disabled": true
+        }
+      ],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": 17,
+        "count": 35,
+        "noRing": [],
+        "hidden": [],
+        "stops": [
+          {
+            "tag": "a.skip-link",
+            "name": "Skip to content",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": false,
+            "w": 121,
+            "h": 34
+          },
+          {
+            "tag": "a.nav-brand",
+            "name": "Vewbox Studio, Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 89,
+            "h": 22
+          },
+          {
+            "tag": "button.nav-collapse",
+            "name": "Collapse the sidebar",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 28,
+            "h": 28
+          },
+          {
+            "tag": "button.nav-search",
+            "name": "Search the studio",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shows",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shorts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Music Videos",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Characters",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Studio Company",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Locations",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Production, 4 decisions waiting for you",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Screening Room",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Files",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item.nav-state",
+            "name": "Studio paused",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Settings",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "button.nav-item",
+            "name": "Help & shortcuts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "select.select",
+            "name": "MiniMax H3, on this machineMiniMax Hailu",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "button",
+            "name": "768P",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 55,
+            "h": 32
+          },
+          {
+            "tag": "select.select",
+            "name": "Server default · a local modelA model on",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "button",
+            "name": "On this machine",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 123,
+            "h": 32
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "select.select",
+            "name": "Each source’s default1 hour6 hours12 hou",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "input.toggle",
+            "name": "",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 40,
+            "h": 24
+          },
+          {
+            "tag": "select.select",
+            "name": "CartoonAnimeRealistic",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "select.select",
+            "name": "16:9 · TV and cinema9:16 · phones1:1 · f",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "select.select",
+            "name": "EnglishArabic",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "select.select",
+            "name": "Iraqi — BaghdadiModern Standard ArabicGu",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 320,
+            "h": 40
+          },
+          {
+            "tag": "a.btn.btn-secondary",
+            "name": "Open the engine room",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 158,
+            "h": 32
+          },
+          {
+            "tag": "a.btn.btn-secondary",
+            "name": "Open Files",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": true,
+            "w": 88,
+            "h": 32
+          },
+          {
+            "tag": "body"
+          }
+        ]
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "focus ring on every stop": true
+      },
+      "bad": []
+    },
+    {
+      "page": "assets",
+      "path": "/assets",
+      "width": 1440,
+      "error": "the skeleton came back after the page had loaded (stream reconnect?)"
+    },
+    {
+      "page": "kit",
+      "path": "/kit",
+      "fixture": false,
+      "width": 1440,
+      "loadedMs": 52952,
+      "skeleton": {
+        "at": 11091,
+        "parts": 31,
+        "height": 900,
+        "generic": true,
+        "label": ""
+      },
+      "title": "Vewbox Studio",
+      "h1": "Opening the studio…",
+      "contentLeft": 288,
+      "contentWidth": 1104,
+      "mainHeight": 900,
+      "pageHeight": 900,
+      "sidebar": 240,
+      "bottomBar": 0,
+      "topBar": 0,
+      "edges": {
+        "288": [
+          "div.shell-skeleton-head",
+          "div.shell-skeleton-grid"
+        ]
+      },
+      "edgeKeys": [
+        288
+      ],
+      "headLefts": [],
+      "rows": [],
+      "container": "main.shell-main",
+      "textNodes": 0,
+      "fonts": {},
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 17,
+        "noRing": [],
+        "hidden": [],
+        "stops": [
+          {
+            "tag": "a.skip-link",
+            "name": "Skip to content",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "2px",
+            "visible": true,
+            "inMain": false,
+            "w": 121,
+            "h": 34
+          },
+          {
+            "tag": "a.nav-brand",
+            "name": "Vewbox Studio, Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 89,
+            "h": 22
+          },
+          {
+            "tag": "button.nav-collapse",
+            "name": "Expand the sidebar",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 28,
+            "h": 28
+          },
+          {
+            "tag": "button.nav-search",
+            "name": "Search the studio",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Home",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shows",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Shorts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Music Videos",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Characters",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Studio Company",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Locations",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Production",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Screening Room",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Files",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item.nav-state",
+            "name": "Studio ready",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "a.nav-item",
+            "name": "Settings",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "button.nav-item",
+            "name": "Help & shortcuts",
+            "ring": true,
+            "outline": "solid 2px rgb(245, 245, 244)",
+            "offset": "-2px",
+            "visible": true,
+            "inMain": false,
+            "w": 224,
+            "h": 36
+          },
+          {
+            "tag": "body"
+          }
+        ]
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "focus ring on every stop": true
+      },
+      "bad": [
+        "page skeleton (not the generic shell)"
       ]
     }
   ]

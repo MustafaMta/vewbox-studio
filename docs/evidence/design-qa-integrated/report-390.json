@@ -1,5 +1,5 @@
 {
-  "checked": "2026-10-04T20:11:37.835Z",
+  "checked": "2026-10-04T20:24:57.476Z",
   "base": "http://localhost:4261",
   "report": [
     {
@@ -764,6 +764,908 @@
       "path": "/shows/last-sip",
       "width": 390,
       "error": "the skeleton came back after the page had loaded (stream reconnect?)"
+    },
+    {
+      "page": "shorts",
+      "path": "/shorts",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 59329,
+      "skeleton": {
+        "at": 17187,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 17205,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 17512,
+          "state": "page",
+          "height": 1518
+        },
+        {
+          "t": 57128,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 58521,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Shorts · Vewbox Studio",
+      "h1": "Shorts",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.shorts-head",
+          "div.shorts-head-words",
+          "h1.t-page.shorts-title \"Shorts\"",
+          "ul.shorts-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.shorts-title",
+      "textNodes": 7,
+      "fonts": {
+        "Geist": 7
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 1,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content"
+      ]
+    },
+    {
+      "page": "short",
+      "path": "/shorts/short-28bdb3342b",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 241548,
+      "skeleton": {
+        "at": 922,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 1134,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 1135,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 41468,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 41715,
+          "state": "page",
+          "height": 3513
+        },
+        {
+          "t": 55680,
+          "state": "content",
+          "height": 3607
+        }
+      ],
+      "title": "The Static Sky · Shorts · Vewbox Studio",
+      "h1": "The Static Sky",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 3567,
+      "pageHeight": 3687,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.film-head",
+          "div.film-head-row",
+          "h1.t-display.film-title \"The Static Sky\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Downloads\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Story\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Cast and locations\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Credits\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "main.shell-main",
+      "textNodes": 104,
+      "fonts": {
+        "Geist": 101,
+        "Geist Mono": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 8,
+      "arabicUi": [],
+      "images": 11,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "h1.t-display.film-title \"The Static Sky\""
+      ],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Open production",
+          "w": 175,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Screen it",
+          "w": 175,
+          "h": 40
+        },
+        {
+          "el": "button.pt-play",
+          "name": "Play",
+          "w": 36,
+          "h": 36
+        },
+        {
+          "el": "input.seek",
+          "name": "Seek",
+          "w": 83,
+          "h": 24
+        },
+        {
+          "el": "button.pt-btn",
+          "name": "Captions",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "button.pt-btn",
+          "name": "Mute",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "button.pt-btn",
+          "name": "Fullscreen",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Download",
+          "w": 103,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Download Arabic subtitles, SRT",
+          "w": 67,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Download Arabic subtitles, VTT",
+          "w": 66,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Download English subtitles, SR",
+          "w": 67,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Download English subtitles, VT",
+          "w": 66,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Edit the story",
+          "w": 106,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Edit in production",
+          "w": 133,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Studio Company",
+          "w": 126,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "Story Development",
+          "w": 176,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Casting & Character Design",
+          "w": 253,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "World Building & Art Direction",
+          "w": 271,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Pre-Production",
+          "w": 139,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Video Production",
+          "w": 157,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Sound & Music",
+          "w": 136,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Post-Production",
+          "w": 149,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Quality Assurance",
+          "w": 167,
+          "h": 26
+        },
+        {
+          "el": "a",
+          "name": "Executive Office",
+          "w": 150,
+          "h": 26
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 26,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "music-videos-live",
+      "path": "/music-videos",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 52229,
+      "skeleton": {
+        "at": 11081,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 11101,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 11412,
+          "state": "page",
+          "height": 1081
+        },
+        {
+          "t": 50926,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 51421,
+          "state": "content",
+          "height": 1004
+        }
+      ],
+      "title": "Music Videos · Vewbox Studio",
+      "h1": "Music videos",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1004,
+      "pageHeight": 1124,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.t-page \"Music videos\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.empty-page.mv-empty",
+      "textNodes": 15,
+      "fonts": {
+        "Geist": 12,
+        "Geist Mono": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 2,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "music-videos",
+      "path": "/music-videos",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 43395,
+      "skeleton": {
+        "at": 1199,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 1216,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 1529,
+          "state": "page",
+          "height": 1081
+        },
+        {
+          "t": 42516,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 42590,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Music Videos · Vewbox Studio",
+      "h1": "Music videos",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.mv-cat-head",
+          "h1.t-page.mv-cat-title \"Music videos\"",
+          "ul.mv-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.mv-cat-title",
+      "textNodes": 7,
+      "fonts": {
+        "Geist": 7
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 4,
+      "arabicUi": [],
+      "images": 2,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.mcard-meta \"Layla & Karim · 0:36 · Story\"",
+        "span.mcard-meta \"Nour · 0:48 · Cast and world\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "button.pdisc",
+          "name": "Play Rooftop Radio",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "button.pdisc",
+          "name": "Play River Lights",
+          "w": 40,
+          "h": 40
+        }
+      ],
+      "targetsTotal": 2,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "music-video",
+      "path": "/music-videos/river-lights",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 64091,
+      "skeleton": {
+        "at": 22812,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 22832,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 23142,
+          "state": "page",
+          "height": 1456
+        },
+        {
+          "t": 63097,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 63286,
+          "state": "content",
+          "height": 1997
+        }
+      ],
+      "title": "River Lights · Music Videos · Vewbox Studio",
+      "h1": "River Lights",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1937,
+      "pageHeight": 2057,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "div.mv-head",
+          "h1.t-display.mv-title \"River Lights\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Lyrics\"",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.shead",
+          "h2.t-section.shead-title \"Cast\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.hero.mv-page",
+      "textNodes": 56,
+      "fonts": {
+        "Geist": 46,
+        "Geist Mono": 10
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 5,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "h1.t-display.mv-title \"River Lights\""
+      ],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.t-body.mv-back",
+          "name": "Music videos",
+          "w": 105,
+          "h": 20
+        },
+        {
+          "el": "a.mv-performer",
+          "name": "Nour",
+          "w": 68,
+          "h": 28
+        },
+        {
+          "el": "button.pt-play",
+          "name": "Play River Lights",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "div.wave-hit.wave-hit-on",
+          "name": "Seek River Lights",
+          "w": 334,
+          "h": 32
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Continue: filming",
+          "w": 358,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Edit the song",
+          "w": 310,
+          "h": 40
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "More for River Lights",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Play from Intro",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Play from Verse",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Play from Chorus",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Play from Outro",
+          "w": 32,
+          "h": 32
+        },
+        {
+          "el": "a.mv-person",
+          "name": "NourSings the verse and chorus",
+          "w": 358,
+          "h": 40
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 14,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
     }
   ]
 }
