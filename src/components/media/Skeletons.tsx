@@ -72,13 +72,13 @@ export function DecisionCardSkeleton({ className }: { className?: string }) {
 /** A media tile (catalogue grids): the frame, the name, the meta line. */
 export function MediaTileSkeleton({ ratio = '16/9', className }: { ratio?: '16/9' | '2/3' | '1/1' | '928/1664' | '2.39/1'; className?: string }) {
   return (
-    <span aria-hidden className={cls('mtile', className)}>
-      <span className="mtile-link">
+    <div aria-hidden className={cls('mtile', className)}>
+      <div className="mtile-link">
         <Skeleton.Media ratio={ratio} className="mtile-frame" />
         <span className="mtile-title"><Skeleton.Line width="60%" /></span>
         <span className="mtile-meta"><Skeleton.Line width="40%" /></span>
-      </span>
-    </span>
+      </div>
+    </div>
   );
 }
 
