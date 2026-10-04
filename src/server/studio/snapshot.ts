@@ -79,6 +79,24 @@ export function characterFromRow(c: CharacterRowRead, videos: VideoUsage[], asse
   return { id: c.id, name: c.name, nameAr: undef(c.nameAr), role: c.role, style: c.style as Character['style'], sex: c.sex as Character['sex'], species: undef(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language as Character['language'], dialect: undef(c.dialect) as Character['dialect'], voice: normalizeVoice(c.voice), canonicalImage: canonicalFromColumns(c, (id) => assetCreatedAt(id) ?? c.updatedAt), refs: c.refs, portraitAssetId: undef(c.portraitAssetId), usage: { known: c.usageKnown, videos }, pendingReference: undef(c.pendingReference), canon: undef(c.canon), notes: undef(c.notes), createdAt: c.createdAt, updatedAt: c.updatedAt };
 }
 
+type ShowRowRead = typeof schema.shows.$inferSelect;
+type SeasonRowRead = typeof schema.seasons.$inferSelect;
+type ProductionRowRead = typeof schema.productions.$inferSelect;
+type SceneRowRead = typeof schema.scenes.$inferSelect;
+type ShotRowRead = typeof schema.shots.$inferSelect;
+type LocationRowRead = typeof schema.locations.$inferSelect;
+
+/** Rows to domain records — the one translation, shared by the whole-studio load and the scoped load (store.ts). */
+export const showFromRow = (r: ShowRowRead): Show => ({ id: r.id, title: r.title, titleAr: undef(r.titleAr), logline: r.logline, genre: r.genre, style: r.style as Show['style'], language: r.language as Show['language'], dialect: undef(r.dialect) as Show['dialect'], aspect: r.aspect as Show['aspect'], synopsis: undef(r.synopsis), coverAssetId: undef(r.coverAssetId), posterAssetId: undef(r.posterAssetId), castIds: r.castIds, locationIds: r.locationIds, bible: undef(r.bible), createdAt: r.createdAt, updatedAt: r.updatedAt });
+export const seasonFromRow = (r: SeasonRowRead): Season => ({ id: r.id, showId: r.showId, number: r.number, title: r.title, arc: r.arc, createdAt: r.createdAt });
+export const sceneFromRow = (sc: SceneRowRead): Scene => ({ id: sc.id, number: sc.number, title: sc.title, locationId: undef(sc.locationId), timeOfDay: sc.timeOfDay as Scene['timeOfDay'], characterIds: sc.characterIds, beats: sc.beats, purpose: undef(sc.purpose), emotionalObjective: undef(sc.emotionalObjective), entryState: undef(sc.entryState), exitState: undef(sc.exitState) });
+export const shotFromRow = (s: ShotRowRead, takes: Take[]): Shot => ({ id: s.id, sceneId: s.sceneId, number: s.number, purpose: s.purpose, action: s.action, framing: s.framing as Shot['framing'], cameraMove: s.cameraMove as Shot['cameraMove'], durationSeconds: s.durationSeconds, characterIds: s.characterIds, dialogue: s.dialogue, transition: s.transition as Shot['transition'], openingFrameAssetId: undef(s.openingFrameAssetId), endingFrameAssetId: undef(s.endingFrameAssetId), takes, selectedTakeId: undef(s.selectedTakeId), songWindow: undef(s.songWindow), performance: undef(s.performance), notes: undef(s.notes), continuity: undef(s.continuity), prompt: undef(s.prompt) });
+export const productionFromRow = (p: ProductionRowRead, scenes: Scene[], shots: Shot[]): Production => ({ id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes, shots, song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), cutStale: p.cutStale || undefined, exports: undef(p.exports), framePosterAssetId: undef(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt });
+export const locationFromRow = (l: LocationRowRead): Location => ({ id: l.id, name: l.name, nameAr: undef(l.nameAr), kind: l.kind as Location['kind'], description: l.description, style: l.style as Location['style'], lighting: l.lighting as Location['lighting'], landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: undef(l.masterAssetId), layout: undef(l.layout), createdAt: l.createdAt, updatedAt: l.updatedAt });
+
+/** The fingerprint the saver compares (the same function on load and on save). */
+export const rowHash = (v: unknown): string => hashString(canonical(v));
+
 export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const [showRows, seasonRows, productionRows, sceneRows, shotRows, takeRows, characterRows, usageRows, locationRows, assetRows, settingsRows, metaRows] = await Promise.all([
     // the live studio: tombstoned rows (step 10) are not part of it
@@ -108,12 +126,12 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   });
 
   const shows: Show[] = showRows.map((r) => {
-    const show: Show = { id: r.id, title: r.title, titleAr: undef(r.titleAr), logline: r.logline, genre: r.genre, style: r.style as Show['style'], language: r.language as Show['language'], dialect: undef(r.dialect) as Show['dialect'], aspect: r.aspect as Show['aspect'], synopsis: undef(r.synopsis), coverAssetId: undef(r.coverAssetId), posterAssetId: undef(r.posterAssetId), castIds: r.castIds, locationIds: r.locationIds, bible: undef(r.bible), createdAt: r.createdAt, updatedAt: r.updatedAt };
+    const show = showFromRow(r);
     hashes.shows.set(r.id, h(show));
     return show;
   });
 
-  const seasons: Season[] = seasonRows.map((r) => { const s: Season = { id: r.id, showId: r.showId, number: r.number, title: r.title, arc: r.arc, createdAt: r.createdAt }; hashes.seasons.set(r.id, h(s)); return s; });
+  const seasons: Season[] = seasonRows.map((r) => { const s = seasonFromRow(r); hashes.seasons.set(r.id, h(s)); return s; });
 
   const takesByShot = new Map<string, Take[]>();
   for (const t of takeRows) {
@@ -123,18 +141,18 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   }
   const shotsByProduction = new Map<string, Shot[]>();
   for (const s of shotRows) {
-    const shot: Shot = { id: s.id, sceneId: s.sceneId, number: s.number, purpose: s.purpose, action: s.action, framing: s.framing as Shot['framing'], cameraMove: s.cameraMove as Shot['cameraMove'], durationSeconds: s.durationSeconds, characterIds: s.characterIds, dialogue: s.dialogue, transition: s.transition as Shot['transition'], openingFrameAssetId: undef(s.openingFrameAssetId), endingFrameAssetId: undef(s.endingFrameAssetId), takes: takesByShot.get(s.id) ?? [], selectedTakeId: undef(s.selectedTakeId), songWindow: undef(s.songWindow), performance: undef(s.performance), notes: undef(s.notes), continuity: undef(s.continuity), prompt: undef(s.prompt) };
+    const shot = shotFromRow(s, takesByShot.get(s.id) ?? []);
     hashes.shots.set(s.id, h({ ...shot, takes: undefined }));
     shotsByProduction.set(s.productionId, [...(shotsByProduction.get(s.productionId) ?? []), shot]);
   }
   const scenesByProduction = new Map<string, Scene[]>();
   for (const sc of sceneRows) {
-    const scene: Scene = { id: sc.id, number: sc.number, title: sc.title, locationId: undef(sc.locationId), timeOfDay: sc.timeOfDay as Scene['timeOfDay'], characterIds: sc.characterIds, beats: sc.beats, purpose: undef(sc.purpose), emotionalObjective: undef(sc.emotionalObjective), entryState: undef(sc.entryState), exitState: undef(sc.exitState) };
+    const scene = sceneFromRow(sc);
     hashes.scenes.set(sc.id, h(scene));
     scenesByProduction.set(sc.productionId, [...(scenesByProduction.get(sc.productionId) ?? []), scene]);
   }
   const productions: Production[] = productionRows.map((p) => {
-    const production: Production = { id: p.id, kind: p.kind as Production['kind'], showId: undef(p.showId), seasonId: undef(p.seasonId), episodeNumber: undef(p.episodeNumber), title: p.title, titleAr: undef(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style as Production['style'], language: p.language as Production['language'], dialect: undef(p.dialect) as Production['dialect'], aspect: p.aspect as Production['aspect'], targetSeconds: p.targetSeconds, stage: p.stage as Production['stage'], brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, scenes: scenesByProduction.get(p.id) ?? [], shots: shotsByProduction.get(p.id) ?? [], song: undef(p.song), coverAssetId: undef(p.coverAssetId), posterAssetId: undef(p.posterAssetId), artist: undef(p.artist), concept: undef(p.concept) as Production['concept'], genre: undef(p.genre), mood: undef(p.mood), cutAssetId: undef(p.cutAssetId), cutStale: p.cutStale || undefined, exports: undef(p.exports), framePosterAssetId: undef(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt };
+    const production = productionFromRow(p, scenesByProduction.get(p.id) ?? [], shotsByProduction.get(p.id) ?? []);
     hashes.productions.set(p.id, h({ ...production, scenes: undefined, shots: undefined }));
     return production;
   });
@@ -152,7 +170,7 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   });
 
   const locations: Location[] = locationRows.map((l) => {
-    const location: Location = { id: l.id, name: l.name, nameAr: undef(l.nameAr), kind: l.kind as Location['kind'], description: l.description, style: l.style as Location['style'], lighting: l.lighting as Location['lighting'], landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: undef(l.masterAssetId), layout: undef(l.layout), createdAt: l.createdAt, updatedAt: l.updatedAt };
+    const location = locationFromRow(l);
     hashes.locations.set(l.id, h(location));
     return location;
   });

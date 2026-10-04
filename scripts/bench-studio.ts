@@ -92,4 +92,6 @@ for (const k of scales) {
   console.log(JSON.stringify(out));
   results.push(out);
 }
+// leave the test studio empty (the copies share creation times, which other suites' order-sensitive checks dislike)
+await (await import('../src/server/studio/seed')).replaceStudio('empty');
 await closeDb();

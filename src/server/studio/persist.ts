@@ -218,13 +218,13 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
 export function characterRow(c: Character) {
   return { id: c.id, name: c.name, nameAr: nul(c.nameAr), role: c.role, style: c.style, sex: c.sex, species: nul(c.species), ageYears: c.ageYears, build: c.build, face: c.face, hair: c.hair, skin: c.skin, eyes: c.eyes, distinguishing: c.distinguishing, wardrobe: c.wardrobe, personality: c.personality, language: c.language, dialect: nul(c.dialect), voice: c.voice, refs: c.refs, portraitAssetId: nul(c.portraitAssetId), usageKnown: c.usage?.known ?? false, pendingReference: nul(c.pendingReference), canon: nul(c.canon), notes: nul(c.notes), ...canonicalToColumns(c.canonicalImage), createdAt: c.createdAt, updatedAt: c.updatedAt };
 }
-function productionRow(p: Production) {
+export function productionRow(p: Production) {
   return { id: p.id, kind: p.kind, showId: nul(p.showId), seasonId: nul(p.seasonId), episodeNumber: nul(p.episodeNumber), title: p.title, titleAr: nul(p.titleAr), logline: p.logline, synopsis: p.synopsis, style: p.style, language: p.language, dialect: nul(p.dialect), aspect: p.aspect, targetSeconds: p.targetSeconds, stage: p.stage, brief: p.brief, castIds: p.castIds, locationIds: p.locationIds, song: nul(p.song), coverAssetId: nul(p.coverAssetId), posterAssetId: nul(p.posterAssetId), artist: nul(p.artist), concept: nul(p.concept), genre: nul(p.genre), mood: nul(p.mood), cutAssetId: nul(p.cutAssetId), cutStale: Boolean(p.cutStale), exports: nul(p.exports), framePosterAssetId: nul(p.framePosterAssetId), createdAt: p.createdAt, updatedAt: p.updatedAt };
 }
-function sceneRow(productionId: string, position: number, sc: Scene) {
+export function sceneRow(productionId: string, position: number, sc: Scene) {
   return { id: sc.id, productionId, position, number: sc.number, title: sc.title, locationId: nul(sc.locationId), timeOfDay: sc.timeOfDay, characterIds: sc.characterIds, beats: sc.beats, purpose: nul(sc.purpose), emotionalObjective: nul(sc.emotionalObjective), entryState: nul(sc.entryState), exitState: nul(sc.exitState) };
 }
-function shotRow(productionId: string, position: number, sh: Shot) {
+export function shotRow(productionId: string, position: number, sh: Shot) {
   return { id: sh.id, productionId, sceneId: sh.sceneId, position, number: sh.number, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, openingFrameAssetId: nul(sh.openingFrameAssetId), endingFrameAssetId: nul(sh.endingFrameAssetId), selectedTakeId: nul(sh.selectedTakeId), songWindow: nul(sh.songWindow), performance: nul(sh.performance), notes: nul(sh.notes), continuity: nul(sh.continuity), prompt: nul(sh.prompt) };
 }
 export function takeRow(productionId: string, shotId: string, position: number, t: Take) {
