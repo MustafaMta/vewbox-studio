@@ -1,13 +1,13 @@
 'use client';
 
-import { notFound, useParams, useSearchParams } from 'next/navigation';
-import { CreateWizard, type WizardKind } from '@/components/wizard/CreateWizard';
+import { notFound, useParams } from 'next/navigation';
+import { CreateFlow } from '@/components/wizard/CreateFlow';
+import { isCreateKind } from '@/components/wizard/model';
 
-const KINDS: WizardKind[] = ['show', 'season', 'episode', 'short', 'music-video'];
-
-export default function NewPage() {
+/** NEW SHOW · SEASON · EPISODE · SHORT · MUSIC VIDEO — src/components/wizard/CreateFlow.tsx (`?mode=auto|manual`,
+ *  `?show=`, `?season=`, `?idea=`). */
+export default function NewKindPage() {
   const { kind } = useParams<{ kind: string }>();
-  const sp = useSearchParams();
-  if (!KINDS.includes(kind as WizardKind)) notFound();
-  return <CreateWizard key={kind} kind={kind as WizardKind} showId={sp.get('show') ?? undefined} seasonId={sp.get('season') ?? undefined} />;
+  if (!isCreateKind(kind)) notFound();
+  return <CreateFlow key={kind} kind={kind} />;
 }

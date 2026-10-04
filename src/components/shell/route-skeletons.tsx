@@ -23,6 +23,9 @@ const lazy = (load: () => Promise<unknown>, name: string): ComponentType =>
 export const ROUTE_SKELETONS: Entry[] = [
   // Home (P-Home): src/components/home/Home.tsx exports HomeSkeleton
   { match: (p) => p === '/', Skeleton: lazy(() => import('@/components/home/Home'), 'HomeSkeleton') },
+  // Create (P-Create): src/components/wizard/CreateHub.tsx and CreateFlow.tsx
+  { match: (p) => p === '/new', Skeleton: lazy(() => import('@/components/wizard/CreateHub'), 'CreateHubSkeleton') },
+  { match: (p) => /^\/new\/(show|season|episode|short|music-video)$/.test(p), Skeleton: lazy(() => import('@/components/wizard/CreateFlow'), 'CreateFlowSkeleton') },
 ];
 
 export function RouteSkeleton({ pathname }: { pathname: string }) {
