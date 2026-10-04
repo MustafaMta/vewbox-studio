@@ -273,7 +273,6 @@ export async function saveScoped(tx: Tx, snap: ScopedSnapshot, after: StudioStat
         if (sp === undefined) { report.inserted++; touched.productions.add(p.id); insertRevivable(schema.shots, row, 'Shot'); }
         else if (sp !== hh) { report.updated++; touched.productions.add(p.id); ops.push(() => tx.update(schema.shots).set(row).where(eq(schema.shots.id, sh.id))); }
         else if (snap.positions.shots.get(sh.id) !== i) { touched.productions.add(p.id); ops.push(() => tx.update(schema.shots).set({ position: i }).where(eq(schema.shots.id, sh.id))); }
-        if (sp !== hh && sh.continuity) { const cont = sh.continuity; ops.push(() => tx.insert(schema.continuityVersions).values({ shotId: sh.id, version: cont.version, state: cont, createdAt: new Date().toISOString() }).onConflictDoNothing()); }
         for (let j = 0; j < sh.takes.length; j++) {
           const t = sh.takes[j]; seenT.add(t.id);
           const th = h(t); const tp = before.takes.get(t.id);

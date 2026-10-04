@@ -30,7 +30,7 @@ const VAR = path.resolve('./var');
 const SCRATCH_VOLUMES = ['vewbox_comfyin', 'vewbox_comfyout'];
 
 /** Studio content (removed by the empty-studio replacement; children cascade). */
-const CONTENT = ['shows', 'seasons', 'productions', 'scenes', 'shots', 'takes', 'continuity_versions', 'characters', 'character_usage', 'locations', 'assets'];
+const CONTENT = ['shows', 'seasons', 'productions', 'scenes', 'shots', 'takes', 'characters', 'character_usage', 'locations', 'assets'];
 /** Operational history of the old work (deleted). */
 const HISTORY = ['jobs', 'job_events', 'agent_runs', 'studio_events', 'handoffs', 'qa_reports', 'approvals', 'reliability_events', 'metrics', 'proposals'];
 /** Kept: the organisation and model registries (synced from code), settings, the studio row, migrations. */

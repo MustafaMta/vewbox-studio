@@ -175,9 +175,6 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
         if (sprev === undefined) { await tx.insert(schema.shots).values(row).onConflictDoUpdate({ target: schema.shots.id, set: { ...row, ...live } }); report.inserted++; touched.productions.add(p.id); }
         else if (sprev !== hh) { await tx.update(schema.shots).set(row).where(eq(schema.shots.id, sh.id)); report.updated++; touched.productions.add(p.id); }
         else if ((await tx.update(schema.shots).set({ position: i }).where(and(eq(schema.shots.id, sh.id), dsql`${schema.shots.position} <> ${i}`)).returning({ id: schema.shots.id })).length) touched.productions.add(p.id);
-        if (sprev !== hh && sh.continuity) {
-          await tx.insert(schema.continuityVersions).values({ shotId: sh.id, version: sh.continuity.version, state: sh.continuity, createdAt: new Date().toISOString() }).onConflictDoNothing();
-        }
         for (let j = 0; j < sh.takes.length; j++) {
           const t = sh.takes[j]; seenT.add(t.id);
           const th = h(t); const tprev = before.takes.get(t.id);

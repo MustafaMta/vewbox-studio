@@ -155,6 +155,13 @@
       "when": 1791078879974,
       "tag": "0021_job_attempts_tool_events",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791079901018,
+      "tag": "0022_drop_continuity_versions",
+      "breakpoints": true
     }
   ]
 }

@@ -405,14 +405,6 @@ export const metrics = pgTable('metrics', {
   labels: jsonb('labels').$type<Record<string, string | number | boolean>>(),
 }, (t) => [index('metrics_name_idx').on(t.name, t.at)]);
 
-export const continuityVersions = pgTable('continuity_versions', {
-  id: bigserial('id', { mode: 'number' }).primaryKey(),
-  shotId: text('shot_id').notNull().references(() => shots.id, { onDelete: 'cascade' }),
-  version: integer('version').notNull(),
-  state: jsonb('state').$type<ContinuityState>().notNull(),
-  createdAt: ts('created_at').notNull(),
-}, (t) => [index('continuity_shot_idx').on(t.shotId, t.version)]);
-
 // ------------------------------------------------------------------------------------------- the studio organisation
 // Departments, agents, tools and skills are defined in code (src/server/org/model.ts) and persisted here with their
 // versions so pages, API and history read one organisation. Runs, handoffs, QA reports, approvals and studio events
