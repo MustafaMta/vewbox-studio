@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 import { ShellSkeleton } from './ShellSkeleton';
+import { CreateCharacterSkeleton } from '@/components/character/create/CreateCharacterSkeleton';
+import { CreateLocationSkeleton } from '@/components/location/LocationCreateSkeleton';
 
 /** ROUTE SKELETONS — what the main area shows while the studio's first snapshot is on its way (the shell renders a
  *  page only once the store is ready). The standard for every page (VISUAL-STANDARD-V5.1 §5.22, §6.1): a page whose
@@ -48,7 +50,10 @@ export const ROUTE_SKELETONS: Entry[] = [
   { match: (p) => p === '/production', Skeleton: lazy(() => import('@/components/production/ControlRoom'), 'ControlRoomSkeleton') },
   { match: (p) => p === '/settings', Skeleton: lazy(() => import('@/components/settings/Settings'), 'SettingsSkeleton') },
   { match: (p) => p === '/assets', Skeleton: lazy(() => import('@/components/files/Files'), 'FilesSkeleton') },
-  // Characters and Locations (P-Cast): "new" is its own page, so the [id] patterns exclude it
+  // Characters and Locations (P-Cast): "new" is its own page (its skeleton is a few lines of markup in its own file,
+  // imported statically so the form's frame is on the first paint), and the [id] patterns exclude it
+  { match: (p) => p === '/characters/new', Skeleton: CreateCharacterSkeleton },
+  { match: (p) => p === '/locations/new', Skeleton: CreateLocationSkeleton },
   { match: (p) => p === '/characters', Skeleton: lazy(() => import('@/components/character/CastDirectory'), 'CharactersSkeleton') },
   { match: (p) => /^\/characters\/(?!new$)[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/character/CharacterPage'), 'CharacterSkeleton') },
   { match: (p) => p === '/locations', Skeleton: lazy(() => import('@/components/location/LocationsDirectory'), 'LocationsSkeleton') },
