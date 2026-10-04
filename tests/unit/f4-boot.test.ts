@@ -50,6 +50,15 @@ describe('the preference boot', () => {
     expect(run('/production', null)).toBe('expanded');
     expect(run('/shorts/abc/production', 'expanded')).toBe('expanded');
   });
+  it('marks a cutting-room route on <html> from the first frame (data-route="cutting"), and nothing else', () => {
+    const run = (path: string) => { const attrs: Record<string, string> = {}; new Function('document', 'localStorage', 'window', BOOT)({ documentElement: { setAttribute: (n: string, v: string) => { attrs[n] = v; } } }, { getItem: () => null }, { matchMedia: () => ({ matches: true }), location: { pathname: path } }); return attrs['data-route']; };
+    expect(run('/shorts/abc/production')).toBe('cutting');
+    expect(run('/music-videos/abc/shots/s1')).toBe('cutting');
+    expect(run('/shows/a/seasons/b/episodes/c/shots/x')).toBe('cutting');
+    expect(run('/shorts/abc')).toBeUndefined();
+    expect(run('/production')).toBeUndefined();
+    expect(run('/')).toBeUndefined();
+  });
   it('throws nothing when storage is unavailable', () => {
     const html = { setAttribute: () => { throw new Error('no'); } };
     expect(() => new Function('document', 'localStorage', 'window', BOOT)({ documentElement: html }, { getItem: () => { throw new Error('denied'); } }, {})).not.toThrow();
