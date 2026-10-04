@@ -11,10 +11,12 @@ import type { Health } from '@/components/studio/Company';
 /** THE ENGINE ROOM (docs/DESIGN-SYSTEM-V5.md §7.2, §8.13; the shell's "Engine offline" links here) — what the studio
  *  runs on and how it ran: each engine as /api/status reports it right now (offline is said plainly, with the engine's
  *  own words), the intake state from /api/health, then the record behind tabs: reliability and failure classes
- *  (/api/studio/org/reliability), the model files (/api/registry, read only) and job timings (/api/metrics). */
+ *  (/api/studio/org/reliability), the model files (/api/registry, read only) and job timings (/api/metrics). The GPU\n *  queue (who holds the card, who waits, what is loaded, the last unloads: /api/studio/gpu) and the recent commands\n *  (the command journal, no payloads: /api/studio/commands) are read only, as recorded. */
 
 interface RegistryModel { name: string; kind: string; license: string; local: boolean; status: string; bytes?: number | null; metadata?: { group?: string; purpose?: string } | null }
 interface Registry { models: RegistryModel[]; workflows: Array<{ name: string; version: string }> }
+interface GpuStatus { resource: string; mode: 'db' | 'memory'; loaded: { family: string | null; since: string | null }; holders: Array<{ holder: string; family: string; jobId: string | null; process: string; requestedAt: string; grantedAt: string | null }>; waiting: Array<{ holder: string; family: string; jobId: string | null; process: string; requestedAt: string; position: number }>; unloads: Array<{ at: string; engine: string; from: string; to: string; ms: number; ok: boolean; jobId: string | null }>; at: string }
+interface CommandEntry { id: number; at: string; sender: string; jobId: string | null; ok: boolean; studioVersion: number; commands: Array<{ name: string; touches: string[] }>; refused?: { failedAt: number; code: string; message: string }; replayed?: boolean }
 interface Metrics { hours: number; jobs: Array<{ type: string; completed: number; failed: number; cancelled: number; running: number; meanAttempts: number; p50Ms: number | null }> }
 
 const ENGINES: Array<{ key: keyof Omit<EngineStatus, 'gpu' | 'minimaxConfigured'>; name: string; does: string }> = [
@@ -32,6 +34,8 @@ export function EngineRoom({ health }: { health: Health | null }) {
   const { data: rel } = useReliability(24 * 7);
   const { data: reg } = useLive<Registry>('/api/registry');
   const { data: met } = useLive<Metrics>('/api/metrics?hours=168');
+  const { data: gpu } = useLive<GpuStatus>('/api/studio/gpu?unloads=20');
+  const { data: cmds } = useLive<{ entries: CommandEntry[] }>('/api/studio/commands?limit=20');
   const [tab, setTab] = useState('reliability');
   const offline = engines ? ENGINES.filter((e) => engines[e.key] && !engines[e.key].ok).length : 0;
   const since = shortWhen(health?.intake?.since);
@@ -49,10 +53,10 @@ export function EngineRoom({ health }: { health: Health | null }) {
           {ENGINES.map((e) => <li key={e.key}><EngineCard name={e.name} does={e.does} row={engines ? engines[e.key] : undefined} loading={!engines} /></li>)}
         </ul>
       )}
-      {!engines ? <p className="t-meta ctl-gpu"><Skeleton.Line width="16rem" /></p> : engines.gpu?.device && <p className="t-meta ctl-gpu">Graphics card: <span dir="ltr">{engines.gpu.device.split(':').slice(0, 2).join(':').trim()}</span>{engines.gpu.vramFree && engines.gpu.vramTotal ? ` · ${Math.round(engines.gpu.vramFree / 1073741824)} of ${Math.round(engines.gpu.vramTotal / 1073741824)} GB free` : ''}</p>}
+      <GpuPanel engines={engines} gpu={gpu} />
 
       <TabBar ariaLabel="The engine record" idBase="er" current={tab} onSelect={setTab} className="ctl-er-tabs"
-        tabs={[{ id: 'reliability', label: 'Reliability' }, { id: 'failures', label: 'Failure classes', count: rel?.failureClasses.length }, { id: 'models', label: 'Models', count: reg ? groupsOf(reg.models).length : undefined }, { id: 'timings', label: 'Job timings', count: met?.jobs.length }]} />
+        tabs={[{ id: 'reliability', label: 'Reliability' }, { id: 'failures', label: 'Failure classes', count: rel?.failureClasses.length }, { id: 'commands', label: 'Recent commands', count: cmds?.entries.length }, { id: 'unloads', label: 'GPU unloads', count: gpu?.unloads.length }, { id: 'models', label: 'Models', count: reg ? groupsOf(reg.models).length : undefined }, { id: 'timings', label: 'Job timings', count: met?.jobs.length }]} />
       <TabPanel idBase="er" id="reliability" current={tab} className="cp-tabpanel">
         {!rel ? <div className="pcard"><Skeleton.Text lines={3} /></div> : (
           <PanelCard columns={3} className="ctl-rel" facts={[
@@ -91,6 +95,8 @@ export function EngineRoom({ health }: { health: Health | null }) {
       <TabPanel idBase="er" id="models" current={tab} className="cp-tabpanel">
         {!reg ? <RowsSkeleton n={4} /> : <Models reg={reg} />}
       </TabPanel>
+      <TabPanel idBase="er" id="commands" current={tab} className="cp-tabpanel">{!cmds ? <RowsSkeleton n={4} /> : <CommandLog entries={cmds.entries} />}</TabPanel>
+      <TabPanel idBase="er" id="unloads" current={tab} className="cp-tabpanel">{!gpu ? <RowsSkeleton n={3} /> : <Unloads gpu={gpu} />}</TabPanel>
       <TabPanel idBase="er" id="timings" current={tab} className="cp-tabpanel">
         {!met ? <RowsSkeleton n={4} /> : met.jobs.length === 0 ? <EmptyLine>No job ran in {spanWords(met.hours)}.</EmptyLine> : (
           <Rows label="Job timings">
@@ -141,6 +147,71 @@ function Models({ reg }: { reg: Registry }) {
       {groups.length > 8 && <Button size="sm" variant="quiet" className="cp-more" onClick={() => setAll((v) => !v)}>{all ? 'Show fewer' : `Show all ${groups.length}`}</Button>}
       <p className="t-meta ctl-span">{reg.models.length} model files and {reg.workflows.length} workflows on record.</p>
     </>
+  );
+}
+
+/** "image" → "Pictures": the GPU families in the engine room's own words; an unknown family stays as recorded. */
+const FAMILY: Record<string, string> = { image: 'Pictures', images: 'Pictures', video: 'Video', tts: 'Voices', voice: 'Voices', asr: 'Transcription', music: 'Music', llm: 'Story model' };
+const family = (f: string | null | undefined) => (f ? FAMILY[f.toLowerCase()] ?? f : null);
+const who = (h: { jobId: string | null; holder: string }) => (h.jobId ? `job ${h.jobId}` : h.holder);
+
+/** The graphics card's queue as the lease table records it: what is loaded, who holds the card, who waits (in
+ *  admission order). Idle is said as idle. */
+function GpuPanel({ engines, gpu }: { engines: EngineStatus | null; gpu: GpuStatus | null }) {
+  const device = engines?.gpu?.device ? engines.gpu.device.split(':').slice(0, 2).join(':').trim() : null;
+  const free = engines?.gpu?.vramFree && engines.gpu.vramTotal ? `${Math.round(engines.gpu.vramFree / 1073741824)} of ${Math.round(engines.gpu.vramTotal / 1073741824)} GB free` : null;
+  // while the lease table answers: the same panel with its lines held (no shift when the facts arrive)
+  if (!gpu) return <div className="ctl-gpu-panel" aria-busy><PanelCard columns={3} facts={['Graphics card', 'Loaded', 'Queue'].map((label) => ({ label, value: <Skeleton.Line width="60%" />, sub: <Skeleton.Line width="40%" /> }))} /></div>;
+  const idle = gpu.holders.length === 0 && gpu.waiting.length === 0;
+  return (
+    <div className="ctl-gpu-panel">
+      <PanelCard columns={3} facts={[
+        { label: 'Graphics card', value: device ? <span dir="ltr">{device}</span> : 'Not reported', sub: free ?? 'Free memory not reported' },
+        { label: 'Loaded', value: family(gpu.loaded.family) ?? 'Nothing loaded', sub: gpu.loaded.since ? `since ${shortWhen(gpu.loaded.since)}` : 'No engine holds memory on the card' },
+        { label: 'Queue', value: idle ? <StateWord tone="idle">Idle</StateWord> : <StateWord tone="running">{gpu.holders.length ? `In use · ${gpu.waiting.length} waiting` : `${gpu.waiting.length} waiting`}</StateWord>, sub: gpu.mode === 'memory' ? 'One queue per process (the shared queue is off)' : 'One queue for every process' },
+      ]} />
+      {!idle && (
+        <Rows label="The graphics card's queue" className="ctl-gpu-rows">
+          {gpu.holders.map((h) => <Row key={`h-${h.holder}`} start={<StateWord tone="running">Holds the card</StateWord>} title={<>{family(h.family)} · {who(h)}</>} meta={<span className="t-facts"><span>{h.process}</span>{h.grantedAt && <span>since {shortWhen(h.grantedAt)}</span>}</span>} />)}
+          {gpu.waiting.map((w) => <Row key={`w-${w.holder}`} start={<StateWord tone="idle">{`Waiting · ${w.position}${w.position === 1 ? 'st' : w.position === 2 ? 'nd' : w.position === 3 ? 'rd' : 'th'}`}</StateWord>} title={<>{family(w.family)} · {who(w)}</>} meta={<span className="t-facts"><span>{w.process}</span><span>asked {shortWhen(w.requestedAt)}</span></span>} />)}
+        </Rows>
+      )}
+    </div>
+  );
+}
+
+/** The last engine unloads (one engine making room on the card for another). */
+function Unloads({ gpu }: { gpu: GpuStatus }) {
+  if (gpu.unloads.length === 0) return <EmptyLine>No engine has been unloaded from the card yet.</EmptyLine>;
+  return (
+    <Rows label="GPU unloads">
+      {gpu.unloads.map((u, i) => (
+        <Row key={`${u.at}-${i}`} start={<StateWord tone={u.ok ? 'done' : 'failed'}>{u.ok ? 'Unloaded' : 'Did not unload'}</StateWord>}
+          title={<>{u.engine}: {family(u.from) ?? u.from} → {family(u.to) ?? u.to}</>}
+          meta={<span className="t-facts"><span>{duration(u.ms) ?? `${u.ms} ms`}</span>{u.jobId && <span>for job {u.jobId}</span>}</span>}
+          end={<span className="t-ro cp-time">{shortWhen(u.at)}</span>} />
+      ))}
+    </Rows>
+  );
+}
+
+/** The command journal, newest first: who sent which commands to which records, and whether the batch was applied or
+ *  refused (with the reason). No arguments are recorded here. */
+function CommandLog({ entries }: { entries: CommandEntry[] }) {
+  if (entries.length === 0) return <EmptyLine>No command is recorded yet.</EmptyLine>;
+  const sender = (s: string) => (s.startsWith('page:') ? 'a page' : s === 'worker' ? 'the worker' : s === 'server' ? 'the server' : s);
+  return (
+    <Rows label="Recent commands">
+      {entries.map((e) => {
+        const touches = [...new Set(e.commands.flatMap((c) => c.touches.map((t) => t.split(':')[0])))];
+        return (
+          <Row key={e.id} start={<StateWord tone={e.ok ? 'done' : 'failed'}>{e.ok ? (e.replayed ? 'Replayed' : 'Applied') : 'Refused'}</StateWord>}
+            title={<span className="t-ro t-ro-md">{e.commands.map((c) => c.name).join(', ') || '—'}</span>}
+            meta={<span className="t-facts"><span>from {sender(e.sender)}</span>{touches.length > 0 && <span>{touches.join(', ')}</span>}<span>studio version {e.studioVersion}</span>{e.refused && <span className="co-bad" dir="auto">{e.refused.code}: {e.refused.message}</span>}</span>}
+            end={<span className="t-ro cp-time">{shortWhen(e.at)}</span>} />
+        );
+      })}
+    </Rows>
   );
 }
 

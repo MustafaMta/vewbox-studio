@@ -7,7 +7,7 @@ import { useStudio } from '@/studio/store';
 import { JobRunning, Progress, StateWord } from '@/components/ui/kit';
 import { useToast } from '@/components/ui/toast';
 import { EmptyLine, Row, Rows, useNow } from '@/components/studio/parts';
-import { elapsedMs, fractionOf, jobTitle, phaseWords, running, subjectOf } from './model';
+import { elapsedMs, fractionOf, isWaiting, jobTitle, phaseWords, running, subjectOf } from './model';
 
 /** WHAT RUNS NOW (VISUAL-STANDARD-V5.1 §5.21) — one row per job the worker holds: what it makes and for whom (a link),
  *  then the kit's JobRunning line (the running dot, the worker's phase in its own words, the elapsed time, Cancel from
@@ -29,14 +29,16 @@ export function RunningNow({ paused }: { paused?: boolean }) {
       {list.map((j) => {
         const subject = subjectOf(j, state);
         const queued = j.status === 'QUEUED';
+        const waits = isWaiting(j);
         const frac = fractionOf(j);
         const ms = elapsedMs(j, now);
         const cancelling = Boolean(j.cancelRequested) || asked.has(j.id);
         return (
-          <Row key={j.id} className="cp-run" start={queued ? <StateWord tone="idle">Queued</StateWord> : undefined}
+          <Row key={j.id} className="cp-run" start={queued ? <StateWord tone="idle">Queued</StateWord> : waits ? <StateWord tone="idle">Waiting for its jobs</StateWord> : undefined}
             title={<>{jobTitle(j)}{subject && <> · {subject.href ? <Link href={subject.href} className="cp-link"><bdi lang={subject.lang}>{subject.label}</bdi></Link> : <bdi lang={subject.lang}>{subject.label}</bdi>}</>}</>}>
-            <JobRunning className="cp-run-line" phase={phaseWords(j)} elapsed={!queued && ms !== null ? ms / 1000 : null} onCancel={() => void cancel(j)} cancelling={cancelling} />
-            {frac !== null && <Progress className="cp-run-bar" size="sm" value={frac} label={`${jobTitle(j)}: ${Math.round(frac * 100)}% done`} />}
+            {waits ? <span className="t-meta">The jobs it started run first; it goes on when they finish. <button type="button" className="btn btn-quiet btn-sm" disabled={cancelling} onClick={() => void cancel(j)}>{cancelling ? 'Cancelling…' : 'Cancel'}</button></span>
+              : <JobRunning className="cp-run-line" phase={phaseWords(j)} elapsed={!queued && ms !== null ? ms / 1000 : null} onCancel={() => void cancel(j)} cancelling={cancelling} />}
+            {!waits && frac !== null && <Progress className="cp-run-bar" size="sm" value={frac} label={`${jobTitle(j)}: ${Math.round(frac * 100)}% done`} />}
           </Row>
         );
       })}

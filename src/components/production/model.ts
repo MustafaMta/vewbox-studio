@@ -61,7 +61,9 @@ export function elapsedMs(j: Pick<Job, 'startedAt' | 'createdAt' | 'finishedAt'>
   return Math.max(0, to - from);
 }
 
-export const running = (jobs: Job[]) => jobs.filter((j) => isActiveStatus(j.status)).sort((a, b) => (a.status === 'QUEUED' ? 1 : 0) - (b.status === 'QUEUED' ? 1 : 0) || a.createdAt.localeCompare(b.createdAt));
+/** A job parked while the jobs it started run (status WAITING, the orchestration graph): open, not working. */
+export const isWaiting = (j: Pick<Job, 'status'>) => (j.status as string) === 'WAITING';
+export const running = (jobs: Job[]) => jobs.filter((j) => isActiveStatus(j.status) || isWaiting(j)).sort((a, b) => (a.status === 'QUEUED' ? 1 : 0) - (b.status === 'QUEUED' ? 1 : 0) || a.createdAt.localeCompare(b.createdAt));
 
 export type HistoryFilter = 'all' | 'done' | 'failed' | 'cancelled' | 'review';
 export const HISTORY_FILTERS: Array<{ value: HistoryFilter; label: string }> = [
@@ -80,6 +82,7 @@ export function jobOutcome(j: Pick<Job, 'status'>): { tone: 'done' | 'failed' | 
     case 'CANCELLED': return { tone: 'idle', words: 'Cancelled' };
     case 'AWAITING_REVIEW': return { tone: 'waiting', words: 'Waits for review' };
     case 'QUEUED': return { tone: 'idle', words: 'Queued' };
+    case 'WAITING' as Job['status']: return { tone: 'idle', words: 'Waiting for its jobs' };
     default: return { tone: 'running', words: 'Running' };
   }
 }

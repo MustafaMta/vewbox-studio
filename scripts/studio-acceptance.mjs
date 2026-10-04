@@ -22,7 +22,7 @@ const PAGES = [
   { name: 'studio', path: '/studio', ready: '.company:not(.sk-region) .co-state', rows: ['.co-dept'] },
   { name: 'department', path: '/studio/departments/CASTING', ready: '.dept:not(.sk-region) .dp-place', rows: ['.dp-agent'] },
   { name: 'agent', path: '/studio/agents/casting-director', ready: '.agent:not(.sk-region) #runs', rows: [] },
-  { name: 'production', path: '/production', ready: '.control:not(.sk-region) #engine-room', rows: ['.ctl-decisions .dcard', '.ctl-engine'] },
+  { name: 'production', path: '/production', ready: '.control:not(.sk-region):has(.ctl-engine[data-ok]) .ctl-gpu-panel:not([aria-busy])', rows: ['.ctl-decisions .dcard', '.ctl-engine'] },
   { name: 'settings', path: '/settings', ready: '.settings:not(.sk-region) #generation', rows: [] },
   { name: 'files', path: '/assets', ready: '.files:not(.sk-region) .fl-bar', rows: [] },
 ].filter((p) => !opt('pages', '') || opt('pages', '').split(',').includes(p.name));

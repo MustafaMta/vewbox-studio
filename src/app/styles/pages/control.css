@@ -45,7 +45,7 @@
   .ctl-engine-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 20px; }
   .ctl-engine-does { margin-block-start: 2px; }
   .ctl-engine-detail { min-block-size: 36px; margin-block-start: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-  .ctl-gpu { margin: 12px 0 0; }
+  .ctl-gpu-panel { display: flex; flex-direction: column; gap: 12px; margin-block-start: 16px; }
   .ctl-er-tabs { margin-block-start: 32px; }
   .ctl-sub { margin: 24px 0 8px; }
   .ctl-span { margin: 12px 0 0; }
@@ -60,7 +60,10 @@
   .st-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
   .st-control { display: flex; flex: none; justify-content: flex-end; inline-size: 320px; max-inline-size: 100%; }
   .st-control > :is(select, .select, input) { inline-size: 100%; }
+  .st-row-toggle { flex-wrap: wrap; }
   .st-row-toggle > label { flex: 1; min-inline-size: 0; }
+  .st-row-toggle > .st-unused { flex-basis: 100%; margin-block-start: -8px; }
+  .st-unused { color: var(--text-2); }
   .st-row[data-off] { opacity: 0.6; }
   .st-src { margin-inline-start: 8px; vertical-align: middle; }
   .st-reason { margin: 0; padding-block-end: 12px; }
