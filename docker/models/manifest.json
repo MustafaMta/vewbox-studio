@@ -59,6 +59,19 @@
       ]
     },
     {
+      "name": "stack-2026-10",
+      "purpose": "Model stack of October 2026 (docs/research/MODEL-STACK-2026-10.md §7): whisper-large-v3-arabic-dialectal-v2 (oddadmix, Apache-2.0, a large-v3 fine-tune on 13 Arabic dialects; Iraqi WER 0.254 / CER 0.068 on its held-out set) in transformers format, 6.17 GB, pinned to one revision. The asr service does not read this folder: a one-off conversion (`docker compose --profile models run --rm asr-convert`) writes the CTranslate2 fp16 copy into asr/whisper-large-v3-arabic-dialectal-v2-ct2, which ASR_MODEL_DIR_AR points at. Gemma 4 31B-it is NOT here: Ollama pulls it into the ollama volume (compose service llm-pull). Not in the default MODEL_GROUPS: MODEL_GROUPS=stack-2026-10.",
+      "files": [
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "model.safetensors", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "bytes": 6174112552, "sha256": "a4876ef7f2425f4c4c237228cb85add93bbbdce182794b310df3565c8bed5ac6", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "config.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "generation_config.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "tokenizer.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "tokenizer_config.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "processor_config.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" },
+        { "repo": "oddadmix/whisper-large-v3-arabic-dialectal-v2", "revision": "540fc225947aae2c0e990f05374f5f18d0a95066", "file": "dialect_wer.json", "folder": "asr/whisper-large-v3-arabic-dialectal-v2-hf", "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "music-ace-step",
       "purpose": "ACE-Step 1.5 XL turbo (MIT) with the 1.7B language model: songs with vocals from lyrics, Arabic listed as a supported language.",
       "files": [

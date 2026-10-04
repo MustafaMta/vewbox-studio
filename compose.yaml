@@ -241,6 +241,29 @@ services:
       start_period: 20s
       retries: 5
 
+  # One-shot: pull the story/vision models into the ollama volume (Ollama's own registry, not the fetcher; resumable).
+  # `docker compose --profile models run --rm llm-pull`. Runs its own short-lived server on the CPU (a pull loads nothing
+  # on the card), so the `llm` service need not be up; with `llm` up, `docker compose exec llm ollama pull <tag>` is the same.
+  llm-pull:
+    logging: *logging
+    image: ollama/ollama:0.35.1
+    dns: *dns
+    profiles: ["models"]
+    environment:
+      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3:14b,gemma4:31b-it-qat}
+      OLLAMA_HOST: 127.0.0.1:11435
+    volumes:
+      - ollama:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve >/tmp/serve.log 2>&1 &
+        for i in $$(seq 1 60); do ollama list >/dev/null 2>&1 && break; sleep 1; done
+        rc=0
+        for m in $$(echo "$$OLLAMA_PULL_MODELS" | tr ',' ' '); do echo "pull $$m"; ollama pull "$$m" || rc=1; done
+        ollama list
+        exit $$rc
+
   # One-shot: fetch pinned model weights into the shared volume (resumable, verified). `docker compose --profile models run --rm models`
   models:
     logging: *logging
