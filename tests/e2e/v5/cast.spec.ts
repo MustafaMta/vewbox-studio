@@ -152,7 +152,7 @@ test.describe('the character profile', () => {
     await expect(page.getByRole('button', { name: 'Redraw', exact: true })).toHaveCount(0);
     await expect(page.locator('.char-main > .char-voice .arow')).toHaveCount(1);
     await expect(page.locator('#appears .char-posters .mcard').first()).toHaveAttribute('href', /^\/(shorts|music-videos|shows)\//);
-    expect(await page.locator('#appears .char-frames .mcard').count()).toBeGreaterThan(0);
+    expect(await page.locator('#appears .char-frames .mtile').count()).toBeGreaterThan(0);
     // the More menu holds "Edit the look", disabled with its reason
     await page.getByRole('button', { name: `More for ${c!.name}` }).click();
     await expect(page.getByRole('menuitem', { name: /Edit the look/ })).toBeDisabled();

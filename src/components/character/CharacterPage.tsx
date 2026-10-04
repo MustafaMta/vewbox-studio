@@ -20,7 +20,7 @@ import { IdentityBlock } from './ImagePanel';
 import { VoiceSection, VoiceSummary } from './VoiceSection';
 import { SecondaryMaterial } from './SecondaryMaterial';
 import { DetailsDialog, LookDialog, STYLE_WORD, languageWords } from './EditDialogs';
-import { MediaCard, PosterCard } from '@/components/media';
+import { MediaTile, PosterCard } from '@/components/media';
 import { BackLink, CastSection, figureOf, nameLang, usable } from './parts';
 
 /** Old links named a tab or a section; the profile is one page, so they land on the matching section. */
@@ -156,9 +156,10 @@ function AppearsIn({ c }: { c: Character }) {
       {shotCount > 0 && (
         <>
           <h3 className="t-title char-sub">Shots <span className="shead-count">{shotCount}</span></h3>
+          {/* the media tile anatomy (§5.6): the label and the film under the frame, never printed over a face (M5) */}
           <ul className="char-frames" role="list">
             {list.flatMap(({ p, shots }) => shots.map((sh) => (
-              <li key={sh.id}><MediaCard href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={p.title} /></li>
+              <li key={sh.id}><MediaTile href={sh.href} asset={sh.frame} ratio="16/9" title={`Shot ${sh.label}`} meta={[p.title]} /></li>
             )))}
           </ul>
         </>

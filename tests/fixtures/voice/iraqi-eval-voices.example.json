@@ -1,0 +1,7 @@
+{
+  "note": "Example voices config for scripts/voice-eval.mjs. These two are the designed Iraqi seeds of the A/B (docs/evidence/voice-design/iraqi-ab, VoxCPM2 output): the EXPERIMENT path of docs/CONTRACTS-VOICE-IDENTITY-V2.md §2 (allowDesignedIraqi), never a consented recording, so the harness needs --allow-synthetic and stamps the report. For the real evaluation replace them with consented Iraqi recordings (5–12 s of clear speech, 'text' = what the recording says).",
+  "voices": [
+    { "id": "designed-male", "sex": "M", "file": "../../../docs/evidence/voice-design/iraqi-ab/seeds/iraqi-male-c1-s5002-24k.wav", "text": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.", "label": "designed seed (VoxCPM2, Iraqi wording, male 40) — the best-measuring seed of the A/B", "origin": "DESIGNED" },
+    { "id": "designed-female", "sex": "F", "file": "../../../docs/evidence/voice-design/iraqi-ab/seeds/iraqi-female-c1-s4001-24k.wav", "text": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.", "label": "designed seed (VoxCPM2, Iraqi wording, female 35)", "origin": "DESIGNED" }
+  ]
+}

@@ -15,6 +15,8 @@ import { SettingsSkeleton } from '@/components/settings/SettingsSkeleton';
 import { FilesSkeleton } from '@/components/files/FilesSkeleton';
 import { CharacterSkeleton, CharactersSkeleton } from '@/components/character/skeletons';
 import { LocationSkeleton, LocationsSkeleton } from '@/components/location/skeletons';
+import { CreateCharacterSkeleton } from '@/components/character/create/CreateCharacterSkeleton';
+import { CreateLocationSkeleton } from '@/components/location/LocationCreateSkeleton';
 
 /** ROUTE SKELETONS — what the main area shows while the studio's first snapshot is on its way (the shell renders a
  *  page only once the store is ready), and what `app/(app)/loading.tsx` shows while a route's code loads. The standard
@@ -59,7 +61,10 @@ export const ROUTE_SKELETONS: Entry[] = [
   { match: (p) => p === '/production', Skeleton: ControlRoomSkeleton },
   { match: (p) => p === '/settings', Skeleton: SettingsSkeleton },
   { match: (p) => p === '/assets', Skeleton: FilesSkeleton },
-  // Characters and Locations (P-Cast): "new" is its own page, so the [id] patterns exclude it
+  // Characters and Locations (P-Cast): "new" is its own page (its skeleton reads `?start=` for its mode), and the
+  // [id] patterns exclude it
+  { match: (p) => p === '/characters/new', Skeleton: CreateCharacterSkeleton },
+  { match: (p) => p === '/locations/new', Skeleton: CreateLocationSkeleton },
   { match: (p) => p === '/characters', Skeleton: CharactersSkeleton },
   { match: (p) => /^\/characters\/(?!new$)[^/]+$/.test(p), Skeleton: CharacterSkeleton },
   { match: (p) => p === '/locations', Skeleton: LocationsSkeleton },

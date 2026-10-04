@@ -19,6 +19,7 @@ import { AutoStart, FigurePreview, ManualStart, PictureStart, type DescribeRecor
 import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
+import { CreateCharacterSkeletonFor } from './CreateCharacterSkeleton';
 import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
@@ -214,6 +215,11 @@ export function CreateCharacter() {
   const preview = start === 'describe' ? <FigurePreview name={describe.name} header={header} sex={describe.sex} band={describe.band} ageYears={describe.ageYears} />
     : start === 'sheet' ? <FigurePreview name={sheet.name} role={sheet.role} header={header} sex={sheet.sex} band={sheet.band} ageYears={sheet.exactAge} />
     : <FigurePreview name={picture.name} role={picture.role} header={header} sex={picture.sex} band={picture.band} />;
+
+  // the page draws its own skeleton until the remembered draft (the start, the brief) and the engines' first answer
+  // are in: the form, the engine notice above it and the footer's reason then arrive together, and nothing moves
+  // after the first paint (the Design QA's M1: the notice used to push the form down when the answer came)
+  if (!hydrated || (engines.loading && !engines.status && !engines.error)) return <CreateCharacterSkeletonFor start={start} />;
 
   return (
     <div className="pc-page pc-create">

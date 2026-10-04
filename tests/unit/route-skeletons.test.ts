@@ -56,10 +56,14 @@ describe('route skeletons', () => {
     }
   });
 
-  it('a route nobody registered gets the generic frame; "new" pages are not mistaken for an [id]', () => {
+  it('a route nobody registered gets the generic frame; "new" pages draw their own creation frame, not an [id] page', () => {
     expect(renderToStaticMarkup(h(RouteSkeleton, { pathname: '/kit' }))).toContain('shell-skeleton');
-    expect(renderToStaticMarkup(h(RouteSkeleton, { pathname: '/characters/new' }))).toContain('shell-skeleton');
-    expect(renderToStaticMarkup(h(RouteSkeleton, { pathname: '/locations/new' }))).toContain('shell-skeleton');
+    for (const p of ['/characters/new', '/locations/new']) {
+      const html = renderToStaticMarkup(h(RouteSkeleton, { pathname: p }));
+      expect(html, p).toContain('pc-create');
+      expect(html, p).not.toContain('shell-skeleton');
+      expect(html, p).not.toMatch(/char-figure|loc-hero/);
+    }
     expect(routeSkeletonFor('/shorts')).toBe(routeSkeletonFor('/shorts'));
   });
 

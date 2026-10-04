@@ -20,6 +20,12 @@ export function EngineRoomSkeleton() {
   );
 }
 
+/** The history filter's row before the record is known: the four chips at their real height (32, pill), so the
+ *  rows under them do not move when the counts arrive (m7). */
+export function HistoryFilterSkeleton() {
+  return <div className="ctl-filter" aria-hidden><div className="filter-chips">{[88, 128, 76, 96].map((w) => <Skeleton.Block key={w} width={w} height={32} radius="pill" />)}</div></div>;
+}
+
 /** Production while the studio opens: the head, the decision cards at their real size, the running row, the history
  *  rows and the engine room. */
 export function ControlRoomSkeleton() {
@@ -35,7 +41,7 @@ export function ControlRoomSkeleton() {
         </div>
       </div>
       <div className="cp-section"><SectionHeadSkeleton width="9rem" /><RowsSkeleton n={1} /></div>
-      <div className="cp-section"><SectionHeadSkeleton width="6rem" /><div className="ctl-filter"><Skeleton.Block width={420} height={36} radius="md" /></div><RowsSkeleton n={6} /></div>
+      <div className="cp-section"><SectionHeadSkeleton width="6rem" description /><HistoryFilterSkeleton /><RowsSkeleton n={6} /></div>
       <EngineRoomSkeleton />
     </SkeletonRegion>
   );
