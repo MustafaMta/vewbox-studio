@@ -63,7 +63,7 @@ export function ShowsCatalogue() {
 function EmptyShows() {
   return (
     <EmptyState kind="page" title="Shows" className="shows-empty"
-      cards={<><StartCard href="/new/show?mode=auto" ratio="16/9" title="Let the studio propose" line="A premise, a cast and Season 1 from one line" /><StartCard href="/new/show?mode=manual" ratio="16/9" title="Write it yourself" line="Your premise, your world, your cast" /></>}>
+      cards={<><StartCard href="/new/show?mode=auto" ratio="16/9" title="Let the studio propose" line="From one line of yours" /><StartCard href="/new/show?mode=manual" ratio="16/9" title="Write it yourself" line="Your premise, your world, your cast" /></>}>
       A show is seasons of episodes with one cast and one world; start the first one from a line of yours, or write it, and approve each step.
     </EmptyState>
   );
