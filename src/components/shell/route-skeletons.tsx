@@ -26,6 +26,13 @@ export const ROUTE_SKELETONS: Entry[] = [
   // Create (P-Create): src/components/wizard/CreateHub.tsx and CreateFlow.tsx
   { match: (p) => p === '/new', Skeleton: lazy(() => import('@/components/wizard/CreateHub'), 'CreateHubSkeleton') },
   { match: (p) => /^\/new\/(show|season|episode|short|music-video)$/.test(p), Skeleton: lazy(() => import('@/components/wizard/CreateFlow'), 'CreateFlowSkeleton') },
+  // Studio Company and the control pages (P-Studio)
+  { match: (p) => p === '/studio', Skeleton: lazy(() => import('@/components/studio/Company'), 'StudioCompanySkeleton') },
+  { match: (p) => p.startsWith('/studio/departments/'), Skeleton: lazy(() => import('@/components/studio/Department'), 'DepartmentSkeleton') },
+  { match: (p) => p.startsWith('/studio/agents/'), Skeleton: lazy(() => import('@/components/studio/Agent'), 'AgentSkeleton') },
+  { match: (p) => p === '/production', Skeleton: lazy(() => import('@/components/production/ControlRoom'), 'ControlRoomSkeleton') },
+  { match: (p) => p === '/settings', Skeleton: lazy(() => import('@/components/settings/Settings'), 'SettingsSkeleton') },
+  { match: (p) => p === '/assets', Skeleton: lazy(() => import('@/components/files/Files'), 'FilesSkeleton') },
 ];
 
 export function RouteSkeleton({ pathname }: { pathname: string }) {
