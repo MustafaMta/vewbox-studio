@@ -44,20 +44,21 @@
   .seek:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; border-radius: var(--r-xs); }
   .seek:disabled { cursor: default; opacity: 0.45; }
   .seek:disabled::-webkit-slider-thumb { opacity: 0; }
-  .seek[data-tone='video'], .seek-light { --seek-track: rgb(245 245 244 / .28); --seek-buf: rgb(245 245 244 / .4); }
+  .seek[data-tone='video'], .seek-light { --seek-track: var(--on-art-track); --seek-buf: var(--on-art-buffer); }
   .seek[data-tone='edit'] { --seek-track: var(--surface-3); }
   .seek[data-tone='quiet'] { --seek-track: var(--surface-3); }
   .seekwrap { position: relative; display: flex; flex: 1; align-items: center; min-inline-size: 0; }
   .seek-tick { position: absolute; z-index: 1; inset-block-start: calc(50% - 6px); inline-size: 2px; block-size: 12px; margin-inline-start: -1px; border-radius: 1px; background: var(--wait); pointer-events: none; }
-  .seek-tick[data-kind='mark'] { background: var(--text-1); inline-size: 1px; }
-  .seek-range { position: absolute; inset-block-start: calc(50% - 4px); block-size: 8px; border-radius: var(--r-xs); background: rgb(245 245 244 / .18); pointer-events: none; }
+  /* a shot mark: 1 px text-3 — quiet, still above 3:1 on the track and the dock (§3.1 boundary) */
+  .seek-tick[data-kind='mark'] { inline-size: 1px; background: var(--text-3); }
+  .seek-range { position: absolute; inset-block-start: calc(50% - 4px); block-size: 8px; border-radius: var(--r-xs); background: var(--mark-range); pointer-events: none; }
   .tseek { display: flex; align-items: center; gap: 12px; min-inline-size: 0; }
   .tseek > .seek { flex: 1; min-inline-size: 0; }
   .tseek-time { flex: none; min-inline-size: 36px; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 
   /* ---- controls on a picture (theatre) -------------------------------------------------------------------------- */
   .vbtn { display: inline-grid; place-items: center; inline-size: 32px; block-size: 32px; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-1); cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
-  .vbtn:hover:not(:disabled), .vbtn[aria-pressed='true'] { background: rgb(245 245 244 / .16); }
+  .vbtn:hover:not(:disabled), .vbtn[aria-pressed='true'] { background: var(--on-art-hover); }
   .vbtn:disabled { opacity: 0.4; }
   .vbtn svg { inline-size: 16px; block-size: 16px; }
   .play-on-art { display: inline-grid; place-items: center; inline-size: 40px; block-size: 40px; padding: 0; border: 0; border-radius: var(--r-pill); background: var(--chip-on-art); color: var(--text-1); cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
@@ -98,6 +99,12 @@
   .iplayer-box { position: relative; inline-size: 100%; background: var(--black); }
   .iplayer[data-full] { border-radius: 0; background: var(--black); }
   .iplayer[data-full] .iplayer-box { flex: 1; }
+  /* the page's overlay inside the picture box (note pins): placed by the caller, never over the dock */
+  .iplayer-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  .iplayer-overlay > * { pointer-events: auto; }
+  /* the theatre: radius 0, the dock on black, the transport still under the picture */
+  .iplayer[data-theatre] { border-radius: 0; background: var(--black); }
+  .iplayer[data-theatre] > .ptransport { background: var(--black); }
   .iplayer video::cue { font-family: var(--font-ui); font-size: 15px; line-height: 22px; background: var(--chip-on-art); color: var(--text-1); }
   .ptransport { display: flex; flex: none; align-items: center; gap: 8px; block-size: 52px; padding: 0 12px; background: var(--surface-1); }
   .ptransport .pt-time { flex: none; color: var(--text-2); }

@@ -50,6 +50,10 @@
   /* on art */
   --chip-on-art: rgb(0 0 0 / .72);
   --text-on-scrim: rgb(245 245 244 / .72);   /* a media card's meta line over the poster scrim */
+  --on-art-track: rgb(245 245 244 / .28);    /* a seek track on a picture (theatre) */
+  --on-art-buffer: rgb(245 245 244 / .4);    /* its buffered range */
+  --on-art-hover: rgb(245 245 244 / .16);    /* a control's hover on a picture */
+  --mark-range: rgb(245 245 244 / .18);      /* the in/out range on the cutting room's track */
   --art-ph: var(--surface-1);   /* set inline per frame from presentation.dominant */
   --art-edge: var(--surface-1); /* set inline per figure: presentation.edge */
   --overlay: rgb(0 0 0 / .64);  /* behind dialogs and sheets */
