@@ -1,17 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
-import { EmptyState, FilterChips, SearchField, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaTileSkeleton } from '@/components/media';
+import { EmptyState, FilterChips, SearchField, Skeleton, SkeletonRegion } from '@/components/ui/kit';
+import { MediaTileSkeleton, StartCard } from '@/components/media';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
 import { NewShowButton, ShowTile } from './parts';
 
 /** SHOWS — the series catalogue: a wall of 16:9 key art (3 · 2 · 1 columns), each show's name, its seasons and
  *  episodes and where it stands. New show is the page's one primary (Auto, or Manual from the split). Filters appear only
- *  when there are more than six shows. An empty studio gets the first show's start, in the key art's own shape. */
+ *  when there are more than six shows. An empty studio gets the title, one sentence and the two start cards (§5.23). */
 
 const FILTERS: Array<{ id: ShowFilter; label: string }> = [
   { id: 'all', label: 'All' }, { id: 'working', label: 'In production' }, { id: 'waiting', label: 'Waiting for you' }, { id: 'finished', label: 'Finished' },
@@ -28,61 +27,45 @@ export function ShowsCatalogue() {
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((x) => [x.id, filterShows(cards, '', x.id).length])) as Record<ShowFilter, number>, [cards]);
   const filters = cards.length > 6;
 
+  if (cards.length === 0) return <div className="shows" data-state="empty"><EmptyShows /></div>;
   return (
-    <div className="shows" data-state={cards.length ? 'shows' : 'empty'}>
+    <div className="shows" data-state="shows">
       <header className="shows-page-head">
         <div className="shows-page-title">
           <h1 className="t-page shows-head-h">Shows{cards.length > 0 && <span className="shows-count t-ro t-ro-md">{cards.length}</span>}</h1>
           <p className="t-body">Series with seasons and episodes that share one cast and one world.</p>
         </div>
-        {cards.length > 0 && <div className="shows-page-acts"><NewShowButton /></div>}
+        <div className="shows-page-acts"><NewShowButton /></div>
       </header>
 
-      {cards.length === 0 ? <EmptyShows /> : (
-        <>
-          {filters && (
-            <div className="shows-filters">
-              <SearchField value={q} onChange={setQ} label="Search shows" className="shows-search" />
-              <FilterChips label="Show status" value={f === 'all' ? [] : [f]} onChange={(v) => setF((v[0] as ShowFilter | undefined) ?? 'all')}
-                options={FILTERS.filter((x) => x.id !== 'all').map((x) => ({ value: x.id, label: x.label, count: counts[x.id] }))} />
-            </div>
-          )}          {shown.length === 0 ? (
-            <EmptyState action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setF('all'); }}>Clear the filters</button>}>
-              No show matches {q.trim() ? `“${q.trim()}”` : 'this filter'}.
-            </EmptyState>
-          ) : (
-            <ul className="shows-grid" role="list" aria-label="Shows">
-              {shown.map((c, i) => <li key={c.id}><ShowTile c={c} priority={i < 3} /></li>)}
-            </ul>
-          )}
-        </>
+      {filters && (
+        <div className="shows-filters">
+          <SearchField value={q} onChange={setQ} label="Search shows" className="shows-search" />
+          <FilterChips label="Show status" value={f === 'all' ? [] : [f]} onChange={(v) => setF((v[0] as ShowFilter | undefined) ?? 'all')}
+            options={FILTERS.filter((x) => x.id !== 'all').map((x) => ({ value: x.id, label: x.label, count: counts[x.id] }))} />
+        </div>
+      )}
+      {shown.length === 0 ? (
+        <EmptyState action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setF('all'); }}>Clear the filters</button>}>
+          No show matches {q.trim() ? `“${q.trim()}”` : 'this filter'}.
+        </EmptyState>
+      ) : (
+        <ul className="shows-grid" role="list" aria-label="Shows">
+          {shown.map((c, i) => <li key={c.id}><ShowTile c={c} priority={i < 3} /></li>)}
+        </ul>
       )}
     </div>
   );
 }
 
-/** No show yet: the first show's start in the key art's shape (two ways in), beside how a show is made. */
+/** No show yet (§5.23 empty page): the page title, one sentence, and the two ways in as start cards in the key art's
+ *  own shape — no steps, no illustration (the Create page explains Auto and Manual). */
 function EmptyShows() {
   return (
-    <section className="shows-empty" aria-labelledby="shows-empty-h">
-      <div className="shows-empty-start">
-        <span className="corners" aria-hidden />
-        <div className="shows-empty-words">
-          <ShapeGlyph shape="show" size={24} />
-          <h2 id="shows-empty-h" className="t-section">Your first show</h2>
-          <p className="t-lead">One line is enough: the studio proposes a premise, a cast and Season 1, and you approve each step.</p>
-          <div className="shows-empty-acts">
-            <Link className="btn btn-primary" href="/new/show?mode=auto">Let the studio propose</Link>
-            <Link className="btn btn-secondary" href="/new/show?mode=manual">Write it yourself</Link>
-          </div>
-        </div>
-      </div>
-      <ol className="card shows-empty-steps" aria-label="How a show is made">
-        <li><span className="count shows-step-n">1</span><span><span className="t-card">A premise and a world</span><span className="t-body">The rules, the places and the people every episode shares.</span></span></li>
-        <li><span className="count shows-step-n">2</span><span><span className="t-card">Seasons of episodes</span><span className="t-body">Each episode is a film: story, storyboard, filming and the cut.</span></span></li>
-        <li><span className="count shows-step-n">3</span><span><span className="t-card">One cast throughout</span><span className="t-body">Characters keep their canonical look and voice in every episode.</span></span></li>
-      </ol>
-    </section>
+    <EmptyState kind="page" title="Shows" className="shows-empty"
+      cards={<><StartCard href="/new/show?mode=auto" ratio="16/9" title="Let the studio propose" line="A premise, a cast and Season 1 from one line" /><StartCard href="/new/show?mode=manual" ratio="16/9" title="Write it yourself" line="Your premise, your world, your cast" /></>}>
+      A show is seasons of episodes with one cast and one world; start the first one from a line of yours, or write it, and approve each step.
+    </EmptyState>
   );
 }
 

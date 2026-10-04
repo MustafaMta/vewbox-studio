@@ -37,7 +37,7 @@ test('an empty studio: the catalogue starts with the song, two ways in, no inven
   await expect(page.getByRole('heading', { level: 1, name: 'Music videos' })).toBeVisible();
   await expect(page.locator('.empty-page-sentence')).toHaveText(/^It starts with its song\./);
   await expect(page.locator('.mv-empty .start-card')).toHaveCount(2);
-  await expect(page.locator('.mv-steps > li')).toHaveCount(3);
+  await expect(page.locator('.mv-steps')).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Write the song/ })).toHaveAttribute('href', '/new/music-video?mode=auto');
   await expect(page.getByRole('link', { name: /Bring your own song/ })).toHaveAttribute('href', '/new/music-video?mode=manual');
   await expect(page.locator('.mv-card')).toHaveCount(0);
