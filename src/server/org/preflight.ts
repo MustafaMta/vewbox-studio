@@ -2,6 +2,7 @@ import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { frameBudget } from '@/server/production/guide';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
@@ -56,7 +57,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   const pack = resolveShotPack(state, p, sh, { backend: opts.backend });
   const clip = clipSecondsFor(pack, sh.durationSeconds);
   add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s → ${clip.frames} frames (${(clip.frames / 24).toFixed(2)} s; engine ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s, trained ${H3_LIMITS.minFrames}–${H3_LIMITS.maxFrames} frames)`);
-  if (clip.truncated) warnings.push({ name: 'continuation-length', detail: `a continuation carries at most ${clip.newFrames} new frames (${(clip.newFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s is cut short — split the shot` });
+  // the frame budget (G11): the planned new content must fit after the guide; a plan that does not is refused, never
+  // truncated (the worker turns a dialogue that grows past the budget into a hard cut without the guide)
+  const budget = frameBudget(pack.trimStartFrames, sh.durationSeconds);
+  add('continuation-fits-budget', budget.fits, 'WRONG_PARAMETERS', budget.fits ? (pack.trimStartFrames ? `${budget.neededFrames} new frames after a ${pack.trimStartFrames}-frame guide (budget ${budget.budgetFrames})` : undefined) : `a continuation carries at most ${budget.budgetFrames} new frames (${(budget.budgetFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s needs ${budget.neededFrames} — split the shot (it is never truncated)`);
   // references and their limits (the pack's slot order): each character's primary image is the canonical front
   // full-body image (a character drawn before canonical images falls back to the legacy portrait), then the plate,
   // then the drawn opening frame when it is bound as a picture

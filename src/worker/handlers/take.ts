@@ -4,7 +4,7 @@ import type { Handler } from './index';
 import { step } from './step';
 import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, showsPictureOfPeople } from './people';
 import { StudioError } from '@/domain/errors';
-import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
+import type { Asset, QaCheck, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -25,7 +25,8 @@ import { env } from '@/server/env';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
-import { validateGuideClip, type GuideRecord } from '@/server/production/guide';
+import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
+import { guideHeadRecord, measureGuideHead } from '@/server/media/guide-head';
 import { recordProducedTake } from '@/server/studio/notes';
 
 /** GENERATE A TAKE — the heart of production. Resolve the shot pack (relation to the previous shot, every character's
@@ -193,6 +194,10 @@ export const generateTake: Handler = async (ctx) => {
   //    last frame becomes the first frame. CUT / STORY_TRANSITION: the drawn opening frame (below).
   let continuesTakeId: string | undefined;
   let hostedFirstFrame: { file: string; mime: string } | undefined;
+  /** the relation the take is really generated for (a continuation over budget becomes a cut) */
+  let relation = pack.relation;
+  let lowering = pack.lowering;
+  let tailFile: string | undefined;
   // the guide is what the audience sees last of the previous shot: its window's end on the production audio timeline
   // (a take may run past the frames the cut shows), not the take's own last frames
   const prevEnd = (opening: { shotId: string; takeId: string; assetId: string }) => {
@@ -212,10 +217,23 @@ export const generateTake: Handler = async (ctx) => {
     await ctx.event(verdict.ok ? 'info' : 'error', `continuation guide: ${tail.frames} frame(s) counted${tail.hasAudio ? `, ${(tail.audioSeconds ?? 0).toFixed(3)} s of sound` : ', no sound'}; the node keeps ${verdict.frames} (${verdict.audioLatentSteps} audio latent steps)${verdict.ok ? '' : `; REFUSED: ${verdict.problems.join('; ')}`}`, { guide: { ...tail, file: undefined }, verdict });
     if (!verdict.ok) throw Object.assign(new StudioError('INVALID', `The continuation guide for shot ${sh.number} is unusable: ${verdict.problems.join('; ')}`, { guide: { frames: tail.frames, audioSeconds: tail.audioSeconds, hasAudio: tail.hasAudio }, verdict }), { failureClass: 'WRONG_PARAMETERS' });
     trimStartFrames = verdict.frames;
+    tailFile = tail.file;
     guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame };
-    guides.push(songTail ? { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
+    // THE FRAME BUDGET (G11): the words set the length (sound first), and a continuation carries at most 362 − guide
+    // new frames. Over budget the take is a HARD CUT without its guide rather than a truncated continuation: the
+    // planned content is never lost silently, and the take says why it is a cut
+    const budget = frameBudget(verdict.frames, seconds);
+    if (!budget.fits) {
+      await ctx.event('warn', `shot ${sh.number} needs ${budget.neededFrames} new frames but a continuation carries at most ${budget.budgetFrames} after its ${verdict.frames}-frame guide: generated as a hard cut without the guide (never truncated)`, { budget });
+      relation = 'CUT'; trimStartFrames = 0; tailFile = undefined;
+      lowering = `frame budget: ${budget.neededFrames} new frames needed, ${budget.budgetFrames} fit after a ${verdict.frames}-frame guide — a hard cut without the guide, never a truncated continuation`;
+      guideRecord = { ...guideRecord, join: 'HARD', why: lowering };
+      references.push({ kind: 'VIDEO', assetId: prevAsset.id, note: `continuation guide NOT anchored: ${lowering}` });
+    } else {
+      guides.push(songTail ? { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFile: songTail } : { frameIdx: 0, imageFile: tail.file, imageIsVideo: true, audioFromVideo: pack.opening.withAudio });
+      references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${verdict.frames} frames the cut shows of the previous take${cutShort ? ` (ending at its frame ${cutShort})` : ''} with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
+    }
     continuesTakeId = pack.opening.takeId;
-    references.push({ kind: 'VIDEO', assetId: prevAsset.id, binding: 'guide@0', note: `continuation guide: the last ${verdict.frames} frames the cut shows of the previous take${cutShort ? ` (ending at its frame ${cutShort})` : ''} with ${songTail ? 'the song under them' : pack.opening.withAudio ? 'their own sound' : 'no sound (the previous take speaks there and this shot has no lines)'}` });
   } else if (pack.opening.kind === 'LAST_FRAME_AS_FIRST') {
     const prevAsset = byId(pack.opening.assetId)!;
     const end = prevEnd(pack.opening);
@@ -229,7 +247,7 @@ export const generateTake: Handler = async (ctx) => {
   // the clip: the new content plus the guide frames (the length the node keeps), snapped up to the engine's grid and
   // held in its trained range
   const clip = clipSecondsFor({ trimStartFrames }, seconds);
-  if (clip.truncated) await ctx.event('warn', `a continuation carries at most ${clip.newFrames} new frames after its guide: the shot is cut short of ${seconds} s`, { frames: clip.frames, newFrames: clip.newFrames });
+  if (clip.truncated) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} needs ${Math.round(seconds * H3_FPS)} frames; the engine makes at most ${clip.newFrames} after a ${trimStartFrames}-frame guide.`), { failureClass: 'WRONG_PARAMETERS' });
 
   // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the primary image of each character in the shot (the
   // canonical front full-body image, else a legacy portrait), every character the picture budget holds, in the shot's
@@ -281,10 +299,11 @@ export const generateTake: Handler = async (ctx) => {
   // names no picture itself. Linted before anything is sent.
   const refsGraph = pack.graph === 'REF2VA' || pack.graph === 'REFERENCE';
   const custom = payload.prompt?.trim();
-  const binding = bindingOf(pack, audioRefs);
+  const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
+  const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const prompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation: pack.relation, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [pack.opening.kind === 'TAIL' ? `The shot continues the previous shot without a cut: its first ${(pack.opening.frames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene)].filter(Boolean).join(' '));
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene)].filter(Boolean).join(' '));
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
     const failed = lint.checks.filter((c) => !c.ok && c.hard);
@@ -292,7 +311,7 @@ export const generateTake: Handler = async (ctx) => {
   }
   const softLint = lint.checks.filter((c) => !c.ok && !c.hard);
   if (softLint.length) await ctx.event('warn', `prompt lint: ${softLint.map((c) => c.detail ?? c.rule).join('; ')}`, { lint: softLint });
-  await ctx.event('info', 'take request prepared', { backend, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, seconds: clip.seconds, frames: clip.frames, newSeconds: seconds, soundtrack: soundtrack?.kind, continuation: pack.opening.kind === 'TAIL' || pack.opening.kind === 'LAST_FRAME_AS_FIRST', continuesTakeId, lowering: pack.lowering, prompt: prompt.slice(0, 800), references });
+  await ctx.event('info', 'take request prepared', { backend, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, seconds: clip.seconds, frames: clip.frames, newSeconds: seconds, soundtrack: soundtrack?.kind, continuation: tailAnchored || pack.opening.kind === 'LAST_FRAME_AS_FIRST', continuesTakeId, lowering, guide: guideRecord, prompt: prompt.slice(0, 800), references });
 
   const t0 = Date.now();
   let lastStatus = '';
@@ -302,7 +321,7 @@ export const generateTake: Handler = async (ctx) => {
   // the request as the contract sees it (the callbacks below are the job's own plumbing)
   const request = {
     prompt, seconds: clip.seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,
-    lowering: pack.lowering,
+    lowering,
     seed, model: payload.model, resolution: payload.resolution,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
   };
@@ -317,12 +336,33 @@ export const generateTake: Handler = async (ctx) => {
   if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
+  // DOES THE HEAD REPEAT THE TAIL? (the Visual Quality Inspector's step; gap V2.) The trim was an assumption until
+  // now: the take's first frames are measured against the tail clip. A close re-render keeps the trim (moved by a
+  // frame when the tail's last frame landed early or late); a head that does not repeat the tail is kept untrimmed
+  // and the take joins by a HARD cut, the numbers recorded on it — nothing new is ever dropped on trust.
+  const headChecks: QaCheck[] = [];
+  if (guideRecord && tailFile && tailAnchored) {
+    const g = guideRecord.frames;
+    try {
+      const m = await step(ctx, 'visual-quality-inspector', `guide-head-check: shot ${sh.number}`, () => measureGuideHead(result.file, tailFile!, g));
+      guideRecord = { ...guideRecord, head: guideHeadRecord(m), join: m.repeats ? 'TRIM' : 'HARD', why: m.repeats && !m.corrected ? undefined : m.detail };
+      trimStartFrames = m.trimStartFrames;
+      headChecks.push({ name: 'guide-head-repeats-tail', ok: true, value: m.meanDiff, threshold: m.threshold, detail: `${m.detail}${m.repeats ? '' : ' (join: HARD; the take is not rejected)'}` });
+      await ctx.event(m.repeats ? 'info' : 'warn', `shot ${sh.number}: ${m.detail}`, { head: guideRecord.head, trimStartFrames });
+    } catch (e) {
+      // the head could not be measured: the planned trim stands, and the take says the check did not run
+      headChecks.push({ name: 'guide-head-repeats-tail', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]}); the planned ${g}-frame trim stands` });
+      guideRecord = { ...guideRecord, join: 'TRIM', why: `head not measured: ${(e as Error).message.split('\n')[0]}` };
+      await ctx.event('warn', `shot ${sh.number}: the guide head could not be measured; the planned trim stands`, { error: (e as Error).message });
+    }
+  }
   // PICTURE CHECK (the Visual Quality Inspector's step). MiniMax H3 always renders a soundtrack; a shot with no lines
   // may legitimately be near-silent
   // the length asked for is the clip the engine really makes: the local frames snapped up (≥ 124), the hosted 4–15 s
   const expectSeconds = backend === 'local' ? clip.frames / H3_FPS : Math.min(15, Math.max(4, Math.round(clip.seconds)));
   const qa = { file: result.file, expect: { durationSeconds: expectSeconds, width: Math.round(info.width * 0.5), height: Math.round(info.height * 0.5), expectAudio: true, speechExpected: sh.dialogue.length > 0 || soundtrack?.kind === 'SONG' } };
   const { report, probe } = await step(ctx, 'visual-quality-inspector', `picture-check: shot ${sh.number}`, (tool) => tool('media.qa_take', () => qaTake(qa.file, qa.expect), { input: qa }));
+  report.checks.push(...headChecks);
   const pictureChecks = report.checks.map((c) => ({ ...c }));
   await ctx.checkpoint();
   let scriptCheck: { ok: boolean; coverage?: number; wer?: number; cer?: number; heard?: string; detail?: string } | undefined;
@@ -421,7 +461,9 @@ export const generateTake: Handler = async (ctx) => {
   const label = `Take ${takeNumber}`;
   // what the take records beyond the engine's own parameters: the window it was made for on the production audio
   // timeline (the new frames after its head — the cut shows exactly these), and the World Bible revision it read
-  const takeTimeline = { newFrames: Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.newFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
+  // a head kept because it did not repeat the tail is new picture: the whole take is the window then
+  const headKept = Boolean(guideRecord?.head && !guideRecord.head.repeats);
+  const takeTimeline = { newFrames: headKept ? clip.frames : Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.frames - trimStartFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
   const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
   // THE QUALITY TIER (B6): what the take was really made at. The local MiniMax H3 path has one tier today (the
   // official template: turbo LoRA, 4 or 8 steps — the standard, not a draft) and the hosted API has none, so every
@@ -430,7 +472,7 @@ export const generateTake: Handler = async (ctx) => {
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}) };
-  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
+  const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
   // Inspector)
@@ -446,7 +488,7 @@ export const generateTake: Handler = async (ctx) => {
   );
   const take = await commitTake({
     jobId: ctx.job.id, productionId: p.id, shotId: sh.id, assets: newAssets, qa: qaReports,
-    take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
+    take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
     // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
     worldRead: { productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id },
   });

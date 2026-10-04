@@ -122,13 +122,15 @@ describe('preflightTake — the engine’s verified limits (P0.6) on the shot pa
     expect(shotOf(p, 's13').openingFrameAssetId).toBeTruthy();
     expect(r.checks.find((c) => c.name === 'identity-reference-present')).toMatchObject({ ok: false, failureClass: 'MISSING_REFERENCE' });
   });
-  it('warns when a continuation cannot carry the planned length after its guide, when transition and relation disagree, and when the hosted request is lowered', () => {
+  it('refuses a continuation that cannot carry the planned length after its guide (never truncated); warns when transition and relation disagree, and when the hosted request is lowered', () => {
     const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, durationSeconds: 15, transition: 'DISSOLVE' as const } : s)) });
     const r = preflightTake(state, p, shotOf(p, 's12'), { backend: 'local' });
-    // warnings, not refusals
-    expect(r.ok).toBe(true);
-    expect(r.warnings.map((w) => w.name)).toEqual(expect.arrayContaining(['continuation-length', 'transition-matches-relation']));
-    expect(r.warnings.find((w) => w.name === 'continuation-length')!.detail).toMatch(/at most 340 new frames \(14\.2 s\)/);
+    expect(r.ok).toBe(false);
+    expect(r.checks.find((c) => c.name === 'continuation-fits-budget')).toMatchObject({ ok: false, failureClass: 'WRONG_PARAMETERS', detail: expect.stringMatching(/at most 340 new frames \(14\.2 s\) after its 22-frame guide; the planned 15 s needs 360 — split the shot/) });
+    expect(r.warnings.map((w) => w.name)).toEqual(expect.arrayContaining(['transition-matches-relation']));
+    // 14 s of new content fits (336 ≤ 340); the check says so
+    const fits = preflightTake(state, { ...p, shots: p.shots.map((s) => (s.id === 's12' ? { ...s, durationSeconds: 14 } : s)) }, { ...shotOf(p, 's12'), durationSeconds: 14 }, { backend: 'local' });
+    expect(fits.checks.find((c) => c.name === 'continuation-fits-budget')).toMatchObject({ ok: true, detail: '336 new frames after a 22-frame guide (budget 340)' });
     const hosted = preflightTake(state, p, shotOf(p, 's13'), { backend: 'api', customPrompt: true });
     expect(hosted.warnings.find((w) => w.name === 'hosted-lowering')!.detail).toMatch(/frame and reference roles cannot be mixed/);
     expect(hosted.checks.find((c) => c.name === 'guides-within-limit')!.detail).toBe('0 guide(s), limit 4');

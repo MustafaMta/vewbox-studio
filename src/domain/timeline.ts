@@ -100,7 +100,7 @@ export type AudioCueKind = 'DIALOGUE' | 'MASTER_MUSIC' | 'MUSIC' | 'LEAD_VOCAL' 
  *  SONG: its window on the song (music video). INTENDED: the new content its take was generated for (the take
  *  records it). AVAILABLE: the whole take after its head (an uploaded or older take). `holdFrames` repeat the take's
  *  last frame when the take is shorter than its window (only a song window can ask for more than the take has). */
-export interface ShotClock { shotId: string; sceneId: string; takeId: string; assetId: string; relation?: ShotRelation; startFrame: number; frames: number; sourceStartFrame: number; availableFrames: number; holdFrames: number; basis: 'SONG' | 'INTENDED' | 'AVAILABLE' }
+export interface ShotClock { shotId: string; sceneId: string; takeId: string; assetId: string; relation?: ShotRelation; /** a continuation: whether its guide head is dropped (TRIM) or kept as a hard cut (HARD) */ join?: GuideJoin; startFrame: number; frames: number; sourceStartFrame: number; availableFrames: number; holdFrames: number; basis: 'SONG' | 'INTENDED' | 'AVAILABLE' }
 
 /** A gain change inside a cue (cue-relative samples): the cue plays at `gain` × its own gain inside [from, to), with a
  *  linear ramp of `rampSamples` outside the span (ducking a bed under a voice; muting a take's speech under the
@@ -159,6 +159,17 @@ export interface AudioTimeline {
 export function intendedFrames(t: Pick<Take, 'params'>): number | undefined {
   const v = (t.params as { timeline?: { newFrames?: unknown } } | undefined)?.timeline?.newFrames;
   return typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : undefined;
+}
+
+/** How a continuation take joins the shot before it. TRIM: its guide head is dropped (the cut cross-fades the sound
+ *  over the join and the join QA judges it); HARD: its head was kept because the model did not repeat the tail, or
+ *  the guide was never anchored (over the frame budget) — a cut, measured but not judged (take.ts writes
+ *  `params.guide.join`; src/server/media/guide-head.ts). */
+export type GuideJoin = 'TRIM' | 'HARD';
+export function guideJoinOf(t: Pick<Take, 'relation' | 'trimStartFrames' | 'params'>): GuideJoin | undefined {
+  const join = (t.params as { guide?: { join?: unknown } } | undefined)?.guide?.join;
+  if (join === 'HARD' || join === 'TRIM') return join;
+  return t.relation === 'CONTINUATION' && (t.trimStartFrames ?? 0) > 0 ? 'TRIM' : undefined;
 }
 
 const probeHasAudio = (a: Asset | undefined) => Boolean((a?.provenance as { probe?: { hasAudio?: boolean } } | undefined)?.probe?.hasAudio);
@@ -266,7 +277,9 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
     const holdFrames = Math.max(0, w.frames - w.available);
     if (holdFrames) notes.push(`shot ${sh.id}: its take is ${holdFrames} frame(s) short of its song window; the last frame holds`);
     else if (w.basis !== 'SONG' && w.available > w.frames) notes.push(`shot ${sh.id}: ${w.available - w.frames} frame(s) past what the take was generated for are left out`);
-    shots.push({ shotId: sh.id, sceneId: sh.sceneId, takeId: t.id, assetId: a.id, relation: relationOf(sh, t), startFrame, frames: w.frames, sourceStartFrame: w.sourceStart, availableFrames: w.available, holdFrames, basis: w.basis });
+    const join = guideJoinOf(t);
+    if (join === 'HARD') notes.push(`shot ${sh.id}: a continuation joined by a hard cut (its head was kept: ${(t.params as { guide?: { why?: string } } | undefined)?.guide?.why ?? 'the guide was not anchored'})`);
+    shots.push({ shotId: sh.id, sceneId: sh.sceneId, takeId: t.id, assetId: a.id, relation: relationOf(sh, t), join, startFrame, frames: w.frames, sourceStartFrame: w.sourceStart, availableFrames: w.available, holdFrames, basis: w.basis });
     frame = startFrame + w.frames;
   }
   const totalFrames = frame;
@@ -326,7 +339,7 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
   for (let i = 1; i < shots.length; i++) {
     const s = shots[i]; const prev = shots[i - 1];
     const a = takeCue.get(prev.shotId); const b = takeCue.get(s.shotId);
-    if (s.relation !== 'CONTINUATION' || !a || !b || a.muted || b.muted || s.sourceStartFrame < k || prev.frames < 2 * k || s.frames < 2 * k) continue;
+    if (s.relation !== 'CONTINUATION' || s.join === 'HARD' || !a || !b || a.muted || b.muted || s.sourceStartFrame < k || prev.frames < 2 * k || s.frames < 2 * k) continue;
     const prevEnd = S(prev.startFrame + prev.frames);
     if (cues.some((c) => c.kind === 'DIALOGUE' && c.shotId === prev.shotId && c.startSample + c.durationSamples > prevEnd - S(k))) { notes.push(`continuation join before shot ${s.shotId}: hard join (a recorded line of shot ${prev.shotId} runs to its end)`); continue; }
     b.startSample -= S(k); b.sourceOffsetSamples -= S(k); b.durationSamples += S(k); b.fadeInSamples = S(k); b.fadeInCurve = 'qsin';
@@ -427,5 +440,5 @@ export function auditTimeline(t: Pick<AudioTimeline, 'cues'>): AudioProblem[] {
 
 /** A compact, stable form of a timeline for provenance and the stored revision (cue ids, kinds, placements). */
 export function timelineDigest(t: AudioTimeline) {
-  return { clock: t.clock, totalFrames: t.totalFrames, songOffsetFrames: t.songOffsetFrames, policy: t.policy, shots: t.shots.map((s) => ({ shotId: s.shotId, takeId: s.takeId, startFrame: s.startFrame, frames: s.frames, sourceStartFrame: s.sourceStartFrame, holdFrames: s.holdFrames, basis: s.basis, relation: s.relation })), cues: t.cues.map((c) => ({ id: c.id, kind: c.kind, source: c.sourceAssetId, lineage: c.lineage, start: c.startSample, duration: c.durationSamples, offset: c.sourceOffsetSamples, gain: c.gain, muted: c.muted ?? false, ducked: c.automation?.spans.length ?? 0 })), problems: t.problems, notes: t.notes };
+  return { clock: t.clock, totalFrames: t.totalFrames, songOffsetFrames: t.songOffsetFrames, policy: t.policy, shots: t.shots.map((s) => ({ shotId: s.shotId, takeId: s.takeId, startFrame: s.startFrame, frames: s.frames, sourceStartFrame: s.sourceStartFrame, holdFrames: s.holdFrames, basis: s.basis, relation: s.relation, join: s.join })), cues: t.cues.map((c) => ({ id: c.id, kind: c.kind, source: c.sourceAssetId, lineage: c.lineage, start: c.startSample, duration: c.durationSamples, offset: c.sourceOffsetSamples, gain: c.gain, muted: c.muted ?? false, ducked: c.automation?.spans.length ?? 0 })), problems: t.problems, notes: t.notes };
 }

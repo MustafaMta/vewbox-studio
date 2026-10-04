@@ -1,4 +1,5 @@
-import { H3_FPS, h3GuideClipFrames } from '@/server/workflows/minimax-h3';
+import { H3_FPS, H3_MAX_FRAMES, h3GuideClipFrames } from '@/server/workflows/minimax-h3';
+import type { GuideHeadRecord, GuideJoin } from '@/server/media/guide-head';
 
 /** THE CONTINUATION GUIDE, VALIDATED (docs/research/STORYBUILDER-INTEGRATION.md §f.1, gap V1). `MiniMaxH3AddGuide`
  *  never refuses a short clip: an image batch under 5 frames becomes one frame, anything else is snapped DOWN to
@@ -39,7 +40,8 @@ export function validateGuideClip(clip: GuideClipFacts, want: GuideWant, fps = H
 }
 
 /** What a take records about its guide (`params.guide`): the length the node kept, what the clip held, where it was
- *  cut from, and — after generation — whether the head repeated the tail (src/server/media/guide-head.ts). */
+ *  cut from, and — after generation — whether the head repeated the tail (src/server/media/guide-head.ts) and how
+ *  the take therefore joins the shot before it. */
 export interface GuideRecord {
   /** frames the node anchored (the trim reads THIS, never a constant) */
   frames: number;
@@ -49,4 +51,21 @@ export interface GuideRecord {
   audioLatentSteps: number;
   /** the previous take's frame after the last guide frame (the window's end on the audio timeline) */
   sourceEndFrame?: number;
+  /** the head measured against the tail after generation */
+  head?: GuideHeadRecord;
+  /** TRIM: the head is dropped (possibly at a corrected frame); HARD: kept untrimmed, joined by a cut */
+  join?: GuideJoin;
+  /** why the join is HARD, or why the trim moved */
+  why?: string;
+}
+
+/** The frame budget of a continuation (docs/research/STORYBUILDER-INTEGRATION.md §f.2, G11): after the guide, the
+ *  engine's 362-frame maximum leaves `H3_MAX_FRAMES − guide` new frames. A request that needs more is never truncated
+ *  silently: the plan is refused (preflight), and a dialogue that grows past it at generation time turns the take into
+ *  a hard cut without a guide (SB's rule: refuse the guide rather than lose the words). */
+export interface FrameBudget { guideFrames: number; budgetFrames: number; neededFrames: number; fits: boolean }
+export function frameBudget(guideFrames: number, newSeconds: number, fps = H3_FPS): FrameBudget {
+  const neededFrames = Math.max(1, Math.round(newSeconds * fps));
+  const budgetFrames = H3_MAX_FRAMES - Math.max(0, guideFrames);
+  return { guideFrames, budgetFrames, neededFrames, fits: neededFrames <= budgetFrames };
 }

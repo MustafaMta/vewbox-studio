@@ -20,8 +20,8 @@ export const JOIN_FLOORS = { pictureLuma: 1.0, rmsDb: 1.0, flux: 0.1 } as const;
 const W = 64, H = 36;
 
 export interface JoinMetric {
-  index: number; fromShotId: string; toShotId: string; relation?: ShotRelation; atSeconds: number;
-  /** only continuation joins are judged */
+  index: number; fromShotId: string; toShotId: string; relation?: ShotRelation; join?: 'TRIM' | 'HARD'; atSeconds: number;
+  /** only continuation joins whose guide head was trimmed are judged */
   judged: boolean;
   picture: { diff: number; intraP95: number; threshold: number; ok: boolean };
   audio: { rmsStepDb: number; rmsP95: number; rmsOk: boolean; flux: number; fluxP95: number; fluxOk: boolean } | null;
@@ -31,8 +31,9 @@ export interface JoinMetric {
 export const p95 = (xs: number[]): number => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); return s[Math.floor(0.95 * (s.length - 1))]; };
 export const meanAbsDiff = (a: Uint8Array, b: Uint8Array): number => { let s = 0; const n = Math.min(a.length, b.length); for (let i = 0; i < n; i++) s += Math.abs(a[i] - b[i]); return n ? s / n : 0; };
 
-async function greyFrames(file: string): Promise<Uint8Array[]> {
-  const { stdout } = await execFileP('ffmpeg', ['-v', 'error', '-i', file, '-an', '-vf', `scale=${W}:${H}:flags=area,format=gray`, '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 });
+/** Every frame of a clip as 64×36 grey (the measure's working size; also the guide-head check's). */
+export async function greyFrames(file: string, maxFrames?: number): Promise<Uint8Array[]> {
+  const { stdout } = await execFileP('ffmpeg', ['-v', 'error', '-i', file, '-an', ...(maxFrames ? ['-frames:v', String(maxFrames)] : []), '-vf', `scale=${W}:${H}:flags=area,format=gray`, '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 });
   const size = W * H; const out: Uint8Array[] = [];
   for (let o = 0; o + size <= stdout.byteLength; o += size) out.push(new Uint8Array(stdout.buffer, stdout.byteOffset + o, size));
   return out;
@@ -79,12 +80,14 @@ export function flux(a: Float64Array, b: Float64Array): number {
   return up / (base + 1e-6);
 }
 
-export interface JoinPart { file: string; shotId: string; relation?: ShotRelation; startFrame: number; frames: number }
+export interface JoinPart { file: string; shotId: string; relation?: ShotRelation; /** TRIM: the guide head was dropped (a continuation join); HARD: kept untrimmed because the head did not repeat the tail (src/server/media/guide-head.ts) */ join?: 'TRIM' | 'HARD'; startFrame: number; frames: number }
 
 /** Measure every join of a cut from its conformed picture parts and its mix (before loudness normalisation). The
  *  sound is compared ACROSS the join region — the level and spectrum before the continuation cross-fade begins
  *  (`gapFrames` before the join) against just after the join — and the shots' own changes are measured over the same
- *  span, so a cross-fade cannot hide a jump and a hard join is judged the same way. */
+ *  span, so a cross-fade cannot hide a jump and a hard join is judged the same way. A continuation whose head was
+ *  kept (a HARD join: the model did not repeat the tail) is measured but not judged — it is a cut by then, and the
+ *  take already records why. */
 export async function measureJoins(parts: JoinPart[], mixFile: string | undefined, fps = 24, gapFrames = JOIN_CROSSFADE_FRAMES): Promise<JoinMetric[]> {
   if (parts.length < 2) return [];
   const frames: Uint8Array[][] = [];
@@ -117,8 +120,8 @@ export async function measureJoins(parts: JoinPart[], mixFile: string | undefine
       const rmsP95 = p95([...ia.steps, ...ib.steps]); const fluxP95 = p95([...ia.fluxes, ...ib.fluxes]);
       audio = { rmsStepDb: Number(step.toFixed(2)), rmsP95: Number(rmsP95.toFixed(2)), rmsOk: step <= Math.max(rmsP95, JOIN_FLOORS.rmsDb), flux: Number(f.toFixed(3)), fluxP95: Number(fluxP95.toFixed(3)), fluxOk: f <= Math.max(fluxP95, JOIN_FLOORS.flux) };
     }
-    const judged = b.relation === 'CONTINUATION';
-    out.push({ index: i, fromShotId: a.shotId, toShotId: b.shotId, relation: b.relation, atSeconds: Number((b.startFrame / fps).toFixed(3)), judged, picture, audio, ok: !judged || (picture.ok && (!audio || (audio.rmsOk && audio.fluxOk))) });
+    const judged = b.relation === 'CONTINUATION' && b.join !== 'HARD';
+    out.push({ index: i, fromShotId: a.shotId, toShotId: b.shotId, relation: b.relation, join: b.join, atSeconds: Number((b.startFrame / fps).toFixed(3)), judged, picture, audio, ok: !judged || (picture.ok && (!audio || (audio.rmsOk && audio.fluxOk))) });
   }
   return out;
 }
