@@ -262,7 +262,9 @@ test('keyboard: the mode switch and the pickers show the focus ring and move wit
     const cs = getComputedStyle(e);
     return { s: cs.outlineStyle, w: cs.outlineWidth, fv: e.matches(':focus-visible'), diag: { outline: cs.outline, tabIndex: (e as HTMLElement).tabIndex, hover: e.matches(':hover'), motion: document.documentElement.getAttribute('data-motion') } };
   });
-  await expect.poll(async () => { const r = await ring(); return { s: r.s, w: r.w, fv: r.fv }; }, { timeout: 5_000, message: async () => JSON.stringify((await ring()).diag) }).toEqual({ s: 'solid', w: '2px', fv: true });
+  try {
+    await expect.poll(async () => { const r = await ring(); return { s: r.s, w: r.w, fv: r.fv }; }, { timeout: 5_000 }).toEqual({ s: 'solid', w: '2px', fv: true });
+  } catch (e) { throw new Error(`${(e as Error).message}\nthe tile as last seen: ${JSON.stringify((await ring()).diag)}`); }
 });
 
 test('phone 390: no horizontal overflow on the hub and the flows @mobile', async ({ page }) => {
