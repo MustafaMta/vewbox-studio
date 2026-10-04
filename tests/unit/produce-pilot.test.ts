@@ -131,3 +131,19 @@ describe('PRODUCE with the pilot gate', () => {
     void (p as Production);
   });
 });
+
+describe('PRODUCE and a stale cut (audit M2, step 12)', () => {
+  it('every shot has its take and the cut is out of date: the cut is assembled again; a current cut is left alone', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => ({ ...s, takes: [{ ...TAKE_A, id: `take-${s.id}` }], selectedTakeId: `take-${s.id}` })) });
+    expect(p.shots.every((s) => s.selectedTakeId)).toBe(true);
+    fake.state = { ...state, productions: state.productions.map((x) => (x.id === p.id ? { ...x, cutAssetId: 'cut-old', cutStale: true } : x)) };
+    const stale = await produce(ctx(p.id));
+    expect(fake.order).toEqual(['ASSEMBLE']);
+    expect(stale).toMatchObject({ shots: 0, assembled: true });
+    fake.order = []; fake.jobs = new Map();
+    fake.state = { ...state, productions: state.productions.map((x) => (x.id === p.id ? { ...x, cutAssetId: 'cut-current', cutStale: undefined } : x)) };
+    const current = await produce(ctx(p.id));
+    expect(fake.order).toEqual([]);
+    expect(current).toMatchObject({ shots: 0 });
+  });
+});

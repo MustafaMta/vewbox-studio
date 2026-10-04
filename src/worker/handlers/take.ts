@@ -4,15 +4,16 @@ import type { Handler } from './index';
 import { step } from './step';
 import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, showsPictureOfPeople } from './people';
 import { StudioError } from '@/domain/errors';
-import { nid } from '@/domain/ids';
 import type { Asset, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
-import { command, commands, readState } from '@/server/studio/engine';
+import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { adoptFile, assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
+import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
 import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
-import { recordWorldRead, worldForShot } from '@/server/world';
+import { worldForShot } from '@/server/world';
+import { jobOutputs, stableSeed } from '@/server/jobs/outputs';
+import { commitTake, committedTake, type TakeCommit } from './take-commit';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
@@ -21,7 +22,7 @@ import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenc
 import { h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
-import { recordHandoff, recordQaReport } from '@/server/org/runs';
+import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { recordProducedTake } from '@/server/studio/notes';
@@ -41,6 +42,16 @@ export function takeQuality(requested: 'draft' | 'final' | undefined): { quality
 export const generateTake: Handler = async (ctx) => {
   const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean; quality?: 'draft' | 'final' };
   const { state: studio } = await readState();
+  // AN EARLIER ATTEMPT ALREADY COMMITTED THIS TAKE (it crashed after its commit, before the job was completed): the
+  // take is returned, never generated a second time (audit C2, step 6)
+  const done = committedTake(studio, ctx.job.id);
+  if (done) {
+    await ctx.event('info', `take ${done.take.label} was already recorded by an earlier attempt of this job; nothing is generated again`, { takeId: done.take.id });
+    const qaOk = done.take.status === 'READY' && done.take.qa?.ok !== false;
+    const takeUnverified = done.take.qa?.checks.some((c) => c.name === 'script-spoken' && /not verified/.test(c.detail ?? '')) ?? false;
+    return { takeId: done.take.id, assetId: done.take.assetId, qaOk, model: done.take.model, requestId: done.take.requestId, generationMs: done.take.generationMs, costUsd: done.take.costUsd, resumedFromCommit: true, takeUnverified, awaitingReview: takeUnverified, libraryRoot: libraryRoot() };
+  }
+  const out = jobOutputs(ctx.job);
   const p = studio.productions.find((x) => x.id === payload.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   const sh = p.shots.find((x) => x.id === payload.shotId);
@@ -77,8 +88,9 @@ export const generateTake: Handler = async (ctx) => {
   // preflight judged
   const pack = resolveShotPack(state, p, sh, { backend });
   let seconds = Math.min(15, Math.max(1, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
-  // the seed is chosen here, not inside the engine, so the take records the number that made it
-  const seed = payload.seed ?? Math.floor(Math.random() * 2 ** 31);
+  // the seed is chosen here, not inside the engine, so the take records the number that made it — and from the job,
+  // so every attempt of this request asks for the same clip
+  const seed = payload.seed ?? stableSeed(ctx.job.id, 'take');
   const info = ASPECT_INFO[p.aspect];
   const references: TakeReference[] = [];
   const work = await tmpDir('take-prep');
@@ -130,8 +142,9 @@ export const generateTake: Handler = async (ctx) => {
       let line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery });
       let check = await verifyLine(ctx, line.file, text, line.language);
       if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { lineId: d.id, heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
-      const id = nid('gen');
-      const st = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
+      // a line recording is committed on its own (it is kept even if the take fails); its id is this attempt's, and a
+      // crash before its commit leaves a file of this job the next attempt's GC removes
+      const { id, stored: st } = await out.adopt(`line:${d.id}:a${ctx.job.attempts}`, line.file, { expectKind: 'AUDIO' });
       const durationSeconds = st.probe?.durationSeconds ?? line.durationSeconds ?? 2;
       await commands([
         { name: 'addAsset', args: [assetFromStored(id, st, { label: `${p.title} ${sh.number} — ${c.name}: “${text.slice(0, 32)}”`, tags: ['dialogue', 'voice'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, characterId: c.id, shotId: sh.id, lineId: d.id, voiceRevision: c.voice.identity?.revision, check } })] },
@@ -364,19 +377,19 @@ export const generateTake: Handler = async (ctx) => {
   }
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
+  // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as an
+  // earlier one points at that track; a song stretch is derived from the song for this take. A new track is recorded
+  // in the take's own commit below.
+  const newAssets: Array<Omit<Asset, 'createdAt'>> = [];
+  let soundtrackId: string | undefined;
   if (soundtrackFile) {
-    // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as
-    // an earlier one points at that track; a song stretch is derived from the song for this take
-    let id = soundtrack?.kind === 'DIALOGUE' ? soundtrack.assetId : undefined;
-    if (!id) {
-      id = nid('gen'); const stored = await adoptFile(id, soundtrackFile, { expectKind: 'AUDIO' });
-      await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines, lineAssets: dialogueLineAssets } })], 'worker');
+    soundtrackId = soundtrack?.kind === 'DIALOGUE' ? soundtrack.assetId : undefined;
+    if (!soundtrackId) {
+      const st = await out.adopt('soundtrack', soundtrackFile, { expectKind: 'AUDIO' });
+      soundtrackId = st.id;
+      newAssets.push(assetFromStored(st.id, st.stored, { label: `${p.title} ${sh.number} — soundtrack (${soundtrack!.kind.toLowerCase()})`, tags: ['soundtrack', soundtrack!.kind.toLowerCase()], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shotId: sh.id, lines: soundtrack!.lines, lineAssets: dialogueLineAssets } }));
     }
-    soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? id };
-    // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
-    if (soundtrack.kind === 'DIALOGUE') {
-      await recordHandoff({ productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(dialogueLineAssets ?? [])], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length, recordedNow: spokenChecks.length }, validation: { ok: flaggedLines === 0 && unverifiedLines === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices (${spokenChecks.length} recorded now)` }, { name: 'lines-verified-by-transcription', ok: flaggedLines === 0 && unverifiedLines === 0, detail: flaggedLines || unverifiedLines ? `${flaggedLines} line(s) drifted, ${unverifiedLines} not heard back` : undefined }] }, jobId: ctx.job.id });
-    }
+    soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? soundtrackId };
   }
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
@@ -385,10 +398,9 @@ export const generateTake: Handler = async (ctx) => {
   const poster = path.join(dir, 'poster.jpg');
   await thumbnail(playable, poster, { at: Math.min(0.5, (probe.durationSeconds ?? 1) / 4) });
 
-  // files into the library, then records in one go
-  const videoId = nid('gen'); const posterId = nid('gen');
-  const storedPoster = await adoptFile(posterId, poster, { expectKind: 'IMAGE' });
-  const stored = await adoptFile(videoId, playable, { expectKind: 'VIDEO' });
+  // files into the library (named for this job and attempt), then every record in ONE commit
+  const { id: posterId, stored: storedPoster } = await out.adopt('poster', poster, { expectKind: 'IMAGE' });
+  const { id: videoId, stored } = await out.adopt('video', playable, { expectKind: 'VIDEO' });
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await fsp.rm(path.dirname(result.file), { recursive: true, force: true }).catch(() => {});
   // the next free number, counting any numbered label already on the shot (uploads and samples included)
@@ -406,24 +418,34 @@ export const generateTake: Handler = async (ctx) => {
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation: pack.relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering: pack.lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
-  await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } })], 'worker');
-  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` })], 'worker');
-  const r = await command('addTake', [p.id, sh.id, { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId }], 'worker');
-  // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
-  await recordWorldRead({ productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id, takeId: r.take.id });
+  // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
+  // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
+  // Inspector)
+  const pictureOk = pictureChecks.every((c) => c.ok);
+  const qaReports: TakeCommit['qa'] = [{ name: 'picture', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id }];
+  if (scriptCheck) qaReports.push({ name: 'script', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: TAKE_COVERAGE, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.cer !== undefined ? [{ name: 'character-error-rate', ok: scriptCheck.cer <= VOICE_GATES.cer, value: scriptCheck.cer, threshold: VOICE_GATES.cer, detail: 'after the dialect fold; gated' }] : []), ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
+  // THE COMMIT: the assets, the take (its id is the job's), its selection — the first accepted take of a shot is
+  // chosen so the cut can be assembled, also over a bundled sample clip; a producer's own choice of a real take is
+  // never overridden (decided on the state the commit runs on) — the QA reports and the World Bible read
+  newAssets.push(
+    assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } }),
+    assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` }),
+  );
+  const take = await commitTake({
+    jobId: ctx.job.id, productionId: p.id, shotId: sh.id, assets: newAssets, qa: qaReports,
+    take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation: pack.relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
+    // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
+    worldRead: { productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id },
+  });
+  const r = { take };
+  // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
+  if (soundtrack?.kind === 'DIALOGUE' && soundtrackId) {
+    await recordHandoff({ id: out.id('handoff:audio-prep', 'handoff'), productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [soundtrackId, ...(dialogueLineAssets ?? [])], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length, recordedNow: spokenChecks.length }, validation: { ok: flaggedLines === 0 && unverifiedLines === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices (${spokenChecks.length} recorded now)` }, { name: 'lines-verified-by-transcription', ok: flaggedLines === 0 && unverifiedLines === 0, detail: flaggedLines || unverifiedLines ? `${flaggedLines} line(s) drifted, ${unverifiedLines} not heard back` : undefined }] }, jobId: ctx.job.id });
+  }
   // a screening note sent to this shot (B2) now has the take it asked for
   try { const n = await recordProducedTake(sh.id, r.take.id); if (n) await ctx.event('info', `${n} screening note(s) sent to this shot record this take`, { takeId: r.take.id }); } catch (e) { await ctx.event('warn', `could not record the take on its screening notes: ${(e as Error).message.split('\n')[0]}`, { takeId: r.take.id }).catch(() => undefined); }
   await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
-  // the first accepted take of a shot is selected automatically so the cut can be assembled — also when the current
-  // choice is only a bundled sample clip; a producer's own choice of a real take is never overridden
-  const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
-  if (report.ok && !takeUnverified && (!current || current.provider === 'SAMPLE' || payload.select)) await command('selectTake', [p.id, sh.id, r.take.id], 'worker');
   await recordMetric('take.qa_ok', report.ok ? 1 : 0, 'bool', { backend }, ctx.job.id);
-  // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself: the picture checks
-  // (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization Inspector)
-  const pictureOk = pictureChecks.every((c) => c.ok);
-  await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id });
-  if (scriptCheck) await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: r.take.id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: TAKE_COVERAGE, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.cer !== undefined ? [{ name: 'character-error-rate', ok: scriptCheck.cer <= VOICE_GATES.cer, value: scriptCheck.cer, threshold: VOICE_GATES.cer, detail: 'after the dialect fold; gated' }] : []), ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
   // VIDEO handoff to QA once every shot of the production has an accepted, chosen take
   const after = (await readState()).state.productions.find((x) => x.id === p.id);
   if (after) {
@@ -431,7 +453,7 @@ export const generateTake: Handler = async (ctx) => {
     const withReal = chosen.filter((t) => t && t.provider !== 'SAMPLE').length;
     if (withReal === after.shots.length) {
       const failing = chosen.filter((t) => t && !t.qa?.ok).length;
-      await recordHandoff({ productionId: p.id, stage: 'VIDEO', producerDepartment: 'VIDEO', receiverDepartment: 'QA', artifactIds: chosen.map((t) => t!.assetId), outputVersions: { shots: after.shots.length }, validation: { ok: failing === 0, checks: [{ name: 'every-shot-has-chosen-take', ok: true, detail: `${after.shots.length} shots` }, { name: 'chosen-takes-passed-inspection', ok: failing === 0, detail: failing ? `${failing} chosen take(s) failed a check` : undefined }] }, jobId: ctx.job.id });
+      await recordHandoff({ id: out.id('handoff:video', 'handoff'), productionId: p.id, stage: 'VIDEO', producerDepartment: 'VIDEO', receiverDepartment: 'QA', artifactIds: chosen.map((t) => t!.assetId), outputVersions: { shots: after.shots.length }, validation: { ok: failing === 0, checks: [{ name: 'every-shot-has-chosen-take', ok: true, detail: `${after.shots.length} shots` }, { name: 'chosen-takes-passed-inspection', ok: failing === 0, detail: failing ? `${failing} chosen take(s) failed a check` : undefined }] }, jobId: ctx.job.id });
     }
   }
   await ctx.activity(report.ok ? (takeUnverified ? 'TAKE_REVIEW' : 'TAKE_ACCEPTED') : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? (takeUnverified ? 'made, not verified (transcription unavailable)' : 'accepted') : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok, unverified: takeUnverified });

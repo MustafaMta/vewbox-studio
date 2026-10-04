@@ -10,6 +10,7 @@ import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonica
 import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
+import { cutInputsHash } from './cut';
 
 export { nid } from './ids';
 
@@ -99,11 +100,78 @@ export function duplicateProduction(s: S, id: string): { state: S; production: P
   const src = s.productions.find((p) => p.id === id);
   if (!src) return { state: s, production: null };
   const t = now();
-  const copy: Production = structuredClone({ ...src, id: nid('copy'), title: `${src.title} (copy)`, titleAr: undefined, stage: 'STORY', createdAt: t, updatedAt: t, cutAssetId: undefined, exports: [] });
+  const copy: Production = structuredClone({ ...src, id: nid('copy'), title: `${src.title} (copy)`, titleAr: undefined, stage: 'STORY', createdAt: t, updatedAt: t, cutAssetId: undefined, cutStale: undefined, exports: [] });
   copy.scenes = copy.scenes.map((sc) => ({ ...sc }));
   copy.shots = copy.shots.map((sh) => ({ ...sh, id: nid('shot'), takes: [], selectedTakeId: undefined, continuity: undefined }));
   if (copy.kind === 'EPISODE' && copy.seasonId) copy.episodeNumber = s.productions.filter((p) => p.seasonId === copy.seasonId).length + 1;
   return { state: { ...s, productions: [...s.productions, copy] }, production: copy };
+}
+
+// ------------------------------------------------------------------------------------------- intent commands
+// docs/BACKEND-AUDIT-2026-10.md H3, step 11. A worker computes for minutes from a read; writing back a WHOLE value
+// (a cast list, a bible, a logline) would silently undo what the producer changed meanwhile. These commands say what
+// the worker means — add these people, record these events, set this field if nobody touched it — and are applied to
+// the state as it is when the command runs, so both edits survive.
+
+export interface MembershipTarget { productionId?: string; showId?: string }
+
+const union = (xs: string[], add: string[]) => Array.from(new Set([...xs, ...add]));
+
+/** Add characters to a production's and/or a show's cast (those already in it stay; order kept). */
+export function addCastMember(s: S, target: MembershipTarget, characterIds: string[]): S {
+  for (const id of characterIds) mustFind(s.characters, id, 'Character');
+  let next = s;
+  if (target.productionId) { const p = mustFind(next.productions, target.productionId, 'Production'); const castIds = union(p.castIds, characterIds); if (castIds.length !== p.castIds.length) next = updateProduction(next, p.id, { castIds }); }
+  if (target.showId) { const sh = mustFind(next.shows, target.showId, 'Show'); const castIds = union(sh.castIds, characterIds); if (castIds.length !== sh.castIds.length) next = updateShow(next, sh.id, { castIds }); }
+  return next;
+}
+
+/** Add places to a production's and/or a show's world (those already in it stay; order kept). */
+export function addLocationMember(s: S, target: MembershipTarget, locationIds: string[]): S {
+  for (const id of locationIds) mustFind(s.locations, id, 'Location');
+  let next = s;
+  if (target.productionId) { const p = mustFind(next.productions, target.productionId, 'Production'); const locationIds2 = union(p.locationIds, locationIds); if (locationIds2.length !== p.locationIds.length) next = updateProduction(next, p.id, { locationIds: locationIds2 }); }
+  if (target.showId) { const sh = mustFind(next.shows, target.showId, 'Show'); const locationIds2 = union(sh.locationIds, locationIds); if (locationIds2.length !== sh.locationIds.length) next = updateShow(next, sh.id, { locationIds: locationIds2 }); }
+  return next;
+}
+
+/** What the Continuity Writer records in a show's bible after an episode: its timeline entries (replacing that
+ *  episode's earlier ones — `dropPrefix`), storylines resolved and opened, relationships learned. Applied to the bible
+ *  as it is now: the producer's own entries, written meanwhile, stay. */
+export interface ShowBiblePatch {
+  timeline?: { dropPrefix?: string; add?: string[] };
+  unresolved?: { resolve?: string[]; add?: string[]; max?: number };
+  relationships?: { add?: string[]; max?: number };
+  worldRules?: { add?: string[] };
+}
+export function updateShowBible(s: S, showId: string, patch: ShowBiblePatch): S {
+  const show = mustFind(s.shows, showId, 'Show');
+  const b = show.bible ?? {};
+  const next = { ...b };
+  if (patch.timeline) next.timeline = [...(b.timeline ?? []).filter((x) => !(patch.timeline!.dropPrefix && x.startsWith(patch.timeline!.dropPrefix))), ...(patch.timeline.add ?? [])];
+  if (patch.unresolved) {
+    const resolved = new Set((patch.unresolved.resolve ?? []).map((x) => x.toLowerCase()));
+    const all = Array.from(new Set([...(b.unresolved ?? []).filter((x) => !resolved.has(x.toLowerCase())), ...(patch.unresolved.add ?? [])]));
+    next.unresolved = patch.unresolved.max ? all.slice(0, patch.unresolved.max) : all;
+  }
+  if (patch.relationships) { const all = union(b.relationships ?? [], patch.relationships.add ?? []); next.relationships = patch.relationships.max ? all.slice(0, patch.relationships.max) : all; }
+  if (patch.worldRules) next.worldRules = union(b.worldRules ?? [], patch.worldRules.add ?? []);
+  if (canonical(next) === canonical(b)) return s;
+  return updateShow(s, showId, { bible: next });
+}
+
+/** The production fields a worker computed (a logline, a synopsis, a genre…), each written only where the field is
+ *  still what the worker read (`base`) — a field the producer changed meanwhile keeps the producer's value. */
+export type ProductionFields = Partial<Pick<Production, 'logline' | 'synopsis' | 'genre' | 'mood' | 'titleAr' | 'title' | 'artist' | 'concept'>>;
+export function fillProductionFields(s: S, productionId: string, patch: ProductionFields, base: ProductionFields): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  const write: Partial<Production> = {};
+  for (const k of Object.keys(patch) as Array<keyof ProductionFields>) {
+    if (canonical(p[k] ?? null) !== canonical(base[k] ?? null)) continue; // the producer changed it: theirs stays
+    if (canonical(p[k] ?? null) === canonical(patch[k] ?? null)) continue;
+    (write as Record<string, unknown>)[k] = patch[k];
+  }
+  return Object.keys(write).length ? updateProduction(s, productionId, write) : s;
 }
 
 export function setStage(s: S, id: string, stage: Stage): S { return updateProduction(s, id, { stage }); }
@@ -123,7 +191,12 @@ export function recordExport(s: S, id: string, rec: Omit<ExportRecord, 'id' | 'c
   return { state: updateProduction(s, id, { exports: [...(p.exports ?? []), ex] }), export: ex };
 }
 
-export function setCut(s: S, id: string, cutAssetId: string | undefined): S { return updateProduction(s, id, { cutAssetId }); }
+/** The assembled cut. inputs: the cutInputsHash it was rendered from (src/domain/cut.ts) — when the production
+ *  moved on while it was rendering, the new cut is already stale; without it the cut is taken as current. */
+export function setCut(s: S, id: string, cutAssetId: string | undefined, opts: { inputs?: string } = {}): S {
+  const p = mustFind(s.productions, id, 'Production');
+  return updateProduction(s, id, { cutAssetId, cutStale: cutAssetId && opts.inputs && opts.inputs !== cutInputsHash(p) ? true : undefined });
+}
 
 // ------------------------------------------------------------------------------------------------------ scenes
 
@@ -131,8 +204,14 @@ function withProduction(s: S, id: string, fn: (p: Production) => Production): S 
   const p = mustFind(s.productions, id, 'Production');
   const next = fn(p);
   if (next === p) return s; // nothing changed: same state, so callers and effects can tell
-  return { ...s, productions: s.productions.map((x) => (x.id === id ? touchProduction(next) : x)) };
+  // A STALE CUT (audit M2, step 12): a change to what the assembled cut was made from — a shot added, removed, moved
+  // or edited in a way the cut shows, a line recorded again, another take chosen — leaves the cut out of date
+  const stale = p.cutAssetId && !next.cutStale && cutInputsHash(next) !== cutInputsHash(p) ? { ...next, cutStale: true } : next;
+  return { ...s, productions: s.productions.map((x) => (x.id === id ? touchProduction(stale) : x)) };
 }
+
+/** The cut is out of date (only when there is one). */
+const markCutStale = (p: Production): Production => (p.cutAssetId ? { ...p, cutStale: true } : p);
 
 export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats'] }): { state: S; scene: Scene } {
   const p = mustFind(s.productions, productionId, 'Production');
@@ -148,13 +227,42 @@ export function deleteScene(s: S, productionId: string, sceneId: string): S {
   return withProduction(s, productionId, (p) => ({ ...p, scenes: renumberScenes(p.scenes.filter((sc) => sc.id !== sceneId)), shots: renumberShots(p.shots.filter((sh) => sh.sceneId !== sceneId)) }));
 }
 
-/** Replace the script wholesale (the story engine wrote it): scenes with beats and lines. Shots of scenes that no
- *  longer exist are dropped; shots of scenes that stay keep their id. Scenes are matched by id when given. */
-export function replaceScript(s: S, productionId: string, scenes: Array<Omit<Scene, 'number'> & { id?: string }>): S {
+/** Which existing scene each incoming scene of a new script is (docs/BACKEND-AUDIT-2026-10.md C4, step 10): an id
+ *  the production already has, else the same title, else the same place in the order — each existing scene claimed
+ *  once. Pure. Returns the id each incoming scene keeps (undefined: a new scene). */
+export function matchScenes(existing: Array<Pick<Scene, 'id' | 'title'>>, incoming: Array<{ id?: string; title: string }>): Array<string | undefined> {
+  const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const claimed = new Set<string>();
+  const out: Array<string | undefined> = incoming.map((sc) => (sc.id && existing.some((e) => e.id === sc.id) && !claimed.has(sc.id) ? (claimed.add(sc.id), sc.id) : undefined));
+  incoming.forEach((sc, i) => {
+    if (out[i]) return;
+    const byTitle = existing.find((e) => !claimed.has(e.id) && norm(e.title) === norm(sc.title));
+    if (byTitle) { claimed.add(byTitle.id); out[i] = byTitle.id; }
+  });
+  incoming.forEach((_sc, i) => {
+    if (out[i]) return;
+    const atPlace = existing[i];
+    if (atPlace && !claimed.has(atPlace.id)) { claimed.add(atPlace.id); out[i] = atPlace.id; }
+  });
+  return out;
+}
+
+/** Replace the script wholesale (the story engine wrote it): scenes with beats and lines. The new scenes KEEP THE IDS
+ *  of the scenes they match (`matchScenes`), so the shots of every matched scene — and their takes — stay where they
+ *  are, under the same ids. Shots of a scene the new script no longer has leave the studio with it; nothing is lost:
+ *  the server tombstones them (src/server/studio/persist.ts) and they can be restored with their takes. */
+export function replaceScript(s: S, productionId: string, scenes: Array<Omit<Scene, 'number' | 'id'> & { id?: string }>, opts: { keepWritten?: boolean } = {}): S {
   return withProduction(s, productionId, (p) => {
-    const next: Scene[] = scenes.map((sc, i) => ({ ...sc, id: sc.id ?? nid('scene'), number: i + 1 }));
+    // `keepWritten` (the story engine's re-run): decided on the state the command runs on, never on a read taken
+    // before a minutes-long model call — once a scene has written lines, the script is the producer's
+    if (opts.keepWritten && p.scenes.some((sc) => sc.beats.some((b) => b.lines.length > 0))) throw new StudioError('CONFLICT', 'The scenes already carry written lines; the developed story does not replace them.', { productionId, reason: 'SCRIPT_WRITTEN' });
+    const kept = matchScenes(p.scenes, scenes);
+    const next: Scene[] = scenes.map((sc, i) => ({ ...sc, id: kept[i] ?? sc.id ?? nid('scene'), number: i + 1 }));
     const keep = new Set(next.map((x) => x.id));
-    return { ...p, scenes: next, shots: renumberShots(p.shots.filter((sh) => keep.has(sh.sceneId))) };
+    // the shots follow the new scene order (within a scene, their own order)
+    const order = new Map(next.map((sc, i) => [sc.id, i]));
+    const shots = p.shots.filter((sh) => keep.has(sh.sceneId)).map((sh, i) => ({ sh, i })).sort((a, b) => order.get(a.sh.sceneId)! - order.get(b.sh.sceneId)! || a.i - b.i).map((x) => x.sh);
+    return { ...p, scenes: next, shots: renumberShots(shots) };
   });
 }
 
@@ -249,12 +357,13 @@ export function setShotContinuity(s: S, productionId: string, shotId: string, co
 export function selectTake(s: S, productionId: string, shotId: string, takeId: string | undefined): S {
   return withProduction(s, productionId, (p) => {
     const sh = mustFind(p.shots, shotId, 'Shot');
+    if ((sh.selectedTakeId ?? undefined) === (takeId ?? undefined)) return p;
     if (takeId) {
       const t = mustFind(sh.takes, takeId, 'Take');
       if (t.status === 'REJECTED') throw new StudioError('INVALID', 'A rejected take cannot be chosen for the cut.', { takeId, by: 'status' });
       if (t.rating === 'REJECTED') throw new StudioError('INVALID', `This take was rejected${t.ratingReason ? ` (${t.ratingReason})` : ''}; a rejected take cannot be chosen for the cut.`, { takeId, by: 'rating' });
     }
-    return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) };
+    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) });
   });
 }
 
@@ -275,7 +384,7 @@ export function rateTake(s: S, productionId: string, shotId: string, takeId: str
       ? { ...t, rating: undefined, ratingReason: undefined, ratedBy: undefined, ratedAt: undefined }
       : { ...t, rating, ratingReason: reason, ratedBy: opts.by?.trim() || 'producer', ratedAt: now() };
     const selectedTakeId = rating === 'REJECTED' && sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId;
-    return { ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId, takes: x.takes.map((y) => (y.id === takeId ? judged : y)) } : x)) };
+    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId, takes: x.takes.map((y) => (y.id === takeId ? judged : y)) } : x)) });
   });
 }
 
@@ -290,11 +399,17 @@ export function rejectTake(s: S, productionId: string, shotId: string, takeId: s
 
 /** Removing a take keeps the fact that its characters were in a video (see rules.ts). */
 export function removeTake(s: S, productionId: string, shotId: string, takeId: string): S {
-  const next = withProduction(s, productionId, (p) => ({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, takes: sh.takes.filter((t) => t.id !== takeId), selectedTakeId: sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId } : sh)) }));
+  const next = withProduction(s, productionId, (p) => (p.shots.some((sh) => sh.id === shotId && sh.takes.some((t) => t.id === takeId)) ? markCutStale({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, takes: sh.takes.filter((t) => t.id !== takeId), selectedTakeId: sh.selectedTakeId === takeId ? undefined : sh.selectedTakeId } : sh)) }) : p));
   return next === s ? s : { ...next, characters: markTakeRemoved(next.characters, shotId, takeId) };
 }
 
 export interface NewTakeInput {
+  /** a worker's take carries its job's deterministic id (src/server/jobs/outputs.ts): a retry can never add it twice */
+  id?: string;
+  /** a worker's take may be chosen in the same batch: ALWAYS, or IF_UNCHOSEN (the shot has no real chosen take yet —
+   *  nothing, or only a bundled sample). Decided on the state the batch runs on, so a producer's choice made while
+   *  the take was being generated is never overridden. Ignored for a take that is not READY. */
+  select?: 'ALWAYS' | 'IF_UNCHOSEN';
   assetId: string; label?: string; note?: string; status?: Take['status'];
   provider?: Take['provider']; model?: string; requestId?: string; prompt?: string; params?: Record<string, unknown>; seed?: number; references?: TakeReference[];
   width?: number; height?: number; durationSeconds?: number; fps?: number; generationMs?: number; costUsd?: number; qa?: QaReport; rejectionReason?: string; jobId?: string; codeVersion?: string; workflowVersion?: string; thumbnailAssetId?: string;
@@ -307,8 +422,17 @@ export function addTake(s: S, productionId: string, shotId: string, input: NewTa
   const p = mustFind(s.productions, productionId, 'Production');
   const sh = mustFind(p.shots, shotId, 'Shot');
   mustFind(s.assets, input.assetId, 'Asset');
-  const take: Take = { ...input, id: nid('take'), label: input.label ?? `Take ${sh.takes.length + 1}`, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
-  const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take] } : y)) }));
+  if (input.id && s.productions.some((x) => x.shots.some((y) => y.takes.some((t) => t.id === input.id)))) throw new StudioError('CONFLICT', `Take ${input.id} already exists.`, { takeId: input.id });
+  const { id: givenId, select, ...fields } = input;
+  // the take's number is decided HERE, on the state the command runs on (audit H3, step 11): a worker's "Take N",
+  // counted from a read minutes old, is renumbered when another take of the shot took N meanwhile
+  const nextNumber = Math.max(sh.takes.length, ...sh.takes.map((t) => Number(/\bTake (\d+)/i.exec(t.label)?.[1] ?? 0))) + 1;
+  const numbered = input.label && /^Take \d+$/.test(input.label);
+  const label = !input.label || (numbered && sh.takes.some((t) => t.label === input.label)) ? `Take ${nextNumber}` : input.label;
+  const take: Take = { ...fields, id: givenId ?? nid('take'), label, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
+  const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
+  const choose = take.status === 'READY' && take.rating !== 'REJECTED' && (select === 'ALWAYS' || (select === 'IF_UNCHOSEN' && (!current || current.provider === 'SAMPLE')));
+  const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take], ...(choose ? { selectedTakeId: take.id } : {}) } : y)) }));
   const updated = next.productions.find((x) => x.id === productionId)!;
   return { state: { ...next, characters: recordTakeUsage(next.characters, updated, shotId, take.id, take.createdAt) }, take };
 }
@@ -821,7 +945,7 @@ export function deleteAsset(s: S, id: string): S {
     locations: s.locations.map((l) => ({ ...l, refs: l.refs.filter((r) => r.assetId !== id), masterAssetId: not(l.masterAssetId) })),
     shows: s.shows.map((sh) => ({ ...sh, coverAssetId: not(sh.coverAssetId), posterAssetId: not(sh.posterAssetId) })),
     productions: s.productions.map((p) => ({
-      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), framePosterAssetId: not(p.framePosterAssetId), cutAssetId: not(p.cutAssetId), exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
+      ...p, coverAssetId: not(p.coverAssetId), posterAssetId: not(p.posterAssetId), framePosterAssetId: not(p.framePosterAssetId), cutAssetId: not(p.cutAssetId), cutStale: p.cutAssetId === id ? undefined : p.cutStale, exports: p.exports?.filter((e) => e.assetId !== id), song: p.song ? { ...p.song, assetId: not(p.song.assetId) } : undefined,
       shots: p.shots.map((sh) => { const takes = sh.takes.filter((t) => t.assetId !== id); return { ...sh, openingFrameAssetId: not(sh.openingFrameAssetId), endingFrameAssetId: not(sh.endingFrameAssetId), takes, selectedTakeId: takes.some((t) => t.id === sh.selectedTakeId) ? sh.selectedTakeId : undefined, dialogue: sh.dialogue.map((d) => (d.audioAssetId === id ? { ...d, audioAssetId: undefined, durationSeconds: undefined } : d)) }; }),
     })),
   };
