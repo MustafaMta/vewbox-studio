@@ -101,6 +101,7 @@ export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Jo
   const newestTake = [...sh.takes].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const lastAttempt = jobsOf(p, jobs).find((j) => j.type === 'GENERATE_TAKE' && j.shotId === sh.id);
   if (lastAttempt?.status === 'FAILED' && (!newestTake || lastAttempt.createdAt > newestTake.createdAt)) return { kind: 'failed', words: 'The last take failed', tone: 'failed' };
+  if ('shots' in p && failedShotsOf(p as Production, jobs).some((f) => f.shotId === sh.id)) return { kind: 'failed', words: 'Failed in the production pass', tone: 'failed' };
   const chosen = sh.takes.find((t) => t.id === sh.selectedTakeId);
   if (chosen) {
     const n = sh.takes.indexOf(chosen) + 1;
@@ -252,6 +253,38 @@ export function phaseWords(j: Pick<Job, 'status' | 'progress'>): string {
   const ph = j.progress?.phase ?? j.status;
   const W: Record<string, string> = { QUEUED: 'waiting in the queue', PREPARING: 'preparing the references', GENERATING: 'making', DOWNLOADING: 'collecting the result', VALIDATING: 'checking', POSTPROCESSING: 'saving', AWAITING_REVIEW: 'waiting for your review' };
   return W[ph] ?? 'working';
+}
+
+const SETTLED = ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'];
+
+/** An orchestrator waiting for the jobs it queued (status GENERATING, `waiting: true`): its real child counts — from
+ *  the children in the job list, else the step/total the worker reported — never "Generating". */
+export function waitingCounts(j: Pick<Job, 'id' | 'progress'>, jobs: readonly Job[]): { done: number; total: number } | null {
+  const children = jobs.filter((c) => c.parentId === j.id);
+  if (children.length) return { done: children.filter((c) => SETTLED.includes(c.status)).length, total: children.length };
+  if (j.progress?.total) return { done: j.progress.step ?? 0, total: j.progress.total };
+  return null;
+}
+
+export function waitingWords(j: Pick<Job, 'id' | 'type' | 'progress'>, jobs: readonly Job[]): string {
+  const c = waitingCounts(j, jobs);
+  const what = j.type === 'PRODUCE' ? 'its shots' : 'the work it started';
+  return c ? `Waiting for ${what} (${c.done} of ${c.total} done)` : `Waiting for ${what}`;
+}
+
+/** The shots a production pass reported as failed (`failedShots` of the newest PRODUCE result), each failing alone,
+ *  with the failed child job (its error carries the real class) — minus shots that have a newer take or a running job. */
+export interface FailedShot { shotId: string; jobId: string; reason: string; job?: Job }
+export function failedShotsOf(p: Production, jobs: readonly Job[]): FailedShot[] {
+  const pass = jobsOf(p, jobs).find((j) => j.type === 'PRODUCE' && Array.isArray((j.result as { failedShots?: unknown } | undefined)?.failedShots));
+  const listed = ((pass?.result as { failedShots?: FailedShot[] } | undefined)?.failedShots ?? []).filter((f) => p.shots.some((s) => s.id === f.shotId));
+  const byId = new Map(jobs.map((j) => [j.id, j]));
+  return listed.map((f) => ({ ...f, job: byId.get(f.jobId) })).filter((f) => {
+    if (activeShotJob(p, f.shotId, jobs)) return false;
+    const sh = p.shots.find((s) => s.id === f.shotId)!;
+    const at = f.job?.finishedAt ?? f.job?.updatedAt ?? pass?.finishedAt ?? '';
+    return !sh.takes.some((t) => t.createdAt > at);
+  });
 }
 
 /** A real fraction when the worker reports one (a percent, or step of total); otherwise null (indeterminate). */
