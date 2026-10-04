@@ -47,6 +47,11 @@
   .mv-performer { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--r-pill); color: var(--text-1); text-decoration: none; }
   .mv-performer-name { font-weight: 500; color: var(--text-1); transition: color var(--dur-1) var(--ease-out); }
   .mv-performer:hover .mv-performer-name { color: var(--text-2); }
+  /* coarse pointers (M7): the back link and the performers' links reach 44 high without moving the layout */
+  @media (pointer: coarse) {
+    .mv-back { block-size: auto; min-block-size: 44px; margin-block: -12px 8px; }
+    .mv-performer { min-block-size: 44px; margin-block: -8px; }
+  }
   .mv-transport { margin-block-start: 24px; }
   .mv-nosong { margin: 24px 0 0; max-inline-size: 56ch; }
   .mv-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 16px; }
@@ -107,6 +112,7 @@
     .mv-grid { gap: 20px 12px; }
     .mv-page.hero::before { inset-block-start: -12px; }
     .mv-back { margin-block-end: 16px; }
+    @media (pointer: coarse) { .mv-back { margin-block: -12px 4px; } }
     .mv-acts { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
     .mv-acts > .btn-primary { grid-column: 1 / -1; }
   }

@@ -47,6 +47,8 @@
   .seek[data-tone='video'], .seek-light { --seek-track: var(--on-art-track); --seek-buf: var(--on-art-buffer); }
   .seek[data-tone='edit'] { --seek-track: var(--surface-3); }
   .seek[data-tone='quiet'] { --seek-track: var(--surface-3); }
+  /* coarse pointers (the producer's 44 rule; QA p5): the hit area grows to 44, the 4 px track stays centred in it */
+  @media (pointer: coarse) { .seek { block-size: 44px; } }
   .seekwrap { position: relative; display: flex; flex: 1; align-items: center; min-inline-size: 0; }
   .seek-tick { position: absolute; z-index: 1; inset-block-start: calc(50% - 6px); inline-size: 2px; block-size: 12px; margin-inline-start: -1px; border-radius: 1px; background: var(--wait); pointer-events: none; }
   /* a shot mark: 1 px text-3 — quiet, still above 3:1 on the track and the dock (§3.1 boundary) */
@@ -68,6 +70,8 @@
   /* ---- the play disc (cards, sections) ----------------------------------------------------------------------- */
   .pdisc { --pd: 40px; display: inline-grid; place-items: center; flex: none; inline-size: var(--pd); block-size: var(--pd); padding: 0; border: 0; border-radius: var(--r-pill); cursor: pointer; transition: background-color var(--dur-1) var(--ease-out); }
   .pdisc[data-size='28'] { --pd: 28px; } .pdisc[data-size='32'] { --pd: 32px; } .pdisc[data-size='36'] { --pd: 36px; } .pdisc[data-size='56'] { --pd: 56px; }
+  /* coarse pointers (M7): a disc under 44 grows to 44; its glyph keeps the size of the disc it was drawn for */
+  @media (pointer: coarse) { .pdisc { inline-size: max(var(--pd), 44px); block-size: max(var(--pd), 44px); } }
   .pdisc[data-tone='secondary'] { background: var(--surface-2); color: var(--text-1); }
   .pdisc[data-tone='secondary']:hover { background: var(--surface-3); }
   .pdisc svg { inline-size: calc(var(--pd) * 0.4); block-size: calc(var(--pd) * 0.4); fill: currentColor; }
@@ -294,6 +298,7 @@
   .wave-hit { position: absolute; inset: 0; border-radius: var(--r-sm); }
   .wave-hit-on { cursor: pointer; }
   .wave-hit:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
+  @media (pointer: coarse) { .wave-hit-on { inset-block: min(0px, calc((var(--wave-h, 32px) - 44px) / 2)); } }
   .wave-label, .wave-failed, .wave-section-label { font-size: 12px; line-height: 16px; color: var(--text-3); }
   .arow .wave-head { display: none; }
   .arow .wave { --wave-rest: var(--buffered); }   /* §5.24: the audio row's unplayed bars; its time readout carries the position */

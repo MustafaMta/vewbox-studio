@@ -88,6 +88,11 @@
   .film-credit-name a { color: var(--text-1); text-decoration: none; }
   .film-credit-name a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
   .film-credit-name, .film-credit-made { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* coarse pointers (M7): a credit's link is a 44 px target (the name may wrap; the clip would cut the hit area) */
+  @media (pointer: coarse) {
+    .film-credit-name:has(a) { overflow: visible; white-space: normal; }
+    .film-credit-name a { display: inline-block; padding-block: 9px; margin-block: -9px; }
+  }
 
   /* ------------------------------------------------------------------------------------------- the skeletons */
   .film-skeleton .film-title { display: block; }

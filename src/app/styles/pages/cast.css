@@ -17,6 +17,7 @@
   .pc-head-acts { display: flex; flex: none; align-items: center; gap: 8px; }
   .pc-back { display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; margin-block-end: 12px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: var(--r-xs); transition: color var(--dur-1) var(--ease-out); }
   .pc-back:hover { color: var(--text-1); }
+  @media (pointer: coarse) { .pc-back { min-block-size: 44px; padding-block: 10px; margin-block: -10px 2px; } }
   .pc-back svg { inline-size: 16px; block-size: 16px; }
   .pc-bar { margin-block-start: 24px; }
   .pc-bar .catalogue-bar { margin: 0; }

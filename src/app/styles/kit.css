@@ -485,6 +485,8 @@
   .page-header > .page-actions { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-block-start: 2px; }
   .page-back { display: inline-flex; align-items: center; gap: 4px; justify-self: start; margin-block-end: 16px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); border-radius: var(--r-sm); transition: color var(--dur-1) var(--ease-enter); }
   .page-back:hover { color: var(--text-1); }
+  /* coarse pointers (§5, M7): a 44 px hit area without moving the layout — the padding is given back as margin */
+  @media (pointer: coarse) { .page-back { min-block-size: 44px; padding-block: 10px; margin-block: -10px 6px; } }
   .page-eyebrow, .page-slate { margin-block-end: 8px; }
   .page-count { margin-inline-start: 12px; font-size: 16px; line-height: 1; font-weight: 400; letter-spacing: 0; color: var(--text-3); }
   .page-alt { margin-block-start: 4px; }
@@ -771,6 +773,8 @@
   .shead-link:hover { color: var(--text-1); }
   .shead-link svg { inline-size: 16px; block-size: 16px; }
   .shead-link-short { display: none; }
+  /* coarse pointers (§5, M7): the quiet link's hit area is 44 high; the head keeps its 32 px line (margin gives it back) */
+  @media (pointer: coarse) { .shead-link { min-inline-size: 44px; min-block-size: 44px; margin-block: -6px; justify-content: flex-end; } }
   .shead-arrows { display: inline-flex; gap: 8px; }
   @media (max-width: 639px) {
     .shead-pos { display: inline; }
