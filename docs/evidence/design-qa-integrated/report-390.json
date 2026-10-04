@@ -1,0 +1,769 @@
+{
+  "checked": "2026-10-04T20:11:37.835Z",
+  "base": "http://localhost:4261",
+  "report": [
+    {
+      "page": "shows-live",
+      "path": "/shows",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 41616,
+      "skeleton": {
+        "at": 1398,
+        "parts": 22,
+        "height": 1832,
+        "generic": false,
+        "label": ""
+      },
+      "title": "Shows · Vewbox Studio",
+      "h1": "Shows",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 764,
+      "pageHeight": 884,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.shows-page-head",
+          "h1.t-page.shows-head-h \"Shows\""
+        ],
+        "40": [
+          "h2.t-section \"Your first show\""
+        ]
+      },
+      "edgeKeys": [
+        16,
+        40
+      ],
+      "headLefts": [
+        16,
+        40
+      ],
+      "rows": [],
+      "container": "div.shows",
+      "textNodes": 15,
+      "fonts": {
+        "Geist": 12,
+        "Geist Mono": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Let the studio propose",
+          "w": 179,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Write it yourself",
+          "w": 136,
+          "h": 40
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 4,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": false,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "one start edge for heads",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "shows",
+      "path": "/shows",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 47289,
+      "skeleton": {
+        "at": 6905,
+        "parts": 22,
+        "height": 1832,
+        "generic": false,
+        "label": ""
+      },
+      "title": "Shows · Vewbox Studio",
+      "h1": "Shows2",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 727,
+      "pageHeight": 847,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.shows-page-head",
+          "h1.t-page.shows-head-h \"Shows2\"",
+          "ul.shows-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.shows",
+      "textNodes": 13,
+      "fonts": {
+        "Geist": 12,
+        "Geist Mono": 1
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 2,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.btn.btn-primary",
+          "name": "New show",
+          "w": 118,
+          "h": 40
+        },
+        {
+          "el": "button.btn.btn-primary",
+          "name": "More ways to start a show",
+          "w": 32,
+          "h": 40
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 4,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "season",
+      "path": "/shows/last-sip/seasons/last-sip-s1",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 51068,
+      "skeleton": {
+        "at": 5984,
+        "parts": 25,
+        "height": 1264,
+        "generic": false,
+        "label": ""
+      },
+      "title": "Season 1 · The Last Sip · Shows · Vewbox Studio",
+      "h1": "Opening Hours",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1250,
+      "pageHeight": 1370,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.shows-page-head",
+          "h1.t-page \"Opening Hours\"",
+          "ul.shows-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.shows.season-page",
+      "textNodes": 31,
+      "fonts": {
+        "Geist": 25,
+        "Geist Mono": 6
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 2,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.page-back",
+          "name": "The Last Sip",
+          "w": 358,
+          "h": 24
+        },
+        {
+          "el": "a.chip",
+          "name": "Season 12",
+          "w": 91,
+          "h": 32
+        },
+        {
+          "el": "a.chip",
+          "name": "Season 21",
+          "w": 94,
+          "h": 32
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "name": "More for Season 1",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "New episode",
+          "w": 139,
+          "h": 40
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 7,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "episode",
+      "path": "/shows/last-sip/seasons/last-sip-s1/episodes/s1e1",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 48909,
+      "skeleton": {
+        "at": 8082,
+        "parts": 20,
+        "height": 1103,
+        "generic": false,
+        "label": ""
+      },
+      "title": "Episode 1: The Opening Hour · The Last Sip · Shows · Vewbox Studio",
+      "h1": "The Opening Hour",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2138,
+      "pageHeight": 2258,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.t-hero.show-title \"The Opening Hour\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Production\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Story\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Cast\"",
+          "div.shead",
+          "h2.t-section.shead-title \"More from Season 1\"",
+          "ul.shows-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.shows.episode-page",
+      "textNodes": 65,
+      "fonts": {
+        "Geist": 61,
+        "Geist Mono": 4
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 6,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.t-meta.name \"Café owner, sixty, unhurried\"",
+        "span.t-meta.name \"His niece, runs the counter\"",
+        "span.t-meta.name \"Regular customer, aspiring poet\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.page-back",
+          "name": "The Last Sip · Season 1",
+          "w": 358,
+          "h": 24
+        },
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Watch",
+          "w": 358,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Continue: review the cut",
+          "w": 358,
+          "h": 40
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Open the workspace",
+          "w": 153,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Open the story",
+          "w": 115,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Cast in the workspaceWorkspace",
+          "w": 91,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "The whole seasonAll",
+          "w": 35,
+          "h": 32
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 9,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "home",
+      "path": "/",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 41908,
+      "skeleton": {
+        "at": 800,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 819,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 1127,
+          "state": "page",
+          "height": 2340
+        },
+        {
+          "t": 40676,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 41105,
+          "state": "content",
+          "height": 2366
+        }
+      ],
+      "title": "Home · Vewbox Studio",
+      "h1": "The Static Sky",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2370,
+      "pageHeight": 2490,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.home-hero-title \"The Static Sky\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Shows\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Shorts\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Music videos\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Characters\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.home",
+      "textNodes": 54,
+      "fonts": {
+        "Geist": 54
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 11,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 2,
+      "faded": 2,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.tool-card-line \"Seasons that share one cast\"",
+        "span.tool-card-line \"9 departments · 35 agents\"",
+        "span.start-line \"One image, one voice\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.btn.btn-secondary",
+          "name": "Open the film",
+          "w": 176,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Screen it",
+          "w": 174,
+          "h": 40
+        },
+        {
+          "el": "a.btn.btn-primary",
+          "name": "Review",
+          "w": 86,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "All showsAll",
+          "w": 35,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "All shortsAll",
+          "w": 35,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "All music videosAll",
+          "w": 35,
+          "h": 32
+        },
+        {
+          "el": "a.shead-link",
+          "name": "Casting directoryAll",
+          "w": 35,
+          "h": 32
+        },
+        {
+          "el": "button.phone-action",
+          "name": "Search the studio",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        },
+        {
+          "el": "a.phone-action",
+          "name": "New",
+          "w": 40,
+          "h": 40,
+          "bar": true
+        }
+      ],
+      "targetsTotal": 9,
+      "cls": 0.0036,
+      "shifts": [
+        {
+          "value": 0.0036,
+          "t": 42842,
+          "nodes": [
+            "feat-thumbs",
+            "home-tools",
+            "btn btn-primary btn-sm feat-btn"
+          ]
+        }
+      ],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "show",
+      "path": "/shows/last-sip",
+      "width": 390,
+      "error": "the skeleton came back after the page had loaded (stream reconnect?)"
+    }
+  ]
+}

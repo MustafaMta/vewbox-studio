@@ -2,7 +2,7 @@
 // the standard is docs/design/VISUAL-STANDARD-V5.1.md §8 and docs/design/PAGE-ENGINEERING-BRIEF.md §4):
 //
 //   node scripts/qa-integrated.mjs [--base http://localhost:4261] [--out docs/evidence/design-qa-integrated]
-//        [--widths 1440,1920,390] [--only home,short,...] [--pages | --interactions | --krea | --annotate <file.json>]
+//        [--widths 1440,1920,390] [--only home,short,...] [--resume] [--pages | --interactions | --krea | --annotate <file.json>]
 //
 // Pages (default --pages + --interactions): every route of the studio, live where the studio has the object and on
 // the `states` fixture (scripts/v4-fixture.ts, answering the browser's own reads) where it has none — shows, a show, a
@@ -98,6 +98,9 @@ const THROTTLE = { offline: false, latency: 150, downloadThroughput: (1.5 * 1024
 const LOADED = () => {
   const main = document.querySelector('main');
   if (!main) return false;
+  // hydrated: React has attached its fiber to the DOM. Before that the server-rendered page is a picture that React
+  // replaces when the bundle arrives (on a slow network the swap comes 40 s later and redraws the skeleton).
+  if (!Object.keys(main).some((k) => k.startsWith('__reactFiber'))) { window.__loadedSince = 0; return false; }
   const kit = /^\/kit/.test(location.pathname);
   const bare = () => !/Reconnecting/.test(document.body.innerText) && (kit ? Boolean(main.querySelector('h1')) : !main.querySelector('[aria-busy="true"], .sk, .shell-skeleton, [class*="skeleton"]') && main.innerText.trim().length > 20);
   if (!bare()) { window.__loadedSince = 0; return false; }
@@ -105,7 +108,9 @@ const LOADED = () => {
   if (!window.__loadedSince) { window.__loadedSince = now; return false; }
   return now - window.__loadedSince > 800;
 };
-const STILL_LOADED = () => { const main = document.querySelector('main'); return Boolean(main) && (/^\/kit/.test(location.pathname) || !main.querySelector('[aria-busy="true"], .sk, .shell-skeleton, [class*="skeleton"]')); };
+// after the scroll, a lazy picture may still show its own placeholder (.sk inside a .frame): that is the image state,
+// not the page's skeleton, so only a busy region or a page skeleton counts as "came back"
+const STILL_LOADED = () => { const main = document.querySelector('main'); return Boolean(main) && (/^\/kit/.test(location.pathname) || !main.querySelector('[aria-busy="true"], .shell-skeleton, [class*="-skeleton"]')); };
 
 // ---- the measurements, run inside the loaded page -------------------------------------------------------------------
 const MEASURE = (touch) => {
@@ -228,6 +233,8 @@ const MEASURE = (touch) => {
     const box = nm.closest('a, li, article, .card, .mtile, .fcard, .mcard'); if (!box) continue;
     const frame = box.querySelector('.frame, [class*="-frame"], .mcard-media, img'); if (!frame || !vis(frame)) continue;
     if (frame.contains(nm) || nm.closest('.scrim, [class*="scrim"], [class*="overlay"]')) continue; // words over the poster scrim sit inside the frame by design
+    const fb = frame.getBoundingClientRect(); const nb = nm.getBoundingClientRect();
+    if (nb.top < fb.bottom - 2) continue; // the words lie on the picture (poster and sleeve cards): inset by design, not a misalignment
     const dl = R(nm.getBoundingClientRect().left) - R(frame.getBoundingClientRect().left);
     if (dl !== 0) nameMis.push({ name: name(nm).slice(0, 24), dx: dl });
   }
@@ -335,11 +342,16 @@ async function runPages(browser) {
     for (const pg of pages) { await page.goto(`${base}${pg.path}`, { waitUntil: 'domcontentloaded' }).catch(() => {}); await page.waitForFunction(LOADED, null, { timeout: 180_000 }).catch(() => console.log(`  warm-up: ${pg.name} never loaded`)); }
     await page.unrouteAll({ behavior: 'ignoreErrors' }); await ctx.close();
   }
-  const report = [];
+  // one report per run; a single-width run names it by the width so three widths can run side by side. The report is
+  // written after every page, and --resume skips the pages it already holds (a run that dies loses one page, not all).
+  const file = path.join(out, widths.length === 1 ? `report-${widths[0]}.json` : 'report.json');
+  const report = flag('resume') ? await fs.readFile(file, 'utf8').then((t) => JSON.parse(t).report.filter((r) => !r.error)).catch(() => []) : [];
+  const save = () => fs.writeFile(file, `${JSON.stringify({ checked: new Date().toISOString(), base, report }, null, 2)}\n`);
   for (const width of widths) {
     const size = SIZE[width];
     for (const pg of pages) {
       const tag = `${pg.name}-${width}`;
+      if (report.some((r) => r.page === pg.name && r.width === width)) { console.log(`${tag}: kept from the earlier run`); continue; }
       for (let attempt = 1; attempt <= 3; attempt++) {
         const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
         const page = await ctx.newPage();
@@ -349,8 +361,15 @@ async function runPages(browser) {
           await page.addInitScript(() => {
             window.__shifts = [];
             new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__shifts.push({ value: Math.round(e.value * 10000) / 10000, t: Math.round(e.startTime), nodes: (e.sources || []).map((s) => (typeof s.node?.className === 'string' ? s.node.className : s.node?.nodeName)?.toString().slice(0, 50)) }); }).observe({ type: 'layout-shift', buffered: true });
-            window.__skel = null;
-            const look = () => { const m = document.querySelector('main'); if (!m) return; const sk = m.querySelectorAll('.sk, .shell-skeleton, [aria-busy="true"]'); if (sk.length) window.__skel = { at: Math.round(performance.now()), parts: sk.length, height: m.scrollHeight, generic: Boolean(m.querySelector('.shell-skeleton')), label: m.querySelector('[aria-busy="true"]')?.getAttribute('aria-label') ?? '' }; };
+            window.__skel = null; window.__seq = [];
+            const look = () => {
+              const m = document.querySelector('main'); if (!m) return;
+              const sk = m.querySelectorAll('.sk, .shell-skeleton, [aria-busy="true"]');
+              if (sk.length && !window.__skel) window.__skel = { at: Math.round(performance.now()), parts: sk.length, height: m.scrollHeight, generic: Boolean(m.querySelector('.shell-skeleton')), label: m.querySelector('[aria-busy="true"]')?.getAttribute('aria-label') ?? '' };
+              // the sequence of loading pictures: generic shell skeleton · the page's own skeleton · content
+              const state = m.querySelector('.shell-skeleton') ? 'shell' : m.querySelector('[aria-busy="true"], .sk') ? 'page' : m.innerText.trim().length > 20 ? 'content' : 'empty';
+              if (window.__seq[window.__seq.length - 1]?.state !== state) window.__seq.push({ t: Math.round(performance.now()), state, height: m.scrollHeight });
+            };
             new MutationObserver(look).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy', 'class'] });
           });
           const t0 = Date.now();
@@ -370,6 +389,7 @@ async function runPages(browser) {
           await page.screenshot({ path: path.join(out, `${tag}-first.png`) });
           await page.screenshot({ path: path.join(out, `${tag}.png`), fullPage: true });
           const m = await page.evaluate(MEASURE, size.touch);
+          const seq = await page.evaluate(() => window.__seq);
           const focus = width === 390 ? { stops: [], firstMain: -1 } : await tabStops(page, 40);
           if (width === 1440 && focus.firstMain >= 0) {
             // the ring on the first stop inside the page, as evidence
@@ -387,6 +407,7 @@ async function runPages(browser) {
           const checks = {
             'skeleton seen': Boolean(skel),
             'page skeleton (not the generic shell)': Boolean(skel) && !skel.generic,
+            'one loading picture, then content': seq.filter((s) => s.state !== 'empty').map((s) => s.state).join('>') === 'page>content',
             'CLS < 0.02': m.cls < 0.02,
             'one start edge for heads': m.headLefts.length <= 1,
             'equal heights in rows': m.rows.length === 0,
@@ -404,20 +425,19 @@ async function runPages(browser) {
             ...(width !== 390 ? { 'focus ring on every stop': noRing.length === 0 && hiddenStops.length === 0 } : { 'touch targets ≥ 44': m.targetsTotal === 0 }),
           };
           const bad = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k);
-          report.push({ page: pg.name, path: pg.path, fixture: Boolean(pg.fixture), width, loadedMs, skeleton: skel, ...m, focus: { firstMain: focus.firstMain, count: focus.stops.filter((s) => s.tag !== 'body').length, noRing: noRing.slice(0, 10), hidden: hiddenStops.slice(0, 6), stops: focus.stops }, checks, bad });
-          console.log(`${tag}: ${bad.length ? `✗ ${bad.join(' · ')}` : '✓'} · ${loadedMs} ms · CLS ${m.cls.toFixed(4)} · edge ${m.contentLeft} (heads ${m.headLefts.join('/')}) · content ${m.contentWidth} · images ${m.images}${m.broken.length || m.unavailable.length ? ` · broken ${[...m.broken, ...m.unavailable].slice(0, 2).join(', ')}` : ''}${m.small.length ? ` · small ${m.small.slice(0, 2).join('; ')}` : ''}${contrastBad.length ? ` · contrast ${contrastBad.slice(0, 2).map((c) => `${c.ratio}:1 ${c.el} "${c.text}"`).join('; ')}` : ''}${noRing.length ? ` · no ring ${noRing.slice(0, 3).map((s) => s.tag).join(', ')}` : ''}${m.targetsTotal ? ` · small targets ${m.targetsTotal}` : ''}${m.rows.length ? ` · rows ${JSON.stringify(m.rows.slice(0, 2))}` : ''}${m.shifts.length ? ` · shifts ${JSON.stringify(m.shifts.slice(0, 2))}` : ''}`);
+          report.push({ page: pg.name, path: pg.path, fixture: Boolean(pg.fixture), width, loadedMs, skeleton: skel, sequence: seq, ...m, focus: { firstMain: focus.firstMain, count: focus.stops.filter((s) => s.tag !== 'body').length, noRing: noRing.slice(0, 10), hidden: hiddenStops.slice(0, 6), stops: focus.stops }, checks, bad });
+          await save();
+          console.log(`${tag}: ${bad.length ? `✗ ${bad.join(' · ')}` : '✓'} · ${loadedMs} ms · ${seq.map((s) => `${s.state}@${s.t}`).join('>')} · CLS ${m.cls.toFixed(4)} · edge ${m.contentLeft} (heads ${m.headLefts.join('/')}) · content ${m.contentWidth} · images ${m.images}${m.broken.length || m.unavailable.length ? ` · broken ${[...m.broken, ...m.unavailable].slice(0, 2).join(', ')}` : ''}${m.small.length ? ` · small ${m.small.slice(0, 2).join('; ')}` : ''}${contrastBad.length ? ` · contrast ${contrastBad.slice(0, 2).map((c) => `${c.ratio}:1 ${c.el} "${c.text}"`).join('; ')}` : ''}${noRing.length ? ` · no ring ${noRing.slice(0, 3).map((s) => s.tag).join(', ')}` : ''}${m.targetsTotal ? ` · small targets ${m.targetsTotal}` : ''}${m.rows.length ? ` · rows ${JSON.stringify(m.rows.slice(0, 2))}` : ''}${m.shifts.length ? ` · shifts ${JSON.stringify(m.shifts.slice(0, 2))}` : ''}`);
           break;
         } catch (e) {
           await page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {}); await ctx.close().catch(() => {});
-          if (attempt === 3) { report.push({ page: pg.name, path: pg.path, width, error: e.message.split('\n')[0] }); console.log(`${tag}: ✗ never ready (${e.message.split('\n')[0]})`); }
+          if (attempt === 3) { report.push({ page: pg.name, path: pg.path, width, error: e.message.split('\n')[0] }); await save(); console.log(`${tag}: ✗ never ready (${e.message.split('\n')[0]})`); }
           else console.log(`  retrying ${tag}`);
         }
       }
     }
   }
-  // one report per run; a single-width run names it by the width so three widths can run side by side
-  const file = path.join(out, widths.length === 1 ? `report-${widths[0]}.json` : 'report.json');
-  await fs.writeFile(file, `${JSON.stringify({ checked: new Date().toISOString(), base, report }, null, 2)}\n`);
+  await save();
   const failed = report.filter((r) => r.error || r.bad?.length).length;
   console.log(`\n${report.length} page captures, ${failed} with a failed check → ${file}`);
 }
@@ -516,7 +536,7 @@ async function runInteractions(browser) {
     await step('390: top bar and bottom bar', async () => page.evaluate(() => { const t = document.querySelector('.phone-bar')?.getBoundingClientRect(); const b = document.querySelector('.bottom-nav')?.getBoundingClientRect(); const tabs = [...document.querySelectorAll('.bottom-tab')].map((e) => `${e.querySelector('.bottom-tab-label')?.textContent} ${Math.round(e.getBoundingClientRect().width)}×${Math.round(e.getBoundingClientRect().height)}`); return `top ${Math.round(t?.height ?? 0)} · bottom ${Math.round(b?.height ?? 0)} at y ${Math.round(b?.top ?? 0)} · ${tabs.join(' | ')}`; }));
     await step('390: More opens the sheet; Esc closes it', async () => { await page.getByRole('button', { name: /^More/ }).click(); await page.waitForSelector('dialog[open]', { timeout: 3000 }); await page.waitForTimeout(500); const items = await page.locator('dialog[open] .sheet-item').allTextContents(); await shot(page, 'phone-more-sheet'); const sizes = await page.evaluate(() => [...document.querySelectorAll('dialog[open] .sheet-item')].map((e) => Math.round(e.getBoundingClientRect().height))); await page.keyboard.press('Escape'); await page.waitForTimeout(400); if (await page.locator('dialog[open]').count()) throw new Error('sheet still open'); return `${items.map((t) => t.trim().replace(/\s+/g, ' ')).join(' | ')} · item heights ${[...new Set(sizes)].join('/')}`; });
     await step('390: top-bar Search opens the palette', async () => { await page.getByRole('button', { name: 'Search the studio' }).click(); await page.waitForSelector('dialog[open] .palette-input', { timeout: 3000 }); await shot(page, 'phone-palette'); await page.keyboard.press('Escape'); await page.waitForTimeout(300); return 'ok'; });
-    await step('390: Productions tab → /shows with the segmented control', async () => { await page.getByRole('link', { name: /^Productions/ }).click(); await page.waitForURL(/\/shows/, { timeout: 30_000 }); await page.waitForFunction(LOADED, null, { timeout: 60_000 }); await page.waitForTimeout(600); const seg = await page.locator('main [role="radiogroup"] [role="radio"], main .seg-option, main [role="tablist"] [role="tab"]').allTextContents(); await shot(page, 'phone-productions'); return `${new URL(page.url()).pathname} · ${seg.map((t) => t.trim()).join(' | ')}`; });
+    await step('390: Productions tab → /shows with the segmented control', async () => { await page.getByRole('link', { name: /^Productions/ }).click(); await page.waitForURL(/\/shows/, { timeout: 30_000 }); await page.waitForFunction(LOADED, null, { timeout: 60_000 }); await page.waitForTimeout(600); const seg = await page.locator('main [role="radiogroup"] [role="radio"], main .seg button, main [role="tablist"] [role="tab"]').allTextContents(); await shot(page, 'phone-productions'); if (!seg.length) throw new Error(`${new URL(page.url()).pathname}: no Shows | Shorts | Music Videos control at the top (nav-model.ts promises one; Shorts and Music Videos are unreachable from the phone bar)`); return `${new URL(page.url()).pathname} · ${seg.map((t) => t.trim()).join(' | ')}`; });
     await open(page, `/shorts/${SHORT}`);
     await step('390: player transport hit areas', async () => page.evaluate(() => [...document.querySelectorAll('main .ptransport button, main .ptransport input')].map((e) => { const b = e.getBoundingClientRect(); return `${e.getAttribute('aria-label')} ${Math.round(b.width)}×${Math.round(b.height)}`; }).join(' · ')));
     await open(page, '/characters');
@@ -561,10 +581,13 @@ async function runKrea(browser) {
 
 // the dev server can reset a connection under several browsers; the page retries its own reads, the pass goes on
 process.on('unhandledRejection', (e) => console.log(`  unhandled: ${String(e?.message ?? e).split('\n')[0].slice(0, 120)}`));
-const browser = await chromium.launch();
-try {
-  if (flag('annotate')) await annotate(browser, JSON.parse(await fs.readFile(opt('annotate', ''), 'utf8')));
-  if (flag('krea')) await runKrea(browser);
-  if (doPages) await runPages(browser);
-  if (doInteractions) await runInteractions(browser);
-} finally { await browser.close(); }
+const isMain = process.argv[1] && /qa-integrated\.mjs$/.test(process.argv[1].replace(/\\/g, '/'));
+if (isMain) {
+  const browser = await chromium.launch();
+  try {
+    if (flag('annotate')) await annotate(browser, JSON.parse(await fs.readFile(opt('annotate', ''), 'utf8')));
+    if (flag('krea')) await runKrea(browser);
+    if (doPages) await runPages(browser);
+    if (doInteractions) await runInteractions(browser);
+  } finally { await browser.close(); }
+}
