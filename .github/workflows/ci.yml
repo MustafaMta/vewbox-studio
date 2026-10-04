@@ -1,0 +1,83 @@
+# The integration checkpoint, off this machine (docs/TESTING.md): typecheck, the unit tests, the API and worker
+# contracts and the browser regression suite, against a Postgres service. The browser suite's media are ffmpeg
+# stand-ins here (no producer library): same records, same durations, synthetic pictures.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vewbox
+          POSTGRES_PASSWORD: vewbox
+          POSTGRES_DB: vewbox
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vewbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # the suites rename this to vewbox_test / vewbox_e2e themselves and refuse the live name (src/server/test-guard.ts)
+      DATABASE_URL: postgres://vewbox:vewbox@127.0.0.1:5432/vewbox
+      LIBRARY_ROOT: ./var/library
+      LOG_LEVEL: warn
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Tools (ffmpeg for the media stand-ins and the worker tests; pg_dump for the backup drill)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg postgresql-client
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Worker contracts (vewbox_test, scratch library)
+        run: pnpm test:worker
+
+      - name: API contracts (test server on :4210, vewbox_test)
+        run: pnpm test:api
+
+      - name: Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser regression suite (test server on :4210, vewbox_e2e, stand-in media)
+        run: pnpm test:e2e
+
+      - name: Keep the report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
