@@ -206,7 +206,10 @@ const IRAQI_NUMBERS: Array<[RegExp, string]> = [
   [word('ثلطعش|ثلثطعش|ثلاثتعش|ثلاثه عشر|ثلاث عشر|ثلاثة عشر'), '13'], [word('اربعطعش|اربعتعش|اربعه عشر|اربع عشر'), '14'], [word('خمسطعش|خمستعش|خمسه عشر|خمس عشر'), '15'],
   [word('سطعش|ستطعش|ستتعش|سته عشر|ست عشر'), '16'], [word('سبعطعش|سبعتعش|سبعه عشر|سبع عشر'), '17'], [word('ثمنطعش|ثمنتعش|ثمانيه عشر|ثماني عشر'), '18'], [word('تسعطعش|تسعتعش|تسعه عشر|تسع عشر'), '19'],
   [word('عشرين'), '20'], [word('ثلاثين|تلاتين'), '30'], [word('اربعين'), '40'], [word('خمسين'), '50'], [word('ستين'), '60'], [word('سبعين'), '70'], [word('ثمانين'), '80'], [word('تسعين'), '90'],
-  [word('ميتين|مئتين|مائتين'), '200'], [word('ميه|مئه|مائه|ميت'), '100'], [word('الف'), '1000'],
+  // hundreds in folded orthography (ئ → ي and ة → ه have been applied: «مئة» is «ميه», «مائة» is «مايه»)
+  [word('ثلثميه|ثلاثميه|تلتميه|ثلاثمايه|ثلثمايه|ثلاث ميه|ثلث ميه'), '300'], [word('اربعميه|اربعمايه|اربع ميه'), '400'], [word('خمسميه|خمسمايه|خمس ميه'), '500'], [word('ستميه|ستمايه|ست ميه'), '600'],
+  [word('سبعميه|سبعمايه|سبع ميه'), '700'], [word('ثمنميه|ثمانميه|ثمانيميه|ثمنمايه|ثمانمايه|ثمان ميه|ثمن ميه'), '800'], [word('تسعميه|تسعمايه|تسع ميه'), '900'],
+  [word('ميتين|مايتين'), '200'], [word('ميه|مايه|ميت'), '100'], [word('الفين'), '2000'], [word('الف|تالاف|تلاف|الاف'), '1000'], [word('مليونين'), '2000000'], [word('مليون|ملايين'), '1000000'],
   [word('واحد|وحده|واحده'), '1'], [word('اثنين|ثنين|اثنان|اثنتين|ثنتين'), '2'], [word('ثلاث|ثلاثه|تلاته|تلات'), '3'], [word('اربع|اربعه'), '4'], [word('خمس|خمسه'), '5'],
   [word('ست|سته'), '6'], [word('سبع|سبعه'), '7'], [word('ثمان|ثمانيه|ثمانه|ثمن'), '8'], [word('تسع|تسعه'), '9'], [word('عشر|عشره'), '10'],
 ];
@@ -220,19 +223,24 @@ const IRAQI_WORDS: Array<[RegExp, string]> = [
   [word('باجر|بكره|بكرا|باكر|بوكره|غدا|بجر'), 'باجر'], [word('زين|زينه|كويس|تمام|طيب|خوش'), 'زين'], [word('يلا|يالله|يله|هيا'), 'يلا'], [word('شويه|شوي|كليل'), 'شويه'],
   [word('ماظل|ما ظل|لم يبك|ما بكي|ما بكه'), 'ماظل'], [word('راح|رايح|سوف|حيروح|رح'), 'راح'], [word('ويا|مع|وياه|وياي'), 'ويا'], [word('عله|علي'), 'علي'], [word('لمن|لما|عندما'), 'لمن'],
   [word('ادري|اعرف|عارف'), 'ادري'], [word('لعد|اذن|لعاد'), 'لعد'], [word('كلش|جدا'), 'كلش'], [word('دير بالك|دير بالج|ديربالك|انتبه|خلي بالك'), 'ديربالك'],
+  [word('بالميه|بالمايه|في الميه|في المايه|بالمئويه'), 'بالميه'],
 ];
 
 /** Fold Iraqi Arabic and the MSA spellings an ASR writes back onto one orthography so that a correct pronunciation
  *  is not charged as an error: diacritics, tatweel and digits normalised; hamza forms, ة/ه, ى/ي and the Persian
  *  letters unified; one class each for /g/ (گ ق ك ک) and /tʃ/ (چ ج, «تش»); a word-final چ is the feminine "you" clitic
  *  (شلونچ) that ASR writes ك; the conjunction و and the negation ما are attached to the next word (ASR is inconsistent
- *  about the space); spelled numbers become digits («خمسه وعشرين» → 25); a table of Iraqi words and their MSA
+ *  about the space); spelled numbers become digits («خمسه وعشرين» → 25, «ميتين وخمسين الف» → 250000, «سبعه ونص» →
+ *  «7 30», the way `prepareLineText` spells a digit line for the engine); a table of Iraqi words and their MSA
  *  equivalents (اني/انا, هسه/الان, شلون/كيف…). Lenient on purpose — it is the gate, not the report; `normalizeArabic`
  *  stays the raw view for WER. Applied to both sides before `charErrorRate` and `scriptCoverage`. */
 export function normalizeIraqi(s: string): string {
   let t = s.normalize('NFC')
     .replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g, '')
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/(\d)[,٬.](?=\d{3}(?!\d))/g, '$1') // thousands separators («2,500» is one number)
+    .replace(/[%٪]/g, ' بالميه ') // «25 %» is said «خمسة وعشرين بالمية»
+    .replace(/(?<![\d.])([01]?\d|2[0-3]):([0-5]\d)(?![\d:])/g, (_, h: string, m: string) => `${Number(h) % 12 || 12} ${m}`) // «19:45» is said «ثمانية الا ربع»: the 12-hour clock
     .replace(/[‘’ʼ`´]/g, "'").replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
     .replace(/[إأآٱ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ء/g, '')
     .replace(/ة/g, 'ه').replace(/[ىیے]/g, 'ي').replace(/ک/g, 'ك').replace(/پ/g, 'ب').replace(/ڤ/g, 'ف')
@@ -241,8 +249,25 @@ export function normalizeIraqi(s: string): string {
   for (const [re, to] of IRAQI_WORDS) t = t.replace(re, `$1${to}`);
   for (const [re, to] of IRAQI_NUMBERS) t = t.replace(re, `$1${to}`);
   t = t.replace(/(?<=^|\s)(ما|و|يا|لا) (?=\S)/g, '$1');
-  t = t.replace(/(?<=^|\s)(و?)(\d+) و(\d+)(?=\s|$)/g, (_, w: string, a: string, b: string) => `${w}${Number(a) + Number(b)}`);
+  // the fractions of the hour as said («سبعة ونص» is 7:30, which the text side folds to «7 30»)
+  t = t.replace(/(?<=^|\s)(و?\d+) ونص(?=\s|$)/g, '$1 30').replace(/(?<=^|\s)(و?\d+) وربع(?=\s|$)/g, '$1 15').replace(/(?<=^|\s)(و?\d+) وثلث(?=\s|$)/g, '$1 20')
+    .replace(/(?<=^|\s)(و?)(\d+) الا ربع(?=\s|$)/g, (_, w: string, h: string) => `${w}${Number(h) === 1 ? 12 : Number(h) - 1} 45`);
+  t = t.replace(/(?<=^|\s)(و?)\d+(?: و\d+| (?:100|1000|1000000))+(?=\s|$)/g, (run: string) => `${run.startsWith('و') ? 'و' : ''}${numberRun(run)}`);
   return t.replace(/\s+/g, ' ').trim();
+}
+
+/** A spelled number as a run of folded tokens («ميتين وخمسين الف وخمسمية» → «200 و50 1000 و500»), read the way Arabic
+ *  counts: a bare multiplier (100, 1000, 1000000) multiplies everything said so far, a «و»-joined number is added. So
+ *  «200 و50 1000» is 250 000, «3 1000 و500» is 3 500, «1000 و900 و7 و80» is 1987 and «200 و50» is 250. */
+function numberRun(run: string): number {
+  let acc = 0;
+  for (const tok of run.split(' ')) {
+    const joined = tok.startsWith('و');
+    const n = Number(tok.replace(/^و/, ''));
+    if (!joined && acc > 0 && (n === 100 || n === 1000 || n === 1000000)) { const small = acc % n; acc = acc - small + small * n; } // «مليونين وخمسمية الف»: only what is smaller than the multiplier is multiplied
+    else acc += n;
+  }
+  return acc;
 }
 
 const EN_UNITS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
