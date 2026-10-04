@@ -153,15 +153,15 @@ async function measure(page: Page, n: number): Promise<Stop | null> {
  *     "Play from shot" buttons and the player's Fullscreen button lose the ring's top and bottom to the strip's
  *     horizontal scroller;
  *   - characters 1440 and 390: the "New character" split button hides the ring's edge between its two halves
- *     (contrast 1.39 against the neighbour);
- *   - character 390: the "Notes for the writers" textarea sits under nav.bottom-nav when focused (WCAG 2.4.11). */
+ *     (contrast 1.39 against the neighbour).
+ *  (The profile at 390 — the "Notes for the writers" textarea under nav.bottom-nav, WCAG 2.4.11 — was on this list
+ *  until main's QA page fixes of 2026-10-05 moved it clear; the unexpected pass removed the entry.) */
 const KNOWN: Record<string, string> = {
   'home-1440': 'the Shelf track clips the ring’s start side on the cards at the column’s left edge',
   'short-1440': 'the credits links show the ring on their right side only',
   'short-390': 'the strip’s Play-from-shot buttons and the Fullscreen button lose the ring’s top and bottom in the strip’s scroller',
   'characters-1440': 'the New character split button hides the ring’s edge between its halves',
   'characters-390': 'the New character split button hides the ring’s edge between its halves',
-  'character-390': 'the Notes for the writers textarea is covered by nav.bottom-nav when focused',
 };
 
 for (const width of WIDTHS) {

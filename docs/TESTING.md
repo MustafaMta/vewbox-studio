@@ -130,14 +130,15 @@ re-seeds whatever they changed.
 A green run still says two things out loud; both are listed in the run's output and must be cleared by the page
 owners, not by the suite:
 
-- **Expected failures (`test.fail`)** — `ds1-focus.spec.ts`, the pixel focus-ring gate, on six page/width pairs:
+- **Expected failures (`test.fail`)** — `ds1-focus.spec.ts`, the pixel focus-ring gate, on five page/width pairs:
   Home 1440 (the Shelf track clips the ring's start side on the cards at the column's left edge), the short's title
   page at 1440 (the credits links show the ring on the right side only) and 390 (the strip's "Play from shot" buttons
-  and the Fullscreen button lose the ring's top and bottom in the strip's scroller), the casting directory at 1440 and
-  390 (the "New character" split button hides the ring's edge between its halves) and the profile at 390 (the "Notes
-  for the writers" textarea is covered by `nav.bottom-nav` when focused, WCAG 2.4.11). Identical in every run. The
-  tests keep measuring and keep writing their evidence under `test-results/evidence/v5-ds1/`; when a page is fixed
-  the test "unexpectedly passes" and fails until its entry is removed from `KNOWN` in the spec.
+  and the Fullscreen button lose the ring's top and bottom in the strip's scroller), and the casting directory at
+  1440 and 390 (the "New character" split button hides the ring's edge between its halves). Identical in every run.
+  The tests keep measuring and keep writing their evidence under `test-results/evidence/v5-ds1/`; when a page is
+  fixed the test "unexpectedly passes" and fails until its entry is removed from `KNOWN` in the spec — which is how
+  the profile at 390 (the "Notes for the writers" textarea under the phone bar) left the list when main's QA page
+  fixes came in on 2026-10-05.
 - **Fixme (`test.fixme`)** — `home.spec.ts`, five tests: Home was rebuilt twice after the spec (26cf8e4 "Home on the
   producer's Krea reference", 383c7cf "Home on the shared kit") and is in the producer's design QA; none of the
   spec's hooks exists any more. The Home engineer rewrites the spec against the approved Home and removes the fixme.
