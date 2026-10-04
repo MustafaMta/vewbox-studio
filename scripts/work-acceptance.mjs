@@ -24,6 +24,9 @@ const PAGES = [
   { name: 'shot', path: `/shorts/${film}/shots/${shotId}`, ready: '.ws-stage .ws-take' },
   { name: 'final', path: `/shorts/${film}/production?tab=final`, ready: '.ws-final' },
 ];
+// --pages final,shot measures only those pages
+const onlyPages = opt('pages', '').split(',').filter(Boolean);
+if (onlyPages.length) PAGES.splice(0, PAGES.length, ...PAGES.filter((p) => onlyPages.includes(p.name)));
 const ALL_SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
 // --widths 1920,390 measures only those sizes
 const only = opt('widths', '').split(',').filter(Boolean).map(Number);

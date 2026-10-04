@@ -45,7 +45,8 @@ export function ApprovalGate({ p, stage, what }: { p: Production; stage: GatedSt
       reload();
     } catch (e) { toast.bad((e as Error).message); } finally { setBusy(null); }
   };
-  if (approved === null) return null;
+  // while the pipeline answers, the gate holds the height of its settled (approved) line, so nothing below it moves
+  if (approved === null) return <div className="ws-gate" data-state="loading" aria-hidden />;
   if (approved && approval) return (
     <div className="ws-gate" data-state="done">
       <StateWord tone="done">You approved the {what}</StateWord>
