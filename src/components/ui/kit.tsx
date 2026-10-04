@@ -11,6 +11,7 @@
  *                      MenuItem, MenuLink, MenuSeparator, Menu (the … menu)
  *    kit/Tooltip       Tooltip
  *    kit/Filters       SearchField, FilterChips, FiltersButton, FiltersDrawer, FiltersControl
+ *    kit/Pickers       PicturePicker, PickerIcon, StageSteps, StageStepsSkeleton, DisclosureCard
  *    kit/Field         Field, Input, Textarea, Select, Checkbox, Toggle, ErrorSummary, SettingsSummary, ChipInput,
  *                      ShapedDropzone, FormFooter, SaveWord · v3: Dropzone
  *    kit/Choice        Segmented, ChoiceTiles · v3: ChoiceCards
@@ -43,6 +44,7 @@ export * from './kit/Cards';
 export * from './kit/Shelf';
 export * from './kit/Tooltip';
 export * from './kit/Filters';
+export * from './kit/Pickers';
 export * from './kit/ApprovalCard';
 export * from './kit/PageHeader';
 export * from './kit/CompactHeader';

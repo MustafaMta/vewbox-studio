@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { T } from '@/lib/copy';
 import { cls } from '@/components/ui/kit';
 import { IconWarn } from '@/components/ui/icons';
 import { initialsOf } from './identity';
@@ -30,9 +29,9 @@ export function CharacterImage({ src, kind, name, ratio = 2 / 3, unavailable, al
         // eslint-disable-next-line @next/next/no-img-element
         <img ref={img} src={src} alt={alt} decoding="async" onLoad={(e) => measure(e.currentTarget)} className={cls('absolute inset-0 h-full w-full', fit === 'cover' ? 'object-cover' : 'object-contain', kind === 'PORTRAIT' && 'object-top')} />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-input px-3 text-center" role="img" aria-label={unavailable ? T('media.unavailable') : `${name}: ${T('cast.image.none')}`}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-input px-3 text-center" role="img" aria-label={unavailable ? 'File not available' : `${name}: ${'No image yet'}`}>
           {unavailable ? <IconWarn aria-hidden className="size-5 text-warn" /> : <span aria-hidden className="text-[32px] font-medium leading-none text-faint" dir="auto">{initialsOf(name)}</span>}
-          <span className="text-xs text-faint">{unavailable ? T('media.unavailable') : placeholder ?? T('cast.image.none')}</span>
+          <span className="text-xs text-faint">{unavailable ? 'File not available' : placeholder ?? 'No image yet'}</span>
         </div>
       )}
       {children}

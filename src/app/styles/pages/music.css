@@ -1,4 +1,118 @@
-/* ============================================================================================================
-   MUSIC VIDEO PAGES — owned by P1c (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   §6.7, §6.8. Empty until P1c.
-   ============================================================================================================ */
+/* MUSIC VIDEOS — the catalogue of sleeves and the music video's title page (P-Music; docs/design/PAGE-ENGINEERING-BRIEF.md,
+   VISUAL-STANDARD-V5.1 §5.6, §5.24, DESIGN-SYSTEM-V5 §8.6). Layout only: type comes from the type roles in the markup,
+   every colour, radius and shadow is a token, every card and button a kit class. The skeletons (MusicVideosSkeleton,
+   MusicVideoSkeleton) use the same classes, so they have the pages' exact shapes. */
+@layer components {
+  /* ------------------------------------------------------------------------------------------------ catalogue */
+  .mv-cat { display: flex; flex-direction: column; }
+  .mv-cat-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-block-end: 24px; }
+  .mv-cat-words { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+  .mv-cat-title, .mv-cat-desc { margin: 0; }
+  .mv-new { flex: none; }
+  .mv-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 24px; }
+  .mv-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+  /* a sleeve card and, over its top end, the play disc (a sibling of the card's link): on hover, focus and touch */
+  .mv-item { position: relative; min-inline-size: 0; }
+  .mv-disc { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
+  .mv-item:is(:hover, :focus-within) .mv-disc, .mv-disc:has([data-playing]) { opacity: 1; }
+  @media (hover: none) { .mv-disc { opacity: 1; } }
+  .mv-grid > li { display: flex; min-inline-size: 0; }
+  .mv-grid > li > * { flex: 1; min-inline-size: 0; }
+
+  /* the empty catalogue: the two ways in, in the sleeve's shape, then what follows the song */
+  .mv-empty .start-card { max-inline-size: 280px; }
+  .mv-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-inline-size: 960px; margin: 40px 0 0; padding: 0; list-style: none; }
+  .mv-steps > li { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+  .mv-step-n { color: var(--text-3); }
+  .mv-steps .t-body { margin: 0; }
+
+  /* --------------------------------------------------------------------------------------------- title page */
+  .mv-page { --mv-sleeve: clamp(280px, 25vw, 440px); --mv-bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; flex-direction: column; }
+  .shell-column:has(.mv-page) { overflow-x: clip; }
+  /* the art wash (the page carries `.hero`, so the wash sits behind everything on it) runs from the top of the main
+     area across its whole width, in the sleeve's own colour; neutral without it */
+  .mv-page.hero::before { inset-inline: calc(-1 * var(--mv-bleed)); inset-block-start: -24px; }
+  .mv-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; block-size: 20px; margin-block-end: 20px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color var(--dur-1) var(--ease-out); }
+  .mv-back:hover { color: var(--text-1); }
+  .mv-back svg { inline-size: 16px; block-size: 16px; }
+  .mv-head { display: grid; grid-template-columns: var(--mv-sleeve) minmax(0, 1fr); align-items: end; column-gap: 40px; }
+  .mv-sleeve { align-self: start; inline-size: var(--mv-sleeve); border-radius: var(--r-lg); box-shadow: var(--shadow-contact); }
+  .mv-sleeve-frame { border-radius: var(--r-lg); }
+  .mv-words { display: flex; flex-direction: column; min-inline-size: 0; }
+  .mv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0; min-inline-size: 0; }
+  .mv-slate { display: flex; flex-wrap: wrap; min-inline-size: 0; color: var(--text-2); }
+  .mv-slate > span { white-space: nowrap; }
+  .mv-slate > span:not(:last-child)::after { content: '·'; margin-inline: 6px; color: var(--text-3); }
+  .mv-title { margin: 12px 0 0; }
+  .mv-alt { margin: 4px 0 0; }
+  .mv-artist { margin: 16px 0 0; }
+  .mv-performers { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 0; padding: 0; list-style: none; }
+  .mv-performer { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--r-pill); color: var(--text-1); text-decoration: none; }
+  .mv-performer-name { font-weight: 500; color: var(--text-1); transition: color var(--dur-1) var(--ease-out); }
+  .mv-performer:hover .mv-performer-name { color: var(--text-2); }
+  .mv-transport { margin-block-start: 24px; }
+  .mv-nosong { margin: 24px 0 0; max-inline-size: 56ch; }
+  .mv-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 16px; }
+
+  /* the lyrics beside the facts and the cast: 7 + 4 of 12 columns */
+  .mv-body { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 16px; row-gap: var(--section-gap); margin-block-start: var(--section-gap); }
+  .mv-lyrics { grid-column: 1 / span 7; min-inline-size: 0; }
+  .mv-side { grid-column: 9 / span 4; display: flex; flex-direction: column; gap: var(--section-gap); min-inline-size: 0; }
+  .mv-sections { display: flex; flex-direction: column; gap: 32px; max-inline-size: 640px; margin: 0; padding: 0; list-style: none; }
+  .mv-sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-block-size: 32px; }
+  .mv-sec-label { color: var(--text-2); }
+  .mv-sec-at { color: var(--text-3); }
+  .mv-sec-singers { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-inline-size: 0; }
+  .mv-sec-singer { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+  .mv-sec-play { margin-inline-start: auto; }
+  .mv-sec-lines { display: flex; flex-direction: column; margin-block-start: 8px; }
+  /* a flex line, so an alternating singer's face sits at the start of the line in the line's own direction */
+  .mv-line { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text-1); font-weight: 400; transition: color var(--dur-2) var(--ease-out); }
+  .mv-lyrics[data-playing] .mv-sec:not([data-live]) .mv-line { color: var(--text-3); }
+  .mv-sec[data-live] .mv-sec-label { color: var(--text-1); }
+  .mv-sec-quiet { margin: 4px 0 0; }
+  .mv-sec-trans { display: flex; flex-direction: column; margin-block-start: 8px; }
+  .mv-sec-trans p { margin: 0; color: var(--text-3); }
+
+  .mv-cast-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .mv-person { display: flex; align-items: center; gap: 12px; min-inline-size: 0; border-radius: var(--r-sm); color: var(--text-1); text-decoration: none; }
+  .mv-person-words { display: flex; flex-direction: column; min-inline-size: 0; }
+  .mv-person:hover .t-card { color: var(--text-2); }
+  .mv-person-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .mv-video { margin-block-start: var(--section-gap); }
+  .mv-player { max-inline-size: 880px; }
+
+  /* ---------------------------------------------------------------------------------------- the skeletons' sizes */
+  .mv-sk :is(.t-page, .t-body, .t-display, .t-hero, .t-section, .t-meta, .mtile-title, .mtile-sub, .mslate, .lyric) { display: flex; align-items: center; block-size: 1lh; }
+  .mv-sk .mtile-frame { border-radius: var(--r-md); }
+  .mv-sk .mv-meta { block-size: 22px; }
+  .mv-sk .mv-performers { block-size: 28px; align-items: center; }
+  .mv-sk .mv-sec-head { block-size: 32px; }
+  .mv-sk .mv-facts .pcard-grid { --pcard-cols: 2; }
+  /* the kit's audio row: one 64 row, two rows (40 + 12 + 32 + padding) below 480 */
+  .mv-sk-transport { block-size: 64px; }
+  @media (max-width: 479px) { .mv-sk-transport { block-size: 108px; } }
+
+  /* ------------------------------------------------------------------------------------------------ narrower */
+  @media (max-width: 1279px) {
+    .mv-lyrics { grid-column: 1 / span 7; }
+    .mv-side { grid-column: 8 / span 5; }
+  }
+  @media (max-width: 1023px) {
+    .mv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .mv-head { grid-template-columns: minmax(0, 1fr); row-gap: 24px; }
+    .mv-sleeve { inline-size: min(100%, 320px); }
+    .mv-body { grid-template-columns: minmax(0, 1fr); }
+    .mv-lyrics, .mv-side { grid-column: 1; }
+  }
+  @media (max-width: 639px) {
+    .mv-cat-head { margin-block-end: 20px; }
+    .mv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .mv-steps { grid-template-columns: minmax(0, 1fr); margin-block-start: 32px; }
+    .mv-page.hero::before { inset-block-start: -12px; }
+    .mv-back { margin-block-end: 16px; }
+    .mv-acts { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .mv-acts > .btn-primary { grid-column: 1 / -1; }
+  }
+}

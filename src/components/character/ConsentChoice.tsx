@@ -45,17 +45,17 @@ export function ConsentChoice({ characterId, sampleId, job, onConfirmed }: { cha
 
   if (!c) return null;
   // nothing left to confirm here (removed, or confirmed elsewhere): the voice section is where recordings live
-  if (!sample) return <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">{T('err.CONSENT_REQUIRED.fix')}</Link>;
+  if (!sample) return <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">{'Choose consent'}</Link>;
   const confirm = () => {
     if (!statement) return;
     try { act('confirmVoiceConsent', characterId, sample.id, statement); setBusy(true); setWaiting({ sampleId: sample.id, statement }); }
     catch (e) { toast.bad((e as Error).message); }
   };
   return (
-    <div className="flex w-full max-w-[34rem] flex-col gap-2 text-start" role="group" aria-label={T('cast.voice.consent')}>
+    <div className="flex w-full max-w-[34rem] flex-col gap-2 text-start" role="group" aria-label={'Whose voice is this?'}>
       <p className="text-[13px] text-body" dir="auto">{T.f('cast.voice.consentFor', { label: sample.label })}</p>
-      <Segmented label={T('cast.voice.consent')} value={statement || 'NONE'} onChange={(v) => setStatement(v === 'NONE' ? '' : (v as ConsentStatement))} options={[{ value: 'MY_VOICE', label: T('cast.voice.consent.mine') }, { value: 'SPEAKER_PERMISSION', label: T('cast.voice.consent.permission') }]} />
-      <span><Button size="sm" variant="secondary" icon={<IconCheck />} disabled={!statement} loading={busy} onClick={confirm}>{T('cast.voice.consentAndRetry')}</Button></span>
+      <Segmented label={'Whose voice is this?'} value={statement || 'NONE'} onChange={(v) => setStatement(v === 'NONE' ? '' : (v as ConsentStatement))} options={[{ value: 'MY_VOICE', label: 'This is my voice' }, { value: 'SPEAKER_PERMISSION', label: 'I have the speaker’s permission' }]} />
+      <span><Button size="sm" variant="secondary" icon={<IconCheck />} disabled={!statement} loading={busy} onClick={confirm}>{'Confirm and try again'}</Button></span>
     </div>
   );
 }

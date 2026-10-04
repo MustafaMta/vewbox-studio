@@ -23,6 +23,36 @@ const lazy = (load: () => Promise<unknown>, name: string): ComponentType =>
 export const ROUTE_SKELETONS: Entry[] = [
   // Home (P-Home): src/components/home/Home.tsx exports HomeSkeleton
   { match: (p) => p === '/', Skeleton: lazy(() => import('@/components/home/Home'), 'HomeSkeleton') },
+  // the production workspace (P-Work): src/components/workspace/WorkspaceSkeleton.tsx
+  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/production\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ProductionWorkspaceSkeleton') },
+  { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/shots\/[^/]+\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ShotWorkspaceSkeleton') },
+  // Shows (P-Shows): the catalogue, a show, a season, an episode's lobby (after the workspace routes above)
+  { match: (p) => p === '/shows', Skeleton: lazy(() => import('@/components/show/ShowsCatalogue'), 'ShowsSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/ShowPage'), 'ShowSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+\/seasons\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/SeasonPage'), 'SeasonSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+\/seasons\/[^/]+\/episodes\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/EpisodeLobby'), 'EpisodeSkeleton') },
+  // Shorts (P-Film) and Music videos (P-Music): the catalogues and the title pages
+  { match: (p) => p === '/shorts', Skeleton: lazy(() => import('@/components/film/ShortsCatalogue'), 'ShortsSkeleton') },
+  { match: (p) => /^\/shorts\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/film/ShortPage'), 'ShortSkeleton') },
+  { match: (p) => p === '/music-videos', Skeleton: lazy(() => import('@/components/music/MusicVideos'), 'MusicVideosSkeleton') },
+  { match: (p) => /^\/music-videos\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/music/MusicVideo'), 'MusicVideoSkeleton') },
+  // Screening Room (P-Theatre)
+  { match: (p) => p === '/screening', Skeleton: lazy(() => import('@/components/screening/ScreeningRoom'), 'ScreeningSkeleton') },
+  // Create (P-Create): src/components/wizard/CreateHub.tsx and CreateFlow.tsx
+  { match: (p) => p === '/new', Skeleton: lazy(() => import('@/components/wizard/CreateHub'), 'CreateHubSkeleton') },
+  { match: (p) => /^\/new\/(show|season|episode|short|music-video)$/.test(p), Skeleton: lazy(() => import('@/components/wizard/CreateFlow'), 'CreateFlowSkeleton') },
+  // Studio Company and the control pages (P-Studio)
+  { match: (p) => p === '/studio', Skeleton: lazy(() => import('@/components/studio/Company'), 'StudioCompanySkeleton') },
+  { match: (p) => p.startsWith('/studio/departments/'), Skeleton: lazy(() => import('@/components/studio/Department'), 'DepartmentSkeleton') },
+  { match: (p) => p.startsWith('/studio/agents/'), Skeleton: lazy(() => import('@/components/studio/Agent'), 'AgentSkeleton') },
+  { match: (p) => p === '/production', Skeleton: lazy(() => import('@/components/production/ControlRoom'), 'ControlRoomSkeleton') },
+  { match: (p) => p === '/settings', Skeleton: lazy(() => import('@/components/settings/Settings'), 'SettingsSkeleton') },
+  { match: (p) => p === '/assets', Skeleton: lazy(() => import('@/components/files/Files'), 'FilesSkeleton') },
+  // Characters and Locations (P-Cast): "new" is its own page, so the [id] patterns exclude it
+  { match: (p) => p === '/characters', Skeleton: lazy(() => import('@/components/character/CastDirectory'), 'CharactersSkeleton') },
+  { match: (p) => /^\/characters\/(?!new$)[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/character/CharacterPage'), 'CharacterSkeleton') },
+  { match: (p) => p === '/locations', Skeleton: lazy(() => import('@/components/location/LocationsDirectory'), 'LocationsSkeleton') },
+  { match: (p) => /^\/locations\/(?!new$)[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/location/LocationPage'), 'LocationSkeleton') },
 ];
 
 export function RouteSkeleton({ pathname }: { pathname: string }) {

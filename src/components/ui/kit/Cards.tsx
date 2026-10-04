@@ -129,14 +129,15 @@ export function ActionCard(props: Parameters<typeof ToolCard>[0]) { return <Tool
 
 export interface PanelFact { label: ReactNode; value: ReactNode; sub?: ReactNode }
 
-/** A level-1 panel (§5.9). With `facts`, a definition grid (`columns` across on desktop, 2 on phones): labels
- *  .t-label, values 14/20 text-1, a second line text-2; cells 24 apart, no lines. */
-export function PanelCard({ title, facts, columns = 4, children, className, labelledBy }: { title?: ReactNode; facts?: PanelFact[]; columns?: 2 | 3 | 4; children?: ReactNode; className?: string; labelledBy?: string }) {
+/** A level-1 panel (§5.9). With `facts`, a definition grid: `columns` across from 1024, two below, and on phones one —
+ *  or two with `phoneColumns={2}` where the cells are short. Labels .t-label, values 14/20 text-1, a second line text-2;
+ *  cells 24 apart, no lines. */
+export function PanelCard({ title, facts, columns = 4, phoneColumns = 1, children, className, labelledBy }: { title?: ReactNode; facts?: PanelFact[]; columns?: 2 | 3 | 4; /** < 640 px */ phoneColumns?: 1 | 2; children?: ReactNode; className?: string; labelledBy?: string }) {
   return (
     <section className={cls('card pcard', className)} aria-labelledby={labelledBy}>
       {title && <h3 className="t-title pcard-title">{title}</h3>}
       {facts && (
-        <dl className="pcard-grid" data-cols={columns}>
+        <dl className="pcard-grid" data-cols={columns} data-phone={phoneColumns === 2 ? 2 : undefined}>
           {facts.map((f, i) => (
             <div key={i} className="pcard-cell">
               <dt className="t-label">{f.label}</dt>

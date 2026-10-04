@@ -9,28 +9,29 @@ import { isStudioError } from '@/domain/errors';
 import { useStudio } from '@/studio/store';
 import { api, type StartedJob } from '@/studio/api';
 import { assetById, primaryImageOf } from '@/studio/selectors';
-import { T } from '@/lib/copy';
 import { useToast } from '@/components/ui/toast';
 import { useEngineStatus, useUnsavedGuard } from '@/lib/hooks';
-import { Crumbs } from '@/components/ui/nav';
-import { PageHeader } from '@/components/ui/page';
-import { Button, ChoiceCards, Notice } from '@/components/ui/kit';
-import { IconAuto, IconImageAdd, IconManual, IconOpen, IconRetry } from '@/components/ui/icons';
-import { dialectLabel } from '@/lib/format';
+import { Button, Notice, Segmented, StateWord } from '@/components/ui/kit';
+import { IconOpen, IconRetry } from '@/components/ui/icons';
 import { createResultOf, startCreateCharacter, startVoiceBuild, type CreateCharacterPayload, type CreateStepName } from '../contract';
-import { EMPTY_SHEET, SHEET_STEPS, sheetAge, sheetPayload, type SheetStep, type SheetValues } from '../sheetModel';
-import { SettingsSummary, type HeaderValues } from './SharedHeader';
-import { DescribeStart, describeVoiceMode, type DescribeRecording, type DescribeValues } from './DescribeStart';
-import { PictureStart, type PictureValues } from './PictureStart';
-import { SheetStart } from './SheetStart';
+import { EMPTY_SHEET, sheetAge, sheetPayload, type SheetValues } from '../sheetModel';
+import { AutoStart, FigurePreview, ManualStart, PictureStart, type DescribeRecording, type DescribeValues, type HeaderValues, type PictureValues } from './Starts';
+import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
-import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, engineGate } from './preflight';
+import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
 const STARTS: readonly Start[] = ['describe', 'sheet', 'picture'];
+const REC = { waiting: 'Your recording is checked as soon as the character exists', uploading: 'Checking your recording…', accepted: 'Recording accepted: the voice is built from it', refused: 'The recording was not accepted', error: 'The recording could not be checked' } as const;
+const ENGINE = { images: 'The picture engine', voice: 'The voice engine', story: 'The story engine' } as const;
+const METHOD: Record<Start, { label: string; hint: string }> = {
+  describe: { label: 'Auto', hint: 'One line about them; the studio drafts the sheet, the figure and, with a recording, the voice.' },
+  sheet: { label: 'Manual', hint: 'A short brief: name, role, style and language. Everything else on demand.' },
+  picture: { label: 'From a picture', hint: 'Upload a reference picture; the studio draws the figure to match it.' },
+};
 const KEY = 'vewbox.newCharacter';
-interface Draft { start: Start; header: HeaderValues; describe: DescribeValues; sheet: SheetValues; sheetStep: SheetStep; jobId?: string; referenceAssetId?: string }
+interface Draft { start: Start; header: HeaderValues; describe: DescribeValues; sheet: SheetValues; jobId?: string; referenceAssetId?: string }
 
 const readDraft = (): Partial<Draft> => { try { return JSON.parse(sessionStorage.getItem(KEY) ?? '{}') as Partial<Draft>; } catch { return {}; } };
 const writeDraft = (d: Partial<Draft>) => { try { sessionStorage.setItem(KEY, JSON.stringify(d)); } catch { /* fine */ } };
@@ -56,7 +57,6 @@ export function CreateCharacter() {
   const [describe, setDescribe] = useState<DescribeValues>({ name: '', brief: '', voiceMode: 'NONE' });
   const [picture, setPicture] = useState<PictureValues>({ name: '', role: '', keep: 'FACE', note: '' });
   const [sheet, setSheet] = useState<SheetValues>(EMPTY_SHEET);
-  const [sheetStep, setSheetStep] = useState<SheetStep>('identity');
   const [parentId, setParentId] = useState<string | null>(null);
   const [fetched, setFetched] = useState<Job | null>(null);
   const [retries, setRetries] = useState<Partial<Record<CreateStepName, string>>>({});
@@ -79,14 +79,13 @@ export function CreateCharacter() {
     if (d.header && !sp.get('show') && !sp.get('production')) setHeader(d.header);
     if (d.describe) setDescribe({ ...d.describe, voiceMode: describeVoiceMode(d.describe.voiceMode) });
     if (d.sheet) setSheet({ ...EMPTY_SHEET, ...d.sheet });
-    if (d.sheetStep && SHEET_STEPS.includes(d.sheetStep)) setSheetStep(d.sheetStep);
     // an explicit start in the address (?start=…, the directory's "three ways to start") asks for a NEW character: the
     // remembered run is not restored (it goes on; its profile shows it) — D5, found 2026-10-03
     if (d.jobId && !STARTS.includes(asked as Start)) setParentId(d.jobId);
     else if (d.jobId) writeDraft({ ...d, jobId: undefined, referenceAssetId: undefined });
     setHydrated(true);
   }, [sp, asked]);
-  useEffect(() => { if (hydrated) writeDraft({ start, header, describe, sheet, sheetStep, jobId: parentId ?? undefined, referenceAssetId: draft.current.referenceAssetId }); }, [hydrated, start, header, describe, sheet, sheetStep, parentId]);
+  useEffect(() => { if (hydrated) writeDraft({ start, header, describe, sheet, jobId: parentId ?? undefined, referenceAssetId: draft.current.referenceAssetId }); }, [hydrated, start, header, describe, sheet, parentId]);
   // when a show is chosen, its look and language are the defaults
   useEffect(() => { if (forShow) setHeader((h) => ({ ...h, style: forShow.style, language: forShow.language, dialect: forShow.dialect ?? h.dialect })); }, [forShow]);
 
@@ -142,11 +141,11 @@ export function CreateCharacter() {
   // preflight: the engines this start needs, read live
   const needsVoice = start === 'describe' && describe.voiceMode === 'RECORDING';
   const gate = engineGate(engines.status, needsVoice ? ['images', 'voice'] : ['images']);
-  const gateReason = !gate.ok ? `${T('char.create.engineDown')}: ${gate.blocked.map((b) => `${T.dyn(`status.${b.need}`)} — ${b.detail}`).join(' · ')}` : null;
-  const dialectReason = header.language === 'AR' && !header.dialect ? T('char.create.needDialect') : null;
+  const gateReason = !gate.ok ? `${gate.blocked.map((b) => ENGINE[b.need]).join(' and ')} ${gate.blocked.length > 1 ? 'are' : 'is'} not reachable right now, so nothing can be drawn yet.` : null;
+  const dialectReason = header.language === 'AR' && !header.dialect ? 'Choose a dialect for an Arabic character.' : null;
   const disabledReason = gateReason ?? dialectReason;
 
-  useUnsavedGuard(!parentId && (describe.brief.trim().length > 0 || picture.note.trim().length > 0 || sheet.name.trim().length > 0), T('char.create.leave'));
+  useUnsavedGuard(!parentId && (describe.brief.trim().length > 0 || picture.note.trim().length > 0 || sheet.name.trim().length > 0), 'Leave without creating the character? The brief is lost.');
 
   const basePayload = (): Pick<CreateCharacterPayload, 'style' | 'language' | 'dialect' | 'productionId' | 'showId'> => ({ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, showId: forShow?.id, productionId: forProduction?.id });
   const say = (job: StartedJob) => { for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail }); };
@@ -180,7 +179,7 @@ export function CreateCharacter() {
   };
   const submitPicture = () => {
     if (!picture.asset) return;
-    const keep = picture.keep === 'FACE' ? T('char.create.keepFace.prompt') : T('char.create.keepAll.prompt');
+    const keep = picture.keep === 'FACE' ? 'Keep the face from the reference picture; everything else follows the sheet.' : 'Keep the face, hair and wardrobe from the reference picture.';
     const brief = [keep, picture.note.trim()].filter(Boolean).join(' ');
     // the look is the picture's (never designed from words); who they are travels in the profile
     const ageYears = sheetAge({ band: picture.band });
@@ -201,70 +200,68 @@ export function CreateCharacter() {
         : await startVoiceBuild(startJob, { characterId, mode: lastPayload?.voice?.referenceSampleId ? 'REFERENCE' : 'AUTOMATIC', referenceSampleId: lastPayload?.voice?.referenceSampleId });
       say(job);
       setRetries((r) => ({ ...r, [step]: job.id }));
-    } catch (e) { toast.bad(`${T('gen.failed')}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
+    } catch (e) { toast.bad(`${'Could not start'}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
   };
-  const writeMyself = () => { setSheet((s) => ({ ...s, name: lastPayload?.name ?? describe.name, look: lastPayload?.brief ?? describe.brief })); setSheetStep('identity'); reset(); setStart('sheet'); };
+  const writeMyself = () => { setSheet((s) => ({ ...s, name: lastPayload?.name ?? describe.name, look: lastPayload?.brief ?? describe.brief })); reset(); setStart('sheet'); };
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
   const reset = () => { setParentId(null); setFetched(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
-  const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok(T('toast.deleted')); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
+  const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok('Deleted.'); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const drawAgain = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); say(job); setRetries((r) => ({ ...r, image: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 
   const profileHref = characterId ? `/characters/${characterId}?created=${parentId ?? ''}#image` : '/characters';
   const cancelHref = forShow ? `/shows/${forShow.id}?tab=characters` : '/characters';
-  const settings = <SettingsSummary value={header} onChange={setHeader} />;
+  const cancelTo = () => router.push(cancelHref);
+  const preview = start === 'describe' ? <FigurePreview name={describe.name} header={header} sex={describe.sex} band={describe.band} ageYears={describe.ageYears} />
+    : start === 'sheet' ? <FigurePreview name={sheet.name} role={sheet.role} header={header} sex={sheet.sex} band={sheet.band} ageYears={sheet.exactAge} />
+    : <FigurePreview name={picture.name} role={picture.role} header={header} sex={picture.sex} band={picture.band} />;
 
   return (
-    <div className="max-w-[64rem]">
-      <Crumbs items={[{ href: '/characters', label: T('nav.characters') }, { label: T('cast.new.title') }]} />
-      <PageHeader title={T('cast.new.title')} subtitle={T('cast.new.lead')} />
+    <div className="pc-page pc-create">
+      <PageHead back={{ href: forShow ? `/shows/${forShow.id}?tab=characters` : '/characters', label: forShow ? forShow.title : 'Characters' }} title="New character" description="The studio drafts; you approve the figure before it is used anywhere." />
 
       {!running && !ready && (
-        <div className="space-y-8">
-          <section aria-labelledby="how-h">
-            <h2 id="how-h" className="section-title mb-4">{T('cast.new.how')}</h2>
-            <ChoiceCards name="start" size="lg" columns={3} label={T('cast.new.how')} value={start} onChange={(v) => { setStart(v); setStartError(null); }} options={[
-              { value: 'describe', label: T('char.create.describe'), hint: T('cast.start.describe.hint'), icon: <IconAuto /> },
-              { value: 'sheet', label: T('char.create.sheet'), hint: T('cast.start.sheet.hint'), icon: <IconManual /> },
-              { value: 'picture', label: T('char.create.picture'), hint: T('cast.start.picture.hint'), icon: <IconImageAdd /> },
-            ]} />
-          </section>
-          {gateReason && start !== 'sheet' && (
-            <Notice tone="warn" title={T('char.create.engineDownTitle')} action={<span className="flex flex-wrap gap-2"><Link href="/settings#engines" className="btn btn-secondary btn-sm">{T('char.create.openEngines')}</Link><Button size="sm" variant="quiet" icon={<IconRetry />} loading={engines.loading} onClick={engines.reload}>{T('btn.refresh')}</Button></span>}>
-              {gate.blocked.map((b) => <span key={b.need} className="block" dir="auto">{T.dyn(`status.${b.need}`)}: {b.detail}</span>)}
-              <span className="mt-1 block">{T('char.create.sheetAlwaysWorks')}</span>
-            </Notice>
-          )}
-          {startError && <Notice tone="bad" title={T('gen.failed')}>{startError}</Notice>}
-          <div key={start} className="fade-in">
-            {start === 'describe' && <DescribeStart value={describe} onChange={setDescribe} recording={recording} onRecording={setRecording} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
-            {start === 'sheet' && <SheetStart value={sheet} onChange={setSheet} step={sheetStep} onStep={setSheetStep} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} language={header.language} styleWord={T.dyn(`style.${header.style}`)} languageWord={header.language === 'AR' ? `${T('label.arabic')} (${dialectLabel(header.dialect)})` : T('label.english')} />}
-            {start === 'picture' && <PictureStart value={picture} onChange={setPicture} onSubmit={submitPicture} busy={busy} disabledReason={disabledReason} onCancel={() => router.push(cancelHref)} settings={settings} />}
+        <>
+          <div className="pc-methods">
+            <Segmented label="How to start" value={start} onChange={(v) => { setStart(v); setStartError(null); }} options={STARTS.map((s) => ({ value: s, label: METHOD[s].label }))} />
+            <p className="t-body pc-empty-line">{METHOD[start].hint}</p>
           </div>
-        </div>
+          {gateReason && start !== 'sheet' && (
+            <div className="pc-notice-top"><Notice tone="warn" title="An engine this start needs is not reachable" action={<span className="char-form-acts"><Link href="/settings#engines" className="btn btn-secondary btn-sm">Engines</Link><Button size="sm" variant="quiet" icon={<IconRetry />} loading={engines.loading} onClick={engines.reload}>Check again</Button></span>}>
+              {gate.blocked.map((b) => <span key={b.need} className="pc-notice-line" dir="auto">{ENGINE[b.need]}: {b.detail}</span>)}
+              <span className="pc-notice-line">Manual always works: the figure can be drawn once the engine is back.</span>
+            </Notice></div>
+          )}
+          {startError && <div className="pc-notice-top"><Notice tone="bad" title="Could not start">{startError}</Notice></div>}
+          <div className="pc-create-body">
+            <div className="card pc-create-card" key={start}>
+              {start === 'describe' && <AutoStart value={describe} onChange={setDescribe} recording={recording} onRecording={setRecording} onSubmit={submitDescribe} busy={busy} disabledReason={disabledReason} onCancel={cancelTo} header={header} onHeader={setHeader} />}
+              {start === 'sheet' && <ManualStart value={sheet} onChange={setSheet} onCreate={submitSheet} busy={busy} drawDisabledReason={disabledReason} onCancel={cancelTo} header={header} onHeader={setHeader} />}
+              {start === 'picture' && <PictureStart value={picture} onChange={setPicture} onSubmit={submitPicture} busy={busy} disabledReason={disabledReason} onCancel={cancelTo} header={header} onHeader={setHeader} />}
+            </div>
+            <aside className="pc-create-preview" aria-label="Preview">{preview}</aside>
+          </div>
+        </>
       )}
 
       {running && (
-        <div className="space-y-4">
-          <p className="text-[13px] text-muted" role="note">{T('cast.new.leaveSafe')}</p>
+        <div className="pc-working">
+          <p className="t-body pc-empty-line" role="note">You can leave this page: the work goes on, and the profile shows it when it is done.</p>
           <CreationProgress parent={parent} steps={steps} characterId={characterId} settled={settled} referenceSrc={start === 'picture' || draft.current.referenceAssetId ? referenceSrc : undefined} onCancel={() => void cancel()} cancelling={cancelling} onRetryStep={(s) => void retryStep(s)} onWriteMyself={writeMyself}>
             {voiceUpload && voiceUpload.forJob === parentId && (
-              <div className="mt-3 flex flex-wrap items-center gap-2" role="status">
-                <span className={`status ${voiceUpload.state === 'accepted' ? 'status-ok' : voiceUpload.state === 'refused' || voiceUpload.state === 'error' ? 'status-bad' : 'status-info'}`} dir="auto">
-                  {T.dyn(`char.create.rec.${voiceUpload.state}`)}{voiceUpload.message ? ` — ${voiceUpload.message}` : ''}
-                </span>
-                {voiceUpload.state === 'error' && recording && <Button size="sm" variant="quiet" icon={<IconRetry />} onClick={() => setVoiceUpload({ ...voiceUpload, state: 'waiting', message: undefined })}>{T('jobs.retry')}</Button>}
-                {(voiceUpload.state === 'refused' || voiceUpload.state === 'error') && characterId && <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">{T('char.create.addRecording')}</Link>}
+              <div className="char-form-acts char-voice" role="status">
+                <StateWord tone={voiceUpload.state === 'accepted' ? 'done' : voiceUpload.state === 'refused' || voiceUpload.state === 'error' ? 'failed' : 'running'}>{REC[voiceUpload.state]}{voiceUpload.message ? ` — ${voiceUpload.message}` : ''}</StateWord>
+                {voiceUpload.state === 'error' && recording && <Button size="sm" variant="quiet" icon={<IconRetry />} onClick={() => setVoiceUpload({ ...voiceUpload, state: 'waiting', message: undefined })}>Try again</Button>}
+                {(voiceUpload.state === 'refused' || voiceUpload.state === 'error') && characterId && <Link href={`/characters/${characterId}#voice`} className="btn btn-secondary btn-sm">Add a recording</Link>}
               </div>
             )}
             {settled && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line-soft pt-4">
+              <div className="creation-foot">
                 {created ? <>
-                  <p className="me-auto text-[13px] text-body" dir="auto">{T('char.create.partial').replace('{name}', created.name)}</p>
-                  <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />{T('char.create.openProfile')}</Link>
+                  <span className="t-body" dir="auto">{created.name} exists. Open the profile to finish what did not run.</span>
+                  <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />Open the profile</Link>
                 </> : <>
-                  <p className="me-auto text-[13px] text-body">{T('char.create.nothingMade')}</p>
-                  <Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>{T('jobs.retry')}</Button>
-                  <Button variant="quiet" onClick={reset}>{T('btn.back')}</Button>
+                  <span className="t-body">Nothing was created; your brief is kept.</span>
+                  <span className="char-form-acts"><Button variant="quiet" onClick={reset}>Back to the brief</Button><Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>Try again</Button></span>
                 </>}
               </div>
             )}

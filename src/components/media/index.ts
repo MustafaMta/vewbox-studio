@@ -11,3 +11,5 @@ export { CastGrid, CastRow, type CastMember } from './CastRow';
 export { CompactHeader, CompactThumb, type ThumbShape } from '@/components/ui/kit/CompactHeader';
 export { BackdropHero, DiptychHero, SleeveHero, FigureHero, PlateHero, TheatreHero, HeroText } from './hero';
 export { artStyle, objectPosition, focalOf, faceBoxOf, faceCrop, portraitPosition, initials, RATIO_VALUE, type Picture, type FrameRatio } from './art';
+export { StylePicker, StylePreview } from './StylePicker';
+export { STYLE_WORDS } from './styles';

@@ -14,6 +14,9 @@ import { ErrorNotice, SampleBadge, TextBars } from '../States';
 import { StateWord } from '../Status';
 import { TabBar } from '../Tabs';
 import { Slot, SpecRow, SpecSection } from './parts';
+import { DisclosureCard, StageSteps, StageStepsSkeleton } from '../Pickers';
+import { StylePicker } from '@/components/media/StylePicker';
+import type { Style } from '@/domain/vocabulary';
 
 function Paper() {
   return <div className="paper prose-copy p-5" dir="auto">Abu Samir’s café, at dusk. The radio crackles; Amina turns the dial until a voice answers. “Is anyone still listening?”</div>;
@@ -88,6 +91,8 @@ export function CreationSpec() {
   const [method, setMethod] = useState<CreationMethod>('auto');
   const [brief, setBrief] = useState('');
   const [len, setLen] = useState('6');
+  const [look, setLook] = useState<Style | null>('CARTOON');
+  const [lookAuto, setLookAuto] = useState<Style | null>(null);
   return (
     <SpecSection id="creation" title={'Creation flow'} lead={'One layout for every new thing: the method, the one essential input, the settings in one line, and the time it takes.'}>
       <div>
@@ -105,6 +110,31 @@ export function CreationSpec() {
           </SettingsSummary>
         </CreationShell>
       </div>
+      <SpecRow label="PicturePicker (StylePicker)">
+        <div className="kit-spec-wide">
+          <StylePicker value={look} onChange={setLook} />
+          <StylePicker value={lookAuto} onChange={setLookAuto} auto="Studio decides" label="Style, with Studio decides" />
+        </div>
+      </SpecRow>
+      <SpecRow label="StageSteps">
+        <div className="kit-spec-wide kit-spec-grid-2">
+          <StageSteps label="Development stages" stages={[
+            { id: 'research', label: 'Research', who: 'Story Research', state: 'done', note: '6 sources', time: '0:42' },
+            { id: 'concepts', label: 'Concepts', who: 'Story Development', state: 'done', time: '1:10' },
+            { id: 'outline', label: 'Outline', who: 'Story Development', state: 'running', note: 'Writing beat 4 of 7', time: '0:31' },
+            { id: 'review', label: 'Review', who: 'Story Review', state: 'waiting' },
+            { id: 'audience', label: 'Audience check', who: 'Audience Experience', state: 'skipped', time: 'Skipped' },
+            { id: 'polish', label: 'Polish', who: 'Story Development', state: 'failed', note: 'The engine returned nothing usable', time: 'Stopped' },
+          ]} />
+          <StageStepsSkeleton count={6} />
+        </div>
+      </SpecRow>
+      <SpecRow label="DisclosureCard">
+        <div className="kit-spec-wide">
+          <DisclosureCard title="More control" description="Cast, locations, genre and an exact length"><Field label="Genre" optional><Textarea rows={2} /></Field></DisclosureCard>
+          <DisclosureCard variant="inline" title="Preferences" description="All up to the studio" defaultOpen><p className="t-body">Style, language, length and who it is for.</p></DisclosureCard>
+        </div>
+      </SpecRow>
       <SpecRow label="Stepper">
         <Stepper steps={[{ id: 'identity', label: 'Identity' }, { id: 'look', label: 'Look' }, { id: 'voice', label: 'Voice' }]} current={1} />
       </SpecRow>
