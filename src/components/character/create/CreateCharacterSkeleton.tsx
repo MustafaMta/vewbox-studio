@@ -36,7 +36,7 @@ const more = <details className="details creation-more"><summary tabIndex={-1}><
 const foot = (primary: number, secondary?: number) => (
   <div className="creation-foot">
     <span className="t-meta"><Skeleton.Line width="16rem" /></span>
-    <span className="char-form-acts"><Skeleton.Block width={76} height={40} radius="pill" />{secondary && <Skeleton.Block width={secondary} height={40} radius="pill" />}<Skeleton.Block width={primary} height={40} radius="pill" /></span>
+    <span className="char-form-acts"><Skeleton.Block width={76} height="var(--control-h)" radius="pill" />{secondary && <Skeleton.Block width={secondary} height="var(--control-h)" radius="pill" />}<Skeleton.Block width={primary} height="var(--control-h)" radius="pill" /></span>
   </div>
 );
 

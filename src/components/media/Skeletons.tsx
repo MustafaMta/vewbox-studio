@@ -47,7 +47,7 @@ export function FeaturedCardSkeleton({ thumbs = 4, className }: { thumbs?: 0 | 1
         <Skeleton.Block width={72} height={22} radius="pill" />
         <span className="feat-title"><Skeleton.Line size="title" width="62%" /></span>
         <span className="t-body feat-body"><Skeleton.Line width="88%" /><br /><Skeleton.Line width="54%" /></span>
-        <Skeleton.Block width={96} height={32} radius="pill" className="feat-btn" />
+        <Skeleton.Block width={96} height="var(--control-h-sm)" radius="pill" className="feat-btn" />
       </span>
       {thumbs > 0 && <span className="feat-thumbs" data-count={thumbs}>{Array.from({ length: thumbs }, (_, i) => <Skeleton.Block key={i} className="feat-thumb" width="100%" height="100%" radius="sm" />)}</span>}
     </span>
@@ -63,7 +63,7 @@ export function DecisionCardSkeleton({ className }: { className?: string }) {
         <span className="dcard-kind t-label"><Skeleton.Line width="48%" /></span>
         <span className="t-card dcard-title"><Skeleton.Line width="70%" /></span>
         <span className="dcard-desc t-body"><Skeleton.Line width="92%" /><br /><Skeleton.Line width="60%" /></span>
-        <Skeleton.Block width={136} height={32} radius="pill" className="dcard-verb" />
+        <Skeleton.Block width={136} height="var(--control-h-sm)" radius="pill" className="dcard-verb" />
       </span>
     </span>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useId, type ReactNode } from 'react';
 import { cls } from './cls';
 import { rovingIndex, rovingStep } from './focus';
@@ -48,6 +49,17 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
       {group}
       {reasons.map((o) => <span key={o.value} id={`${reasonId}-${o.value}`} className="seg-reason">{o.reason}</span>)}
     </span>
+  );
+}
+
+/** A segmented control whose options are places (the Shows | Shorts | Music Videos switch at the top of the catalogues
+ *  below 1024, §5.2): a <nav> of links on Segmented's track, the current place marked `aria-current="page"`. Not a
+ *  radiogroup — choosing one navigates, so each option is a real link with the browser's own keyboard handling. */
+export function SegmentedLinks({ label, items, current, className }: { label: string; items: Array<{ href: string; label: ReactNode; icon?: ReactNode }>; current?: string; className?: string }) {
+  return (
+    <nav aria-label={label} className={cls('seg seg-links', className)}>
+      {items.map((it) => <Link key={it.href} href={it.href} aria-current={current === it.href ? 'page' : undefined}>{it.icon}{it.label}</Link>)}
+    </nav>
   );
 }
 

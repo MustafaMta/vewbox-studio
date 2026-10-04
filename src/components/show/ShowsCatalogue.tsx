@@ -3,10 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
-import { EmptyState, FilterChips, SearchField, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaTileSkeleton, StartCard } from '@/components/media';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
+import { EmptyState, FilterChips, SearchField } from '@/components/ui/kit';
+import { StartCard } from '@/components/media';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
 import { NewShowButton, ShowTile } from './parts';
+
+/** The catalogue's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { ShowsSkeleton } from './skeletons';
 
 /** SHOWS — the series catalogue: a wall of 16:9 key art (3 · 2 · 1 columns), each show's name, its seasons and
  *  episodes and where it stands. New show is the page's one primary (Auto, or Manual from the split). Filters appear only
@@ -27,9 +31,10 @@ export function ShowsCatalogue() {
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((x) => [x.id, filterShows(cards, '', x.id).length])) as Record<ShowFilter, number>, [cards]);
   const filters = cards.length > 6;
 
-  if (cards.length === 0) return <div className="shows" data-state="empty"><EmptyShows /></div>;
+  if (cards.length === 0) return <div className="shows" data-state="empty"><ProductionsSwitch /><EmptyShows /></div>;
   return (
     <div className="shows" data-state="shows">
+      <ProductionsSwitch />
       <header className="shows-page-head">
         <div className="shows-page-title">
           <h1 className="t-page shows-head-h">Shows{cards.length > 0 && <span className="shows-count t-ro t-ro-md">{cards.length}</span>}</h1>
@@ -66,24 +71,5 @@ function EmptyShows() {
       cards={<><StartCard href="/new/show?mode=auto" ratio="16/9" title="Let the studio propose" line="From one line of yours" /><StartCard href="/new/show?mode=manual" ratio="16/9" title="Write it yourself" line="Your premise, your world, your cast" /></>}>
       A show is seasons of episodes with one cast and one world; start the first one from a line of yours, or write it, and approve each step.
     </EmptyState>
-  );
-}
-
-/** /shows while the studio's first snapshot loads: the head, then a 3 · 2 · 1 grid of key-art tiles in their final
- *  sizes (the same classes size them). */
-export function ShowsSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the shows…" className="shows shows-skeleton">
-      <div className="shows-page-head">
-        <div className="shows-page-title">
-          <div className="t-page"><Skeleton.Line size="title" width="7rem" /></div>
-          <div className="t-body"><Skeleton.Line width="22rem" /></div>
-        </div>
-        <div className="shows-page-acts"><Skeleton.Block width={144} height={40} radius="pill" /></div>
-      </div>
-      <div className="shows-grid">
-        {Array.from({ length: 6 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}
-      </div>
-    </SkeletonRegion>
   );
 }

@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useLive, useOrg, type HandoffRow, type OrgDepartment, type OrgResponse } from '@/studio/org';
-import { RING, VIEW, deriveCompany, edgeGeometry, seats, type Company, type CompanyEdge, type NodeState, type Seat } from '@/studio/company';
+import { VIEW, deriveCompany, edgeGeometry, seats, type Company, type CompanyEdge, type NodeState, type Seat } from '@/studio/company';
 import { useStudio } from '@/studio/store';
 import { approvalSubjectHash, isGatedStage } from '@/domain/approvals';
 import { useShell } from '@/components/shell/context';
-import { Button, ErrorState, JobDot, LinkButton, Skeleton, SkeletonRegion, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
+import { Button, ErrorState, JobDot, LinkButton, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
 import { IconChevronRight } from '@/components/ui/icons';
 import { RunningNow } from '@/components/production/Running';
-import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
+import { EmptyLine, PageHead, Row, Rows, Section } from './parts';
+import { StudioCompanySkeleton } from './skeletons';
 import {
   checksLine, countWord, departmentCodes, departmentName, departmentsInOrder, duration, handoffTarget, percent, plural, recordOf,
   shortWhen, skillsOfTeam, spanWords, stageName, teamOf, toolsOfTeam,
@@ -483,23 +484,5 @@ function DepartmentRecords({ org }: { org: OrgResponse }) {
 
 // --------------------------------------------------------------------------------------------------- skeleton
 
-/** The company while its record loads: the head, the state line, the ring's stage and the inspector at their real
- *  sizes (the spine on phones), then the sections' heads and rows (§5.22). */
-export function StudioCompanySkeleton() {
-  return (
-    <SkeletonRegion label="Reading the company record…" className="cp company">
-      <HeadSkeleton />
-      <div className="card co-state"><Skeleton.Line width="min(28rem, 80%)" /></div>
-      <div className="co-grid">
-        <div className="card co-stage"><div className="co-frame"><Skeleton.Block width="100%" height="100%" radius="lg" className="co-frame-sk" /></div><p className="t-meta co-legend"><Skeleton.Line width="70%" /></p></div>
-        <div className="card co-inspector"><Skeleton.Line width="40%" /><span className="t-title co-insp-title"><Skeleton.Line size="title" width="70%" /></span><Skeleton.Text lines={3} /></div>
-      </div>
-      <div className="co-spine">
-        <div className="card co-spine-orch"><Skeleton.Text lines={3} /></div>
-        <div className="co-spine-list">{RING.map((id) => <div key={id} className="card co-spine-row"><span className="co-disc" /><span className="co-spine-words"><Skeleton.Line width="60%" /><Skeleton.Line width="30%" /></span></div>)}</div>
-      </div>
-      <div className="cp-section"><SectionHeadSkeleton width="8rem" /><RowsSkeleton n={1} /></div>
-      <div className="cp-section"><SectionHeadSkeleton width="10rem" /><RowsSkeleton n={6} /></div>
-    </SkeletonRegion>
-  );
-}
+/** The company's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { StudioCompanySkeleton };

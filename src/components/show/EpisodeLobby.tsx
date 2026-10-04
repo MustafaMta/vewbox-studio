@@ -6,11 +6,10 @@ import type { Production, Season, Show } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { castOf, productionHref, STAGE_ORDER, stageIndex } from '@/studio/selectors';
 import { useShell } from '@/components/shell/context';
-import { SectionHead, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { SectionHeadSkeleton } from '@/components/media';
+import { SectionHead } from '@/components/ui/kit';
 import { IconChevronLeft, IconPlay } from '@/components/ui/icons';
 import { LANGUAGE_LABEL, episodeCard, episodePicture, episodesOfSeason, figure, minutes, nameLang, nextAction, runtime, stageOf, stageWords, waitingProductions } from './model';
-import { Backdrop, BackdropSkeleton, Caption } from './Backdrop';
+import { Backdrop, Caption } from './Backdrop';
 import { CastCard, EmptyLine, EpisodeTile, StatusWord } from './parts';
 
 /** ONE EPISODE — the episode's title page (its lobby): the still at Home's banner proportions, the words under it (the
@@ -92,21 +91,5 @@ export function EpisodeLobby({ show, season, p }: { show: Show; season?: Season;
   );
 }
 
-/** An episode lobby while the studio's first snapshot loads: the back link, the still and its caption, and the six
- *  production steps, in their final sizes. */
-export function EpisodeSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the episode…" className="shows episode-page shows-skeleton">
-      <div className="page-back"><Skeleton.Line width="10rem" /></div>
-      <BackdropSkeleton />
-      <div className="shows-section">
-        <SectionHeadSkeleton titleWidth="8rem" description />
-        <div className="ep-steps">{STAGE_ORDER.map((st) => <Skeleton.Block key={st} className="ep-step" width="100%" height="auto" radius="md" />)}</div>
-      </div>
-      <div className="shows-section">
-        <SectionHeadSkeleton titleWidth="5rem" />
-        <div className="t-prose ep-story-skeleton"><Skeleton.Line width="96%" /><Skeleton.Line width="88%" /><Skeleton.Line width="64%" /></div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The lobby's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { EpisodeSkeleton } from './skeletons';

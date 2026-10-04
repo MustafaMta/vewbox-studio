@@ -9,9 +9,10 @@ import { cls } from './cls';
  *  viewport's end edge, so the next card shows; on phones it bleeds to both edges. Previous / next buttons sit at the
  *  head's end only while the row is wider than the column (disabled at each end); on phones the row is swiped.
  *
- *  `kind` sets the card width (one place for every page): wide 288 (16:9) · poster 184 (2:3) · sleeve 216 (1:1) ·
- *  figure 168 (928:1664) · tool 240; phones 240 · 150 · 170 · 136 · 200. `cardWidth` overrides it. Each child is one
- *  card; the shelf wraps it in its list item. */
+ *  `kind` sets the card width from the one set of card tokens every catalogue grid reads too (tokens.css --card-*;
+ *  Design QA M6): wide 288 (16:9) · poster 184 (2:3) · sleeve 216 (1:1) · figure 168 (928:1664) · tool 240; on phones
+ *  two across for posters, sleeves, figures and tools, the column for a 16:9 card. `cardWidth` overrides it. Each
+ *  child is one card; the shelf wraps it in its list item. */
 
 export type ShelfKind = 'wide' | 'poster' | 'sleeve' | 'figure' | 'tool';
 

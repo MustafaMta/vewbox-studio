@@ -57,7 +57,7 @@
   :is(.btn-sm, .btn-xs) svg { inline-size: 14px; block-size: 14px; }
   .btn-lg { block-size: var(--control-h-lg); padding: 0 20px; font-size: 15px; line-height: 20px; }
   .btn-lg svg { inline-size: 18px; block-size: 18px; }
-  @media (pointer: coarse) { .btn, .btn-sm, .btn-xs { min-block-size: 44px; } .tab { min-block-size: 44px; } }
+  @media (pointer: coarse) { .btn, .btn-sm, .btn-xs { min-block-size: 44px; } .tab { min-inline-size: 44px; min-block-size: 44px; justify-content: center; } }
   /* the icon button: a circle, 40 (sm 32), quiet or secondary fill */
   .btn-icon { inline-size: var(--control-h); padding: 0; }
   .btn-icon svg { inline-size: 18px; block-size: 18px; }
@@ -175,6 +175,7 @@
   .seg > :is([aria-selected='true'], [aria-pressed='true'], [aria-checked='true'], [aria-current='page'], .is-selected) { background: var(--surface-3); color: var(--text-1); }
   .seg > :is(:disabled, [aria-disabled='true']) { color: var(--text-disabled); cursor: not-allowed; }
   .seg > *:focus-visible { outline-offset: -2px; }
+  .seg > a { text-decoration: none; }
   @media (pointer: coarse) { .seg > * { min-block-size: 44px; min-inline-size: 44px; } }
   .seg-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; max-inline-size: 100%; }
   .seg-reason { font-size: 12px; line-height: 16px; color: var(--text-3); }
@@ -447,7 +448,7 @@
   .catalogue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .catalogue-search { position: relative; flex: 0 1 28rem; min-inline-size: 0; max-inline-size: 100%; }
   .catalogue-search > svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; translate: 0 -50%; inline-size: 16px; block-size: 16px; color: var(--text-3); pointer-events: none; }
-  .catalogue-search .input { block-size: 40px; line-height: 38px; padding-inline-start: 36px; }
+  .catalogue-search .input { block-size: var(--control-h); line-height: calc(var(--control-h) - 2px); padding-inline-start: 36px; }
   .catalogue-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .catalogue-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   @media (max-width: 639px) {
@@ -484,6 +485,8 @@
   .page-header > .page-actions { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-block-start: 2px; }
   .page-back { display: inline-flex; align-items: center; gap: 4px; justify-self: start; margin-block-end: 16px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); border-radius: var(--r-sm); transition: color var(--dur-1) var(--ease-enter); }
   .page-back:hover { color: var(--text-1); }
+  /* coarse pointers (§5, M7): a 44 px hit area without moving the layout — the padding is given back as margin */
+  @media (pointer: coarse) { .page-back { min-block-size: 44px; padding-block: 10px; margin-block: -10px 6px; } }
   .page-eyebrow, .page-slate { margin-block-end: 8px; }
   .page-count { margin-inline-start: 12px; font-size: 16px; line-height: 1; font-weight: 400; letter-spacing: 0; color: var(--text-3); }
   .page-alt { margin-block-start: 4px; }
@@ -770,6 +773,8 @@
   .shead-link:hover { color: var(--text-1); }
   .shead-link svg { inline-size: 16px; block-size: 16px; }
   .shead-link-short { display: none; }
+  /* coarse pointers (§5, M7): the quiet link's hit area is 44 high; the head keeps its 32 px line (margin gives it back) */
+  @media (pointer: coarse) { .shead-link { min-inline-size: 44px; min-block-size: 44px; margin-block: -6px; justify-content: flex-end; } }
   .shead-arrows { display: inline-flex; gap: 8px; }
   @media (max-width: 639px) {
     .shead-pos { display: inline; }
@@ -783,19 +788,16 @@
   .shelf { min-inline-size: 0; }
   .shelf + .shelf, * + .shelf { margin-block-start: var(--section-gap); }
   .shell-column:has(.shelf) { overflow-x: clip; }
-  .shelf-track { --card-w: 288px; --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -4px calc(-1 * var(--bleed)) -4px 0; padding: 4px var(--bleed) 4px 0; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
+  /* the card widths are the tokens every catalogue grid reads too (tokens.css --card-*: one size per object, M6) */
+  .shelf-track { --card-w: var(--card-wide); --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -4px calc(-1 * var(--bleed)) -4px 0; padding: 4px var(--bleed) 4px 0; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
   .shelf-track > * { flex: none; inline-size: var(--card-w); min-inline-size: 0; scroll-snap-align: start; }
-  .shelf[data-kind='poster'] > .shelf-track { --card-w: 184px; }
-  .shelf[data-kind='sleeve'] > .shelf-track { --card-w: 216px; }
-  .shelf[data-kind='figure'] > .shelf-track { --card-w: 168px; }
-  .shelf[data-kind='tool'] > .shelf-track { --card-w: 240px; }
+  .shelf[data-kind='poster'] > .shelf-track { --card-w: var(--card-poster); }
+  .shelf[data-kind='sleeve'] > .shelf-track { --card-w: var(--card-sleeve); }
+  .shelf[data-kind='figure'] > .shelf-track { --card-w: var(--card-figure); }
+  .shelf[data-kind='tool'] > .shelf-track { --card-w: var(--card-tool); }
   .shelf-track > * > :is(.mcard, .fcard, .tool-card, .start-card, .dcard) { block-size: 100%; }
   @media (max-width: 639px) {
-    .shelf-track { --card-w: 240px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
-    .shelf[data-kind='poster'] > .shelf-track { --card-w: 150px; }
-    .shelf[data-kind='sleeve'] > .shelf-track { --card-w: 170px; }
-    .shelf[data-kind='figure'] > .shelf-track { --card-w: 136px; }
-    .shelf[data-kind='tool'] > .shelf-track { --card-w: 200px; }
+    .shelf-track { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
   }
 
   /* ---- the tool card (§5.8; Home's tool cards): a level-1 card that is one link, 112 high (104 on phones), padding 16;
@@ -810,9 +812,9 @@
   .tool-card-chev { inline-size: 16px; block-size: 16px; color: var(--text-3); transition: color var(--dur-1) var(--ease-out); }
   a.tool-card:hover .tool-card-chev { color: var(--text-1); }
   .tool-card-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
-  .tool-card-title, .tool-card-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tool-card-title { font-size: 14px; line-height: 18px; font-weight: 500; color: var(--text-1); }
-  .tool-card-line { font-size: 13px; line-height: 18px; color: var(--text-2); }
+  .tool-card-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 18px; font-weight: 500; color: var(--text-1); }
+  /* the line may take two lines before it is clamped (QA m6: "9 departments · 35 ag…"); 20 + 18 + 2 + 36 fits the card */
+  .tool-card-line { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 18px; color: var(--text-2); }
   .tool-card[aria-disabled='true'] :is(.tool-card-title, .tool-card-line) { color: var(--text-disabled); }
   .tool-card[aria-disabled='true'] .tool-card-line { color: var(--text-3); }
   .tool-card-sk { padding: 16px; }

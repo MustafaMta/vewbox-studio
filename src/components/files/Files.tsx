@@ -12,10 +12,11 @@ import type { FrameRatio } from '@/components/media/art';
 import { VideoPlayer } from '@/components/players/VideoPlayer';
 import { AudioPlayer } from '@/components/players/Controls';
 import { TrackButton } from '@/components/players/PlayerProvider';
-import { Button, ConfirmDialog, Dialog, FilterChips, SearchField, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
+import { Button, ConfirmDialog, Dialog, FilterChips, SearchField, Skeleton, StateWord } from '@/components/ui/kit';
 import { IconUpload } from '@/components/ui/icons';
 import { useToast } from '@/components/ui/toast';
-import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, Section, SectionHeadSkeleton } from '@/components/studio/parts';
+import { EmptyLine, PageHead, Row, Rows, Section } from '@/components/studio/parts';
+import { FilesSkeleton } from './FilesSkeleton';
 import { clip, groups as groupFiles, kindCounts, originWords, ownership, size, type FileItem, type KindFilter, type OwnerFilter, type OwnerGroup, type OwnerKind } from './model';
 
 /** FILES (docs/DESIGN-SYSTEM-V5.md §8.13) — every picture, clip, sound and subtitle the studio holds, grouped by whom
@@ -180,21 +181,5 @@ function Preview({ asset: a, item, onClose }: { asset: Asset | null; item: FileI
   );
 }
 
-/** Files while the studio opens: the head, the bar, and an owner block of figures and one of 16:9 stills (§5.22). */
-export function FilesSkeleton() {
-  return (
-    <SkeletonRegion label="Opening Files…" className="cp files">
-      <HeadSkeleton />
-      <div className="fl-bar"><Skeleton.Block width="100%" height={40} radius="md" className="fl-search" /><Skeleton.Block width={360} height={36} radius="md" /><Skeleton.Block width={420} height={36} radius="md" /></div>
-      <p className="t-meta fl-count"><Skeleton.Line width="6rem" /></p>
-      <div className="cp-section">
-        <SectionHeadSkeleton width="9rem" />
-        <div className="fl-owner"><span className="t-title fl-owner-h"><Skeleton.Line width="8rem" /></span><div className="fl-grid" data-shape="figure">{Array.from({ length: 6 }, (_, i) => <Skeleton.Tile key={i} ratio="928/1664" />)}</div></div>
-      </div>
-      <div className="cp-section">
-        <SectionHeadSkeleton width="9rem" />
-        <div className="fl-owner"><span className="t-title fl-owner-h"><Skeleton.Line width="8rem" /></span><div className="fl-grid" data-shape="wide">{Array.from({ length: 4 }, (_, i) => <Skeleton.Tile key={i} ratio="16/9" />)}</div></div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The page's skeleton lives in ./FilesSkeleton (drawn synchronously by the shell); re-exported for the page. */
+export { FilesSkeleton };

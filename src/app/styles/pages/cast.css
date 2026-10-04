@@ -17,6 +17,7 @@
   .pc-head-acts { display: flex; flex: none; align-items: center; gap: 8px; }
   .pc-back { display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; margin-block-end: 12px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: var(--r-xs); transition: color var(--dur-1) var(--ease-out); }
   .pc-back:hover { color: var(--text-1); }
+  @media (pointer: coarse) { .pc-back { min-block-size: 44px; padding-block: 10px; margin-block: -10px 2px; } }
   .pc-back svg { inline-size: 16px; block-size: 16px; }
   .pc-bar { margin-block-start: 24px; }
   .pc-bar .catalogue-bar { margin: 0; }
@@ -28,14 +29,15 @@
   .pc-empty-line { margin: 0; color: var(--text-2); }
 
   /* --------------------------------------------------------------------------------------- the casting grid */
-  .pc-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
+  /* figures at the kit's one figure width (tokens.css --card-figure: 168; two across on phones), packed from the start (M6) */
+  .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--card-figure)); justify-content: start; gap: 24px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
   .pc-grid > li { min-inline-size: 0; }
   .pc-none { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-block-start: 24px; }
 
-  .pc-calls { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+  .pc-calls { display: grid; grid-template-columns: repeat(auto-fill, var(--card-figure)); justify-content: start; gap: 16px; margin: 0; padding: 0; list-style: none; }
 
-  /* the plates (locations) */
-  .pc-plates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
+  /* the plates (locations): 16:9 at the kit's one wide width (--card-wide: 288; the column on phones) */
+  .pc-plates { display: grid; grid-template-columns: repeat(auto-fill, var(--card-wide)); justify-content: start; gap: 24px 16px; margin: 24px 0 0; padding: 0; list-style: none; }
   .pc-plates > li { min-inline-size: 0; }
 
   /* ------------------------------------------------------------------------------------ the character profile */
@@ -94,7 +96,7 @@
   .char-form-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .char-form-acts[data-end] { justify-content: flex-end; }
   .char-methods { margin-block-end: 20px; }
-  .char-posters { display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 184px)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+  .char-posters { display: grid; grid-template-columns: repeat(auto-fill, var(--card-poster)); justify-content: start; gap: 16px; margin: 0; padding: 0; list-style: none; }
   .char-frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
   .char-frames > li, .char-posters > li { min-inline-size: 0; }
   .char-sub { margin: 24px 0 12px; }
@@ -165,8 +167,6 @@
 
   /* ------------------------------------------------------------------------------------------------ narrower */
   @media (max-width: 1279px) {
-    .pc-grid, .pc-calls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .pc-plates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .char-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 1023px) {
@@ -181,12 +181,12 @@
   @media (max-width: 639px) {
     .pc-head { align-items: stretch; flex-direction: column; }
     .pc-head-acts > * { flex: 1; }
-    .pc-grid, .pc-calls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
-    .pc-plates { grid-template-columns: minmax(0, 1fr); }
+    .pc-grid, .pc-calls { gap: 20px 12px; }
+    .pc-plates { gap: 20px 12px; }
     .char-figure-frame { border-radius: var(--r-md); }
     .char-facts { grid-template-columns: minmax(0, 1fr); }
     .char-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .char-posters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .char-posters { gap: 12px; }
     .char-acts > .btn-primary { flex: 1 1 100%; }
     .pc-arow { flex-wrap: wrap; }
     .pc-pair, .pc-drop, .pc-ready { grid-template-columns: minmax(0, 1fr); }

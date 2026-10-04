@@ -13,16 +13,16 @@ import { useShell } from '@/components/shell/context';
 import type { Decision } from '@/components/shell/decisions';
 import { decisionCard, type DecisionCard as CardModel } from '@/components/home/model';
 import { Frame } from '@/components/media/Frame';
-import { DecisionCardSkeleton } from '@/components/media/Skeletons';
 import { ContentName, DecisionCard } from '@/components/media/Cards';
 import { Button, Drawer, FilterChips, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
 import { RetryControl } from '@/components/ui/jobs';
 import { useToast } from '@/components/ui/toast';
-import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton, useNow } from '@/components/studio/parts';
+import { EmptyLine, PageHead, Row, Rows, RowsSkeleton, Section, useNow } from '@/components/studio/parts';
 import { shortWhen } from '@/components/studio/model';
 import type { Health } from '@/components/studio/Company';
 import { RunningNow } from './Running';
-import { EngineRoom, EngineRoomSkeleton } from './EngineRoom';
+import { EngineRoom } from './EngineRoom';
+import { ControlRoomSkeleton, HistoryFilterSkeleton } from './skeletons';
 import { HISTORY_FILTERS, clock, elapsedMs, history, historyCounts, jobOutcome, jobTitle, subjectOf, type HistoryFilter } from './model';
 
 /** THE PRODUCTION CONTROL ROOM (docs/DESIGN-SYSTEM-V5.md §8.13, §6.7; VISUAL-STANDARD-V5.1 §5.7, §5.21) — in the order
@@ -191,29 +191,5 @@ function JobLog({ job }: { job: Job }) {
 
 // ------------------------------------------------------------------------------------------------------- skeleton
 
-/** The history filter's row before the record is known: the four chips at their real height (32, pill), so the
- *  rows under them do not move when the counts arrive (m7). */
-function HistoryFilterSkeleton() {
-  return <div className="ctl-filter" aria-hidden><div className="filter-chips">{[88, 128, 76, 96].map((w) => <Skeleton.Block key={w} width={w} height={32} radius="pill" />)}</div></div>;
-}
-
-/** Production while the studio opens: the head, the decision cards at their real size, the running row, the history
- *  rows and the engine room (§5.22). */
-export function ControlRoomSkeleton() {
-  return (
-    <SkeletonRegion label="Opening Production…" className="cp control">
-      <HeadSkeleton />
-      <div className="cp-section">
-        <SectionHeadSkeleton width="8rem" />
-        <div className="ctl-decisions">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i}><DecisionCardSkeleton className="ctl-dcard" /></div>
-          ))}
-        </div>
-      </div>
-      <div className="cp-section"><SectionHeadSkeleton width="9rem" /><RowsSkeleton n={1} /></div>
-      <div className="cp-section"><SectionHeadSkeleton width="6rem" description /><HistoryFilterSkeleton /><RowsSkeleton n={6} /></div>
-      <EngineRoomSkeleton />
-    </SkeletonRegion>
-  );
-}
+/** Production's skeletons live in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { ControlRoomSkeleton };

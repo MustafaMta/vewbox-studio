@@ -5,9 +5,9 @@ import { JOB_LABELS, type JobType } from '@/domain/jobs';
 import { stepsOf, useAgent } from '@/studio/org';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
-import { Button, ErrorState, JobDot, PanelCard, Skeleton, SkeletonRegion, StateWord } from '@/components/ui/kit';
-import { PanelCardSkeleton } from '@/components/media/Skeletons';
-import { EmptyLine, HeadSkeleton, PageHead, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from './parts';
+import { Button, ErrorState, JobDot, PanelCard, StateWord } from '@/components/ui/kit';
+import { EmptyLine, PageHead, Row, Rows, Section } from './parts';
+import { AgentSkeleton } from './skeletons';
 import { RunRows, ToolsAndSkills } from './Department';
 import { agentStateWords, duration, failureWords, jobWords, percent, plural, resourceWords, shortWhen } from './model';
 
@@ -88,13 +88,5 @@ export function AgentPage({ id }: { id: string }) {
   );
 }
 
-export function AgentSkeleton() {
-  return (
-    <SkeletonRegion label="Reading the agent’s record…" className="cp agent">
-      <HeadSkeleton back kicker />
-      <PanelCardSkeleton cells={4} className="cp-facts" />
-      <div className="cp-section"><SectionHeadSkeleton width="9rem" /><div className="pcard"><Skeleton.Text lines={3} /></div></div>
-      <div className="cp-section"><SectionHeadSkeleton width="5rem" /><RowsSkeleton n={5} /></div>
-    </SkeletonRegion>
-  );
-}
+/** The agent's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { AgentSkeleton };

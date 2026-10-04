@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { EmptyState, MenuButton, MenuLink, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaCardSkeleton, StartCard } from '@/components/media';
+import { ProductionsSwitch } from '@/components/shell/ProductionsSwitch';
+import { EmptyState, MenuButton, MenuLink } from '@/components/ui/kit';
+import { StartCard } from '@/components/media';
 import { IconAuto, IconChevronDown, IconUpload } from '@/components/ui/icons';
 import { MusicVideoCard } from '@/components/library/MusicVideoCard';
 import { catalogue, filterItems, type CatalogueFilter } from './model';
@@ -42,6 +43,7 @@ export function MusicVideos() {
   if (empty) {
     return (
       <div className="mv-cat" data-state="empty">
+        <ProductionsSwitch />
         <EmptyState kind="page" title="Music videos" className="mv-empty"
           cards={<><StartCard href={NEW_AUTO} ratio="1/1" title="Write the song" line="From one line of yours" /><StartCard href={NEW_MANUAL} ratio="1/1" title="Bring your own song" line="Upload your own track" /></>}>
           It starts with its song. Write it with the studio from one line, or bring a track you already have.
@@ -52,6 +54,7 @@ export function MusicVideos() {
 
   return (
     <div className="mv-cat" data-state="list">
+      <ProductionsSwitch />
       <header className="mv-cat-head">
         <div className="mv-cat-words">
           <h1 className="t-page mv-cat-title">Music videos</h1>
@@ -79,21 +82,5 @@ export function MusicVideos() {
   );
 }
 
-/** The catalogue while the studio's first snapshot loads (§5.22): the head and a full first screen of sleeves in
- *  their exact shapes (the kit's card skeleton, the same grid), so nothing moves when the music videos arrive. */
-export function MusicVideosSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the music videos…" className="mv-cat mv-sk">
-      <div className="mv-cat-head">
-        <div className="mv-cat-words">
-          <div className="t-page mv-cat-title"><Skeleton.Line size="title" width="11rem" /></div>
-          <div className="t-body mv-cat-desc"><Skeleton.Line width="14rem" /></div>
-        </div>
-        <Skeleton.Block className="mv-new" width={176} height={40} radius="pill" />
-      </div>
-      <div className="mv-grid">
-        {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="1/1" /></div>)}
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The catalogue's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { MusicVideosSkeleton } from './skeletons';

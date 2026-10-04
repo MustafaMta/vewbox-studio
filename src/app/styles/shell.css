@@ -123,9 +123,14 @@
   .bottom-tab-label { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bottom-badge { position: absolute; inset-block-start: -6px; inset-inline-start: 14px; display: inline-flex; align-items: center; justify-content: center; min-inline-size: 18px; block-size: 18px; padding-inline: 5px; border-radius: var(--r-pill); background: var(--wait); color: var(--on-primary); font-family: var(--font-mono); font-size: 12px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
   @media (min-width: 1024px) { .phone-bar, .bottom-nav { display: none; } }
+  /* Shows | Shorts | Music Videos at the top of the three catalogues while the bars are the navigation (§5.2) */
+  .productions-switch { display: none; align-self: flex-start; margin-block-end: 20px; }
+  @media (max-width: 1023px) { .productions-switch { display: inline-flex; } }
 
-  /* the More sheet (§5.17 sheet) */
+  /* the More sheet (§5.17 sheet): the three productions, then the workspace's places */
   .sheet-list { display: flex; flex-direction: column; gap: 4px; padding: 0 0 8px; }
+  .sheet-group { margin: 0; padding: 8px 10px 2px; }
+  .sheet-group + .sheet-group, .sheet-item + .sheet-group { margin-block-start: 8px; }
   .sheet-item { inline-size: 100%; block-size: 44px; margin-inline: 0; font-size: 15px; }
   .sheet-item .nav-dot { display: none; }
   .sheet-state { margin-block-start: 8px; padding-block-start: 8px; border-block-start: 1px solid var(--line-strong); }

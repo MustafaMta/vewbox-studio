@@ -14,6 +14,13 @@
   .cp-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; min-block-size: 24px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color var(--dur-1) var(--ease-out); }
   .cp-back:hover { color: var(--text-1); }
   .cp-back svg { inline-size: 16px; block-size: 16px; }
+  /* coarse pointers (M7): the back link, the state line's link and a row's inline link reach 44 px; the layout keeps
+     its lines (the padding is given back as margin) */
+  @media (pointer: coarse) {
+    .cp-back { min-block-size: 44px; margin-block: -10px; }
+    .co-state-link { min-block-size: 44px; margin-block: -12px; }
+    .cp-link { display: inline-block; padding-block: 13px; margin-block: -13px; }
+  }
   .cp-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
   .cp-head-words { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .cp-kicker, .cp-title, .cp-lead { margin: 0; }
@@ -29,7 +36,7 @@
   .cp-row-start { flex: none; inline-size: 136px; min-inline-size: 0; }
   .cp-row-words { display: flex; flex: 1; flex-direction: column; gap: 2px; min-inline-size: 0; }
   .cp-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
-  .cp-row-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-row-meta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }   /* two lines, then the clamp (QA m6) */
   .cp-row-err { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
   .cp-row-end { display: flex; flex: none; align-items: center; gap: 12px; }
   .cp-time { color: var(--text-3); white-space: nowrap; }
@@ -91,7 +98,7 @@
   .co-orch[aria-pressed='true'] { background: var(--surface-3); }
   .co-orch:focus-visible { outline-offset: 4px; }
   .co-orch-name { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-1); }
-  .co-orch-state { font-size: 12px; line-height: 16px; color: var(--text-3); }
+  .co-orch-state { font-size: 12px; line-height: 16px; color: var(--text-2); }   /* on surface-3 text-3 is 4.42:1 (QA m5) */
   .co-rings { position: absolute; inset-block-start: 50%; inset-inline-start: 50%; transform: translate(-50%, -50%); pointer-events: none; overflow: visible; }
   .co-ring-track { fill: none; stroke: var(--line-strong); stroke-width: 2px; }
   .co-ring-done { fill: none; stroke: var(--text-3); stroke-width: 2px; stroke-linecap: round; }

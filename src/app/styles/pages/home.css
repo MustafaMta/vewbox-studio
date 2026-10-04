@@ -58,8 +58,10 @@
     .home-feature { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 639px) {
-    .home-hero-frame { block-size: auto; aspect-ratio: 4 / 3; border-radius: var(--r-md); }
-    .home-skeleton .home-hero-frame { block-size: auto; aspect-ratio: 4 / 3; }
+    /* a 4:5 window on phones (QA m2): the crop is anchored on the face — Home's coverPosition puts portraitFocal.x at
+       the centre of the visible width whenever the box is narrower than the picture */
+    .home-hero-frame { block-size: auto; aspect-ratio: 4 / 5; border-radius: var(--r-md); }
+    .home-skeleton .home-hero-frame { block-size: auto; aspect-ratio: 4 / 5; }
     .home-hero-caption { flex-direction: column; align-items: stretch; margin-block-start: 14px; }
     .home-hero-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .home-hero-acts .btn { flex: 1; }

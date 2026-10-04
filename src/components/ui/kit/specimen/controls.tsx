@@ -7,7 +7,7 @@ import { Button, LinkButton, type ButtonVariant } from '../Button';
 import { MenuButton, MenuItem, Popover } from '../Overlay';
 import { IconChevronDown } from '../../icons';
 import { CatalogueBar, type Facet, type Filters, type View } from '../CatalogueBar';
-import { ChoiceTiles, Segmented } from '../Choice';
+import { ChoiceTiles, Segmented, SegmentedLinks } from '../Choice';
 import { cls } from '../cls';
 import { Badge, FilterChip, IdentityState, ProgressBar, StageWord, StateWord, StatusStrip, useStageSub } from '../Status';
 import { SampleBadge } from '../States';
@@ -159,6 +159,9 @@ export function ChoicesSpec() {
         </Cell>
         <Cell state="sm">
           <Segmented size="sm" label={'Lighting states'} value={light} onChange={setLight} options={[{ value: 'day', label: 'Day' }, { value: 'dusk', label: 'Dusk' }, { value: 'night', label: 'Night' }]} />
+        </Cell>
+        <Cell state={'Links (the catalogue switch, §5.2)'} wide>
+          <SegmentedLinks label={'Productions'} current="/shows" items={[{ href: '/shows', label: 'Shows' }, { href: '/shorts', label: 'Shorts' }, { href: '/music-videos', label: 'Music Videos' }]} />
         </Cell>
       </SpecRow>
       <SpecRow label="ChoiceTiles · 2">
