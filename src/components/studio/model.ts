@@ -117,6 +117,8 @@ export function agentStateWords(stat: AgentStat | null | undefined): { tone: 'ru
 /** A run's outcome in words and tone. */
 export function outcomeWords(o: string | null): { tone: 'running' | 'done' | 'failed' | 'waiting' | 'idle'; words: string } {
   if (o === null) return { tone: 'running', words: 'Running' };
+  // an orchestrator run that waits for the jobs it started: neither working nor failed
+  if (o === 'WAITING') return { tone: 'idle', words: 'Waiting for its jobs' };
   if (o === 'FAILED') return { tone: 'failed', words: 'Failed' };
   if (o === 'CANCELLED') return { tone: 'idle', words: 'Cancelled' };
   if (o === 'AWAITING_REVIEW') return { tone: 'waiting', words: 'Waits for review' };

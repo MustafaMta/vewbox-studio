@@ -10,6 +10,7 @@ import { useLive } from '@/studio/org';
 import { SaveWord, Segmented, Select, Skeleton, SkeletonRegion, StateWord, Toggle } from '@/components/ui/kit';
 import { HeadSkeleton, PageHead, Section, SectionHeadSkeleton } from '@/components/studio/parts';
 import { aspectLabel, dialectLabel } from '@/lib/format';
+import type { HonouredSettingKey, SettingsHonoured } from '@/domain/settings';
 
 /** SETTINGS (docs/DESIGN-SYSTEM-V5.md §8.13) — how the studio makes new work, in plain words: the video model and its
  *  resolution, the story engine and the voice engine; trend research and its sources; the motion preference; the
@@ -33,7 +34,10 @@ export function SettingsPage() {
   const { state, act, saving, capabilities: caps, ready } = useStudio();
   const { data: sources, error: sourcesError } = useLive<Sources>('/api/research/sources');
   // the research rows carry each source's own words: wait for them (or their failure) so nothing moves when they come
-  if (!ready || (!sources && !sourcesError)) return <SettingsSkeleton />;
+  // which saved settings take effect today (src/domain/settings.ts): a choice nothing reads yet says so under it
+  const { data: honour, error: honourError } = useLive<SettingsHonoured>('/api/studio/settings');
+  const off = (k: HonouredSettingKey) => honour?.honoured[k] === false;
+  if (!ready || (!sources && !sourcesError) || (!honour && !honourError)) return <SettingsSkeleton />;
   const s = state.settings;
   const gen = s.generation ?? {};
   const research: ResearchSettings = s.research ?? { enabled: true };
@@ -50,14 +54,14 @@ export function SettingsPage() {
 
       <Section id="generation" title="Generation" description={caps ? `The server runs ${caps.videoModel} at ${caps.videoResolution} and writes with ${storyNow} right now.` : undefined}>
         <div className="card st-panel">
-          <SettingRow label="Video model" hint="The model that films new takes.">
+          <SettingRow label="Video model" hint="The model that films new takes." unused={off('videoModel')}>
             {(id) => <Select id={id} value={videoModel} onChange={(e) => setGen({ videoModel: e.target.value })} options={VIDEO_MODELS.map((m) => ({ value: m.value, label: m.label, disabled: m.hosted && Boolean(hostedReason) }))} />}
           </SettingRow>
-          {hostedReason && <p className="t-meta st-reason">The hosted models need the MiniMax key on the server.</p>}
-          <SettingRow label="Video resolution" hint="Higher resolution takes longer to film.">
+          {hostedReason && <p className="t-meta st-reason">The hosted models need a key the server does not have.</p>}
+          <SettingRow label="Video resolution" hint="Higher resolution takes longer to film." unused={off('videoResolution')}>
             {() => <Segmented label="Video resolution" value={resolution} onChange={(v) => setGen({ videoResolution: v })} options={RESOLUTIONS.map((r) => ({ value: r, label: <span className="t-ro t-ro-md">{r}</span> }))} />}
           </SettingRow>
-          <SettingRow label="Story engine" hint="Writes ideas, stories, scripts and shot plans.">
+          <SettingRow label="Story engine" hint="Writes ideas, stories, scripts and shot plans." unused={off('llmProvider')}>
             {(id) => <Select id={id} value={gen.llmProvider ?? ''} onChange={(e) => setGen({ llmProvider: e.target.value || undefined })} options={[
               { value: '', label: `Server default · ${storyNow}` },
               { value: 'openai-compatible', label: 'A model on this machine', disabled: caps ? !caps.openaiCompatible : false },
@@ -65,7 +69,7 @@ export function SettingsPage() {
               { value: 'minimax', label: 'MiniMax, hosted', disabled: caps ? !caps.minimax : false },
             ]} />}
           </SettingRow>
-          <SettingRow label="Voice engine" hint="Speaks new voices and dialogue.">
+          <SettingRow label="Voice engine" hint="Speaks new voices and dialogue." unused={off('voiceProvider')}>
             {() => <Segmented label="Voice engine" value={gen.voiceProvider ?? 'LOCAL_TTS'} onChange={(v) => setGen({ voiceProvider: v })} options={[{ value: 'LOCAL_TTS', label: 'On this machine' }, { value: 'MINIMAX', label: 'MiniMax, hosted', disabled: Boolean(hostedReason), reason: hostedReason }]} />}
           </SettingRow>
         </div>
@@ -73,7 +77,7 @@ export function SettingsPage() {
 
       <Section id="research" title="Research" description="Before it proposes an idea, the studio can look at what people watch now. Credentials stay on the server.">
         <div className="card st-panel">
-          <div className="st-row st-row-toggle"><Toggle label="Research trends for new ideas" help="Off: ideas come from your line and the studio’s own knowledge only." checked={research.enabled !== false} onChange={(v) => setResearch({ enabled: v })} /></div>
+          <div className="st-row st-row-toggle"><Toggle label="Research trends for new ideas" help="Off: ideas come from your line and the studio’s own knowledge only." checked={research.enabled !== false} onChange={(v) => setResearch({ enabled: v })} />{off('researchEnabled') && <span className="t-meta st-unused">Saved — the studio does not use this choice yet.</span>}</div>
           {RESEARCH_PLATFORMS.map((p) => {
             const src = sources?.sources.find((x) => x.platform === p);
             const on = research.platforms?.[p] !== false;
@@ -86,7 +90,7 @@ export function SettingsPage() {
               </div>
             );
           })}
-          <SettingRow label="Reuse results for" hint="How long a source’s answer is kept before it is asked again.">
+          <SettingRow label="Reuse results for" hint="How long a source’s answer is kept before it is asked again." unused={off('researchCacheHours')}>
             {(id) => <Select id={id} value={research.cacheHours ? String(research.cacheHours) : ''} disabled={research.enabled === false} onChange={(e) => setResearch({ cacheHours: e.target.value ? Number(e.target.value) : undefined })}
               options={[{ value: '', label: 'Each source’s default' }, ...CACHE.map((h) => ({ value: String(h), label: h < 24 ? `${h} ${h === 1 ? 'hour' : 'hours'}` : `${h / 24} ${h === 24 ? 'day' : 'days'}` }))]} />}
           </SettingRow>
@@ -95,16 +99,16 @@ export function SettingsPage() {
 
       <Section id="motion" title="Motion">
         <div className="card st-panel">
-          <div className="st-row st-row-toggle"><Toggle label="Reduce motion" help="No zooms, slides or pulses; pictures still fade in, quickly." checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} /></div>
+          <div className="st-row st-row-toggle"><Toggle label="Reduce motion" help="No zooms, slides or pulses; pictures still fade in, quickly." checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />{off('reducedMotion') && <span className="t-meta st-unused">Saved — the studio does not use this choice yet.</span>}</div>
         </div>
       </Section>
 
       <Section id="defaults" title="New work" description="What a new show, short or music video starts with; each one can change it.">
         <div className="card st-panel">
-          <SettingRow label="Style">{(id) => <Select id={id} value={s.defaults.style} onChange={(e) => set({ defaults: { ...s.defaults, style: e.target.value as typeof s.defaults.style } })} options={STYLES.map((x) => ({ value: x, label: STYLE_NAME[x] ?? x }))} />}</SettingRow>
-          <SettingRow label="Frame">{(id) => <Select id={id} value={s.defaults.aspect} onChange={(e) => set({ defaults: { ...s.defaults, aspect: e.target.value as typeof s.defaults.aspect } })} options={ASPECTS.map((x) => ({ value: x, label: aspectLabel(x) }))} />}</SettingRow>
-          <SettingRow label="Dialogue language" hint="The language the characters speak in the film.">{(id) => <Select id={id} value={s.defaults.language} onChange={(e) => set({ defaults: { ...s.defaults, language: e.target.value as typeof s.defaults.language } })} options={LANGUAGES.map((x) => ({ value: x, label: x === 'EN' ? 'English' : 'Arabic' }))} />}</SettingRow>
-          <SettingRow label="Arabic dialect">{(id) => <Select id={id} value={s.defaults.dialect} onChange={(e) => set({ defaults: { ...s.defaults, dialect: e.target.value as typeof s.defaults.dialect } })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} />}</SettingRow>
+          <SettingRow label="Style" unused={off('defaultStyle')}>{(id) => <Select id={id} value={s.defaults.style} onChange={(e) => set({ defaults: { ...s.defaults, style: e.target.value as typeof s.defaults.style } })} options={STYLES.map((x) => ({ value: x, label: STYLE_NAME[x] ?? x }))} />}</SettingRow>
+          <SettingRow label="Frame" unused={off('defaultAspect')}>{(id) => <Select id={id} value={s.defaults.aspect} onChange={(e) => set({ defaults: { ...s.defaults, aspect: e.target.value as typeof s.defaults.aspect } })} options={ASPECTS.map((x) => ({ value: x, label: aspectLabel(x) }))} />}</SettingRow>
+          <SettingRow label="Dialogue language" hint="The language the characters speak in the film." unused={off('defaultLanguage')}>{(id) => <Select id={id} value={s.defaults.language} onChange={(e) => set({ defaults: { ...s.defaults, language: e.target.value as typeof s.defaults.language } })} options={LANGUAGES.map((x) => ({ value: x, label: x === 'EN' ? 'English' : 'Arabic' }))} />}</SettingRow>
+          <SettingRow label="Arabic dialect" unused={off('defaultDialect')}>{(id) => <Select id={id} value={s.defaults.dialect} onChange={(e) => set({ defaults: { ...s.defaults, dialect: e.target.value as typeof s.defaults.dialect } })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} />}</SettingRow>
         </div>
       </Section>
 
@@ -119,11 +123,11 @@ export function SettingsPage() {
 }
 
 /** One setting: its label and one line of help on the start, the control on the end (stacked on phones). */
-function SettingRow({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: (id: string) => ReactNode }) {
+function SettingRow({ label, hint, unused, children }: { label: ReactNode; hint?: ReactNode; /** saved, but nothing reads it yet */ unused?: boolean; children: (id: string) => ReactNode }) {
   const id = useId();
   return (
     <div className="st-row">
-      <span className="st-row-words"><label htmlFor={id} className="st-label">{label}</label>{hint && <span className="t-meta">{hint}</span>}</span>
+      <span className="st-row-words"><label htmlFor={id} className="st-label">{label}</label>{hint && <span className="t-meta">{hint}</span>}{unused && <span className="t-meta st-unused">Saved — the studio does not use this choice yet.</span>}</span>
       <span className="st-control">{children(id)}</span>
     </div>
   );

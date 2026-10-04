@@ -207,6 +207,58 @@ test('The old addresses land on their new homes', async ({ page }) => {
 
 // ------------------------------------------------------------------------------------------------------ Settings
 
+test('Engine room: the GPU queue as recorded (idle today), and the command log with refused batches marked', async ({ page, request }) => {
+  const gpu = await (await request.get('/api/studio/gpu')).json();
+  const at = new Date().toISOString();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await (prepare as (p: Page, o: { motion?: string }) => Promise<void>)(page, { motion: 'reduce' });
+  await page.route('**/api/studio/commands?**', (route) => route.fulfill({ json: { entries: [
+    { id: 2, at, sender: 'page:abc123', jobId: null, ok: false, studioVersion: 7, commands: [{ name: 'claimAsset', touches: ['studio'] }], refused: { failedAt: 0, code: 'FORBIDDEN', message: 'worker-only command' } },
+    { id: 1, at, sender: 'worker', jobId: 'job-1', ok: true, studioVersion: 6, commands: [{ name: 'updateShot', touches: ['production:p1'] }] },
+  ] } }));
+  await page.goto('/production#engine-room', { waitUntil: 'domcontentloaded' });
+  const panel = page.locator('.ctl-gpu-panel');
+  await expect(panel).toContainText('Graphics card', { timeout: 120_000 });
+  if (gpu.holders.length === 0 && gpu.waiting.length === 0) {
+    await expect(panel).toContainText('Idle');
+    await expect(panel.locator('.ctl-gpu-rows')).toHaveCount(0);
+  } else await expect(panel.locator('.ctl-gpu-rows .cp-row')).toHaveCount(gpu.holders.length + gpu.waiting.length);
+  if (!gpu.loaded.family) await expect(panel).toContainText('Nothing loaded');
+  const er = page.locator('#engine-room');
+  await er.getByRole('tab', { name: /GPU unloads/ }).click();
+  if (gpu.unloads.length === 0) await expect(er.locator('[role="tabpanel"]')).toContainText('No engine has been unloaded');
+  await er.getByRole('tab', { name: /Recent commands/ }).click();
+  const rows = er.locator('[role="tabpanel"] .cp-row');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText('Refused');
+  await expect(rows.first()).toContainText('FORBIDDEN: worker-only command');
+  await expect(rows.nth(1)).toContainText('Applied');
+});
+
+test('An agent run waiting for its jobs reads so, neither running nor failed', async ({ page, request }) => {
+  const a = await (await request.get('/api/studio/org/agents/casting-director')).json();
+  test.skip(!a.runs.length, 'the agent has no runs');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await (prepare as (p: Page, o: { motion?: string }) => Promise<void>)(page, { motion: 'reduce' });
+  await page.route('**/api/studio/org/agents/casting-director', async (route) => { const res = await route.fetch(); const body = await res.json(); body.runs[0] = { ...body.runs[0], outcome: 'WAITING', failureClass: null }; body.current = body.runs[0]; await route.fulfill({ response: res, json: body }); });
+  await page.goto('/studio/agents/casting-director', { waitUntil: 'domcontentloaded' });
+  const row = page.locator('#runs .cp-row').first();
+  await expect(row).toContainText('Waiting for its jobs', { timeout: 120_000 });
+  await expect(row).not.toContainText('Failed');
+  await expect(page.locator('.cp-facts')).toContainText('Waiting for its jobs');
+});
+
+test('Settings: a saved choice the studio does not use yet says so under it', async ({ page, request }) => {
+  const h = await (await request.get('/api/studio/settings')).json();
+  await open(page, '/settings', '.settings:not(.sk-region) #generation');
+  const row = (label: string) => page.locator('.st-row', { has: page.getByText(label, { exact: true }) });
+  for (const [label, key] of [['Video model', 'videoModel'], ['Video resolution', 'videoResolution'], ['Story engine', 'llmProvider'], ['Style', 'defaultStyle']] as const) {
+    const note = row(label).locator('.st-unused');
+    if (h.honoured[key] === false) await expect(note).toHaveText('Saved — the studio does not use this choice yet.');
+    else await expect(note).toHaveCount(0);
+  }
+});
+
 test('Settings: each change goes through the updateSettings command (answered here); no interface language', async ({ page }) => {
   const sent: string[] = [];
   await open(page, '/settings', '.settings:not(.sk-region) #generation');

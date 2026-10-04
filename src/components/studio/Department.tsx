@@ -40,6 +40,9 @@ export function DepartmentPage({ id }: { id: string }) {
   const rec = recordOf(org.stats, team.map((a) => a.id));
   const stages = d.stages.map((s) => stageName(org, s)).join(' · ');
   const first = percent(rec.firstOk, rec.firsts);
+  // an orchestrator run waiting for the jobs it started is open but not working (outcome WAITING)
+  const waiting = data.activeRuns.filter((r) => r.outcome === 'WAITING');
+  const working = data.activeRuns.filter((r) => r.outcome !== 'WAITING');
   const failures = data.recentRuns.filter((r) => r.outcome === 'FAILED' || r.failureClass);
   const planned = plannedRolesOf(d);
   return (
@@ -48,7 +51,7 @@ export function DepartmentPage({ id }: { id: string }) {
         end={<LinkButton href={`/studio?select=${d.id}`}>Show in the company</LinkButton>} />
       <PanelCard className="cp-facts" columns={4} facts={[
         { label: 'Director', value: director ? <Link href={`/studio/agents/${director.id}`} className="cp-link">{director.name}</Link> : 'None named', sub: `${team.length} ${plural(team.length, 'agent')} in all` },
-        { label: 'Now', value: data.activeRuns.length ? <StateWord tone="running">{data.activeRuns.length} {plural(data.activeRuns.length, 'run')} open</StateWord> : <StateWord tone="idle">Idle</StateWord>, sub: rec.lastRunAt ? `Last ran ${shortWhen(rec.lastRunAt)}` : 'Has not run yet' },
+        { label: 'Now', value: working.length ? <StateWord tone="running">{working.length} {plural(working.length, 'run')} working</StateWord> : waiting.length ? <StateWord tone="idle">{waiting.length === 1 ? 'Waiting for its jobs' : `${waiting.length} runs waiting for their jobs`}</StateWord> : <StateWord tone="idle">Idle</StateWord>, sub: rec.lastRunAt ? `Last ran ${shortWhen(rec.lastRunAt)}` : 'Has not run yet' },
         { label: `Runs · ${spanWords(org.hours)}`, value: <span className="t-ro t-ro-md">{rec.runs}</span>, sub: first ? `${first} succeeded the first time` : 'No finished first attempt yet' },
         { label: 'Median time', value: duration(rec.medianMs) ?? '—', sub: rec.failed ? <span className="co-bad">{rec.failed} {plural(rec.failed, 'run')} failed</span> : 'No failed runs' },
       ]} />
