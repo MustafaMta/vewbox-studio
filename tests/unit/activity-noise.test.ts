@@ -38,7 +38,7 @@ describe('phase events stay out of the activity lists', () => {
     const readers = files.filter((f) => /from\(schema\.studioEvents\)/.test(fs.readFileSync(f, 'utf8')));
     expect(readers.map((f) => f.replace(/\\/g, '/'))).toEqual(['src/server/org/runs.ts']);
     const routes = files.filter((f) => /listStudioEvents\(/.test(fs.readFileSync(f, 'utf8')) && !f.endsWith('runs.ts'));
-    expect(routes.length).toBeGreaterThanOrEqual(5); // org, events, department, production, agent
+    expect(routes.length).toBeGreaterThanOrEqual(4); // org, department, production, agent (the unused /api/studio/org/events route was removed, step 17)
     for (const f of routes) expect(fs.readFileSync(f, 'utf8')).not.toMatch(/includeBookkeeping/);
   });
   it('the browser does not refetch on a phase notice', () => {

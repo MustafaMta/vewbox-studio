@@ -439,4 +439,3 @@ export function textOutput(outputs: ComfyRunResult['outputs'], nodeId: string): 
   return Array.isArray(t) ? t.join('\n') : typeof t === 'string' ? t : undefined;
 }
 
-export { log as comfyLog };

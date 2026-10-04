@@ -105,12 +105,6 @@ export async function recordRunPhase(runId: string, event: RunPhaseEvent) {
   await db().update(schema.agentRuns).set({ phases: dsql`${schema.agentRuns.phases} || ${JSON.stringify([event])}::jsonb` }).where(eq(schema.agentRuns.id, runId));
 }
 
-/** The phases of the runs of a job, newest attempt first (the status row reads the current attempt's). */
-export async function runPhasesOf(jobId: string): Promise<Array<{ runId: string; attempt: number; startedAt: string; finishedAt: string | null; outcome: string | null; phases: RunPhaseEvent[] }>> {
-  const rows = await db().select({ runId: schema.agentRuns.id, attempt: schema.agentRuns.attempt, startedAt: schema.agentRuns.startedAt, finishedAt: schema.agentRuns.finishedAt, outcome: schema.agentRuns.outcome, phases: schema.agentRuns.phases, parentRunId: schema.agentRuns.parentRunId }).from(schema.agentRuns).where(and(eq(schema.agentRuns.jobId, jobId), isNull(schema.agentRuns.parentRunId))).orderBy(desc(schema.agentRuns.startedAt));
-  return rows.map(({ parentRunId: _p, ...r }) => { void _p; return r; });
-}
-
 /** A DELEGATED STEP — a specialist's real piece of work inside another agent's job (a check, a selection, a
  *  normalisation that exists as its own code). It gets its own run under the parent run, with its own tool calls,
  *  outcome and duration, so the specialist's profile shows work it actually did. */

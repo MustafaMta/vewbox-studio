@@ -160,16 +160,17 @@ export function presentationFromPixels(img: RgbaImage, opts: { ring?: number } =
 
 // ------------------------------------------------------------------------------------------------- decoding
 
-async function probeSize(file: string): Promise<{ width: number; height: number }> {
-  const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'json', file], { maxBuffer: 1024 * 1024, timeout: 30_000 });
-  const s = (JSON.parse(stdout) as { streams?: Array<{ width?: number; height?: number }> }).streams?.[0];
-  return { width: Number(s?.width) || 0, height: Number(s?.height) || 0 };
+/** A picture's size and pixel format (the one picture probe: thumbnails use it too, src/server/media/thumbs.ts). */
+export async function probeImage(file: string): Promise<{ width: number; height: number; pixFmt?: string }> {
+  const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height,pix_fmt', '-of', 'json', file], { maxBuffer: 1024 * 1024, timeout: 30_000 });
+  const s = (JSON.parse(stdout) as { streams?: Array<{ width?: number; height?: number; pix_fmt?: string }> }).streams?.[0];
+  return { width: Number(s?.width) || 0, height: Number(s?.height) || 0, pixFmt: s?.pix_fmt };
 }
 
 /** Decode the first frame of a picture to RGBA with ffmpeg, scaled (area average) so the long side is at most
  *  `maxSide`; the size is always given to the scaler, so the buffer has exactly the size asked for. */
 export async function rgbaPixels(file: string, opts: { size?: { width?: number; height?: number }; maxSide?: number } = {}): Promise<RgbaImage & { scale: number }> {
-  const known = opts.size?.width && opts.size?.height ? { width: opts.size.width, height: opts.size.height } : await probeSize(file);
+  const known = opts.size?.width && opts.size?.height ? { width: opts.size.width, height: opts.size.height } : await probeImage(file);
   const { width: w0, height: h0 } = known;
   if (!w0 || !h0) throw new Error('the picture has no dimensions');
   const scale = Math.min(1, (opts.maxSide ?? PRESENTATION_RULES.maxDecodeSide) / Math.max(w0, h0));

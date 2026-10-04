@@ -48,7 +48,6 @@ export const ConceptsOutSchema = z.preprocess(aliases({ chosen: ['chosenIndex', 
   chosen: looseNumber.pipe(z.number().int().min(1).max(3)),
   rationale: req(900),
 }));
-export type ConceptsOut = z.infer<typeof ConceptsOutSchema>;
 
 const DraftExtras = z.preprocess(aliases({ hook: ['opening', 'firstSeconds'], ending: ['endsWith', 'finale', 'resolution'], sampleLines: ['lines', 'voiceLines', 'dialogue'], answered: ['changes', 'addressed', 'revisions'] }), z.object({
   hook: req(500),

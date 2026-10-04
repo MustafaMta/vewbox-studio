@@ -250,7 +250,6 @@ const MORE: Production[] = [
 ];
 PRODUCTIONS.push(...MORE);
 
-export { STATE_VERSION };
 
 /** Usage as a backend would have recorded it when each sample take was made: every character in a shot that has a
  *  take has been in a video. Um Hassan keeps her `known: false` — her history is unknown, so she counts as used. */

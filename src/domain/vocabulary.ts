@@ -56,8 +56,8 @@ export const ASPECT_INFO: Record<Aspect, { width: number; height: number; label:
 };
 
 /** The dialects' English names: the prompts' and the interface's words for a production's dialect (the interface is
- *  English-only). The index signature is TEMPORARY, for src/lib/format.ts (DS-1) until its rewrite reads `.en`. */
-export const DIALECT_LABELS: Record<Dialect, { en: string } & Record<string, string>> = {
+ *  English-only). */
+export const DIALECT_LABELS: Record<Dialect, { en: string }> = {
   IRAQI_BAGHDADI: { en: 'Iraqi — Baghdadi' },
   MSA: { en: 'Modern Standard Arabic' },
   GULF: { en: 'Gulf' },

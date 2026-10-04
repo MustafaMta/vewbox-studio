@@ -151,10 +151,6 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
   return [parts.join(' '), props.length ? `Props: ${props.join('; ')}.` : '', light].filter(Boolean).join(' ');
 }
 
-/** A shot's continuity state in words (positions, screen direction, eyeline, what each person holds and wears, props,
- *  light), people described by appearance — for an opening frame drawn as a CUT of the previous shot's moment. */
-export const continuityLine = (sh: Shot, cast: Character[]): string => continuitySentence(sh, cast, () => undefined);
-
 /** The continuity of a storyboard frame: each person named by the reference picture that shows them ("the person of
  *  image 2"), never described a second time in words; `peopleToo: false` keeps only props and light (the previous
  *  shot's state carried into a CUT — its people at other places drew duplicates, D30). */

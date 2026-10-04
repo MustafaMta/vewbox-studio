@@ -131,14 +131,14 @@ export function formatRangeNode(from: number | string, to: number | string, kind
 
 /** v4's date line ("3 Oct 2026"), English. The second argument is ignored: the website is English-only
  *  (2026-10-03); it stays optional so callers that still pass a locale compile until the cleanup removes it. */
-export function fmtDate(d: Date | string | null | undefined, _ignored?: unknown): string {
+export function fmtDate(d: Date | string | null | undefined): string {
   if (!d) return '—';
   const date = typeof d === 'string' ? new Date(d) : d;
   return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(date);
 }
 
 /** "3 min ago", English (the second argument is ignored, as fmtDate). */
-export function fmtAgo(d: Date | string | null | undefined, _ignored?: unknown): string {
+export function fmtAgo(d: Date | string | null | undefined): string {
   if (!d) return '—';
   const s = Math.round((Date.now() - new Date(d).getTime()) / 1000);
   const rtf = new Intl.RelativeTimeFormat('en-GB', { numeric: 'auto' });
@@ -165,7 +165,7 @@ export function fmtBytes(b: number | null | undefined): string {
 export function aspectLabel(a: Aspect): string { return ASPECT_INFO[a].label; }
 export function aspectShort(a: Aspect): string { return ASPECT_INFO[a].label.split(' · ')[0]; }
 /** The dialect's English name (the second argument is ignored, as fmtDate). */
-export function dialectLabel(d: Dialect | null | undefined, _ignored?: unknown): string { return d ? DIALECT_LABELS[d].en : '—'; }
+export function dialectLabel(d: Dialect | null | undefined): string { return d ? DIALECT_LABELS[d].en : '—'; }
 
 /** Human words for a finite option: 'MEDIUM_CLOSE_UP' → 'Medium close up'. */
 export function words(v: string | null | undefined): string {

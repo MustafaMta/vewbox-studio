@@ -15,7 +15,7 @@ export const assetSrc = (s: StudioState, id: string | undefined | null): string 
 
 /** A character's primary image (the canonical front full-body image; else the legacy portrait; else none) and its
  *  approval state: see src/domain/identity.ts. `primaryImageSrc` is the one-liner for a card, a picker or a hero. */
-export { canonicalStatusOf, isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
+export { primaryImageOf } from '@/domain/identity';
 export const primaryImageSrc = (s: StudioState, c: Pick<Character, 'canonicalImage' | 'portraitAssetId'>): string | undefined => assetSrc(s, primaryImageOf(c));
 export const locationById = (s: StudioState, id: string | undefined | null): Location | undefined => (id ? s.locations.find((l) => l.id === id) : undefined);
 export const showById = (s: StudioState, id: string | undefined | null): Show | undefined => (id ? s.shows.find((x) => x.id === id) : undefined);
