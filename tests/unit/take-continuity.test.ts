@@ -289,6 +289,18 @@ describe('GENERATE_TAKE by relation', () => {
     expect(addTake()).toMatchObject({ relation: 'CONTINUATION', continuesTakeId: 'take-a' });
   });
 
+  it('the identity rule on the request: every take records what it was conditioned on; a request that could not carry a present identity is refused before the engine', async () => {
+    const { state, p } = fixture(); fake.state = state;
+    await generateTake(ctx(p.id, 's13'));
+    expect(addTake().params).toMatchObject({ identity: { rule: 'identity-reapplication', ok: true, characters: [{ characterId: p.castIds[0], assetId: 'canon-a', picture: 1 }], location: { locationId: 'loc-pharmacy', assetId: 'plate-dusk', picture: 2 } } });
+    // a place without a usable plate: refused as MISSING_REFERENCE by the rule (the preflight carries it), nothing sent
+    fake.requests = []; fake.commands = [];
+    fake.state = { ...state, locations: state.locations.map((l) => (l.id === 'loc-pharmacy' ? { ...l, refs: [], masterAssetId: undefined } : l)) };
+    await expect(generateTake(ctx(p.id, 's13'))).rejects.toMatchObject({ failureClass: 'MISSING_REFERENCE', message: expect.stringMatching(/identity-conditioning \(Corner Pharmacy has no usable plate: draw the place first\)/) });
+    expect(fake.requests).toEqual([]);
+    expect(fake.commands.some((c) => c.name === 'addTake')).toBe(false);
+  });
+
   it('refuses a producer prompt that names a picture the request does not connect (PROMPT_AMBIGUITY), before the engine', async () => {
     const { state, p } = fixture(); fake.state = state;
     const c = ctx(p.id, 's13');

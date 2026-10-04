@@ -26,6 +26,7 @@ import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
+import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { guideHeadRecord, measureGuideHead } from '@/server/media/guide-head';
 import { recordProducedTake } from '@/server/studio/notes';
 
@@ -311,6 +312,14 @@ export const generateTake: Handler = async (ctx) => {
   }
   const softLint = lint.checks.filter((c) => !c.ok && !c.hard);
   if (softLint.length) await ctx.event('warn', `prompt lint: ${softLint.map((c) => c.detail ?? c.rule).join('; ')}`, { lint: softLint });
+  // THE IDENTITY RE-APPLICATION RULE (src/server/production/identity-rule.ts): the request really carries each
+  // present character's canonical image and the place's plate — connected in order and bound in the prompt — or it
+  // is refused here, before the engine, as MISSING_REFERENCE (an IdentityConditioningError, the rule named)
+  const identityRule = await step(ctx, 'character-continuity', `identity-rule: shot ${sh.number}`, async () => {
+    const report = assertIdentityConditioning(pack, sh, cast, loc, { referenceImages, prompt, fileOf: (id) => { const a = byId(id); return a ? assetFile(a) : undefined; } });
+    await ctx.event(report.lowered ? 'warn' : 'info', report.lowered ? `identity rule waived: ${report.lowered}` : `identity rule: ${report.characters.length} character(s) and ${report.location ? 'the plate' : 'no place'} conditioned on and bound`, { report });
+    return report;
+  });
   await ctx.event('info', 'take request prepared', { backend, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, seconds: clip.seconds, frames: clip.frames, newSeconds: seconds, soundtrack: soundtrack?.kind, continuation: tailAnchored || pack.opening.kind === 'LAST_FRAME_AS_FIRST', continuesTakeId, lowering, guide: guideRecord, prompt: prompt.slice(0, 800), references });
 
   const t0 = Date.now();
@@ -471,7 +480,7 @@ export const generateTake: Handler = async (ctx) => {
   // invented here.
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}) };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization

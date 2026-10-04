@@ -3,6 +3,7 @@ import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget } from '@/server/production/guide';
+import { identityConditioning } from '@/server/production/identity-rule';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
@@ -84,6 +85,11 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   if (pack.relation === 'CONTINUATION' && (sh.transition === 'DISSOLVE' || sh.transition === 'FADE')) warnings.push({ name: 'transition-matches-relation', detail: `a continuation is joined by a cut, not a ${sh.transition.toLowerCase()}` });
   if (pack.relation === 'CUT' && sh.transition === 'EXTEND') warnings.push({ name: 'transition-matches-relation', detail: 'EXTEND on a shot planned as a cut: it is generated as a cut (relationToPrevious decides)' });
   if (pack.lowering) warnings.push({ name: 'hosted-lowering', detail: pack.lowering });
+  // THE IDENTITY RE-APPLICATION RULE on the pack (src/server/production/identity-rule.ts): every present character's
+  // canonical image and the place's plate are conditioned on, or the request is refused as MISSING_REFERENCE; the
+  // worker checks the same rule again on the request it built (connected files, prompt bindings)
+  const identity = identityConditioning(pack, sh, cast, p.kind === 'MUSIC_VIDEO' ? loc : loc, {});
+  if (identityNeeded || loc) add('identity-conditioning', identity.ok, 'MISSING_REFERENCE', identity.ok ? (identity.lowered ? `waived: ${identity.lowered}` : `${identity.characters.length} character image(s)${identity.location ? ' and the plate' : ''} conditioned on`) : identity.problems.join('; '));
   if (identityNeeded) {
     const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
     const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));
