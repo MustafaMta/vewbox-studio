@@ -83,11 +83,11 @@ export function MediaTileSkeleton({ ratio = '16/9', className }: { ratio?: '16/9
 }
 
 /** A panel card with `cells` facts in `columns` across (as the PanelCard it stands for; default: min(4, cells)). */
-export function PanelCardSkeleton({ cells = 4, columns, title, className }: { cells?: number; columns?: 2 | 3 | 4; title?: boolean; className?: string }) {
+export function PanelCardSkeleton({ cells = 4, columns, phoneColumns = 1, title, className }: { cells?: number; columns?: 2 | 3 | 4; phoneColumns?: 1 | 2; title?: boolean; className?: string }) {
   return (
     <span aria-hidden className={cls('card pcard', className)}>
       {title && <span className="t-title pcard-title"><Skeleton.Line width="9rem" /></span>}
-      <span className="pcard-grid" data-cols={columns ?? Math.min(4, cells)}>
+      <span className="pcard-grid" data-cols={columns ?? Math.min(4, cells)} data-phone={phoneColumns === 2 ? 2 : undefined}>
         {Array.from({ length: cells }, (_, i) => (
           <span key={i} className="pcard-cell"><span className="t-label"><Skeleton.Line width="40%" /></span><span className="pcard-value"><Skeleton.Line width="72%" /></span></span>
         ))}

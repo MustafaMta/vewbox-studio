@@ -50,9 +50,6 @@
   .ctl-sub { margin: 24px 0 8px; }
   .ctl-span { margin: 12px 0 0; }
 
-  /* TEMPORARY (change request to DS): kit.css's `.pcard-grid[data-cols='3']` outranks its own < 1024 rule, so a 3- or
-     4-column panel stays 3 across on phones; two across below 1024, as §5.9 says. Delete when the kit fixes it. */
-  @media (max-width: 1023px) { .cp .pcard-grid[data-cols] { --pcard-cols: 2; } }
 
   /* ---- settings ------------------------------------------------------------------------------------------------- */
   .settings .cp-section > :not(.shead) { max-inline-size: 880px; }
