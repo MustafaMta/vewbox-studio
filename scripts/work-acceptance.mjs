@@ -24,7 +24,10 @@ const PAGES = [
   { name: 'shot', path: `/shorts/${film}/shots/${shotId}`, ready: '.ws-stage .ws-take' },
   { name: 'final', path: `/shorts/${film}/production?tab=final`, ready: '.ws-final' },
 ];
-const SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
+const ALL_SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
+// --widths 1920,390 measures only those sizes
+const only = opt('widths', '').split(',').filter(Boolean).map(Number);
+const SIZES = only.length ? ALL_SIZES.filter((s) => only.includes(s.w)) : ALL_SIZES;
 // warm the dev server's compiles first, so the throttled loads measure the page and not the compiler
 for (const pg of PAGES) await fetch(`${base}${pg.path}`).catch(() => {});
 const browser = await chromium.launch();
