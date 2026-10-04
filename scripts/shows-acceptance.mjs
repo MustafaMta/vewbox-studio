@@ -31,6 +31,8 @@ const PAGES = [
 const SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
 const browser = await chromium.launch();
 let failed = 0;
+// warm the dev server first (each route compiles once), so the throttled loads measure the page, not the compiler
+{ const ctx = await browser.newContext(); const page = await ctx.newPage(); await prepare(page, { fixture }); for (const pg of PAGES) { await page.goto(`${base}${pg.path}`).catch(() => {}); await page.waitForSelector(pg.ready, { timeout: 180000 }).catch(() => {}); } await page.unrouteAll({ behavior: 'ignoreErrors' }); await ctx.close(); }
 const report = [];
 
 for (const size of SIZES) {
@@ -51,7 +53,7 @@ for (const size of SIZES) {
     await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
     await page.waitForSelector('main', { timeout: 120000 });
     await page.screenshot({ path: `${out}/${pg.name}-loading-${size.w}.png` });
-    await page.waitForSelector(pg.ready, { timeout: 120000 });
+    await page.waitForSelector(pg.ready, { timeout: 240000 });
     const firstMs = Date.now() - t0;
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
