@@ -5,7 +5,7 @@ import { StudioError } from '@/domain/errors';
 import { readState } from '@/server/studio/engine';
 import { enqueue, getJob, listJobs } from '@/server/jobs/queue';
 import { isTerminalStatus, type Job } from '@/domain/jobs';
-import { needsTake } from '@/studio/selectors';
+import { continuationStale, needsTake } from '@/studio/selectors';
 import { orderedShots } from '@/domain/timeline';
 import * as comfy from '@/server/providers/comfy';
 import { requireApproval } from '@/server/org/gates';
@@ -81,7 +81,7 @@ export const produceLegacy: Handler = async (ctx) => {
   // respeak: speaking shots whose chosen take never proved its words (made before the script check existed, or
   // failing it) get a new take through the audio-first pipeline; a passing new take becomes the choice
   const unverified = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); const c = t?.qa?.checks.find((x) => x.name === 'script-spoken'); return sh.dialogue.length > 0 && (!t || t.provider === 'SAMPLE' || !c || !c.ok); };
-  const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh)));
+  const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh) || continuationStale(sh)));
   const round = ctx.job.attempts;
   // the cut is assembled when there is none yet, or when it is out of date (another take chosen, a shot changed —
   // audit M2, step 12): also when every shot already has its take
@@ -122,7 +122,8 @@ export const produceLegacy: Handler = async (ctx) => {
   const jobOfShot = new Map<string, string>();
   const queueTake = async (sh: Shot) => {
     const existing = adopt('GENERATE_TAKE', sh.id);
-    const req = { type: 'GENERATE_TAKE' as const, payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 };
+    // a stale continuation is re-conditioned on the predecessor's current take: the new take replaces the stale choice
+    const req = { type: 'GENERATE_TAKE' as const, payload: { productionId, shotId: sh.id, ...(respeak || continuationStale(sh) ? { select: true } : {}) }, parentId: ctx.job.id, idempotencyKey: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 };
     const id = existing ?? (await ctx.tool('jobs.enqueue', () => enqueue(req), { label: 'GENERATE_TAKE', input: req })).job.id;
     takeJobs.push(id); jobOfShot.set(sh.id, id);
     return id;
@@ -241,7 +242,11 @@ export const produce: Handler = async (ctx) => {
       await ctx.event(out.blocking.length ? 'warn' : 'info', `World Bible: ${out.message}`, { revision: out.view.revision.number, action: out.action, established: established.filter((e) => e.added), blocking: out.blocking });
       return { revision: out.view.revision.number, pinned: out.view.pinned, action: out.action, established: established.reduce((n, e) => n + e.added, 0), blocking: out.blocking.length };
     });
-    const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh)));
+    // what to film: shots without a real chosen take, and STALE CONTINUATIONS (src/domain/continuation.ts: the shot
+    // before them chose another take since they were made) — re-conditioned on the current predecessor, in order
+    const targets = p.shots.filter((sh) => (!shotIds?.length || shotIds.includes(sh.id)) && (respeak ? unverified(sh) : needsTake(sh) || continuationStale(sh)));
+    const stale = targets.filter(continuationStale);
+    if (stale.length) await ctx.event('info', `${stale.length} stale continuation(s) are re-conditioned on their predecessor's current take: ${stale.map((s) => `shot ${s.number}`).join(', ')}`, { shotIds: stale.map((s) => s.id) });
     plan = { v: 1, round, targets: targets.map((s) => s.id), imagesReady: false, world, frames: {}, takes: {}, blocked: [] };
     if (targets.length === 0) {
       if (respeak || framesOnly || !needsAssembly(p)) return { message: respeak ? 'every speaking shot already has a verified take' : 'every shot already has a chosen take', shots: 0 };
@@ -268,7 +273,8 @@ export const produce: Handler = async (ctx) => {
   }
   if (framesOnly) return { frames: Object.keys(plan.frames).length, shots: plan.targets.length };
   const targets = plan.targets.map((id) => p.shots.find((s) => s.id === id)).filter((s): s is Shot => Boolean(s));
-  const queueTake = async (sh: Shot) => { plan.takes[sh.id] = await enqueueChild({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak ? { select: true } : {}) }, key: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 }); };
+  // a stale continuation's new take replaces the stale choice (select), like a respeak's
+  const queueTake = async (sh: Shot) => { plan.takes[sh.id] = await enqueueChild({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(respeak || continuationStale(sh) ? { select: true } : {}) }, key: `produce:${ctx.job.id}:take:${sh.id}:${round}`, priority: 1 }); };
 
   // ---- 1) the pilots: the first shot of every unproven scene, generated alone ----
   if (!plan.scenes) {

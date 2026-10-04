@@ -162,6 +162,13 @@
       "when": 1791079901018,
       "tag": "0022_drop_continuity_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791146071463,
+      "tag": "0023_continuation_stale",
+      "breakpoints": true
     }
   ]
 }

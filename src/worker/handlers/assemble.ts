@@ -33,7 +33,9 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const world = await worldOfProduction(state, p, { jobId: ctx.job.id });
   const bible = world.revision.bible;
   const ambience = Object.fromEntries(bible.locations.filter((l) => l.ambience?.assetId).map((l) => [l.locationId, l.ambience!.assetId!]));
-  const timelineOpts = { policy: bible.audio, ambience };
+  // a stale continuation join (src/domain/continuation.ts) is refused unless the producer's override is on the job
+  const allowStaleJoins = Boolean((ctx.job.payload as { allowStaleJoins?: boolean }).allowStaleJoins);
+  const timelineOpts = { policy: bible.audio, ambience, allowStaleJoins };
   let timeline = buildTimeline(p, state.assets, timelineOpts);
   // sample takes are stand-ins made by the prototype; refuse to pass them off as a production cut
   const sampleTakes = timeline.items.filter((it) => it.take.sample);

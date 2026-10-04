@@ -135,7 +135,8 @@ export interface AudioCue {
   policy: string;
 }
 
-export type AudioProblemKind = 'DUPLICATE_SONG' | 'VOICE_OVERLAP' | 'ROUTED_TWICE';
+/** STALE_JOIN: a continuation take whose predecessor's chosen take is not the one it continued (src/domain/continuation.ts) */
+export type AudioProblemKind = 'DUPLICATE_SONG' | 'VOICE_OVERLAP' | 'ROUTED_TWICE' | 'STALE_JOIN';
 export interface AudioProblem { kind: AudioProblemKind; detail: string; cueIds: string[] }
 
 export interface AudioTimeline {
@@ -236,6 +237,9 @@ export interface AudioTimelineOptions {
   extraTrim?: Record<string, number>;
   /** an ambience bed per location (from the World Bible) */
   ambience?: Record<string, string>;
+  /** a stale continuation join (the predecessor's choice changed since the take was made) is normally refused; the
+   *  producer's override assembles it anyway, as a hard cut, with a note */
+  allowStaleJoins?: boolean;
 }
 
 /** THE PRODUCTION AUDIO TIMELINE of a production whose shots all have a chosen take. Rules:
@@ -265,6 +269,7 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
   if (tiled) notes.push(...tiled.notes);
   // 1) THE CLOCK
   const shots: ShotClock[] = [];
+  const staleProblems: AudioProblem[] = [];
   let frame = 0;
   const songOffsetFrames = tiled ? Math.min(...[...tiled.windows.values()].map((w) => w.fromFrame)) : 0;
   for (const sh of ordered) {
@@ -277,8 +282,15 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
     const holdFrames = Math.max(0, w.frames - w.available);
     if (holdFrames) notes.push(`shot ${sh.id}: its take is ${holdFrames} frame(s) short of its song window; the last frame holds`);
     else if (w.basis !== 'SONG' && w.available > w.frames) notes.push(`shot ${sh.id}: ${w.available - w.frames} frame(s) past what the take was generated for are left out`);
-    const join = guideJoinOf(t);
+    let join = guideJoinOf(t);
     if (join === 'HARD') notes.push(`shot ${sh.id}: a continuation joined by a hard cut (its head was kept: ${(t.params as { guide?: { why?: string } } | undefined)?.guide?.why ?? 'the guide was not anchored'})`);
+    // A STALE JOIN (src/domain/continuation.ts): the take continues a tail the cut no longer shows — refused, unless
+    // the producer's override assembles it anyway, as a hard cut
+    if (t.stale) {
+      const detail = `shot ${sh.id}: its take ${t.label} is a stale continuation (${t.stale.detail})`;
+      if (opts.allowStaleJoins) { join = 'HARD'; notes.push(`${detail}; assembled anyway as a hard cut (producer override)`); }
+      else staleProblems.push({ kind: 'STALE_JOIN', detail, cueIds: [`take-${t.id}`] });
+    }
     shots.push({ shotId: sh.id, sceneId: sh.sceneId, takeId: t.id, assetId: a.id, relation: relationOf(sh, t), join, startFrame, frames: w.frames, sourceStartFrame: w.sourceStart, availableFrames: w.available, holdFrames, basis: w.basis });
     frame = startFrame + w.frames;
   }
@@ -374,7 +386,7 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
     flush();
   }
   const timeline: AudioTimeline = { version: 1, fps: CLOCK_FPS, rate: CLOCK_RATE, clock: musicVideo ? 'SONG' : 'DIALOGUE', totalFrames, totalSamples, songOffsetFrames, policy, shots, cues, notes, problems: [] };
-  timeline.problems = auditTimeline(timeline);
+  timeline.problems = [...staleProblems, ...auditTimeline(timeline)];
   return timeline;
 }
 

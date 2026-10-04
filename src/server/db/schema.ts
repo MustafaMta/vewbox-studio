@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, Voice } from '@/domain/types';
+import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
 import type { RunPhaseEvent } from '@/domain/phases';
 import type { JobError, JobProgress } from '@/domain/jobs';
 import type { Presentation } from '@/domain/presentation';
@@ -172,6 +172,8 @@ export const takes = pgTable('takes', {
   /** CONTINUATION | CUT | STORY_TRANSITION, as generated; and the take whose tail a continuation anchored */
   relation: text('relation'),
   continuesTakeId: text('continues_take_id'),
+  /** a stale continuation (src/domain/continuation.ts): why, since when, which take the shot before now chooses */
+  stale: jsonb('stale').$type<TakeStale>(),
   /** THE PRODUCER'S JUDGEMENT (docs/CONTRACTS-REDESIGN-BACKEND.md B5): GOOD or REJECTED, the reason, who and when.
    *  Apart from `status` (the inspectors' verdict); a REJECTED judgement keeps the take and takes it out of the cut. */
   rating: text('rating'),

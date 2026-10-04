@@ -141,6 +141,11 @@ export interface Take {
    *  change of the previous shot's chosen take can be detected). */
   relation?: ShotRelation;
   continuesTakeId?: string;
+  /** THE STALE CHAIN (src/domain/continuation.ts): a continuation take whose predecessor's chosen take is no longer
+   *  the one it continued — or continues a take that is itself stale — is marked here by the studio (never by a
+   *  page) the moment the choice changes, and cleared when the chain is whole again. The map shows it; PRODUCE
+   *  re-conditions exactly these shots; the cut refuses a stale join unless told to allow it. */
+  stale?: TakeStale;
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
   soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
@@ -154,6 +159,10 @@ export interface Take {
 }
 
 export type TakeRating = 'GOOD' | 'REJECTED';
+
+/** Why a continuation take is stale: the shot before it now chooses `expectedTakeId` (the take whose tail this one
+ *  should continue), or that chosen take is itself stale (`because: 'UPSTREAM_STALE'`). */
+export interface TakeStale { since: string; because: 'PREDECESSOR_RESELECTED' | 'UPSTREAM_STALE'; previousShotId: string; expectedTakeId?: string; detail: string }
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
 

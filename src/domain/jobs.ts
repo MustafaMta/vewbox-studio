@@ -140,7 +140,7 @@ export const JOB_PAYLOADS = {
   /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
-  ASSEMBLE: z.object({ productionId: id }),
+  ASSEMBLE: z.object({ productionId: id, /** assemble a stale continuation join anyway (as a hard cut) */ allowStaleJoins: z.boolean().optional() }),
   EXPORT: z.object({ productionId: id, format: z.enum(['mp4-h264', 'mp4-h265', 'mov-prores']), resolution: z.enum(['720', '1080', '2160']), subtitles: z.enum(['none', 'ar', 'en', 'both']) }),
   PRODUCE: z.object({ productionId: id, shotIds: z.array(id).optional(), framesOnly: z.boolean().optional(), /** re-record the speaking shots whose chosen take was never verified against the script (older pipeline) or failed; the new take replaces the choice when it passes */ respeak: z.boolean().optional() }),
   MEDIA_PROBE: z.object({ assetId: id }),
