@@ -15,7 +15,7 @@ const ROUTES = [
   '/shorts', '/shorts/night-tray', '/shorts/night-tray?tab=story', '/shorts/night-tray?tab=final', '/shorts/night-tray/shots/nt-1',
   '/music-videos', '/music-videos/river-lights', '/music-videos/river-lights?tab=song', '/music-videos/river-lights?tab=performers',
   '/characters', '/characters/new', '/characters/layla', '/characters/abu-samir', '/locations', '/locations/new', '/locations/cafe', '/assets',
-  '/studio', '/studio/departments/CASTING', '/studio/agents/casting-director', '/production', '/jobs', '/screening', '/screening?cut=paper-boats', '/settings',
+  '/studio', '/studio/departments/CASTING', '/studio/agents/casting-director', '/production', '/jobs', '/screening', '/screening?p=paper-boats', '/screening?p=paper-boats&cut=2', '/settings',
   '/new', '/new/show', '/new/season', '/new/episode', '/new/short', '/new/music-video', '/library', '/projects',
 ];
 
@@ -31,6 +31,8 @@ describe('page titles (§7.3)', () => {
     expect(title('/characters/new')).toBe('New character · Characters · Vewbox Studio');
     expect(title('/locations/cafe')).toBe('Abu Samir’s Café · Locations · Vewbox Studio');
     expect(title('/studio/agents/casting-director')).toBe('Casting Director · Casting & Character Design · Studio Company · Vewbox Studio');
+    expect(title('/screening?p=paper-boats')).toBe('Paper Boats · Screening Room · Vewbox Studio');
+    expect(title('/screening?p=paper-boats&cut=2')).toBe('Cut 2 · Paper Boats · Screening Room · Vewbox Studio');
     expect(title('/new/show')).toBe('New Show · Vewbox Studio');
   });
 

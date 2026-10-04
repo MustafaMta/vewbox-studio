@@ -106,6 +106,15 @@ export function usePlayerCore({ src, fps, sync, muted: mutedInit, aspect, onEnde
 }
 export type PlayerCore = ReturnType<typeof usePlayerCore>;
 
+/** The imperative handle every player exposes (InlinePlayer, TheatrePlayer, CanvasPlayer): the controls, the element,
+ *  and a snapshot of the state read from the element when called. */
+export function handleOf(c: PlayerCore) {
+  return {
+    play: c.play, pause: c.pause, toggle: c.toggle, seek: c.seek, nudge: c.nudge, el: () => c.video.current,
+    state: () => { const v = c.video.current; return { time: v?.currentTime ?? 0, duration: v && Number.isFinite(v.duration) ? v.duration : 0, playing: Boolean(v && !v.paused && !v.ended) }; },
+  };
+}
+
 /** The keyboard map of §5.12, for one core: Space/K, J/L, ←/→ (frame), Shift+←/→ (1 s), Home/End, M, C, F. */
 export function coreKeys(c: PlayerCore, extra: ShortcutMap = {}): ShortcutMap {
   return {

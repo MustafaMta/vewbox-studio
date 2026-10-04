@@ -10,6 +10,7 @@ import { PlayerBar } from '@/components/players/PlayerBar';
 import { usePlayer, useTrackState, type Track } from '@/components/players/PlayerProvider';
 import { Waveform } from '@/components/players/Waveform';
 import { AudioRow, AudioPlayer } from '@/components/players/Controls';
+import { IconBack5, IconForward5 } from '@/components/ui/icons';
 import { SongTransport, SongVideoSwitch, type SongMode } from '@/components/players/music/SongTransport';
 import { SectionsTable } from '@/components/players/music/SectionsTable';
 import { LyricView } from '@/components/players/music/LyricView';
@@ -40,6 +41,19 @@ export function PlayersSpec() {
         <div className="spec-gap"><Cell label="The page's hero, radius 20; compact (volume behind its button)"><InlinePlayer src={EPISODE.cut} poster={EPISODE.still} title={`${EPISODE.title} (hero)`} hero compact /></Cell></div>
       </Block>
 
+      <Block title="Video player, theatre: overlay, ticks, extra keys and dock slots (the Screening Room)">
+        <div data-room="theatre" className="spec-theatre-room">
+          <InlinePlayer theatre src={EPISODE.cut} poster={EPISODE.still} title={`${EPISODE.title} (theatre)`}
+            ticks={[...EPISODE.shots.slice(1).map((_, i) => ({ at: EPISODE.shots.slice(0, i + 1).reduce((t, x) => t + x.d, 0) * (12 / 30), kind: 'mark' as const })), { at: 4, kind: 'note' as const }, { at: 9, kind: 'note' as const }]}
+            keys={(c) => ({ '[': () => c.nudge(-2), ']': () => c.nudge(2) })}
+            overlay={(c) => (Math.abs(c.time - 4) < 1 ? <span className="art-chip">Note · Hold on the keys</span> : null)}
+            transportStart={(c) => <>
+              <button type="button" className="pt-btn" aria-label="Back 5 seconds" onClick={() => c.nudge(-5)}><IconBack5 aria-hidden /></button>
+              <button type="button" className="pt-btn" aria-label="Forward 5 seconds" onClick={() => c.nudge(5)}><IconForward5 aria-hidden /></button>
+            </>}
+            transportEnd={<span className="ptime">CC · English</span>} />
+        </div>
+      </Block>
       <Block title="Audio row (§5.24)">
         <div className="spec-stack">
           <AudioRow track={track} meta={`${song.performers} · 0:${song.duration}`} />

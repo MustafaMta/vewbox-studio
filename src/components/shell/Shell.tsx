@@ -78,6 +78,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const choice = useSidebarChoice();
   // the cutting room is known from the route before the page declares its room (the boot uses the same pattern)
   const cutting = room === 'cutting' || isCuttingRoute(pathname);
+  // the boot's <html data-route> (full-width main from the first frame), kept current on client navigation
+  const cuttingRoute = isCuttingRoute(pathname);
+  useEffect(() => { const html = document.documentElement; if (cuttingRoute) html.setAttribute('data-route', 'cutting'); else html.removeAttribute('data-route'); }, [cuttingRoute]);
   const shape: SidebarShape = sidebarShape(choice, wide && !cutting);
   useEffect(() => {
     const html = document.documentElement;
