@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { Job, JobEvent } from '@/domain/jobs';
 import { api } from '@/studio/api';
 import { approveStage, useLive } from '@/studio/org';
+import { approvalSubjectHash, isGatedStage } from '@/domain/approvals';
 import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { useShell } from '@/components/shell/context';
@@ -72,14 +73,17 @@ function NeedsYou() {
  *  answers. The card has the decision card's anatomy; the verbs are buttons, not one link. */
 function GateCard({ d, card, priority }: { d: Decision; card: CardModel; priority?: boolean }) {
   const toast = useToast();
-  const { refresh } = useStudio();
+  const { refresh, state } = useStudio();
   const [busy, setBusy] = useState<null | 'APPROVED' | 'CHANGES'>(null);
   const p = d.subject.productionId; const stage = d.subject.stage;
   const decide = async (decision: 'APPROVED' | 'CHANGES') => {
     if (!p || !stage) return;
     setBusy(decision);
-    try { await approveStage(p, { stage, decision, by: 'producer' }); toast.ok(decision === 'APPROVED' ? 'Approved. The studio goes on.' : 'Changes asked. The department will redo this step.'); void refresh(); }
-    catch (e) { toast.bad((e as Error).message); }
+    // bound approval: the hash of what this page shows; the server refuses (409) when the subject changed meanwhile
+    const prod = state.productions.find((x) => x.id === p);
+    const body = { stage, decision, by: 'producer', ...(prod && isGatedStage(stage) ? { subjectHash: approvalSubjectHash(prod, stage) } : {}) };
+    try { await approveStage(p, body); toast.ok(decision === 'APPROVED' ? 'Approved. The studio goes on.' : 'Changes asked. The department will redo this step.'); void refresh(); }
+    catch (e) { toast.bad(/409/.test((e as Error).message) ? 'It changed since this page showed it. Look at it again, then decide.' : (e as Error).message); void refresh(); }
     finally { setBusy(null); }
   };
   return (
