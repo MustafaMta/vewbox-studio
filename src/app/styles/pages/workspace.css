@@ -4,7 +4,8 @@
    not a lobby page): the outline 280 on the start side, the panes, the inspector 360 on the end side at ≥ 1280. The
    skeletons (WorkspaceSkeleton.tsx) use the same classes, so nothing moves when the content arrives. */
 @layer components {
-  [data-room='cutting'] > .shell-main:has(.ws) { padding: 0; max-inline-size: none; }
+  /* the room runs edge to edge from the first frame (the skeleton included, before the shell knows the room) */
+  .shell-main:has(.ws) { padding: 0; max-inline-size: none; }
 
   .ws { display: flex; flex-direction: column; min-inline-size: 0; }
 
@@ -27,6 +28,7 @@
   .ws-studioline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-block-size: 39px; padding: 10px 24px; border-block-end: 1px solid var(--line); font-size: 13px; line-height: 18px; color: var(--text-2); }
   .ws-studioline-words { flex: 1 1 320px; min-inline-size: 0; }
   .ws-studioline .ws-short { display: none; }
+  .ws-studioline-link .ws-short { display: none; }
   .ws-studioline-link { font-weight: 500; color: var(--text-1); text-decoration: none; white-space: nowrap; }
   .ws-studioline-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 
@@ -338,6 +340,9 @@
   .ws-skeleton .ws-bar-title { gap: 4px; }
   .ws-skeleton .ws-pipe { gap: 6px; }
   .ws-skeleton .ws-ol-row { cursor: default; }
+  .ws-skeleton .ws-canvas .sk-media { border-radius: 0; }
+  .ws-skeleton .ws-take .sk-media, .ws-skeleton .ws-ol-thumb .sk-media { border-radius: var(--r-sm); }
+  .ws-skeleton .ws-ol-shot .sk-text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .ws-skeleton .ws-ol-row:hover { background: none; }
 
   /* ------------------------------------------------------------------------------------------------ narrower */
@@ -362,9 +367,11 @@
     .ws-bar-title { flex: 1 1 0; }
     .ws-bar-name { white-space: normal; }
     .ws-save { display: none; }
-    .ws-studioline { padding: 10px var(--pad); }
+    .ws-studioline { flex-wrap: nowrap; padding: 10px var(--pad); }
+    .ws-studioline-words { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ws-studioline .ws-long { display: none; }
     .ws-studioline .ws-short { display: inline; }
+    .ws-studioline-link .ws-short { display: inline; }
     .ws-main { padding: 16px var(--pad) 40px; }
     .ws-stage { padding: 12px var(--pad) 32px; }
     .ws-form-grid, .ws-slots { grid-template-columns: minmax(0, 1fr); }

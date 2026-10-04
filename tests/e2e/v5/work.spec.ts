@@ -57,10 +57,10 @@ test('the map: the stage pipeline as pills, the hierarchy, the decisions, the fl
 
 test('the pills and the old tab names open the stage tabs', async ({ page }) => {
   await open(page, MAP);
-  await page.getByRole('navigation', { name: 'Stages' }).getByRole('link', { name: /Story/ }).click();
+  await page.getByRole('navigation', { name: 'Stages' }).getByRole('link', { name: /^Story( \(done\))?$/ }).click();
   await expect(page).toHaveURL(new RegExp(`${MAP}\\?tab=story$`));
   await expect(page.getByRole('heading', { level: 1, name: 'Story' })).toBeVisible();
-  await expect(page.getByLabel('Logline')).toHaveValue(/lighthouse keeper/);
+  await expect(page.getByRole('textbox', { name: 'Logline', exact: true })).toHaveValue(/lighthouse keeper/);
   await page.goto(`${MAP}?tab=characters`);
   await expect(page.getByRole('heading', { level: 1, name: 'Cast and world' })).toBeVisible();
   await page.goto(`${MAP}?tab=storyboard`);
@@ -70,7 +70,7 @@ test('the pills and the old tab names open the stage tabs', async ({ page }) => 
 
 test('the story pane saves the logline as a command, never a direct write', async ({ page }) => {
   await open(page, `${MAP}?tab=story`);
-  await page.getByLabel('Logline').fill('A new logline.');
+  await page.getByRole('textbox', { name: 'Logline', exact: true }).fill('A new logline.');
   await page.getByRole('button', { name: 'Save', exact: true }).first().click();
   await expect.poll(() => commands.map((c) => c.name)).toContain('updateProduction');
 });
@@ -108,7 +108,7 @@ test('the takes: use, judge and compare, as commands', async ({ page }) => {
   await open(page, `/shorts/${FILM}/shots/${SHOT}`);
   const takes = page.locator('.ws-take-row > .ws-take');
   await expect(takes).toHaveCount(4);
-  await expect(takes.nth(3)).toHaveAttribute('data-selected', '');
+  await expect(takes.nth(3)).toHaveAttribute('data-selected', 'true');
   await takes.nth(0).getByRole('button', { name: 'Use this take' }).click();
   await takes.nth(1).getByRole('button', { name: 'Good', exact: true }).click();
   page.once('dialog', (d) => void d.accept('soft focus'));
@@ -170,8 +170,8 @@ test('the loading state: the workspace skeleton keeps the real panels', async ({
   await page.route('**/api/studio', async (r) => { await new Promise((x) => setTimeout(x, 2500)); await r.continue(); });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(MAP, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.ws-skeleton', { timeout: 60_000 });
-  expect(Math.round((await page.locator('.ws-skeleton .ws-outline').boundingBox())!.width)).toBe(280);
+  const outline = await page.waitForFunction(() => { const o = document.querySelector('.ws-skeleton .ws-outline'); return o ? Math.round(o.getBoundingClientRect().width) : 0; }, null, { timeout: 60_000 });
+  expect(await outline.jsonValue()).toBe(280);
   await page.waitForSelector('.ws:not(.ws-skeleton) .ws-map', { timeout: 90_000 });
 });
 
