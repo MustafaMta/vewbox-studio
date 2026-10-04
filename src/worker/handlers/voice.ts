@@ -16,11 +16,8 @@ import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import * as minimax from '@/server/providers/minimax';
-import { unloadDesign } from '@/server/providers/voice-design';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
-import { registerUnloader } from '../gpu';
-import { unloadAsr, unloadTts } from '@/server/providers/speech';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { designChoiceProblem } from '@/server/org/preflight';
 import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
@@ -36,9 +33,7 @@ import { designAndMeasure, designSummary } from './voice-design';
  *  that could not be heard back is flagged too, never passed. Contracts: docs/CONTRACTS-CHARACTER-VOICE.md §1.4,
  *  docs/CONTRACTS-VOICE-IDENTITY-V2.md. */
 
-registerUnloader('TTS', unloadTts);
-registerUnloader('TTS', unloadDesign);
-registerUnloader('ASR', unloadAsr);
+// the voice engines' unloaders are built into the shared GPU lease (src/server/gpu/unloaders.ts, step 8)
 
 export { speedForPace };
 

@@ -329,6 +329,33 @@ export const jobEvents = pgTable('job_events', {
   data: jsonb('data').$type<Record<string, unknown>>(),
 }, (t) => [index('job_events_job_idx').on(t.jobId, t.id)]);
 
+/** THE SHARED GPU LEASE (docs/BACKEND-AUDIT-2026-10.md H7, step 8): one row per process asking for, or holding, a
+ *  resource (`gpu0`, the one RTX 5090). Every process — the host worker, a compose worker, the web server measuring a
+ *  voice reference — goes through these rows, so one model family is on the card at a time. Admission is FIFO by
+ *  `ticket`: a request never overtakes an earlier one of another family (no starvation). A row's `expires_at` is
+ *  renewed while its process lives; a dead process's row expires and is removed by the next admission. */
+export const resourceLeases = pgTable('resource_leases', {
+  resource: text('resource').notNull(),
+  holder: text('holder').notNull(),
+  ticket: bigserial('ticket', { mode: 'number' }).notNull(),
+  family: text('family').notNull(),
+  /** WAITING | HOLDING */
+  state: text('state').notNull(),
+  jobId: text('job_id'),
+  process: text('process').notNull(),
+  requestedAt: ts('requested_at').notNull(),
+  grantedAt: ts('granted_at'),
+  expiresAt: ts('expires_at').notNull(),
+}, (t) => [primaryKey({ columns: [t.resource, t.holder] }), index('resource_leases_queue_idx').on(t.resource, t.ticket)]);
+
+/** What a resource last had loaded (the family of its last holder), so the next family to take it knows what to
+ *  unload. */
+export const resourceState = pgTable('resource_state', {
+  resource: text('resource').primaryKey(),
+  loadedFamily: text('loaded_family'),
+  updatedAt: ts('updated_at').notNull(),
+});
+
 export const metrics = pgTable('metrics', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   at: ts('at').notNull(),
