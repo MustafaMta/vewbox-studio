@@ -25,7 +25,7 @@
      the top on desktop; the page ends 24 px (phone) or 80 px (desktop) above the bottom */
   .shell-main { flex: 1 0 auto; inline-size: 100%; max-inline-size: calc(var(--content-max) + 2 * var(--pad)); margin-inline: auto; padding: 12px var(--pad) 24px; }
   @media (min-width: 1024px) { .shell-main { padding-block: 24px 80px; } }
-  [data-room='cutting'] > .shell-main { max-inline-size: none; }  /* the cutting room uses the full width */
+  [data-room='cutting'] > .shell-main, html[data-route='cutting'] .shell-main { max-inline-size: none; }  /* the cutting room uses the full width, known from the route before the room mounts (boot.ts) */
 
   /* the skip link: the first focusable element of every page, shown only while focused */
   .skip-link { position: fixed; inset-block-start: 12px; inset-inline-start: 12px; z-index: var(--z-skip); padding: 8px 14px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 13px; line-height: 18px; font-weight: 500; }
