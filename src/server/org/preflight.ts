@@ -1,7 +1,7 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
-import { clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget } from '@/server/production/guide';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
@@ -109,9 +109,16 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const song = byId(p.song?.assetId);
     add('song-present', usableAudio(song), 'MISSING_REFERENCE', usableAudio(song) ? undefined : 'the music video has no generated or uploaded song yet');
   }
-  // a continuation needs the take it continues, with a usable tail: a chosen real take whose window on the cut holds
-  // the guide's frames (a shorter one would be floored by the node, gap V1)
-  if (sh.continuity?.relationToPrevious === 'CONTINUATION') {
+  // THE BOUNDARY (src/domain/types.ts ShotBoundary): an explicit `continuous` needs a previous shot in the same scene
+  // with a usable tail — a chosen real take whose window on the cut holds the guide's frames (a shorter one would be
+  // floored by the node, gap V1); an explicit `cut` on the same moment needs a previous shot in the same scene. An
+  // older plan's CONTINUATION at a scene's start is lowered to a cut, as before.
+  const { boundary, explicit } = boundaryOf(sh);
+  if (explicit) {
+    const problem = boundaryProblem(state, p, sh);
+    add('boundary-honoured', !problem, 'INCONSISTENT_PLAN', problem ?? `${boundary}: ${pack.relation.toLowerCase().replace('_', ' ')}`);
+  }
+  if (boundary === 'continuous') {
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
     const tail = sameScene ? continuationTail(state, p, prev) : undefined;

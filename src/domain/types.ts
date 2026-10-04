@@ -105,6 +105,20 @@ export interface TakeReference { kind: 'FIRST_FRAME' | 'LAST_FRAME' | 'SUBJECT' 
  *  frame 0), CUT (a new opening frame of the same moment), STORY_TRANSITION (fresh). */
 export type ShotRelation = 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
 
+/** THE SHOT BOUNDARY, as the planner decides it (docs/research/STORYBUILDER-INTEGRATION.md §f.6) — explicit data on
+ *  the shot, the source of truth for how its take is conditioned:
+ *  - `continuous`: the action carries on without a cut — the previous take's tail (frames and sound) is anchored at
+ *    frame 0 and dropped again in the cut; refused when the previous shot has no usable tail;
+ *  - `cut`: an editorial cut on the same moment — same cast, same place, same story state, an intentional change of
+ *    camera; conditioned on the canonical references (and a drawn opening frame when there is one), never a tail;
+ *  - `transition`: a new place or time — the destination's canonical references and the story state at that point;
+ *    nothing of the previous shot is anchored.
+ *  Maps to `ShotRelation` (continuous → CONTINUATION, cut → CUT, transition → STORY_TRANSITION); a shot without it
+ *  falls back to `continuity.relationToPrevious` (older plans). */
+export type ShotBoundary = 'continuous' | 'cut' | 'transition';
+export const BOUNDARY_RELATION: Record<ShotBoundary, ShotRelation> = { continuous: 'CONTINUATION', cut: 'CUT', transition: 'STORY_TRANSITION' };
+export const RELATION_BOUNDARY: Record<ShotRelation, ShotBoundary> = { CONTINUATION: 'continuous', CUT: 'cut', STORY_TRANSITION: 'transition' };
+
 export interface QaCheck { name: string; ok: boolean; value?: number | string; threshold?: number | string; detail?: string }
 export interface QaReport { ok: boolean; checks: QaCheck[]; reviewedAt?: string; reviewer?: 'AUTO' | 'HUMAN'; notes?: string }
 
@@ -211,6 +225,8 @@ export interface Shot {
   continuity?: ContinuityState;
   /** The generation prompt the studio wrote for this shot; editable. Empty means "write it from the shot". */
   prompt?: string;
+  /** How this shot joins the one before it (see `ShotBoundary`); set by the planner, read by the worker and the preflight. */
+  boundary?: ShotBoundary;
 }
 
 export interface LyricSection {

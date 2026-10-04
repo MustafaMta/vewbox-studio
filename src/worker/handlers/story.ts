@@ -288,7 +288,7 @@ export const planShots: Handler = async (ctx) => {
   // continuity carries over from the last planned shot before the first target
   const firstIdx = targets.length ? p.scenes.findIndex((sc) => sc.id === targets[0].id) : -1;
   const prior = p.shots.filter((sh) => p.scenes.findIndex((sc) => sc.id === sh.sceneId) < firstIdx).at(-1);
-  if (prior?.continuity) previous = { shot: { purpose: prior.purpose, action: prior.action, framing: prior.framing, cameraMove: prior.cameraMove, durationSeconds: prior.durationSeconds, characterIds: prior.characterIds, dialogue: prior.dialogue, transition: prior.transition, continuity: prior.continuity, prompt: prior.prompt ?? '' } };
+  if (prior?.continuity) previous = { shot: { purpose: prior.purpose, action: prior.action, framing: prior.framing, cameraMove: prior.cameraMove, durationSeconds: prior.durationSeconds, characterIds: prior.characterIds, dialogue: prior.dialogue, transition: prior.transition, continuity: prior.continuity, prompt: prior.prompt ?? '', boundary: prior.boundary } };
   let total = 0;
   for (const [i, scene] of targets.entries()) {
     await ctx.progress('GENERATING', { phase: 'planning', message: `Planning scene ${scene.number}: ${scene.title}`, step: i + 1, total: targets.length });
@@ -296,7 +296,7 @@ export const planShots: Handler = async (ctx) => {
     // TIMING FIT (the Shot Planner's step): the scene's shots stretched evenly to fill its running-time budget
     const shots = await step(ctx, 'shot-planner', `timing-fit: scene ${scene.number}`, async () => fitDurations(draft.shots, draft.budget, draft.maxShot));
     await ctx.checkpoint();
-    await command('replaceSceneShots', [p.id, scene.id, shots.map((sh) => ({ sceneId: scene.id, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, continuity: { ...sh.continuity, version: 1 }, prompt: sh.prompt })), Boolean(force)], 'worker');
+    await command('replaceSceneShots', [p.id, scene.id, shots.map((sh) => ({ sceneId: scene.id, purpose: sh.purpose, action: sh.action, framing: sh.framing, cameraMove: sh.cameraMove, durationSeconds: sh.durationSeconds, characterIds: sh.characterIds, dialogue: sh.dialogue, transition: sh.transition, continuity: { ...sh.continuity, version: 1 }, prompt: sh.prompt, boundary: sh.boundary })), Boolean(force)], 'worker');
     previous = { shot: shots[shots.length - 1], sceneExit: scene.exitState };
     total += shots.length;
   }

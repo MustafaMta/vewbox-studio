@@ -257,6 +257,24 @@ describe('GENERATE_TAKE by relation', () => {
     expect(t.references).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'FIRST_FRAME', assetId: 'open-13', binding: 'guide@0' }), expect.objectContaining({ kind: 'LAST_FRAME', assetId: 'end-13', binding: 'guide@-1' })]));
   });
 
+  it('an explicit boundary conditions the take: a transition opens its scene with the story state and no tail; an explicit cut ignores a stale CONTINUATION relation', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's21' ? { ...s, boundary: 'transition' as const } : s.id === 's12' ? { ...s, boundary: 'cut' as const, dialogue: [] } : s)) });
+    fake.state = { ...state, productions: state.productions.map((x) => (x.id === p.id ? { ...x, scenes: x.scenes.map((sc) => (sc.id === 'sc2' ? { ...sc, entryState: 'The street is empty; the box is under her arm.' } : sc)) } : x)) };
+    await generateTake(ctx(p.id, 's21'));
+    const tr = fake.requests[0] as { prompt: string; guides?: unknown[] };
+    expect(tr.prompt).toContain('the opening of a new scene. The street is empty; the box is under her arm.');
+    expect(fake.tails).toEqual([]);
+    expect(addTake()).toMatchObject({ relation: 'STORY_TRANSITION' });
+    fake.requests = []; fake.commands = [];
+    await generateTake(ctx(p.id, 's12'));
+    const cut = fake.requests[0] as { prompt: string; guides?: unknown[] };
+    expect(fake.tails).toEqual([]);
+    expect(cut.guides).toBeUndefined();
+    expect(cut.prompt).toContain('a new camera angle on the same moment as the previous shot');
+    expect(addTake()).toMatchObject({ relation: 'CUT' });
+    expect(addTake().continuesTakeId).toBeUndefined();
+  });
+
   it('hosted CONTINUATION: the previous take’s last frame as the first frame, no references, no guides, the lowering recorded', async () => {
     const { state, p } = fixture(); fake.state = state; fake.backend = 'api';
     await generateTake(ctx(p.id, 's12'));

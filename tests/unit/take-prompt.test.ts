@@ -73,6 +73,28 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 4, audios: 0, lines: ['We close in ten minutes.'], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
   });
 
+  it('the boundary in words: a cut without an opening frame is a new camera on the same moment; a transition opens a new scene with the story state, names bound to subjects', () => {
+    const { p, cast, loc } = setup();
+    const sh = shotOf(p, 's13');
+    const [a] = sh.characterIds;
+    const noFrame: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }], location: { picture: 2 } };
+    const cut = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, noFrame, { relation: 'CUT' });
+    expect(cut).toContain('It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes.');
+    expect(cut).toContain('[reference generation]');
+    const who = cast.find((c) => c.id === a)!;
+    const tr = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'NIGHT', entryState: `${who.name} waits outside with the box; the street is empty` }, noFrame, { relation: 'STORY_TRANSITION' });
+    expect(tr).toContain('It opens a new scene in <Subject 2> at night; nothing continues from the previous shot. <Subject 1> waits outside with the box; the street is empty.');
+    expect(tr).not.toContain(who.name);
+    expect(lintH3Prompt(tr, { labels: 'LOCAL', pictures: 2, audios: 0, lines: [], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
+    // with a drawn opening frame the transition still says it opens a new scene
+    const framed = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'NIGHT', entryState: 'The shop is dark.' }, { ...noFrame, opening: { kind: 'FRAME', picture: 3 } }, { relation: 'STORY_TRANSITION' });
+    expect(framed).toContain('It begins from <Picture 3>, the opening of a new scene. The shop is dark.');
+    // a name with no bound subject is described, never written
+    const unbound = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'NIGHT', entryState: `${cast[1].name} is gone.` }, noFrame, { relation: 'STORY_TRANSITION' });
+    expect(unbound).not.toContain(cast[1].name);
+    expect(unbound).toMatch(/the \d+-year-old (woman|man), [^.]+ is gone\./);
+  });
+
   it('a continuation says it continues the anchored tail and still binds the references; no opening picture', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');

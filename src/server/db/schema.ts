@@ -135,6 +135,8 @@ export const shots = pgTable('shots', {
   notes: text('notes'),
   continuity: jsonb('continuity').$type<ContinuityState>(),
   prompt: text('prompt'),
+  /** continuous | cut | transition (src/domain/types.ts ShotBoundary) */
+  boundary: text('boundary'),
   ...tombstone(),
 }, (t) => [index('shots_production_idx').on(t.productionId), index('shots_scene_idx').on(t.sceneId)]);
 

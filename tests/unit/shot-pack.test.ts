@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { bindingOf, clipSecondsFor, continuationSource, continuationTail, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
-import type { Character } from '@/domain/types';
+import { bindingOf, boundaryOf, boundaryProblem, clipSecondsFor, continuationSource, continuationTail, effectiveRelation, guideProblems, plannedGuides, plateFor, resolveShotPack } from '@/server/production/shot-pack';
+import type { Character, Shot } from '@/domain/types';
 import { VideoGenerateInput } from '@/server/org/contracts';
 import { fixture, shotOf, TAKE_A } from './continuity-fixture';
 
@@ -99,6 +99,55 @@ describe('relations', () => {
     // a 39-frame guide against a 30-frame window: refused for that length too
     const p3 = { ...p2, shots: p2.shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...TAKE_A, params: { timeline: { newFrames: 30 } } }] } : s)) };
     expect(continuationTail(s2, p3, shotOf(p3, 's11'), 39).problem).toMatch(/30 frames in the cut, fewer than the 39-frame guide/);
+  });
+});
+
+describe('the shot boundary (explicit data, the planner’s decision)', () => {
+  it('an explicit boundary wins over the older relation; a shot without it reads the relation', () => {
+    const { p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, boundary: 'cut' as const } : s.id === 's13' ? { ...s, boundary: 'transition' as const } : s)) });
+    expect(boundaryOf(shotOf(p, 's12'))).toEqual({ boundary: 'cut', explicit: true });
+    expect(effectiveRelation(p, shotOf(p, 's12'))).toMatchObject({ relation: 'CUT', planned: 'CUT', boundary: 'cut' });
+    // a transition inside a scene is honoured (a jump in time or place the planner declared)
+    expect(effectiveRelation(p, shotOf(p, 's13'))).toMatchObject({ relation: 'STORY_TRANSITION', boundary: 'transition' });
+    expect(boundaryOf(shotOf(p, 's11'))).toEqual({ boundary: 'transition', explicit: false });
+    expect(boundaryOf(shotOf(p, 's21'))).toEqual({ boundary: 'continuous', explicit: false });
+    expect(boundaryOf({ continuity: undefined })).toEqual({ boundary: undefined, explicit: false });
+  });
+
+  it('the pack conditions by boundary: continuous → the tail; cut → no tail, the opening frame; transition → nothing of the previous shot', () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, boundary: 'continuous' as const } : s.id === 's13' ? { ...s, boundary: 'cut' as const, continuity: { ...s.continuity!, relationToPrevious: 'CONTINUATION' as const } } : s)) });
+    const cont = resolveShotPack(state, p, shotOf(p, 's12'), { backend: 'local' });
+    expect(cont).toMatchObject({ relation: 'CONTINUATION', boundary: 'continuous', opening: { kind: 'TAIL' }, trimStartFrames: 22 });
+    expect(cont.notes[0]).toMatch(/^boundary continuous: the action carries on/);
+    // the explicit cut overrides a stale CONTINUATION relation: no tail is anchored
+    const cut = resolveShotPack(state, p, shotOf(p, 's13'), { backend: 'local' });
+    expect(cut).toMatchObject({ relation: 'CUT', boundary: 'cut', opening: { kind: 'FRAME', assetId: 'open-13' }, trimStartFrames: 0 });
+    expect(cut.notes[0]).toMatch(/^boundary cut: a new camera on the same moment/);
+    const { state: s2, p: p2 } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's21' ? { ...s, boundary: 'transition' as const } : s)) });
+    const tr = resolveShotPack(s2, p2, shotOf(p2, 's21'), { backend: 'local' });
+    expect(tr).toMatchObject({ relation: 'STORY_TRANSITION', boundary: 'transition', opening: { kind: 'FRAME', assetId: 'open-21' }, location: { assetId: 'plate-street' } });
+    expect(tr.pictures.some((x) => x.assetId === 'vid-a')).toBe(false);
+  });
+
+  it('boundaryProblem: a continuous shot needs a previous shot in its scene with a usable tail; a cut needs a previous shot in its scene', () => {
+    const base = fixture();
+    const withB = (id: string, boundary: 'continuous' | 'cut' | 'transition', more: Partial<Shot> = {}) => { const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === id ? { ...s, boundary, ...more } : s)) }); return { state, p, sh: shotOf(p, id) }; };
+    let x = withB('s12', 'continuous');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toBeUndefined();
+    x = withB('s11', 'continuous');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toMatch(/needs a shot before it; this is the first shot/);
+    x = withB('s21', 'continuous');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toMatch(/shot 3 is in another scene \(a new scene is a transition\)/);
+    const noTake = fixture({ shots: (shots) => shots.map((s) => (s.id === 's11' ? { ...s, selectedTakeId: undefined } : s.id === 's12' ? { ...s, boundary: 'continuous' as const } : s)) });
+    expect(boundaryProblem(noTake.state, noTake.p, shotOf(noTake.p, 's12'))).toMatch(/no usable tail: shot 1 has no chosen real take yet/);
+    x = withB('s21', 'cut');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toMatch(/a cut on the same moment needs a previous shot in the same scene/);
+    x = withB('s11', 'cut');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toMatch(/this is the first shot \(a transition\)/);
+    x = withB('s13', 'transition');
+    expect(boundaryProblem(x.state, x.p, x.sh)).toBeUndefined();
+    // an older plan's relation is never a problem (it is lowered, as before)
+    expect(boundaryProblem(base.state, base.p, shotOf(base.p, 's21'))).toBeUndefined();
   });
 });
 

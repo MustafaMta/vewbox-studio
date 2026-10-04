@@ -1,4 +1,4 @@
-import type { Asset, Character, Location, Production, Shot, ShotRelation, StudioState, Take } from '@/domain/types';
+import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take } from '@/domain/types';
 import { orderedShots, shotWindowFrames } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -38,6 +38,8 @@ export interface ShotPack {
   /** the relation the request is built for, and what the plan said */
   relation: ShotRelation;
   plannedRelation?: ShotRelation;
+  /** the shot's boundary as the planner set it (or as read from an older plan's relation) */
+  boundary?: ShotBoundary;
   previousShotId?: string;
   /** local: REF2VA or FL2VA; hosted: REFERENCE (pictures), FRAMES (first/last frame) or TEXT */
   graph: 'REF2VA' | 'FL2VA' | 'REFERENCE' | 'FRAMES' | 'TEXT';
@@ -66,16 +68,42 @@ export function previousShot(p: Production, sh: Shot): Shot | undefined {
   return i > 0 ? ordered[i - 1] : undefined;
 }
 
-/** The relation a take is generated for. CONTINUATION only inside a scene (a continuation across scenes, or of the
- *  first shot, is treated as a cut, as before); a shot without a stated relation is a CUT inside a scene and a
- *  STORY_TRANSITION at a scene's start. `relationToPrevious` is authoritative; `transition` is editorial only. */
-export function effectiveRelation(p: Production, sh: Shot): { relation: ShotRelation; planned?: ShotRelation; previous?: Shot } {
+/** The shot's boundary: the explicit field (the planner's decision), else the older plan's `relationToPrevious`. */
+export function boundaryOf(sh: Pick<Shot, 'boundary' | 'continuity'>): { boundary?: ShotBoundary; explicit: boolean } {
+  if (sh.boundary) return { boundary: sh.boundary, explicit: true };
+  const r = sh.continuity?.relationToPrevious;
+  return { boundary: r ? RELATION_BOUNDARY[r] : undefined, explicit: false };
+}
+
+/** The relation a take is generated for, from the shot's boundary. CONTINUATION only inside a scene (a continuous
+ *  shot at a scene's start, or whose previous shot is in another scene, is generated as a cut — an EXPLICIT
+ *  `continuous` there is refused by the preflight, an older plan's relation is lowered as before); a shot without a
+ *  stated boundary is a CUT inside a scene and a STORY_TRANSITION at a scene's start. `transition` is editorial only. */
+export function effectiveRelation(p: Production, sh: Shot): { relation: ShotRelation; planned?: ShotRelation; boundary?: ShotBoundary; previous?: Shot } {
   const prev = previousShot(p, sh);
-  const planned = sh.continuity?.relationToPrevious;
+  const { boundary } = boundaryOf(sh);
+  const planned = boundary ? BOUNDARY_RELATION[boundary] : undefined;
   const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-  if (planned === 'CONTINUATION') return { relation: sameScene ? 'CONTINUATION' : 'CUT', planned, previous: prev };
-  if (planned) return { relation: planned, planned, previous: prev };
-  return { relation: sameScene ? 'CUT' : 'STORY_TRANSITION', planned, previous: prev };
+  if (planned === 'CONTINUATION') return { relation: sameScene ? 'CONTINUATION' : 'CUT', planned, boundary, previous: prev };
+  if (planned) return { relation: planned, planned, boundary, previous: prev };
+  return { relation: sameScene ? 'CUT' : 'STORY_TRANSITION', planned, boundary, previous: prev };
+}
+
+/** Why an explicit boundary cannot be honoured, or undefined: a `continuous` shot needs a previous shot in the same
+ *  scene with a usable tail; a `cut` on the same moment needs a previous shot in the same scene. */
+export function boundaryProblem(state: Pick<StudioState, 'assets'>, p: Production, sh: Shot): string | undefined {
+  const { boundary, explicit } = boundaryOf(sh);
+  if (!explicit || !boundary) return undefined;
+  const prev = previousShot(p, sh);
+  const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
+  if (boundary === 'continuous') {
+    if (!prev) return 'a continuous shot needs a shot before it; this is the first shot';
+    if (!sameScene) return `a continuous shot needs a previous shot in the same scene; shot ${prev.number} is in another scene (a new scene is a transition)`;
+    const tail = continuationTail(state, p, prev);
+    return tail.problem ? `the previous shot has no usable tail: ${tail.problem}` : undefined;
+  }
+  if (boundary === 'cut' && !sameScene) return prev ? `a cut on the same moment needs a previous shot in the same scene; shot ${prev.number} is in another scene (a new scene is a transition)` : 'a cut on the same moment needs a shot before it; this is the first shot (a transition)';
+  return undefined;
 }
 
 export interface ContinuationSource { shotId: string; takeId: string; assetId: string }
@@ -126,9 +154,10 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   const cast = castOf(state, p); const world = worldOf(state, p);
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const loc = world.find((l) => l.id === scene?.locationId);
-  const { relation, planned, previous } = effectiveRelation(p, sh);
+  const { relation, planned, boundary, previous } = effectiveRelation(p, sh);
   const notes: string[] = [];
   const local = opts.backend === 'local';
+  if (boundary && sh.boundary) notes.push(`boundary ${boundary}: ${boundary === 'continuous' ? 'the action carries on from the previous take\'s tail' : boundary === 'cut' ? 'a new camera on the same moment (same cast, place and story state); no tail is anchored' : 'a new place or time: the destination\'s references and the story state there; nothing of the previous shot is anchored'}`);
   // what the clip starts from
   const tail = relation === 'CONTINUATION' ? continuationTail(state, p, previous) : undefined;
   const source = tail?.source;
@@ -183,7 +212,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (opening.kind === 'FRAME' || ending) { lowering = 'hosted reference mode: the drawn opening/ending frame is not sent (frame and reference roles cannot be mixed); identity from the canonical images and the plate'; }
   } else graph = opening.kind === 'FRAME' || ending ? 'FRAMES' : 'TEXT';
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, previousShotId: previous?.id, graph, subjects, location, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */

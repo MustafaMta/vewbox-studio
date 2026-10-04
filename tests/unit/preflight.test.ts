@@ -135,6 +135,24 @@ describe('preflightTake — the engine’s verified limits (P0.6) on the shot pa
     expect(hosted.warnings.find((w) => w.name === 'hosted-lowering')!.detail).toMatch(/frame and reference roles cannot be mixed/);
     expect(hosted.checks.find((c) => c.name === 'guides-within-limit')!.detail).toBe('0 guide(s), limit 4');
   });
+  it('an explicit boundary is honoured or refused: a continuous shot at a scene’s start, across scenes or without a usable tail, a cut at a scene’s start (INCONSISTENT_PLAN)', () => {
+    const check = (id: string, boundary: 'continuous' | 'cut' | 'transition', edit: (shots: Shot[]) => Shot[] = (x) => x) => {
+      const { state, p } = fixture({ shots: (shots) => edit(shots).map((s) => (s.id === id ? { ...s, boundary } : s)) });
+      return preflightTake(state, p, shotOf(p, id), { backend: 'local', customPrompt: true }).checks.find((c) => c.name === 'boundary-honoured')!;
+    };
+    expect(check('s12', 'continuous')).toMatchObject({ ok: true, detail: 'continuous: continuation' });
+    expect(check('s11', 'continuous')).toMatchObject({ ok: false, failureClass: 'INCONSISTENT_PLAN', detail: expect.stringMatching(/first shot/) });
+    expect(check('s21', 'continuous')).toMatchObject({ ok: false, detail: expect.stringMatching(/another scene/) });
+    expect(check('s12', 'continuous', (shots) => shots.map((s) => (s.id === 's11' ? { ...s, selectedTakeId: undefined } : s)))).toMatchObject({ ok: false, detail: expect.stringMatching(/no usable tail/) });
+    expect(check('s12', 'continuous', (shots) => shots.map((s) => (s.id === 's11' ? { ...s, takes: [{ ...s.takes[0], params: { timeline: { newFrames: 10 } } }] } : s)))).toMatchObject({ ok: false, detail: expect.stringMatching(/shows only 10 frames in the cut/) });
+    expect(check('s13', 'cut')).toMatchObject({ ok: true, detail: 'cut: cut' });
+    expect(check('s21', 'cut')).toMatchObject({ ok: false, detail: expect.stringMatching(/a cut on the same moment needs a previous shot in the same scene/) });
+    expect(check('s21', 'transition')).toMatchObject({ ok: true, detail: 'transition: story transition' });
+    // an older plan without the field: no boundary check, the relation lowered as before
+    const { state, p } = fixture();
+    expect(preflightTake(state, p, shotOf(p, 's21'), { backend: 'local', customPrompt: true }).checks.some((c) => c.name === 'boundary-honoured')).toBe(false);
+  });
+
   it('names characters beyond the nine-picture budget', () => {
     const { state: s0, p: p0 } = fixture();
     const extra = Array.from({ length: 9 }, (_, i) => ({ ...s0.characters[0], id: `extra-${i}`, name: `Extra ${i}`, canonicalImage: { assetId: 'canon-a', status: 'APPROVED' as const, version: 1, generatedAt: 'x' } }));

@@ -162,13 +162,27 @@ export const frameContinuityLine = (sh: Shot, cast: Character[], imageOf: Map<st
  *  non_diegetic_music. Every connected picture is named; each character's canonical image is bound to a subject, the
  *  plate to the place; dialogue is `<Subject k> (Sx) says, <d>[Language] exact line.</d>`; people are described by
  *  appearance, never by name. */
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string } = { relation: 'CUT' }): string {
+/** Cast names in a planner's or producer's text, replaced by the bound subject (`<Subject k>`) or the described
+ *  person: people are never named in a prompt (the lint's `no-names` rule), and a bound subject keeps its identity. */
+export function bindNames(text: string, cast: Character[], subjectOf: (id: string) => string | undefined): string {
+  let out = text;
+  for (const c of [...cast].sort((x, y) => y.name.length - x.name.length)) {
+    const who = subjectOf(c.id) ?? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}`;
+    for (const name of [c.name, c.nameAr].filter((n): n is string => Boolean(n && n.trim().length > 1))) {
+      out = out.replace(new RegExp(`(^|[^\\p{L}])${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'gu'), `$1${who}`);
+    }
+  }
+  return out;
+}
+
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
   const subjectNo = new Map(b.subjects.map((s, i) => [s.characterId, i + 1]));
   const placeNo = b.location ? b.subjects.length + 1 : undefined;
   const subjectOf = (id: string) => { const k = subjectNo.get(id); if (!k) return undefined; const s = ids.get(id); return `<Subject ${k}>${s ? ` (S${s})` : ''}`; };
   const speaker: SpeakerLabel = (id) => subjectOf(id) ?? describedSpeaker(cast)(id);
+  const plainSubject = (id: string) => { const k = subjectNo.get(id); return k ? `<Subject ${k}>` : undefined; };
   const tasks: string[] = [];
   const anchored = Boolean(b.opening || b.ending);
   if (anchored) tasks.push('keyframe completion');
@@ -192,9 +206,15 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   // summary
   const cast2 = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
   const where = placeNo ? ` in <Subject ${placeNo}>` : '';
+  // THE BOUNDARY (src/domain/types.ts ShotBoundary): a continuous shot continues the anchored tail; a cut is a new
+  // camera on the same moment (same people, place and state); a transition opens a new place or time from the
+  // destination's references and the story state there — nothing of the previous shot
+  const storyState = scene?.entryState?.trim() ? ` ${bindNames(clean(scene.entryState), cast, plainSubject).replace(/\.?$/, '.')}` : '';
   const relationLine = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL'
     ? `It continues the previous shot without a cut: the first ${b.opening.seconds.toFixed(1)} seconds are the end of the previous shot, anchored on the timeline, and the action carries on from there.`
-    : b.opening?.kind === 'FRAME' ? `It begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}${opts.relation === 'CUT' ? ', a new camera angle on the same moment as the previous shot' : ''}.` : '';
+    : b.opening?.kind === 'FRAME' ? `It begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}${opts.relation === 'CUT' ? ', a new camera angle on the same moment as the previous shot' : opts.relation === 'STORY_TRANSITION' ? `, the opening of a new scene.${storyState}` : ''}.`.replace(/\.\.$/, '.')
+    : opts.relation === 'CUT' ? 'It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes.'
+    : opts.relation === 'STORY_TRANSITION' ? `It opens a new scene${placeNo ? ` in <Subject ${placeNo}>` : ''}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}; nothing continues from the previous shot.${storyState}` : '';
   const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}`.trim();
   // retention_analysis
   const ret: string[] = [];

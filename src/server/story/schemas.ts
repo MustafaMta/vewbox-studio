@@ -16,6 +16,9 @@ const framing = looseEnum(FRAMINGS, FRAMING_SYNONYMS, 'MEDIUM');
 const cameraMove = looseEnum(CAMERA_MOVES, MOVE_SYNONYMS, 'STATIC');
 const transition = looseEnum(TRANSITIONS, TRANSITION_SYNONYMS, 'CUT');
 const relation = looseEnum(['CONTINUATION', 'CUT', 'STORY_TRANSITION'], RELATION_SYNONYMS, 'CUT');
+/** the shot boundary (src/domain/types.ts ShotBoundary), lower-case in the plan; the relation's synonyms map onto it */
+const BOUNDARY_SYNONYMS = { CONTINUATION: 'CONTINUOUS', CONTINUE: 'CONTINUOUS', CONTINUED: 'CONTINUOUS', SAME: 'CONTINUOUS', SAME_MOMENT: 'CONTINUOUS', EXTEND: 'CONTINUOUS', NEW_SCENE: 'TRANSITION', SCENE_CHANGE: 'TRANSITION', STORY_TRANSITION: 'TRANSITION', TIME_JUMP: 'TRANSITION', TIME_SKIP: 'TRANSITION', LATER: 'TRANSITION', NEW_LOCATION: 'TRANSITION', NEW_PLACE: 'TRANSITION', FIRST: 'TRANSITION', FIRST_SHOT: 'TRANSITION', OPENING: 'TRANSITION', NEW_ANGLE: 'CUT', REVERSE: 'CUT', EDITORIAL: 'CUT', EDITORIAL_CUT: 'CUT', HARD_CUT: 'CUT' } as const;
+const boundary = looseEnum(['CONTINUOUS', 'CUT', 'TRANSITION'], BOUNDARY_SYNONYMS).transform((v) => v.toLowerCase() as 'continuous' | 'cut' | 'transition');
 const screenDirection = looseEnum(['LEFT', 'RIGHT', 'TOWARD', 'AWAY', 'NEUTRAL'], DIRECTION_SYNONYMS);
 const placeKind = looseEnum(['INTERIOR', 'EXTERIOR'], KIND_SYNONYMS);
 const sex = looseEnum(['FEMALE', 'MALE'], SEX_SYNONYMS);
@@ -98,6 +101,8 @@ export const ShotPlanSchema = z.preprocess(aliases({ shots: ['shotList', 'shot_l
     transition,
     continuity: z.preprocess((v) => v ?? {}, ContinuitySchema),
     prompt: str(1600).optional(),
+    /** how the shot joins the one before it (src/domain/types.ts ShotBoundary); absent: from continuity.relationToPrevious */
+    boundary: z.preprocess((v) => (v === null || v === '' ? undefined : v), boundary.optional()),
   })), { min: 1, max: 14 }),
 }));
 export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;

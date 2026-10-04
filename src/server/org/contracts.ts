@@ -62,6 +62,7 @@ const PlannedShotOut = z.looseObject({
   transition: z.string(),
   continuity: z.looseObject({ characters: z.array(z.looseObject({ characterId: z.string() })), props: z.array(z.looseObject({ name: z.string() })), environment: z.looseObject({}), camera: z.looseObject({}), relationToPrevious: z.string() }),
   prompt: z.string(),
+  boundary: z.enum(['continuous', 'cut', 'transition']).optional(),
 });
 /** planShotsDraft: the scene's shots before the Shot Planner's timing fit, with the budget they are fitted to. */
 const ShotPlanOut = z.looseObject({ shots: z.array(PlannedShotOut).min(1), budget: z.number().positive(), maxShot: z.number().positive() });
