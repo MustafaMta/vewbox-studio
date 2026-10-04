@@ -16,7 +16,7 @@ export function CharactersSkeleton() {
           <div className="t-page pc-head-title"><Skeleton.Line size="title" width="10rem" /></div>
           <div className="t-body pc-head-desc"><Skeleton.Line width="24rem" /></div>
         </div>
-        <div className="pc-head-acts"><Skeleton.Block width={168} height={40} radius="pill" /></div>
+        <div className="pc-head-acts"><Skeleton.Block width={168} height="var(--control-h)" radius="pill" /></div>
       </div>
       <div className="pc-bar"><Skeleton.Block width="min(28rem, 100%)" height={40} radius="md" /></div>
       <div className="pc-grid">{Array.from({ length: 6 }, (_, i) => <div key={i}><FigureCardSkeleton /></div>)}</div>
@@ -37,7 +37,7 @@ export function CharacterSkeleton() {
           <div className="t-hero char-name"><Skeleton.Line size="title" width="14rem" /></div>
           <div className="t-lead char-role"><Skeleton.Line width="80%" /></div>
           <div className="char-state"><Skeleton.Line width="10rem" /></div>
-          <div className="char-acts"><Skeleton.Block width={112} height={40} radius="pill" /><Skeleton.Block width={104} height={40} radius="pill" /><Skeleton.Block width={128} height={40} radius="pill" /></div>
+          <div className="char-acts"><Skeleton.Block width={112} height="var(--control-h)" radius="pill" /><Skeleton.Block width={104} height="var(--control-h)" radius="pill" /><Skeleton.Block width={128} height="var(--control-h)" radius="pill" /></div>
           <div className="char-voice"><Skeleton.Block width="100%" height={64} radius="md" /></div>
         </div>
       </div>

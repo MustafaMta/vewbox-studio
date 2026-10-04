@@ -91,7 +91,7 @@
   .theatre-prog-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
   .theatre-title { margin: 0; min-inline-size: 0; }
   .theatre-prog-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .theatre-latest { color: var(--text-3); }
+  .theatre-latest { color: var(--text-2); }   /* on the control's surface-3 text-3 is 4.42:1 (QA m5); text-2 passes AA */
   .theatre-slate { display: flex; flex-wrap: wrap; margin: 0; }
   .theatre-slate > span { white-space: nowrap; }
   .theatre-slate > span:not(:last-child)::after { content: '·'; margin-inline: 6px; color: var(--text-3); }

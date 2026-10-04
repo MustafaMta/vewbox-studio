@@ -15,7 +15,7 @@ export function LocationsSkeleton() {
           <div className="t-page pc-head-title"><Skeleton.Line size="title" width="9rem" /></div>
           <div className="t-body pc-head-desc"><Skeleton.Line width="26rem" /></div>
         </div>
-        <div className="pc-head-acts"><Skeleton.Block width={160} height={40} radius="pill" /></div>
+        <div className="pc-head-acts"><Skeleton.Block width={160} height="var(--control-h)" radius="pill" /></div>
       </div>
       <div className="pc-plates">{Array.from({ length: 3 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}</div>
     </SkeletonRegion>
@@ -35,7 +35,7 @@ export function LocationSkeleton() {
             <div className="t-meta char-slate"><Skeleton.Line width="12rem" /></div>
             <div className="t-hero"><Skeleton.Line size="title" width="16rem" /></div>
           </div>
-          <div className="loc-hero-acts"><Skeleton.Block width={88} height={40} radius="pill" /><Skeleton.Block width={168} height={40} radius="pill" /><Skeleton.Block width={40} height={40} radius="pill" /></div>
+          <div className="loc-hero-acts"><Skeleton.Block width={88} height="var(--control-h)" radius="pill" /><Skeleton.Block width={168} height="var(--control-h)" radius="pill" /><Skeleton.Block width={40} height="var(--control-h)" radius="pill" /></div>
         </div>
       </div>
     </SkeletonRegion>

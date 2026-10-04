@@ -19,7 +19,7 @@ export function BackdropSkeleton({ poster }: { poster?: boolean }) {
           <div className="t-hero"><Skeleton.Line size="title" width="14rem" /></div>
           <div className="t-lead"><Skeleton.Line width="26rem" /></div>
         </div>
-        <div className="show-acts"><Skeleton.Block width={120} height={40} radius="pill" /><Skeleton.Block width={200} height={40} radius="pill" /></div>
+        <div className="show-acts"><Skeleton.Block width={120} height="var(--control-h)" radius="pill" /><Skeleton.Block width={200} height="var(--control-h)" radius="pill" /></div>
       </div>
     </section>
   );
@@ -53,7 +53,7 @@ export function ShowsSkeleton() {
           <div className="t-page"><Skeleton.Line size="title" width="7rem" /></div>
           <div className="t-body"><Skeleton.Line width="22rem" /></div>
         </div>
-        <div className="shows-page-acts"><Skeleton.Block width={144} height={40} radius="pill" /></div>
+        <div className="shows-page-acts"><Skeleton.Block width={144} height="var(--control-h)" radius="pill" /></div>
       </div>
       <div className="shows-grid">
         {Array.from({ length: 6 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}
@@ -93,7 +93,7 @@ export function SeasonSkeleton() {
           <div className="t-page"><Skeleton.Line size="title" width="14rem" /></div>
           <div className="t-meta"><Skeleton.Line width="12rem" /></div>
         </div>
-        <div className="shows-page-acts"><Skeleton.Block width={40} height={40} radius="pill" /><Skeleton.Block width={136} height={40} radius="pill" /></div>
+        <div className="shows-page-acts"><Skeleton.Block width={40} height="var(--control-h)" radius="pill" /><Skeleton.Block width={136} height="var(--control-h)" radius="pill" /></div>
       </div>
       <div className="shows-section shows-section-first"><EpisodeGridSkeleton /></div>
     </SkeletonRegion>

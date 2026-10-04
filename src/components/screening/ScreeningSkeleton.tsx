@@ -42,14 +42,14 @@ export function ScreeningSkeleton({ view }: { view?: 'theatre' | 'list' }) {
             <div className="theatre-composer">
               <span className="theatre-composer-at t-label"><Skeleton.Line width="9rem" /></span>
               <Skeleton.Block className="theatre-composer-text" width="100%" height="auto" radius="md" />
-              <div className="theatre-composer-acts"><Skeleton.Block width={140} height={32} radius="pill" /><Skeleton.Block width={96} height={32} radius="pill" /></div>
+              <div className="theatre-composer-acts"><Skeleton.Block width={140} height="var(--control-h-sm)" radius="pill" /><Skeleton.Block width={96} height="var(--control-h-sm)" radius="pill" /></div>
             </div>
           </div>
         </div>
         <div className="theatre-prog">
           <div className="t-label theatre-kicker"><Skeleton.Line width="6rem" /></div>
           <div className="theatre-prog-row"><div className="t-hero theatre-title"><Skeleton.Line size="title" width="16rem" /></div>
-            <div className="theatre-prog-acts"><Skeleton.Block width={232} height={36} radius="md" /><Skeleton.Block width={150} height={40} radius="pill" /><Skeleton.Block width={124} height={40} radius="pill" /></div></div>
+            <div className="theatre-prog-acts"><Skeleton.Block width={232} height="calc(var(--control-h-sm) + 4px)" radius="md" /><Skeleton.Block width={150} height="var(--control-h)" radius="pill" /><Skeleton.Block width={124} height="var(--control-h)" radius="pill" /></div></div>
           <div className="t-meta theatre-slate"><Skeleton.Line width="22rem" /></div>
           <div className="t-lead theatre-logline"><Skeleton.Line width="92%" /><Skeleton.Line width="58%" /></div>
         </div>

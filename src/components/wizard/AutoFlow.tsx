@@ -148,7 +148,7 @@ export function AutoFlow({ kind, show, season, song, setSong, onPreview, onManua
         <p className="sr-only" role="status">Checking the story engine…</p>
         {isMV && <Skeleton.Block className="create-panel" width="100%" height={232} radius="md" />}
         <Skeleton.Block className="create-panel" width="100%" height={294} radius="md" />
-        <div className="form-footer"><span className="t-meta create-avail">Checking the story engine…</span><span className="form-footer-actions"><Skeleton.Block width={168} height={40} radius="pill" /></span></div>
+        <div className="form-footer"><span className="t-meta create-avail">Checking the story engine…</span><span className="form-footer-actions"><Skeleton.Block width={168} height="var(--control-h)" radius="pill" /></span></div>
       </div>
     );
   }

@@ -29,7 +29,7 @@
   .cp-row-start { flex: none; inline-size: 136px; min-inline-size: 0; }
   .cp-row-words { display: flex; flex: 1; flex-direction: column; gap: 2px; min-inline-size: 0; }
   .cp-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
-  .cp-row-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-row-meta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }   /* two lines, then the clamp (QA m6) */
   .cp-row-err { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
   .cp-row-end { display: flex; flex: none; align-items: center; gap: 12px; }
   .cp-time { color: var(--text-3); white-space: nowrap; }
@@ -91,7 +91,7 @@
   .co-orch[aria-pressed='true'] { background: var(--surface-3); }
   .co-orch:focus-visible { outline-offset: 4px; }
   .co-orch-name { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-1); }
-  .co-orch-state { font-size: 12px; line-height: 16px; color: var(--text-3); }
+  .co-orch-state { font-size: 12px; line-height: 16px; color: var(--text-2); }   /* on surface-3 text-3 is 4.42:1 (QA m5) */
   .co-rings { position: absolute; inset-block-start: 50%; inset-inline-start: 50%; transform: translate(-50%, -50%); pointer-events: none; overflow: visible; }
   .co-ring-track { fill: none; stroke: var(--line-strong); stroke-width: 2px; }
   .co-ring-done { fill: none; stroke: var(--text-3); stroke-width: 2px; stroke-linecap: round; }

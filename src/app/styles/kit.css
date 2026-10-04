@@ -812,9 +812,9 @@
   .tool-card-chev { inline-size: 16px; block-size: 16px; color: var(--text-3); transition: color var(--dur-1) var(--ease-out); }
   a.tool-card:hover .tool-card-chev { color: var(--text-1); }
   .tool-card-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
-  .tool-card-title, .tool-card-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tool-card-title { font-size: 14px; line-height: 18px; font-weight: 500; color: var(--text-1); }
-  .tool-card-line { font-size: 13px; line-height: 18px; color: var(--text-2); }
+  .tool-card-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 18px; font-weight: 500; color: var(--text-1); }
+  /* the line may take two lines before it is clamped (QA m6: "9 departments · 35 ag…"); 20 + 18 + 2 + 36 fits the card */
+  .tool-card-line { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 18px; color: var(--text-2); }
   .tool-card[aria-disabled='true'] :is(.tool-card-title, .tool-card-line) { color: var(--text-disabled); }
   .tool-card[aria-disabled='true'] .tool-card-line { color: var(--text-3); }
   .tool-card-sk { padding: 16px; }

@@ -16,7 +16,7 @@ export function MusicVideosSkeleton() {
           <div className="t-page mv-cat-title"><Skeleton.Line size="title" width="11rem" /></div>
           <div className="t-body mv-cat-desc"><Skeleton.Line width="14rem" /></div>
         </div>
-        <Skeleton.Block className="mv-new" width={176} height={40} radius="pill" />
+        <Skeleton.Block className="mv-new" width={176} height="var(--control-h)" radius="pill" />
       </div>
       <div className="mv-grid">
         {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="1/1" /></div>)}
@@ -39,7 +39,7 @@ export function MusicVideoSkeleton() {
             <div className="t-display mv-title"><Skeleton.Line size="title" width="60%" /></div>
             <div className="mv-performers"><Skeleton.Line width="10rem" /></div>
             <Skeleton.Block className="mv-transport mv-sk-transport" width="100%" radius="md" style={{ blockSize: undefined }} />
-            <div className="mv-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={176} height={40} radius="pill" /></div>
+            <div className="mv-acts"><Skeleton.Block width={128} height="var(--control-h)" radius="pill" /><Skeleton.Block width={176} height="var(--control-h)" radius="pill" /></div>
           </div>
         </div>
       </div>

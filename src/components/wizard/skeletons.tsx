@@ -23,7 +23,7 @@ export function CreateHubSkeleton() {
                 <div className="card create-start">
                   <div className="create-start-stage" />
                   <div className="create-start-words"><span className="t-card"><Skeleton.Line width="40%" /></span><span className="t-body create-start-line"><Skeleton.Line width="80%" /></span><span className="t-meta"><Skeleton.Line width="30%" /></span></div>
-                  <div className="create-start-acts"><Skeleton.Block width={84} height={32} radius="pill" /></div>
+                  <div className="create-start-acts"><Skeleton.Block width={84} height="var(--control-h-sm)" radius="pill" /></div>
                 </div>
               </div>
             ))}

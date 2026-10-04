@@ -14,9 +14,10 @@ export function HomeSkeleton() {
         <div className="home-hero-caption">
           <div className="home-hero-words">
             <div className="home-hero-title"><Skeleton.Line size="title" width="16rem" /></div>
-            <div className="t-meta home-hero-meta"><Skeleton.Line width="20rem" /></div>
+            {/* the badge (22) and the slate, the two buttons at the control height: 44 on a coarse pointer (QA p4) */}
+            <div className="t-meta home-hero-meta"><Skeleton.Block width={64} height={22} radius="pill" /><Skeleton.Line width="16rem" /></div>
           </div>
-          <div className="home-hero-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={112} height={40} radius="pill" /></div>
+          <div className="home-hero-acts"><Skeleton.Block width={128} height="var(--control-h)" radius="pill" /><Skeleton.Block width={112} height="var(--control-h)" radius="pill" /></div>
         </div>
       </section>
       <div className="home-feature">
