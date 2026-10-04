@@ -202,7 +202,8 @@ export function ControlRoomSkeleton() {
         </div>
       </div>
       <div className="cp-section"><SectionHeadSkeleton width="9rem" /><RowsSkeleton n={1} /></div>
-      <div className="cp-section"><SectionHeadSkeleton width="6rem" /><div className="ctl-filter"><Skeleton.Block width={420} height={36} radius="md" /></div><RowsSkeleton n={6} /></div>
+      {/* the history filter: the four chips at their real height (32, pill), so the rows under them do not move (m7) */}
+      <div className="cp-section"><SectionHeadSkeleton width="6rem" description /><div className="ctl-filter"><div className="filter-chips">{[88, 128, 76, 96].map((w) => <Skeleton.Block key={w} width={w} height={32} radius="pill" />)}</div></div><RowsSkeleton n={6} /></div>
       <EngineRoomSkeleton />
     </SkeletonRegion>
   );
