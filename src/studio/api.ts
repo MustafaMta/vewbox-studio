@@ -28,7 +28,8 @@ async function parse<T>(res: Response): Promise<T> {
   try { body = text ? JSON.parse(text) : null; } catch { /* not json */ }
   if (!res.ok) {
     const err = (body as { error?: { code?: string; message?: string; details?: Record<string, unknown> } } | null)?.error;
-    throw new StudioError((err?.code as StudioErrorCode) ?? 'UNAVAILABLE', err?.message ?? `The server answered ${res.status}.`, err?.details);
+    // the HTTP status travels with the error: a refusal (4xx) is never retried like a network failure (send-policy.ts)
+    throw new StudioError((err?.code as StudioErrorCode) ?? 'UNAVAILABLE', err?.message ?? `The server answered ${res.status}.`, { ...err?.details, httpStatus: res.status });
   }
   return body as T;
 }
