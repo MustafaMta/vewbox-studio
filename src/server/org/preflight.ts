@@ -1,7 +1,9 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
-import { clipSecondsFor, continuationSource, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { frameBudget } from '@/server/production/guide';
+import { identityConditioning } from '@/server/production/identity-rule';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
@@ -56,7 +58,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   const pack = resolveShotPack(state, p, sh, { backend: opts.backend });
   const clip = clipSecondsFor(pack, sh.durationSeconds);
   add('duration-in-range', sh.durationSeconds >= H3_LIMITS.minSeconds && sh.durationSeconds <= H3_LIMITS.maxSeconds, 'WRONG_PARAMETERS', `${sh.durationSeconds} s → ${clip.frames} frames (${(clip.frames / 24).toFixed(2)} s; engine ${H3_LIMITS.minSeconds}–${H3_LIMITS.maxSeconds} s, trained ${H3_LIMITS.minFrames}–${H3_LIMITS.maxFrames} frames)`);
-  if (clip.truncated) warnings.push({ name: 'continuation-length', detail: `a continuation carries at most ${clip.newFrames} new frames (${(clip.newFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s is cut short — split the shot` });
+  // the frame budget (G11): the planned new content must fit after the guide; a plan that does not is refused, never
+  // truncated (the worker turns a dialogue that grows past the budget into a hard cut without the guide)
+  const budget = frameBudget(pack.trimStartFrames, sh.durationSeconds);
+  add('continuation-fits-budget', budget.fits, 'WRONG_PARAMETERS', budget.fits ? (pack.trimStartFrames ? `${budget.neededFrames} new frames after a ${pack.trimStartFrames}-frame guide (budget ${budget.budgetFrames})` : undefined) : `a continuation carries at most ${budget.budgetFrames} new frames (${(budget.budgetFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s needs ${budget.neededFrames} — split the shot (it is never truncated)`);
   // references and their limits (the pack's slot order): each character's primary image is the canonical front
   // full-body image (a character drawn before canonical images falls back to the legacy portrait), then the plate,
   // then the drawn opening frame when it is bound as a picture
@@ -80,6 +85,11 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   if (pack.relation === 'CONTINUATION' && (sh.transition === 'DISSOLVE' || sh.transition === 'FADE')) warnings.push({ name: 'transition-matches-relation', detail: `a continuation is joined by a cut, not a ${sh.transition.toLowerCase()}` });
   if (pack.relation === 'CUT' && sh.transition === 'EXTEND') warnings.push({ name: 'transition-matches-relation', detail: 'EXTEND on a shot planned as a cut: it is generated as a cut (relationToPrevious decides)' });
   if (pack.lowering) warnings.push({ name: 'hosted-lowering', detail: pack.lowering });
+  // THE IDENTITY RE-APPLICATION RULE on the pack (src/server/production/identity-rule.ts): every present character's
+  // canonical image and the place's plate are conditioned on, or the request is refused as MISSING_REFERENCE; the
+  // worker checks the same rule again on the request it built (connected files, prompt bindings)
+  const identity = identityConditioning(pack, sh, cast, p.kind === 'MUSIC_VIDEO' ? loc : loc, {});
+  if (identityNeeded || loc) add('identity-conditioning', identity.ok, 'MISSING_REFERENCE', identity.ok ? (identity.lowered ? `waived: ${identity.lowered}` : `${identity.characters.length} character image(s)${identity.location ? ' and the plate' : ''} conditioned on`) : identity.problems.join('; '));
   if (identityNeeded) {
     const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
     const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));
@@ -105,12 +115,21 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const song = byId(p.song?.assetId);
     add('song-present', usableAudio(song), 'MISSING_REFERENCE', usableAudio(song) ? undefined : 'the music video has no generated or uploaded song yet');
   }
-  // a continuation needs the take it continues
-  if (sh.continuity?.relationToPrevious === 'CONTINUATION') {
+  // THE BOUNDARY (src/domain/types.ts ShotBoundary): an explicit `continuous` needs a previous shot in the same scene
+  // with a usable tail — a chosen real take whose window on the cut holds the guide's frames (a shorter one would be
+  // floored by the node, gap V1); an explicit `cut` on the same moment needs a previous shot in the same scene. An
+  // older plan's CONTINUATION at a scene's start is lowered to a cut, as before.
+  const { boundary, explicit } = boundaryOf(sh);
+  if (explicit) {
+    const problem = boundaryProblem(state, p, sh);
+    add('boundary-honoured', !problem, 'INCONSISTENT_PLAN', problem ?? `${boundary}: ${pack.relation.toLowerCase().replace('_', ' ')}`);
+  }
+  if (boundary === 'continuous') {
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-    const ok = !sameScene || Boolean(continuationSource(state, prev));
-    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `shot ${prev?.number} has no accepted take yet; this shot continues it`);
+    const tail = sameScene ? continuationTail(state, p, prev) : undefined;
+    const ok = !sameScene || Boolean(tail?.source);
+    add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0; its window shows ${tail?.windowFrames ?? '?'} frames` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `this shot continues shot ${prev?.number}: ${tail?.problem ?? 'no usable tail'}`);
   }
   return { ok: checks.every((c) => c.ok), checks, warnings };
 }

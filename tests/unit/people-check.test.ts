@@ -28,5 +28,9 @@ describe('people on screen', () => {
   it('expects the shot’s people unless the action brings in others', () => {
     expect(peopleExpected({ action: 'Najm turns towards the photo.' }, ['a', 'b'])).toBe(2);
     expect(peopleExpected({ action: 'Customers crowd the stall.' }, ['a'])).toBeUndefined();
+    // a point-of-view shot does not show the one whose eyes the camera is; declared extras are not counted
+    expect(peopleExpected({ action: 'Through the door crack she watches him pace.', staging: { pov: 'a' } }, ['a', 'b'])).toBe(1);
+    expect(peopleExpected({ action: 'She watches.', staging: { pov: 'a' } }, ['a'])).toBeUndefined();
+    expect(peopleExpected({ action: 'She crosses the hall.', staging: { extras: [{ description: 'four tired shoppers', count: 4 }] } }, ['a'])).toBeUndefined();
   });
 });

@@ -11,6 +11,7 @@ import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProbl
 import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
 import { cutInputsHash } from './cut';
+import { reconcileContinuationChain } from './continuation';
 
 export { nid } from './ids';
 
@@ -202,8 +203,11 @@ export function setCut(s: S, id: string, cutAssetId: string | undefined, opts: {
 
 function withProduction(s: S, id: string, fn: (p: Production) => Production): S {
   const p = mustFind(s.productions, id, 'Production');
-  const next = fn(p);
-  if (next === p) return s; // nothing changed: same state, so callers and effects can tell
+  const changed = fn(p);
+  if (changed === p) return s; // nothing changed: same state, so callers and effects can tell
+  // THE CONTINUATION CHAIN (src/domain/continuation.ts): a change of a shot's chosen take, a take added, removed or
+  // rejected, a shot moved — every continuation downstream is marked stale (or whole again) in the same change
+  const next = reconcileContinuationChain(changed, now());
   // A STALE CUT (audit M2, step 12): a change to what the assembled cut was made from — a shot added, removed, moved
   // or edited in a way the cut shows, a line recorded again, another take chosen — leaves the cut out of date
   const stale = p.cutAssetId && !next.cutStale && cutInputsHash(next) !== cutInputsHash(p) ? { ...next, cutStale: true } : next;

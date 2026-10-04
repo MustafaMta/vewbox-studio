@@ -105,6 +105,20 @@ export interface TakeReference { kind: 'FIRST_FRAME' | 'LAST_FRAME' | 'SUBJECT' 
  *  frame 0), CUT (a new opening frame of the same moment), STORY_TRANSITION (fresh). */
 export type ShotRelation = 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
 
+/** THE SHOT BOUNDARY, as the planner decides it (docs/research/STORYBUILDER-INTEGRATION.md §f.6) — explicit data on
+ *  the shot, the source of truth for how its take is conditioned:
+ *  - `continuous`: the action carries on without a cut — the previous take's tail (frames and sound) is anchored at
+ *    frame 0 and dropped again in the cut; refused when the previous shot has no usable tail;
+ *  - `cut`: an editorial cut on the same moment — same cast, same place, same story state, an intentional change of
+ *    camera; conditioned on the canonical references (and a drawn opening frame when there is one), never a tail;
+ *  - `transition`: a new place or time — the destination's canonical references and the story state at that point;
+ *    nothing of the previous shot is anchored.
+ *  Maps to `ShotRelation` (continuous → CONTINUATION, cut → CUT, transition → STORY_TRANSITION); a shot without it
+ *  falls back to `continuity.relationToPrevious` (older plans). */
+export type ShotBoundary = 'continuous' | 'cut' | 'transition';
+export const BOUNDARY_RELATION: Record<ShotBoundary, ShotRelation> = { continuous: 'CONTINUATION', cut: 'CUT', transition: 'STORY_TRANSITION' };
+export const RELATION_BOUNDARY: Record<ShotRelation, ShotBoundary> = { CONTINUATION: 'continuous', CUT: 'cut', STORY_TRANSITION: 'transition' };
+
 export interface QaCheck { name: string; ok: boolean; value?: number | string; threshold?: number | string; detail?: string }
 export interface QaReport { ok: boolean; checks: QaCheck[]; reviewedAt?: string; reviewer?: 'AUTO' | 'HUMAN'; notes?: string }
 
@@ -141,6 +155,11 @@ export interface Take {
    *  change of the previous shot's chosen take can be detected). */
   relation?: ShotRelation;
   continuesTakeId?: string;
+  /** THE STALE CHAIN (src/domain/continuation.ts): a continuation take whose predecessor's chosen take is no longer
+   *  the one it continued — or continues a take that is itself stale — is marked here by the studio (never by a
+   *  page) the moment the choice changes, and cleared when the chain is whole again. The map shows it; PRODUCE
+   *  re-conditions exactly these shots; the cut refuses a stale join unless told to allow it. */
+  stale?: TakeStale;
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
   soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
@@ -154,6 +173,10 @@ export interface Take {
 }
 
 export type TakeRating = 'GOOD' | 'REJECTED';
+
+/** Why a continuation take is stale: the shot before it now chooses `expectedTakeId` (the take whose tail this one
+ *  should continue), or that chosen take is itself stale (`because: 'UPSTREAM_STALE'`). */
+export interface TakeStale { since: string; because: 'PREDECESSOR_RESELECTED' | 'UPSTREAM_STALE'; previousShotId: string; expectedTakeId?: string; detail: string }
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
 
@@ -202,7 +225,25 @@ export interface Shot {
   continuity?: ContinuityState;
   /** The generation prompt the studio wrote for this shot; editable. Empty means "write it from the shot". */
   prompt?: string;
+  /** How this shot joins the one before it (see `ShotBoundary`); set by the planner, read by the worker and the preflight. */
+  boundary?: ShotBoundary;
+  /** The staging inside the shot (see `ShotStaging`): timed beats, in-take cuts, pace, point of view, extras. */
+  staging?: ShotStaging;
 }
+
+/** THE STAGING OF ONE SHOT (docs/research/STORYBUILDER-INTEGRATION.md §d, §f.6–f.7; src/server/story/beats.ts):
+ *  - `beats`: the observable actions inside the take, each at its second (from the first new frame), timed by how long
+ *    the action takes and tiled over the shot — rendered as `[M:SS]` marks; a beat with `cut` opens a new `[Shot N]`
+ *    inside the one generation (an editorial cut with identity carried in one latent; at most two, never near the
+ *    ends, never on the hosted engine);
+ *  - `pace`: DWELL (one moment, no cuts), NORMAL, MONTAGE (a run of distinct actions);
+ *  - `pov`: the character whose eyes the camera is (they are not seen);
+ *  - `extras`: unnamed people described as a group, never referenced by a picture (so no extra wears a hero's face);
+ *  - `actions`: the discrete visible actions the shot covers (the scene's action coverage). */
+export type ShotPace = 'DWELL' | 'NORMAL' | 'MONTAGE';
+export interface ShotBeat { at: number; action: string; cut?: { camera: string; locationId?: string } }
+export interface ShotExtras { description: string; count?: number }
+export interface ShotStaging { beats?: ShotBeat[]; pace?: ShotPace; pov?: string; extras?: ShotExtras[]; actions?: string[] }
 
 export interface LyricSection {
   id: string;

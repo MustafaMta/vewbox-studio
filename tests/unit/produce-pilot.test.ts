@@ -135,6 +135,22 @@ describe('PRODUCE with the pilot gate', () => {
     expect(r).toMatchObject({ blocked: [{ shotId: 's13', reason: 'continues shot 2, whose take was not accepted' }], failed: 1 });
   });
 
+  it('a stale continuation (its predecessor chose another take) is re-conditioned: queued with select, in order; whole shots are left alone', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => {
+      if (s.id === 's11') return { ...s, takes: [TAKE_A, { ...TAKE_A, id: 'take-a2', label: 'Take 2' }], selectedTakeId: 'take-a2' };
+      if (s.id === 's12') return { ...s, takes: [{ ...TAKE_A, id: 'take-b1', relation: 'CONTINUATION' as const, continuesTakeId: 'take-a', trimStartFrames: 22, stale: { since: 'x', because: 'PREDECESSOR_RESELECTED' as const, previousShotId: 's11', expectedTakeId: 'take-a2', detail: 'shot 1 now chooses Take 2' } }], selectedTakeId: 'take-b1' };
+      if (s.id === 's13') return { ...s, takes: [{ ...TAKE_A, id: 'take-c1' }], selectedTakeId: 'take-c1' };
+      return { ...s, takes: [{ ...TAKE_A, id: 'take-d1' }], selectedTakeId: 'take-d1' };
+    }) });
+    fake.state = state;
+    const r = await produce(ctx(p.id));
+    expect(fake.order).toEqual(['GENERATE_TAKE:s12', 'ASSEMBLE']);
+    const job = [...fake.jobs.values()].find((j) => j.shotId === 's12')!;
+    expect(job.payload).toEqual({ productionId: p.id, shotId: 's12', select: true });
+    expect(r).toMatchObject({ shots: 1, completed: 1 });
+    expect(fake.events.join('\n')).toMatch(/1 stale continuation\(s\) are re-conditioned on their predecessor's current take: shot 2/);
+  });
+
   it('draws no opening frame for a continuation (it starts from the previous take’s tail)', async () => {
     const { state, p } = fixture({ shots: (shots) => shots.map((s) => ({ ...s, takes: [], selectedTakeId: undefined, openingFrameAssetId: undefined })) });
     fake.state = state; fake.imagesReady = true;

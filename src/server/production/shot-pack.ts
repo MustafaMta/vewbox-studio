@@ -1,8 +1,8 @@
-import type { Asset, Character, Location, Production, Shot, ShotRelation, StudioState, Take } from '@/domain/types';
-import { orderedShots } from '@/domain/timeline';
+import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take } from '@/domain/types';
+import { orderedShots, shotWindowFrames } from '@/domain/timeline';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
-import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideFits } from '@/server/workflows/minimax-h3';
+import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
 import type { H3Binding } from '@/server/story/prompts';
 
 /** THE SHOT PACK — what one take of a shot is conditioned on, resolved once from the studio records by a pure
@@ -38,6 +38,8 @@ export interface ShotPack {
   /** the relation the request is built for, and what the plan said */
   relation: ShotRelation;
   plannedRelation?: ShotRelation;
+  /** the shot's boundary as the planner set it (or as read from an older plan's relation) */
+  boundary?: ShotBoundary;
   previousShotId?: string;
   /** local: REF2VA or FL2VA; hosted: REFERENCE (pictures), FRAMES (first/last frame) or TEXT */
   graph: 'REF2VA' | 'FL2VA' | 'REFERENCE' | 'FRAMES' | 'TEXT';
@@ -66,24 +68,65 @@ export function previousShot(p: Production, sh: Shot): Shot | undefined {
   return i > 0 ? ordered[i - 1] : undefined;
 }
 
-/** The relation a take is generated for. CONTINUATION only inside a scene (a continuation across scenes, or of the
- *  first shot, is treated as a cut, as before); a shot without a stated relation is a CUT inside a scene and a
- *  STORY_TRANSITION at a scene's start. `relationToPrevious` is authoritative; `transition` is editorial only. */
-export function effectiveRelation(p: Production, sh: Shot): { relation: ShotRelation; planned?: ShotRelation; previous?: Shot } {
-  const prev = previousShot(p, sh);
-  const planned = sh.continuity?.relationToPrevious;
-  const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-  if (planned === 'CONTINUATION') return { relation: sameScene ? 'CONTINUATION' : 'CUT', planned, previous: prev };
-  if (planned) return { relation: planned, planned, previous: prev };
-  return { relation: sameScene ? 'CUT' : 'STORY_TRANSITION', planned, previous: prev };
+/** The shot's boundary: the explicit field (the planner's decision), else the older plan's `relationToPrevious`. */
+export function boundaryOf(sh: Pick<Shot, 'boundary' | 'continuity'>): { boundary?: ShotBoundary; explicit: boolean } {
+  if (sh.boundary) return { boundary: sh.boundary, explicit: true };
+  const r = sh.continuity?.relationToPrevious;
+  return { boundary: r ? RELATION_BOUNDARY[r] : undefined, explicit: false };
 }
 
-/** The take a continuation anchors: the previous shot's chosen, real (generated or uploaded) video. */
-export function continuationSource(state: Pick<StudioState, 'assets'>, prev: Shot | undefined): { shotId: string; takeId: string; assetId: string } | undefined {
-  const t = prev?.takes.find((x) => x.id === prev.selectedTakeId);
-  if (!prev || !t || t.provider === 'SAMPLE') return undefined;
+/** The relation a take is generated for, from the shot's boundary. CONTINUATION only inside a scene (a continuous
+ *  shot at a scene's start, or whose previous shot is in another scene, is generated as a cut — an EXPLICIT
+ *  `continuous` there is refused by the preflight, an older plan's relation is lowered as before); a shot without a
+ *  stated boundary is a CUT inside a scene and a STORY_TRANSITION at a scene's start. `transition` is editorial only. */
+export function effectiveRelation(p: Production, sh: Shot): { relation: ShotRelation; planned?: ShotRelation; boundary?: ShotBoundary; previous?: Shot } {
+  const prev = previousShot(p, sh);
+  const { boundary } = boundaryOf(sh);
+  const planned = boundary ? BOUNDARY_RELATION[boundary] : undefined;
+  const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
+  if (planned === 'CONTINUATION') return { relation: sameScene ? 'CONTINUATION' : 'CUT', planned, boundary, previous: prev };
+  if (planned) return { relation: planned, planned, boundary, previous: prev };
+  return { relation: sameScene ? 'CUT' : 'STORY_TRANSITION', planned, boundary, previous: prev };
+}
+
+/** Why an explicit boundary cannot be honoured, or undefined: a `continuous` shot needs a previous shot in the same
+ *  scene with a usable tail; a `cut` on the same moment needs a previous shot in the same scene. */
+export function boundaryProblem(state: Pick<StudioState, 'assets'>, p: Production, sh: Shot): string | undefined {
+  const { boundary, explicit } = boundaryOf(sh);
+  if (!explicit || !boundary) return undefined;
+  const prev = previousShot(p, sh);
+  const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
+  if (boundary === 'continuous') {
+    if (!prev) return 'a continuous shot needs a shot before it; this is the first shot';
+    if (!sameScene) return `a continuous shot needs a previous shot in the same scene; shot ${prev.number} is in another scene (a new scene is a transition)`;
+    const tail = continuationTail(state, p, prev);
+    return tail.problem ? `the previous shot has no usable tail: ${tail.problem}` : undefined;
+  }
+  if (boundary === 'cut' && !sameScene) return prev ? `a cut on the same moment needs a previous shot in the same scene; shot ${prev.number} is in another scene (a new scene is a transition)` : 'a cut on the same moment needs a shot before it; this is the first shot (a transition)';
+  return undefined;
+}
+
+export interface ContinuationSource { shotId: string; takeId: string; assetId: string }
+
+/** The tail a continuation can anchor, or why there is none: the previous shot's chosen, real (generated or
+ *  uploaded) video, whose window on the cut (what the audience sees of it, src/domain/timeline.ts) holds at least
+ *  the guide's frames — a shorter window would hand the node a clip it silently floors (gap V1), so it is refused
+ *  here, before any file is cut. */
+export function continuationTail(state: Pick<StudioState, 'assets'>, p: Production, prev: Shot | undefined, guideFrames = H3_GUIDE_FRAMES): { source?: ContinuationSource; windowFrames?: number; problem?: string } {
+  if (!prev) return { problem: 'there is no previous shot to continue' };
+  const t = prev.takes.find((x) => x.id === prev.selectedTakeId);
+  if (!t || t.provider === 'SAMPLE') return { problem: `shot ${prev.number} has no chosen real take yet` };
   const a = state.assets.find((x) => x.id === t.assetId);
-  return a && a.kind === 'VIDEO' && !a.sample && !a.unavailable ? { shotId: prev.id, takeId: t.id, assetId: a.id } : undefined;
+  if (!a || a.kind !== 'VIDEO' || a.sample || a.unavailable) return { problem: `the file of shot ${prev.number}'s chosen take is ${a ? (a.unavailable ? 'missing from the library' : 'not a video') : 'gone'}` };
+  const w = shotWindowFrames(p, prev, t, a);
+  const windowFrames = Math.min(w.frames, w.available);
+  if (windowFrames < guideFrames) return { windowFrames, problem: `shot ${prev.number}'s take shows only ${windowFrames} frame${windowFrames === 1 ? '' : 's'} in the cut, fewer than the ${guideFrames}-frame guide (the node would silently keep ${h3GuideClipFrames(windowFrames)})` };
+  return { source: { shotId: prev.id, takeId: t.id, assetId: a.id }, windowFrames };
+}
+
+/** The take a continuation anchors (see `continuationTail`), or nothing. */
+export function continuationSource(state: Pick<StudioState, 'assets'>, p: Production, prev: Shot | undefined): ContinuationSource | undefined {
+  return continuationTail(state, p, prev).source;
 }
 
 /** Whether a take's speech reaches into its last `frames` frames: from the take's placed line windows (take-relative,
@@ -111,14 +154,17 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   const cast = castOf(state, p); const world = worldOf(state, p);
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const loc = world.find((l) => l.id === scene?.locationId);
-  const { relation, planned, previous } = effectiveRelation(p, sh);
+  const { relation, planned, boundary, previous } = effectiveRelation(p, sh);
   const notes: string[] = [];
   const local = opts.backend === 'local';
+  if (boundary && sh.boundary) notes.push(`boundary ${boundary}: ${boundary === 'continuous' ? 'the action carries on from the previous take\'s tail' : boundary === 'cut' ? 'a new camera on the same moment (same cast, place and story state); no tail is anchored' : 'a new place or time: the destination\'s references and the story state there; nothing of the previous shot is anchored'}`);
   // what the clip starts from
-  const source = relation === 'CONTINUATION' ? continuationSource(state, previous) : undefined;
+  const tail = relation === 'CONTINUATION' ? continuationTail(state, p, previous) : undefined;
+  const source = tail?.source;
   let opening: PackOpening = { kind: 'NONE' };
   let lowering: string | undefined;
   if (relation === 'CONTINUATION') {
+    if (tail?.problem) notes.push(`no usable tail: ${tail.problem}`);
     // the tail carries its sound — except into a shot without lines when the previous take speaks in its tail: with
     // that sound anchored H3 kept talking after the head ("take what you need. See you, Madhya." in a silent shot),
     // without it the shot was silent (docs/evidence/minimax-p1, C1/C1b vs C1c; one seed each)
@@ -127,7 +173,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (muteTail) notes.push(`shot ${previous!.number} speaks in its last ${H3_GUIDE_FRAMES} frames and this shot has no lines: its tail is anchored without its sound`);
     if (source && local) opening = { kind: 'TAIL', ...source, frames: H3_GUIDE_FRAMES, withAudio: !muteTail };
     else if (source) { opening = { kind: 'LAST_FRAME_AS_FIRST', ...source }; lowering = 'hosted continuation: the previous take\'s last frame as the first frame (no anchored tail, no references in frame mode)'; }
-    else notes.push(`the shot continues shot ${previous?.number ?? '?'}, which has no chosen real take yet`);
+    else notes.push(`the shot continues shot ${previous?.number ?? '?'}, which has no usable tail`);
   } else if (usableImage(byId(sh.openingFrameAssetId))) opening = { kind: 'FRAME', assetId: sh.openingFrameAssetId! };
   const ending = usableImage(byId(sh.endingFrameAssetId)) ? { assetId: sh.endingFrameAssetId! } : undefined;
   // identity: every character in the shot, in the shot's order, by primary image; the place by its plate
@@ -166,7 +212,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (opening.kind === 'FRAME' || ending) { lowering = 'hosted reference mode: the drawn opening/ending frame is not sent (frame and reference roles cannot be mixed); identity from the canonical images and the plate'; }
   } else graph = opening.kind === 'FRAME' || ending ? 'FRAMES' : 'TEXT';
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, previousShotId: previous?.id, graph, subjects, location, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */
@@ -178,6 +224,8 @@ export function bindingOf(pack: ShotPack, audioRefs: Array<{ characterId: string
     opening: pack.opening.kind === 'TAIL' ? { kind: 'TAIL', seconds: pack.opening.frames / H3_FPS } : pack.opening.kind === 'FRAME' && pack.backend === 'local' ? { kind: 'FRAME', picture: pack.openingPicture } : undefined,
     ending: Boolean(pack.ending && pack.backend === 'local'),
     audioRefs,
+    // a character with no picture (no canonical image, or beyond the budget) is declared from their description
+    described: pack.unreferenced.map((u) => ({ characterId: u.characterId })),
   };
 }
 

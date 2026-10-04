@@ -40,7 +40,10 @@ const trackOf = (c: AudioCue): AudioTrack => ({ cueId: c.id, kind: c.kind, sourc
  *  (AUDIO_DUPLICATION) when the timeline would play a source twice, a song twice or two voices at once. */
 export function mixPlanOf(p: Pick<Production, 'kind'>, t: AudioTimeline, opts: { targetLufs?: number } = {}): MixPlan {
   if (t.problems.length) {
-    throw new StudioError('INVALID', `The mix plan refuses this cut: ${t.problems.map((x) => x.detail).join('; ')}.`, { failureClass: 'AUDIO_DUPLICATION', problems: t.problems });
+    // a stale continuation join is a plan that no longer holds (INCONSISTENT_PLAN: regenerate the shot, or assemble
+    // with the override); every other problem is a sound played twice
+    const failureClass = t.problems.every((x) => x.kind === 'STALE_JOIN') ? 'INCONSISTENT_PLAN' : 'AUDIO_DUPLICATION';
+    throw new StudioError('INVALID', `The mix plan refuses this cut: ${t.problems.map((x) => x.detail).join('; ')}.`, { failureClass, problems: t.problems });
   }
   const tracks = t.cues.map(trackOf);
   const notes = [...t.notes];
