@@ -4,7 +4,7 @@ import { type Command, type CommandName, type CommandResult, isCommandName, runC
 import { hashState } from '@/domain/hash';
 import { StudioError } from '@/domain/errors';
 import { db, schema, sql } from '../db/client';
-import { loadSnapshot } from './snapshot';
+import { loadSnapshot, versionOf, type AggregateKind, type AggregateVersions } from './snapshot';
 import { persistState } from './persist';
 import { log } from '../log';
 import { assertLeaseHeld } from '../jobs/fence';
@@ -26,7 +26,15 @@ export type Tx = Parameters<Parameters<ReturnType<typeof db>['transaction']>[0]>
  *  runs only when every command was accepted.
  *  `batchId` (with the sender, `origin`): the batch's identity in the command journal — the same batch sent again
  *  returns its stored result (audit H10, step 9); derived from the commands' seeds when not given. */
-export interface ApplyOptions { also?: (tx: Tx, results: unknown[]) => Promise<void>; batchId?: string }
+export interface ApplyOptions {
+  also?: (tx: Tx, results: unknown[]) => Promise<void>; batchId?: string;
+  /** COMPARE-AND-SET (docs/BACKEND-AUDIT-2026-10.md H3, step 11): the aggregate versions the sender read. When one
+   *  moved since (someone else changed that production, show, character or location), nothing is applied and the
+   *  batch throws CONFLICT with reason STALE_VERSION — the sender re-reads and re-decides (intent commands make that
+   *  safe). */
+  expect?: ExpectedVersion[];
+}
+export interface ExpectedVersion { kind: AggregateKind; id: string; version: number }
 
 /** Run commands as one unit: all or nothing. */
 export async function applyCommands(commands: Command[], origin = 'server', opts: ApplyOptions = {}): Promise<BatchResult> {
@@ -47,6 +55,10 @@ export async function applyCommands(commands: Command[], origin = 'server', opts
       return { ...(earlier.result as BatchResult), replayed: true as const, changed: false, report: { inserted: 0, updated: 0, deleted: 0 } };
     }
     const snap = await loadSnapshot(tx);
+    for (const x of opts.expect ?? []) {
+      const actual = versionOf(snap.versions, x.kind, x.id);
+      if (actual !== x.version) throw new StudioError('CONFLICT', `The ${x.kind} changed since it was read (version ${x.version}, now ${actual ?? 'gone'}); read it again before writing.`, { reason: 'STALE_VERSION', kind: x.kind, id: x.id, expected: x.version, actual: actual ?? null });
+    }
     let state: StudioState = snap.state;
     const results: unknown[] = [];
     for (let i = 0; i < commands.length; i++) {
@@ -107,15 +119,15 @@ export function stampCommands(list: CommandSpec[], opts: { seed?: string; at?: s
 
 export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } & ApplyOptions = {}): Promise<unknown[]> {
   const cmds = stampCommands(list, opts);
-  const r = await applyCommands(cmds, origin, { also: opts.also });
+  const r = await applyCommands(cmds, origin, { also: opts.also, expect: opts.expect });
   if (!r.ok) throw new StudioError(r.error.code as StudioError['code'], r.error.message, { ...r.error.details, failedAt: r.failedAt, command: cmds[r.failedAt]?.name });
   return r.results;
 }
 
 /** The current state, for readers that do not change anything. */
-export async function readState(): Promise<{ state: StudioState; version: number; hash: string }> {
+export async function readState(): Promise<{ state: StudioState; version: number; hash: string; versions: AggregateVersions }> {
   const snap = await loadSnapshot();
-  return { state: snap.state, version: snap.version, hash: hashState(snap.state) };
+  return { state: snap.state, version: snap.version, hash: hashState(snap.state), versions: snap.versions };
 }
 
 export async function currentVersion(): Promise<number> {

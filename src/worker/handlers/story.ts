@@ -7,6 +7,7 @@ import type { CharacterInput } from '@/domain/actions';
 import { runCommand, type Command } from '@/domain/commands';
 import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
+import { hashState } from '@/domain/hash';
 import { nonHumanSpecies } from '@/domain/identity';
 import { latinizeField } from '@/server/workflows/canonical-image';
 import { performanceFor, shotWindows } from '@/domain/timeline';
@@ -71,15 +72,14 @@ export const episodeContinuity: Handler = async (ctx) => {
   await ctx.progress('GENERATING', { phase: 'writing', message: `Recording ${p.title} in the bible of ${show.title}` });
   const out = await ctx.tool('story.structured_answer', () => continuityUpdate(state, show, p, castOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'continuity', input: { task: 'continuity', productionId: p.id, showId: show.id } });
   await ctx.checkpoint();
-  const b = show.bible ?? {};
   const season = state.seasons.find((x) => x.id === p.seasonId);
   const tag = `S${season?.number ?? '?'}E${p.episodeNumber ?? '?'}`;
-  // this episode's entries replace an earlier record of the same episode (a re-cut), never another episode's
-  const timeline = [...(b.timeline ?? []).filter((x) => !x.startsWith(`${tag}:`)), ...out.events.map((e) => (e.startsWith(tag) ? e : `${tag}: ${e}`))];
-  const resolved = new Set((out.resolved ?? []).map((x) => x.toLowerCase()));
-  const unresolved = Array.from(new Set([...(b.unresolved ?? []).filter((x) => !resolved.has(x.toLowerCase())), ...out.unresolved])).slice(0, 12);
-  const relationships = Array.from(new Set([...(b.relationships ?? []), ...(out.relationships ?? [])])).slice(0, 24);
-  await command('updateShow', [show.id, { bible: { ...b, timeline, unresolved, relationships } }], 'worker');
+  // INTENT, not a whole bible (audit H3, step 11): this episode's entries replace an earlier record of the same episode
+  // (a re-cut), never another episode's — applied to the bible as it is NOW, so what the producer wrote in it while
+  // the model was writing stays
+  await command('updateShowBible', [show.id, { timeline: { dropPrefix: `${tag}:`, add: out.events.map((e) => (e.startsWith(tag) ? e : `${tag}: ${e}`)) }, unresolved: { resolve: out.resolved ?? [], add: out.unresolved, max: 12 }, relationships: { add: out.relationships ?? [], max: 24 } }], 'worker');
+  const b = (await readState()).state.shows.find((x) => x.id === show.id)?.bible ?? {};
+  const timeline = b.timeline ?? []; const unresolved = b.unresolved ?? [];
   // the show's World Bible takes the episode's facts as a new revision (the next episode pins it)
   const revision = await syncBible(ctx, p.id, `continuity of ${tag}`);
   await recordHandoff({ productionId: p.id, stage: 'EDIT', producerDepartment: 'STORY', receiverDepartment: 'EXECUTIVE', artifactIds: [show.id], outputVersions: { timelineEntries: timeline.length, unresolved: unresolved.length, ...(revision ? { worldRevision: revision } : {}) }, validation: { ok: out.events.length > 0, checks: [{ name: 'events-recorded', ok: out.events.length > 0, detail: `${out.events.length} event(s) under ${tag}` }, { name: 'open-storylines-carried', ok: true, detail: `${unresolved.length} open` }] }, jobId: ctx.job.id });
@@ -124,9 +124,9 @@ export const designCharacter: Handler = async (ctx) => {
   const stamp = { seed: `design-${ctx.job.id}-${ctx.job.attempts}`, at: new Date().toISOString() };
   const probe = runCommand(state, stampCommands([{ name: 'addCharacter', args: [input] }], stamp)[0] as Command<'addCharacter'>);
   const characterId = probe.result.character.id;
+  // the seat is an intent (audit H3, step 11): added to the cast as it is when the batch runs, never a stale whole list
   const batch: CommandSpec[] = [{ name: 'addCharacter', args: [input] }];
-  if (p) batch.push({ name: 'updateProduction', args: [p.id, { castIds: Array.from(new Set([...p.castIds, characterId])) }] });
-  if (show) batch.push({ name: 'updateShow', args: [show.id, { castIds: Array.from(new Set([...show.castIds, characterId])) }] });
+  if (p || show) batch.push({ name: 'addCastMember', args: [{ productionId: p?.id, showId: show?.id }, [characterId]] });
   await commands(batch, 'worker', stamp);
   await ctx.activity('CHARACTER_DESIGNED', `${input.name} designed (${input.role})${line ? ' from the brief' : known.length ? ' from the written profile' : ' from the name'}`, { characterId });
   return { characterId, name: input.name };
@@ -134,7 +134,7 @@ export const designCharacter: Handler = async (ctx) => {
 
 export const developStory: Handler = async (ctx) => {
   const { productionId } = ctx.job.payload as { productionId: string };
-  const { state } = await readState();
+  const { state, versions: readVersions } = await readState();
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
   await ctx.progress('GENERATING', { phase: 'developing', message: 'Developing the story, cast and world' });
@@ -179,21 +179,36 @@ export const developStory: Handler = async (ctx) => {
   const resolveLoc = (n: string) => nameToLoc.get(n.toLowerCase()) ?? nameToLoc.get(`lib:${n.toLowerCase()}`);
   for (const sc of out.scenes) { for (const n of sc.characterNames) { const id = resolveChar(n); if (id && !castIds.includes(id)) castIds.push(id); } const lid = resolveLoc(sc.locationName); if (lid && !locationIds.includes(lid)) locationIds.push(lid); }
   const scenes: Array<Omit<Scene, 'number'>> = out.scenes.map((sc) => ({ id: nid('scene'), title: sc.title, locationId: resolveLoc(sc.locationName), timeOfDay: sc.timeOfDay, characterIds: sc.characterNames.map(resolveChar).filter((x): x is string => Boolean(x)), beats: [], purpose: sc.purpose, emotionalObjective: sc.emotionalObjective, entryState: sc.entryState, exitState: sc.exitState }));
-  await command('updateProduction', [p.id, { logline: out.logline, synopsis: out.synopsis, genre: out.genre ?? p.genre, mood: out.mood ?? p.mood, titleAr: p.titleAr ?? out.titleAr, castIds, locationIds }], 'worker');
-  // keep existing scenes that already carry written lines; a skeleton (an accepted proposal's structure: a summary
-  // beat, no lines, no place) is replaced by the developed, located and cast scenes — decided by the command on the
-  // studio as it is NOW (the model call took minutes: a producer may have written lines meanwhile), and matched to
-  // the existing scenes so their shots and takes keep their ids (audit C4, step 10)
-  let keepBeats = false;
-  try { await command('replaceScript', [p.id, scenes, { keepWritten: true }], 'worker'); }
-  catch (e) {
-    if ((e as { details?: { reason?: string } }).details?.reason !== 'SCRIPT_WRITTEN') throw e;
-    keepBeats = true;
-    await ctx.event('info', 'the scenes already carry written lines: the developed story did not replace them');
-  }
-  // an episode's new people and places join the show's canon, so later seasons and episodes inherit them
-  if (p.showId) { const show = state.shows.find((x) => x.id === p.showId); if (show) await command('updateShow', [show.id, { castIds: Array.from(new Set([...show.castIds, ...castIds])), locationIds: Array.from(new Set([...show.locationIds, ...locationIds])) }], 'worker'); }
-  await command('markStepDone', [p.id, 'STORY'], 'worker');
+  // WHAT THE STORY ENGINE WRITES BACK, AS INTENTS AND UNDER COMPARE-AND-SET (audit H3/C4, steps 10–11). The model ran
+  // for minutes on a read; the producer may have edited the production meanwhile. So: the fields it computed are
+  // written only where they are still what was read (fillProductionFields); the people and places it brought in are
+  // ADDED to the cast and world (addCastMember / addLocationMember, the show's canon too); and the scenes replace the
+  // skeleton only while the production is the version it read — when it moved, it is read again and the scenes are
+  // replaced only if the producer did not change them (and never once lines are written: keepWritten).
+  const base = { logline: p.logline, synopsis: p.synopsis, genre: p.genre, mood: p.mood, titleAr: p.titleAr };
+  const fields = { logline: out.logline, synopsis: out.synopsis, genre: out.genre ?? p.genre, mood: out.mood ?? p.mood, titleAr: p.titleAr ?? out.titleAr };
+  const scenesRead = hashState(p.scenes);
+  let expectVersion = readVersions.productions.get(p.id) ?? 0;
+  let replace = true; let keepBeats = false;
+  for (let attempt = 0; ; attempt++) {
+    const batch: CommandSpec[] = [
+      { name: 'fillProductionFields', args: [p.id, fields, base] },
+      { name: 'addCastMember', args: [{ productionId: p.id, showId: p.showId }, castIds] },
+      { name: 'addLocationMember', args: [{ productionId: p.id, showId: p.showId }, locationIds] },
+      ...(replace ? [{ name: 'replaceScript' as const, args: [p.id, scenes, { keepWritten: true }] as [string, typeof scenes, { keepWritten: boolean }] }] : []),
+    ];
+    try { await commands(batch, 'worker', { expect: [{ kind: 'production', id: p.id, version: expectVersion }] }); break; }
+    catch (e) {
+      const reason = (e as { details?: { reason?: string } }).details?.reason;
+      if (attempt >= 3 || (reason !== 'SCRIPT_WRITTEN' && reason !== 'STALE_VERSION')) throw e;
+      if (reason === 'SCRIPT_WRITTEN') { replace = false; keepBeats = true; await ctx.event('info', 'the scenes already carry written lines: the developed story did not replace them'); continue; }
+      const fresh = await readState();
+      const now = fresh.state.productions.find((x) => x.id === p.id);
+      if (!now) throw new StudioError('NOT_FOUND', 'The production was removed while its story was being developed.');
+      expectVersion = fresh.versions.productions.get(p.id) ?? 0;
+      if (replace && hashState(now.scenes) !== scenesRead) { replace = false; keepBeats = true; await ctx.event('warn', 'the scenes were changed while the story was being developed: they are kept as the producer left them, and the developed scenes were not applied'); }
+    }
+  }  await command('markStepDone', [p.id, 'STORY'], 'worker');
   // the developed world (its people, places, scenes) is a World Bible revision before anyone approves the story
   await syncBible(ctx, p.id, 'story developed');
   // STORY handoff to Casting & World: every scene located and cast by id; the human approval of the story itself

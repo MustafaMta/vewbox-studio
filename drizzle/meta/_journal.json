@@ -127,6 +127,13 @@
       "when": 1791073783597,
       "tag": "0017_tombstones_restrict",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791074321984,
+      "tag": "0018_aggregate_versions",
+      "breakpoints": true
     }
   ]
 }

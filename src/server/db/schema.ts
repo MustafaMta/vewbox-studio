@@ -37,6 +37,9 @@ export const shows = pgTable('shows', {
   castIds: text('cast_ids').array().notNull().default([]),
   locationIds: text('location_ids').array().notNull().default([]),
   bible: jsonb('bible').$type<NonNullable<import('@/domain/types').Show['bible']>>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
   ...tombstone(),
@@ -83,6 +86,9 @@ export const productions = pgTable('productions', {
   /** The composed frame poster (docs/CONTRACTS-REDESIGN-BACKEND.md B7): a 2:3 crop of the production's best frame,
    *  made by the backfill for a production without key art; the page renders the title over it. */
   framePosterAssetId: text('frame_poster_asset_id'),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
   ...tombstone(),
@@ -205,6 +211,9 @@ export const characters = pgTable('characters', {
    *  is assembled from both (src/server/studio/canonical-image.ts). */
   canonicalAssetId: text('canonical_asset_id').references(() => assets.id, { onDelete: 'restrict' }),
   canonicalImage: jsonb('canonical_image').$type<StoredCanonicalImage>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });
@@ -238,6 +247,9 @@ export const locations = pgTable('locations', {
   refs: jsonb('refs').$type<LocationRef[]>().notNull().default([]),
   masterAssetId: text('master_asset_id'),
   layout: jsonb('layout').$type<NonNullable<import('@/domain/types').Location['layout']>>(),
+  /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
+   *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
+  version: integer('version').notNull().default(0),
   createdAt: ts('created_at').notNull(),
   updatedAt: ts('updated_at').notNull(),
 });

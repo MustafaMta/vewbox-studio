@@ -106,6 +106,73 @@ export function duplicateProduction(s: S, id: string): { state: S; production: P
   return { state: { ...s, productions: [...s.productions, copy] }, production: copy };
 }
 
+// ------------------------------------------------------------------------------------------- intent commands
+// docs/BACKEND-AUDIT-2026-10.md H3, step 11. A worker computes for minutes from a read; writing back a WHOLE value
+// (a cast list, a bible, a logline) would silently undo what the producer changed meanwhile. These commands say what
+// the worker means — add these people, record these events, set this field if nobody touched it — and are applied to
+// the state as it is when the command runs, so both edits survive.
+
+export interface MembershipTarget { productionId?: string; showId?: string }
+
+const union = (xs: string[], add: string[]) => Array.from(new Set([...xs, ...add]));
+
+/** Add characters to a production's and/or a show's cast (those already in it stay; order kept). */
+export function addCastMember(s: S, target: MembershipTarget, characterIds: string[]): S {
+  for (const id of characterIds) mustFind(s.characters, id, 'Character');
+  let next = s;
+  if (target.productionId) { const p = mustFind(next.productions, target.productionId, 'Production'); const castIds = union(p.castIds, characterIds); if (castIds.length !== p.castIds.length) next = updateProduction(next, p.id, { castIds }); }
+  if (target.showId) { const sh = mustFind(next.shows, target.showId, 'Show'); const castIds = union(sh.castIds, characterIds); if (castIds.length !== sh.castIds.length) next = updateShow(next, sh.id, { castIds }); }
+  return next;
+}
+
+/** Add places to a production's and/or a show's world (those already in it stay; order kept). */
+export function addLocationMember(s: S, target: MembershipTarget, locationIds: string[]): S {
+  for (const id of locationIds) mustFind(s.locations, id, 'Location');
+  let next = s;
+  if (target.productionId) { const p = mustFind(next.productions, target.productionId, 'Production'); const locationIds2 = union(p.locationIds, locationIds); if (locationIds2.length !== p.locationIds.length) next = updateProduction(next, p.id, { locationIds: locationIds2 }); }
+  if (target.showId) { const sh = mustFind(next.shows, target.showId, 'Show'); const locationIds2 = union(sh.locationIds, locationIds); if (locationIds2.length !== sh.locationIds.length) next = updateShow(next, sh.id, { locationIds: locationIds2 }); }
+  return next;
+}
+
+/** What the Continuity Writer records in a show's bible after an episode: its timeline entries (replacing that
+ *  episode's earlier ones — `dropPrefix`), storylines resolved and opened, relationships learned. Applied to the bible
+ *  as it is now: the producer's own entries, written meanwhile, stay. */
+export interface ShowBiblePatch {
+  timeline?: { dropPrefix?: string; add?: string[] };
+  unresolved?: { resolve?: string[]; add?: string[]; max?: number };
+  relationships?: { add?: string[]; max?: number };
+  worldRules?: { add?: string[] };
+}
+export function updateShowBible(s: S, showId: string, patch: ShowBiblePatch): S {
+  const show = mustFind(s.shows, showId, 'Show');
+  const b = show.bible ?? {};
+  const next = { ...b };
+  if (patch.timeline) next.timeline = [...(b.timeline ?? []).filter((x) => !(patch.timeline!.dropPrefix && x.startsWith(patch.timeline!.dropPrefix))), ...(patch.timeline.add ?? [])];
+  if (patch.unresolved) {
+    const resolved = new Set((patch.unresolved.resolve ?? []).map((x) => x.toLowerCase()));
+    const all = Array.from(new Set([...(b.unresolved ?? []).filter((x) => !resolved.has(x.toLowerCase())), ...(patch.unresolved.add ?? [])]));
+    next.unresolved = patch.unresolved.max ? all.slice(0, patch.unresolved.max) : all;
+  }
+  if (patch.relationships) { const all = union(b.relationships ?? [], patch.relationships.add ?? []); next.relationships = patch.relationships.max ? all.slice(0, patch.relationships.max) : all; }
+  if (patch.worldRules) next.worldRules = union(b.worldRules ?? [], patch.worldRules.add ?? []);
+  if (canonical(next) === canonical(b)) return s;
+  return updateShow(s, showId, { bible: next });
+}
+
+/** The production fields a worker computed (a logline, a synopsis, a genre…), each written only where the field is
+ *  still what the worker read (`base`) — a field the producer changed meanwhile keeps the producer's value. */
+export type ProductionFields = Partial<Pick<Production, 'logline' | 'synopsis' | 'genre' | 'mood' | 'titleAr' | 'title' | 'artist' | 'concept'>>;
+export function fillProductionFields(s: S, productionId: string, patch: ProductionFields, base: ProductionFields): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  const write: Partial<Production> = {};
+  for (const k of Object.keys(patch) as Array<keyof ProductionFields>) {
+    if (canonical(p[k] ?? null) !== canonical(base[k] ?? null)) continue; // the producer changed it: theirs stays
+    if (canonical(p[k] ?? null) === canonical(patch[k] ?? null)) continue;
+    (write as Record<string, unknown>)[k] = patch[k];
+  }
+  return Object.keys(write).length ? updateProduction(s, productionId, write) : s;
+}
+
 export function setStage(s: S, id: string, stage: Stage): S { return updateProduction(s, id, { stage }); }
 
 /** The stage advances when the work of a step is done. Nothing advances on its own. */
@@ -344,7 +411,12 @@ export function addTake(s: S, productionId: string, shotId: string, input: NewTa
   mustFind(s.assets, input.assetId, 'Asset');
   if (input.id && s.productions.some((x) => x.shots.some((y) => y.takes.some((t) => t.id === input.id)))) throw new StudioError('CONFLICT', `Take ${input.id} already exists.`, { takeId: input.id });
   const { id: givenId, select, ...fields } = input;
-  const take: Take = { ...fields, id: givenId ?? nid('take'), label: input.label ?? `Take ${sh.takes.length + 1}`, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
+  // the take's number is decided HERE, on the state the command runs on (audit H3, step 11): a worker's "Take N",
+  // counted from a read minutes old, is renumbered when another take of the shot took N meanwhile
+  const nextNumber = Math.max(sh.takes.length, ...sh.takes.map((t) => Number(/\bTake (\d+)/i.exec(t.label)?.[1] ?? 0))) + 1;
+  const numbered = input.label && /^Take \d+$/.test(input.label);
+  const label = !input.label || (numbered && sh.takes.some((t) => t.label === input.label)) ? `Take ${nextNumber}` : input.label;
+  const take: Take = { ...fields, id: givenId ?? nid('take'), label, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
   const choose = take.status === 'READY' && take.rating !== 'REJECTED' && (select === 'ALWAYS' || (select === 'IF_UNCHOSEN' && (!current || current.provider === 'SAMPLE')));
   const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take], ...(choose ? { selectedTakeId: take.id } : {}) } : y)) }));

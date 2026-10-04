@@ -16,7 +16,12 @@ export interface RowHashes {
   usage: Map<string, string>; settings: string;
 }
 
-export interface Snapshot { state: StudioState; hashes: RowHashes; version: number }
+/** Each aggregate's version (step 11), outside the state: the browser's copy and its hash never carry it. */
+export interface AggregateVersions { productions: Map<string, number>; shows: Map<string, number>; characters: Map<string, number>; locations: Map<string, number> }
+export type AggregateKind = 'production' | 'show' | 'character' | 'location';
+export const versionOf = (v: AggregateVersions, kind: AggregateKind, id: string): number | undefined => ({ production: v.productions, show: v.shows, character: v.characters, location: v.locations })[kind].get(id);
+
+export interface Snapshot { state: StudioState; hashes: RowHashes; version: number; versions: AggregateVersions }
 
 type Tx = Db | Parameters<Parameters<Db['transaction']>[0]>[0];
 
@@ -155,5 +160,6 @@ export async function loadSnapshot(tx: Tx = db()): Promise<Snapshot> {
   const settings: Settings = settingsRows[0]?.data ?? DEFAULT_SETTINGS;
   hashes.settings = h(settings);
 
-  return { state: { version: STATE_VERSION, shows, seasons, productions, characters, locations, assets, settings }, hashes, version: metaRows[0]?.version ?? 0 };
+  const versions: AggregateVersions = { productions: new Map(productionRows.map((r) => [r.id, r.version])), shows: new Map(showRows.map((r) => [r.id, r.version])), characters: new Map(characterRows.map((r) => [r.id, r.version])), locations: new Map(locationRows.map((r) => [r.id, r.version])) };
+  return { state: { version: STATE_VERSION, shows, seasons, productions, characters, locations, assets, settings }, hashes, version: metaRows[0]?.version ?? 0, versions };
 }

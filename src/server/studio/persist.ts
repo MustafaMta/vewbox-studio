@@ -49,11 +49,16 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
   const deletedBy = (opts.deletedBy ?? 'studio').slice(0, 200);
   const live = { deletedAt: null, deletedBy: null };
   type Tombstoned = typeof schema.shows | typeof schema.seasons | typeof schema.productions | typeof schema.scenes | typeof schema.shots | typeof schema.takes;
-  const tombstone = async (table: Tombstoned, ids: string[]) => {
-    if (!ids.length) return;
-    await tx.update(table).set({ deletedAt, deletedBy }).where(and(inArray(table.id, ids), isNull(table.deletedAt)));
+  const tombstone = async (table: Tombstoned, ids: string[]): Promise<string[]> => {
+    if (!ids.length) return [];
+    const parent = 'productionId' in table ? table.productionId : 'showId' in table ? table.showId : table.id;
+    const rows = await tx.update(table).set({ deletedAt, deletedBy }).where(and(inArray(table.id, ids), isNull(table.deletedAt))).returning({ parent });
     report.deleted += ids.length;
+    return rows.map((r) => String(r.parent));
   };
+  // AGGREGATE VERSIONS (docs/BACKEND-AUDIT-2026-10.md H3, step 11): every aggregate this save changes moves on by one —
+  // a production with its scenes, shots and takes; a show with its seasons; a character; a location
+  const touched = { productions: new Set<string>(), shows: new Set<string>(), characters: new Set<string>(), locations: new Set<string>() };
 
   // ---- assets (first: other rows point at them — characters' canonical image column with a foreign key) ----
   // Rows that went away are deleted LAST, after every row that pointed at them has been rewritten or deleted.
@@ -79,6 +84,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       seen.add(s.id);
       const hash = h(s); const prev = before.shows.get(s.id);
       if (prev === hash) continue;
+      touched.shows.add(s.id);
       const row = { id: s.id, title: s.title, titleAr: nul(s.titleAr), logline: s.logline, genre: s.genre, style: s.style, language: s.language, dialect: nul(s.dialect), aspect: s.aspect, synopsis: nul(s.synopsis), coverAssetId: nul(s.coverAssetId), posterAssetId: nul(s.posterAssetId), castIds: s.castIds, locationIds: s.locationIds, bible: nul(s.bible), createdAt: s.createdAt, updatedAt: s.updatedAt };
       if (prev === undefined) { await tx.insert(schema.shows).values(row).onConflictDoUpdate({ target: schema.shows.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.shows).set(row).where(eq(schema.shows.id, s.id)); report.updated++; }
     }
@@ -92,10 +98,11 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       seen.add(s.id);
       const hash = h(s); const prev = before.seasons.get(s.id);
       if (prev === hash) continue;
+      touched.shows.add(s.showId);
       const row = { id: s.id, showId: s.showId, number: s.number, title: s.title, arc: s.arc, createdAt: s.createdAt };
       if (prev === undefined) { await tx.insert(schema.seasons).values(row).onConflictDoUpdate({ target: schema.seasons.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.seasons).set(row).where(eq(schema.seasons.id, s.id)); report.updated++; }
     }
-    await tombstone(schema.seasons, [...before.seasons.keys()].filter((id) => !seen.has(id)));
+    for (const showId of await tombstone(schema.seasons, [...before.seasons.keys()].filter((id) => !seen.has(id)))) touched.shows.add(showId);
   }
 
   // ---- characters (+ usage) ----
@@ -105,6 +112,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       seen.add(c.id);
       const hash = h({ ...c, usage: { known: c.usage?.known ?? false } }); const prev = before.characters.get(c.id);
       if (prev !== hash) {
+        touched.characters.add(c.id);
         const row = characterRow(c);
         if (prev === undefined) { await tx.insert(schema.characters).values(row); report.inserted++; } else { await tx.update(schema.characters).set(row).where(eq(schema.characters.id, c.id)); report.updated++; }
       }
@@ -129,6 +137,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       seen.add(l.id);
       const hash = h(l); const prev = before.locations.get(l.id);
       if (prev === hash) continue;
+      touched.locations.add(l.id);
       const row = { id: l.id, name: l.name, nameAr: nul(l.nameAr), kind: l.kind, description: l.description, style: l.style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: nul(l.masterAssetId), layout: nul(l.layout), createdAt: l.createdAt, updatedAt: l.updatedAt };
       if (prev === undefined) { await tx.insert(schema.locations).values(row); report.inserted++; } else { await tx.update(schema.locations).set(row).where(eq(schema.locations.id, l.id)); report.updated++; }
     }
@@ -143,6 +152,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       seenP.add(p.id);
       const hash = h({ ...p, scenes: undefined, shots: undefined }); const prev = before.productions.get(p.id);
       if (prev !== hash) {
+        touched.productions.add(p.id);
         const row = productionRow(p);
         if (prev === undefined) { await tx.insert(schema.productions).values(row).onConflictDoUpdate({ target: schema.productions.id, set: { ...row, ...live } }); report.inserted++; } else { await tx.update(schema.productions).set(row).where(eq(schema.productions.id, p.id)); report.updated++; }
       }
@@ -151,9 +161,9 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
         const sc = p.scenes[i]; seenSc.add(sc.id);
         const sh = h(sc); const sprev = before.scenes.get(sc.id);
         const row = sceneRow(p.id, i, sc);
-        if (sprev === undefined) { await tx.insert(schema.scenes).values(row).onConflictDoUpdate({ target: schema.scenes.id, set: { ...row, ...live } }); report.inserted++; }
-        else if (sprev !== sh) { await tx.update(schema.scenes).set(row).where(eq(schema.scenes.id, sc.id)); report.updated++; }
-        else { await tx.update(schema.scenes).set({ position: i }).where(and(eq(schema.scenes.id, sc.id), dsql`${schema.scenes.position} <> ${i}`)); }
+        if (sprev === undefined) { await tx.insert(schema.scenes).values(row).onConflictDoUpdate({ target: schema.scenes.id, set: { ...row, ...live } }); report.inserted++; touched.productions.add(p.id); }
+        else if (sprev !== sh) { await tx.update(schema.scenes).set(row).where(eq(schema.scenes.id, sc.id)); report.updated++; touched.productions.add(p.id); }
+        else if ((await tx.update(schema.scenes).set({ position: i }).where(and(eq(schema.scenes.id, sc.id), dsql`${schema.scenes.position} <> ${i}`)).returning({ id: schema.scenes.id })).length) touched.productions.add(p.id);
       }
     }
     // shots after every scene of every production exists
@@ -162,9 +172,9 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
         const sh = p.shots[i]; seenSh.add(sh.id);
         const hh = h({ ...sh, takes: undefined }); const sprev = before.shots.get(sh.id);
         const row = shotRow(p.id, i, sh);
-        if (sprev === undefined) { await tx.insert(schema.shots).values(row).onConflictDoUpdate({ target: schema.shots.id, set: { ...row, ...live } }); report.inserted++; }
-        else if (sprev !== hh) { await tx.update(schema.shots).set(row).where(eq(schema.shots.id, sh.id)); report.updated++; }
-        else { await tx.update(schema.shots).set({ position: i }).where(and(eq(schema.shots.id, sh.id), dsql`${schema.shots.position} <> ${i}`)); }
+        if (sprev === undefined) { await tx.insert(schema.shots).values(row).onConflictDoUpdate({ target: schema.shots.id, set: { ...row, ...live } }); report.inserted++; touched.productions.add(p.id); }
+        else if (sprev !== hh) { await tx.update(schema.shots).set(row).where(eq(schema.shots.id, sh.id)); report.updated++; touched.productions.add(p.id); }
+        else if ((await tx.update(schema.shots).set({ position: i }).where(and(eq(schema.shots.id, sh.id), dsql`${schema.shots.position} <> ${i}`)).returning({ id: schema.shots.id })).length) touched.productions.add(p.id);
         if (sprev !== hh && sh.continuity) {
           await tx.insert(schema.continuityVersions).values({ shotId: sh.id, version: sh.continuity.version, state: sh.continuity, createdAt: new Date().toISOString() }).onConflictDoNothing();
         }
@@ -172,20 +182,28 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
           const t = sh.takes[j]; seenT.add(t.id);
           const th = h(t); const tprev = before.takes.get(t.id);
           const trow = takeRow(p.id, sh.id, j, t);
-          if (tprev === undefined) { await tx.insert(schema.takes).values(trow).onConflictDoUpdate({ target: schema.takes.id, set: { ...trow, ...live } }); report.inserted++; }
-          else if (tprev !== th) { await tx.update(schema.takes).set(trow).where(eq(schema.takes.id, t.id)); report.updated++; }
+          if (tprev === undefined) { await tx.insert(schema.takes).values(trow).onConflictDoUpdate({ target: schema.takes.id, set: { ...trow, ...live } }); report.inserted++; touched.productions.add(p.id); }
+          else if (tprev !== th) { await tx.update(schema.takes).set(trow).where(eq(schema.takes.id, t.id)); report.updated++; touched.productions.add(p.id); }
         }
       }
     }
     // what left the studio is tombstoned, never deleted: a take, its media and its provenance stay recoverable
-    await tombstone(schema.takes, [...before.takes.keys()].filter((id) => !seenT.has(id)));
-    await tombstone(schema.shots, [...before.shots.keys()].filter((id) => !seenSh.has(id)));
-    await tombstone(schema.scenes, [...before.scenes.keys()].filter((id) => !seenSc.has(id)));
+    for (const table of [schema.takes, schema.shots, schema.scenes] as const) {
+      const seenIds = table === schema.takes ? seenT : table === schema.shots ? seenSh : seenSc;
+      const prevIds = table === schema.takes ? before.takes : table === schema.shots ? before.shots : before.scenes;
+      for (const productionId of await tombstone(table, [...prevIds.keys()].filter((id) => !seenIds.has(id)))) touched.productions.add(productionId);
+    }
     await tombstone(schema.productions, [...before.productions.keys()].filter((id) => !seenP.has(id)));
   }
 
   // ---- assets that went away: nothing points at them any more ----
   if (goneAssets.length) { await tx.delete(schema.assets).where(inArray(schema.assets.id, goneAssets)); report.deleted += goneAssets.length; }
+
+  // ---- the versions of what changed ----
+  if (touched.productions.size) await tx.update(schema.productions).set({ version: dsql`${schema.productions.version} + 1` }).where(inArray(schema.productions.id, [...touched.productions]));
+  if (touched.shows.size) await tx.update(schema.shows).set({ version: dsql`${schema.shows.version} + 1` }).where(inArray(schema.shows.id, [...touched.shows]));
+  if (touched.characters.size) await tx.update(schema.characters).set({ version: dsql`${schema.characters.version} + 1` }).where(inArray(schema.characters.id, [...touched.characters]));
+  if (touched.locations.size) await tx.update(schema.locations).set({ version: dsql`${schema.locations.version} + 1` }).where(inArray(schema.locations.id, [...touched.locations]));
 
   // ---- settings ----
   if (h(state.settings) !== before.settings) {
