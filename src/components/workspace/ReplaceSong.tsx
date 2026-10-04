@@ -31,7 +31,7 @@ export function ReplaceSong({ p }: { p: Production }) {
   return (
     <Modal title={p.song ? 'Replace song' : 'The song'} trigger={(open) => <Button size="sm" onClick={open}>{p.song ? 'Replace song' : 'Add'}</Button>}>
       {(close) => (
-        <div className="space-y-4">
+        <div className="ws-form">
           <Segmented label={'The song'} value={mode} onChange={setMode} options={[{ value: 'GENERATE', label: 'Generate Song' }, { value: 'UPLOAD', label: 'Upload Song' }]} />
           <Field label={'Title'}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           {mode === 'GENERATE' ? (
@@ -42,10 +42,10 @@ export function ReplaceSong({ p }: { p: Production }) {
               <div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>{'Cancel'}</Button><Button variant="primary" onClick={() => submit(close)} disabled={!caption.trim()}>{'Save'}</Button></div>
             </>
           ) : (
-            <div className="space-y-3">
+            <div className="ws-form">
               <label className="btn btn-secondary cursor-pointer"><IconUpload aria-hidden />{'Upload Song'}<input type="file" accept="audio/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f, close); }} /></label>
-              {sampleTrack && <button type="button" className="block text-sm text-fg underline-offset-2 hover:underline" onClick={() => useSample(close)}>{'Sample content'}: {'Uploaded track'.toLowerCase()}</button>}
-              <p className="text-xs text-muted">{'Files you add are checked, stored in the studio library on the server and listed here with their origin.'}</p>
+              {sampleTrack && <button type="button" className="ws-textlink" onClick={() => useSample(close)}>{'Sample content'}: {'Uploaded track'.toLowerCase()}</button>}
+              <p className="t-meta">{'Files you add are checked, stored in the studio library on the server and listed here with their origin.'}</p>
             </div>
           )}
         </div>

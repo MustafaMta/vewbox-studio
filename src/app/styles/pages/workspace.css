@@ -222,6 +222,13 @@
   .ws-drop-end[data-over] { background: var(--surface-2); }
 
   /* music: lyrics, performers, plates */
+  .ws-song { margin-block-start: 16px; }
+  .ws-badge-gap { margin-inline-start: 8px; vertical-align: middle; }
+  .ws-lyrics { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .ws-lyric-btn { display: block; inline-size: 100%; padding: 14px 56px 14px 16px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+  .ws-lyric-btn:focus-visible { outline-offset: -2px; }
+  .ws-lyric-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+  .ws-lyric-play { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; }
   .ws-lyric { position: relative; transition: background-color var(--dur-1) var(--ease-out); }
   .ws-lyric[data-live] { background: var(--surface-2); }
   .ws-lyric[data-on] { outline: 2px solid var(--text-1); outline-offset: 2px; }

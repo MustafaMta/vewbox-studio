@@ -7,9 +7,7 @@ import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
 import { assetById, castOf } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
-import { Button, Checkbox, Field, Input, Notice, Select, Textarea } from '@/components/ui/kit';
-import { Empty } from '@/components/ui/cinema';
-import { Section } from '@/components/ui/page';
+import { Button, Checkbox, Field, Input, SectionHead, Select, Textarea } from '@/components/ui/kit';
 import { Waveform } from '@/components/players/Waveform';
 import { usePlayer, useTrackState } from '@/components/players/PlayerProvider';
 import { PlayerNotice, SongPlayer } from '@/components/players/Controls';
@@ -57,93 +55,91 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
 
   return (
     <div className="ws-main">
-    <div className="ws-pane-head"><h1 className="t-section">Song and lyrics</h1></div>
-    <div className="ws-split">
-      <div className="ws-split-main">
-        <SongPlayer track={track} title={song.title || p.title} performer={artist} artworkSrc={artworkSrc} />
-        <div className="card p-4 sm:p-5">
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2"><h3 className="h3" dir="auto">{song.title}</h3>{asset?.sample && <span className="badge">{'Sample'}</span>}</div>
-              <p className="mt-0.5 text-[13px] text-muted">{song.source === 'UPLOADED' ? 'Uploaded track' : song.assetId ? 'Generated song' : 'Not recorded yet'} · {fmtSeconds(song.durationSeconds)} · {song.sections.length} {'sections'}</p>
-              {song.caption && <p className="mt-2 text-[13px] leading-relaxed text-faint" dir="auto">{song.caption}</p>}
+      <div className="ws-pane-head"><h1 className="t-section">Song and lyrics</h1></div>
+      <div className="ws-split">
+        <div className="ws-split-main">
+          <SongPlayer track={track} title={song.title || p.title} performer={artist} artworkSrc={artworkSrc} />
+          <section className="card ws-side-card ws-song" aria-labelledby="ws-song-h">
+            <div className="ws-sub-head">
+              <h2 id="ws-song-h" className="t-title name"><bdi>{song.title}</bdi>{asset?.sample && <span className="badge badge-neutral ws-badge-gap">Sample</span>}</h2>
+              <ReplaceSong p={p} />
             </div>
-            <div className="flex items-center gap-2"><ReplaceSong p={p} /></div>
-          </div>
-          <div className="mt-4">
-            {track ? <><Waveform src={track.src} progress={Math.min(1, time / total)} onSeek={(f) => player.play(track, f * total)} label={'Waveform, from the audio file'} unavailableText={'The waveform could not be drawn from this file.'} /><div className="mt-1"><PlayerNotice track={track} /></div></>
-              : <Notice tone="info">{'No audio yet. The song plays once a track exists.'}</Notice>}
-          </div>
+            <p className="t-meta">{song.source === 'UPLOADED' ? 'Uploaded track' : song.assetId ? 'Generated song' : 'Not recorded yet'} · {fmtSeconds(song.durationSeconds)} · {song.sections.length} sections</p>
+            {song.caption && <p className="t-body" dir="auto">{song.caption}</p>}
+            {track ? <><Waveform src={track.src} progress={Math.min(1, time / total)} onSeek={(f) => player.play(track, f * total)} label="Waveform, from the audio file" unavailableText="The waveform could not be drawn from this file." /><PlayerNotice track={track} /></>
+              : <p className="t-body">No audio yet. The song plays once a track exists.</p>}
+          </section>
+
+          <section className="ws-sec" aria-labelledby="ws-lyr-h">
+            <SectionHead id="ws-lyr-h" title="Lyrics" count={song.sections.length || null} description="Write the lyrics as sections. Select a section to set who sings it and when." action={<Button size="sm" icon={<IconPlus aria-hidden />} onClick={addSection}>Add a section</Button>} />
+            <div className="ws-gen-row"><GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton></div>
+            {song.sections.length === 0 ? <p className="t-body ws-empty">No sections yet.</p> : (
+              <ol className="ws-lyrics" aria-label="Sections">
+                {song.sections.map((sec) => {
+                  const live = mine && time >= sec.from && time < sec.to;
+                  const on = selected?.id === sec.id;
+                  const singers = cast.filter((c) => sec.singerIds.includes(c.id)).map((c) => c.name).join(', ');
+                  const primaryText = p.language === 'AR' && sec.textAr ? sec.textAr : sec.text;
+                  const secondaryText = p.language === 'AR' ? (sec.textAr ? sec.text : '') : sec.textAr ?? '';
+                  return (
+                    <li key={sec.id}>
+                      <div className="card ws-lyric" data-on={on || undefined} data-live={live || undefined}>
+                        <button type="button" aria-pressed={on} onClick={() => setSelectedId(on ? null : sec.id)} className="ws-lyric-btn">
+                          <span className="ws-lyric-head">
+                            <span className="t-label">{words(sec.kind)}</span>
+                            <span className="ws-ro t-meta">{fmtSeconds(sec.from)} – {fmtSeconds(sec.to)}</span>
+                            {singers && <span className="badge badge-neutral"><IconVoice aria-hidden /><bdi>{singers}</bdi></span>}
+                            {live && <span className="badge badge-neutral">Now playing</span>}
+                          </span>
+                          {primaryText
+                            ? <span className="ws-lyric-text" dir="auto" lang={p.language === 'AR' && sec.textAr ? 'ar' : undefined}>{primaryText}</span>
+                            : <span className="ws-lyric-none">{quiet(sec.kind) ? `♪ ${words(sec.kind)}` : 'No words yet — select to write them.'}</span>}
+                          {secondaryText && <span className="ws-lyric-second" dir="auto">{secondaryText}</span>}
+                        </button>
+                        {track && <button type="button" aria-label={`Play ${words(sec.kind)}`} onClick={() => playFrom(sec.from)} className="btn btn-quiet btn-sm btn-icon ws-lyric-play"><IconPlay aria-hidden /></button>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
         </div>
 
-        <Section title={'Lyrics'} count={song.sections.length} description={'Write the lyrics as sections. Select a section to set who sings it and when.'} action={<><GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton><Button size="sm" icon={<IconPlus />} onClick={addSection}>{'Add section'}</Button></>}>
-          {song.sections.length === 0 ? <Empty compact title={'Sections'} action={<Button variant="primary" icon={<IconPlus />} onClick={addSection}>{'Add section'}</Button>} /> : (
-            <ol className="space-y-2" aria-label={'Sections'}>
-              {song.sections.map((sec) => {
-                const live = mine && time >= sec.from && time < sec.to;
-                const on = selected?.id === sec.id;
-                const singers = cast.filter((c) => sec.singerIds.includes(c.id)).map((c) => c.name).join(', ');
-                const primaryText = p.language === 'AR' && sec.textAr ? sec.textAr : sec.text;
-                const secondaryText = p.language === 'AR' ? (sec.textAr ? sec.text : '') : sec.textAr ?? '';
-                return (
-                  <li key={sec.id}>
-                    <div className="card ws-lyric" data-on={on || undefined} data-live={live || undefined}>
-                      <button type="button" aria-pressed={on} onClick={() => setSelectedId(on ? null : sec.id)} className="block w-full rounded-[inherit] px-4 py-3.5 text-start outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:px-5">
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 pe-9">
-                          <span className="t-label">{words(sec.kind)}</span>
-                          <span className="mono text-[11.5px] text-faint">{fmtSeconds(sec.from)} – {fmtSeconds(sec.to)}</span>
-                          {singers && <span className="badge"><IconVoice aria-hidden />{singers}</span>}
-                          {live && <span className="badge badge-accent">{'Now playing'}</span>}
-                        </span>
-                        {primaryText
-                          ? <span className="ws-lyric-text" dir="auto" lang={p.language === 'AR' && sec.textAr ? 'ar' : undefined}>{primaryText}</span>
-                          : <span className="ws-lyric-none">{quiet(sec.kind) ? '♪ ' + words(sec.kind) : 'No words yet — select to write them.'}</span>}
-                        {secondaryText && <span className="ws-lyric-second" dir="auto">{secondaryText}</span>}
-                      </button>
-                      {track && <button type="button" aria-label={`${'Play'} ${words(sec.kind)}`} onClick={() => playFrom(sec.from)} className="btn btn-ghost btn-sm btn-icon absolute end-2.5 top-2.5 opacity-70 transition group-hover:opacity-100 focus-visible:opacity-100"><IconPlay /></button>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+        <aside className="ws-split-side">
+          {!selected ? (
+            <div className="card ws-side-card">
+              <h2 className="t-title">Sections</h2>
+              <p className="t-body">Select a section to see who sings it and when.</p>
+              <ol className="ws-files">{song.sections.map((s) => <li key={s.id}><button type="button" onClick={() => setSelectedId(s.id)} className="ws-textlink">{words(s.kind)}</button><span className="ws-ro t-meta">{fmtSeconds(s.from)} – {fmtSeconds(s.to)}</span></li>)}</ol>
+            </div>
+          ) : (
+            <div className="card ws-side-card" key={selected.id}>
+              <div className="ws-sub-head"><h2 className="t-title">{words(selected.kind)}</h2><Button variant="quiet" size="sm" icon={<IconDelete aria-hidden />} aria-label="Remove the section" onClick={() => { act('updateSong', p.id, { sections: song.sections.filter((x) => x.id !== selected.id) }); setSelectedId(null); toast.ok('Deleted.'); }} /></div>
+              <Field label="Kind"><Select value={selected.kind} onChange={(e) => setSec(selected.id, { kind: e.target.value as LyricKind })} options={LYRIC_KINDS.map((k) => ({ value: k, label: words(k) }))} /></Field>
+              {!quiet(selected.kind) && (
+                <>
+                  <Field label={p.language === 'AR' ? 'Lyrics (Arabic)' : 'Lyrics'}>{p.language === 'AR' ? <Textarea value={selected.textAr ?? ''} dir="rtl" lang="ar" onChange={(e) => setSec(selected.id, { textAr: e.target.value })} rows={4} /> : <Textarea value={selected.text} onChange={(e) => setSec(selected.id, { text: e.target.value })} rows={4} dir="auto" />}</Field>
+                  <Field label={p.language === 'AR' ? 'Lyrics (English)' : 'Lyrics (Arabic)'} hint="optional">{p.language === 'AR' ? <Textarea value={selected.text} onChange={(e) => setSec(selected.id, { text: e.target.value })} rows={3} dir="auto" /> : <Textarea value={selected.textAr ?? ''} dir="rtl" lang="ar" onChange={(e) => setSec(selected.id, { textAr: e.target.value })} rows={3} />}</Field>
+                </>
+              )}
+              <fieldset className="ws-fieldset">
+                <legend className="t-label">Sung by</legend>
+                {cast.length === 0 ? <p className="t-meta">Nobody in the cast yet.</p> : <div className="ws-checks">{cast.map((c) => <Checkbox key={c.id} label={<bdi>{c.name}</bdi>} checked={selected.singerIds.includes(c.id)} onChange={(e) => setSec(selected.id, { singerIds: e.target.checked ? [...selected.singerIds, c.id] : selected.singerIds.filter((x) => x !== c.id) })} />)}</div>}
+              </fieldset>
+              <fieldset className="ws-fieldset">
+                <legend className="t-label">Timing (seconds)</legend>
+                <div className="ws-actions">
+                  <Input type="number" min={0} max={song.durationSeconds} step={0.5} value={selected.from} aria-label="From" onChange={(e) => setSec(selected.id, { from: Number(e.target.value) })} />
+                  <span className="t-meta">to</span>
+                  <Input type="number" min={0} max={song.durationSeconds} step={0.5} value={selected.to} aria-label="To" onChange={(e) => setSec(selected.id, { to: Number(e.target.value) })} />
+                  {track && <Button size="sm" icon={<IconPlay aria-hidden />} onClick={() => playFrom(selected.from)} aria-label="Play the section" />}
+                </div>
+              </fieldset>
+            </div>
           )}
-        </Section>
+        </aside>
       </div>
-
-      <aside className="ws-split-side">
-        {!selected ? (
-          <div className="card p-5">
-            <h3 className="h3">{'Sections'}</h3>
-            <p className="mt-1 text-[13px] text-muted">{'Select a section to see who sings it and when.'}</p>
-            <ol className="mt-4 space-y-1.5">{song.sections.map((s) => <li key={s.id}><button type="button" onClick={() => setSelectedId(s.id)} className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-start text-[13px] transition-colors hover:bg-raised-2"><span className="font-medium text-fg">{words(s.kind)}</span><span className="mono text-[11.5px] text-faint">{fmtSeconds(s.from)} – {fmtSeconds(s.to)}</span></button></li>)}</ol>
-          </div>
-        ) : (
-          <div className="card space-y-4 p-5 fade-in" key={selected.id}>
-            <div className="flex items-center justify-between gap-2"><h3 className="h3">{words(selected.kind)}</h3><Button variant="ghost" size="xs" icon={<IconDelete />} aria-label={'Remove'} onClick={() => { act('updateSong', p.id, { sections: song.sections.filter((x) => x.id !== selected.id) }); setSelectedId(null); toast.ok('Deleted.'); }} /></div>
-            <Field label={'Kind'}><Select value={selected.kind} onChange={(e) => setSec(selected.id, { kind: e.target.value as LyricKind })} options={LYRIC_KINDS.map((k) => ({ value: k, label: words(k) }))} /></Field>
-            {!quiet(selected.kind) && (
-              <>
-                <Field label={p.language === 'AR' ? `${'Lyrics'} (${'Arabic'})` : 'Lyrics'}>{p.language === 'AR' ? <Textarea value={selected.textAr ?? ''} dir="rtl" onChange={(e) => setSec(selected.id, { textAr: e.target.value })} rows={4} className="text-base" /> : <Textarea value={selected.text} onChange={(e) => setSec(selected.id, { text: e.target.value })} rows={4} className="text-base" />}</Field>
-                <Field label={p.language === 'AR' ? `${'Lyrics'} (${'English'})` : `${'Lyrics'} (${'Arabic'})`} hint={'optional'}>{p.language === 'AR' ? <Textarea value={selected.text} onChange={(e) => setSec(selected.id, { text: e.target.value })} rows={3} /> : <Textarea value={selected.textAr ?? ''} dir="rtl" onChange={(e) => setSec(selected.id, { textAr: e.target.value })} rows={3} />}</Field>
-              </>
-            )}
-            <fieldset>
-              <legend className="label">{'Sung by'}</legend>
-              {cast.length === 0 ? <p className="text-xs text-faint">{'Nobody in the cast yet.'}</p> : <div className="flex flex-wrap gap-x-4 gap-y-1.5">{cast.map((c) => <Checkbox key={c.id} label={c.name} checked={selected.singerIds.includes(c.id)} onChange={(e) => setSec(selected.id, { singerIds: e.target.checked ? [...selected.singerIds, c.id] : selected.singerIds.filter((x) => x !== c.id) })} />)}</div>}
-            </fieldset>
-            <fieldset>
-              <legend className="label">{'Timing'} ({'seconds'})</legend>
-              <div className="flex items-center gap-2">
-                <Input type="number" min={0} max={song.durationSeconds} step={0.5} value={selected.from} aria-label={'From'} onChange={(e) => setSec(selected.id, { from: Number(e.target.value) })} />
-                <span className="text-faint">–</span>
-                <Input type="number" min={0} max={song.durationSeconds} step={0.5} value={selected.to} aria-label={'To'} onChange={(e) => setSec(selected.id, { to: Number(e.target.value) })} />
-                {track && <Button size="sm" icon={<IconPlay />} onClick={() => playFrom(selected.from)} aria-label={'Play'} />}
-              </div>
-            </fieldset>
-          </div>
-        )}
-      </aside>
-    </div>
     </div>
   );
 }

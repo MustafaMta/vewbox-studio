@@ -36,7 +36,7 @@ export function ShotFields({ p, draft, onChange, showScene }: { p: Production; d
       <fieldset>
         <div className="mb-1.5 flex items-center justify-between"><legend className="t-label">{'Dialogue'}</legend><Button size="sm" variant="quiet" icon={<IconPlus />} disabled={draft.characterIds.length === 0} onClick={() => onChange({ dialogue: [...draft.dialogue, { id: nid('d'), characterId: draft.characterIds[0], text: '' }] })}>{'Add line'}</Button></div>
         {draft.dialogue.length === 0 ? <p className="t-meta">{'No dialogue in this shot.'}</p> : (
-          <ul className="space-y-1.5">
+          <ul className="ws-dlg">
             {draft.dialogue.map((d) => (
               <li key={d.id} className="grid gap-1.5 sm:grid-cols-[9rem_1fr_auto]">
                 <Select aria-label={'Role'} value={d.characterId} onChange={(e) => onChange({ dialogue: draft.dialogue.map((x) => (x.id === d.id ? { ...x, characterId: e.target.value } : x)) })} options={draft.characterIds.map((id) => ({ value: id, label: nameOf(id) }))} />
@@ -53,7 +53,7 @@ export function ShotFields({ p, draft, onChange, showScene }: { p: Production; d
       <Details summary={'Advanced'}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={'Begins with'}><Select value={draft.transition} onChange={(e) => onChange({ transition: e.target.value as Transition })} options={TRANSITIONS.map((t) => ({ value: t, label: words(t) }))} /></Field>
-          {p.kind === 'MUSIC_VIDEO' && <Field label={`${'Song window'} (${'seconds'})`}><div className="flex items-center gap-2"><Input type="number" min={0} value={draft.songWindow?.from ?? 0} aria-label="from" onChange={(e) => onChange({ songWindow: { from: Number(e.target.value), to: draft.songWindow?.to ?? Number(e.target.value) + draft.durationSeconds } })} /><span className="text-faint">–</span><Input type="number" min={0} value={draft.songWindow?.to ?? draft.durationSeconds} aria-label="to" onChange={(e) => onChange({ songWindow: { from: draft.songWindow?.from ?? 0, to: Number(e.target.value) } })} /></div></Field>}
+          {p.kind === 'MUSIC_VIDEO' && <Field label={`${'Song window'} (${'seconds'})`}><div className="flex items-center gap-2"><Input type="number" min={0} value={draft.songWindow?.from ?? 0} aria-label="from" onChange={(e) => onChange({ songWindow: { from: Number(e.target.value), to: draft.songWindow?.to ?? Number(e.target.value) + draft.durationSeconds } })} /><span className="t-meta">to</span><Input type="number" min={0} value={draft.songWindow?.to ?? draft.durationSeconds} aria-label="to" onChange={(e) => onChange({ songWindow: { from: draft.songWindow?.from ?? 0, to: Number(e.target.value) } })} /></div></Field>}
           <Field label={'Notes'} className="sm:col-span-2"><Textarea value={draft.notes ?? ''} onChange={(e) => onChange({ notes: e.target.value })} rows={2} /></Field>
           <Field label={'Prompt for this shot'} help={'Written by the studio from the shot; edit it and the next take uses your words.'} className="sm:col-span-2"><Textarea value={draft.prompt ?? ''} onChange={(e) => onChange({ prompt: e.target.value || undefined })} rows={5} dir="ltr" placeholder="Written automatically from the setting, the people and the action when empty." /></Field>
         </div>
