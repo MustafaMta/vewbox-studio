@@ -18,8 +18,6 @@ import { KEYS, T, type Key } from '@/lib/copy';
 const BASELINE: string[] = [
   // /shows (P1a): the lead is the empty hint
   'empty.shows.hint',
-  // /music-videos (P1c): the lead is the empty hint
-  'empty.musicVideos.hint',
 ];
 
 const SOURCES = [path.join('src', 'app', '(app)'), path.join('src', 'components')];

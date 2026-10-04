@@ -1,13 +1,11 @@
 'use client';
 
-import { notFound, useParams } from 'next/navigation';
-import { useStudio } from '@/studio/store';
-import { Workspace } from '@/components/workspace/Workspace';
+import { useParams } from 'next/navigation';
+import { MusicVideo } from '@/components/music/MusicVideo';
 
-export default function Page() {
-  const params = useParams<{ id: string }>();
-  const { state } = useStudio();
-  const p = state.productions.find((x) => x.id === params.id);
-  if (!p) notFound();
-  return <Workspace p={p} />;
+/** /music-videos/[id] — the music video's title page, song first (src/components/music/MusicVideo.tsx). Work on it
+ *  happens in its production: /music-videos/[id]/production?tab=… */
+export default function MusicVideoPage() {
+  const { id } = useParams<{ id: string }>();
+  return <MusicVideo id={decodeURIComponent(id)} />;
 }
