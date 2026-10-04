@@ -1,4 +1,137 @@
-/* ============================================================================================================
-   SHOWS PAGES — owned by P1a (docs/DESIGN-SYSTEM-V4.md §8.2 rule 2, §8.3).
-   §6.1, §6.2, §6.17. Empty until P1a.
-   ============================================================================================================ */
+/* SHOWS PAGES — owned by P-Shows: /shows, a show, a season, an episode's lobby, and their dialogs
+   (docs/design/PAGE-ENGINEERING-BRIEF.md; VISUAL-STANDARD-V5.1). Layout only: every colour, radius, duration and type
+   size is a token or a kit/type class; the cards and heads are the kit's (SectionHead, MediaTile, FigureCard, StartCard,
+   PanelCard). The skeletons use the same classes, so nothing moves when the content arrives. */
+@layer components {
+  .shows { display: flex; flex-direction: column; min-inline-size: 0; }
+
+  /* ---------------------------------------------------------------------------------------- page head */
+  .shows-page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+  .shows-page-title { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; max-inline-size: var(--measure); }
+  .shows-page-title > * { margin: 0; }
+  .shows-page-acts { display: flex; flex: none; align-items: center; gap: 8px; }
+  .shows-head-h { display: flex; align-items: baseline; gap: 10px; margin: 0; }
+  .shows-count { font-weight: 400; color: var(--text-3); }
+
+  /* ------------------------------------------------------------------------------------------ filters */
+  .shows-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-block-start: 24px; }
+  .shows-search { flex: 0 1 320px; min-inline-size: 0; }
+  .shows-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* --------------------------------------------------------------------- grids: 3 · 2 · 1 columns of 16:9 */
+  .shows-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px var(--gutter); margin: 24px 0 0; padding: 0; list-style: none; }
+  .shows-section .shows-grid { margin-block-start: 0; }
+  .shows-grid > li { display: flex; min-inline-size: 0; }
+  .shows-grid > li > * { flex: 1; min-inline-size: 0; }
+  .shows-grid > li > .start-card { align-self: flex-start; }
+  .shows-grid > div > .mtile { display: block; }   /* MediaTileSkeleton's root is a span (change request to DS) */
+  .shows-grid .status { vertical-align: top; }
+
+  /* the episode tile (the Shows experience's own, on the media tile's anatomy): still → 12 → words; one link */
+  .ep-tile { display: flex; flex-direction: column; min-inline-size: 0; color: var(--text-1); text-decoration: none; border-radius: var(--r-md); }
+  .ep-tile-words { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; margin-block-start: 12px; }
+  .ep-tile-syn { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-block-size: 40px; margin-block-start: 4px; }
+  .ep-tile-stage { display: flex; align-items: center; gap: 10px; min-block-size: 18px; margin-block-start: 10px; }
+
+  /* ------------------------------------------------------------------------------------------- sections */
+  .shows-section { margin-block-start: var(--section-gap); }
+  .shows-section-first { margin-block-start: 32px; }
+
+  /* ---------------------------------------------------------------- the backdrop (Home's banner) and caption */
+  .show-hero { display: flex; flex-direction: column; }
+  .show-hero-frame { position: relative; inline-size: 100%; block-size: clamp(280px, 28vw, 420px); overflow: hidden; border-radius: var(--r-lg); }
+  .show-hero-frame > .tcard { block-size: 100%; }
+  .show-caption { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px 24px; margin-block-start: 24px; }
+  .show-caption[data-poster] { grid-template-columns: 120px minmax(0, 1fr) auto; }
+  .show-poster { inline-size: 120px; }
+  .show-caption-words { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
+  .show-caption-words > * { margin: 0; }
+  .show-slate { display: flex; flex-wrap: wrap; }
+  .show-slate-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+  .show-lead { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .show-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+
+  /* the season control above the episodes */
+  .show-seasons { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-block-end: 16px; }
+  .show-seasons > .t-title { margin: 0; }
+  .show-arc { margin: -4px 0 20px; max-inline-size: var(--measure); }
+
+  /* cast (whole figures) and world (plates) */
+  .show-figures { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px var(--gutter); margin: 0; padding: 0; list-style: none; }
+  .show-plates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px var(--gutter); margin: 0; padding: 0; list-style: none; }
+
+  /* the bible: four level-1 cards, two across */
+  .show-bible { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
+  .show-bible-card { display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; padding: 20px; }
+  .show-bible-card > h3 { margin: 0; }
+  .show-bible-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding-inline-start: 18px; list-style: disc; }
+  .show-bible-list > li::marker { color: var(--text-3); }
+  .show-bible-none { margin: 0; color: var(--text-3); }
+
+  /* ------------------------------------------------------------------------------------ the empty catalogue */
+  .shows-empty { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); margin-block-start: 24px; }
+  .shows-empty-start { position: relative; grid-column: span 2; display: flex; align-items: flex-end; aspect-ratio: 16 / 9; padding: 40px; border-radius: var(--r-md); background: var(--surface-1); }
+  .shows-empty-words { position: relative; display: flex; flex-direction: column; gap: 12px; max-inline-size: 52ch; }
+  .shows-empty-words > * { margin: 0; }
+  .shows-empty-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 8px; }
+  .shows-empty-steps { display: flex; flex-direction: column; justify-content: center; gap: 28px; margin: 0; padding: 32px 24px; list-style: none; }
+  .shows-empty-steps > li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; }
+  .shows-empty-steps > li > span:last-child { display: flex; flex-direction: column; gap: 4px; }
+  .shows-step-n { display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); }
+
+  /* ------------------------------------------------------------------------------------ season and episode */
+  .season-chips { margin-block-end: 20px; }
+  .ep-steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gutter); margin: 0; padding: 0; list-style: none; }
+  .ep-steps > li { display: flex; min-inline-size: 0; }
+  .ep-step { display: flex; flex: 1; flex-direction: column; gap: 4px; min-inline-size: 0; min-block-size: 112px; padding: 16px; color: var(--text-1); text-decoration: none; }
+  .ep-step .status { margin-block-start: auto; }
+
+  /* ------------------------------------------------------------------------------------------------ dialogs */
+  .show-dialog { display: flex; flex-direction: column; gap: 20px; }
+  .show-dialog > p { margin: 0; }
+  .show-dialog-form { display: flex; flex-direction: column; gap: 16px; }
+  .show-dialog-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .show-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 20px var(--gutter); margin: 0; padding: 4px; list-style: none; }
+  .show-pick[data-kind='world'] { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+
+  /* ------------------------------------------------------------------------------------------ skeletons */
+  .shows-skeleton .ep-step { block-size: 112px; padding: 0; }
+  .shows-skeleton .show-hero-frame > .sk { block-size: 100%; }
+  .ep-story-skeleton { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ------------------------------------------------------------------------------------------------ narrower */
+  @media (max-width: 1279px) {
+    .show-figures { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ep-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .shows-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .show-plates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .show-caption, .show-caption[data-poster] { grid-template-columns: 96px minmax(0, 1fr); }
+    .show-caption:not([data-poster]) { grid-template-columns: minmax(0, 1fr); }
+    .show-poster { inline-size: 96px; }
+    .show-acts { grid-column: 1 / -1; justify-content: flex-start; }
+    .shows-empty { grid-template-columns: minmax(0, 1fr); }
+    .shows-empty-start { grid-column: auto; }
+  }
+  @media (max-width: 639px) {
+    .shows-page-acts { inline-size: 100%; }
+    .shows-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .shows-search { flex-basis: 100%; }
+    .show-hero-frame { block-size: auto; aspect-ratio: 4 / 3; border-radius: var(--r-md); }
+    .show-caption, .show-caption[data-poster] { grid-template-columns: minmax(0, 1fr); margin-block-start: 16px; }
+    .show-poster { display: none; }
+    .show-acts > .btn { flex: 1; }
+    .show-acts > .btn-primary { order: -1; flex-basis: 100%; }
+    .show-figures { display: flex; gap: var(--gutter); margin-inline: calc(-1 * var(--pad)); padding: 4px var(--pad); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); scrollbar-width: none; }
+    .show-figures::-webkit-scrollbar { display: none; }
+    .show-figures > li { flex: none; inline-size: 136px; scroll-snap-align: start; }
+    .show-plates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px var(--gutter); }
+    .show-bible { grid-template-columns: minmax(0, 1fr); }
+    .show-bible-card { padding: 16px; }
+    .shows-empty-start { aspect-ratio: auto; min-block-size: 320px; padding: 24px; }
+    .shows-empty-steps { padding: 24px 20px; }
+    .ep-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .show-dialog-cols { grid-template-columns: minmax(0, 1fr); }
+  }
+}

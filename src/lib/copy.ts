@@ -787,6 +787,8 @@ const COPY = {
   // home
   // misc
   'misc.seek': 'Seek',
+  // home
+  // misc
   'meta.views': 'views',
   'lib.searchCharacters': 'Search by name or role',
   'lib.filterProduction': 'Production',
@@ -887,9 +889,45 @@ const COPY = {
   'wizard.needTitle': 'Give it a title or describe the idea.',
   // show workspace
   // creation steps
+  // creation steps
+  'step.song': 'Song',
+  'step.look': 'Look & format',
+  'step.people': 'Cast & places',
+  'step.performers': 'Performers',
+  'step.review': 'Review',
+  'step.of': 'of',
+  'wizard.reviewHint': 'Everything below is saved with the project and can be changed later.',
+  'new.lead': 'Choose what to make. Each opens a short wizard: the idea, the look and format, the people and places, then one button.',
   // Auto Idea
   'auto.decide': 'Studio decides',
   // Manual brief
+  'manual.title': 'Manual brief',
+  'manual.lead': 'A title or a short description is enough to begin. Everything else has a default.',
+  'manual.start': 'Write my brief',
+  'manual.description': 'Description',
+  'manual.descriptionHelp': 'A line or a paragraph: what happens, to whom, how it should feel.',
+  'manual.defaultsHint': 'Defaults from Settings; change any of them.',
+  'manual.songOptional': 'Optional. Add the song now, or later from the Song & Lyrics tab.',
+  'manual.songLater': 'Add it later',
+  'manual.songLater.hint': 'Start without a song.',
+  'step.brief': 'Brief',
+  'wizard.needSongWords': 'Describe the song or write some lyrics — or choose “Add it later”.',
+  'wizard.needSongFile': 'Upload a track — or choose “Add it later”.',
+  'auto.generatedTitle': 'Proposal from the story engine',
+  'auto.generatedBody': 'Written for you now; everything is editable before anything is created.',
+  'auto.writing': 'Writing a proposal…',
+  'auto.writingHint': 'Usually under a minute. You can keep the page open.',
+  'auto.failed': 'The story engine could not write a proposal.',
+  'auto.useSample': 'Use a written example instead',
+  'auto.writeAnother': 'Write another proposal',
+  'auto.premiseLabel': 'Your idea (optional)',
+  'auto.premiseHint': 'A line is enough. Leave it empty and the studio invents one.',
+  'auto.seasonContext': 'The agents read the show’s concept, language, previous seasons, the story so far, the cast’s locked identities, the places and the open storylines, and propose a season that continues them.',
+  'auto.episodeContext': 'The agents continue from the last episode’s ending and the show’s bible; the show’s language and the cast’s voices never change.',
+  'auto.nextEpisodes': 'The season’s episodes',
+  'season.manualHint': 'A title or a line about the season is enough; the agents develop it from the show’s continuity when its first episode is created.',
+  'new.character.hint': 'A person the studio keeps: one look and one voice across every production.',
+  'new.location.hint': 'A place with its plates and views, reused across productions.',
   // ---- film ----------------------------------------------------------------------------------------------------------
   // D23: what the script writer and the shot planner read, editable by the producer
   // next steps
