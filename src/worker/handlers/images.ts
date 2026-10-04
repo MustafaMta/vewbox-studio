@@ -5,7 +5,6 @@ import type { ToolRunner } from '@/server/org/tools';
 import { step } from './step';
 import { canCountPeople, countPeopleInFiles, peopleExpected } from './people';
 import { StudioError, missingReference } from '@/domain/errors';
-import { nid } from '@/domain/ids';
 import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot, WorldRead } from '@/domain/types';
 import { overlayWorld } from '@/domain/world';
 import { worldOfProduction } from '@/server/world';
@@ -13,7 +12,7 @@ import type { TimeOfDay } from '@/domain/vocabulary';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
-import { adoptFile, assetFile, assetFromStored, ffprobe } from '@/server/media';
+import { assetFile, assetFromStored, ffprobe } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/server/media/image-check';
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
@@ -32,6 +31,7 @@ import { styleDirection } from '@/server/story/style';
 import { canChangeAppearance } from '@/domain/rules';
 import { lookWritten, primaryImageOf, redrawsFromEarlierPicture, usableImage } from '@/domain/identity';
 import { recordMetric } from '@/server/jobs/queue';
+import { committedOutput, jobOutputs, stableSeed } from '@/server/jobs/outputs';
 import { recordHandoff } from '@/server/org/runs';
 
 /** PICTURES — the canonical character image, optional secondary character material, location plates and views,
@@ -60,15 +60,16 @@ async function requireComfy() {
   if (!models.some((m) => m.includes('qwen_image'))) throw new StudioError('NOT_CONFIGURED', 'Qwen-Image weights are not downloaded yet (see docker/models).');
 }
 
-interface Drawn { id: string; file: string; prompt: string; references: string[]; workflowVersion: string; ms: number; width?: number; height?: number }
+interface Drawn { id: string; file: string; prompt: string; references: string[]; workflowVersion: string; ms: number; width?: number; height?: number; seed?: number }
 
 type ImageTool = 'image.generate' | 'image.edit_with_references' | 'image.describe_reference';
 
 /** Run one graph under the GPU lease as a recorded tool call (through `runner`, a delegated step's tool runner, when
  *  another agent's step runs it). */
-async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool; runner?: ToolRunner }): Promise<comfy.ComfyRunResult> {
+async function runGraph(ctx: HandlerContext, graph: Record<string, unknown>, opts: { label: string; tool: ImageTool; runner?: ToolRunner; key: string }): Promise<comfy.ComfyRunResult> {
   const tool = opts.runner ?? ctx.tool;
-  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => tool(opts.tool, () => comfy.run(graph, { timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
+  // the step's prompt key (audit H8, step 7): a restarted attempt re-attaches to the prompt it submitted before
+  return ctx.gpu('IMAGE', IMAGE_VRAM_MB, () => tool(opts.tool, () => comfy.run(graph, { promptKey: `${ctx.job.id}:${opts.key}`, timeoutMs: 20 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (p) => ctx.progress('GENERATING', { phase: 'drawing', message: p.queue ? `waiting behind ${p.queue} in the GPU queue` : opts.label, percent: null }) }), { label: opts.label, input: { graph, label: opts.label } }), { jobId: ctx.job.id });
 }
 
 /** Fetch one ComfyUI output file into a temporary folder (the caller removes `dir`). */
@@ -79,15 +80,24 @@ async function fetchOutput(out: comfy.ComfyOutputFile): Promise<{ dir: string; f
   return { dir, file };
 }
 
-type AdoptOptions = { label: string; tags: string[]; prompt: string; negative?: string; references: string[]; seed?: number; model: string; loras?: string[]; provenance?: Record<string, unknown>; ms: number; tier?: 'SECONDARY' | 'RAW' };
+type AdoptOptions = { key: string; label: string; tags: string[]; prompt: string; negative?: string; references: string[]; seed?: number; model: string; loras?: string[]; provenance?: Record<string, unknown>; ms: number; tier?: 'SECONDARY' | 'RAW' };
 
 /** Bring a fetched output into the library as an asset with its provenance (and its tier when it is not canonical). */
 async function adoptFetched(ctx: HandlerContext, tmp: string, run: comfy.ComfyRunResult, opts: AdoptOptions): Promise<Drawn> {
-  const id = nid('gen');
-  const stored = await adoptFile(id, tmp, { expectKind: 'IMAGE' });
+  // the picture's id is the job's output id for its step (src/server/jobs/outputs.ts): a retry finds it (reuseDrawn)
+  const { id, stored } = await jobOutputs(ctx.job).adopt(`image:${opts.key}`, tmp, { expectKind: 'IMAGE' });
   const provenance = { provider: 'COMFYUI', model: opts.model, loras: opts.loras ?? [], prompt: opts.prompt, negative: opts.negative, references: opts.references, seed: opts.seed, workflowVersion: run.workflowVersion, promptId: run.promptId, engineMs: run.engineMs, ...(opts.provenance ?? {}) };
   await command('addAsset', [assetFromStored(id, stored, { label: opts.label, tags: opts.tags, origin: 'GENERATED', jobId: ctx.job.id, provenance, ...(opts.tier ? { tier: opts.tier } : {}) })], 'worker');
   return { id, file: stored.absPath, prompt: opts.prompt, references: opts.references, workflowVersion: run.workflowVersion, ms: opts.ms, width: stored.probe?.width, height: stored.probe?.height };
+}
+
+/** The picture an earlier attempt of this job already drew and recorded for step `key`: reused, never drawn twice
+ *  (audit H8, step 7). */
+async function reuseDrawn(ctx: HandlerContext, key: string): Promise<Drawn | undefined> {
+  const a = await committedOutput(ctx.job.id, `image:${key}`);
+  if (!a) return undefined;
+  await ctx.event('info', `${a.label}: drawn by an earlier attempt of this job (${a.id}); reused`, { assetId: a.id, key });
+  return { id: a.id, file: assetFile(a), prompt: String(a.provenance?.prompt ?? ''), references: Array.isArray(a.provenance?.references) ? (a.provenance!.references as string[]) : [], workflowVersion: String(a.provenance?.workflowVersion ?? ''), ms: 0, width: a.width, height: a.height, seed: typeof a.provenance?.seed === 'number' ? a.provenance.seed : undefined };
 }
 
 /** Bring one ComfyUI output file into the library as an asset with its provenance. */
@@ -98,18 +108,22 @@ async function adoptOutput(ctx: HandlerContext, out: comfy.ComfyOutputFile, run:
 
 /** Run one image workflow (text to image, or an edit from up to three references) and bring the result into the
  *  library as an asset. */
-async function draw(ctx: HandlerContext, opts: { prompt: string; negative?: string; references?: Asset[]; width: number; height: number; label: string; tags: string[]; seed?: number; quality?: boolean; provenance?: Record<string, unknown> }): Promise<Drawn> {
+async function draw(ctx: HandlerContext, opts: { key: string; prompt: string; negative?: string; references?: Asset[]; width: number; height: number; label: string; tags: string[]; seed?: number; quality?: boolean; provenance?: Record<string, unknown> }): Promise<Drawn> {
+  const reused = await reuseDrawn(ctx, opts.key);
+  if (reused) return reused;
   const refs = (opts.references ?? []).filter(usableImage).slice(0, 3);
+  // the seed is the job's for this step: every attempt builds the same graph, so its prompt key finds the prompt
+  const seed = opts.seed ?? stableSeed(ctx.job.id, `image:${opts.key}`);
   const graph = refs.length
-    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed: opts.seed, quality: opts.quality })
-    : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed: opts.seed });
+    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed, quality: opts.quality })
+    : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed });
   const t0 = Date.now();
-  const run = await runGraph(ctx, graph, { label: opts.label, tool: refs.length ? 'image.edit_with_references' : 'image.generate' });
+  const run = await runGraph(ctx, graph, { key: opts.key, label: opts.label, tool: refs.length ? 'image.edit_with_references' : 'image.generate' });
   const out = comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
   const model = refs.length ? 'Qwen-Image-Edit-2511' : 'Qwen-Image-2512';
   const loras = refs.length ? (opts.quality ? [] : [MODELS.qwenEditLightning]) : [MODELS.qwenLightning];
-  const d = await adoptOutput(ctx, out, run, { label: opts.label, tags: opts.tags, prompt: opts.prompt, negative: opts.negative, references: refs.map((r) => r.id), seed: opts.seed, model, loras, provenance: opts.provenance, ms: Date.now() - t0 });
+  const d = await adoptOutput(ctx, out, run, { key: opts.key, label: opts.label, tags: opts.tags, prompt: opts.prompt, negative: opts.negative, references: refs.map((r) => r.id), seed, model, loras, provenance: opts.provenance, ms: Date.now() - t0 });
   await recordMetric('image.generation_ms', d.ms, 'ms', { model, refs: refs.length }, ctx.job.id);
   return d;
 }
@@ -207,7 +221,7 @@ export async function readReferencePicture(ctx: HandlerContext, picture: Asset, 
   const stored = storedReading(picture);
   if (stored) return { upload, boxes: stored.boxes, description: stored.description, describedBy: stored.describedBy, notes: [`the picture was already read (${stored.describedBy}); that one reading is used`], reused: true };
   if (!describe && opts.describeOnly) return { upload, boxes: [], notes: ['the vision model (Qwen3.5-4B) is not installed: the picture cannot be described'], reused: false };
-  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { label: opts.label, tool: 'image.describe_reference', runner: opts.runner });
+  const run = await runGraph(ctx, referenceReadGraph({ image: upload, describe }), { key: `read:${picture.id}`, label: opts.label, tool: 'image.describe_reference', runner: opts.runner });
   const notes: string[] = [];
   const boxes = parseFaceBoxes(comfy.textOutput(run.outputs, REFERENCE_FACE_OUTPUTS.bboxes));
   let description: CharacterDescription | undefined;
@@ -268,6 +282,11 @@ export const characterAppearance: Handler = async (ctx) => {
   const { state } = await readState();
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
+  // an earlier attempt of THIS job already set the canonical image (it crashed before the job was completed): done
+  if (c.canonicalImage?.jobId === ctx.job.id) {
+    await ctx.event('info', `${c.name}: the canonical image was already set by an earlier attempt of this job; nothing is drawn again`, { characterId: c.id, assetId: c.canonicalImage.assetId });
+    return { canonicalAssetId: c.canonicalImage.assetId, version: c.canonicalImage.version, status: c.canonicalImage.status, seed: c.canonicalImage.seed, identityLine: c.canonicalImage.identityLine, engine: c.canonicalImage.engine, check: c.canonicalImage.check, resumedFromCommit: true, message: `${c.name}: canonical image drawn — awaiting your approval` };
+  }
   if (!canChangeAppearance(c)) throw new StudioError('APPEARANCE_LOCKED', `${c.name} has been used in a video; the appearance is preserved for continuity.`);
   // D19: the look of a character made from a picture IS that picture (its look fields stay empty until the producer
   // writes them), so a redraw without a new picture draws from the same picture again — from the written look it
@@ -314,15 +333,23 @@ export const characterAppearance: Handler = async (ctx) => {
       : klein ? kleinReferenceCanonical({ upload: read.upload, faceRect, prompt, seed: usedSeed })
       : qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed });
     await ctx.progress('GENERATING', { phase: 'drawing', message: attempt ? `Drawing ${c.name} again (the first picture was not whole in the frame)` : `Drawing ${c.name}`, percent: null });
+    // a picture an earlier attempt of this job already drew for this step is judged again, never drawn again
+    const key = `canonical:${attempt}`;
+    const earlierDraw = await reuseDrawn(ctx, key);
+    if (earlierDraw) {
+      framing = await framingOf(earlierDraw.file);
+      if (framing.ok || attempt === 1) drawn = earlierDraw; else rejected.push({ assetId: earlierDraw.id, seed: usedSeed, reasons: framing.reasons });
+      continue;
+    }
     const t0 = Date.now();
-    const run = await runGraph(ctx, graph, { label: `${c.name} — canonical image`, tool: read ? 'image.edit_with_references' : 'image.generate' });
+    const run = await runGraph(ctx, graph, { key, label: `${c.name} — canonical image`, tool: read ? 'image.edit_with_references' : 'image.generate' });
     const out = run.outputs[CANONICAL_OUTPUT]?.images?.[0];
     if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
     const tmp = await fetchOutput(out);
     try {
       framing = await framingOf(tmp.file);
       const keep = framing.ok || attempt === 1;
-      const a = await adoptFetched(ctx, tmp.file, run, { label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative: klein ? undefined : negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
+      const a = await adoptFetched(ctx, tmp.file, run, { key, label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative: klein ? undefined : negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
       await recordMetric('image.generation_ms', a.ms, 'ms', { model, refs: references.length, canonical: 1 }, ctx.job.id);
       if (keep) drawn = a;
       else {
@@ -387,13 +414,16 @@ export const characterRefs: Handler = async (ctx) => {
     // the close-up is drawn from the head and shoulders of the canonical image (from the whole figure Edit-2511 drew
     // the whole figure again, docs/evidence/image-v2/d13)
     const crop = kind === 'PORTRAIT' ? portraitCrop({ width: primary.width || CANONICAL_FRAME.width, height: primary.height || CANONICAL_FRAME.height }, (primary.provenance?.framing as { box?: { x: number; y: number; w: number; h: number } | null } | undefined)?.box) : undefined;
+    const key = `secondary:${kind}`;
+    const earlierDraw = await reuseDrawn(ctx, key);
+    if (earlierDraw) { drawn.push({ kind, assetId: earlierDraw.id, seed: earlierDraw.seed ?? kindSeed, ms: 0 }); continue; }
     const t0 = Date.now();
-    const run = await runGraph(ctx, qwenSecondary({ canonical: upload, kind, prompt, negative, seed: kindSeed, crop }), { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tool: 'image.edit_with_references' });
+    const run = await runGraph(ctx, qwenSecondary({ canonical: upload, kind, prompt, negative, seed: kindSeed, crop }), { key, label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tool: 'image.edit_with_references' });
     const out = comfy.firstOutput(run.outputs, 'images');
     if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
     const ms = Date.now() - t0;
     await recordMetric('image.generation_ms', ms, 'ms', { model: 'Qwen-Image-Edit-2511', refs: 1, quality: 1, secondary: 1 }, ctx.job.id);
-    const d = await adoptOutput(ctx, out, run, { label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tags: ['character', 'secondary', kind.toLowerCase()], prompt, negative, references: [primary.id], seed: kindSeed, model: 'Qwen-Image-Edit-2511', loras: [], provenance: { characterId: c.id, view: kind, identityLine: line, identitySeed: seed, quality: true, ...(crop ? { cropOfReference: crop } : {}) }, ms, tier: 'SECONDARY' });
+    const d = await adoptOutput(ctx, out, run, { key, label: `${c.name} — ${SECONDARY_LABEL[kind]}`, tags: ['character', 'secondary', kind.toLowerCase()], prompt, negative, references: [primary.id], seed: kindSeed, model: 'Qwen-Image-Edit-2511', loras: [], provenance: { characterId: c.id, view: kind, identityLine: line, identitySeed: seed, quality: true, ...(crop ? { cropOfReference: crop } : {}) }, ms, tier: 'SECONDARY' });
     drawn.push({ kind, assetId: d.id, seed: kindSeed, ms });
     await ctx.activity('CHARACTER_SECONDARY', `${c.name}: ${SECONDARY_LABEL[kind]} drawn in one pass from the character’s image (${primary.id}), seed ${kindSeed} — secondary material, not the identity`, { characterId: c.id, assetId: d.id, kind, references: [primary.id], seed: kindSeed, ms, engineMs: run.engineMs });
     await ctx.checkpoint();
@@ -444,7 +474,7 @@ export const locationPlates: Handler = async (ctx) => {
   const primaryTod = (timesOfDay?.[0] ?? l.lighting[0] ?? 'MORNING') as TimeOfDay;
   if (!master) {
     await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: master plate`, step: 1, total: 3 + (timesOfDay?.length ?? 1) });
-    const m = await draw(ctx, { prompt: locationPrompt(l, 'MASTER', primaryTod), negative: NEG + ', people, person', width: 1344, height: 768, label: `${l.name} — master plate`, tags: ['location', 'master'], provenance: { locationId: l.id, view: 'MASTER', timeOfDay: primaryTod } });
+    const m = await draw(ctx, { key: 'plate:master', prompt: locationPrompt(l, 'MASTER', primaryTod), negative: NEG + ', people, person', width: 1344, height: 768, label: `${l.name} — master plate`, tags: ['location', 'master'], provenance: { locationId: l.id, view: 'MASTER', timeOfDay: primaryTod } });
     refs.push({ id: `lref-${m.id}`, role: 'MASTER', assetId: m.id, label: 'Master plate', timeOfDay: primaryTod });
     master = (await readState()).state.assets.find((a) => a.id === m.id);
     await ctx.checkpoint();
@@ -456,14 +486,14 @@ export const locationPlates: Handler = async (ctx) => {
   const views: Array<{ prompt: string; note: string; label: string }> = l.landmarks[0] ? [{ prompt: landmarkViewPrompt(l.landmarks[0]), note: `a closer view towards ${l.landmarks[0]}`, label: `Towards ${landmarkLabel(l.landmarks[0])}` }] : [];
   for (const [i, v] of views.entries()) {
     await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: ${v.label.toLowerCase()}`, step: 2 + i, total: 2 + views.length + (timesOfDay?.length ?? 1) });
-    const r = await draw(ctx, { prompt: v.prompt, negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, quality: true, label: `${l.name} — ${v.label.toLowerCase()}`, tags: ['location', 'view'], provenance: { locationId: l.id, view: 'VIEW', note: v.note } });
+    const r = await draw(ctx, { key: `plate:view:${i}`, prompt: v.prompt, negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, quality: true, label: `${l.name} — ${v.label.toLowerCase()}`, tags: ['location', 'view'], provenance: { locationId: l.id, view: 'VIEW', note: v.note } });
     refs.push({ id: `lref-${r.id}`, role: 'VIEW', assetId: r.id, label: v.label, timeOfDay: primaryTod });
     await ctx.checkpoint();
   }
   const states = (timesOfDay ?? l.lighting).filter((t) => t !== primaryTod).slice(0, 3);
   for (const [i, tod] of states.entries()) {
     await ctx.progress('GENERATING', { phase: 'drawing', message: `${l.name}: ${tod.toLowerCase().replace('_', ' ')}`, step: 4 + i, total: 3 + states.length });
-    const r = await draw(ctx, { prompt: locationPrompt(l, 'STATE', tod) + ' Same place and same camera as the reference picture; only the light and time of day change.', negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, label: `${l.name} — ${tod.toLowerCase().replace('_', ' ')}`, tags: ['location', 'state'], provenance: { locationId: l.id, view: 'STATE', timeOfDay: tod } });
+    const r = await draw(ctx, { key: `plate:state:${tod}`, prompt: locationPrompt(l, 'STATE', tod) + ' Same place and same camera as the reference picture; only the light and time of day change.', negative: NEG + ', people, person', references: master ? [master] : [], width: 1344, height: 768, label: `${l.name} — ${tod.toLowerCase().replace('_', ' ')}`, tags: ['location', 'state'], provenance: { locationId: l.id, view: 'STATE', timeOfDay: tod } });
     refs.push({ id: `lref-${r.id}`, role: 'STATE', assetId: r.id, label: tod.toLowerCase().replace('_', ' '), timeOfDay: tod });
     await ctx.checkpoint();
   }
@@ -557,7 +587,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const expected = peopleExpected(sh, people);
   let kept: Drawn | undefined; let counted: number | undefined;
   for (let attempt = 0; attempt < 2 && !kept; attempt++) {
-    const r = await draw(ctx, { prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+    const r = await draw(ctx, { key: `frame:${sh.id}:${which}:${attempt}`, prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
     if (expected === undefined) { kept = r; break; }
     counted = await countPeople(ctx, r.id, label);
     if (counted === undefined || counted === expected || attempt === 1) kept = r;

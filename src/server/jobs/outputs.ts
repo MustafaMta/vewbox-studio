@@ -2,8 +2,9 @@ import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { inArray } from 'drizzle-orm';
-import type { AssetKind } from '@/domain/types';
+import type { Asset, AssetKind } from '@/domain/types';
 import { db, schema } from '../db/client';
+import { readState } from '../studio/engine';
 import { adoptFile, libraryRoot, storeBuffer, type StoredFile } from '../media';
 import { log } from '../log';
 import { addEvent } from './queue';
@@ -52,6 +53,13 @@ export function jobOutputs(job: { id: string; attempts: number }): JobOutputs {
     adopt: async (name, file, opts = {}) => { const assetId = id(name); return { id: assetId, stored: await adoptFile(assetId, file, { ...opts, tag }) }; },
     store: async (name, buf, opts = {}) => { const assetId = id(name); return { id: assetId, stored: await storeBuffer(assetId, buf, { ...opts, tag }) }; },
   };
+}
+
+/** The asset an earlier attempt of the job already recorded as output `name` (a picture, a song, a stem), or none: a
+ *  retried job reuses it instead of drawing or composing it again. */
+export async function committedOutput(jobId: string, name: string): Promise<Asset | undefined> {
+  const id = outputId(jobId, name);
+  return (await readState()).state.assets.find((a) => a.id === id);
 }
 
 // --------------------------------------------------------------------------------------------------- the job GC

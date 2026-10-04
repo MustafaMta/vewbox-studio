@@ -5,7 +5,7 @@ import { StudioError, type StudioErrorCode } from '@/domain/errors';
 import type { FailureClass } from '@/server/org/model';
 import { env } from '../env';
 import { log } from '../log';
-import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
+import { followJobSignal, jobScope, jobSignal, stopReasonOf } from '../jobs/context';
 
 /** COMFYUI AS AN ENGINE — workflows are JSON graphs built in code (src/server/workflows), submitted over HTTP,
  *  tracked through ComfyUI's job API and history, and their outputs fetched through /view. The worker never edits node
@@ -302,16 +302,22 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
   const pollMs = opts.pollMs ?? 2000;
   let promptId: string | undefined;
   let resumed = false;
+  // EVERY PROMPT A JOB SUBMITS HAS A KEY (docs/BACKEND-AUDIT-2026-10.md H8, step 7): the caller's step key, else — in
+  // a job — the job itself. The prompt id is derived from the key and the graph, so a restarted or reclaimed attempt
+  // that builds the same graph (the job's seeds are stable, src/server/jobs/outputs.ts) re-attaches to the prompt
+  // the earlier attempt submitted, running or finished, instead of drawing it twice.
+  const jobId = jobScope()?.jobId;
+  const promptKey = opts.promptKey ?? (!opts.resumePromptId && jobId ? `${jobId}:graph` : undefined);
 
   // 1. which prompt id: adopt a live or finished one, else choose the id to submit with
-  if (opts.promptKey) {
+  if (promptKey) {
     for (let n = 0; n < 20 && !promptId; n++) {
-      const id = promptIdFromKey(opts.promptKey, graph, n);
+      const id = promptIdFromKey(promptKey, graph, n);
       const st = await promptState(id);
       if (st === 'failed' || st === 'cancelled') continue; // that attempt is over: the next id in the sequence
       promptId = id; resumed = st !== 'unknown';
     }
-    if (!promptId) throw new ComfyError('EXECUTION', `ComfyUI: 20 earlier attempts of ${opts.promptKey} failed; giving up.`);
+    if (!promptId) throw new ComfyError('EXECUTION', `ComfyUI: 20 earlier attempts of ${promptKey} failed; giving up.`);
   } else if (opts.resumePromptId) {
     const st = await promptState(opts.resumePromptId).catch(() => 'unknown' as PromptState);
     if (st === 'pending' || st === 'running' || st === 'completed') { promptId = opts.resumePromptId; resumed = true; }
