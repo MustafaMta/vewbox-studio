@@ -1,0 +1,10 @@
+Skeleton sequence trace, Home at 390x844 on a 1.5 Mbps / 150 ms network (var/qa-scratch/debug-home390.mjs, dev server :4261, 2026-10-04)
+Each line: ms after navigation start -> the skeleton elements inside <main> (MutationObserver on class/aria-busy).
+
+   831: div.sk-region shell-skeleton busy | div.shell-skeleton-head | div.shell-skeleton-bar | div.shell-skeleton-grid   (server-rendered generic shell skeleton)
+   832: div.sk-region home home-skeleton busy                                                                            (server-rendered Home skeleton)
+ 40675: div.sk-region shell-skeleton busy | div.shell-skeleton-head | div.shell-skeleton-bar | div.shell-skeleton-grid   (React hydrates; the lazy HomeSkeleton chunk is not loaded on the client, so the generic ShellSkeleton fallback is drawn)
+ 45627: div.sk-region home home-skeleton busy                                                                            (the HomeSkeleton chunk arrives: Home-shaped skeleton again)
+ 51649: (none)                                                                                                           (the studio snapshot arrives: content)
+
+Three different loading pictures before the content. The same mechanism applies to every route whose skeleton is lazy (src/components/shell/route-skeletons.tsx: dynamic(..., { loading: () => <ShellSkeleton /> })).
