@@ -37,6 +37,8 @@ const report = [];
 
 for (const size of SIZES) {
   for (const pg of PAGES) {
+   // the dev server can drop a chunk under the throttle: a page that never becomes ready is opened again, twice at most
+   for (let attempt = 1; attempt <= 3; attempt++) {
     const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, colorScheme: 'dark', hasTouch: size.touch, isMobile: size.touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     await prepare(page, { fixture: pg.live ? null : fixture });
@@ -49,6 +51,7 @@ for (const size of SIZES) {
       window.__skeleton = false;
       new MutationObserver(() => { if (document.querySelector('.shows-skeleton')) window.__skeleton = true; }).observe(document, { childList: true, subtree: true });
     });
+    try {
     const t0 = Date.now();
     await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
     await page.waitForSelector('main', { timeout: 120000 });
@@ -113,6 +116,13 @@ for (const size of SIZES) {
     console.log(`${pg.name} ${size.w}: ${bad.length ? `✗ ${bad.join(', ')}` : '✓'} · start x ${m.starts.join('/')} · CLS ${m.cls.toFixed(4)} · skeleton ${m.skeleton ? 'seen' : 'not seen'}${m.hero ? ` · backdrop ${m.hero}` : ''} · images ${m.images} · fonts ${m.fonts.join(', ')}${m.rows.length ? ` · unequal rows ${JSON.stringify(m.rows)}` : ''}${m.small.length ? ` · small: ${m.small.join('; ')}` : ''}${m.broken.length ? ` · broken: ${m.broken.slice(0, 3).join(', ')}` : ''}${m.shifts.length ? ` · shifts: ${JSON.stringify(m.shifts)}` : ''}`);
     await page.unrouteAll({ behavior: 'ignoreErrors' });
     await ctx.close();
+    break;
+    } catch (e) {
+      await page.unrouteAll({ behavior: 'ignoreErrors' }); await ctx.close();
+      if (attempt === 3) { failed++; report.push({ page: pg.name, size: `${size.w}×${size.h}`, error: e.message.split('\n')[0] }); console.log(`${pg.name} ${size.w}: ✗ never ready (${e.message.split('\n')[0]})`); }
+      else console.log(`  retrying ${pg.name} ${size.w}`);
+    }
+   }
   }
 }
 await browser.close();
