@@ -26,6 +26,18 @@ export const ROUTE_SKELETONS: Entry[] = [
   // the production workspace (P-Work): src/components/workspace/WorkspaceSkeleton.tsx
   { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/production\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ProductionWorkspaceSkeleton') },
   { match: (p) => /^\/(shorts|music-videos|shows\/[^/]+\/seasons\/[^/]+\/episodes)\/[^/]+\/shots\/[^/]+\/?$/.test(p), Skeleton: lazy(() => import('@/components/workspace/WorkspaceSkeleton'), 'ShotWorkspaceSkeleton') },
+  // Shows (P-Shows): the catalogue, a show, a season, an episode's lobby (after the workspace routes above)
+  { match: (p) => p === '/shows', Skeleton: lazy(() => import('@/components/show/ShowsCatalogue'), 'ShowsSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/ShowPage'), 'ShowSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+\/seasons\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/SeasonPage'), 'SeasonSkeleton') },
+  { match: (p) => /^\/shows\/[^/]+\/seasons\/[^/]+\/episodes\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/show/EpisodeLobby'), 'EpisodeSkeleton') },
+  // Shorts (P-Film) and Music videos (P-Music): the catalogues and the title pages
+  { match: (p) => p === '/shorts', Skeleton: lazy(() => import('@/components/film/ShortsCatalogue'), 'ShortsSkeleton') },
+  { match: (p) => /^\/shorts\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/film/ShortPage'), 'ShortSkeleton') },
+  { match: (p) => p === '/music-videos', Skeleton: lazy(() => import('@/components/music/MusicVideos'), 'MusicVideosSkeleton') },
+  { match: (p) => /^\/music-videos\/[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/music/MusicVideo'), 'MusicVideoSkeleton') },
+  // Screening Room (P-Theatre)
+  { match: (p) => p === '/screening', Skeleton: lazy(() => import('@/components/screening/ScreeningRoom'), 'ScreeningSkeleton') },
   // Create (P-Create): src/components/wizard/CreateHub.tsx and CreateFlow.tsx
   { match: (p) => p === '/new', Skeleton: lazy(() => import('@/components/wizard/CreateHub'), 'CreateHubSkeleton') },
   { match: (p) => /^\/new\/(show|season|episode|short|music-video)$/.test(p), Skeleton: lazy(() => import('@/components/wizard/CreateFlow'), 'CreateFlowSkeleton') },

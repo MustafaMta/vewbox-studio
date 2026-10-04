@@ -1,9 +1,7 @@
 'use client';
 
-import type { Production, Show } from '@/domain/types';
-import { STAGES } from '@/domain/vocabulary';
+import type { Show } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { stageIndex } from '@/studio/selectors';
 import { useShell } from '@/components/shell/context';
 import { showCards, waitingProductions } from '@/components/show/model';
 import { ShowTile } from '@/components/show/parts';
@@ -19,4 +17,3 @@ export function ShowCard({ show, priority }: { show: Show; priority?: boolean })
 
 /** A stage's rank as a fraction. Kept only for the library/Cards.tsx barrel; no page draws it (a stage is shown in
  *  words and the stage meter, never as a percentage). Goes with the barrel. */
-export const stageFraction = (p: Production) => stageIndex(p.stage) / (STAGES.length - 1);
