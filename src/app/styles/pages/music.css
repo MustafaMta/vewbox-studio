@@ -10,7 +10,8 @@
   .mv-cat-title, .mv-cat-desc { margin: 0; }
   .mv-new { flex: none; }
   .mv-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 24px; }
-  .mv-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+  /* sleeves at the kit's one sleeve width (tokens.css --card-sleeve: 216; two across on phones), packed from the start (M6) */
+  .mv-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--card-sleeve)); justify-content: start; gap: 24px 16px; margin: 0; padding: 0; list-style: none; }
   /* a sleeve card and, over its top end, the play disc (a sibling of the card's link): on hover, focus and touch */
   .mv-item { position: relative; min-inline-size: 0; }
   .mv-disc { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
@@ -96,7 +97,6 @@
     .mv-side { grid-column: 8 / span 5; }
   }
   @media (max-width: 1023px) {
-    .mv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mv-head { grid-template-columns: minmax(0, 1fr); row-gap: 24px; }
     .mv-sleeve { inline-size: min(100%, 320px); }
     .mv-body { grid-template-columns: minmax(0, 1fr); }
@@ -104,7 +104,7 @@
   }
   @media (max-width: 639px) {
     .mv-cat-head { margin-block-end: 20px; }
-    .mv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .mv-grid { gap: 20px 12px; }
     .mv-page.hero::before { inset-block-start: -12px; }
     .mv-back { margin-block-end: 16px; }
     .mv-acts { display: grid; grid-template-columns: minmax(0, 1fr) auto; }

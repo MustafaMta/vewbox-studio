@@ -784,19 +784,16 @@
   .shelf { min-inline-size: 0; }
   .shelf + .shelf, * + .shelf { margin-block-start: var(--section-gap); }
   .shell-column:has(.shelf) { overflow-x: clip; }
-  .shelf-track { --card-w: 288px; --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -4px calc(-1 * var(--bleed)) -4px 0; padding: 4px var(--bleed) 4px 0; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
+  /* the card widths are the tokens every catalogue grid reads too (tokens.css --card-*: one size per object, M6) */
+  .shelf-track { --card-w: var(--card-wide); --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -4px calc(-1 * var(--bleed)) -4px 0; padding: 4px var(--bleed) 4px 0; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
   .shelf-track > * { flex: none; inline-size: var(--card-w); min-inline-size: 0; scroll-snap-align: start; }
-  .shelf[data-kind='poster'] > .shelf-track { --card-w: 184px; }
-  .shelf[data-kind='sleeve'] > .shelf-track { --card-w: 216px; }
-  .shelf[data-kind='figure'] > .shelf-track { --card-w: 168px; }
-  .shelf[data-kind='tool'] > .shelf-track { --card-w: 240px; }
+  .shelf[data-kind='poster'] > .shelf-track { --card-w: var(--card-poster); }
+  .shelf[data-kind='sleeve'] > .shelf-track { --card-w: var(--card-sleeve); }
+  .shelf[data-kind='figure'] > .shelf-track { --card-w: var(--card-figure); }
+  .shelf[data-kind='tool'] > .shelf-track { --card-w: var(--card-tool); }
   .shelf-track > * > :is(.mcard, .fcard, .tool-card, .start-card, .dcard) { block-size: 100%; }
   @media (max-width: 639px) {
-    .shelf-track { --card-w: 240px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
-    .shelf[data-kind='poster'] > .shelf-track { --card-w: 150px; }
-    .shelf[data-kind='sleeve'] > .shelf-track { --card-w: 170px; }
-    .shelf[data-kind='figure'] > .shelf-track { --card-w: 136px; }
-    .shelf[data-kind='tool'] > .shelf-track { --card-w: 200px; }
+    .shelf-track { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
   }
 
   /* ---- the tool card (§5.8; Home's tool cards): a level-1 card that is one link, 112 high (104 on phones), padding 16;
