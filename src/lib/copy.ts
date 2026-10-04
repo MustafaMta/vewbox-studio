@@ -727,3 +727,808 @@ export const T = Object.assign((key: Key): string => COPY[key], {
   p: (key: Key, n: number, vars: Record<string, string | number> = {}): string => fill(plural(COPY[key], n), { n, ...vars }),
 });
 export type TFn = typeof T;
+/** THE ENGLISH COPY — temporary. The website is English-only (docs/DESIGN-SYSTEM-V5.md §9): there is no interface
+ *  language, no locale and no translation. This module is what is left of the v4 dictionaries: one flat map of the
+ *  English strings that pages written before the redesign still look up by key, so they keep compiling until their
+ *  page package rewrites them.
+ *
+ *  Rules (EN-1, 2026-10-03):
+ *  - Add no keys. New and rewritten code writes its English inline, in the component.
+ *  - A page package deletes the keys of the code it rewrites (and every key that becomes unused):
+ *    tests/unit/english-copy.test.ts fails on a key nothing uses and on a key used in the source that is missing here.
+ *  - The consolidation package deletes this file once no file imports it.
+ *
+ *  `T('btn.save')`; `` T.dyn(`stage.${x}`) `` for a key built at runtime (unknown keys become readable words);
+ *  `T.f(key, { name })` fills `{name}`; `T.p(key, n)` picks `one|other` by the count and fills `{n}`. */
+const COPY = {
+  // ---- common --------------------------------------------------------------------------------------------------------
+  // stages
+
+  // kinds
+
+  // styles
+
+  // workspace tabs
+
+  // buttons
+  'btn.next': 'Next',
+  'btn.upload': 'Upload',
+  'btn.close': 'Close',
+
+  // labels
+  'label.description': 'Description',
+  'label.landmarks': 'Landmarks',
+  'label.lighting': 'Lighting states',
+  'label.masterPlate': 'Master plate',
+
+  // libraries
+  'lib.images': 'Pictures',
+  'lib.videos': 'Clips',
+  'lib.audio': 'Sound',
+  'media.unavailable': 'File not available',
+  'media.unavailable.hint': 'The record exists but its file is missing from the studio library: it was removed from the library folder, or the volume was replaced.',
+  'media.stored': 'Uploaded',
+  'media.generated': 'Generated',
+  'media.added': 'File added.',
+  'toast.emptied': 'The studio is empty.',
+
+  // empty states
+  'empty.locations': 'No locations yet.',
+  'empty.assets': 'The library is empty.',
+
+  // misc
+
+  // section tabs
+  'tab.usedIn': 'Used In',
+  'tab.views': 'Views',
+  'tab.lighting': 'Lighting & Variations',
+  'tab.props': 'Props',
+  // home
+  // misc
+  'misc.seek': 'Seek',
+  'meta.views': 'views',
+  'lib.searchCharacters': 'Search by name or role',
+  'lib.filterProduction': 'Production',
+  'lib.filterUsage': 'Usage',
+
+  // jobs and generation (the real backend)
+  'btn.refresh': 'Refresh',
+  'status.title': 'Engines',
+  'status.lead': 'What this studio can do right now, and where each engine runs.',
+  'status.video': 'Video (MiniMax)', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
+  'status.story': 'Story engine',
+  'status.images': 'Images (ComfyUI)', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
+  'status.voice': 'Voices',
+  'status.transcription': 'Transcription',
+  'status.music': 'Music',
+  'status.ready': 'Ready',
+  'status.notReady': 'Not ready',
+  'status.hosted': 'Hosted',
+  'status.local': 'Local GPU',
+  'status.offline': 'Offline',
+  'status.connected': 'Connected to the studio server',
+  'status.disconnected': 'Reconnecting to the studio server…',
+  // ---- end of design v3 block ----
+  'lib.sortName': 'Name',
+  'lib.sortMostUsed': 'Most used',
+  // ---- kit -----------------------------------------------------------------------------------------------------------
+  // library views and metadata
+  // ---- design v3: kit, Studio Company, department and agent pages (docs/DESIGN-SYSTEM-V3.md §6, §9.1–9.3) ----
+
+  // job progress: the worker's real phases, in words
+  // the phases character and voice jobs report (progress.phase), read as `jp.${phase}` (finding 14)
+  // error codes → plain copy and the one recovery action
+  'err.openJob': 'Open the job',
+  // image preview
+
+  // ---- design v4 (F2): the interface kit (docs/DESIGN-SYSTEM-V4.md §5.2, §5.10–5.11, §5.15–5.19) ------------------
+  // status (§5.10)
+  // in-page navigation (§5.11)
+  // overlays (§5.17)
+  // forms (§5.18)
+  // approval card (§5.15)
+  // creation flows (§5.19)
+
+  // ---- /kit, the specimen page (development only) ---------------------------------------------------------------
+  // ---- media ---------------------------------------------------------------------------------------------------------
+  // players
+
+  // ---- v4 (F3): frames and title cards (§5.4) ----------------------------------------------------------------
+
+  // ---- tiles, rail, cast (§5.5–5.8) ----------------------------------------------------------------------------
+
+  // ---- episodes (§5.7) -------------------------------------------------------------------------------------------
+
+  // ---- heroes (§5.3) ---------------------------------------------------------------------------------------------
+
+  // ---- the player family (§5.12) ---------------------------------------------------------------------------------
+
+  // ---- music (§5.13) ---------------------------------------------------------------------------------------------
+
+  // ---- timeline (§5.14) ------------------------------------------------------------------------------------------
+
+  // ---- cutting-room kit (§5.20) ---------------------------------------------------------------------------------
+
+  // ---- the specimen sections of the dev-only /kit page (components/media/Specimens.tsx) ------------------------
+
+  // ---- production menu (ProductionTile) --------------------------------------------------------------------------
+  // ---- shell ---------------------------------------------------------------------------------------------------------
+  // navigation
+  'nav.characters': 'Characters',
+  'nav.locations': 'Locations',
+  'nav.assets': 'Asset Library',
+  'nav.settings': 'Settings',
+  'app.name': 'Vewbox Studio',
+
+  // home
+  // the restored shell
+
+  // the six areas and the studio organisation
+  'nav.company': 'Studio Company',
+  'nav.production': 'Production',
+  // navigation and the production page
+  'nav.new': 'New…',
+
+  // ---- v4: page titles (§7.3; src/components/shell/titles.ts) ----
+
+  // ---- v4: the shell (§5.1, §7.1) ----
+  // SaveState (audit D1): what the store's queue says, never assumed
+  // the connection (the event stream) and what the studio is running, from the job list
+  // ServerBar: only when the event stream has really dropped
+  // the error and loading states of every page
+
+  // ---- v4: the command palette (§5.17, §7.6) ----
+  // B8: the other kinds of decision (docs/CONTRACTS-REDESIGN-BACKEND.md)
+
+  // ---- v4: the shortcut sheet (§5.17, §7.5) ----
+  // ---- shows ---------------------------------------------------------------------------------------------------------
+  // wizard
+  'wizard.needTitle': 'Give it a title or describe the idea.',
+  // show workspace
+  // creation steps
+  // Auto Idea
+  'auto.decide': 'Studio decides',
+  // Manual brief
+  // ---- film ----------------------------------------------------------------------------------------------------------
+  // D23: what the script writer and the shot planner read, editable by the producer
+  // next steps
+
+  // story
+
+  // storyboard
+
+  // produce
+
+  // final cut
+
+  // shot editor
+  'gen.failed': 'Could not start',
+  'gen.plates': 'Draw plates',
+  'gen.voiceBuild': 'Build the voice',
+  // ---- music ---------------------------------------------------------------------------------------------------------
+  // songs
+  // music video workspace
+  // ---- cast ----------------------------------------------------------------------------------------------------------
+  // later — where generation would happen
+
+  // characters & locations
+  'char.deleteConfirm': 'Delete this character? They are removed from every cast list.',
+  'loc.deleteConfirm': 'Delete this location? Scenes set here keep their other details.',
+  'loc.views': 'Views and states',
+  // characters & locations
+  'loc.props.hint': 'What stands in the location and can be used in a shot.',
+  'loc.addProp': 'Add prop',
+  'loc.lighting.hint': 'The times of day this place is seen in, and its states.',
+  'loc.states': 'States',
+  'loc.cameraViews': 'Camera views',
+  'loc.libraryLead': 'The places your stories happen in: one master plate each, with its views and lighting.',
+  // voice
+  'voice.source.SAMPLE': 'Sample',
+  'voice.notGenerated': 'Not generated yet. Build the voice to hear it.',
+  'voice.upload': 'Upload a recording',
+  'voice.added': 'Recording added.',
+  'voice.notAudio': 'Choose an audio file.',
+  // characters: usage and the continuity rule
+  'char.usage.unused': 'Unused',
+  'char.usage.unknown': 'History not on record',
+  'char.usage.takeRemoved': 'take removed',
+  'char.lock.seeUsage': 'See where',
+  'char.ref.yours': 'Your reference',
+  'char.ref.upload': 'Upload a reference',
+  'char.ref.label': 'reference upload',
+  'char.traits': 'Traits',
+  'char.notes': 'Creative notes',
+  'char.notes.hint': 'For the writers: habits, history, how to play them. Never used to draw the character.',
+  'char.usedIn.assignedHint': 'Shows and productions whose cast includes this character.',
+  'char.usedIn.deleted': 'deleted',
+  'char.usedIn.first': 'First appeared',
+
+  // character creation — one page, three starts
+  'char.create.header': 'For whom, which look, which language',
+  'char.create.forNone': 'The library (no show yet)',
+  'char.create.describe': 'Describe them',
+  'char.create.sheet': 'Write the sheet',
+  'char.create.picture': 'From a picture',
+  'char.create.engineDown': 'Not reachable',
+  'char.create.engineDownTitle': 'An engine this start needs is not reachable',
+  'char.create.openEngines': 'Settings → Engines',
+  'char.create.sheetAlwaysWorks': 'Write the sheet always works; the look can be drawn once the engine is back.',
+  'char.create.needDialect': 'Choose a dialect for an Arabic character.',
+  'char.create.who': 'Who are they?',
+  'char.create.whoHint': 'A line is enough: role, age, where they come from, how they carry themselves.',
+  'char.create.briefPh': 'A café owner in her sixties who notices everything and says little',
+  'char.create.briefEmpty': 'Write a line about them, or at least a name.',
+  'char.create.briefLong': 'Shorter: 2 000 characters at most.',
+  'char.create.voiceNone': 'No voice yet',
+  'char.create.voiceRecording': 'Add a recording now',
+  'char.create.voiceNoneHint': 'No voice is made now. Later, on the profile’s Voice tab, the studio can design a synthetic voice from the character’s description, or build one from a recording you have permission to use. An Iraqi voice needs a real Iraqi recording.',
+  'char.create.voiceRecordingHint': '3–30 seconds of the character’s voice, in their language. It is checked as soon as the character exists, and the voice is built from it as the last step.',
+  'char.create.voiceRecordingWhen': 'checked once the character exists',
+  'char.create.voiceRecordingNeeded': 'Choose a recording, or pick "No voice yet".',
+  'char.create.rec.waiting': 'Your recording is checked as soon as the character exists',
+  'char.create.rec.uploading': 'Checking your recording…',
+  'char.create.rec.accepted': 'Recording accepted — the voice is built from it',
+  'char.create.rec.refused': 'The recording was not accepted',
+  'char.create.rec.error': 'The recording could not be checked',
+  'char.create.design': 'Design character',
+  'char.create.needPicture': 'Add the picture first.',
+  'char.create.img.type': 'Not a usable picture: PNG, JPEG or WebP only; SVG and GIF are refused',
+  'char.create.img.size': 'Too large: 20 MB at most',
+  'char.create.img.minSide': 'Too small: the shortest side must be at least 512 px',
+  'char.create.img.checked': 'Checked by the studio',
+  'char.create.img.oneFace': 'one face',
+  'char.create.img.faces': 'faces',
+  'char.create.keepFaceChangeHint': 'Write the new hair or clothes to change them; left empty they stay as in the picture.',
+  'char.create.pictureLookHint': 'The look is your picture: the studio does not describe the face, hair, skin or clothes in words (it cannot see pictures), so they stay "from the reference picture" until you write them. Casting writes who they are from the name, role and your note.',
+  'char.create.img.noFaceCheck': 'size and sharpness checked; the face is not checked (no face detector is installed)',
+  'char.create.img.refused': 'The studio cannot use this picture',
+  'char.create.keep': 'Keep from the picture',
+  'char.create.keepFace': 'The face only',
+  'char.create.keepAll': 'Face, hair and wardrobe',
+  'char.create.keepHint': 'Fine marks, logos and the background are never kept.',
+  'char.create.keepFace.prompt': 'Keep the face from the reference picture; everything else follows the sheet.',
+  'char.create.keepAll.prompt': 'Keep the face, hair and wardrobe from the reference picture.',
+  'char.create.keepChangeHelp': '"keep the face and hair; put her in a 1970s Baghdad café"',
+  'char.create.designFromPicture': 'Design from picture',
+  'char.create.noVoiceYet': 'No voice yet — make one on the profile’s Voice tab.',
+  'char.create.making': 'Making the character',
+  'char.create.notTheLook': 'a guide, not the appearance',
+  'char.create.drawAgain': 'Draw again',
+  'char.create.addRecording': 'Add a recording',
+  'char.create.writeMyself': 'Write it myself',
+  'char.create.partial': '{name} exists. Open the profile to finish what did not run.',
+  'char.create.nothingMade': 'Nothing was created; your brief is kept.',
+  'char.create.openProfile': 'Open profile',
+  'char.create.leave': 'Leave without creating the character? The brief is lost.',
+  // the sheet
+  'voice.proofLine': 'Proof line',
+
+  // the directory and the profile
+  'char.usage.inVideos': 'In videos',
+  'char.usage.unknown.hint': 'The video history of this character is not on record, so it is preserved as if it had been used.',
+  'char.create.img.reason.MIN_SIDE': 'the shortest side is under 512 px',
+  'char.create.img.reason.NO_FACE': 'no face was found',
+  'char.create.img.reason.MANY_FACES': 'more than one face',
+  'char.create.img.reason.FACE_SMALL': 'the face is too small in the frame',
+  'char.create.img.reason.BLURRY': 'the picture is blurry',
+  'char.created.title': 'Just created',
+  // ---- characters v3: the canonical image, the cast profile, the voice identity, creation (CONTRACTS-IDENTITY-PACK.md v2; DESIGN-SYSTEM-V3 §9.4–9.7) ----
+  'cast.lock.usedWhy': 'The image and the voice are kept as they were filmed, for continuity. Name, description, personality and notes can still be edited.',
+  'cast.lock.unknownWhy': 'Its video history is not on record, so it is kept as if it had been filmed. Name, description, personality and notes can still be edited.',
+  'cast.image.none': 'No image yet',
+  'cast.image.alt': '{name}, full length, from the front',
+  'cast.image.drawing': 'Drawing the image…',
+  'cast.image.version': 'Version',
+  'cast.image.noneHint': 'One full-length image from the front becomes the character’s identity everywhere.',
+  'cast.image.legacyHint': 'This character has an older close-up portrait. Draw the full-length image to give them a canonical identity.',
+  'cast.image.draftHint': 'Check the face, the clothes and the whole figure. Once approved, this image is used everywhere the character appears.',
+  'cast.image.checkFailed': 'The automatic check flagged this image',
+  'cast.image.approve': 'Approve image',
+  'cast.image.approved': 'Image approved',
+  'cast.image.approveAnyway': 'Approve anyway',
+  'cast.image.overrideLabel': 'Why is it right despite the check?',
+  'cast.image.overrideHelp': 'Your reason is recorded with the approval.',
+  'cast.image.waitDrawing': 'Approve once the new drawing has finished.',
+  'cast.image.redraw': 'Redraw',
+  'cast.image.draw': 'Draw the image',
+  'cast.redraw.title': 'Redraw the image',
+  'cast.redraw.lead': 'A new version is drawn and waits as a draft for your approval. The current image is kept as an earlier version and is not shown.',
+  'cast.redraw.reference': 'Reference picture',
+  'cast.redraw.withReference': 'The new image follows this picture; it is not the image itself.',
+  'cast.redraw.fromDescription': 'Without a picture, the image is drawn from the written look.',
+  'cast.loc.redraw': 'Redraw the place',
+  'cast.loc.redrawConfirm': 'Draw a new master plate and new views from the description? The current plates stay in the library.',
+  'cast.redraw.fromEarlierPicture': 'Without a new picture, the image is drawn again from the reference picture this character was made from.',
+  'cast.redraw.go': 'Redraw image',
+  'cast.profile.noDescription': 'No description yet.',
+  'cast.profile.look': 'The look, in words',
+  'cast.profile.who': 'Who',
+  'cast.profile.delete': 'Delete character',
+  'cast.edit.details': 'Edit details',
+  'cast.edit.detailsHint': 'Name, description and personality stay editable even after the character has been filmed.',
+  'cast.edit.description': 'Short description',
+  'cast.edit.languageHint': 'The language and dialect choose the voice engine.',
+  'cast.edit.languageLocked': 'The language is kept: the character has spoken in a video with this voice.',
+  'cast.edit.look': 'Edit look',
+  'cast.edit.lookHint': 'How they look, in words. Casting draws from these.',
+  'cast.edit.lookRedraw': 'Saving does not change the image: redraw it to apply a new look.',
+  'cast.edit.voiceTraits': 'How the voice should sound',
+  'cast.card.voice': 'Voice',
+  'cast.card.noVoice': 'No voice',
+  'cast.card.inVideos': 'In {n} videos',
+  'cast.card.inVideo': 'In 1 video',
+  'cast.dir.lead': 'Your studio’s cast: one image and one voice each, across every production.',
+  'cast.dir.first': 'Start your first character',
+  'cast.dir.filterIdentity': 'Identity',
+  'cast.new.title': 'New character',
+  'cast.new.lead': 'Start the way that suits you. Nothing is drawn until you say so.',
+  'cast.new.how': 'How do you want to start?',
+  'cast.new.for': 'For {name}',
+  'cast.new.forLibrary': 'For the library',
+  'cast.new.forLabel': 'Who it is for',
+  'cast.new.change': 'Change',
+  'cast.new.moreControl': 'More control',
+  'cast.new.woman': 'Woman',
+  'cast.new.man': 'Man',
+  'cast.new.estimate': 'About a minute: the sheet, then the image.',
+  'cast.new.imageLands': 'The image is drawn here',
+  'cast.new.leaveSafe': 'You can leave this page: the work goes on, and the character’s profile shows it when it is done.',
+  'cast.new.openProfile': 'Open the profile',
+  'cast.sheet.steps': 'The sheet, in three steps',
+  'cast.sheet.identity': 'Identity',
+  'cast.sheet.look': 'Look',
+  'cast.sheet.voice': 'Voice',
+  'cast.sheet.step': 'Step',
+  'cast.sheet.describeLook': 'Describe how they look',
+  'cast.sheet.describeLookHelp': 'Build, face, hair, clothes, anything that marks them. Casting fills in what you leave out.',
+  'cast.sheet.lookDetails': 'Details, field by field',
+  'cast.sheet.performance': 'Performance notes',
+  'cast.sheet.createHint': 'Create keeps the sheet; Create and draw also draws the image.',
+  'cast.picture.drop': 'Drop a picture here',
+  'cast.picture.browse': 'or choose one',
+  'cast.picture.rules': 'PNG, JPEG or WebP · at least 512 px on the short side · up to 20 MB',
+  'cast.picture.change': 'What should change?',
+  'cast.step.design': 'Writing the sheet',
+  'cast.step.image': 'Drawing the image',
+  'cast.step.voice': 'Building the voice',
+  'cast.step.approval': 'Awaiting your approval',
+  'cast.step.thenApproval': 'Then the image waits for your approval.',
+  'cast.ready.review': 'Review and approve',
+  'cast.ready.approveHint': 'The image is a draft until you approve it on the profile.',
+  'cast.ready.openHint': 'The character is ready.',
+  'cast.ready.discard': 'Discard',
+  'cast.created.approve': 'Review the image and approve it: it becomes the character’s identity everywhere.',
+  'cast.created.noImage': 'The image was not drawn; draw it from here.',
+  'cast.created.done': 'The character is ready.',
+  'cast.created.noVoice': 'No voice yet: add a recording under Voice.',
+  'cast.prod.title': 'Productions',
+  'cast.prod.none': 'Not in any video yet.',
+  'cast.prod.unknown': 'No video history on record.',
+  'cast.prod.cast': 'Cast, not filmed yet',
+  'cast.prod.imageVersion': 'image version',
+  'cast.prod.versionUnknown': 'image version not recorded',
+  'cast.secondary.title': 'Secondary material',
+  'cast.secondary.lead': 'Optional pictures made on request. They never replace the character’s image.',
+  'cast.secondary.portrait': 'Close-up portrait',
+  'cast.secondary.expressions': 'Expressions',
+  'cast.secondary.outfits': 'Outfits',
+  'cast.secondary.earlier': 'Earlier views',
+  'cast.secondary.none': 'None yet.',
+  'cast.secondary.drawExpressions': 'Draw expressions',
+  'cast.secondary.drawOutfit': 'Draw an outfit',
+  'cast.voice.title': 'Voice identity',
+  'cast.voice.of': 'the voice of',
+  'cast.voice.src.recording': 'Recording',
+  'cast.voice.src.generated': 'Generated',
+  'cast.voice.src.sample': 'Sample',
+  'cast.voice.noWave': 'The waveform could not be read from this file.',
+  'cast.voice.previewLine': 'Preview a line',
+  'cast.voice.speak': 'Speak it',
+  'cast.voice.checkDetails': 'Check details',
+  'cast.voice.empty': 'No voice yet. Choose how to make it below: automatically from the profile, by describing it, or from a recording.',
+  'cast.voice.emptyIraqi': 'No voice yet. Iraqi voices are cloned from a real Iraqi recording: record or upload 5–12 seconds of the voice.',
+  'cast.voice.locked': 'This character has spoken in a video, so the voice is kept as it is. You can still listen and preview lines.',
+  'cast.voice.create': 'Create the voice',
+  'cast.voice.replace': 'Replace the voice',
+  'cast.voice.how': 'How the voice is made',
+  'cast.voice.m.recording': 'Your recording',
+  'cast.voice.m.recording.hint': 'Record here or drop a file; the voice is cloned from it.',
+  'cast.voice.record': 'Record',
+  'cast.voice.stop': 'Stop',
+  'cast.voice.micRefused': 'The browser did not allow the microphone.',
+  'cast.voice.drop': 'or drop a recording',
+  'cast.voice.dropHint': 'WAV, MP3, M4A, OGG · 3–30 seconds',
+  'cast.voice.measured': 'Measured',
+  'cast.voice.clearSpeech': 'speech heard',
+  'cast.voice.noSpeech': 'no speech heard',
+  'cast.voice.reference': 'Reference',
+  'cast.voice.useAsReference': 'Use as reference',
+  'cast.voice.buildFrom': 'Build voice from',
+  'cast.voice.takes': 'Takes',
+  'cast.voice.takesHint': 'Lines spoken to try the voice. Listen only: a voice is never built from them.',
+  'cast.voice.traits': 'How it should sound',
+  'cast.voice.state.measured': 'Intelligible (measured)',
+  'cast.voice.generatedLine': 'Generated line',
+  'cast.voice.origin.designed': 'Studio-designed synthetic voice — not a real person',
+  'cast.voice.origin.recording': 'Recording',
+  'cast.voice.measuredLabel': 'Measured',
+  'cast.voice.notMeasured': 'not measured yet',
+  'cast.voice.intelligible': 'intelligible',
+  'cast.voice.wordsHeard': '{p} of words heard',
+  'cast.voice.loudnessOk': 'loudness OK',
+  'cast.voice.loudnessOff': 'loudness outside the range',
+  'cast.voice.listenedLabel': 'Listened',
+  'cast.voice.notListened': 'nobody has listened yet — naturalness is not claimed',
+  'cast.voice.natural': 'natural {n} of 5',
+  'cast.voice.iraqiYes': 'sounds authentically Iraqi',
+  'cast.voice.iraqiNo': 'does not sound Iraqi',
+  'cast.voice.iListened': 'I listened',
+  'cast.voice.naturalQ': 'How natural does it sound?',
+  'cast.voice.naturalHelp': '1 = clearly synthetic, 5 = could be a person.',
+  'cast.voice.iraqiQ': 'Does it sound authentically Iraqi?',
+  'cast.voice.yes': 'Yes',
+  'cast.voice.no': 'No',
+  'cast.voice.listenNote': 'Note',
+  'cast.voice.saveListening': 'Save what I heard',
+  'cast.voice.listenSaved': 'Listening recorded',
+  'cast.voice.accentPending': 'The Arabic accent has not been verified by a listener yet.',
+  'cast.voice.iraqiPending': 'The Iraqi dialect has not been verified by a listener yet.',
+  'cast.voice.m.automatic': 'Automatic',
+  'cast.voice.m.automatic.hint': 'One action: the studio makes the voice from the profile.',
+  'cast.voice.m.design': 'Design a voice',
+  'cast.voice.m.design.hint': 'Describe it, hear three candidates, choose one.',
+  'cast.voice.iraqiNeedsRecording': 'Iraqi voices are cloned from a real Iraqi recording — record or upload 5–12 seconds of the voice.',
+  'cast.voice.auto.en': 'A synthetic voice is designed from the profile (sex, age, pitch, pace, timbre), measured, and the best of three is pinned.',
+  'cast.voice.auto.msa': 'A synthetic Modern Standard Arabic voice is designed from the profile, measured, and the best of three is pinned. Its accent waits for a listener.',
+  'cast.voice.auto.iraqiFromRecording': 'The voice is cloned from your Iraqi recording.',
+  'cast.voice.auto.iraqiExperiment': 'Experiment on: a designed Arabic voice is used for an Iraqi character; the dialect stays unverified until a listener confirms it.',
+  'cast.voice.auto.go': 'Make the voice',
+  'cast.voice.design.description': 'Describe the voice',
+  'cast.voice.design.help': 'Written from the profile; change anything. Never name or imitate a real person.',
+  'cast.voice.design.iraqiNote': 'Designed voices speak English or Modern Standard Arabic; an Iraqi voice needs a recording.',
+  'cast.voice.design.go': 'Design three voices',
+  'cast.voice.design.candidates': 'Candidates',
+  'cast.voice.design.candidate': 'Candidate',
+  'cast.voice.design.choose': 'Choose this voice',
+  'cast.voice.design.failedGate': 'did not pass the measured gates',
+  'cast.voice.consent': 'Whose voice is this?',
+  'cast.voice.consent.mine': 'This is my voice',
+  'cast.voice.consent.permission': 'I have the speaker’s permission',
+  'cast.voice.consent.recorded': 'Your statement is recorded with the recording.',
+  'cast.voice.consentFirst': 'Say whose voice it is before recording or uploading.',
+  'cast.voice.consentAndRetry': 'Confirm and try again',
+  // ---- end of characters v3 block ----
+  // voice tab
+  'voice.engine.habibi': 'Iraqi dialect engine',
+  'voice.engine.indextts': 'Bilingual studio engine',
+  'voice.engine.minimax': 'MiniMax clone', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (character voice)
+  'voice.revision': 'revision',
+  'voice.identity.review': 'Needs a listen',
+  'voice.identity.stale': 'Out of date: the language changed',
+  'voice.identity.unchecked': 'Not checked',
+  'voice.identity.noProof': 'No proof line was kept for this voice.',
+  'voice.identity.heard': 'Heard',
+  'voice.identity.coverage': 'Coverage',
+  'voice.identity.cer': 'Character error rate',
+  'voice.identity.wer': 'Word error rate',
+  'voice.identity.none': 'No voice yet',
+  'voice.identity.notBuiltYet': 'Chosen as the reference. Build the voice to make it the one the character speaks with.',
+  'voice.identity.sampleChosen': 'A sample line, to listen to. The studio never builds a voice from a sample or a generated line: upload a recording.',
+  'voice.recordings': 'Your recordings',
+  'voice.noRecordings': 'No recording yet.',
+  'voice.measured.ok': 'length ok',
+  'voice.measured.long': 'over 30 s',
+  'voice.measured.longHint': 'A window of up to 12 seconds after a short lead-in is used.',
+  'voice.measured.unknown': 'length could not be read here; the studio measures it',
+  'voice.checkedByStudio': 'Checked by the studio',
+  'voice.langUnknown': 'language unclear',
+  'voice.refuse.TOO_SHORT': 'Too short: at least 3 seconds of speech.',
+  'voice.refuse.TOO_LONG': 'Too long: 30 seconds at most.',
+  'voice.refuse.NO_SPEECH': 'No speech was heard: at least three words.',
+  'voice.refuse.TOO_QUIET': 'Too quiet to use.',
+  'voice.refuse.CLIPPING': 'The recording clips (distorted peaks).',
+  'voice.refuse.WRONG_LANGUAGE': 'This recording is in another language than the character speaks.',
+  'voice.refuse.BAD_FORMAT': 'The file could not be read as audio.',
+  'voice.build.needRecording': 'Upload a recording first.',
+  'voice.dialectEngine': 'The language and dialect choose the engine; Latin words in an Arabic line go to the bilingual engine.',
+  // ---- studio --------------------------------------------------------------------------------------------------------
+  'settings.startEmpty': 'Start with an empty studio',
+  'settings.startEmpty.hint': 'Removes every show, character, location and file on this server. Your settings stay.',
+  'settings.startEmptyConfirm': 'Remove everything and start with an empty studio?',
+  'settings.data.empty': 'The studio is empty.',
+
+  // settings
+  'settings.interface': 'Interface',
+  'settings.defaults': 'Defaults for new projects',
+  'settings.data': 'Studio data',
+  'settings.data.hint': 'Everything you make is saved in the studio database and the library on this server.',
+  'settings.data.holds': 'This studio holds {productions} productions, {characters} characters, {locations} locations and {files} files.',
+  'settings.data.began.empty': 'Started as an empty studio on {date}.',
+  'settings.data.began.sample': 'Loaded from the test sample on {date} (a test run).',
+  'settings.about': 'About this studio',
+  'settings.about.body': 'Vewbox Studio runs on this server: writing by the story engine, pictures and voices on the local GPU, video by MiniMax (hosted or local), assembly and export by ffmpeg. The database is the record; every generated file carries its provenance.', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
+  'settings.motion': 'Reduce motion',
+  'settings.motion.hint': 'Turns off transitions and animations in the interface.',
+  'settings.lead': 'The interface, the defaults for new projects, the engines and models behind this studio, and its data.',
+  'settings.generation.body': 'The hosted MiniMax API is not configured on this server: add MINIMAX_API_KEY to the server’s .env to generate video with it. Video can also come from the local MiniMax H3 engine when ComfyUI reports it above. Nothing is simulated: a button whose engine is not running says so and the job fails with the reason.', // v4-lint: allow engine — pre-existing copy that names an engine; the page package that rewrites this page writes it engine-free (Settings)
+  'asset.protected': 'This picture is part of the appearance of a character who has been in a video, so it is kept:',
+  'jobs.title': 'Activity',
+  'jobs.lead': 'Everything the studio is doing or has done: writing, drawing, generating, assembling. Cancel, retry or open the result from here.',
+  'jobs.empty': 'Nothing has run yet.',
+  'jobs.empty.hint': 'Start a production step — write the script, draw a character, generate a take — and it appears here.',
+  'jobs.active': 'Running',
+  'jobs.done': 'Finished',
+  'jobs.failed': 'Failed',
+  'jobs.cancelled': 'Cancelled',
+  'jobs.awaitingReview': 'Awaiting review',
+  'jobs.attempt': 'attempt',
+  'jobs.cancel': 'Cancel',
+  'jobs.retry': 'Retry',
+  'jobs.details': 'Details',
+  'jobs.events': 'Log',
+  'jobs.result': 'Result',
+  'jobs.error': 'Error',
+  'jobs.open': 'Open',
+  'jobs.filter.all': 'All',
+  'jobs.filter.active': 'Active',
+  'jobs.filter.failed': 'Failed',
+  'jobs.queue': 'Queue',
+  'jobs.running': 'running',
+  'jobs.waiting': 'waiting',
+  'jobs.provider': 'Provider task',
+  'jobs.started': 'Started',
+  'jobs.finished': 'Finished',
+  'jobs.cancelRequested': 'Stopping…',
+  'registry.title': 'Models',
+  'registry.lead': 'Every pinned weight and hosted model the studio can use, with its licence and whether its engine can see it right now.',
+  'registry.showAll': 'Show all',
+  'registry.showFewer': 'Show fewer',
+  'registry.workflows': 'Workflow versions',
+  'registry.status.PRESENT': 'Present',
+  'registry.status.MISSING': 'Not downloaded',
+  'registry.status.CONFIGURED': 'Key set',
+  'registry.status.NO_KEY': 'No key',
+  'registry.status.SERVICE': 'Service',
+  'registry.status.UNKNOWN': 'Unknown',
+  'reliability.title': 'Reliability',
+  'reliability.lead': 'Job outcomes and timings over the last seven days, as recorded by the worker.',
+  'reliability.none': 'No jobs have run yet.',
+  'reliability.completed': 'completed',
+  'reliability.failed': 'failed',
+  'reliability.cancelled': 'cancelled',
+  'reliability.running': 'running',
+  'reliability.attempts': 'attempts',
+  'reliability.timings': 'Timings',
+  'studio.director': 'Director',
+  'studio.activity.empty': 'No activity recorded yet. Start a production and the departments appear here as they work.',
+  'studio.pipeline': 'How a production moves',
+  'studio.reliability': 'Reliability',
+  'studio.reliability.hint': 'From the recorded runs, inspections and retries of the last seven days.',
+  'studio.firstAttempt': 'First-attempt success',
+  'studio.firstAcceptance': 'First-attempt acceptance',
+  'studio.retryRate': 'Retry rate',
+  'studio.qaRejections': 'QA rejections',
+  'studio.exportSuccess': 'Export success',
+  'studio.perAccepted': 'Per accepted shot',
+  'studio.failureClasses': 'Failure classes',
+  'studio.noFailures': 'No failures recorded.',
+  'studio.skills': 'Skills',
+  'studio.tools': 'Tools',
+  'studio.instructions': 'Instructions',
+  'studio.quality': 'Quality requirements',
+  'studio.advisory': 'Owns no job type of its own: it works as delegated steps inside other agents’ jobs, each recorded as its own run.',
+  'studio.instructionsModel': 'Instructions (sent with every model call it makes)',
+  'studio.instructionsDoc': 'Rules its code applies (documentation; reaches no model)',
+  'studio.skillUnavailable': 'Unavailable on this machine',
+  'studio.skillValidated': 'Verified: implementation and tests present',
+  'studio.skillDraft': 'Draft',
+  'studio.recentRuns': 'Recent runs',
+  'orch.title': 'Studio Orchestrator',
+  'orch.diagram': 'The company: the orchestrator and the departments',
+  'orch.state.IDLE': 'Idle',
+  'orch.state.READY': 'Ready',
+  'orch.state.COORDINATING': 'Coordinating',
+  'orch.state.PRODUCING': 'Producing',
+  'orch.state.AWAITING_REVIEW': 'Awaiting review',
+  'orch.state.BLOCKED': 'Blocked',
+  'orch.stateHint.IDLE': 'no production in progress',
+  'orch.stateHint.READY': 'productions in progress, nothing running right now',
+  'orch.stateHint.COORDINATING': 'planning, writing or orchestration is running',
+  'orch.stateHint.PRODUCING': 'the GPU is generating pictures, voices or video',
+  'orch.stateHint.AWAITING_REVIEW': 'a decision is waiting for you',
+  'orch.stateHint.BLOCKED': 'a handoff was refused or a stage was rejected',
+  'orch.node.idle': 'Idle',
+  'orch.node.active': 'Working',
+  'orch.blocked': 'Blocked',
+  'orch.accepted': 'Accepted',
+  'orch.refused': 'Refused',
+  'studio.failureHistory': 'Failure history',
+  'studio.noFailureHistory': 'No failures recorded for this agent.',
+  // counted phrases: `one|other` (T.p); {n} is the count
+  'co.lead': 'Who is working on what, and every handoff between the departments.',
+  'co.viewList': 'View as list',
+  'co.inspector': 'Selection',
+  'co.stageHint': 'Use the arrow keys to move around the company, Enter to select a department and Enter again to open it, Escape to return to the orchestrator.',
+  'co.empty.caption': 'No handoffs yet. Each handoff between departments lights its path.',
+  'co.lastKnown': 'Last known · {ago}',
+  'co.legend': 'What the lines mean',
+  'co.legend.used': 'Used path',
+  'co.legend.recent': 'Handed off in the last 90 min',
+  'co.legend.waiting': 'Waiting for you',
+  'co.legend.refused': 'Refused',
+  'co.agents': '1 agent|{n} agents',
+  'co.node.working': 'Working · {agent}',
+  'co.node.waiting': 'Waiting for you',
+  'co.handoffsRecent': '1 handoff in the last 90 minutes|{n} handoffs in the last 90 minutes',
+  'co.noRecentHandoffs': 'No handoffs in the last 90 minutes',
+  'co.orch.coordinating': 'Coordinating 1 production|Coordinating {n} productions',
+  'co.orch.inProgress': '1 production in progress|{n} productions in progress',
+  'co.orch.waiting': 'Waiting for you · {n}',
+  'co.orch.blocked': 'Blocked · {n}',
+  'co.orch.more': '+{n} more',
+  'co.orch.sentence.idle': 'Idle — nothing in production.',
+  'co.waitingForYou': 'Waiting for you',
+  'co.inProduction': 'In production',
+  'co.recentDecisions': 'Recent decisions',
+  'co.how.title': 'How the company works',
+  'co.how.1': 'Story Development writes it; Casting and World Building give it faces and places; Pre-Production plans the shots.',
+  'co.how.2': 'Sound & Music records the voices and songs, Video Production films each shot, and Quality Assurance checks every take.',
+  'co.how.3': 'Post-Production cuts and exports. You approve the story before filming and the cut before export.',
+  'co.startProduction': 'Start a production',
+  'co.addCharacter': 'Add a character',
+  'co.failedJobs': '1 failed job|{n} failed jobs',
+  'co.dept.eyebrow': 'Department',
+  'co.team': 'Team',
+  'co.receivesFrom': 'Receives from',
+  'co.handsTo': 'Hands to',
+  'co.afterApproval': 'after your approval',
+  'co.coordinates': 'Coordinates every stage and holds your approval gates.',
+  'co.fromYou': 'Starts from your brief.',
+  'co.toYou': 'Delivers the finished film to you.',
+  'co.edge.none': 'No handoff yet',
+  'co.edge.used': 'Last handoff {ago}',
+  'co.edge.recent': 'Handed off {ago}',
+  'co.edge.waiting': 'Waiting for your approval',
+  'co.edge.refused': 'Last handoff refused',
+  'co.edge.eyebrow': 'Handoff path',
+  'co.carries': 'Carries',
+  'co.lastHandoffs': 'Last handoffs',
+  'co.checksPassed': '{ok} of {n} checks passed',
+  'co.openProduction': 'Open production',
+  'co.currentWork': 'Current work',
+  'co.nothingAssigned': 'Nothing assigned.',
+  'co.openDept': 'Open department',
+  'co.recentHandoffs': 'Recent handoffs',
+  'co.recentHandoffs.empty': 'No handoffs yet. They appear here as the departments pass work on.',
+  'co.spine.title': 'Departments, in production order',
+  'co.announce': '{from} handed {stage} to {to}',
+  'co.error': 'The studio server did not answer.',
+  'co.tryAgain': 'Try again',
+  'co.running': 'Running',
+  'co.lastRun': 'Last ran {ago}',
+  'co.neverRun': 'Never run',
+  'rel.measure': 'Measure',
+  'rel.value': 'Value',
+  'rel.from': 'From',
+  'rel.ofRuns': '{a} of {b} first runs',
+  'rel.ofTakes': '{a} of {b} first takes',
+  'rel.ofJobs': '{a} of {b} jobs',
+  'rel.ofReports': '{a} of {b} reports',
+  'rel.ofExports': '{a} of {b} exports',
+  'rel.inReview': '{n} in review',
+  'rel.acceptedTakes': '1 accepted take|{n} accepted takes',
+  'rel.attemptsEach': '{x} attempts each',
+  'rel.resolved': '{n} resolved',
+  'fail.INVALID_INPUT': 'Invalid input',
+  'fail.UNSUPPORTED_CAPABILITY': 'Not supported by the engine',
+  'fail.MISSING_REFERENCE': 'Missing reference',
+  'fail.INCONSISTENT_PLAN': 'Inconsistent plan',
+  'fail.PROMPT_AMBIGUITY': 'Ambiguous prompt',
+  'fail.WRONG_PARAMETERS': 'Wrong parameters',
+  'fail.INFRASTRUCTURE': 'Infrastructure',
+  'fail.PROVIDER': 'Engine or provider error',
+  'fail.RESOURCE_EXHAUSTION': 'Out of resources',
+  'fail.CHARACTER_INCONSISTENCY': 'Character drift',
+  'fail.ENVIRONMENT_INCONSISTENCY': 'Environment drift',
+  'fail.VOICE_MISMATCH': 'Voice mismatch',
+  'fail.LIP_SYNC_FAILURE': 'Lip-sync failure',
+  'fail.AUDIO_DUPLICATION': 'Doubled audio',
+  'fail.OUTPUT_CORRUPTION': 'Corrupt output',
+  'fail.CANCELLED': 'Cancelled',
+  'fail.UNKNOWN': 'Unknown cause',
+  'dept.showInCompany': 'Show in company',
+  'dept.place': 'Place in the pipeline',
+  'dept.executes': 'Executes',
+  'dept.steps': 'Delegated steps',
+  'dept.noPath': 'No execution path recorded',
+  'dept.work': 'Work',
+  'dept.work.now': 'Now',
+  'dept.work.delivered': 'Delivered',
+  'dept.work.quality': 'Quality',
+  'dept.work.activity': 'Activity',
+  'dept.empty.now': 'Nothing assigned right now. Work arrives here when a production reaches this department.',
+  'dept.empty.delivered': 'Nothing handed off yet.',
+  'dept.empty.quality': 'No inspection recorded yet.',
+  'dept.openProduction': 'Open Production',
+  'dept.planned': 'Not yet staffed',
+  'dept.planned.hint': 'Roles this department will have. No code runs them yet, so they have no profile, tools or activity.',
+  'dept.planned.phase': 'When: {phase}',
+  'dept.how': 'How this department works',
+  'dept.models': 'Models',
+  'dept.technical': 'Technical details',
+  'dept.contract.input': 'Takes',
+  'dept.contract.output': 'Returns',
+  'dept.contract.none': 'No contract recorded.',
+  'dept.contract.noFields': 'No named fields.',
+  'dept.required': 'required',
+  'dept.optional': 'optional',
+  'dept.toolMeta': 'Version {v} · {res} · up to {min} min',
+  'dept.permissions': 'Touches',
+  'dept.errors': 'Can fail with',
+  'dept.runs': '1 run|{n} runs',
+  'dept.firstTime': '{p} first time',
+  'dept.median': 'median {t}',
+  'dept.failures': '1 failure|{n} failures',
+  'skill.kind.PROMPT': 'Read by the model',
+  'skill.kind.PROCEDURE': 'Carried out by code',
+  'skill.kind.REFERENCE': 'Reference only, never run',
+  'skill.implementedBy': 'Implemented in',
+  'skill.verifiedBy': 'Checked by',
+  'skill.injectedInto': 'Sent to',
+  'skill.missing': 'missing',
+  'skill.version': 'Version {v}',
+  'agent.now': 'Now',
+  'agent.track': 'Track record',
+  'agent.noRuns': 'No runs yet.',
+  'agent.delegated': 'Delegated step',
+  'agent.whenRoute': 'when {when}',
+  'agent.modelLimits': 'Model and limits',
+  'agent.attempts': '1 attempt|{n} attempts',
+  'agent.limits': 'Up to {min} min a run · {attempts} · {res}',
+  'agent.io': 'Input and output',
+  'agent.stepsWhere': 'Where its delegated steps run',
+  'agent.version': 'Version {v}',
+  'agent.attemptN': 'attempt {n}',
+  'agent.changeMade': 'Changed: {change}',
+  'agent.const.APPEARANCE_LOCKED': 'the appearance lock',
+  'agent.const.VOICE_LOCKED': 'the voice lock',
+  'res.LLM': 'Language model',
+  'res.GPU_IMAGE': 'GPU, pictures',
+  'res.GPU_VIDEO': 'GPU, video',
+  'res.TTS': 'Speech engine',
+  'res.ASR': 'Transcription engine',
+  'res.CPU': 'Processor',
+  'res.HOSTED': 'Hosted service',
+  'res.NONE': 'No engine',
+  'studio.awaitingApproval': 'Awaiting your approval',
+  'studio.stage.DONE': 'Done',
+  'studio.stage.AWAITING_APPROVAL': 'Awaiting approval',
+  'studio.stage.REJECTED': 'Rejected',
+  'studio.stage.INVALID': 'Handoff refused',
+  'studio.stage.READY': 'Ready',
+  'studio.stage.BLOCKED': 'Waiting',
+  'production.title': 'Production',
+  'production.lead': 'Where each production stands in the pipeline, what is waiting for you, and everything the studio is running.',
+  'production.empty': 'Nothing in production.',
+  'production.empty.hint': 'Start a show, a short or a music video from Projects.',
+  'production.decisions': 'Needs your decision',
+  'production.decisions.hint': 'Stages waiting for your approval before the studio goes on.',
+  'production.decisions.none': 'Nothing waits for you right now.',
+} as const;
+
+export type Key = keyof typeof COPY;
+export const KEYS = Object.keys(COPY) as Key[];
+
+const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+/** A counted phrase is `one|other`; a string without `|` is used for every count. */
+const plural = (s: string, n: number) => { const i = s.indexOf('|'); return i < 0 ? s : n === 1 ? s.slice(0, i) : s.slice(i + 1); };
+/** An unknown dynamic key becomes readable words: `stage.FINAL_CUT` → "Final cut". */
+const words = (key: string) => key.split('.').pop()!.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+
+/** The English string of a key. */
+export const T = Object.assign((key: Key): string => COPY[key], {
+  dyn: (key: string, fallback?: string): string => (COPY as Record<string, string>)[key] ?? fallback ?? words(key),
+  f: (key: Key, vars: Record<string, string | number>): string => fill(COPY[key], vars),
+  p: (key: Key, n: number, vars: Record<string, string | number> = {}): string => fill(plural(COPY[key], n), { n, ...vars }),
+});
+export type TFn = typeof T;
