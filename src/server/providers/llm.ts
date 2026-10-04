@@ -72,7 +72,7 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
       return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.input_tokens, outputTokens: json.usage?.output_tokens, ms: Date.now() - t0 };
     }
     // OpenAI-compatible
-    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: opts.maxTokens ?? 8000, stream: false, ...(cfg.baseUrl.includes('11434') ? { options: { num_ctx: 32768 }, keep_alive: '2m', think: false } : {}) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: opts.maxTokens ?? 8000, stream: false, ...(cfg.baseUrl.includes('11434') ? { options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, think: false } : {}) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
     const json = await res.json().catch(() => ({})) as { choices?: Array<{ message?: { content?: string; reasoning?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
     if (!res.ok || json.error) throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${json.error?.message ?? `HTTP ${res.status}`}`, { status: res.status });
     const text = json.choices?.[0]?.message?.content ?? '';

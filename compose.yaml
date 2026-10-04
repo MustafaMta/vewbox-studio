@@ -27,6 +27,9 @@ x-app-env: &app-env
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm:11434/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-ollama}
   OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3:14b}
+  # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
+  OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
+  OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
   COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
   TTS_URL: ${TTS_URL:-http://tts:8020}
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
@@ -200,28 +203,65 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8022/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
     stop_grace_period: 30s
 
+  # Transcription: faster-whisper large-v3 (every language) and, for `language=ar`, the Arabic-dialect fine-tune
+  # (ASR_MODEL_DIR_AR, CTranslate2 fp16 written by the asr-convert one-off). One Whisper model on the card at a time:
+  # the service drops the other before loading (docker/asr/app.py). Until the ct2 folder exists, `ar` uses large-v3.
   asr:
     logging: *logging
     build: { context: ., dockerfile: docker/asr/Dockerfile }
     image: vewbox/asr:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all }
-    volumes: [ "models:/models", "nvjit:/cache/nv-jit" ]
+    environment: { NVIDIA_VISIBLE_DEVICES: all, ASR_MODEL_DIR_AR: "${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}" }
+    volumes: [ "models:/models", "nvjit:/cache/nv-jit", "./docker/asr/app.py:/app/app.py:ro" ]
     ports: [ "127.0.0.1:${ASR_PORT:-8030}:8030" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8030/health"], interval: 20s, timeout: 10s, start_period: 60s, retries: 10 }
 
-  # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume.
+  # One-shot: convert the transformers-format Iraqi Whisper (manifest group stack-2026-10, fetched first) to CTranslate2
+  # fp16 for the asr service. `docker compose --profile models run --rm asr-convert`. CPU only (no GPU reservation):
+  # loads the 6.17 GB fp32 checkpoint into RAM and writes about 3.1 GB. The fine-tune ships no preprocessor_config.json;
+  # large-v3's (128 mel bins) is copied in, otherwise faster-whisper would default to 80 bins. Idempotent: skips when
+  # model.bin exists. Nothing in the image changes: transformers is installed into the throwaway container only.
+  asr-convert:
+    logging: *logging
+    image: vewbox/asr:${CODE_VERSION:-dev}
+    dns: *dns
+    profiles: ["models"]
+    environment:
+      ASR_HF_DIR: ${ASR_HF_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-hf}
+      ASR_CT2_DIR: ${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}
+      ASR_BASE_DIR: ${ASR_MODEL_DIR:-/models/asr/faster-whisper-large-v3}
+    volumes: [ "models:/models" ]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ -f "$$ASR_CT2_DIR/model.bin" ]; then echo "already converted: $$ASR_CT2_DIR"; exit 0; fi
+        test -f "$$ASR_HF_DIR/model.safetensors" || { echo "fetch group stack-2026-10 first (no $$ASR_HF_DIR/model.safetensors)"; exit 2; }
+        pip install --no-cache-dir "transformers==4.57.1"
+        ct2-transformers-converter --model "$$ASR_HF_DIR" --output_dir "$$ASR_CT2_DIR.partial" --quantization float16 --copy_files tokenizer.json --force
+        cp "$$ASR_BASE_DIR/preprocessor_config.json" "$$ASR_CT2_DIR.partial/"
+        rm -rf "$$ASR_CT2_DIR" && mv "$$ASR_CT2_DIR.partial" "$$ASR_CT2_DIR"
+        ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"
+
+  # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume
+  # (llm-pull). Models available: qwen3:14b (10 GB, the current default) and gemma4:31b-it-qat (19 GB, text + image;
+  # docs/research/MODEL-STACK-2026-10.md §7.1); OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache
+  # halves the cache; OLLAMA_CONTEXT_LENGTH is the server default and what the app sends as num_ctx. Ollama offloads
+  # layers to the CPU when a model and its cache exceed the card: Gemma QAT at 16K fits (≈ 22–23 GB, estimate to measure).
   llm:
     logging: *logging
-    image: ollama/ollama:0.12.3
+    image: ollama/ollama:0.35.1
     dns: *dns
     restart: unless-stopped
     environment:
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
       OLLAMA_NUM_PARALLEL: "1"
       OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_FLASH_ATTENTION: ${OLLAMA_FLASH_ATTENTION:-1}
+      OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
       NVIDIA_VISIBLE_DEVICES: all
     volumes:
       - ollama:/root/.ollama
