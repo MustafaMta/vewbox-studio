@@ -7,8 +7,9 @@ import { RESEARCH_PLATFORMS, type ResearchPlatform } from '@/domain/development'
 import type { ResearchSettings, Settings as StudioSettings } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
-import { SaveWord, Segmented, Select, Skeleton, SkeletonRegion, StateWord, Toggle } from '@/components/ui/kit';
-import { HeadSkeleton, PageHead, Section, SectionHeadSkeleton } from '@/components/studio/parts';
+import { SaveWord, Segmented, Select, StateWord, Toggle } from '@/components/ui/kit';
+import { PageHead, Section } from '@/components/studio/parts';
+import { SettingsSkeleton } from './SettingsSkeleton';
 import { aspectLabel, dialectLabel } from '@/lib/format';
 import type { HonouredSettingKey, SettingsHonoured } from '@/domain/settings';
 
@@ -133,16 +134,5 @@ function SettingRow({ label, hint, unused, children }: { label: ReactNode; hint?
   );
 }
 
-export function SettingsSkeleton() {
-  return (
-    <SkeletonRegion label="Opening Settings…" className="cp settings">
-      <HeadSkeleton />
-      {[4, 8, 1, 4].map((n, k) => (
-        <div key={k} className="cp-section">
-          <SectionHeadSkeleton width="8rem" />
-          <div className="card st-panel">{Array.from({ length: n }, (_, i) => <div key={i} className="st-row"><span className="st-row-words"><Skeleton.Line width="40%" /><Skeleton.Line width="60%" /></span><span className="st-control"><Skeleton.Block width="100%" height={40} radius="md" /></span></div>)}</div>
-        </div>
-      ))}
-    </SkeletonRegion>
-  );
-}
+/** The page's skeleton lives in ./SettingsSkeleton (drawn synchronously by the shell); re-exported for the page. */
+export { SettingsSkeleton };

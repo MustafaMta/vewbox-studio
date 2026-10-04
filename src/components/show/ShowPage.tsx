@@ -8,11 +8,11 @@ import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { useShell } from '@/components/shell/context';
 import { useToast } from '@/components/ui/toast';
-import { FigureCardSkeleton, Frame, SectionHeadSkeleton, StartCard } from '@/components/media';
-import { MenuButton, MenuItem, MenuSeparator, PanelCard, SectionHead, Segmented, Skeleton, SkeletonRegion, useConfirm } from '@/components/ui/kit';
+import { Frame, StartCard } from '@/components/media';
+import { MenuButton, MenuItem, MenuSeparator, PanelCard, SectionHead, Segmented, useConfirm } from '@/components/ui/kit';
 import { IconDelete, IconEdit, IconPlay, IconPlus, IconStory } from '@/components/ui/icons';
 import { BIBLE_PARTS, ASPECT_LABEL, LANGUAGE_LABEL, STYLE_LABEL, castOfShow, episodeCard, episodesOfSeason, minutes, nameLang, showPicture, showPoster, showView, timeOf, waitingProductions, worldOfShow } from './model';
-import { Backdrop, BackdropSkeleton, Caption } from './Backdrop';
+import { Backdrop, Caption } from './Backdrop';
 import { BibleDialog, CanonDialog, EditShowDialog, NewEpisodeDialog, NewSeasonDialog } from './dialogs';
 import { CastCard, EmptyLine, EpisodeTile, HeadLink, PlateTile } from './parts';
 import { useQueryParam } from './url';
@@ -161,40 +161,5 @@ export function ShowPage({ show }: { show: Show }) {
   );
 }
 
-/** A show page while the studio's first snapshot loads: the backdrop and caption, the episodes head, the season
- *  control and a row of episode tiles, the cast head and a line of figures — all in their final sizes. */
-export function ShowSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the show…" className="shows show-page shows-skeleton">
-      <BackdropSkeleton />
-      <div className="shows-section">
-        <SectionHeadSkeleton titleWidth="7rem" />
-        <div className="show-seasons"><Skeleton.Block width={200} height={36} radius="sm" /></div>
-        <p className="t-body show-arc"><Skeleton.Line width="40rem" /> <Skeleton.Line width="12rem" /></p>
-        <EpisodeGridSkeleton />
-      </div>
-      <div className="shows-section">
-        <SectionHeadSkeleton titleWidth="4rem" description />
-        <div className="show-figures">{Array.from({ length: 6 }, (_, i) => <div key={i}><FigureCardSkeleton /></div>)}</div>
-      </div>
-    </SkeletonRegion>
-  );
-}
-
-export function EpisodeGridSkeleton({ n = 3 }: { n?: number }) {
-  return (
-    <div className="shows-grid">
-      {Array.from({ length: n }, (_, i) => (
-        <div key={i} className="ep-tile">
-          <Skeleton.Media ratio="16/9" />
-          <span className="ep-tile-words">
-            <span className="t-label"><Skeleton.Line width="30%" /></span>
-            <span className="t-card"><Skeleton.Line width="60%" /></span>
-            <span className="t-body ep-tile-syn"><Skeleton.Line width="92%" /> <Skeleton.Line width="70%" /></span>
-            <span className="t-meta ep-tile-stage"><Skeleton.Line width="40%" /></span>
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+/** The show page's skeletons live in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { EpisodeGridSkeleton, ShowSkeleton } from './skeletons';

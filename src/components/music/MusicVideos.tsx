@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
-import { EmptyState, MenuButton, MenuLink, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaCardSkeleton, StartCard } from '@/components/media';
+import { EmptyState, MenuButton, MenuLink } from '@/components/ui/kit';
+import { StartCard } from '@/components/media';
 import { IconAuto, IconChevronDown, IconUpload } from '@/components/ui/icons';
 import { MusicVideoCard } from '@/components/library/MusicVideoCard';
 import { catalogue, filterItems, type CatalogueFilter } from './model';
@@ -84,21 +84,5 @@ export function MusicVideos() {
   );
 }
 
-/** The catalogue while the studio's first snapshot loads (§5.22): the head and a full first screen of sleeves in
- *  their exact shapes (the kit's card skeleton, the same grid), so nothing moves when the music videos arrive. */
-export function MusicVideosSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the music videos…" className="mv-cat mv-sk">
-      <div className="mv-cat-head">
-        <div className="mv-cat-words">
-          <div className="t-page mv-cat-title"><Skeleton.Line size="title" width="11rem" /></div>
-          <div className="t-body mv-cat-desc"><Skeleton.Line width="14rem" /></div>
-        </div>
-        <Skeleton.Block className="mv-new" width={176} height={40} radius="pill" />
-      </div>
-      <div className="mv-grid">
-        {Array.from({ length: 10 }, (_, i) => <div key={i}><MediaCardSkeleton ratio="1/1" /></div>)}
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The catalogue's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { MusicVideosSkeleton } from './skeletons';

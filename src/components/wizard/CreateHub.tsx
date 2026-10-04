@@ -5,8 +5,7 @@ import { useMemo } from 'react';
 import { isActiveStatus, type Job } from '@/domain/jobs';
 import { useStudio } from '@/studio/store';
 import { shortWhen } from '@/components/home/model';
-import { JobDot, ShapeGlyph, Skeleton, SkeletonRegion, ToolCard, type ShapeName } from '@/components/ui/kit';
-import { ToolCardSkeleton } from '@/components/media';
+import { JobDot, ShapeGlyph, ToolCard, type ShapeName } from '@/components/ui/kit';
 import { IconAuto, IconChevronRight, IconManual } from '@/components/ui/icons';
 
 /** THE CREATION HUB (/new) — everything the studio makes, in Home's language: films (show, short, music video) each
@@ -117,31 +116,5 @@ function StartCard({ s }: { s: Start }) {
   );
 }
 
-/** The hub while the studio's first snapshot loads: the head and the two grids of start cards at their real sizes. */
-export function CreateHubSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the studio…" className="create-hub create-skeleton">
-      <div className="create-hub-head"><span className="t-page"><Skeleton.Line size="title" width="8rem" /></span><span className="t-lead"><Skeleton.Line width="28rem" /></span></div>
-      {[3].map((count) => (
-        <div key={count} className="create-hub-section">
-          <div className="create-hub-shead"><span className="t-section"><Skeleton.Line size="title" width="7rem" /></span><span className="t-body"><Skeleton.Line width="20rem" /></span></div>
-          <div className="create-hub-grid" data-count={count}>
-            {Array.from({ length: count }, (_, i) => (
-              <div key={i}>
-                <div className="card create-start">
-                  <div className="create-start-stage" />
-                  <div className="create-start-words"><span className="t-card"><Skeleton.Line width="40%" /></span><span className="t-body create-start-line"><Skeleton.Line width="80%" /></span><span className="t-meta"><Skeleton.Line width="30%" /></span></div>
-                  <div className="create-start-acts"><Skeleton.Block width={84} height={32} radius="pill" /></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      <div className="create-hub-section">
-        <div className="create-hub-shead"><span className="t-section"><Skeleton.Line size="title" width="9rem" /></span><span className="t-body"><Skeleton.Line width="16rem" /></span></div>
-        <div className="create-hub-tools"><div><ToolCardSkeleton /></div><div><ToolCardSkeleton /></div></div>
-      </div>
-    </SkeletonRegion>
-  );
-}
+/** The hub's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { CreateHubSkeleton } from './skeletons';

@@ -4,7 +4,6 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { artVars } from '@/studio/presentation';
 import { coverPosition } from '@/components/home/model';
 import { Frame } from '@/components/media/Frame';
-import { Skeleton } from '@/components/ui/kit';
 import type { Pic } from './model';
 
 /** The wide key art at the top of a show, a season or an episode: Home's banner proportions (full content width,
@@ -43,20 +42,5 @@ export function Caption({ poster, children, actions }: { poster?: ReactNode; chi
   );
 }
 
-/** The backdrop and caption while loading, in their final sizes. */
-export function BackdropSkeleton({ poster }: { poster?: boolean }) {
-  return (
-    <section className="show-hero">
-      <div className="show-hero-frame"><Skeleton.Block width="100%" height="100%" radius="lg" /></div>
-      <div className="show-caption" data-poster={poster ? '' : undefined}>
-        {poster && <div className="show-poster"><Skeleton.Media ratio="2/3" /></div>}
-        <div className="show-caption-words">
-          <div className="t-meta"><Skeleton.Line width="18rem" /></div>
-          <div className="t-hero"><Skeleton.Line size="title" width="14rem" /></div>
-          <div className="t-lead"><Skeleton.Line width="26rem" /></div>
-        </div>
-        <div className="show-acts"><Skeleton.Block width={120} height={40} radius="pill" /><Skeleton.Block width={200} height={40} radius="pill" /></div>
-      </div>
-    </section>
-  );
-}
+/** The backdrop and caption while loading live with the skeletons (./skeletons); re-exported for the pages. */
+export { BackdropSkeleton } from './skeletons';

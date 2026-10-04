@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { EngineHealth, EngineStatus } from '@/studio/api';
 import { useLive, useReliability } from '@/studio/org';
 import { Button, ErrorState, PanelCard, Skeleton, StateWord, TabBar, TabPanel } from '@/components/ui/kit';
-import { EmptyLine, Row, Rows, RowsSkeleton, Section, SectionHeadSkeleton } from '@/components/studio/parts';
+import { EmptyLine, Row, Rows, RowsSkeleton, Section } from '@/components/studio/parts';
 import { duration, failureWords, jobWords, percent, plural, shortWhen, spanWords } from '@/components/studio/model';
 import type { Health } from '@/components/studio/Company';
 
@@ -215,11 +215,5 @@ function CommandLog({ entries }: { entries: CommandEntry[] }) {
   );
 }
 
-export function EngineRoomSkeleton() {
-  return (
-    <div className="cp-section">
-      <SectionHeadSkeleton width="9rem" />
-      <div className="ctl-engines">{ENGINES.map((e) => <div key={e.key} className="card ctl-engine"><Skeleton.Line width="40%" /><Skeleton.Line width="70%" /><Skeleton.Line width="85%" /></div>)}</div>
-    </div>
-  );
-}
+/** The engine room's skeleton lives in ./skeletons (one card per engine above); re-exported for the page. */
+export { EngineRoomSkeleton } from './skeletons';

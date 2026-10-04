@@ -7,8 +7,8 @@ import { useStudio } from '@/studio/store';
 import { useLive } from '@/studio/org';
 import { useShell } from '@/components/shell/context';
 import { artVars } from '@/studio/presentation';
-import { FeaturedCard, FeaturedCardSkeleton, FigureCard, MediaCard, PosterCard, ShelfSkeleton, SleeveCard, StartCard, ToolCardSkeleton } from '@/components/media';
-import { Shelf, Skeleton, SkeletonRegion, ToolCard } from '@/components/ui/kit';
+import { FeaturedCard, FigureCard, MediaCard, PosterCard, SleeveCard, StartCard } from '@/components/media';
+import { Shelf, ToolCard } from '@/components/ui/kit';
 import { IconPlay } from '@/components/ui/icons';
 import {
   coverPosition, featured, lineup, pickMarquee, productionShelf, showShelf, toolCards, waitingCharacters,
@@ -138,29 +138,6 @@ function EmptyBanner() {
 
 // ------------------------------------------------------------------------------------------------- the skeleton
 
-/** Home while the studio's first snapshot loads (§5.22): the banner, the featured row and the shelves in their final
- *  shapes and sizes (the same classes size them), so nothing moves when the content arrives. */
-export function HomeSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the studio…" className="home home-skeleton">
-      <section className="home-hero">
-        <Skeleton.Block className="home-hero-frame" width="100%" height="auto" radius="lg" />
-        <div className="home-hero-caption">
-          <div className="home-hero-words">
-            <div className="home-hero-title"><Skeleton.Line size="title" width="16rem" /></div>
-            <div className="t-meta home-hero-meta"><Skeleton.Line width="20rem" /></div>
-          </div>
-          <div className="home-hero-acts"><Skeleton.Block width={128} height={40} radius="pill" /><Skeleton.Block width={112} height={40} radius="pill" /></div>
-        </div>
-      </section>
-      <div className="home-feature">
-        <FeaturedCardSkeleton thumbs={4} />
-        <div className="home-tools">{Array.from({ length: 6 }, (_, i) => <ToolCardSkeleton key={i} />)}</div>
-      </div>
-      <ShelfSkeleton kind="wide" count={4} />
-      <ShelfSkeleton kind="poster" count={6} />
-      <ShelfSkeleton kind="sleeve" count={5} />
-      <ShelfSkeleton kind="figure" count={7} />
-    </SkeletonRegion>
-  );
-}
+/** Home while the studio's first snapshot loads (§5.22) lives in its own small module (./HomeSkeleton), so the shell
+ *  draws it synchronously; re-exported here for the page's own fallback. */
+export { HomeSkeleton } from './HomeSkeleton';

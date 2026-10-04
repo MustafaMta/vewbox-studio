@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
-import { EmptyState, FilterChips, SearchField, ShapeGlyph, Skeleton, SkeletonRegion } from '@/components/ui/kit';
-import { MediaTileSkeleton } from '@/components/media';
+import { EmptyState, FilterChips, SearchField, ShapeGlyph } from '@/components/ui/kit';
 import { filterShows, showCards, waitingProductions, type ShowFilter } from './model';
 import { NewShowButton, ShowTile } from './parts';
+
+/** The catalogue's skeleton lives in ./skeletons (drawn synchronously by the shell); re-exported for the page. */
+export { ShowsSkeleton } from './skeletons';
 
 /** SHOWS — the series catalogue: a wall of 16:9 key art (3 · 2 · 1 columns), each show's name, its seasons and
  *  episodes and where it stands. New show is the page's one primary (Auto, or Manual from the split). Filters appear only
@@ -83,24 +85,5 @@ function EmptyShows() {
         <li><span className="count shows-step-n">3</span><span><span className="t-card">One cast throughout</span><span className="t-body">Characters keep their canonical look and voice in every episode.</span></span></li>
       </ol>
     </section>
-  );
-}
-
-/** /shows while the studio's first snapshot loads: the head, then a 3 · 2 · 1 grid of key-art tiles in their final
- *  sizes (the same classes size them). */
-export function ShowsSkeleton() {
-  return (
-    <SkeletonRegion label="Opening the shows…" className="shows shows-skeleton">
-      <div className="shows-page-head">
-        <div className="shows-page-title">
-          <div className="t-page"><Skeleton.Line size="title" width="7rem" /></div>
-          <div className="t-body"><Skeleton.Line width="22rem" /></div>
-        </div>
-        <div className="shows-page-acts"><Skeleton.Block width={144} height={40} radius="pill" /></div>
-      </div>
-      <div className="shows-grid">
-        {Array.from({ length: 6 }, (_, i) => <div key={i}><MediaTileSkeleton ratio="16/9" /></div>)}
-      </div>
-    </SkeletonRegion>
   );
 }
