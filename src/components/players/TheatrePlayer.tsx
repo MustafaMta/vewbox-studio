@@ -5,13 +5,13 @@ import { cls } from '@/components/ui/kit';
 import { IconCaptions, IconExitFullscreen, IconFullscreen, IconPause, IconPlay } from '@/components/ui/icons';
 import { VolumeControl } from './Controls';
 import type { CaptionTrack, PlayerHandle } from './InlinePlayer';
-import { coreKeys, MediaFailure, SeekBar, TimeReadout, usePlayerCore } from './PlayerCore';
+import { coreKeys, handleOf, MediaFailure, SeekBar, TimeReadout, usePlayerCore } from './PlayerCore';
 import { fmtClock } from './time';
 import { useShortcutScope } from './useShortcutScope';
 
 /** THE THEATRE PLAYER (docs/DESIGN-SYSTEM-V4.md §2.3, §5.12, §6.15) — the cut at its native ratio on the black
  *  surround, at most 76vh. The overlay transport sits on `rgb(0 0 0 / .55)` with a 12 px backdrop blur: the ONLY blur
- *  in the product (§1.5), and solid `--chip-on-art` under `prefers-reduced-transparency`. Notes appear as iris ticks on
+ *  in the product (§1.5), and solid `--chip-on-art` under `prefers-reduced-transparency`. Notes appear as light ticks on
  *  the seek bar. Lights down: while playing, after 2 s idle, the transport fades and `onLights(true)` lets the page dim
  *  everything above the player; any pointer movement or focus brings them back (`onLights(false)`). Instant under
  *  reduced motion (the global rule). The transport is LTR. */
@@ -22,7 +22,7 @@ export const TheatrePlayer = forwardRef<PlayerHandle, { src: string; poster?: st
     const [down, setDown] = useState(false);
     const [solid, setSolid] = useState(false);
     const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
-    useImperativeHandle(ref, () => ({ play: c.play, pause: c.pause, seek: c.seek, el: () => c.video.current }), [c.play, c.pause, c.seek, c.video]);
+    useImperativeHandle(ref, () => handleOf(c), [c]);
     useEffect(() => { try { setSolid(window.matchMedia('(prefers-reduced-transparency: reduce)').matches); } catch { /* unknown: keep the glass */ } }, []);
     const lights = useCallback((d: boolean) => { setDown((x) => { if (x !== d) onLights?.(d); return d; }); }, [onLights]);
     const wake = useCallback(() => {

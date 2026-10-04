@@ -79,6 +79,9 @@
   /* keyboard focus scrolls an item fully into view; snapping would pull a partly hidden item back, so it rests while
      the strip holds focus */
   :is(.scrolls, [data-strip], .rail-list, .shelf-track, .filmstrip, .fstrip-list, .phase-strip):has(:focus-visible) { scroll-snap-type: none !important; }
+/* a shelf (kit/Shelf) is swiped and paged by its arrows: no scrollbar */
+.shelf-track { scrollbar-width: none; }
+.shelf-track::-webkit-scrollbar { display: none; }
   @media (pointer: coarse), (max-width: 1023px) {
     :is(.scrolls, [data-strip], .rail-list, .filmstrip, .fstrip-list, .phase-strip) {
       scrollbar-width: thin !important; scrollbar-color: var(--carbon-8) transparent !important; padding-block-end: 12px !important;

@@ -14,7 +14,9 @@
  *    data-keys="off"          single-key shortcuts off
  *    data-sidebar             "expanded" or "collapsed": the stored choice (`vb.sidebar`), else expanded at ≥ 1280 —
  *                             except on a cutting-room route (a production's workspace, a shot: CUTTING_ROUTE), where it
- *                             starts collapsed, so a cold load never paints the expanded sidebar first */
+ *                             starts collapsed, so a cold load never paints the expanded sidebar first
+ *    data-route="cutting"     on a cutting-room route: the main column is full width from the first frame (no shift when
+ *                             the page's <Room value="cutting"> mounts); the Shell keeps it current on navigation */
 /** The cutting room's routes (a production's workspace and a shot): the sidebar starts collapsed there by default.
  *  The shell (src/components/shell/Shell.tsx) applies the same rule after hydration. */
 export const CUTTING_ROUTE = /^\/(?:shorts\/[^/]+|music-videos\/[^/]+|shows\/[^/]+\/seasons\/[^/]+\/episodes\/[^/]+)\/(?:production|shots\/[^/]+)\/?$/;
@@ -32,6 +34,7 @@ export const BOOT = [
   "if(u.previews===false){h.setAttribute('data-previews','off')}",
   "if(u.keys===false){h.setAttribute('data-keys','off')}",
   "var c=false;try{c=new RegExp(" + JSON.stringify(CUTTING_ROUTE.source) + ").test(window.location.pathname)}catch(e){}",
+  "if(c){h.setAttribute('data-route','cutting')}",
   "h.setAttribute('data-sidebar',s==='expanded'||s==='collapsed'?s:(!c&&window.matchMedia&&window.matchMedia('(min-width: 1280px)').matches?'expanded':'collapsed'))",
   '}catch(e){}',
 ].join('');
