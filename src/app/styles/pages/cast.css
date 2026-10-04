@@ -157,6 +157,7 @@
   .loc-list-text { min-inline-size: 0; overflow-wrap: anywhere; }
   .loc-add { display: flex; gap: 8px; margin-block-start: 12px; }
   .loc-add .input { flex: 1; min-inline-size: 0; }
+  .loc-upload { margin-block-end: 16px; }
   .loc-tile-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 8px; }
 
   /* --------------------------------------------------------------------------------------- the skeletons' sizes */

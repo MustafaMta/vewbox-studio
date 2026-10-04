@@ -17,7 +17,8 @@ const base = opt('base', 'http://localhost:4256');
 const out = opt('out', 'docs/evidence/cast-v1');
 await fs.mkdir(out, { recursive: true });
 
-const studio = await (await fetch(`${base}/api/studio`)).json();
+let studio; // the dev server can answer its first request with an error page while it compiles: try again
+for (let i = 0; ; i++) { try { studio = await (await fetch(`${base}/api/studio`)).json(); break; } catch (e) { if (i > 10) throw e; await new Promise((r) => setTimeout(r, 3000)); } }
 const firstLocked = studio.state.characters.find((c) => (c.usage?.videos ?? []).length > 0) ?? studio.state.characters[0];
 const arabic = studio.state.characters.find((c) => /[؀-ۿ]/.test(c.name));
 const loc = studio.state.locations[0];
@@ -32,7 +33,7 @@ const PAGES = [
   { name: 'locations', path: '/locations', starts: '.pc-page > :is(.pc-head, .pc-plates)', equal: '.pc-plates .mtile', names: '.pc-plates .mtile' },
   loc && { name: 'location', path: `/locations/${loc.id}`, starts: '.pc-page > :is(.pc-back, .loc-hero, .pc-section), .loc-hero > *', equal: '.loc-plates .mtile' },
   { name: 'locations-new', path: '/locations/new', starts: '.pc-page > :is(.pc-head, .pc-methods, .pc-create-body)' },
-].filter(Boolean);
+].filter(Boolean).filter((p) => !opt('only', '') || opt('only', '').split(',').includes(p.name));
 const SIZES = [{ w: 1440, h: 900, touch: false }, { w: 1920, h: 1080, touch: false }, { w: 390, h: 844, touch: true }];
 
 const browser = await chromium.launch();
@@ -72,12 +73,22 @@ for (const size of SIZES) {
     await page.goto(`${base}${pg.path}`, { waitUntil: 'commit' });
     let skeleton = false;
     const has = async (sel) => { try { return Boolean(await page.$(sel)); } catch { return false; } };
-    for (let i = 0; i < 3000 && !(await has('main h1')); i++) { if (!skeleton) skeleton = await has('main [aria-busy="true"]'); await page.waitForTimeout(100); }
-    await page.waitForSelector('main h1', { timeout: 300000 });
+    // the dev server sometimes drops a script chunk while it recompiles (ChunkLoadError): load again, at most twice
+    for (let attempt = 0; ; attempt++) {
+      for (let i = 0; i < 600 && !(await has('main h1')); i++) { if (!skeleton) skeleton = await has('main [aria-busy="true"]'); await page.waitForTimeout(100); }
+      if (await has('main h1')) break;
+      if (attempt >= 2) throw new Error(`${pg.path}: no content after three loads`);
+      console.log(`  ${pg.name} ${size.w}: reloading (the dev server dropped a chunk)`);
+      await page.reload({ waitUntil: 'commit' });
+    }
     const firstMs = Date.now() - t0;
+    const step = (s) => { if (process.env.CAST_DEBUG) console.log(`  ${pg.name}: ${s} +${Date.now() - t0} ms`); };
+    step('content');
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
     await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 120000 }).catch(() => {});
-    await page.evaluate(() => document.fonts.ready);
+    step('images');
+    await Promise.race([page.evaluate(() => document.fonts.ready), page.waitForTimeout(5000)]);
+    step('fonts');
     await page.waitForTimeout(800);
     await page.screenshot({ path: `${out}/${pg.name}-${size.w}.png`, fullPage: true });
     const m = await page.evaluate(({ starts, equal, names }) => {

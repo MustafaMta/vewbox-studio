@@ -131,11 +131,11 @@ function Plates({ l }: { l: Location }) {
     } finally { setUploading(false); }
   };
   return (
-    <CastSection id="plates" title="Plates" count={l.refs.length || undefined} description="The master plate sets the place; views and lighting states follow it."
-      action={<span className="char-form-acts">
+    <CastSection id="plates" title="Plates" count={l.refs.length || undefined} description="The master plate sets the place; views and lighting states follow it.">
+      <div className="char-form-acts loc-upload">
         <Segmented label="Upload as" value={role} onChange={setRole} options={[{ value: 'VIEW' as LocationRefRole, label: 'View' }, { value: 'STATE' as LocationRefRole, label: 'Lighting' }, { value: 'MASTER' as LocationRefRole, label: 'Master' }]} />
         <label className="btn btn-secondary btn-sm" aria-busy={uploading || undefined}><IconUpload aria-hidden />Upload<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(f); e.target.value = ''; }} /></label>
-      </span>}>
+      </div>
       {l.refs.length === 0 ? <p className="t-body pc-empty-line">No plates yet. Draw them from the description, or upload one.</p> : (
         <ul className="pc-plates loc-plates" role="list">
           {l.refs.map((r) => {
