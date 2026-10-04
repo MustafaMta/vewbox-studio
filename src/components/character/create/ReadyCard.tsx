@@ -3,45 +3,38 @@
 import Link from 'next/link';
 import type { Character } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { assetById, primaryImageOf } from '@/studio/selectors';
-import { T } from '@/lib/copy';
-import { Button, ConfirmButton, Status } from '@/components/ui/kit';
+import { artVars } from '@/studio/presentation';
+import { Button, StateWord, useConfirm } from '@/components/ui/kit';
 import { IconArrowRight, IconDelete, IconGenerate } from '@/components/ui/icons';
-import { dialectLabel } from '@/lib/format';
-import { CharacterImage } from '../CharacterImage';
+import { Frame } from '@/components/media/Frame';
 import { VoicePlayer } from '../VoicePlayer';
-import { identityStatus, imageKindOf, statusWords, voiceTrackSource } from '../identity';
+import { identityStatus } from '../identity';
+import { languageWords } from '../EditDialogs';
+import { figureOf, nameLang, voiceTrackOf } from '../parts';
 
-/** READY — the chain is done and the last word is the producer's: the canonical image, the name and role, the voice
- *  to hear when one was built, and the image's state ("Draft — awaiting your approval"). One primary action hands
- *  over to the profile, where the image is approved. Draw again redraws the image only; Discard removes the record. */
+/** READY — the chain is done and the last word is the producer's: the figure, the name and role, the voice to hear
+ *  when one was built, and the figure's state. One primary hands over to the profile, where the figure is approved.
+ *  Draw again redraws the figure only; Discard deletes the record (with a confirm). */
 export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLookDisabled }: { c: Character; profileHref: string; onAnotherLook: () => void; onDiscard: () => void; anotherLookDisabled?: string }) {
   const { state } = useStudio();
-  const image = assetById(state, primaryImageOf(c));
+  const confirm = useConfirm();
+  const figure = figureOf(state, c);
   const s = identityStatus(c);
-  const words = statusWords(s);
-  const voice = voiceTrackSource(c);
-  const va = assetById(state, voice.assetId);
-  const lang = `${c.language === 'EN' ? T('label.english') : T('label.arabic')}${c.dialect ? ` · ${dialectLabel(c.dialect)}` : ''}`;
-  const track = va && !va.unavailable && va.src ? { id: `voice-${c.id}-${va.id}`, src: va.src, title: c.name, subtitle: lang, duration: va.durationSeconds } : null;
+  const track = voiceTrackOf(state, c);
+  const discard = async () => { if (await confirm({ title: `Discard ${c.name}?`, body: 'The character is deleted from the studio.', confirmLabel: `Discard ${c.name}`, tone: 'danger' })) onDiscard(); };
   return (
-    <section className="panel p-4 fade-in sm:p-5" aria-labelledby="ready-h">
-      <div className="grid gap-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
-        <div className="max-w-[14rem]"><CharacterImage src={image?.src} kind={image ? imageKindOf(c) : 'NONE'} name={c.name} unavailable={image?.unavailable} alt={T('cast.image.alt').replace('{name}', c.name)} /></div>
-        <div className="min-w-0">
-          <Status tone={words.tone === 'warn' ? 'warn' : words.tone === 'ok' ? 'ok' : 'neutral'}>{T(words.long)}</Status>
-          <h2 id="ready-h" className="h2 mt-2" dir="auto">{c.name}</h2>
-          {c.nameAr && <p className="text-sm text-muted"><bdi dir="rtl" lang="ar">{c.nameAr}</bdi></p>}
-          <p className="mt-1 text-[14px] text-body" dir="auto">{c.role || '—'}</p>
-          <div className="mt-4">
-            {track ? <VoicePlayer track={track} name={voice.text ? `“${voice.text}”` : T('voice.proofLine')} detail={lang} source={voice.source} /> : <p className="text-[13px] text-faint">{T('char.create.noVoiceYet')}</p>}
-          </div>
-          <p className="mt-4 max-w-[60ch] text-[13px] leading-5 text-muted">{s.kind === 'DRAFT' ? T('cast.ready.approveHint') : T('cast.ready.openHint')}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Link href={profileHref} className="btn btn-primary">{s.kind === 'DRAFT' ? T('cast.ready.review') : T('char.create.openProfile')}<IconArrowRight aria-hidden /></Link>
-            <Button variant="secondary" icon={<IconGenerate />} onClick={onAnotherLook} disabled={Boolean(anotherLookDisabled)} title={anotherLookDisabled}>{T('char.create.drawAgain')}</Button>
-            <ConfirmButton variant="ghost" size="sm" icon={<IconDelete />} label={T('cast.ready.discard')} title={`${T('btn.delete')}: ${c.name}`} message={T('char.deleteConfirm')} onConfirm={onDiscard} />
-          </div>
+    <section className="card pc-create-card pc-ready" aria-labelledby="ready-h">
+      <Frame asset={figure} ratio="928/1664" fit="contain" alt={`${c.name}, full length, from the front`} art={artVars(figure)} title={c.name} titleLang={nameLang(c.name)} titleState="noImage" judge />
+      <div className="pc-ready-words">
+        {s.kind === 'DRAFT' ? <StateWord tone="waiting">Waiting for your approval</StateWord> : <StateWord tone="done">Ready</StateWord>}
+        <h2 id="ready-h" className="t-hero"><bdi lang={nameLang(c.name)}>{c.name}</bdi></h2>
+        <p className="t-lead" dir="auto">{c.role || 'No description yet.'}</p>
+        {track ? <VoicePlayer track={track} name={track.subtitle ? `“${track.subtitle}”` : 'Proof line'} detail={languageWords(c)} /> : <p className="t-meta">No voice yet: make one on the profile.</p>}
+        <p className="t-body pc-empty-line">{s.kind === 'DRAFT' ? 'The figure is a draft until you approve it on the profile.' : 'The character is ready.'}</p>
+        <div className="char-form-acts">
+          <Link href={profileHref} className="btn btn-primary">{s.kind === 'DRAFT' ? 'Review and approve' : 'Open the profile'}<IconArrowRight aria-hidden /></Link>
+          <Button variant="secondary" icon={<IconGenerate />} onClick={onAnotherLook} disabled={Boolean(anotherLookDisabled)} title={anotherLookDisabled}>Draw again</Button>
+          <Button variant="quiet" icon={<IconDelete />} onClick={() => void discard()}>Discard</Button>
         </div>
       </div>
     </section>

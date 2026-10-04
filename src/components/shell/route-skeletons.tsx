@@ -33,6 +33,11 @@ export const ROUTE_SKELETONS: Entry[] = [
   { match: (p) => p === '/production', Skeleton: lazy(() => import('@/components/production/ControlRoom'), 'ControlRoomSkeleton') },
   { match: (p) => p === '/settings', Skeleton: lazy(() => import('@/components/settings/Settings'), 'SettingsSkeleton') },
   { match: (p) => p === '/assets', Skeleton: lazy(() => import('@/components/files/Files'), 'FilesSkeleton') },
+  // Characters and Locations (P-Cast): "new" is its own page, so the [id] patterns exclude it
+  { match: (p) => p === '/characters', Skeleton: lazy(() => import('@/components/character/CastDirectory'), 'CharactersSkeleton') },
+  { match: (p) => /^\/characters\/(?!new$)[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/character/CharacterPage'), 'CharacterSkeleton') },
+  { match: (p) => p === '/locations', Skeleton: lazy(() => import('@/components/location/LocationsDirectory'), 'LocationsSkeleton') },
+  { match: (p) => /^\/locations\/(?!new$)[^/]+$/.test(p), Skeleton: lazy(() => import('@/components/location/LocationPage'), 'LocationSkeleton') },
 ];
 
 export function RouteSkeleton({ pathname }: { pathname: string }) {

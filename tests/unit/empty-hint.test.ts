@@ -22,8 +22,6 @@ const BASELINE: string[] = [
   'empty.shorts.hint',
   // /music-videos (P1c): the lead is the empty hint
   'empty.musicVideos.hint',
-  // /locations (P2): the lead is the empty hint
-  'loc.libraryLead',
 ];
 
 const SOURCES = [path.join('src', 'app', '(app)'), path.join('src', 'components')];
@@ -102,8 +100,8 @@ describe('V4-01 — an empty state never repeats the page lead', () => {
   it('catches both forms on a page written the old way, and passes one written the v4 way', () => {
     const old = `<PageHeader title={T('nav.shows')} subtitle={T('empty.shows.hint')} />{n === 0 && <Empty title={T('empty.shows')} hint={T('empty.shows.hint')} />}`;
     expect(findDuplicates([{ file: 'old.tsx', src: old }])).toEqual(['empty.shows.hint']);
-    const twice = `<PageHeader title={T('nav.locations')} subtitle={T('loc.libraryLead')} action={x} /><p>{T('loc.libraryLead')}</p>`;
-    expect(findDuplicates([{ file: 'twice.tsx', src: twice }])).toEqual(['loc.libraryLead']);
+    const twice = `<PageHeader title={T('nav.shorts')} subtitle={T('empty.shorts.hint')} action={x} /><p>{T('empty.shorts.hint')}</p>`;
+    expect(findDuplicates([{ file: 'twice.tsx', src: twice }])).toEqual(['empty.shorts.hint']);
     const v4 = `<PageHeader title={T('kit.page.title')} subtitle={T('kit.spec.lead')} /><PageEmpty primary={p}>{T('kit.spec.empty.page')}</PageEmpty>`;
     expect(findDuplicates([{ file: 'v4.tsx', src: v4 }])).toEqual([]);
   });
