@@ -54,7 +54,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
 export interface TileOption<T extends string> extends ChoiceOption<T> { /** one line under the title */ hint?: ReactNode }
 
 /** The method choice ("Let the studio propose" / "Write it yourself"): 2-up or 3-up at ≥ 768 px (min 14rem), stacked
- *  64 px rows below that (icon 20, title 15/20 600, a one-line hint, the radio at the end). Selected: a 1.5 px iris
+ *  64 px rows below that (icon 20, title 15/20 600, a one-line hint, the radio at the end). Selected: a 1.5 px light
  *  border and a filled radio. */
 export function ChoiceTiles<T extends string>({ value, onChange, options, label, columns = 2, className = '', labelledBy }: { value: T; onChange: (v: T) => void; options: Array<TileOption<T>>; label?: string; labelledBy?: string; columns?: 2 | 3; className?: string }) {
   const onKey = useRadioKeys(options, value, onChange, 'both');

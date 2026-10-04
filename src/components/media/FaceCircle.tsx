@@ -5,7 +5,7 @@ import { faceBoxOf, faceCrop, initials, type Picture } from './art';
 /** THE FACE CIRCLE (docs/DESIGN-SYSTEM-V4.md §5.5) — 24, 28, 40, 56, 64 or 88 px. The crop comes from
  *  `presentation.faceBox`, else the top 18 % of the figure's framing box in the asset's provenance; with neither, the
  *  picture is centred near its top (portraits put the face there). No crop is ever generated. With no picture: the
- *  initials (40 % of the size, 600, muted) on the field tone. Rings: 2 px iris while speaking or singing now; 1.5 px
+ *  initials (40 % of the size, 600, muted) on the field tone. Rings: 2 px light while speaking or singing now; 1.5 px
  *  ivory for the director in the company. The picture is never mirrored (the circle is laid out left to right). */
 
 export type FaceSize = 24 | 28 | 40 | 56 | 64 | 88;
