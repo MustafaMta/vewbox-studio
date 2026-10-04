@@ -16,7 +16,8 @@ const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend:
 vi.mock('@/server/studio/engine', () => ({
   readState: async () => ({ state: fake.state, version: 1, hash: 'h' }),
   command: async (name: string, args: unknown[]) => { fake.commands.push({ name, args }); return name === 'addTake' ? { take: { id: 'take-new' } } : {}; },
-  commands: async (list: Array<{ name: string; args: unknown[] }>) => { fake.commands.push(...list); return {}; },
+  // the take's one commit (step 6): its rows outside the studio (QA reports, the World Bible read) go through `also`
+  commands: async (list: Array<{ name: string; args: unknown[] }>, _origin?: string, opts?: { also?: (tx: unknown, results: unknown[]) => Promise<void> }) => { fake.commands.push(...list); const results = list.map((c) => (c.name === 'addTake' ? { take: { id: (c.args[2] as { id?: string }).id ?? 'take-new' } } : {})); await opts?.also?.({}, results); return results; },
 }));
 vi.mock('@/server/media', () => ({
   adoptFile: async (_id: string, file: string) => ({ absPath: file, probe: { durationSeconds: 2.55 } }),
@@ -65,9 +66,11 @@ vi.mock('@/worker/handlers/voice', () => ({
 vi.mock('@/server/media/lyrics', () => ({ alignLyrics: () => [{ from: 0.5, to: 2.1, method: 'ALIGNED', confidence: 0.9 }] }));
 vi.mock('@/server/jobs/queue', () => ({ recordMetric: async () => {} }));
 vi.mock('@/server/env', () => ({ env: () => ({ CODE_VERSION: 'test' }) }));
-vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h', recordQaReport: async () => 'qa' }));
+vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h', recordQaReport: async () => 'qa', insertQaReport: async () => ({ id: 'qa', created: true }), announceQaReport: async () => {} }));
+vi.mock('@/server/world/store', () => ({ insertWorldRead: async (_tx: unknown, r: Record<string, unknown>) => { fake.reads.push(r); } }));
 
 import { generateTake } from '@/worker/handlers/take';
+import { takeIdOf } from '@/worker/handlers/take-commit';
 import { VideoGenerateInput } from '@/server/org/contracts';
 import { deriveWorld, withEstablished, worldScopeOf } from '@/domain/world';
 import { fixture, TAKE_A } from './continuity-fixture';
@@ -117,7 +120,7 @@ describe('GENERATE_TAKE by relation', () => {
     expect(t.references.some((r) => r.assetId === 'open-12')).toBe(false);
     // the take records the window it was made for (the cut shows exactly these frames) and the World Bible it read
     expect(t.params).toMatchObject({ timeline: { newFrames: 120, headFrames: 22, basis: 'DIALOGUE' }, world: { revisionId: 'wrev-3', revision: 3, pinned: true, plate: { assetId: 'plate-dusk', role: 'STATE' } } });
-    expect(fake.reads).toEqual([expect.objectContaining({ productionId: p.id, shotId: 's12', takeId: 'take-new', jobType: 'GENERATE_TAKE', read: expect.objectContaining({ revisionNumber: 3, pinned: true }) })]);
+    expect(fake.reads).toEqual([expect.objectContaining({ productionId: p.id, shotId: 's12', takeId: takeIdOf('job-take'), jobType: 'GENERATE_TAKE', read: expect.objectContaining({ revisionNumber: 3, pinned: true }) })]);
   });
 
   it('CONTINUATION of a take the cut shows only in part: the guide is cut from where its window ends (the audio timeline)', async () => {

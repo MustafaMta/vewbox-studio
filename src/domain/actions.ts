@@ -295,6 +295,12 @@ export function removeTake(s: S, productionId: string, shotId: string, takeId: s
 }
 
 export interface NewTakeInput {
+  /** a worker's take carries its job's deterministic id (src/server/jobs/outputs.ts): a retry can never add it twice */
+  id?: string;
+  /** a worker's take may be chosen in the same batch: ALWAYS, or IF_UNCHOSEN (the shot has no real chosen take yet —
+   *  nothing, or only a bundled sample). Decided on the state the batch runs on, so a producer's choice made while
+   *  the take was being generated is never overridden. Ignored for a take that is not READY. */
+  select?: 'ALWAYS' | 'IF_UNCHOSEN';
   assetId: string; label?: string; note?: string; status?: Take['status'];
   provider?: Take['provider']; model?: string; requestId?: string; prompt?: string; params?: Record<string, unknown>; seed?: number; references?: TakeReference[];
   width?: number; height?: number; durationSeconds?: number; fps?: number; generationMs?: number; costUsd?: number; qa?: QaReport; rejectionReason?: string; jobId?: string; codeVersion?: string; workflowVersion?: string; thumbnailAssetId?: string;
@@ -307,8 +313,12 @@ export function addTake(s: S, productionId: string, shotId: string, input: NewTa
   const p = mustFind(s.productions, productionId, 'Production');
   const sh = mustFind(p.shots, shotId, 'Shot');
   mustFind(s.assets, input.assetId, 'Asset');
-  const take: Take = { ...input, id: nid('take'), label: input.label ?? `Take ${sh.takes.length + 1}`, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
-  const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take] } : y)) }));
+  if (input.id && s.productions.some((x) => x.shots.some((y) => y.takes.some((t) => t.id === input.id)))) throw new StudioError('CONFLICT', `Take ${input.id} already exists.`, { takeId: input.id });
+  const { id: givenId, select, ...fields } = input;
+  const take: Take = { ...fields, id: givenId ?? nid('take'), label: input.label ?? `Take ${sh.takes.length + 1}`, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
+  const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
+  const choose = take.status === 'READY' && take.rating !== 'REJECTED' && (select === 'ALWAYS' || (select === 'IF_UNCHOSEN' && (!current || current.provider === 'SAMPLE')));
+  const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take], ...(choose ? { selectedTakeId: take.id } : {}) } : y)) }));
   const updated = next.productions.find((x) => x.id === productionId)!;
   return { state: { ...next, characters: recordTakeUsage(next.characters, updated, shotId, take.id, take.createdAt) }, take };
 }

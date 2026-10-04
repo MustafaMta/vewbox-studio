@@ -3,16 +3,16 @@ import path from 'node:path';
 import type { Handler } from './index';
 import { step } from './step';
 import { StudioError } from '@/domain/errors';
-import { nid } from '@/domain/ids';
+import type { Asset, StudioState } from '@/domain/types';
 import { timelineDigest } from '@/domain/timeline';
-import { command, readState } from '@/server/studio/engine';
+import { commands, readState, type CommandSpec } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
-import { adoptFile, assetFile, assetFromStored, storeBuffer } from '@/server/media';
+import { assetFile, assetFromStored } from '@/server/media';
+import { jobOutputs, outputId } from '@/server/jobs/outputs';
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
 import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport, type JoinMetric } from '@/server/media/assembly';
 import { takeLagAgainstMaster } from '@/server/media/sync';
 import { enqueue, recordMetric } from '@/server/jobs/queue';
-import { ASPECT_INFO } from '@/domain/vocabulary';
 import { listQaReports, recordHandoff, recordQaReport } from '@/server/org/runs';
 import { requireApproval } from '@/server/org/gates';
 import { establishFromApprovedCut, saveAudioTimeline, worldOfProduction } from '@/server/world';
@@ -47,7 +47,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
       const reports = await listQaReports({ productionId: p.id, limit: 1000 });
       const perTake = items.map((it) => { const takeId = p.shots.find((s) => s.id === it.shot.id)?.selectedTakeId; const mine = reports.filter((r) => r.subjectKind === 'TAKE' && r.subjectId === takeId); return { shotId: it.shot.id, inspected: mine.length > 0, rejected: mine.some((r) => r.decision === 'REJECT') }; });
       const uninspected = perTake.filter((t) => !t.inspected).length; const rejected = perTake.filter((t) => t.rejected).length;
-      await recordHandoff({ productionId: p.id, stage: 'QA', producerDepartment: 'QA', receiverDepartment: 'POST', artifactIds: items.map((it) => it.take.id), outputVersions: { takes: items.length }, validation: { ok: uninspected === 0 && rejected === 0, checks: [{ name: 'every-chosen-take-inspected', ok: uninspected === 0, detail: uninspected ? `${uninspected} take(s) without a report (uploaded or older takes)` : `${perTake.length} takes` }, { name: 'no-chosen-take-rejected', ok: rejected === 0, detail: rejected ? `${rejected} chosen take(s) were rejected by an inspector; the producer chose them anyway` : undefined }] }, jobId: ctx.job.id });
+      await recordHandoff({ id: outputId(ctx.job.id, 'handoff:qa', 'handoff'), productionId: p.id, stage: 'QA', producerDepartment: 'QA', receiverDepartment: 'POST', artifactIds: items.map((it) => it.take.id), outputVersions: { takes: items.length }, validation: { ok: uninspected === 0 && rejected === 0, checks: [{ name: 'every-chosen-take-inspected', ok: uninspected === 0, detail: uninspected ? `${uninspected} take(s) without a report (uploaded or older takes)` : `${perTake.length} takes` }, { name: 'no-chosen-take-rejected', ok: rejected === 0, detail: rejected ? `${rejected} chosen take(s) were rejected by an inspector; the producer chose them anyway` : undefined }] }, jobId: ctx.job.id });
     });
   }
   const size = exportSize(p.aspect, opts.resolution);
@@ -111,7 +111,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const validation = await step(ctx, 'technical-media-inspector', `file-validation: ${opts.kind} of “${p.title}”`, async (tool) => {
     const v = await tool('media.validate_export', () => validateExport(check.file, check.expect), { input: check });
     await ctx.event(v.ok ? 'info' : 'error', `${opts.kind} validation ${v.ok ? 'passed' : 'FAILED'}`, { checks: v.checks });
-    await recordQaReport({ productionId: p.id, subjectKind: opts.kind === 'cut' ? 'CUT' : 'EXPORT', subjectId: `${ctx.job.id}:${opts.kind}`, inspectorId: 'technical-media-inspector', checks: v.checks, failureClass: v.ok ? undefined : 'OUTPUT_CORRUPTION', decision: v.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `${size.width}×${size.height}, ${mix.tracks.length} audio track(s), target ${mix.targetLufs} LUFS` });
+    await recordQaReport({ id: outputId(ctx.job.id, `qa:${opts.kind}-validation`, 'qa'), productionId: p.id, subjectKind: opts.kind === 'cut' ? 'CUT' : 'EXPORT', subjectId: `${ctx.job.id}:${opts.kind}`, inspectorId: 'technical-media-inspector', checks: v.checks, failureClass: v.ok ? undefined : 'OUTPUT_CORRUPTION', decision: v.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `${size.width}×${size.height}, ${mix.tracks.length} audio track(s), target ${mix.targetLufs} LUFS` });
     return v;
   });
   if (!validation.ok) throw Object.assign(new StudioError('PROVIDER', `The ${opts.kind} failed validation: ${validation.checks.filter((c) => !c.ok).map((c) => `${c.name} (${c.value ?? ''} ${c.detail ?? ''})`.trim()).join('; ')}`), { failureClass: 'OUTPUT_CORRUPTION' });
@@ -121,34 +121,51 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   for (const j of joins.filter((x) => x.judged)) {
     const it = timeline.items.find((x) => x.shot.id === j.toShotId);
     if (!it) continue;
-    await recordQaReport({ productionId: p.id, subjectKind: 'TAKE', subjectId: it.takeRecord.id, inspectorId: 'visual-quality-inspector', checks: joinChecks(j), failureClass: j.ok ? undefined : 'ENVIRONMENT_INCONSISTENCY', decision: j.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `continuation join into shot ${it.sceneNumber}.${it.shot.number} at ${j.atSeconds.toFixed(2)} s of the ${opts.kind}` });
+    await recordQaReport({ id: outputId(ctx.job.id, `qa:${opts.kind}-join:${j.toShotId}`, 'qa'), productionId: p.id, subjectKind: 'TAKE', subjectId: it.takeRecord.id, inspectorId: 'visual-quality-inspector', checks: joinChecks(j), failureClass: j.ok ? undefined : 'ENVIRONMENT_INCONSISTENCY', decision: j.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `continuation join into shot ${it.sceneNumber}.${it.shot.number} at ${j.atSeconds.toFixed(2)} s of the ${opts.kind}` });
   }
   const jumps = joins.filter((j) => j.judged && !j.ok);
   if (joins.length) await ctx.event(jumps.length ? 'warn' : 'info', `joins measured: ${joins.filter((j) => j.judged).length} continuation join(s), ${jumps.length} jump(s)`, { joins });
   const poster = path.join(outDir, 'poster.jpg');
   await thumbnail(outFile, poster, { at: Math.min(2, result.durationSeconds / 3), width: 1280 });
-  const videoId = nid('gen'); const posterId = nid('gen');
-  const storedPoster = await adoptFile(posterId, poster, { expectKind: 'IMAGE' });
-  const stored = await adoptFile(videoId, outFile, { expectKind: 'VIDEO' });
+  // files into the library under the job's output ids (named for this attempt); the records are committed by the
+  // caller in ONE batch with what the result changes (the cut, the export record) — audit C2, step 6
+  const out = jobOutputs(ctx.job);
+  const { id: posterId, stored: storedPoster } = await out.adopt(`${opts.kind}-poster`, poster, { expectKind: 'IMAGE' });
+  const { id: videoId, stored } = await out.adopt(opts.kind, outFile, { expectKind: 'VIDEO' });
   const digest = timelineDigest(timeline.audio);
-  await command('addAsset', [assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id })], 'worker');
-  await command('addAsset', [assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id }, poster: `/api/media/${posterId}` })], 'worker');
-  const savedTimeline = await saveAudioTimeline(p.id, digest as unknown as Record<string, unknown>, { cutAssetId: videoId, jobId: ctx.job.id });
+  const assets: Array<Omit<Asset, 'createdAt'>> = [
+    assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id }),
+    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
+  ];
   // sidecar subtitle files
   const sidecars: string[] = [];
   for (const [lang, cs] of [['ar', cuesAr], ['en', cuesEn]] as const) {
     if (!cs.length) continue;
     for (const [fmt, body] of [['srt', toSrt(cs)], ['vtt', toVtt(cs)]] as const) {
-      const sid = nid('gen');
-      const st = await storeBuffer(sid, Buffer.from(body, 'utf8'), { declaredType: fmt === 'vtt' ? 'text/vtt' : 'application/x-subrip', probe: false });
-      await command('addAsset', [assetFromStored(sid, st, { label: `${p.title} — subtitles ${lang} (${fmt})`, tags: ['subtitles', lang, fmt, opts.kind], origin: 'DERIVED', jobId: ctx.job.id, provenance: { for: videoId, lang, format: fmt } })], 'worker');
-      sidecars.push(sid);
+      const st = await out.store(`${opts.kind}-subtitles-${lang}-${fmt}`, Buffer.from(body, 'utf8'), { declaredType: fmt === 'vtt' ? 'text/vtt' : 'application/x-subrip', probe: false });
+      assets.push(assetFromStored(st.id, st.stored, { label: `${p.title} — subtitles ${lang} (${fmt})`, tags: ['subtitles', lang, fmt, opts.kind], origin: 'DERIVED', jobId: ctx.job.id, provenance: { for: videoId, lang, format: fmt } }));
+      sidecars.push(st.id);
     }
   }
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   await fsp.rm(outDir, { recursive: true, force: true }).catch(() => {});
   await recordMetric(`${opts.kind}.render_ms`, Date.now() - t0, 'ms', { shots: timeline.items.length, seconds: Math.round(result.durationSeconds) }, ctx.job.id);
-  return { videoId, posterId, sidecars, durationSeconds: result.durationSeconds, loudness: result.loudness, size, shots: timeline.items.length, p, mix, sync, validation, joins, audioTimelineRevision: savedTimeline.revision };
+  return { videoId, posterId, sidecars, assets, digest, durationSeconds: result.durationSeconds, loudness: result.loudness, size, shots: timeline.items.length, p, mix, sync, validation, joins };
+}
+
+/** Commit a rendered cut or export as ONE batch: its assets, then `then` (setCut / recordExport, markStepDone).
+ *  The audio timeline it was rendered from is stored after it (idempotent: an identical timeline is not written
+ *  twice). */
+async function commitRender(ctx: Parameters<Handler>[0], r: Awaited<ReturnType<typeof render>>, then: CommandSpec[]): Promise<number> {
+  await commands([...r.assets.map((a) => ({ name: 'addAsset' as const, args: [a] as [typeof a] })), ...then], 'worker', { seed: `${ctx.job.id}:render-commit` });
+  return (await saveAudioTimeline(r.p.id, r.digest as unknown as Record<string, unknown>, { cutAssetId: r.videoId, jobId: ctx.job.id })).revision;
+}
+
+/** The cut or export an earlier attempt of this job already committed (it crashed after its commit): its video asset
+ *  exists under the job's output id. */
+function committedRender(state: StudioState, job: { id: string }, kind: 'cut' | 'export'): Asset | undefined {
+  const id = outputId(job.id, kind);
+  return state.assets.find((a) => a.id === id);
 }
 
 /** A measured join as QA checks. */
@@ -164,16 +181,21 @@ export function joinChecks(j: JoinMetric): Array<{ name: string; ok: boolean; va
 
 export const assemble: Handler = async (ctx) => {
   const { productionId } = ctx.job.payload as { productionId: string };
-  const r = await render(ctx, { productionId, format: 'mp4-h264', resolution: ASPECT_INFO[(await readState()).state.productions.find((x) => x.id === productionId)?.aspect ?? 'WIDE_16_9'].height > 1000 ? '1080' : '1080', subtitles: 'none', kind: 'cut' });
-  await command('setCut', [productionId, r.videoId], 'worker');
-  await command('markStepDone', [productionId, 'PRODUCE'], 'worker');
+  // an earlier attempt committed this cut (and set it) before it crashed: it is returned, not rendered again
+  const done = committedRender((await readState()).state, ctx.job, 'cut');
+  if (done) {
+    await ctx.event('info', 'the cut was already recorded by an earlier attempt of this job; nothing is rendered again', { cutAssetId: done.id });
+    return { cutAssetId: done.id, durationSeconds: done.durationSeconds, resumedFromCommit: true };
+  }
+  const r = await render(ctx, { productionId, format: 'mp4-h264', resolution: '1080', subtitles: 'none', kind: 'cut' });
+  const audioTimelineRevision = await commitRender(ctx, r, [{ name: 'setCut', args: [productionId, r.videoId] }, { name: 'markStepDone', args: [productionId, 'PRODUCE'] }]);
   const judged = r.joins.filter((j) => j.judged);
   const jumps = judged.filter((j) => !j.ok);
-  await recordHandoff({ productionId, stage: 'EDIT', producerDepartment: 'POST', receiverDepartment: 'EXECUTIVE', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { cut: r.videoId, shots: r.shots, audioTimeline: r.audioTimelineRevision }, validation: { ok: r.validation.ok && jumps.length === 0, checks: [{ name: 'cut-validated', ok: r.validation.ok }, { name: 'one-sound-per-stretch', ok: true, detail: `${r.mix.tracks.length} track(s): ${Array.from(new Set(r.mix.tracks.map((t) => t.kind))).join(', ')}; audited (no source, song or voice twice)` }, { name: 'loudness-at-target', ok: r.loudness ? Math.abs(r.loudness.integrated - r.mix.targetLufs) <= 1.5 : true, detail: r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS for ${r.mix.targetLufs}` : 'not measured' }, { name: 'continuation-joins', ok: jumps.length === 0, detail: judged.length ? `${judged.length - jumps.length} of ${judged.length} continuation join(s) within the shots' own change${jumps.length ? `; jumps into ${jumps.map((j) => j.toShotId).join(', ')}` : ''}` : 'no continuation join' }, ...(r.sync.length ? [{ name: 'performers-aligned', ok: true, detail: `${r.sync.filter((s) => s.droppedFrames).length} of ${r.sync.length} take(s) shifted` }] : [])] }, jobId: ctx.job.id });
+  await recordHandoff({ id: outputId(ctx.job.id, 'handoff:edit', 'handoff'), productionId, stage: 'EDIT', producerDepartment: 'POST', receiverDepartment: 'EXECUTIVE', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { cut: r.videoId, shots: r.shots, audioTimeline: audioTimelineRevision }, validation: { ok: r.validation.ok && jumps.length === 0, checks: [{ name: 'cut-validated', ok: r.validation.ok }, { name: 'one-sound-per-stretch', ok: true, detail: `${r.mix.tracks.length} track(s): ${Array.from(new Set(r.mix.tracks.map((t) => t.kind))).join(', ')}; audited (no source, song or voice twice)` }, { name: 'loudness-at-target', ok: r.loudness ? Math.abs(r.loudness.integrated - r.mix.targetLufs) <= 1.5 : true, detail: r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS for ${r.mix.targetLufs}` : 'not measured' }, { name: 'continuation-joins', ok: jumps.length === 0, detail: judged.length ? `${judged.length - jumps.length} of ${judged.length} continuation join(s) within the shots' own change${jumps.length ? `; jumps into ${jumps.map((j) => j.toShotId).join(', ')}` : ''}` : 'no continuation join' }, ...(r.sync.length ? [{ name: 'performers-aligned', ok: true, detail: `${r.sync.filter((s) => s.droppedFrames).length} of ${r.sync.length} take(s) shifted` }] : [])] }, jobId: ctx.job.id });
   await ctx.activity('CUT_ASSEMBLED', `“${r.p.title}” assembled: ${r.shots} shots, ${Math.round(r.durationSeconds)} s, ${r.loudness ? `${r.loudness.integrated.toFixed(1)} LUFS` : 'loudness not measured'}${jumps.length ? `, ${jumps.length} continuation join(s) jump` : ''}`, { cutAssetId: r.videoId, shots: r.shots, seconds: r.durationSeconds, joinJumps: jumps.length });
   // an episode that has a cut is a fact of its show: the Continuity Writer records it in the bible
   if (r.p.kind === 'EPISODE' && r.p.showId) await enqueue({ type: 'EPISODE_CONTINUITY', payload: { productionId }, parentId: ctx.job.id, idempotencyKey: `continuity:${productionId}:${r.videoId}` });
-  return { cutAssetId: r.videoId, durationSeconds: r.durationSeconds, loudness: r.loudness, shots: r.shots, subtitleAssets: r.sidecars, joins: judged.length, joinJumps: jumps.length, audioTimelineRevision: r.audioTimelineRevision };
+  return { cutAssetId: r.videoId, durationSeconds: r.durationSeconds, loudness: r.loudness, shots: r.shots, subtitleAssets: r.sidecars, joins: judged.length, joinJumps: jumps.length, audioTimelineRevision };
 };
 
 export const exportCut: Handler = async (ctx) => {
@@ -190,11 +212,16 @@ export const exportCut: Handler = async (ctx) => {
     await ctx.event('info', `World Bible: ${r.reason}${r.revision ? ` (revision ${r.revision.number})` : ''}`, { added: r.added, revision: r.revision?.number });
     return { added: r.added, reason: r.reason };
   });
+  // an earlier attempt committed this export (asset and record) before it crashed: it is returned, not rendered again
+  const done = committedRender((await readState()).state, ctx.job, 'export');
+  if (done) {
+    await ctx.event('info', 'the export was already recorded by an earlier attempt of this job; nothing is rendered again', { exportAssetId: done.id });
+    return { exportAssetId: done.id, durationSeconds: done.durationSeconds, establishedFrames: established.added, resumedFromCommit: true };
+  }
   const r = await render(ctx, { productionId, format, resolution, subtitles, kind: 'export' });
-  const asset = (await readState()).state.assets.find((a) => a.id === r.videoId);
-  await command('recordExport', [productionId, { assetId: r.videoId, format, resolution, subtitles, jobId: ctx.job.id, durationSeconds: r.durationSeconds, bytes: asset?.bytes }], 'worker');
-  await command('markStepDone', [productionId, 'FINAL_CUT'], 'worker');
-  await recordHandoff({ productionId, stage: 'EXPORT', producerDepartment: 'POST', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { export: r.videoId, format, resolution, establishedFrames: established.added }, validation: { ok: r.validation.ok, checks: r.validation.checks.map((c) => ({ name: c.name, ok: c.ok, detail: c.detail })) }, jobId: ctx.job.id });
+  const asset = r.assets.find((a) => a.id === r.videoId);
+  await commitRender(ctx, r, [{ name: 'recordExport', args: [productionId, { id: outputId(ctx.job.id, 'export-record', 'export'), assetId: r.videoId, format, resolution, subtitles, jobId: ctx.job.id, durationSeconds: r.durationSeconds, bytes: asset?.bytes }] }, { name: 'markStepDone', args: [productionId, 'FINAL_CUT'] }]);
+  await recordHandoff({ id: outputId(ctx.job.id, 'handoff:export', 'handoff'), productionId, stage: 'EXPORT', producerDepartment: 'POST', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { export: r.videoId, format, resolution, establishedFrames: established.added }, validation: { ok: r.validation.ok, checks: r.validation.checks.map((c) => ({ name: c.name, ok: c.ok, detail: c.detail })) }, jobId: ctx.job.id });
   await ctx.activity('EXPORTED', `“${r.p.title}” exported: ${resolution}p ${format}, ${Math.round(r.durationSeconds)} s${subtitles !== 'none' ? `, subtitles ${subtitles}` : ''}`, { exportAssetId: r.videoId, format, resolution, bytes: asset?.bytes });
   return { exportAssetId: r.videoId, durationSeconds: r.durationSeconds, loudness: r.loudness, size: r.size, subtitleAssets: r.sidecars, establishedFrames: established.added };
 };

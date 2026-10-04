@@ -170,21 +170,36 @@ export async function resolveReliability(jobId: string, changeMade: string) {
 
 export interface NewHandoff { productionId: string; stage: PipelineStage; producerDepartment: DepartmentId; receiverDepartment?: DepartmentId; artifactIds: string[]; inputVersions?: Record<string, string | number>; outputVersions?: Record<string, string | number>; validation: { ok: boolean; checks: Array<{ name: string; ok: boolean; detail?: string }> }; remainingDependencies?: string[]; jobId?: string }
 
-export async function recordHandoff(h: NewHandoff): Promise<string> {
-  const id = nid('handoff');
-  await db().insert(schema.handoffs).values({ id, productionId: h.productionId, stage: h.stage, producerDepartment: h.producerDepartment, receiverDepartment: h.receiverDepartment ?? null, artifactIds: h.artifactIds, inputVersions: h.inputVersions ?? {}, outputVersions: h.outputVersions ?? {}, validation: h.validation, qualityStatus: h.validation.ok ? 'VALIDATED' : 'INVALID', remainingDependencies: h.remainingDependencies ?? [], jobId: h.jobId ?? null, createdAt: new Date().toISOString() });
+/** `h.id`: a deterministic id (a job's output, src/server/jobs/outputs.ts) makes the record idempotent — a retried
+ *  attempt that hands the same thing over again writes nothing new. */
+export async function recordHandoff(h: NewHandoff & { id?: string }): Promise<string> {
+  const id = h.id ?? nid('handoff');
+  const rows = await db().insert(schema.handoffs).values({ id, productionId: h.productionId, stage: h.stage, producerDepartment: h.producerDepartment, receiverDepartment: h.receiverDepartment ?? null, artifactIds: h.artifactIds, inputVersions: h.inputVersions ?? {}, outputVersions: h.outputVersions ?? {}, validation: h.validation, qualityStatus: h.validation.ok ? 'VALIDATED' : 'INVALID', remainingDependencies: h.remainingDependencies ?? [], jobId: h.jobId ?? null, createdAt: new Date().toISOString() }).onConflictDoNothing({ target: schema.handoffs.id }).returning({ id: schema.handoffs.id });
+  if (!rows.length) return id;
   await studioEvent({ departmentId: h.producerDepartment, productionId: h.productionId, kind: h.validation.ok ? 'HANDOFF' : 'HANDOFF_INVALID', message: `${h.stage} ${h.validation.ok ? 'handed to' : 'NOT handed to'} ${h.receiverDepartment ?? 'the production'}: ${h.validation.checks.filter((c) => !c.ok).map((c) => c.name).join(', ') || `${h.validation.checks.length} checks passed`}`, data: { handoffId: id, stage: h.stage, artifacts: h.artifactIds.length }, jobId: h.jobId });
   return id;
 }
 
 export interface NewQaReport { productionId?: string; subjectKind: 'TAKE' | 'CUT' | 'EXPORT' | 'CHARACTER' | 'LOCATION' | 'SONG' | 'LINE'; subjectId: string; inspectorId: string; checks: Array<{ name: string; ok: boolean; value?: string | number; threshold?: string | number; detail?: string }>; failureClass?: FailureClass; decision: 'ACCEPT' | 'REJECT' | 'REVIEW'; evidenceAssetIds?: string[]; notes?: string; jobId?: string }
 
-export async function recordQaReport(r: NewQaReport): Promise<string> {
-  const id = nid('qa');
+/** A QA report's row. Inside a result commit (the take's batch, src/server/studio/engine.ts `also`) it is inserted in
+ *  the commit's transaction; `id` deterministic makes a retry write nothing new. */
+export async function insertQaReport(tx: Pick<ReturnType<typeof db>, 'insert'>, r: NewQaReport & { id?: string }): Promise<{ id: string; created: boolean }> {
+  const id = r.id ?? nid('qa');
+  const rows = await tx.insert(schema.qaReports).values({ id, productionId: r.productionId ?? null, subjectKind: r.subjectKind, subjectId: r.subjectId, inspectorId: r.inspectorId, checks: r.checks, failureClass: r.failureClass ?? null, decision: r.decision, evidenceAssetIds: r.evidenceAssetIds ?? [], notes: r.notes ?? null, jobId: r.jobId ?? null, createdAt: new Date().toISOString() }).onConflictDoNothing({ target: schema.qaReports.id }).returning({ id: schema.qaReports.id });
+  return { id, created: rows.length > 0 };
+}
+
+/** The activity a recorded QA report announces. */
+export async function announceQaReport(id: string, r: NewQaReport): Promise<void> {
   const inspector = agentById(r.inspectorId);
-  await fenced('QA report', (tx) => tx.insert(schema.qaReports).values({ id, productionId: r.productionId ?? null, subjectKind: r.subjectKind, subjectId: r.subjectId, inspectorId: r.inspectorId, checks: r.checks, failureClass: r.failureClass ?? null, decision: r.decision, evidenceAssetIds: r.evidenceAssetIds ?? [], notes: r.notes ?? null, jobId: r.jobId ?? null, createdAt: new Date().toISOString() }));
   const failed = r.checks.filter((c) => !c.ok);
   await studioEvent({ departmentId: 'QA', agentId: r.inspectorId, productionId: r.productionId, kind: `QA_${r.decision}`, message: `${inspector?.name ?? r.inspectorId}: ${r.subjectKind.toLowerCase()} ${r.decision === 'ACCEPT' ? 'accepted' : r.decision === 'REJECT' ? 'rejected' : 'sent to review'}${failed.length ? ` (${failed.map((c) => c.name).join(', ')})` : ` (${r.checks.length} checks)`}`, data: { reportId: id, subjectId: r.subjectId, failureClass: r.failureClass }, jobId: r.jobId });
+}
+
+export async function recordQaReport(r: NewQaReport & { id?: string }): Promise<string> {
+  const { id, created } = await fenced('QA report', (tx) => insertQaReport(tx, r));
+  if (created) await announceQaReport(id, r);
   return id;
 }
 

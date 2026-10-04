@@ -17,8 +17,15 @@ export type BatchResult = { ok: true; version: number; hash: string; results: un
 
 const LOCK_KEY = 'vewbox-studio';
 
+export type Tx = Parameters<Parameters<ReturnType<typeof db>['transaction']>[0]>[0];
+
+/** `also`: rows outside the studio document that belong to the same result (a take's QA reports, its World Bible
+ *  read), written in the SAME transaction after the commands persisted — all of it commits, or none (audit C2). It
+ *  runs only when every command was accepted. */
+export interface ApplyOptions { also?: (tx: Tx, results: unknown[]) => Promise<void> }
+
 /** Run commands as one unit: all or nothing. */
-export async function applyCommands(commands: Command[], origin = 'server'): Promise<BatchResult> {
+export async function applyCommands(commands: Command[], origin = 'server', opts: ApplyOptions = {}): Promise<BatchResult> {
   for (const c of commands) if (!isCommandName(c.name)) throw new StudioError('INVALID', `Unknown command ${String(c.name)}`);
   const t0 = Date.now();
   const out = await db().transaction(async (tx) => {
@@ -41,6 +48,7 @@ export async function applyCommands(commands: Command[], origin = 'server'): Pro
       }
     }
     const report = await persistState(tx, snap.hashes, state);
+    if (opts.also) await opts.also(tx, results);
     const changed = report.inserted + report.updated + report.deleted > 0;
     let version = snap.version;
     if (changed) {
@@ -79,9 +87,9 @@ export function stampCommands(list: CommandSpec[], opts: { seed?: string; at?: s
   return list.map((c, i) => ({ name: c.name, args: c.args, seed: `${seed}-${i}`, at }) as Command);
 }
 
-export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } = {}): Promise<unknown[]> {
+export async function commands(list: CommandSpec[], origin = 'server', opts: { seed?: string; at?: string } & ApplyOptions = {}): Promise<unknown[]> {
   const cmds = stampCommands(list, opts);
-  const r = await applyCommands(cmds, origin);
+  const r = await applyCommands(cmds, origin, { also: opts.also });
   if (!r.ok) throw new StudioError(r.error.code as StudioError['code'], r.error.message, { ...r.error.details, failedAt: r.failedAt, command: cmds[r.failedAt]?.name });
   return r.results;
 }
