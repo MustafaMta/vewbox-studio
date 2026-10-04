@@ -194,6 +194,37 @@ test('the decisions on the map: a bound approval refused as changed, the stale c
   await expect.poll(() => restored).toEqual({ kind: 'shot', id: 'shot-gone' });
 });
 
+test('failed shots: the real error class, and "Regenerate this shot" (held while paused, routed when ready)', async ({ page }) => {
+  const later = new Date(Date.now() - 60_000).toISOString();
+  const failedChild = running({ id: 'job-test-fail', status: 'FAILED', error: { code: 'PROVIDER', message: 'engine stopped' }, finishedAt: later, updatedAt: later, createdAt: later });
+  const pass = running({ id: 'job-test-pass', type: 'PRODUCE', shotId: undefined, status: 'COMPLETED', payload: { productionId: FILM }, result: { failedShots: [{ shotId: SHOT, jobId: 'job-test-fail', reason: 'engine stopped' }] }, finishedAt: later });
+  await open(page, MAP, { health: PAUSED, jobs: [pass, failedChild] });
+  const failed = page.locator('#failed');
+  await expect(failed).toContainText('Shot 2.3');
+  await expect(failed.getByRole('button', { name: 'Regenerate this shot' })).toBeDisabled();
+  await expect(failed.getByRole('button', { name: 'Regenerate this shot' })).toHaveAttribute('title', /Intake is paused/);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  let body: Record<string, unknown> | null = null; let url = '';
+  await open(page, `/shorts/${FILM}/shots/${SHOT}`, { health: READY, status: { video: { ok: true }, images: { ok: true }, voice: { ok: true } }, jobs: [pass, failedChild] });
+  await page.route('**/api/productions/*/regenerate', (r) => { url = r.request().url(); body = r.request().postDataJSON(); return r.fulfill({ status: 201, json: { job: running({ id: 'job-test-regen' }), created: true, scope: 'shot' } }); });
+  const notice = page.locator('.ws-failure');
+  await expect(notice).toBeVisible();
+  await expect(notice.locator('.t-title')).not.toHaveText('');
+  await notice.getByRole('button', { name: 'Regenerate this shot' }).click();
+  await expect.poll(() => url).toContain(`/api/productions/${FILM}/regenerate`);
+  expect(body).toMatchObject({ shotId: SHOT });
+});
+
+test('a waiting orchestrator reads "Waiting for its shots (3 of 8 done)" from its real children', async ({ page }) => {
+  const parent = running({ id: 'job-test-pass', type: 'PRODUCE', shotId: undefined, payload: { productionId: FILM }, waiting: true, progress: { phase: 'GENERATING' } });
+  const kids = Array.from({ length: 8 }, (_, i) => running({ id: `job-test-kid-${i}`, parentId: 'job-test-pass', shotId: `none-${i}`, status: i < 3 ? 'COMPLETED' : 'QUEUED' }));
+  await open(page, MAP, { health: READY, jobs: [parent, ...kids] });
+  const row = page.locator('#on-the-floor .ws-run[data-waiting]');
+  await expect(row).toContainText('Waiting for its shots (3 of 8 done)');
+  await expect(row).not.toContainText('making');
+  await expect(row.getByRole('progressbar').last()).toHaveAttribute('aria-valuenow', '38');
+});
+
 test('the loading state: the workspace skeleton keeps the real panels', async ({ page }) => {
   await page.route('**/api/studio', async (r) => { await new Promise((x) => setTimeout(x, 2500)); await r.continue(); });
   await page.setViewportSize({ width: 1440, height: 900 });

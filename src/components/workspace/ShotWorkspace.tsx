@@ -26,6 +26,7 @@ import { displaySrc, shortWhen } from '@/components/home/model';
 import { IconChevronLeft, IconChevronRight, IconClose, IconCompare, IconDelete, IconDuplicate, IconFrame, IconTake, IconUpload, IconVoice } from '@/components/ui/icons';
 import { GenButton, useStudioGate } from './gate';
 import { RunningRow } from './Running';
+import { ShotFailure } from './Failed';
 import { WorkspaceShell } from './WorkspaceShell';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
 import { activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
@@ -135,6 +136,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
           {compare.length === 2 && <Button size="sm" icon={<IconCompare aria-hidden />} onClick={() => setComparing((c) => !c)} aria-pressed={comparing}>{comparing ? 'Stop comparing' : `Compare takes ${compare.map((id) => takeNo(shot.takes.find((t) => t.id === id)!)).join(' and ')}`}</Button>}
         </div>
 
+        <ShotFailure p={p} shotId={shot.id} gate={gate} />
         <StatusRow p={p} shot={shot} running={running} />
 
         <section className="ws-takes" aria-labelledby="ws-takes-h">

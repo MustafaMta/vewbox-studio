@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from '@/domain/jobs';
 import type { Production, Shot, Take } from '@/domain/types';
-import { breakdownOf, decisionsOf, fractionOf, jobWords, linesToHear, neighbours, nextTab, shotState, stagePills, tabFrom, takeVerdict, workspaceHref } from '@/components/workspace/model';
+import { breakdownOf, decisionsOf, failedShotsOf, fractionOf, jobWords, linesToHear, neighbours, nextTab, shotState, stagePills, tabFrom, takeVerdict, waitingWords, workspaceHref } from '@/components/workspace/model';
 import type { Decision } from '@/studio/selectors/decisions';
 
 const take = (id: string, x: Partial<Take> = {}): Take => ({ id, label: id, assetId: `a-${id}`, createdAt: '2026-10-03T08:00:00Z', status: 'READY', provider: 'MINIMAX', ...x });
@@ -64,6 +64,25 @@ describe('shot states', () => {
     expect(takeVerdict(sh, sh.takes[0]).words).toBe('Selected');
     expect(takeVerdict(sh, sh.takes[1]).words).toBe('Rejected · soft focus');
     expect(takeVerdict(sh, sh.takes[2]).words).toBe('Good take');
+  });
+});
+
+describe('orchestrators and failed shots', () => {
+  it('says what a waiting orchestrator waits for, from its real children', () => {
+    const parent = job({ id: 'pp', type: 'PRODUCE', waiting: true, progress: { step: 1, total: 4 } });
+    const kids = [job({ id: 'c1', parentId: 'pp', status: 'COMPLETED' }), job({ id: 'c2', parentId: 'pp', status: 'FAILED' }), job({ id: 'c3', parentId: 'pp', status: 'QUEUED' })];
+    expect(waitingWords(parent, [parent, ...kids])).toBe('Waiting for its shots (2 of 3 done)');
+    expect(waitingWords(parent, [parent])).toBe('Waiting for its shots (1 of 4 done)');
+  });
+  it('lists the shots a pass failed until a newer take or a running job replaces them', () => {
+    const p = prod();
+    const child = job({ id: 'f1', shotId: 'b', status: 'FAILED', error: { code: 'PROVIDER', message: 'x' }, finishedAt: '2026-10-03T09:10:00Z' });
+    const pass = job({ id: 'pp', type: 'PRODUCE', status: 'COMPLETED', result: { failedShots: [{ shotId: 'b', jobId: 'f1', reason: 'x' }] } });
+    expect(failedShotsOf(p, [pass, child]).map((f) => [f.shotId, f.job?.error?.code])).toEqual([['b', 'PROVIDER']]);
+    expect(shotState(p, p.shots[0], [pass, child]).kind).toBe('failed');
+    const retaken = prod({ shots: [shot('b', 'sc2', 1, { takes: [take('t9', { createdAt: '2026-10-03T10:00:00Z' })] })] });
+    expect(failedShotsOf(retaken, [pass, child])).toEqual([]);
+    expect(failedShotsOf(p, [pass, child, job({ id: 'again', shotId: 'b', status: 'QUEUED' })])).toEqual([]);
   });
 });
 

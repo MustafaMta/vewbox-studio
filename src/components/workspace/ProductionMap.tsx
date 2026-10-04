@@ -17,6 +17,7 @@ import { IconCheck, IconProduce } from '@/components/ui/icons';
 import { GenButton, type StudioGate } from './gate';
 import { RunningRow } from './Running';
 import { ProductionDetails } from './ProductionDetails';
+import { FailedShots } from './Failed';
 import { breakdownOf, decisionsOf, expectationWords, flowOf, frameRatioOf, leadOf, orderedShots, runningOf, shotState, vocab, workspaceHref } from './model';
 
 /** THE PRODUCTION MAP (docs/DESIGN-SYSTEM-V5.md §8.10) — the production as one hierarchy you move through: where it
@@ -74,6 +75,8 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
           ? <p className="t-body ws-empty">{gate.paused ? 'Nothing is being made: the studio is paused.' : 'Nothing is being made for this production right now.'}</p>
           : <div className="ws-runs">{running.map((j) => <RunningRow key={j.id} job={j} p={p} expect={j.type === 'GENERATE_TAKE' ? expectationWords(p, j.shotId) : null} />)}</div>}
       </section>
+
+      <FailedShots p={p} gate={gate} />
 
       <section className="ws-sec" aria-labelledby="ws-story-h" id="story">
         <SectionHead id="ws-story-h" title="Story" link={{ href: workspaceHref(p, storyTab), label: music ? 'Open the visual story' : 'Open the script', short: 'Open' }} />
