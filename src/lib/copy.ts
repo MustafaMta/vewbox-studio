@@ -382,7 +382,6 @@ const COPY = {
 
   // the six areas and the studio organisation
   // navigation and the production page
-  'nav.new': 'New…',
 
   // ---- v4: page titles (§7.3; src/components/shell/titles.ts) ----
 
