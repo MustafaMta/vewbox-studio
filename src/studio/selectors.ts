@@ -60,6 +60,9 @@ export const shotLabel = (p: Production, sh: Shot): string => {
 export const readyTakes = (sh: Shot) => sh.takes.filter((t) => t.status !== 'REJECTED');
 /** A shot still needs a real take when nothing is chosen, or the chosen take is only a bundled sample clip. */
 export const needsTake = (sh: Shot) => { const t = sh.takes.find((x) => x.id === sh.selectedTakeId); return !t || t.provider === 'SAMPLE'; };
+/** A shot whose chosen take is a stale continuation (its predecessor's choice changed): it has a take, but the
+ *  cut's join into it is no longer the one it was generated for (src/domain/continuation.ts). */
+export { continuationStale, staleContinuations } from '@/domain/continuation';
 
 /** How far along a production is, counted from what it has rather than from a flag. */
 export function progressOf(p: Production) {

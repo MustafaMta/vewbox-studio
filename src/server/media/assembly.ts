@@ -4,7 +4,7 @@ import { execFileP } from './exec';
 import type { Asset, Character, Production, Shot, ShotRelation, Take } from '@/domain/types';
 
 // ffmpeg/ffprobe with a timeout, killed when the job is cancelled or times out (src/server/media/exec.ts)
-import { buildAudioTimeline, CLOCK_FPS, CLOCK_RATE, type AudioTimeline, type AudioTimelineOptions, type ShotClock } from '@/domain/timeline';
+import { buildAudioTimeline, CLOCK_FPS, CLOCK_RATE, type AudioTimeline, type AudioTimelineOptions, type GuideJoin, type ShotClock } from '@/domain/timeline';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { StudioError } from '@/domain/errors';
 import { assetFile, ffprobe } from '../media';
@@ -30,7 +30,7 @@ export type { JoinMetric } from './assembly-joins';
 export const CUT_FPS = CLOCK_FPS;
 export const CUT_RATE = CLOCK_RATE;
 
-export interface TimelineItem { shot: Shot; take: Asset; takeRecord: Take; start: number; duration: number; startFrame: number; frames: number; /** the take's frame at the start of the window (its continuation head and any alignment trim dropped) */ trimStartFrames: number; /** frames that repeat the take's last frame (a song window longer than the take) */ holdFrames: number; relation?: ShotRelation; basis: ShotClock['basis']; sceneNumber: number }
+export interface TimelineItem { shot: Shot; take: Asset; takeRecord: Take; start: number; duration: number; startFrame: number; frames: number; /** the take's frame at the start of the window (its continuation head and any alignment trim dropped) */ trimStartFrames: number; /** frames that repeat the take's last frame (a song window longer than the take) */ holdFrames: number; relation?: ShotRelation; /** a continuation's join: TRIM (head dropped) or HARD (head kept) */ join?: GuideJoin; basis: ShotClock['basis']; sceneNumber: number }
 export interface Timeline { items: TimelineItem[]; total: number; totalFrames: number; /** the authoritative production audio timeline the items are read from */ audio: AudioTimeline }
 
 /** The cut's timeline: the production audio timeline's shot windows, as items the renderer conforms. */
@@ -40,7 +40,7 @@ export function buildTimeline(p: Production, assets: Asset[], opts: AudioTimelin
     const sh = p.shots.find((x) => x.id === s.shotId)!;
     const take = sh.takes.find((x) => x.id === s.takeId)!;
     const a = assets.find((x) => x.id === s.assetId)!;
-    return { shot: sh, take: a, takeRecord: take, start: s.startFrame / CUT_FPS, duration: s.frames / CUT_FPS, startFrame: s.startFrame, frames: s.frames, trimStartFrames: s.sourceStartFrame, holdFrames: s.holdFrames, relation: s.relation, basis: s.basis, sceneNumber: p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? 0 };
+    return { shot: sh, take: a, takeRecord: take, start: s.startFrame / CUT_FPS, duration: s.frames / CUT_FPS, startFrame: s.startFrame, frames: s.frames, trimStartFrames: s.sourceStartFrame, holdFrames: s.holdFrames, relation: s.relation, join: s.join, basis: s.basis, sceneNumber: p.scenes.find((sc) => sc.id === sh.sceneId)?.number ?? 0 };
   });
   if (items.length === 0) throw new StudioError('INVALID', 'There are no shots to assemble.');
   return { items, total: audio.totalFrames / CUT_FPS, totalFrames: audio.totalFrames, audio };
@@ -109,7 +109,7 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
   let joins: JoinMetric[] = [];
   if (opts.joins !== false && timeline.items.length > 1) {
     await opts.onProgress?.('measuring the joins');
-    joins = await measureJoins(timeline.items.map((it, i) => ({ file: parts[i], shotId: it.shot.id, relation: it.relation, startFrame: it.startFrame, frames: it.frames })), mixed, fps).catch((e) => { log.warn({ err: (e as Error).message }, 'join measurement failed'); return []; });
+    joins = await measureJoins(timeline.items.map((it, i) => ({ file: parts[i], shotId: it.shot.id, relation: it.relation, join: it.join, startFrame: it.startFrame, frames: it.frames })), mixed, fps).catch((e) => { log.warn({ err: (e as Error).message }, 'join measurement failed'); return []; });
   }
   // 4) loudness: two-pass EBU R128 to the target (−23 LUFS for episodes/shorts, −14 for music videos), true peak −1
   await opts.onProgress?.('normalising loudness');

@@ -37,6 +37,22 @@ describe('the clock', () => {
     expect(tl.audio.notes.join(' ')).toMatch(/16 frame\(s\) past what the take was generated for are left out/);
   });
 
+  it('a continuation whose head was kept (join HARD) is a hard cut on the clock: no cross-fade, the reason noted', () => {
+    const { p, assets } = production('SHORT', [{ seconds: 5 }, { seconds: 158 / 24, intended: 158, relation: 'CONTINUATION' }]);
+    p.shots[1].takes[0].params = { timeline: { newFrames: 158 }, guide: { frames: 22, join: 'HARD', why: 'the model did not repeat the tail' } };
+    const tl = buildAudioTimeline(p, assets);
+    expect(tl.shots.map((s) => [s.sourceStartFrame, s.frames, s.join])).toEqual([[0, 120, undefined], [0, 158, 'HARD']]);
+    expect(tl.notes.join(' ')).toMatch(/joined by a hard cut \(its head was kept: the model did not repeat the tail\)/);
+    expect(tl.notes.join(' ')).not.toMatch(/cross-fades/);
+    const b = tl.cues.find((c) => c.id === 'take-take-1')!;
+    expect(b).toMatchObject({ startSample: 120 * F, sourceOffsetSamples: 0, fadeInSamples: 480 });
+    // a trimmed continuation reads TRIM and cross-fades
+    const { p: q, assets: qa } = production('SHORT', [{ seconds: 5 }, { seconds: 158 / 24, trim: 22, intended: 120, relation: 'CONTINUATION' }]);
+    const tq = buildAudioTimeline(q, qa);
+    expect(tq.shots[1].join).toBe('TRIM');
+    expect(tq.notes.join(' ')).toMatch(/cross-fades over 3 frames/);
+  });
+
   it('never cuts into a line the take was heard to speak', () => {
     const { p, assets } = production('SHORT', [{ seconds: 158 / 24, trim: 22, intended: 120, lines: [{ id: 'l1', audio: 'rec-1', seconds: 1.5, from: 4.6, to: 6.0 }] }]);
     const tl = buildTimeline(p, assets);

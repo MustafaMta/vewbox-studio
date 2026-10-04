@@ -16,6 +16,9 @@ const framing = looseEnum(FRAMINGS, FRAMING_SYNONYMS, 'MEDIUM');
 const cameraMove = looseEnum(CAMERA_MOVES, MOVE_SYNONYMS, 'STATIC');
 const transition = looseEnum(TRANSITIONS, TRANSITION_SYNONYMS, 'CUT');
 const relation = looseEnum(['CONTINUATION', 'CUT', 'STORY_TRANSITION'], RELATION_SYNONYMS, 'CUT');
+/** the shot boundary (src/domain/types.ts ShotBoundary), lower-case in the plan; the relation's synonyms map onto it */
+const BOUNDARY_SYNONYMS = { CONTINUATION: 'CONTINUOUS', CONTINUE: 'CONTINUOUS', CONTINUED: 'CONTINUOUS', SAME: 'CONTINUOUS', SAME_MOMENT: 'CONTINUOUS', EXTEND: 'CONTINUOUS', NEW_SCENE: 'TRANSITION', SCENE_CHANGE: 'TRANSITION', STORY_TRANSITION: 'TRANSITION', TIME_JUMP: 'TRANSITION', TIME_SKIP: 'TRANSITION', LATER: 'TRANSITION', NEW_LOCATION: 'TRANSITION', NEW_PLACE: 'TRANSITION', FIRST: 'TRANSITION', FIRST_SHOT: 'TRANSITION', OPENING: 'TRANSITION', NEW_ANGLE: 'CUT', REVERSE: 'CUT', EDITORIAL: 'CUT', EDITORIAL_CUT: 'CUT', HARD_CUT: 'CUT' } as const;
+const boundary = looseEnum(['CONTINUOUS', 'CUT', 'TRANSITION'], BOUNDARY_SYNONYMS).transform((v) => v.toLowerCase() as 'continuous' | 'cut' | 'transition');
 const screenDirection = looseEnum(['LEFT', 'RIGHT', 'TOWARD', 'AWAY', 'NEUTRAL'], DIRECTION_SYNONYMS);
 const placeKind = looseEnum(['INTERIOR', 'EXTERIOR'], KIND_SYNONYMS);
 const sex = looseEnum(['FEMALE', 'MALE'], SEX_SYNONYMS);
@@ -98,6 +101,14 @@ export const ShotPlanSchema = z.preprocess(aliases({ shots: ['shotList', 'shot_l
     transition,
     continuity: z.preprocess((v) => v ?? {}, ContinuitySchema),
     prompt: str(1600).optional(),
+    /** how the shot joins the one before it (src/domain/types.ts ShotBoundary); absent: from continuity.relationToPrevious */
+    boundary: z.preprocess((v) => (v === null || v === '' ? undefined : v), boundary.optional()),
+    /** the staging inside the shot (src/domain/types.ts ShotStaging; src/server/story/beats.ts) */
+    beats: looseArray(z.preprocess(aliases({ seconds: ['duration', 'length', 'durationSeconds', 'secs'], action: ['text', 'beat', 'description'], cut: ['shot', 'newShot', 'hardCut'] }), z.object({ seconds: looseNumber.pipe(z.number().min(0.1).max(15)).optional().default(1), action: req(400), cut: z.preprocess((v) => (v === null || v === false || v === '' ? undefined : typeof v === 'string' ? { camera: v } : v === true ? { camera: 'a new angle' } : v), z.preprocess(aliases({ camera: ['angle', 'framing', 'to'], locationName: ['location', 'place'] }), z.object({ camera: str(200), locationName: str(80).optional() })).optional()) })), { max: 10 }).optional(),
+    pace: looseEnum(['DWELL', 'NORMAL', 'MONTAGE'], { SLOW: 'DWELL', HOLD: 'DWELL', LINGER: 'DWELL', STILL: 'DWELL', FAST: 'MONTAGE', QUICK: 'MONTAGE', RAPID: 'MONTAGE', SEQUENCE: 'MONTAGE', MEDIUM: 'NORMAL', REGULAR: 'NORMAL', NONE: 'NORMAL' }, 'NORMAL').optional(),
+    pov: z.preprocess((v) => (v === null || v === '' || v === false ? undefined : v), str(80).optional()),
+    extras: looseArray(z.preprocess((v) => (typeof v === 'string' ? { description: v } : v), z.preprocess(aliases({ description: ['group', 'who', 'people', 'text'], count: ['size', 'number', 'n'] }), z.object({ description: req(300), count: looseNumber.pipe(z.number().int().min(1).max(500)).optional() }))), { max: 6 }).optional(),
+    actions: strs(300, 20).optional(),
   })), { min: 1, max: 14 }),
 }));
 export type ShotPlanOut = z.infer<typeof ShotPlanSchema>;

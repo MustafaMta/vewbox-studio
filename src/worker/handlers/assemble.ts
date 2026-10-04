@@ -33,7 +33,9 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const world = await worldOfProduction(state, p, { jobId: ctx.job.id });
   const bible = world.revision.bible;
   const ambience = Object.fromEntries(bible.locations.filter((l) => l.ambience?.assetId).map((l) => [l.locationId, l.ambience!.assetId!]));
-  const timelineOpts = { policy: bible.audio, ambience };
+  // a stale continuation join (src/domain/continuation.ts) is refused unless the producer's override is on the job
+  const allowStaleJoins = Boolean((ctx.job.payload as { allowStaleJoins?: boolean }).allowStaleJoins);
+  const timelineOpts = { policy: bible.audio, ambience, allowStaleJoins };
   let timeline = buildTimeline(p, state.assets, timelineOpts);
   // sample takes are stand-ins made by the prototype; refuse to pass them off as a production cut
   const sampleTakes = timeline.items.filter((it) => it.take.sample);
@@ -136,7 +138,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const digest = timelineDigest(timeline.audio);
   const assets: Array<Omit<Asset, 'createdAt'>> = [
     assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id }),
-    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
+    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis, relation: it.relation, join: it.join })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
   ];
   // sidecar subtitle files
   const sidecars: string[] = [];

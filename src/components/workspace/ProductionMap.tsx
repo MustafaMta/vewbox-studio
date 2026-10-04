@@ -10,6 +10,7 @@ import { assetById, locationById, shotHref, shotLabel } from '@/studio/selectors
 import { cutVersionsOf } from '@/studio/selectors/cuts';
 import { decisionCard, displaySrc, runtime, shortWhen } from '@/components/home/model';
 import { DecisionCard } from '@/components/media/Cards';
+import { DecisionCardSkeleton } from '@/components/media';
 import { Frame } from '@/components/media/Frame';
 import { SectionHead, StateWord } from '@/components/ui/kit';
 import { ApprovalGate, RecentlyRemoved, StaleCut, useGate } from './Decide';
@@ -26,8 +27,10 @@ import { breakdownOf, decisionsOf, expectationWords, flowOf, frameRatioOf, leadO
  *  every shot is filmed); every scene with its shots as frames in their real ratio with their state; and the cut.
  *  No raw model parameters, job ids or logs: progress, review and recovery are words. */
 export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) {
-  const { state, jobs } = useStudio();
+  const { state, jobs, jobsReady } = useStudio();
   const { decisions } = useShell();
+  // the decisions are known once the pipeline has answered and the job list has been read (both arrive after the snapshot)
+  const decisionsKnown = decisions.complete && jobsReady;
   const cuts = useMemo(() => cutVersionsOf(p, state.assets), [p, state.assets]);
   const flow = flowOf(p, state.assets);
   const lastExport = [...(p.exports ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -58,8 +61,10 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
       </nav>
 
       <section className="ws-sec" aria-labelledby="ws-wait-h" id="waiting">
-        <SectionHead id="ws-wait-h" title="Waiting for you" count={waiting.length || null} countTone="wait" link={waiting.length ? { href: '/production#needs-you', label: 'All decisions', short: 'All' } : undefined} />
-        {waiting.length === 0 ? <p className="t-body ws-empty">Nothing in this production waits for you.</p> : (
+        <SectionHead id="ws-wait-h" title="Waiting for you" count={decisionsKnown && waiting.length ? waiting.length : null} countTone="wait" link={decisionsKnown && waiting.length ? { href: '/production#needs-you', label: 'All decisions', short: 'All' } : undefined} />
+        {/* the decisions arrive after the snapshot (the pipeline's answer, the job list): until then the row keeps the cards' shape, so nothing below it moves */}
+        {!decisionsKnown ? <ul className="ws-decisions" role="list" aria-busy="true" aria-label="Finding what waits for you">{[0, 1].map((i) => <li key={i}><DecisionCardSkeleton /></li>)}</ul>
+          : waiting.length === 0 ? <p className="t-body ws-empty">Nothing in this production waits for you.</p> : (
           <ul className="ws-decisions" role="list">
             {waiting.map((d) => {
               const c = decisionCard(d, state);
