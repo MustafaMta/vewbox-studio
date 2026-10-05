@@ -2803,8 +2803,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.324Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-qi21e-s970007.png",
+    "proxy": "edit\\E1-C1-kite-maker-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 9996,
+    "wallMs": 10482,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22274,
+    "coldLoad": false,
+    "workflowVersion": "465d24fc0074b6fd",
+    "at": "2026-10-05T11:30:57.402Z"
   },
   "edit/E1-C1-kite-maker-qi21e-s970008": {
     "id": "edit/E1-C1-kite-maker-qi21e-s970008",
@@ -2819,8 +2828,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.326Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-qi21e-s970008.png",
+    "proxy": "edit\\E1-C1-kite-maker-qi21e-s970008.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7222,
+    "wallMs": 7516,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22210,
+    "coldLoad": false,
+    "workflowVersion": "465d24fc0074b6fd",
+    "at": "2026-10-05T11:31:04.922Z"
   },
   "edit/E1-C2-courier-girl-qi21e-s970007": {
     "id": "edit/E1-C2-courier-girl-qi21e-s970007",
@@ -2835,8 +2853,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.327Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-qi21e-s970007.png",
+    "proxy": "edit\\E1-C2-courier-girl-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 9938,
+    "wallMs": 10459,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22242,
+    "coldLoad": false,
+    "workflowVersion": "37a6bac859b9b363",
+    "at": "2026-10-05T11:31:15.383Z"
   },
   "edit/E1-C2-courier-girl-qi21e-s970008": {
     "id": "edit/E1-C2-courier-girl-qi21e-s970008",
@@ -2851,8 +2878,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.328Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-qi21e-s970008.png",
+    "proxy": "edit\\E1-C2-courier-girl-qi21e-s970008.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7218,
+    "wallMs": 7506,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22210,
+    "coldLoad": false,
+    "workflowVersion": "37a6bac859b9b363",
+    "at": "2026-10-05T11:31:22.891Z"
   },
   "edit/E1-C3-pharmacist-qi21e-s970007": {
     "id": "edit/E1-C3-pharmacist-qi21e-s970007",
@@ -2867,8 +2903,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.329Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-qi21e-s970007.png",
+    "proxy": "edit\\E1-C3-pharmacist-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 9960,
+    "wallMs": 10438,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22274,
+    "coldLoad": false,
+    "workflowVersion": "7580a86a68f98458",
+    "at": "2026-10-05T11:31:33.333Z"
   },
   "edit/E1-C3-pharmacist-qi21e-s970008": {
     "id": "edit/E1-C3-pharmacist-qi21e-s970008",
@@ -2883,8 +2928,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.330Z"
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-qi21e-s970008.png",
+    "proxy": "edit\\E1-C3-pharmacist-qi21e-s970008.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7210,
+    "wallMs": 7491,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22210,
+    "coldLoad": false,
+    "workflowVersion": "7580a86a68f98458",
+    "at": "2026-10-05T11:31:40.826Z"
   },
   "plate/L1-anime-qi21-s970007": {
     "id": "plate/L1-anime-qi21-s970007",
@@ -2895,8 +2949,17 @@
     "seed": 970007,
     "prompt": "premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Painted backgrounds: perspective-correct architecture with soft painterly texture, strong colour scripts per time of day (cool dawns, golden afternoons, deep blue nights with warm windows), lens flares and light rays used deliberately. exterior. Al-Mutanabbi Street book market in Baghdad: a long pedestrian street of book stalls under the arcades of old brick buildings, stacks of books on wooden tables, early morning, empty of people. landmarks: arcades of old brick buildings with wooden balconies; book stalls with stacked books; a café entrance on the corner. props present: stacks of books, wooden stall tables, hanging signboards. time of day: morning. wide establishing master plate of the whole space, eye level. An unoccupied, deserted place: pure environment and props, the scene before anyone arrives. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, people, person",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.330Z"
+    "file": "var\\model-eval\\images\\plate\\L1-anime-qi21-s970007.png",
+    "proxy": "plate\\L1-anime-qi21-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 4623,
+    "wallMs": 5074,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 16958,
+    "coldLoad": false,
+    "workflowVersion": "14bfa4671b409fc1",
+    "at": "2026-10-05T11:29:51.214Z"
   },
   "plate/L1-cartoon-qi21-s970007": {
     "id": "plate/L1-cartoon-qi21-s970007",
@@ -2907,8 +2970,17 @@
     "seed": 970007,
     "prompt": "high-end 3D animated feature film still, stylized CG environment art, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth. exterior. Al-Mutanabbi Street book market in Baghdad: a long pedestrian street of book stalls under the arcades of old brick buildings, stacks of books on wooden tables, early morning, empty of people. landmarks: arcades of old brick buildings with wooden balconies; book stalls with stacked books; a café entrance on the corner. props present: stacks of books, wooden stall tables, hanging signboards. time of day: morning. wide establishing master plate of the whole space, eye level. An unoccupied, deserted place: pure environment and props, the scene before anyone arrives. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, people, person",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.331Z"
+    "file": "var\\model-eval\\images\\plate\\L1-cartoon-qi21-s970007.png",
+    "proxy": "plate\\L1-cartoon-qi21-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 4636,
+    "wallMs": 4877,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 16866,
+    "coldLoad": false,
+    "workflowVersion": "14bfa4671b409fc1",
+    "at": "2026-10-05T11:29:56.093Z"
   },
   "plate/L1-realistic-qi21-s970007": {
     "id": "plate/L1-realistic-qi21-s970007",
@@ -2919,8 +2991,17 @@
     "seed": 970007,
     "prompt": "cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Real locations: believable architecture and clutter, motivated light sources (windows, lamps, neon), weather and haze, surfaces with age and dirt, period-correct details. exterior. Al-Mutanabbi Street book market in Baghdad: a long pedestrian street of book stalls under the arcades of old brick buildings, stacks of books on wooden tables, early morning, empty of people. landmarks: arcades of old brick buildings with wooden balconies; book stalls with stacked books; a café entrance on the corner. props present: stacks of books, wooden stall tables, hanging signboards. time of day: morning. wide establishing master plate of the whole space, eye level. An unoccupied, deserted place: pure environment and props, the scene before anyone arrives. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, people, person",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.332Z"
+    "file": "var\\model-eval\\images\\plate\\L1-realistic-qi21-s970007.png",
+    "proxy": "plate\\L1-realistic-qi21-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 4788,
+    "wallMs": 5218,
+    "vramBeforeMiB": 15554,
+    "vramPeakMiB": 16866,
+    "coldLoad": false,
+    "workflowVersion": "14bfa4671b409fc1",
+    "at": "2026-10-05T11:30:01.315Z"
   },
   "poster/P1-qi21-s970007": {
     "id": "poster/P1-qi21-s970007",
@@ -2931,8 +3012,17 @@
     "seed": 970007,
     "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Vertical film poster key art: on a Baghdad rooftop at dusk an old kite-maker (stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist) releases a red kite into the sky while a courier girl (a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder) looks up beside him; both in the same stylized 3D animated style; cinematic lighting, warm dusk sky, the city skyline below; the top quarter of the poster is open sky left empty for a title; no text, no lettering. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.332Z"
+    "file": "var\\model-eval\\images\\poster\\P1-qi21-s970007.png",
+    "proxy": "poster\\P1-qi21-s970007.jpg",
+    "width": 896,
+    "height": 1344,
+    "engineMs": 5505,
+    "wallMs": 5937,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18306,
+    "coldLoad": false,
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:30:30.751Z"
   },
   "poster/P1-qi21-s970008": {
     "id": "poster/P1-qi21-s970008",
@@ -2943,8 +3033,17 @@
     "seed": 970008,
     "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Vertical film poster key art: on a Baghdad rooftop at dusk an old kite-maker (stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist) releases a red kite into the sky while a courier girl (a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder) looks up beside him; both in the same stylized 3D animated style; cinematic lighting, warm dusk sky, the city skyline below; the top quarter of the poster is open sky left empty for a title; no text, no lettering. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.333Z"
+    "file": "var\\model-eval\\images\\poster\\P1-qi21-s970008.png",
+    "proxy": "poster\\P1-qi21-s970008.jpg",
+    "width": 896,
+    "height": 1344,
+    "engineMs": 4987,
+    "wallMs": 5220,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 17698,
+    "coldLoad": false,
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:30:35.977Z"
   },
   "poster/P2-qi21-s970007": {
     "id": "poster/P2-qi21-s970007",
@@ -2955,8 +3054,17 @@
     "seed": 970007,
     "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Vertical film poster key art: on a Baghdad rooftop at dusk an old kite-maker (stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist) releases a red kite into the sky while a courier girl (a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder) looks up beside him; both in the same stylized 3D animated style; cinematic lighting, warm dusk sky, the city skyline below; the top quarter of the poster is open sky left empty for a title; the title text 'THE KITE MAKER' in large serif capitals across the top. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.334Z"
+    "file": "var\\model-eval\\images\\poster\\P2-qi21-s970007.png",
+    "proxy": "poster\\P2-qi21-s970007.jpg",
+    "width": 896,
+    "height": 1344,
+    "engineMs": 5283,
+    "wallMs": 5715,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 17634,
+    "coldLoad": false,
+    "workflowVersion": "a06f11a3171b8275",
+    "at": "2026-10-05T11:30:41.695Z"
   },
   "poster/P2-qi21-s970008": {
     "id": "poster/P2-qi21-s970008",
@@ -2967,8 +3075,17 @@
     "seed": 970008,
     "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Vertical film poster key art: on a Baghdad rooftop at dusk an old kite-maker (stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist) releases a red kite into the sky while a courier girl (a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder) looks up beside him; both in the same stylized 3D animated style; cinematic lighting, warm dusk sky, the city skyline below; the top quarter of the poster is open sky left empty for a title; the title text 'THE KITE MAKER' in large serif capitals across the top. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.335Z"
+    "file": "var\\model-eval\\images\\poster\\P2-qi21-s970008.png",
+    "proxy": "poster\\P2-qi21-s970008.jpg",
+    "width": 896,
+    "height": 1344,
+    "engineMs": 4985,
+    "wallMs": 5220,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18306,
+    "coldLoad": false,
+    "workflowVersion": "a06f11a3171b8275",
+    "at": "2026-10-05T11:30:46.917Z"
   },
   "reference/ic3-teen-qi21-ref-s970007": {
     "id": "reference/ic3-teen-qi21-ref-s970007",
@@ -2977,13 +3094,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not 3D): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: Japanese anime character, a teenage boy aged about 10-19; slender build; oval face; short straight black hair, short cut; dark eyes; fair skin; no facial hair; wearing red hoodie, black white stripes pants; white sneakers. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition.",
     "inputs": {
       "upload": "ic3.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.336Z"
+    "file": "var\\model-eval\\images\\reference\\ic3-teen-qi21-ref-s970007.png",
+    "proxy": "reference\\ic3-teen-qi21-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 13480,
+    "wallMs": 14149,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22402,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2696629213483146,
+        "y": 0.0421875,
+        "w": 0.45224719101123595,
+        "h": 0.928125
+      },
+      "margins": {
+        "top": 0.0421875,
+        "bottom": 0.0296875,
+        "left": 0.2696629213483146,
+        "right": 0.27808988764044945
+      },
+      "reasons": []
+    },
+    "workflowVersion": "06bbd640216e1ef1",
+    "at": "2026-10-05T11:31:54.977Z"
   },
   "reference/ic3-teen-qi21-ref-s970008": {
     "id": "reference/ic3-teen-qi21-ref-s970008",
@@ -2992,13 +3133,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not 3D): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: Japanese anime character, a teenage boy aged about 10-19; slender build; oval face; short straight black hair, short cut; dark eyes; fair skin; no facial hair; wearing red hoodie, black white stripes pants; white sneakers. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition.",
     "inputs": {
       "upload": "ic3.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.336Z"
+    "file": "var\\model-eval\\images\\reference\\ic3-teen-qi21-ref-s970008.png",
+    "proxy": "reference\\ic3-teen-qi21-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 10743,
+    "wallMs": 11404,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22370,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2752808988764045,
+        "y": 0.0515625,
+        "w": 0.4410112359550562,
+        "h": 0.9125
+      },
+      "margins": {
+        "top": 0.0515625,
+        "bottom": 0.0359375,
+        "left": 0.2752808988764045,
+        "right": 0.28370786516853935
+      },
+      "reasons": []
+    },
+    "workflowVersion": "06bbd640216e1ef1",
+    "at": "2026-10-05T11:32:06.384Z"
   },
   "reference/ic4-cg-girl-qi21-ref-s970007": {
     "id": "reference/ic4-cg-girl-qi21-ref-s970007",
@@ -3007,13 +3172,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a girl; slender build; round face; medium curly brown hair, pigtails; brown eyes; light skin; freckles; wearing yellow hoodie, blue and yellow striped shirt. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ic4.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.337Z"
+    "file": "var\\model-eval\\images\\reference\\ic4-cg-girl-qi21-ref-s970007.png",
+    "proxy": "reference\\ic4-cg-girl-qi21-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 13412,
+    "wallMs": 14099,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22306,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.21348314606741572,
+        "y": 0.0859375,
+        "w": 0.5955056179775281,
+        "h": 0.85
+      },
+      "margins": {
+        "top": 0.0859375,
+        "bottom": 0.0640625,
+        "left": 0.21348314606741572,
+        "right": 0.19101123595505617
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f88cbde9870de5cc",
+    "at": "2026-10-05T11:32:20.485Z"
   },
   "reference/ic4-cg-girl-qi21-ref-s970008": {
     "id": "reference/ic4-cg-girl-qi21-ref-s970008",
@@ -3022,13 +3211,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a girl; slender build; round face; medium curly brown hair, pigtails; brown eyes; light skin; freckles; wearing yellow hoodie, blue and yellow striped shirt. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ic4.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.338Z"
+    "file": "var\\model-eval\\images\\reference\\ic4-cg-girl-qi21-ref-s970008.png",
+    "proxy": "reference\\ic4-cg-girl-qi21-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 10727,
+    "wallMs": 11407,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22274,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.18258426966292135,
+        "y": 0.1171875,
+        "w": 0.6404494382022472,
+        "h": 0.834375
+      },
+      "margins": {
+        "top": 0.1171875,
+        "bottom": 0.0484375,
+        "left": 0.18258426966292135,
+        "right": 0.17696629213483145
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f88cbde9870de5cc",
+    "at": "2026-10-05T11:32:31.894Z"
   },
   "reference/ir2-bust-qi21-ref-s970007": {
     "id": "reference/ir2-bust-qi21-ref-s970007",
@@ -3037,13 +3250,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.339Z"
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-qi21-ref-s970007.png",
+    "proxy": "reference\\ir2-bust-qi21-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 13524,
+    "wallMs": 14170,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22338,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.24719101123595505,
+        "y": 0.028125,
+        "w": 0.5,
+        "h": 0.9296875
+      },
+      "margins": {
+        "top": 0.028125,
+        "bottom": 0.0421875,
+        "left": 0.24719101123595505,
+        "right": 0.25280898876404495
+      },
+      "reasons": []
+    },
+    "workflowVersion": "350f2ced1c90cb20",
+    "at": "2026-10-05T11:32:46.066Z"
   },
   "reference/ir2-bust-qi21-ref-s970008": {
     "id": "reference/ir2-bust-qi21-ref-s970008",
@@ -3052,13 +3289,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.340Z"
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-qi21-ref-s970008.png",
+    "proxy": "reference\\ir2-bust-qi21-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 10714,
+    "wallMs": 11349,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22306,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2556179775280899,
+        "y": 0.046875,
+        "w": 0.4747191011235955,
+        "h": 0.9109375
+      },
+      "margins": {
+        "top": 0.046875,
+        "bottom": 0.0421875,
+        "left": 0.2556179775280899,
+        "right": 0.2696629213483146
+      },
+      "reasons": []
+    },
+    "workflowVersion": "350f2ced1c90cb20",
+    "at": "2026-10-05T11:32:57.418Z"
   },
   "reference/ix1-bust-qi21-ref-s970007": {
     "id": "reference/ix1-bust-qi21-ref-s970007",
@@ -3067,13 +3328,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.341Z"
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-qi21-ref-s970007.png",
+    "proxy": "reference\\ix1-bust-qi21-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 13452,
+    "wallMs": 14147,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22370,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.23595505617977527,
+        "y": 0.0703125,
+        "w": 0.5252808988764045,
+        "h": 0.884375
+      },
+      "margins": {
+        "top": 0.0703125,
+        "bottom": 0.0453125,
+        "left": 0.23595505617977527,
+        "right": 0.23876404494382023
+      },
+      "reasons": []
+    },
+    "workflowVersion": "8bbd567d772bb6e5",
+    "at": "2026-10-05T11:33:11.567Z"
   },
   "reference/ix1-bust-qi21-ref-s970008": {
     "id": "reference/ix1-bust-qi21-ref-s970008",
@@ -3082,13 +3367,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.341Z"
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-qi21-ref-s970008.png",
+    "proxy": "reference\\ix1-bust-qi21-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 10763,
+    "wallMs": 11421,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22338,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.23876404494382023,
+        "y": 0.06875,
+        "w": 0.5252808988764045,
+        "h": 0.8921875
+      },
+      "margins": {
+        "top": 0.06875,
+        "bottom": 0.0390625,
+        "left": 0.23876404494382023,
+        "right": 0.23595505617977527
+      },
+      "reasons": []
+    },
+    "workflowVersion": "8bbd567d772bb6e5",
+    "at": "2026-10-05T11:33:22.993Z"
   },
   "reference/ix2-waist-qi21-ref-s970007": {
     "id": "reference/ix2-waist-qi21-ref-s970007",
@@ -3097,13 +3406,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.342Z"
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-qi21-ref-s970007.png",
+    "proxy": "reference\\ix2-waist-qi21-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 13448,
+    "wallMs": 14123,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22370,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.28370786516853935,
+        "y": 0.0875,
+        "w": 0.43258426966292135,
+        "h": 0.8640625
+      },
+      "margins": {
+        "top": 0.0875,
+        "bottom": 0.0484375,
+        "left": 0.28370786516853935,
+        "right": 0.28370786516853935
+      },
+      "reasons": []
+    },
+    "workflowVersion": "43fa14f1cce37b71",
+    "at": "2026-10-05T11:33:37.118Z"
   },
   "reference/ix2-waist-qi21-ref-s970008": {
     "id": "reference/ix2-waist-qi21-ref-s970008",
@@ -3112,13 +3445,37 @@
     "arm": "qi21-ref",
     "family": "qi21",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.343Z"
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-qi21-ref-s970008.png",
+    "proxy": "reference\\ix2-waist-qi21-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 10853,
+    "wallMs": 11509,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 22338,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2752808988764045,
+        "y": 0.0953125,
+        "w": 0.44662921348314605,
+        "h": 0.85625
+      },
+      "margins": {
+        "top": 0.0953125,
+        "bottom": 0.0484375,
+        "left": 0.2752808988764045,
+        "right": 0.27808988764044945
+      },
+      "reasons": []
+    },
+    "workflowVersion": "43fa14f1cce37b71",
+    "at": "2026-10-05T11:33:48.630Z"
   },
   "stress/C1-kite-maker-crossed-qi21-s970007": {
     "id": "stress/C1-kite-maker-crossed-qi21-s970007",
@@ -3129,9 +3486,33 @@
     "seed": 970007,
     "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing with the arms crossed over the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.343Z"
+    "file": "var\\model-eval\\images\\stress\\C1-kite-maker-crossed-qi21-s970007.png",
+    "proxy": "stress\\C1-kite-maker-crossed-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7292,
+    "wallMs": 7756,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 17858,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.27247191011235955,
+        "y": 0.0625,
+        "w": 0.45224719101123595,
+        "h": 0.896875
+      },
+      "margins": {
+        "top": 0.0625,
+        "bottom": 0.040625,
+        "left": 0.27247191011235955,
+        "right": 0.2752808988764045
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:33:56.388Z"
   },
   "stress/C1-kite-maker-running-qi21-s970007": {
     "id": "stress/C1-kite-maker-running-qi21-s970007",
@@ -3142,9 +3523,33 @@
     "seed": 970007,
     "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, running mid-stride toward the camera, plain neutral mid-grey studio background, even soft studio light, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.344Z"
+    "file": "var\\model-eval\\images\\stress\\C1-kite-maker-running-qi21-s970007.png",
+    "proxy": "stress\\C1-kite-maker-running-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7314,
+    "wallMs": 7977,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18690,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.199438202247191,
+        "y": 0.065625,
+        "w": 0.6179775280898876,
+        "h": 0.9015625
+      },
+      "margins": {
+        "top": 0.065625,
+        "bottom": 0.0328125,
+        "left": 0.199438202247191,
+        "right": 0.18258426966292135
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:34:04.367Z"
   },
   "stress/C1-kite-maker-tea-qi21-s970007": {
     "id": "stress/C1-kite-maker-tea-qi21-s970007",
@@ -3155,9 +3560,33 @@
     "seed": 970007,
     "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing, holding a small glass of tea in both hands in front of the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.345Z"
+    "file": "var\\model-eval\\images\\stress\\C1-kite-maker-tea-qi21-s970007.png",
+    "proxy": "stress\\C1-kite-maker-tea-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7289,
+    "wallMs": 7746,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18658,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.24157303370786518,
+        "y": 0.0625,
+        "w": 0.5112359550561798,
+        "h": 0.903125
+      },
+      "margins": {
+        "top": 0.0625,
+        "bottom": 0.034375,
+        "left": 0.24157303370786518,
+        "right": 0.24719101123595505
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:34:12.116Z"
   },
   "stress/C2-courier-girl-crossed-qi21-s970007": {
     "id": "stress/C2-courier-girl-crossed-qi21-s970007",
@@ -3168,9 +3597,33 @@
     "seed": 970007,
     "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing with the arms crossed over the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.345Z"
+    "file": "var\\model-eval\\images\\stress\\C2-courier-girl-crossed-qi21-s970007.png",
+    "proxy": "stress\\C2-courier-girl-crossed-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7292,
+    "wallMs": 7930,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 17858,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25,
+        "y": 0.025,
+        "w": 0.49719101123595505,
+        "h": 0.953125
+      },
+      "margins": {
+        "top": 0.025,
+        "bottom": 0.021875,
+        "left": 0.25,
+        "right": 0.25280898876404495
+      },
+      "reasons": []
+    },
+    "workflowVersion": "71f85a3bd6ffbb5c",
+    "at": "2026-10-05T11:34:20.048Z"
   },
   "stress/C2-courier-girl-running-qi21-s970007": {
     "id": "stress/C2-courier-girl-running-qi21-s970007",
@@ -3181,9 +3634,33 @@
     "seed": 970007,
     "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, running mid-stride toward the camera, plain neutral mid-grey studio background, even soft studio light, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.346Z"
+    "file": "var\\model-eval\\images\\stress\\C2-courier-girl-running-qi21-s970007.png",
+    "proxy": "stress\\C2-courier-girl-running-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7313,
+    "wallMs": 7767,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 17794,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2050561797752809,
+        "y": 0.0359375,
+        "w": 0.5898876404494382,
+        "h": 0.940625
+      },
+      "margins": {
+        "top": 0.0359375,
+        "bottom": 0.0234375,
+        "left": 0.2050561797752809,
+        "right": 0.2050561797752809
+      },
+      "reasons": []
+    },
+    "workflowVersion": "71f85a3bd6ffbb5c",
+    "at": "2026-10-05T11:34:27.817Z"
   },
   "stress/C2-courier-girl-tea-qi21-s970007": {
     "id": "stress/C2-courier-girl-tea-qi21-s970007",
@@ -3194,9 +3671,33 @@
     "seed": 970007,
     "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing, holding a small glass of tea in both hands in front of the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.347Z"
+    "file": "var\\model-eval\\images\\stress\\C2-courier-girl-tea-qi21-s970007.png",
+    "proxy": "stress\\C2-courier-girl-tea-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7288,
+    "wallMs": 7932,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18690,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.26685393258426965,
+        "y": 0.025,
+        "w": 0.4438202247191011,
+        "h": 0.9453125
+      },
+      "margins": {
+        "top": 0.025,
+        "bottom": 0.0296875,
+        "left": 0.26685393258426965,
+        "right": 0.2893258426966292
+      },
+      "reasons": []
+    },
+    "workflowVersion": "71f85a3bd6ffbb5c",
+    "at": "2026-10-05T11:34:35.751Z"
   },
   "stress/C3-pharmacist-crossed-qi21-s970007": {
     "id": "stress/C3-pharmacist-crossed-qi21-s970007",
@@ -3207,9 +3708,33 @@
     "seed": 970007,
     "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing with the arms crossed over the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.347Z"
+    "file": "var\\model-eval\\images\\stress\\C3-pharmacist-crossed-qi21-s970007.png",
+    "proxy": "stress\\C3-pharmacist-crossed-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7255,
+    "wallMs": 7687,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18722,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2949438202247191,
+        "y": 0.0828125,
+        "w": 0.4241573033707865,
+        "h": 0.853125
+      },
+      "margins": {
+        "top": 0.0828125,
+        "bottom": 0.0640625,
+        "left": 0.2949438202247191,
+        "right": 0.2808988764044944
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f388d681f56674a3",
+    "at": "2026-10-05T11:34:43.440Z"
   },
   "stress/C3-pharmacist-running-qi21-s970007": {
     "id": "stress/C3-pharmacist-running-qi21-s970007",
@@ -3220,9 +3745,35 @@
     "seed": 970007,
     "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, running mid-stride toward the camera, plain neutral mid-grey studio background, even soft studio light, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.348Z"
+    "file": "var\\model-eval\\images\\stress\\C3-pharmacist-running-qi21-s970007.png",
+    "proxy": "stress\\C3-pharmacist-running-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7271,
+    "wallMs": 7909,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18722,
+    "coldLoad": false,
+    "framing": {
+      "ok": false,
+      "box": {
+        "x": 0.21629213483146068,
+        "y": 0.078125,
+        "w": 0.44662921348314605,
+        "h": 0.915625
+      },
+      "margins": {
+        "top": 0.078125,
+        "bottom": 0.00625,
+        "left": 0.21629213483146068,
+        "right": 0.33707865168539325
+      },
+      "reasons": [
+        "the feet touch or leave the bottom edge"
+      ]
+    },
+    "workflowVersion": "f388d681f56674a3",
+    "at": "2026-10-05T11:34:51.351Z"
   },
   "stress/C3-pharmacist-tea-qi21-s970007": {
     "id": "stress/C3-pharmacist-tea-qi21-s970007",
@@ -3233,9 +3784,33 @@
     "seed": 970007,
     "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing, holding a small glass of tea in both hands in front of the chest, plain neutral mid-grey studio background, even soft studio light, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.349Z"
+    "file": "var\\model-eval\\images\\stress\\C3-pharmacist-tea-qi21-s970007.png",
+    "proxy": "stress\\C3-pharmacist-tea-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7281,
+    "wallMs": 7715,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 18722,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.3398876404494382,
+        "y": 0.08125,
+        "w": 0.3202247191011236,
+        "h": 0.8609375
+      },
+      "margins": {
+        "top": 0.08125,
+        "bottom": 0.0578125,
+        "left": 0.3398876404494382,
+        "right": 0.3398876404494382
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f388d681f56674a3",
+    "at": "2026-10-05T11:34:59.068Z"
   },
   "t2i/C1-kite-maker-qi21-s970007": {
     "id": "t2i/C1-kite-maker-qi21-s970007",
@@ -3246,9 +3821,33 @@
     "seed": 970007,
     "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.350Z"
+    "file": "var\\model-eval\\images\\t2i\\C1-kite-maker-qi21-s970007.png",
+    "proxy": "t2i\\C1-kite-maker-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 16532,
+    "wallMs": 17214,
+    "vramBeforeMiB": null,
+    "vramPeakMiB": 17470,
+    "coldLoad": true,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2640449438202247,
+        "y": 0.065625,
+        "w": 0.4943820224719101,
+        "h": 0.8765625
+      },
+      "margins": {
+        "top": 0.065625,
+        "bottom": 0.0578125,
+        "left": 0.2640449438202247,
+        "right": 0.24157303370786518
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:29:07.744Z"
   },
   "t2i/C1-kite-maker-qi21-s970008": {
     "id": "t2i/C1-kite-maker-qi21-s970008",
@@ -3259,9 +3858,33 @@
     "seed": 970008,
     "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.351Z"
+    "file": "var\\model-eval\\images\\t2i\\C1-kite-maker-qi21-s970008.png",
+    "proxy": "t2i\\C1-kite-maker-qi21-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 6919,
+    "wallMs": 7405,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 16446,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.23876404494382023,
+        "y": 0.0578125,
+        "w": 0.5028089887640449,
+        "h": 0.896875
+      },
+      "margins": {
+        "top": 0.0578125,
+        "bottom": 0.0453125,
+        "left": 0.23876404494382023,
+        "right": 0.25842696629213485
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1043c61b49897f4e",
+    "at": "2026-10-05T11:29:15.151Z"
   },
   "t2i/C2-courier-girl-qi21-s970007": {
     "id": "t2i/C2-courier-girl-qi21-s970007",
@@ -3272,9 +3895,33 @@
     "seed": 970007,
     "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.351Z"
+    "file": "var\\model-eval\\images\\t2i\\C2-courier-girl-qi21-s970007.png",
+    "proxy": "t2i\\C2-courier-girl-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7472,
+    "wallMs": 8137,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 17470,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25842696629213485,
+        "y": 0.0328125,
+        "w": 0.47191011235955055,
+        "h": 0.9203125
+      },
+      "margins": {
+        "top": 0.0328125,
+        "bottom": 0.046875,
+        "left": 0.25842696629213485,
+        "right": 0.2696629213483146
+      },
+      "reasons": []
+    },
+    "workflowVersion": "71f85a3bd6ffbb5c",
+    "at": "2026-10-05T11:29:23.290Z"
   },
   "t2i/C2-courier-girl-qi21-s970008": {
     "id": "t2i/C2-courier-girl-qi21-s970008",
@@ -3285,9 +3932,33 @@
     "seed": 970008,
     "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.352Z"
+    "file": "var\\model-eval\\images\\t2i\\C2-courier-girl-qi21-s970008.png",
+    "proxy": "t2i\\C2-courier-girl-qi21-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 6936,
+    "wallMs": 7383,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 17502,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.27247191011235955,
+        "y": 0.05,
+        "w": 0.49719101123595505,
+        "h": 0.9125
+      },
+      "margins": {
+        "top": 0.05,
+        "bottom": 0.0375,
+        "left": 0.27247191011235955,
+        "right": 0.2303370786516854
+      },
+      "reasons": []
+    },
+    "workflowVersion": "71f85a3bd6ffbb5c",
+    "at": "2026-10-05T11:29:30.675Z"
   },
   "t2i/C3-pharmacist-qi21-s970007": {
     "id": "t2i/C3-pharmacist-qi21-s970007",
@@ -3298,9 +3969,33 @@
     "seed": 970007,
     "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.353Z"
+    "file": "var\\model-eval\\images\\t2i\\C3-pharmacist-qi21-s970007.png",
+    "proxy": "t2i\\C3-pharmacist-qi21-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 7427,
+    "wallMs": 8083,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 16286,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2893258426966292,
+        "y": 0.0796875,
+        "w": 0.4550561797752809,
+        "h": 0.8796875
+      },
+      "margins": {
+        "top": 0.0796875,
+        "bottom": 0.040625,
+        "left": 0.2893258426966292,
+        "right": 0.2556179775280899
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f388d681f56674a3",
+    "at": "2026-10-05T11:29:38.764Z"
   },
   "t2i/C3-pharmacist-qi21-s970008": {
     "id": "t2i/C3-pharmacist-qi21-s970008",
@@ -3311,9 +4006,33 @@
     "seed": 970008,
     "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
     "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
-    "canonicalFrame": true,
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.353Z"
+    "file": "var\\model-eval\\images\\t2i\\C3-pharmacist-qi21-s970008.png",
+    "proxy": "t2i\\C3-pharmacist-qi21-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 6909,
+    "wallMs": 7371,
+    "vramBeforeMiB": 15550,
+    "vramPeakMiB": 16638,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.26685393258426965,
+        "y": 0.0796875,
+        "w": 0.4606741573033708,
+        "h": 0.8484375
+      },
+      "margins": {
+        "top": 0.0796875,
+        "bottom": 0.071875,
+        "left": 0.26685393258426965,
+        "right": 0.27247191011235955
+      },
+      "reasons": []
+    },
+    "workflowVersion": "f388d681f56674a3",
+    "at": "2026-10-05T11:29:46.138Z"
   },
   "views/L2-dusk-qi21e-s970007": {
     "id": "views/L2-dusk-qi21e-s970007",
@@ -3327,8 +4046,17 @@
     "inputs": {
       "image1": "plate L1-realistic-2512d-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.354Z"
+    "file": "var\\model-eval\\images\\views\\L2-dusk-qi21e-s970007.png",
+    "proxy": "views\\L2-dusk-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7929,
+    "wallMs": 8181,
+    "vramBeforeMiB": 15554,
+    "vramPeakMiB": 19618,
+    "coldLoad": false,
+    "workflowVersion": "e4d64c37480eeddb",
+    "at": "2026-10-05T11:30:09.502Z"
   },
   "views/L2-reverse-qi21e-s970007": {
     "id": "views/L2-reverse-qi21e-s970007",
@@ -3342,8 +4070,17 @@
     "inputs": {
       "image1": "plate L1-realistic-2512d-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.354Z"
+    "file": "var\\model-eval\\images\\views\\L2-reverse-qi21e-s970007.png",
+    "proxy": "views\\L2-reverse-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7284,
+    "wallMs": 7765,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 19650,
+    "coldLoad": false,
+    "workflowVersion": "e4d64c37480eeddb",
+    "at": "2026-10-05T11:30:17.269Z"
   },
   "views/L2-stall-qi21e-s970007": {
     "id": "views/L2-stall-qi21e-s970007",
@@ -3357,7 +4094,16 @@
     "inputs": {
       "image1": "plate L1-realistic-2512d-s970007"
     },
-    "skipped": "qwen_image_2.1_int8_convrot.safetensors is not on the models volume",
-    "at": "2026-10-04T23:16:41.355Z"
+    "file": "var\\model-eval\\images\\views\\L2-stall-qi21e-s970007.png",
+    "proxy": "views\\L2-stall-qi21e-s970007.jpg",
+    "width": 1376,
+    "height": 768,
+    "engineMs": 7261,
+    "wallMs": 7540,
+    "vramBeforeMiB": 16770,
+    "vramPeakMiB": 19650,
+    "coldLoad": false,
+    "workflowVersion": "e4d64c37480eeddb",
+    "at": "2026-10-05T11:30:24.811Z"
   }
 }

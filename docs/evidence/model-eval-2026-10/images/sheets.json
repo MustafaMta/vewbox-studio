@@ -1,46 +1,152 @@
 {
+  "sheet-t2i-cartoon.jpg": [
+    "t2i/C1-kite-maker-2512d-s970007",
+    "t2i/C1-kite-maker-2512d-s970008",
+    "t2i/C1-kite-maker-2512q-s970007",
+    "t2i/C1-kite-maker-2512q-s970008",
+    "t2i/C1-kite-maker-klein-s970007",
+    "t2i/C1-kite-maker-klein-s970008",
+    "t2i/C1-kite-maker-qi21-s970007",
+    "t2i/C1-kite-maker-qi21-s970008"
+  ],
+  "sheet-t2i-anime.jpg": [
+    "t2i/C2-courier-girl-2512d-s970007",
+    "t2i/C2-courier-girl-2512d-s970008",
+    "t2i/C2-courier-girl-2512q-s970007",
+    "t2i/C2-courier-girl-2512q-s970008",
+    "t2i/C2-courier-girl-klein-s970007",
+    "t2i/C2-courier-girl-klein-s970008",
+    "t2i/C2-courier-girl-qi21-s970007",
+    "t2i/C2-courier-girl-qi21-s970008"
+  ],
+  "sheet-t2i-realistic.jpg": [
+    "t2i/C3-pharmacist-2512d-s970007",
+    "t2i/C3-pharmacist-2512d-s970008",
+    "t2i/C3-pharmacist-2512q-s970007",
+    "t2i/C3-pharmacist-2512q-s970008",
+    "t2i/C3-pharmacist-klein-s970007",
+    "t2i/C3-pharmacist-klein-s970008",
+    "t2i/C3-pharmacist-qi21-s970007",
+    "t2i/C3-pharmacist-qi21-s970008"
+  ],
+  "sheet-plate-anime.jpg": [
+    "plate/L1-anime-2512d-s970007",
+    "plate/L1-anime-2512q-s970007",
+    "plate/L1-anime-qi21-s970007"
+  ],
+  "sheet-plate-cartoon.jpg": [
+    "plate/L1-cartoon-2512d-s970007",
+    "plate/L1-cartoon-2512q-s970007",
+    "plate/L1-cartoon-qi21-s970007"
+  ],
+  "sheet-plate-realistic.jpg": [
+    "plate/L1-realistic-2512d-s970007",
+    "plate/L1-realistic-2512q-s970007",
+    "plate/L1-realistic-qi21-s970007"
+  ],
+  "sheet-views-realistic.jpg": [
+    "views/L2-dusk-edit-d-s970007",
+    "views/L2-dusk-edit-q-s970007",
+    "views/L2-dusk-qi21e-s970007",
+    "views/L2-reverse-edit-d-s970007",
+    "views/L2-reverse-edit-q-s970007",
+    "views/L2-reverse-qi21e-s970007",
+    "views/L2-stall-edit-d-s970007",
+    "views/L2-stall-edit-q-s970007",
+    "views/L2-stall-qi21e-s970007"
+  ],
+  "sheet-poster-cartoon.jpg": [
+    "poster/P1-2512q-s970007",
+    "poster/P1-2512q-s970008",
+    "poster/P1-qi21-s970007",
+    "poster/P1-qi21-s970008",
+    "poster/P2-2512q-s970007",
+    "poster/P2-2512q-s970008",
+    "poster/P2-qi21-s970007",
+    "poster/P2-qi21-s970008"
+  ],
   "sheet-edit-cartoon.jpg": [
     "edit/E1-C1-kite-maker-edit-d-s970007",
     "edit/E1-C1-kite-maker-edit-d-s970008",
     "edit/E1-C1-kite-maker-edit-q-s970007",
-    "edit/E1-C1-kite-maker-edit-q-s970008"
+    "edit/E1-C1-kite-maker-edit-q-s970008",
+    "edit/E1-C1-kite-maker-qi21e-s970007",
+    "edit/E1-C1-kite-maker-qi21e-s970008"
   ],
   "sheet-edit-anime.jpg": [
     "edit/E1-C2-courier-girl-edit-d-s970007",
     "edit/E1-C2-courier-girl-edit-d-s970008",
     "edit/E1-C2-courier-girl-edit-q-s970007",
-    "edit/E1-C2-courier-girl-edit-q-s970008"
+    "edit/E1-C2-courier-girl-edit-q-s970008",
+    "edit/E1-C2-courier-girl-qi21e-s970007",
+    "edit/E1-C2-courier-girl-qi21e-s970008"
   ],
   "sheet-edit-realistic.jpg": [
     "edit/E1-C3-pharmacist-edit-d-s970007",
     "edit/E1-C3-pharmacist-edit-d-s970008",
     "edit/E1-C3-pharmacist-edit-q-s970007",
-    "edit/E1-C3-pharmacist-edit-q-s970008"
+    "edit/E1-C3-pharmacist-edit-q-s970008",
+    "edit/E1-C3-pharmacist-qi21e-s970007",
+    "edit/E1-C3-pharmacist-qi21e-s970008"
   ],
   "sheet-reference-anime.jpg": [
     "reference/ic3-teen-edit-ref-s970007",
     "reference/ic3-teen-edit-ref-s970008",
     "reference/ic3-teen-klein-s970007",
-    "reference/ic3-teen-klein-s970008"
+    "reference/ic3-teen-klein-s970008",
+    "reference/ic3-teen-qi21-ref-s970007",
+    "reference/ic3-teen-qi21-ref-s970008"
   ],
   "sheet-reference-cartoon.jpg": [
     "reference/ic4-cg-girl-edit-ref-s970007",
     "reference/ic4-cg-girl-edit-ref-s970008",
     "reference/ic4-cg-girl-klein-s970007",
     "reference/ic4-cg-girl-klein-s970008",
+    "reference/ic4-cg-girl-qi21-ref-s970007",
+    "reference/ic4-cg-girl-qi21-ref-s970008",
     "reference/ix2-waist-edit-ref-s970007",
     "reference/ix2-waist-edit-ref-s970008",
     "reference/ix2-waist-klein-s970007",
-    "reference/ix2-waist-klein-s970008"
+    "reference/ix2-waist-klein-s970008",
+    "reference/ix2-waist-qi21-ref-s970007",
+    "reference/ix2-waist-qi21-ref-s970008"
   ],
   "sheet-reference-realistic.jpg": [
     "reference/ir2-bust-edit-ref-s970007",
     "reference/ir2-bust-edit-ref-s970008",
     "reference/ir2-bust-klein-s970007",
     "reference/ir2-bust-klein-s970008",
+    "reference/ir2-bust-qi21-ref-s970007",
+    "reference/ir2-bust-qi21-ref-s970008",
     "reference/ix1-bust-edit-ref-s970007",
     "reference/ix1-bust-edit-ref-s970008",
     "reference/ix1-bust-klein-s970007",
-    "reference/ix1-bust-klein-s970008"
+    "reference/ix1-bust-klein-s970008",
+    "reference/ix1-bust-qi21-ref-s970007",
+    "reference/ix1-bust-qi21-ref-s970008"
+  ],
+  "sheet-stress-cartoon.jpg": [
+    "stress/C1-kite-maker-crossed-2512q-s970007",
+    "stress/C1-kite-maker-crossed-qi21-s970007",
+    "stress/C1-kite-maker-running-2512q-s970007",
+    "stress/C1-kite-maker-running-qi21-s970007",
+    "stress/C1-kite-maker-tea-2512q-s970007",
+    "stress/C1-kite-maker-tea-qi21-s970007"
+  ],
+  "sheet-stress-anime.jpg": [
+    "stress/C2-courier-girl-crossed-2512q-s970007",
+    "stress/C2-courier-girl-crossed-qi21-s970007",
+    "stress/C2-courier-girl-running-2512q-s970007",
+    "stress/C2-courier-girl-running-qi21-s970007",
+    "stress/C2-courier-girl-tea-2512q-s970007",
+    "stress/C2-courier-girl-tea-qi21-s970007"
+  ],
+  "sheet-stress-realistic.jpg": [
+    "stress/C3-pharmacist-crossed-2512q-s970007",
+    "stress/C3-pharmacist-crossed-qi21-s970007",
+    "stress/C3-pharmacist-running-2512q-s970007",
+    "stress/C3-pharmacist-running-qi21-s970007",
+    "stress/C3-pharmacist-tea-2512q-s970007",
+    "stress/C3-pharmacist-tea-qi21-s970007"
   ]
 }
