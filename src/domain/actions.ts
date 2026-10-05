@@ -361,7 +361,7 @@ export function plannedDirectionAfter(sh: Pick<Shot, 'action' | 'prompt' | 'stag
   if (patch.action === undefined || patch.action.trim() === (sh.action ?? '').trim()) return {};
   if (patch.prompt !== undefined || patch.staging !== undefined) return {};
   if (!sh.prompt && !sh.staging?.beats?.length) return {};
-  return { prompt: undefined, ...(sh.staging ? { staging: { ...sh.staging, beats: [] } } : {}) };
+  return { prompt: undefined, ...(sh.staging ? { staging: { ...sh.staging, beats: [], actions: undefined } } : {}) };
 }
 
 export function deleteShot(s: S, productionId: string, shotId: string): S {
