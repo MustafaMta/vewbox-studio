@@ -181,3 +181,41 @@ with a known cause) against 0. **Decision: Gemma becomes the local default for s
 selectable** (`OPENAI_COMPATIBLE_MODEL=qwen3:14b`) — on the condition recorded as an open item: the Arabic shot plan's
 output budget (9000 tokens inside a 16K context) must be re-measured, since a verbose Gemma plan can exceed it. The
 hosted engines still win `LLM_PROVIDER=auto` when a key exists. The VLM role (§5.6 L3) was not tested here.
+
+## 4. Voices (measurements only — not a quality verdict)
+
+Services started one at a time (ComfyUI idle, `llm` stopped): `asr` (both Whisper models present, the dialect one
+converted), `tts-habibi` (Habibi IRQ `model_100000`), `tts` (IndexTTS 2.5); each idle ≈ 60–75 MB RAM and no VRAM
+until first use (lazy load). Loaded together: **card peak 13.5 GB**, RAM asr 1.0 / tts 2.5 / habibi 2.5 GB.
+Harness `scripts/voice-eval.mjs` exactly as `docs/voice/IRAQI-EVAL-SET-2026-10.md` §4 says (designed seeds →
+`--allow-synthetic`, `--prepare both`); one fix: the harness sent `language=ar` to IndexTTS for every line, so a
+Latin-script line now goes with `language=en` (found by the English set).
+
+**Iraqi set** (`docs/evidence/iraqi-eval/2026-10-run1/`: 111 WAVs, `report.json`, `review.html`): 60 lines × the two
+designed seeds (SYNTHETIC REFERENCES — a pipeline check, not a voice claim); every Arabic line was transcribed by
+**whisper-large-v3-arabic-dialectal-v2** (111/111).
+
+| Measure | Result |
+|---|---|
+| Intelligible, harness fold (CER ≤ 0.15) | 86/111 |
+| Intelligible, **studio fold** (`normalizeIraqi`: spelled numbers ≡ digits; Habibi lines) | **90/107** (male 47/57, female 43/50); studio verdict PASS 55 / REVIEW 26 / FAIL 26 |
+| Flagged MSA-like (heuristic §4.3) | 0 |
+| Loudness / true peak | mean −21.1 LUFS; 18 short lines below −23 LUFS (−23.0…−25.6); peak ≤ −0.99 dBTP on every line |
+| Speed | Habibi median 0.59 s per line, RTF 0.26 (first line 13.9 s with the load); IndexTTS RTF 0.62 (first 26 s) |
+| Raw digits vs prepared (num-04) | raw 2/2 garbled («سنة الثني مشان فش»); prepared: male heard as written, female said every word right («سبعة ونص… خمسطعش… ميتين وخمسين ألف») — the text preparation is necessary |
+| Real misreadings left | the short exclamations «صدگ؟ ما اصدگ!» (2/2 → «صد. ماص» / «صدى») and «عفية عليك! هيچ اريدك!» (2/2 lost words); «باچر اربعطعش شباط» 2/2; «عتيگ» heard «أتي»; «اسمع...» dropped at a line start |
+| Code-switched lines on IndexTTS | every English word spoken (heard as «الواي فاي… الاب… الباتري», «أوكي… تست… ريدي»); CER 0.33–0.48 is the script mismatch of the metric, not a missing word |
+
+**Not verified:** naturalness, Baghdadi dialect, گ/چ pronunciation, emotion, same-voice — `review.html` is ready for
+the native listener (`listening: PENDING`). Nothing here may be read as "Iraqi verified".
+
+**English** (`docs/evidence/model-eval-2026-10/voice-en/`, 20 lines, `tests/fixtures/voice/english-eval-set.json`,
+IndexTTS cloning `tests/fixtures/speech-en.wav`, large-v3): 16/20 by the harness; by reading the transcripts **18/20
+correct** — the two numeral "failures" are the ASR writing 250,000 / 87 for the spoken words (the English metric does
+not fold numbers). **Real failures 2/20: both one-word lines** — «Nothing.» → "Nothing. Thang.", «Now?» → "Now, de-sip."
+(IndexTTS appends a garbled syllable to a one-word line). Mean −18.3 LUFS, peak ≤ −0.99 dBTP, median 2.1 s per line
+(RTF 0.65). Emotion (calm vs angry E1/E2) is a listening item.
+
+**Verdict:** keep **Habibi IRQ** (Iraqi) and **IndexTTS 2.5** (English, code-switched) — the measurements show no
+engine fault that another installed engine would fix, the text preparation is required for digits, and one-word lines
+on IndexTTS need a guard (open item). Iraqi quality is **pending the native listening review**.
