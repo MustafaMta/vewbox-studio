@@ -111,8 +111,10 @@ const STEPS = [
       const c = run('node', ['scripts/check-comfy-nodes.mjs']);
       return { ok: c.ok, detail: `${stats.ok ? (JSON.parse(stats.body).devices?.[0]?.name ?? 'device ?') : 'system_stats unavailable'}; ${c.ok ? 'nodes and models complete' : c.out.split('\n').slice(-6).join(' ')}` };
     } },
-  { id: 'voices', name: 'Voice and transcription services up (not the LLM beside H3: host RAM)', cmd: `docker compose -p ${PROJECT} up -d tts tts-habibi tts-design asr`,
+  { id: 'voices', name: 'Voice and transcription services up, the ASR image rebuilt for /align and the picture QA (not the LLM beside H3: host RAM)', cmd: `docker compose -p ${PROJECT} build asr && docker compose -p ${PROJECT} up -d tts tts-habibi tts-design asr`,
     go: async () => {
+      // the ASR image gains transformers, MediaPipe and OpenCV for /align, /qa/mouth and /qa/identity (cloud session C11)
+      const b = run('docker', compose('build', 'asr'), { timeoutMs: 60 * 60_000 }); if (!b.ok) return { ok: false, detail: `the asr image did not build: ${b.err.split('\n').slice(-3).join(' ')}` };
       const up = run('docker', compose('up', '-d', 'tts', 'tts-habibi', 'tts-design', 'asr')); if (!up.ok) return { ok: false, detail: up.err };
       const out = [];
       for (const s of ['asr', 'tts', 'tts-habibi', 'tts-design']) { const h = await waitHealthy(s, 90); out.push(h.detail); if (!h.ok) return { ok: false, detail: out.join('; ') }; }

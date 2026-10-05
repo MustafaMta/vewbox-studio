@@ -11,7 +11,9 @@ export const NEEDS = {
   gpuName: /RTX 5090/i,
   gpuMemMiB: 32000,
   /** the manifest groups the acceptance gates need (video, images, voices, transcription) */
-  modelGroups: ['video-minimax-h3', 'video-minimax-h3-reference', 'images-qwen', 'images-flux2-klein', 'asr-whisper', 'voice-design'],
+  modelGroups: ['video-minimax-h3', 'video-minimax-h3-reference', 'images-qwen', 'images-flux2-klein', 'asr-whisper', 'voice-design', 'qa-identity'],
+  /** fetched before the alignment gates (licences to confirm on the model cards first: docs/MODELS.md) */
+  optionalGroups: ['qa-align'],
 };
 
 /** `docker info --format "{{json .}}"` → memory and CPUs. */

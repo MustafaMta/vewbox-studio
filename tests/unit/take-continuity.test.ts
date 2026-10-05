@@ -11,7 +11,7 @@ import type { Asset, Production, Shot, StudioState, WorldBible } from '@/domain/
  *  the take recording its relation and the take it continues. CUT: the opening frame anchored and bound, the ending
  *  frame anchored. Hosted continuation: the previous take's last frame as the first frame, nothing silently dropped. */
 
-const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>>, established: [] as Array<Record<string, unknown>>, qa: [] as Array<Record<string, unknown>>, driftCalls: [] as unknown[][], /** how far apart (luma, alternating) the take's frame and the plate are */ driftOffset: 3, /** what the written tail clip counts as (frames, sound) */ tailClip: { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 } as { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number }, /** what the generated take's head measures against the tail */ head: { frames: 22, takeFrames: 158, tailFrames: 22, perFrame: [], meanDiff: 1.2, maxDiff: 2, tailMotionP95: 3, lastMatchIndex: 21, lastMatchDiff: 1, plannedLastDiff: 1, threshold: 12, repeats: true, trimStartFrames: 22, corrected: false, detail: 'the head repeats the tail' }, headCalls: [] as unknown[][], /** the joined dialogue's length */ dialogueSeconds: 2.55 }));
+const fake = vi.hoisted(() => ({ state: null as unknown as StudioState, backend: 'local' as 'local' | 'api', requests: [] as Array<Record<string, unknown>>, commands: [] as Array<{ name: string; args: unknown[] }>, ffmpegArgs: [] as string[][], tails: [] as unknown[][], closing: [] as string[], frames: [] as unknown[][], qaExpect: [] as Array<{ durationSeconds: number }>, tmp: '', bible: undefined as WorldBible | undefined, reads: [] as Array<Record<string, unknown>>, established: [] as Array<Record<string, unknown>>, qa: [] as Array<Record<string, unknown>>, driftCalls: [] as unknown[][], /** how far apart (luma, alternating) the take's frame and the plate are */ driftOffset: 3, /** what the written tail clip counts as (frames, sound) */ tailClip: { frames: 22, hasAudio: true, audioSeconds: 22 / 24, sampleRate: 48000 } as { frames: number; hasAudio: boolean; audioSeconds?: number; sampleRate?: number }, /** what the generated take's head measures against the tail */ head: { frames: 22, takeFrames: 158, tailFrames: 22, perFrame: [], meanDiff: 1.2, maxDiff: 2, tailMotionP95: 3, lastMatchIndex: 21, lastMatchDiff: 1, plannedLastDiff: 1, threshold: 12, repeats: true, trimStartFrames: 22, corrected: false, detail: 'the head repeats the tail' }, headCalls: [] as unknown[][], /** the joined dialogue's length */ dialogueSeconds: 2.55, /** what /qa/mouth answers (undefined: offline) */ mouth: undefined as unknown }));
 
 vi.mock('@/server/studio/engine', () => ({
   readState: async () => ({ state: fake.state, version: 1, hash: 'h' }),
@@ -77,6 +77,8 @@ vi.mock('@/server/media/plate-drift', async (orig) => {
   const real = await orig<typeof import('@/server/media/plate-drift')>();
   return { ...real, measurePlateDrift: async (file: string, frame: number, plateFile: string, plateAssetId: string) => { fake.driftCalls.push([file, frame, plateFile, plateAssetId]); return real.judgePlateDrift(Uint8Array.from({ length: 64 * 36 }, (_, i) => 100 + fake.driftOffset * (i % 2 ? 1 : -1)), new Uint8Array(64 * 36).fill(100), { plateAssetId, frame }); } };
 });
+// the picture-QA service is offline in these tests: every check it runs is recorded as "not measured"
+vi.mock('@/server/providers/qa-service', async (orig) => ({ ...(await orig<typeof import('@/server/providers/qa-service')>()), alignScript: async () => ({ available: false, reason: 'offline (test)' }), mouthActivity: async () => fake.mouth ?? { available: false, reason: 'offline (test)' }, faceIdentity: async () => ({ available: false, reason: 'offline (test)' }) }));
 vi.mock('@/server/world/store', () => ({ insertWorldRead: async (_tx: unknown, r: Record<string, unknown>) => { fake.reads.push(r); } }));
 
 import { generateTake } from '@/worker/handlers/take';
@@ -361,6 +363,21 @@ describe('GENERATE_TAKE by relation', () => {
     const t = addTake();
     expect(t.status).toBe('READY');
     expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'location-matches-plate')).toMatchObject({ ok: true, detail: expect.stringMatching(/not comparable: a medium close up shows a crop of the place/) });
+  });
+
+  it('LIP-SYNC: the mouths measured against the recorded line; a 3-frame lag is a REVIEW flag the cut repairs by moving the sound; offline is "not measured"', async () => {
+    const { state, p } = fixture(); fake.state = state;
+    await generateTake(ctx(p.id, 's12'));
+    let t = addTake();
+    expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'lip-sync')).toMatchObject({ ok: true, detail: expect.stringMatching(/not measured: offline \(test\)/) });
+    expect(t.params).toMatchObject({ lipSync: { verdict: 'NOT_MEASURED', against: 'RECORDED' } });
+    fake.commands = [];
+    fake.mouth = { available: true, fps: 24, frames: 136, duration: 5.67, size: [1280, 736], audioSource: 'upload', audioOffset: 0.92, windowsSource: 'windows', speechFrames: 43, facesPerFrameMax: 1, maxLagFrames: 5, mode: 'speech', tracks: [{ id: 0, frames: 130, firstFrame: 0, lastFrame: 129, meanBox: [0, 0, 1, 1], faceHeightPx: 300, scored: true, activityInside: 0.8, activityOutside: 0.2, activityRatio: 4, insideFrames: 43, outsideFrames: 87, corrLag0: 0.2, corrBest: 0.55, bestLagFrames: 3, bestLagMs: 125, isSpeaker: true, flags: [] }], speakerTracks: [0], thresholds: {}, syncnet: { available: false }, model: 'mediapipe', ms: 10 };
+    await generateTake(ctx(p.id, 's12'));
+    t = addTake();
+    expect(t.params).toMatchObject({ lipSync: { verdict: 'REVIEW', against: 'RECORDED', lagFrames: 3, offsetRepair: true } });
+    expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'lip-sync')).toMatchObject({ ok: false, detail: expect.stringMatching(/the cut moves the line onto the mouths/) });
+    fake.mouth = undefined;
   });
 
   it('refuses a producer prompt that names a picture the request does not connect (PROMPT_AMBIGUITY), before the engine', async () => {
