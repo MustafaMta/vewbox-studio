@@ -4,7 +4,7 @@ import { db, schema } from '../db/client';
 import { env } from '../env';
 import { log } from '../log';
 import { jobScope } from '../jobs/context';
-import { recordMetric } from '../jobs/queue';
+import { leaseSeconds, recordMetric } from '../jobs/queue';
 
 /** THE GPU LEASE, SHARED BY EVERY PROCESS (docs/BACKEND-AUDIT-2026-10.md H7, step 8). One RTX 5090: local models
  *  (images, video, music in ComfyUI; voices; transcription; the local story model) each hold their weights while
@@ -55,10 +55,13 @@ export function admits(rows: Pick<Row, 'holder' | 'ticket' | 'family' | 'state' 
 
 export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
   const resource = cfg.resource ?? 'gpu0';
-  const ttlMs = cfg.ttlMs ?? 90_000;
+  const ttlMs = cfg.ttlMs ?? leaseSeconds() * 1000;
   const pollMs = cfg.pollMs ?? 500;
   const unload = cfg.unload ?? (async (from: GpuFamily | null, to: GpuFamily) => (await import('./unloaders')).unloadFor(from, to));
   let seq = 0;
+  // a process restarted under the same name (WORKER_ID set) must never reuse a holder key of its previous life, whose
+  // rows may still be in the table until they expire: the holder carries a nonce of this process's life
+  const life = Math.random().toString(36).slice(2, 8);
   const wakers = new Set<() => void>();
   const wakeAll = () => { for (const w of [...wakers]) w(); };
   const expiry = () => new Date(Date.now() + ttlMs).toISOString();
@@ -97,7 +100,7 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
     if (estimateMb > budget) log.warn({ family, estimateMb, budget }, 'estimated VRAM exceeds the budget; the service must offload');
     const jobId = opts.jobId ?? (jobScope()?.jobId || undefined);
     const signal = opts.signal ?? jobScope()?.signal;
-    const holder = `${cfg.process}:${++seq}`;
+    const holder = `${cfg.process}:${life}:${++seq}`;
     const t0 = Date.now();
     await enter(holder, family, jobId);
     let granted: { from: GpuFamily | null } | undefined;
@@ -163,6 +166,14 @@ export function createMemoryGpuLease(cfg: { unload?: (from: GpuFamily | null, to
       if (current!.holders <= 0) { current = null; for (const w of waiters.splice(0)) w(); }
     }
   };
+}
+
+/** A stopping process gives the card back at once (rows it holds or waits with), instead of leaving them to expire
+ *  after the TTL — the next worker would otherwise wait 90 s for a card nobody uses. Returns the rows removed. */
+export async function releaseProcessGpuLeases(processName: string, resource = 'gpu0'): Promise<number> {
+  const rows = await db().delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.process, processName))).returning({ holder: schema.resourceLeases.holder });
+  if (rows.length) log.info({ resource, process: processName, rows: rows.length }, 'gpu lease: released the rows of a stopping process');
+  return rows.length;
 }
 
 const g = globalThis as unknown as { __vewboxGpuLease?: { mode: string; lease: GpuLease } };

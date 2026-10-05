@@ -51,7 +51,10 @@ export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['di
 
 export const LocationDesignSchema = z.preprocess(aliases({ kind: ['type'], lighting: ['timesOfDay', 'times'] }), z.object({
   description: str(600), kind: placeKind, landmarks: strs(120, 8), props: strs(80, 10), lighting: looseArray(timeOfDay, { min: 1, max: 4 }), nameAr: str(60).optional(),
-  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: strs(60, 8).optional(), cameraZones: strs(120, 6).optional(), entrances: strs(80, 4).optional(), spatial: str(400).optional() }).optional(),
+  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: strs(60, 8).optional(), cameraZones: strs(120, 6).optional(), entrances: strs(80, 4).optional(), spatial: str(400).optional(),
+    // THE PLACE'S LIGHTING RULES (src/domain/types.ts LocationLight): the light design a return keeps
+    light: z.preprocess((v) => (v === null || typeof v !== 'object' ? undefined : v), z.preprocess(aliases({ key: ['keyLight', 'main', 'source'], practicals: ['practicalLights', 'lamps', 'fixtures'], palette: ['colors', 'colours', 'colourPalette', 'colorPalette'], byTime: ['perTime', 'timesOfDay', 'byTimeOfDay'] }), z.object({ key: str(200).optional(), practicals: strs(80, 6).optional(), palette: strs(40, 6).optional(), byTime: z.preprocess((v) => (v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, s]) => [timeOfDay.safeParse(k).success ? timeOfDay.parse(k) : k, s]).filter(([k, s]) => TIMES_OF_DAY.includes(k as never) && typeof s === 'string' && s.trim())) : undefined), z.record(z.string(), z.string().max(200)).optional()) })).optional()),
+  }).optional(),
 }));
 
 export const DevelopSchema = z.object({
@@ -85,13 +88,22 @@ const continuityPeople = (v: unknown): unknown => {
   }).filter(Boolean);
 };
 
-export const ContinuitySchema = z.preprocess(aliases({ characters: ['cast', 'people'], relationToPrevious: ['relation', 'relationship', 'relationToPreviousShot', 'continuity'] }), z.object({
-  characters: z.preprocess(continuityPeople, z.array(z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), screenDirection: screenDirection.optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: strs(60, 4).optional() })).max(8)),
+/** THE SHOT LIST'S DISCIPLINE (continuity gaps 2026-10-06 item 1): where each person stands in the frame, the pose they
+ *  start and end in, the direction they travel, their condition and who they deal with — the facts a continuous shot
+ *  and a cut on the same moment inherit (src/domain/production-context.ts, src/domain/blocking.ts). */
+const frameSide = looseEnum(['LEFT', 'CENTER', 'RIGHT'], { CENTRE: 'CENTER', MIDDLE: 'CENTER', SCREEN_LEFT: 'LEFT', FRAME_LEFT: 'LEFT', LEFT_THIRD: 'LEFT', SCREEN_RIGHT: 'RIGHT', FRAME_RIGHT: 'RIGHT', RIGHT_THIRD: 'RIGHT' });
+const travel = looseEnum(['LEFT_TO_RIGHT', 'RIGHT_TO_LEFT', 'TOWARD_CAMERA', 'AWAY_FROM_CAMERA', 'STILL'], { LTR: 'LEFT_TO_RIGHT', L_TO_R: 'LEFT_TO_RIGHT', RIGHT: 'LEFT_TO_RIGHT', LEFT_RIGHT: 'LEFT_TO_RIGHT', RTL: 'RIGHT_TO_LEFT', R_TO_L: 'RIGHT_TO_LEFT', LEFT: 'RIGHT_TO_LEFT', RIGHT_LEFT: 'RIGHT_TO_LEFT', TOWARD: 'TOWARD_CAMERA', TOWARDS: 'TOWARD_CAMERA', TOWARDS_CAMERA: 'TOWARD_CAMERA', AWAY: 'AWAY_FROM_CAMERA', NONE: 'STILL', STATIC: 'STILL', STATIONARY: 'STILL', NO: 'STILL' });
+const motion = z.preprocess((v) => (v === null || v === '' ? undefined : typeof v === 'string' ? { direction: v } : v), z.preprocess(aliases({ direction: ['dir', 'travel', 'screenDirection'], path: ['route', 'from', 'description'] }), z.object({ direction: travel.optional(), path: str(160).optional() })).optional());
+const looseBool = z.preprocess((v) => (typeof v === 'string' ? /^(true|yes|1)$/i.test(v.trim()) : v === null ? undefined : v), z.boolean().optional());
+
+export const ContinuitySchema = z.preprocess(aliases({ characters: ['cast', 'people'], relationToPrevious: ['relation', 'relationship', 'relationToPreviousShot', 'continuity'], constraints: ['mustHold', 'rules', 'continuityConstraints'] }), z.object({
+  characters: z.preprocess(continuityPeople, z.array(z.preprocess(aliases({ startPose: ['beginningPose', 'startingPose', 'poseStart', 'start'], endPose: ['endingPose', 'finalPose', 'poseEnd', 'end'], frameSide: ['side', 'frame'], interactingWith: ['with', 'interacting', 'partners'], motion: ['movement', 'travel'] }), z.object({ characterName: str(60), wardrobe: str(160).optional(), pose: str(160).optional(), position: str(120).optional(), frameSide: frameSide.optional(), screenDirection: screenDirection.optional(), eyeline: str(120).optional(), emotion: str(80).optional(), holding: strs(60, 4).optional(), startPose: str(160).optional(), endPose: str(160).optional(), motion, condition: str(160).optional(), interactingWith: strs(60, 4).optional() }))).max(8)),
   props: looseArray(z.preprocess(aliases({ name: ['prop', 'item'], ownerCharacterName: ['owner', 'heldBy', 'character'] }), z.object({ name: str(60), ownerCharacterName: str(60).optional(), state: str(120).optional(), position: str(120).optional() })), { max: 10 }),
   environment: z.preprocess((v) => v ?? {}, z.object({ timeOfDay: timeOfDay.optional(), weather: str(80).optional(), lighting: str(200).optional(), state: str(200).optional() })),
-  camera: z.preprocess((v) => v ?? {}, z.object({ lensIntent: str(120).optional(), angle: str(120).optional() })),
+  camera: z.preprocess((v) => v ?? {}, z.object({ lensIntent: str(120).optional(), angle: str(120).optional(), crossesLine: looseBool })),
   relationToPrevious: relation,
   notes: str(300).optional(),
+  constraints: strs(160, 6).optional(),
 }));
 
 export const ShotPlanSchema = z.preprocess(aliases({ shots: ['shotList', 'shot_list', 'sequence', 'plan', 'storyboard', 'sceneShots', 'scene_shots', 'list'] }), z.object({

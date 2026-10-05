@@ -255,26 +255,33 @@ test('An agent run waiting for its jobs reads so, neither running nor failed', a
   await expect(page.locator('.cp-facts')).toContainText('Waiting for its jobs');
 });
 
-test('Settings: a saved choice the studio does not use yet says so under it', async ({ page, request }) => {
+test('Settings: the engines are said, not offered; no control that changes nothing; the Iraqi experiment is visible and explained', async ({ page, request }) => {
   const h = await (await request.get('/api/studio/settings')).json();
+  const caps = (await (await request.get('/api/health')).json()).capabilities as { minimax?: boolean };
   await open(page, '/settings', '.settings:not(.sk-region) #generation');
+  const engines = page.locator('#generation');
+  await expect(engines).toContainText('MiniMax H3, on this machine');
+  // the video model, its resolution and the story engine are read by nothing: no picker is offered for them
+  await expect(engines.getByRole('combobox')).toHaveCount(0);
+  if (!caps.minimax) await expect(engines.getByRole('radiogroup')).toHaveCount(0);
   const row = (label: string) => page.locator('.st-row', { has: page.getByText(label, { exact: true }) });
-  for (const [label, key] of [['Video model', 'videoModel'], ['Video resolution', 'videoResolution'], ['Story engine', 'llmProvider'], ['Style', 'defaultStyle']] as const) {
-    const note = row(label).locator('.st-unused');
-    if (h.honoured[key] === false) await expect(note).toHaveText('Saved — the studio does not use this choice yet.');
-    else await expect(note).toHaveCount(0);
-  }
+  const note = row('Style').locator('.st-unused');
+  if (h.honoured.defaultStyle === false) await expect(note).toHaveCount(1); else await expect(note).toHaveCount(0);
+  const iraqi = page.locator('#voices');
+  await expect(iraqi.getByRole('switch', { name: /Design Iraqi voices without a recording/ })).toBeVisible();
+  await expect(iraqi).toContainText('Experiment');
+  await expect(iraqi).toContainText('native listener');
 });
 
 test('Settings: each change goes through the updateSettings command (answered here); no interface language', async ({ page }) => {
   const sent: string[] = [];
   await open(page, '/settings', '.settings:not(.sk-region) #generation');
   await page.route('**/api/commands', async (route) => { sent.push(route.request().postData() ?? ''); await route.fulfill({ json: { ok: true, version: 1, hash: 'e2e', results: [] } }); });
-  await page.locator('#generation').getByRole('radio', { name: '1080P' }).click();
-  await expect(page.locator('#generation').getByRole('radio', { name: '1080P' })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#continuity').getByRole('radio', { name: '39 frames' }).click();
+  await expect(page.locator('#continuity').getByRole('radio', { name: '39 frames' })).toHaveAttribute('aria-checked', 'true');
   await page.locator('#motion').getByRole('switch').click({ force: true });
   await expect.poll(() => sent.join('\n')).toContain('updateSettings');
-  expect(sent.join('\n')).toContain('1080P');
+  expect(sent.join('\n')).toContain('"guideFrames":39');
   expect(sent.join('\n')).toContain('reducedMotion');
   await expect(page.locator('main')).not.toContainText(/interface language|language of the interface/i);
   await expect(page.getByRole('link', { name: 'Open the engine room' })).toHaveAttribute('href', '/production#engine-room');

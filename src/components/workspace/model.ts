@@ -120,7 +120,8 @@ export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Jo
 export function takeVerdict(sh: Shot, t: Take): { words: string; tone: 'done' | 'waiting' | 'idle' | 'failed' } {
   if (sh.selectedTakeId === t.id) return { words: 'Selected', tone: 'done' };
   if (t.rating === 'REJECTED') return { words: t.ratingReason ? `Rejected · ${t.ratingReason}` : 'Rejected', tone: 'failed' };
-  if (t.status === 'REJECTED') return { words: t.rejectionReason ? `Failed its checks · ${t.rejectionReason}` : 'Failed its checks', tone: 'failed' };
+  // which checks failed is said by the checks line under it (./checks.ts), in the producer's words
+  if (t.status === 'REJECTED') return { words: 'Failed its checks', tone: 'failed' };
   if (t.rating === 'GOOD') return { words: 'Good take', tone: 'idle' };
   return { words: 'Not judged', tone: 'idle' };
 }

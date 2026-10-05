@@ -60,6 +60,7 @@
   .st-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
   .st-control { display: flex; flex: none; justify-content: flex-end; inline-size: 320px; max-inline-size: 100%; }
   .st-control > :is(select, .select, input) { inline-size: 100%; }
+  .st-value { font-size: 14px; line-height: 20px; color: var(--text-1); text-align: end; }
   .st-row-toggle { flex-wrap: wrap; }
   .st-row-toggle > label { flex: 1; min-inline-size: 0; }
   .st-row-toggle > .st-unused { flex-basis: 100%; margin-block-start: -8px; }

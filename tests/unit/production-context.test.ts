@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { changesInForce, contextLines, contextRecord, productionContextFor, storyFactsBefore } from '@/domain/production-context';
 import { resolveShotPack } from '@/server/production/shot-pack';
-import { h3ReferencePrompt } from '@/server/story/prompts';
+import { h3ReferencePrompt, takePrompt } from '@/server/story/prompts';
 import { bindingOf } from '@/server/production/shot-pack';
 import { validateClientCommand } from '@/domain/commands';
 import { attemptRecord } from '@/worker/handlers/take';
@@ -77,6 +77,25 @@ describe('story state', () => {
     expect(productionContextFor(state, q, shotOf(q, 's12')).story.sceneObjective).toBe('close the shop');
   });
 
+  it('a wardrobe change the story made is not the canonical image’s clothes: retention switches to attribute_transfer; a condition shows on top; cleared returns to the canonical clothes (gap 5)', () => {
+    const { state, p } = fixture();
+    const [a] = p.castIds;
+    const q = withScenes(p, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: { changes: [
+      { id: 'w1', subject: { kind: 'CHARACTER', characterId: a }, key: 'wardrobe', text: 'a dark blue police uniform with a peaked cap', atShotId: 's11' },
+      { id: 'h1', subject: { kind: 'CHARACTER', characterId: a }, key: 'hand', text: 'a bandage on her left hand', atShotId: 's11' },
+    ] } } : sc)));
+    const pack = resolveShotPack(state, q, shotOf(q, 's12'), { backend: 'local' });
+    const ca = pack.context.characters.find((x) => x.characterId === a)!;
+    expect(ca.wardrobeChange?.text).toBe('a dark blue police uniform with a peaked cap');
+    expect(ca.condition.map((k) => k.text)).toEqual(['a bandage on her left hand']);
+    const prompt = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState });
+    expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone and build of <Picture 1> are kept exactly; as the story has them now: a bandage on her left hand.');
+    expect(prompt).toContain("<Subject 1>'s clothes: attribute_transfer - not the clothes of <Picture 1>: a dark blue police uniform with a peaked cap.");
+    expect(prompt).toContain('<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 2> are kept exactly.');
+    // the change cleared later: the canonical clothes again
+    const back = withScenes(q, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: { changes: [...sc.story!.changes!, { id: 'w2', subject: { kind: 'CHARACTER', characterId: a }, key: 'wardrobe', text: '', cleared: true, atShotId: 's12' }] } } : sc)));
+    expect(productionContextFor(state, back, shotOf(back, 's13')).characters[0].wardrobeChange).toBeUndefined();
+  });
   it('the location carries its persistent changes into a return; the prompt says them about the bound subject, never by name', () => {
     const { state, p } = fixture();
     const q = withShot(story(p), 's21', (s) => s);
@@ -110,6 +129,11 @@ describe('shot state, gaps, record', () => {
     expect(c.gaps.join(' ')).toMatch(/speaks but has no voice identity/);
   });
 
+  it('recorded lines longer than the planned shot are not a gap: the take is made as long as its words (QA m3)', () => {
+    const { state, p } = fixture();
+    const q = withShot(p, 's12', (s) => ({ ...s, durationSeconds: 4, dialogue: s.dialogue.map((d) => ({ ...d, durationSeconds: 5.9 })) }));
+    expect(productionContextFor(state, q, shotOf(q, 's12')).gaps.join(' ')).not.toMatch(/longer than the shot/);
+  });
   it('the hash moves when the state does, and the take records a compact copy', () => {
     const { state, p } = fixture();
     const c1 = productionContextFor(state, p, shotOf(p, 's12'));
@@ -157,6 +181,27 @@ describe('the prompt and the commands', () => {
     const pack = resolveShotPack(state, q, shotOf(q, 's12'), { backend: 'local' });
     const prompt = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: 'CONTINUATION', context: pack.context, sceneState: pack.sceneState });
     expect(prompt).toMatch(/<Subject 1> feels tired, ends sitting down\./);
+  });
+  it('a wordless story fact is never carried and never crashes a prompt; the commands refuse it (QA Q1)', () => {
+    const { state, p } = fixture();
+    const [a] = p.castIds;
+    const q = withScenes(p, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: {
+      events: [{ id: 'e0', text: '' }], knowledge: [{ id: 'k0', characterId: a, text: '   ' }], relationships: [{ id: 'r0', characterIds: [a], text: '' }],
+      changes: [{ id: 'c0', subject: { kind: 'CHARACTER', characterId: a }, text: '' }, { id: 'c9', subject: { kind: 'LOCATION', locationId: 'loc-pharmacy' }, text: '' }],
+    } } : sc)));
+    const c = productionContextFor(state, q, shotOf(q, 's21'));
+    expect(c.characters[0].condition).toEqual([]);
+    expect(c.story.changes).toEqual([]);
+    expect(c.story.eventsCompleted.every((e) => e.text)).toBe(true);
+    const back: Production = { ...q, scenes: [...q.scenes, { id: 'sc3', number: 3, title: 'Morning', locationId: 'loc-pharmacy', timeOfDay: 'MORNING', characterIds: [a], beats: [] }], shots: [...q.shots, { ...shotOf(q, 's21'), id: 's31', sceneId: 'sc3', number: 1, continuity: undefined }] };
+    const pack = resolveShotPack(state, back, shotOf(back, 's31'), { backend: 'local' });
+    expect(() => h3ReferencePrompt(back, shotOf(back, 's31'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), back.scenes[2], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState })).not.toThrow();
+    expect(() => takePrompt(back, shotOf(back, 's31'), state.characters, undefined, back.scenes[2], { context: pack.context, sceneState: pack.sceneState })).not.toThrow();
+    // a context from older records that still holds one is skipped by the sentences
+    expect(() => contextLines({ ...c, characters: [{ ...c.characters[0], condition: [{ text: undefined as unknown as string, source: { kind: 'UNKNOWN' } }] }] }, () => '<Subject 1>')).not.toThrow();
+    expect(() => validateClientCommand('updateScene', ['p', 'sc', { story: { changes: [{ id: 'c1', text: '', subject: { kind: 'CHARACTER', characterId: 'char-1' } }] } }])).toThrow(/needs words/);
+    expect(() => validateClientCommand('updateScene', ['p', 'sc', { story: { events: [{ id: 'e1', text: '  ' }] } }])).toThrow();
+    expect(() => validateClientCommand('updateScene', ['p', 'sc', { story: { changes: [{ id: 'c1', text: '', key: 'arm', cleared: true, subject: { kind: 'CHARACTER', characterId: 'char-1' } }] } }])).not.toThrow();
   });
   it('a scene’s story record is accepted by the commands, junk is refused', () => {
     expect(() => validateClientCommand('updateScene', ['p', 'sc', { story: { changes: [{ id: 'c1', text: 'a sling', subject: { kind: 'CHARACTER', characterId: 'char-1' } }] } }])).not.toThrow();

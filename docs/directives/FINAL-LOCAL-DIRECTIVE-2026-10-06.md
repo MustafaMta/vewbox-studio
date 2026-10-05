@@ -6,6 +6,17 @@ Coordinator's decisions recorded with it:
   evaluation). InsightFace packs stay out (non-commercial): LatentSync runs with a YuNet + MediaPipe detector adapter.
 - GPU work outside the worker goes through `scripts/gpu-hold.ts`.
 
+**Producer's licence decision (2026-10-06): commercial-safe models only.** Vewbox must be usable commercially. Do not
+download or integrate non-commercial weights (FLUX.2 [dev], FLUX.2 klein 9B under the FLUX Non-Commercial licence,
+Fish Audio research licence, CC-BY-NC, etc.) into the runtime, production configuration or any required workflow. A
+non-commercial model may be recorded as a research reference (and compared in an evaluation, clearly labelled), never
+promoted. Keep searching for the strongest commercially usable high-capacity models (Qwen family, JoyAI and others with
+verified terms), with staged loading/offload/quantization rather than a smaller model. For every candidate verify the
+exact model/version, parameter count, licence and commercial-use terms, editing capability, identity preservation,
+anatomy, style quality, character and location consistency, first-attempt success, VRAM/RAM and latency, and run the
+real comparison through the Vewbox UI before promoting. If a commercial BFL licence is bought later, FLUX is
+re-evaluated separately without redesigning the image pipeline.
+
 The producer's text follows verbatim.
 
 ---

@@ -169,7 +169,10 @@ export interface Take {
   stale?: TakeStale;
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
-  soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
+  /** `lines`: where each line is heard in the take (seconds on its clock); `anchoredFrom`/`audioAssetId`: where the
+   *  line's recording was anchored as the take's audio guide, and which recording (src/domain/timeline.ts
+   *  anchoredLineStarts — the cut plays the authoritative recording there) */
+  soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number; anchoredFrom?: number; audioAssetId?: string }> };
   /** THE PRODUCER'S JUDGEMENT (docs/CONTRACTS-REDESIGN-BACKEND.md B5), apart from `status` (the inspectors' and the
    *  older rejectTake's verdict): GOOD or REJECTED with an optional reason, who gave it and when. Written only by
    *  `rateTake`; a REJECTED take is kept (never deleted) and cannot be chosen for the cut. */
@@ -190,6 +193,9 @@ export type TakeRating = 'GOOD' | 'REJECTED';
 export interface TakeStale { since: string; because: 'PREDECESSOR_RESELECTED' | 'UPSTREAM_STALE'; previousShotId: string; expectedTakeId?: string; detail: string }
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
+/** Where a person stands in the frame (third of the picture): the BLOCKING the 180° line keeps across cuts
+ *  (src/domain/blocking.ts). Absent: read from the `position` words when they say it, else unknown. */
+export type FrameSide = 'LEFT' | 'CENTER' | 'RIGHT';
 
 /** The continuity state of a shot: what must match the shot before and carry into the shot after. Versioned on
  *  the server; the current version travels with the shot. */
@@ -198,10 +204,12 @@ export interface ContinuityState {
   /** each person's state in the shot. Beyond where they are and what they hold (the older fields): their physical
    *  condition (wet, injured, out of breath — what must persist), who they are interacting with, the pose they start
    *  and end the shot in (a continuous next shot starts from `endPose`), and the direction they move on screen */
-  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[]; condition?: string; interactingWith?: string[]; startPose?: string; endPose?: string; motion?: ShotMotion }>;
+  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; frameSide?: FrameSide; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[]; condition?: string; interactingWith?: string[]; startPose?: string; endPose?: string; motion?: ShotMotion }>;
   props: Array<{ name: string; ownerCharacterId?: string; state?: string; position?: string }>;
   environment: { locationId?: string; timeOfDay?: TimeOfDay; weather?: string; lighting?: string; state?: string };
-  camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string };
+  /** `crossesLine`: the camera deliberately crosses the 180° line in this shot (or the shot re-stages the people), so
+   *  the scene's left/right order and screen directions may flip here — and the new order holds from this shot on */
+  camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string; crossesLine?: boolean };
   previousShotId?: string;
   nextShotId?: string;
   /** Continuation: the same action continues from the previous shot. Cut: a new framing of the same moment.
@@ -210,6 +218,8 @@ export interface ContinuityState {
   notes?: string;
   /** explicit continuity constraints the take must honour ("the cup stays in her right hand", "rain on the window") */
   constraints?: string[];
+  /** continuity-log flags the producer accepted as intended for this shot, by key (src/domain/continuity-log.ts) */
+  acknowledged?: string[];
 }
 
 /** How a person (or the camera's subject) moves across the frame: the screen direction of travel and, in words, the
@@ -789,6 +799,13 @@ export interface LocationRef { id: string; role: LocationRefRole; assetId: strin
  *  identity. Derived by the reducers on every change; a row without one is identity version 1 of what it holds. */
 export interface LocationIdentity { version: number; hash: string; line: string; updatedAt: string }
 
+/** THE PLACE'S LIGHTING RULES (the Location Bible; final directive §11 "lighting rules"; continuity gaps 2026-10-06
+ *  item 6): the light design that makes a return to the place look like the same place — where the key light comes
+ *  from, the practical lights in the set, the colour palette — and, per time of day, the light the place has then. Part
+ *  of the place's canon (its identity version moves when they change); a scene that states its own light wins for that
+ *  scene, the rule fills in when nothing is stated. */
+export interface LocationLight { key?: string; practicals?: string[]; palette?: string[]; byTime?: Partial<Record<TimeOfDay, string>> }
+
 export interface Location {
   id: string;
   name: string;
@@ -801,7 +818,7 @@ export interface Location {
   props: string[];
   refs: LocationRef[];
   masterAssetId?: string;
-  layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string };
+  layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string; light?: LocationLight };
   /** the canonical identity and its version (see `LocationIdentity`) */
   identity?: LocationIdentity;
   createdAt: string;
@@ -820,6 +837,11 @@ export interface GenerationSettings {
    *  (one the engine keeps, e.g. 5, 22 or 39 frames on local H3) and whether the tail's sound is anchored. Absent: the
    *  engine's default. */
   continuation?: import('./video-capability').ContinuationChoice;
+  /** THE DERIVED FACE REFERENCE (src/domain/face-reference.ts): beside a character's canonical full-body image, a close
+   *  crop of its face — a temporary production reference derived from the canonical image — when the shot frames the
+   *  face close and the full-body picture leaves too few face pixels after the engine's reference scaling. AUTO: when
+   *  that is so; ON: on every close framing; OFF (the default until the GPU validation G13 promotes it): never. */
+  faceReference?: 'AUTO' | 'ON' | 'OFF';
 }
 
 /** Voice settings (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). */
