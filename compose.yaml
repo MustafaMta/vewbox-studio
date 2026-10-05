@@ -26,7 +26,8 @@ x-app-env: &app-env
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm:11434/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-ollama}
-  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3:14b}
+  # the local story model: Gemma 4 31B since the controlled test (docs/research/MODEL-EVAL-2026-10.md §3); qwen3:14b stays selectable
+  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-gemma4:31b-it-qat}
   # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
   OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -253,10 +254,11 @@ services:
         ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"
 
   # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume
-  # (llm-pull). Models available: qwen3:14b (10 GB, the current default) and gemma4:31b-it-qat (19 GB, text + image;
-  # docs/research/MODEL-STACK-2026-10.md §7.1); OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache
-  # halves the cache; OLLAMA_CONTEXT_LENGTH is the server default and what the app sends as num_ctx. Ollama offloads
-  # layers to the CPU when a model and its cache exceed the card: Gemma QAT at 16K fits (≈ 22–23 GB, estimate to measure).
+  # (llm-pull). Models available: gemma4:31b-it-qat (the default since 2026-10-05; 19.1 GB loaded at 16K, card peak
+  # 21.4 GB, 100 % GPU — measured, docs/research/MODEL-EVAL-2026-10.md §3) and qwen3:14b (10.6 GB loaded, card 11.5 GB);
+  # OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache halves the cache; OLLAMA_CONTEXT_LENGTH is the
+  # server default and what the app sends as num_ctx. Ollama offloads layers to the CPU when a model and its cache
+  # exceed the card.
   llm:
     logging: *logging
     image: ollama/ollama:0.35.1
