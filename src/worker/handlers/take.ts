@@ -19,7 +19,7 @@ import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
 import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, shouldRegenerate, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
-import { h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
+import { bindNamesOutsideDialogue, h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
 import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
@@ -229,7 +229,7 @@ export const generateTake: Handler = async (ctx) => {
     if (!verdict.ok) throw Object.assign(new StudioError('INVALID', `The continuation guide for shot ${sh.number} is unusable: ${verdict.problems.join('; ')}`, { guide: { frames: tail.frames, audioSeconds: tail.audioSeconds, hasAudio: tail.hasAudio }, verdict }), { failureClass: 'WRONG_PARAMETERS' });
     trimStartFrames = verdict.frames;
     tailFile = tail.file;
-    guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame };
+    guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame, settings: { engine: pack.continuation.engine, guideFrames: pack.continuation.guideFrames, guideAudio: pack.continuation.guideAudio, source: pack.continuation.source } };
     // THE FRAME BUDGET (G11): the words set the length (sound first), and a continuation carries at most 362 − guide
     // new frames. Over budget the take is a HARD CUT without its guide rather than a truncated continuation: the
     // planned content is never lost silently, and the take says why it is a cut
@@ -312,9 +312,14 @@ export const generateTake: Handler = async (ctx) => {
   const custom = payload.prompt?.trim();
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
-  const prompt = refsGraph
+  const draftPrompt = refsGraph
     ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
     : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState })].filter(Boolean).join(' '));
+  // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
+  const subjectOfPack = (id: string) => { const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
+  const named = bindNamesOutsideDialogue(draftPrompt, cast, subjectOfPack);
+  const prompt = named.prompt;
+  if (named.replaced.length) await ctx.event('info', `names bound in the prompt: ${named.replaced.join(', ')}`, { replaced: named.replaced });
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
     const failed = lint.checks.filter((c) => !c.ok && c.hard);

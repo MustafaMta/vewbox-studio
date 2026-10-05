@@ -234,6 +234,8 @@ export interface Shot {
   boundary?: ShotBoundary;
   /** The staging inside the shot (see `ShotStaging`): timed beats, in-take cuts, pace, point of view, extras. */
   staging?: ShotStaging;
+  /** A continuous shot's own continuation choice (overrides the studio's; see `GenerationSettings.continuation`). */
+  continuation?: import('./video-capability').ContinuationChoice;
 }
 
 /** THE STAGING OF ONE SHOT (docs/research/STORYBUILDER-INTEGRATION.md §d, §f.6–f.7; src/server/story/beats.ts):
@@ -782,6 +784,10 @@ export interface GenerationSettings {
   llmProvider?: string;
   /** Which voice engine new identities use. */
   voiceProvider?: 'LOCAL_TTS' | 'MINIMAX';
+  /** The studio's continuation choice inside the engine's capability (src/domain/video-capability.ts): the guide length
+   *  (one the engine keeps, e.g. 5, 22 or 39 frames on local H3) and whether the tail's sound is anchored. Absent: the
+   *  engine's default. */
+  continuation?: import('./video-capability').ContinuationChoice;
 }
 
 /** Voice settings (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). */

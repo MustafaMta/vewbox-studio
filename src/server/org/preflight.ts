@@ -63,6 +63,9 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // truncated (the worker turns a dialogue that grows past the budget into a hard cut without the guide)
   const budget = frameBudget(pack.trimStartFrames, sh.durationSeconds);
   add('continuation-fits-budget', budget.fits, 'WRONG_PARAMETERS', budget.fits ? (pack.trimStartFrames ? `${budget.neededFrames} new frames after a ${pack.trimStartFrames}-frame guide (budget ${budget.budgetFrames})` : undefined) : `a continuation carries at most ${budget.budgetFrames} new frames (${(budget.budgetFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s needs ${budget.neededFrames} — split the shot (it is never truncated)`);
+  // the continuation choice (src/domain/video-capability.ts): a guide length the engine does not keep is never floored
+  // silently — the engine default is used and the producer is told which choice was set aside
+  if (pack.continuation.problems.length) warnings.push({ name: 'continuation-choice-set-aside', detail: pack.continuation.problems.join('; ') });
   // references and their limits (the pack's slot order): each character's primary image is the canonical front
   // full-body image (a character drawn before canonical images falls back to the legacy portrait), then the plate,
   // then the drawn opening frame when it is bound as a picture
@@ -126,13 +129,13 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // older plan's CONTINUATION at a scene's start is lowered to a cut, as before.
   const { boundary, explicit } = boundaryOf(sh);
   if (explicit) {
-    const problem = boundaryProblem(state, p, sh);
+    const problem = boundaryProblem(state, p, sh, pack.backend);
     add('boundary-honoured', !problem, 'INCONSISTENT_PLAN', problem ?? `${boundary}: ${pack.relation.toLowerCase().replace('_', ' ')}`);
   }
   if (boundary === 'continuous') {
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-    const tail = sameScene ? continuationTail(state, p, prev) : undefined;
+    const tail = sameScene ? continuationTail(state, p, prev, pack.continuation.guideFrames || undefined) : undefined;
     const ok = !sameScene || Boolean(tail?.source);
     add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0; its window shows ${tail?.windowFrames ?? '?'} frames` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `this shot continues shot ${prev?.number}: ${tail?.problem ?? 'no usable tail'}`);
   }

@@ -199,6 +199,22 @@ export function bindNames(text: string, cast: Character[], subjectOf: (id: strin
   return out;
 }
 
+/** THE LAST NAME PASS (acceptance 2026-10-05, open item 2: "character names leak into H3 prompts; the app only
+ *  warns"). A producer's own prompt, a planner body or a carried continuity note can still name a person; the whole
+ *  prompt is bound once more before it is linted — outside the spoken `<d>…</d>` lines, whose words are the script
+ *  and are never rewritten (a line may say a name aloud). Returns the prompt and the names it replaced. */
+export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subjectOf: (id: string) => string | undefined): { prompt: string; replaced: string[] } {
+  const replaced = new Set<string>();
+  const parts = prompt.split(/(<d>[\s\S]*?<\/d>)/g);
+  const out = parts.map((part) => {
+    if (part.startsWith('<d>')) return part;
+    const bound = bindNames(part, cast, subjectOf);
+    if (bound !== part) for (const c of cast) for (const n of [c.name, c.nameAr]) if (n && n.trim().length > 1 && new RegExp(`(^|[^\\p{L}])${n.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'u').test(part)) replaced.add(n.trim());
+    return bound;
+  }).join('');
+  return { prompt: out, replaced: [...replaced] };
+}
+
 export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
