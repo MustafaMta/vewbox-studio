@@ -286,8 +286,11 @@ export interface LyricSection {
   from: number;
   to: number;
   performanceMode?: PerformanceMode;
-  /** Alternating vocals: who sings which line, in order, with timing when known. */
-  lines?: Array<{ singerId: string; text: string; from?: number; to?: number }>;
+  /** Alternating vocals: who sings which line, in order, with timing when known; `role` BACKING for a harmony or
+   *  echo line under the lead (sung softly, never the lead's words over them). */
+  lines?: Array<{ singerId: string; text: string; from?: number; to?: number; role?: 'LEAD' | 'BACKING' }>;
+  /** Backing singers of the whole section (harmonies under `singerIds`, who lead); absent: no backing vocals. */
+  backingIds?: string[];
   /** Where each written line is actually sung on the real vocal track (from alignment against the transcribed
    *  vocal stem); cues and shot windows use these instead of an even spread. */
   lineTimes?: Array<{ index: number; from: number; to: number; method: 'ALIGNED' | 'SPREAD'; confidence: number }>;

@@ -11,6 +11,7 @@ import { castOf } from '@/studio/selectors';
 import { assetFile, assetFromStored } from '@/server/media';
 import { jobOutputs, outputId } from '@/server/jobs/outputs';
 import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
+import { measureSongCopies } from '@/server/media/song-copies';
 import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport, type JoinMetric } from '@/server/media/assembly';
 import { takeLagAgainstMaster } from '@/server/media/sync';
 import { enqueue, recordMetric } from '@/server/jobs/queue';
@@ -125,6 +126,17 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
     const it = timeline.items.find((x) => x.shot.id === j.toShotId);
     if (!it) continue;
     await recordQaReport({ id: outputId(ctx.job.id, `qa:${opts.kind}-join:${j.toShotId}`, 'qa'), productionId: p.id, subjectKind: 'TAKE', subjectId: it.takeRecord.id, inspectorId: 'visual-quality-inspector', checks: joinChecks(j), failureClass: j.ok ? undefined : 'ENVIRONMENT_INCONSISTENCY', decision: j.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `continuation join into shot ${it.sceneNumber}.${it.shot.number} at ${j.atSeconds.toFixed(2)} s of the ${opts.kind}` });
+  }
+  // ONE COPY OF THE MUSIC (src/server/media/song-copies.ts; directive §8): a music video's rendered sound against its
+  // master — a second copy of the song at another lag is a REVIEW report on the cut, never a silent pass or a re-mix
+  if (p.kind === 'MUSIC_VIDEO' && song) {
+    try {
+      const copies = await step(ctx, 'technical-media-inspector', `song-copies: ${opts.kind} of “${p.title}”`, () => measureSongCopies(outFile, assetFile(song)));
+      await recordQaReport({ id: outputId(ctx.job.id, `qa:${opts.kind}-song-copies`, 'qa'), productionId: p.id, subjectKind: opts.kind === 'cut' ? 'CUT' : 'EXPORT', subjectId: `${ctx.job.id}:${opts.kind}`, inspectorId: 'technical-media-inspector', checks: [{ name: 'one-copy-of-the-music', ok: copies.ok, value: copies.copies.length, detail: copies.detail }], failureClass: copies.ok ? undefined : 'AUDIO_DUPLICATION', decision: copies.ok ? 'ACCEPT' : 'REVIEW', jobId: ctx.job.id });
+      await ctx.event(copies.ok ? 'info' : 'warn', `${opts.kind}: ${copies.detail}`, { copies });
+    } catch (e) {
+      await ctx.event('warn', `${opts.kind}: the copies of the song could not be measured (${(e as Error).message.split('\n')[0]})`);
+    }
   }
   const jumps = joins.filter((j) => j.judged && !j.ok);
   if (joins.length) await ctx.event(jumps.length ? 'warn' : 'info', `joins measured: ${joins.filter((j) => j.judged).length} continuation join(s), ${jumps.length} jump(s)`, { joins });

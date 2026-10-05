@@ -404,7 +404,7 @@ export const AGENTS: AgentDef[] = [
     systemInstructions: S(`Nothing is recorded as a cut or export without passing validation.`),
     model: 'ffprobe/ffmpeg', skills: ['take-inspection'], tools: ['media.probe', 'media.validate_export'], inputSchema: 'JOB_PAYLOADS.MEDIA_PROBE / file', outputSchema: 'probe / ExportValidation', limits: { timeoutMs: 600_000, maxAttempts: 1, resource: 'CPU' }, version: '2.0.0',
     qualityRequirements: ['validation on every finished file'], jobTypes: ['MEDIA_PROBE'],
-    steps: [{ id: 'file-validation', name: 'Validation of a finished file', where: W('handlers/assemble.ts') }] },
+    steps: [{ id: 'file-validation', name: 'Validation of a finished file', where: W('handlers/assemble.ts') }, { id: 'song-copies', name: 'One copy of the music in a music video’s cut', where: W('handlers/assemble.ts') }] },
   { id: 'audio-sync-inspector', name: 'Audio Synchronization Inspector', department: 'QA', role: 'Speech heard back; songs checked',
     description: 'Transcribes each speaking take and compares it with the script (coverage ≥ 0.7, WER reported, lines placed on the take); checks a new song’s length, stems and lyric placement; reports on a voice’s proof line.',
     systemInstructions: S(`Coverage ≥ 0.7 of the script in order; a take that could not be heard back goes to review, never passed on trust; report LIP_SYNC_FAILURE when the lines were not spoken.`),

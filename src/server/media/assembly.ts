@@ -170,9 +170,6 @@ const vttTime = (t: number) => srtTime(t).replace(',', '.');
 
 export interface Cue { start: number; end: number; text: string; speaker?: string }
 
-/** Subtitle cues from the shots' dialogue: where the audio timeline plays a recorded line, exactly there; else where
- *  the take was heard to speak it; else a slice of its shot proportional to its length. Arabic text keeps its own
- *  direction; the player handles RTL. */
 /** THE TEXT OF A CUE IN ONE SUBTITLE LANGUAGE, or nothing (acceptance 2026-10-05, open item 4: an "ar" track full of
  *  English was written for an English film). A track holds only text in its own script: the Arabic track takes the
  *  Arabic line (`textAr`, or `text` when it is Arabic), the English track the Latin-script line (`text`, or the gloss);
@@ -185,6 +182,9 @@ export function cueTextIn(lang: 'ar' | 'en', d: { text?: string; textAr?: string
   return candidates.find(fits)?.trim();
 }
 
+/** Subtitle cues from the shots' dialogue: where the audio timeline plays a recorded line, exactly there; else where
+ *  the take was heard to speak it; else a slice of its shot proportional to its length. Arabic text keeps its own
+ *  direction; the player handles RTL. */
 export function dialogueCues(_p: Production, timeline: Timeline, cast: Character[], lang: 'ar' | 'en'): Cue[] {
   const cues: Cue[] = [];
   const played = new Map(timeline.audio.cues.filter((c) => c.kind === 'DIALOGUE' && !c.muted && c.lineId).map((c) => [c.lineId!, c]));

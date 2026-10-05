@@ -44,7 +44,7 @@ export function sectionFor(song: Song, w: Window): LyricSection | undefined {
   return best ?? song.sections.find((s) => w.from < s.to && w.to > s.from);
 }
 
-export interface SungLine { singerId: string; text: string; textAr?: string }
+export interface SungLine { singerId: string; text: string; textAr?: string; role?: 'LEAD' | 'BACKING' }
 
 /** The lyric lines a shot's window covers, with their singers. Alternating sections carry their own per-line
  *  assignment; otherwise the section's lines are spread evenly over its duration and every assigned singer sings. */
@@ -56,7 +56,7 @@ export function sungLinesFor(song: Song, w: Window, language: 'EN' | 'AR'): Sung
     const n = sec.lines.length;
     return sec.lines.map((l, i) => ({ ...l, from: l.from ?? sec.from + (span * i) / n, to: l.to ?? sec.from + (span * (i + 1)) / n }))
       .filter((l) => l.from < w.to && l.to > w.from)
-      .map((l) => ({ singerId: l.singerId, text: l.text }));
+      .map((l) => ({ singerId: l.singerId, text: l.text, ...(l.role ? { role: l.role } : {}) }));
   }
   const source = (language === 'AR' ? sec.textAr || sec.text : sec.text) || '';
   const lines = source.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);

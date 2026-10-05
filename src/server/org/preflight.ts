@@ -1,5 +1,7 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
 import { frameCheckOf } from '@/domain/frames';
+import { linesCutAt, performanceSegments, shotPerformers } from '@/domain/music-performance';
+import { shotWindows } from '@/domain/timeline';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
@@ -147,6 +149,17 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   if (p.kind === 'MUSIC_VIDEO' && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') {
     const song = byId(p.song?.assetId);
     add('song-present', usableAudio(song), 'MISSING_REFERENCE', usableAudio(song) ? undefined : 'the music video has no generated or uploaded song yet');
+  }
+  // THE PERFORMANCE PLAN (src/domain/music-performance.ts): a shot boundary in the middle of a measured sung line
+  // breaks the performance (a word cut in two); someone in the shot who does not perform there must keep lips closed
+  if (p.kind === 'MUSIC_VIDEO' && p.song) {
+    const w = shotWindows(p).get(sh.id);
+    if (w) {
+      const broken = linesCutAt(performanceSegments(p.song), w);
+      if (broken.length) warnings.push({ name: 'cuts-sung-line', detail: broken.map((b) => `the shot ${Math.abs(b.at - w.from) < 1e-6 ? 'starts' : 'ends'} at ${b.at.toFixed(2)} s, inside the sung line “${b.segment.text}” (${b.segment.from.toFixed(2)}–${b.segment.to.toFixed(2)} s)`).join('; ') });
+      const perf = shotPerformers(p.song, w, sh.characterIds);
+      if (perf.silent.length && (perf.lead.length || perf.backing.length)) warnings.push({ name: 'non-performers-in-shot', detail: `${perf.silent.map((id) => cast.find((c) => c.id === id)?.name ?? id).join(', ')} ${perf.silent.length === 1 ? 'does' : 'do'} not sing here: told to keep lips closed; the singing check flags anyone who does`, characterIds: perf.silent });
+    }
   }
   // THE BOUNDARY (src/domain/types.ts ShotBoundary): an explicit `continuous` needs a previous shot in the same scene
   // with a usable tail — a chosen real take whose window on the cut holds the guide's frames (a shorter one would be

@@ -6,6 +6,7 @@ import { nonHumanSpecies } from '@/domain/identity';
 import { describeIdentity, locationIdentity } from '@/domain/location';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
 import { contextLines, type ProductionContext } from '@/domain/production-context';
+import { shotPerformers } from '@/domain/music-performance';
 import { cutTime, markTime, scrubSpeech } from './beats';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
@@ -69,13 +70,17 @@ export function singingTags(p: Production, sh: Shot, cast: Character[], speaker:
   if (!perf || perf.mode === 'INSTRUMENTAL') return 'Instrumental passage: nobody sings or mouths words.';
   const who = speaker;
   // only performers who are actually in the shot sing on camera; an assigned singer who is off screen is heard, not seen
-  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id));
-  const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId));
+  // THE PERFORMANCE PLAN (src/domain/music-performance.ts): the lead singers of the window carry the words, backing
+  // singers harmonise softly without the lead's words, everyone else on screen keeps their lips closed
+  const plan = shotPerformers(p.song, w, sh.characterIds);
+  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id) && !plan.backing.includes(id));
+  const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId) && l.role !== 'BACKING');
   const sung = lines.map((l) => `${who(l.singerId)} sings <d>[${lang}] ${clean(p.language === 'AR' ? l.textAr || l.text : l.text)}</d>`).join(' ');
+  const backing = plan.backing.map(who).filter(Boolean);
   const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
-  const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
+  const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !plan.backing.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
   const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : 'The song continues off camera: nobody on screen sings or mouths words.';
-  return [performing, listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing.` : ''].filter(Boolean).join(' ');
+  return [performing, backing.length ? `${backing.join(' and ')} sing${backing.length === 1 ? 's' : ''} soft backing harmonies, not the lead words.` : '', listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing; their lips stay closed.` : ''].filter(Boolean).join(' ');
 }
 
 /** The planner's dialogue tags, removed: the script is the only source of spoken words, and a planner's `<d>` is a
@@ -274,7 +279,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   }
   // crowds and extras are described, never referenced: each one a separate individual, none wearing a cast member's face
   const pictured = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
-  extras.forEach((e, i) => defs.push(`<Subject ${extraNo[i]}> is the group of ${e.count ? `${e.count} ` : ''}${clean(e.description)}; each one a separate individual with their own face, hair and clothes${pictured.length ? `, none of them sharing the face, hair or clothes of ${pictured.join(' or ')}` : ''}; no reference picture.`));
+  // in a music video nobody but the performers sings: an extra who mouths the lyrics reads as a random singer (§8)
+  const extrasSilent = p.kind === 'MUSIC_VIDEO' ? '; their lips stay closed: they never sing or mouth the lyrics' : '';
+  extras.forEach((e, i) => defs.push(`<Subject ${extraNo[i]}> is the group of ${e.count ? `${e.count} ` : ''}${clean(e.description)}; each one a separate individual with their own face, hair and clothes${pictured.length ? `, none of them sharing the face, hair or clothes of ${pictured.join(' or ')}` : ''}${extrasSilent}; no reference picture.`));
   const action = lowerFirst(clean(bind(sh.action)).replace(/\.$/, ''));
   if (b.opening?.kind === 'FRAME' && b.opening.picture) defs.push(`${pictureLabel(b, b.opening.picture)} is the first frame of [Shot 1], showing how ${action}.`);
   (b.audioRefs ?? []).forEach((a, j) => { const who = subjectOf(a.characterId); if (who) defs.push(`${audioLabel(b, j + 1)} is the voice-timbre reference for ${who}.`); });
