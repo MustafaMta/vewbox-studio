@@ -141,6 +141,13 @@ describe('voice and transcription services', () => {
     expect(e.code).toBe('UNAVAILABLE');
     expect(verdict(e)).toEqual({ failureClass: 'INFRASTRUCTURE', autoRetry: true });
   });
+  it('inside a job, a voice container that is restarting (connections refused) is waited for: the line is spoken, no attempt lost', async () => {
+    const jobId = await heldJob();
+    const down = speechStub.restart(4000);
+    const r = await asAttempt(jobId, 1, () => synthesize({ text: 'Hello', language: 'EN', referenceWav: wavFile }, work));
+    await down;
+    expect(fs.statSync(r.file).size).toBe(fs.statSync(wavFile).size);
+  }, 60_000);
   it('a zero-byte or truncated WAV is OUTPUT_CORRUPTION, named as the service’s failure', async () => {
     for (const mode of ['zero', 'truncated'] as const) {
       speechStub.modes.push(mode);

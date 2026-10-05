@@ -88,8 +88,8 @@ export async function stubComfy(opts: { nodes: string[]; models: Record<string, 
 export type SpeechMode = 'ok' | 'reset-mid-body' | 'zero' | 'truncated' | 'malformed-json';
 
 /** A voice + transcription service stand-in (POST /synthesize answers a WAV, POST /transcribe JSON). */
-export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes: SpeechMode[]; close: () => Promise<void> }> {
-  const s = { url: '', modes: [] as SpeechMode[], close: async () => {} };
+export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes: SpeechMode[]; close: () => Promise<void>; restart: (downMs: number) => Promise<void> }> {
+  const s = { url: '', modes: [] as SpeechMode[], close: async () => {}, restart: async (_downMs: number) => {} };
   const srv = http.createServer(async (req, res) => {
     await body(req);
     const mode = s.modes.shift() ?? 'ok';
@@ -107,6 +107,9 @@ export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes:
     res.end(out);
   });
   s.url = await listen(srv);
+  const port = Number(new URL(s.url).port);
   s.close = () => new Promise((r) => { srv.closeAllConnections(); srv.close(() => r()); });
+  /** a container restart: connections refused for `downMs` */
+  s.restart = (downMs: number) => new Promise<void>((r) => { srv.closeAllConnections(); srv.close(() => setTimeout(() => srv.listen(port, '127.0.0.1', () => r()), downMs)); });
   return s;
 }
