@@ -213,7 +213,7 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
             <Segmented label="Keep from the picture" value={value.keep} onChange={(k) => set({ keep: k })} options={[{ value: 'FACE' as const, label: 'The face only' }, { value: 'FACE_HAIR_WARDROBE' as const, label: 'Face, hair and clothes' }]} />
             <p className="help">Fine marks, logos and the background are never kept.</p>
           </div>
-          <Field label="What should change?" optional help="For example: keep the face; put her in a 1970s Baghdad café."><Textarea value={value.note} onChange={(e) => set({ note: e.target.value })} rows={2} maxLength={600} /></Field>
+          <Field label="What should change?" optional help="For example: grey work trousers and black boots; a shorter beard. The figure is drawn on a plain background."><Textarea value={value.note} onChange={(e) => set({ note: e.target.value })} rows={2} maxLength={600} /></Field>
           <Settings value={header} onChange={onHeader} />
         </div>
       </div>

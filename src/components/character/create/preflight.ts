@@ -37,6 +37,24 @@ export function checkImageDims(width: number, height: number): ImageRefusal | nu
 /** The server's reasons a picture was refused (contract §1.2), without its note that no face detector ran: that note
  *  is not a reason to refuse — the accepted state says "face not checked" instead. */
 export const refusalReasons = (reasons: string[]): string[] => reasons.filter((r) => !/face detection not available/i.test(r));
+
+/** How many of the character's `canon.visualRestrictions` the drawing's identity line reads, and how long each may be
+ *  (src/worker/handlers/images.ts `writtenLook`; src/domain/jobs.ts `canon`). */
+export const PICTURE_CHANGE_LIMITS = { items: 4, chars: 200 } as const;
+
+/** FROM A PICTURE — the producer's "What should change?" note as the durable drawing instructions of the character
+ *  (`canon.visualRestrictions`, which every drawing of the character repeats in its identity line). Before this the
+ *  note travelled only in the design brief, which in this mode writes who the character is and never the look, so the
+ *  image never heard it (acceptance 2026-10-05: "grey work trousers and black work boots" drawn as jeans and brown
+ *  shoes). Split at sentence ends into at most four pieces of at most 200 characters; a longer piece is cut at a word. */
+export function pictureChangeRestrictions(note: string): string[] {
+  const { items, chars } = PICTURE_CHANGE_LIMITS;
+  const cut = (s: string) => (s.length <= chars ? s : `${s.slice(0, chars).replace(/\s+\S*$/, '')}`);
+  const pieces = note.replace(/\s+/g, ' ').trim().split(/(?<=[.!?;])\s+/).map((s) => s.trim().replace(/[.;]+$/, '').trim()).filter((s) => s.length > 0);
+  if (pieces.length <= items) return pieces.map(cut);
+  // more sentences than the line reads: the last piece carries the rest (still within the 200 characters)
+  return [...pieces.slice(0, items - 1), pieces.slice(items - 1).join('; ')].map(cut);
+}
 /** Decode the picture in an <img> to read its real pixel size. */
 export function measureImage(file: Blob): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {

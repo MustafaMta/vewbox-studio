@@ -20,7 +20,7 @@ import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
 import { CreateCharacterSkeletonFor } from './CreateCharacterSkeleton';
-import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate } from './preflight';
+import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate, pictureChangeRestrictions } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
 const STARTS: readonly Start[] = ['describe', 'sheet', 'picture'];
@@ -186,7 +186,9 @@ export function CreateCharacter() {
     const ageYears = sheetAge({ band: picture.band });
     // keeping the face only: the hair and clothes the producer wrote are deliberate changes (empty: the picture's)
     const changes = picture.keep === 'FACE' ? { hair: picture.hair?.trim() || undefined, wardrobe: picture.wardrobe?.trim() || undefined } : {};
-    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
+    // "What should change?" is a drawing instruction: it rides on the character's canon, which the image step reads
+    const asked = pictureChangeRestrictions(picture.note);
+    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, ...(asked.length ? { canon: { visualRestrictions: asked } } : {}), style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
   };
 
   /** A relaunch of a creation that made nothing carries the recording again (it was never uploaded: no character). */
