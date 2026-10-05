@@ -296,6 +296,19 @@
   .ws-take[data-selected] .ws-take-frame { outline: 2px solid var(--text-1); outline-offset: 2px; }
   .ws-take[data-rejected] .ws-take-frame { opacity: .5; }
   .ws-take-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  /* a verdict and its checks line never run past the card: one line each, the rest in the title and Details */
+  .ws-take-verdict { max-inline-size: 100%; min-inline-size: 0; }
+  .ws-take-verdict-words { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
+  .ws-checks-line { display: -webkit-box; max-inline-size: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+  .ws-checks-line[data-tone='waiting'], .ws-checks-line[data-tone='failed'] { color: var(--text-1); }
+  .ws-att-list > li[data-review] .ws-att-d { color: var(--text-1); }
+  .ws-line-audio { margin: 0; }
+  .ws-line-audio-word { white-space: normal; align-items: flex-start; }
+  .ws-line-audio-word > .state-dot { margin-block-start: 5px; flex: none; }
+  .ws-ready { display: flex; flex-direction: column; gap: 8px; }
+  .ws-ready-head { margin: 0; }
+  .ws-ready-note { margin: 0; }
+  .ws-checks .ws-files > li[data-outcome='PASSED'] .ws-file-name { color: var(--text-2); }
   .ws-take-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-block-start: 6px; }
   .ws-compare-tick { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; padding-inline: 6px; font-size: 13px; line-height: 18px; color: var(--text-2); cursor: pointer; }
   .ws-attempts { margin-block-start: 16px; }
