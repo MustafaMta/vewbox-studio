@@ -98,6 +98,8 @@ export interface Scene {
    *  plate and an ESTABLISHED frame of the World Bible. Without it a shot in a place that has no plate is refused
    *  (UnestablishedLocationError, src/server/production/location-rule.ts). */
   establishLocation?: boolean;
+  /** what this scene changes in the story (see `SceneStory`): events, knowledge, persistent changes, relationships */
+  story?: SceneStory;
 }
 
 export type TakeStatus = 'READY' | 'REJECTED';
@@ -189,7 +191,10 @@ export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
  *  the server; the current version travels with the shot. */
 export interface ContinuityState {
   version: number;
-  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[] }>;
+  /** each person's state in the shot. Beyond where they are and what they hold (the older fields): their physical
+   *  condition (wet, injured, out of breath — what must persist), who they are interacting with, the pose they start
+   *  and end the shot in (a continuous next shot starts from `endPose`), and the direction they move on screen */
+  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[]; condition?: string; interactingWith?: string[]; startPose?: string; endPose?: string; motion?: ShotMotion }>;
   props: Array<{ name: string; ownerCharacterId?: string; state?: string; position?: string }>;
   environment: { locationId?: string; timeOfDay?: TimeOfDay; weather?: string; lighting?: string; state?: string };
   camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string };
@@ -199,7 +204,27 @@ export interface ContinuityState {
    *  Transition: the story moves in place, time or state. */
   relationToPrevious?: 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
   notes?: string;
+  /** explicit continuity constraints the take must honour ("the cup stays in her right hand", "rain on the window") */
+  constraints?: string[];
 }
+
+/** How a person (or the camera's subject) moves across the frame: the screen direction of travel and, in words, the
+ *  path ("from the door to the counter"). A continuous next shot keeps the direction (the 180° rule). */
+export interface ShotMotion { direction?: 'LEFT_TO_RIGHT' | 'RIGHT_TO_LEFT' | 'TOWARD_CAMERA' | 'AWAY_FROM_CAMERA' | 'STILL'; path?: string }
+
+/** THE STORY STATE A SCENE CHANGES (cloud directive 2026-10-05 §4 "Story state"), as structured records the studio
+ *  keeps — never only in an LLM prompt. Facts take effect at the scene (or at a shot of it, `atShotId`) and hold for
+ *  everything after it in story order:
+ *  - `events`: what happened (story beats completed);
+ *  - `knowledge`: what a character now knows (the planner keeps characters from acting on what they cannot know);
+ *  - `changes`: persistent changes to a person, a prop or a place ("Karim's left arm is in a sling", "the window is
+ *    broken") — carried into every later shot that shows them until a later change replaces them (same `key`);
+ *  - `relationships`: how a relationship stands after the scene. */
+export interface StoryFact { id: string; text: string; atShotId?: string }
+export interface KnowledgeFact extends StoryFact { characterId: string }
+export interface PersistentChange extends StoryFact { /** what it applies to */ subject: { kind: 'CHARACTER'; characterId: string } | { kind: 'PROP'; name: string } | { kind: 'LOCATION'; locationId: string }; /** facts with the same key replace each other (e.g. "arm" healed later) */ key?: string; /** ends a previous change with the same key without a new state */ cleared?: boolean }
+export interface RelationshipFact extends StoryFact { characterIds: string[] }
+export interface SceneStory { events?: StoryFact[]; knowledge?: KnowledgeFact[]; changes?: PersistentChange[]; relationships?: RelationshipFact[] }
 
 export type PerformanceMode = 'SOLO' | 'DUET' | 'ALTERNATING' | 'ENSEMBLE' | 'LISTENER' | 'INSTRUMENTAL';
 

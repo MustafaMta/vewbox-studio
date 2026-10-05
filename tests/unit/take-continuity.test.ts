@@ -335,7 +335,8 @@ describe('GENERATE_TAKE by relation', () => {
   });
 
   it('DRIFT CHECKS in the take’s QA record: the place in the first kept frame against the plate it was conditioned on (a measured fact), each present character’s reference applied; a drift is REVIEW, never a rejection', async () => {
-    const { state, p } = fixture(); fake.state = state;
+    // a wide shot: the framing at which the frame and the wide plate show the same picture (acceptance item 6)
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, framing: 'WIDE' as const } : s)) }); fake.state = state;
     await generateTake(ctx(p.id, 's12'));
     // the continuation's first kept frame (after its 22-frame head) against the dusk plate's file
     expect(fake.driftCalls).toEqual([[expect.stringMatching(/h3\.mp4$/), 22, '/lib/img/plate-dusk.png', 'plate-dusk']]);
@@ -350,6 +351,16 @@ describe('GENERATE_TAKE by relation', () => {
     expect(t).toMatchObject({ status: 'READY', params: { drift: { location: { meanDiff: 60, matches: false } } } });
     expect((t.qa as { ok: boolean; checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'location-matches-plate')).toMatchObject({ ok: false, detail: expect.stringMatching(/differs from the plate plate-dusk by 60\.00 luma levels after exposure .*over the provisional 36.*review, not rejected/) });
     expect(fake.qa.find((r) => (r.checks as Array<{ name: string }>).some((c) => c.name === 'location-matches-plate'))).toMatchObject({ decision: 'REVIEW', failureClass: 'ENVIRONMENT_INCONSISTENCY' });
+  });
+
+  it('a closer framing is NOT compared with the wide plate: recorded as not comparable, never as a drift (acceptance item 6)', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, framing: 'MEDIUM_CLOSE_UP' as const } : s)) }); fake.state = state;
+    fake.driftOffset = 60;
+    await generateTake(ctx(p.id, 's12'));
+    expect(fake.driftCalls).toEqual([]);
+    const t = addTake();
+    expect(t.status).toBe('READY');
+    expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'location-matches-plate')).toMatchObject({ ok: true, detail: expect.stringMatching(/not comparable: a medium close up shows a crop of the place/) });
   });
 
   it('refuses a producer prompt that names a picture the request does not connect (PROMPT_AMBIGUITY), before the engine', async () => {

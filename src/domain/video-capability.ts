@@ -117,7 +117,7 @@ export function guideLengths(cap: VideoCapability, upTo = 60): number[] {
  *  own override (shot > studio > engine default). `guideAudio`: AUTO anchors the tail's sound unless the rules of the
  *  shot pack mute it (a silent shot after speech); OFF never anchors it; ON anchors it even then. */
 export type GuideAudioMode = 'AUTO' | 'ON' | 'OFF';
-export interface ContinuationChoice { guideFrames?: number; guideAudio?: GuideAudioMode }
+export interface ContinuationChoice { guideFrames?: number; guideAudio?: GuideAudioMode; /** studio only: re-anchor after this many continuous shots in a row (src/domain/production-context.ts REANCHOR) */ reanchorAfter?: number }
 export interface ContinuationSettings {
   engine: VideoEngineId;
   /** frames of the previous take's tail anchored at frame 0 (0 when the engine has no guides) */

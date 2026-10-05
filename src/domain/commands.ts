@@ -228,13 +228,21 @@ const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.nu
 
 const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();
-const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional(), establishLocation: z.boolean().optional() }).passthrough();
-const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000), establishLocation: z.boolean() }).partial().extend(owned('id', 'number')).passthrough();
+/** a scene's story record (src/domain/types.ts SceneStory): bounded lists of short facts */
+const fact = { id, text: line(1000), atShotId: id.optional() };
+const SceneStoryZ = z.object({
+  events: z.array(z.object(fact)).max(100),
+  knowledge: z.array(z.object({ ...fact, characterId: id })).max(200),
+  changes: z.array(z.object({ ...fact, subject: z.union([z.object({ kind: z.literal('CHARACTER'), characterId: id }), z.object({ kind: z.literal('PROP'), name: line(300) }), z.object({ kind: z.literal('LOCATION'), locationId: id })]), key: line(120).optional(), cleared: z.boolean().optional() })).max(200),
+  relationships: z.array(z.object({ ...fact, characterIds: idList })).max(100),
+}).partial().strict();
+const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional(), establishLocation: z.boolean().optional(), story: SceneStoryZ.optional() }).passthrough();
+const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000), establishLocation: z.boolean(), story: SceneStoryZ }).partial().extend(owned('id', 'number')).passthrough();
 
 const ShotDialogue = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Continuity = z.object({ characters: z.array(z.object({ characterId: id }).passthrough()).max(50), props: z.array(z.object({ name: line(300) }).passthrough()).max(100), environment: z.object({}).passthrough(), camera: z.object({}).passthrough() }).partial().passthrough();
 /** a continuation choice: a guide length (validated against the engine's capability when a request is built) and the tail-sound mode */
-const ContinuationChoiceZ = z.object({ guideFrames: z.number().int().min(1).max(120), guideAudio: z.enum(['AUTO', 'ON', 'OFF']) }).partial().strict();
+const ContinuationChoiceZ = z.object({ guideFrames: z.number().int().min(1).max(120), guideAudio: z.enum(['AUTO', 'ON', 'OFF']), reanchorAfter: z.number().int().min(1).max(50) }).partial().strict();
 const shotFields = { sceneId: id, purpose: line(8000), action: line(8000), framing: z.enum(FRAMINGS), cameraMove: z.enum(CAMERA_MOVES), durationSeconds: z.number().positive().max(600), characterIds: idList, dialogue: z.array(ShotDialogue).max(100), transition: z.enum(TRANSITIONS), openingFrameAssetId: id, endingFrameAssetId: id, songWindow: z.object({ from: seconds, to: seconds }), performance: z.object({ mode: z.string().max(40), singerIds: idList }).passthrough(), notes: line(8000), continuity: Continuity, prompt: line(8000), boundary: z.enum(['continuous', 'cut', 'transition']), continuation: ContinuationChoiceZ, staging: z.object({ beats: z.array(z.object({ at: seconds, action: line(600), cut: z.object({ camera: line(200), locationId: id.optional() }).optional() })).max(12), pace: z.enum(['DWELL', 'NORMAL', 'MONTAGE']), pov: id, extras: z.array(z.object({ description: line(300), count: z.number().int().positive().max(500).optional() })).max(6), actions: z.array(line(300)).max(20) }).partial().passthrough() };
 /** A shot's takes and its chosen take have their own commands (the worker's addTake, selectTake, removeTake…). */
 const shotOwned = owned('id', 'number', 'takes', 'selectedTakeId');

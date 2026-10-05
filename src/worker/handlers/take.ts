@@ -26,6 +26,7 @@ import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { contextRecord } from '@/domain/production-context';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { assertLocationPlate } from '@/server/production/location-rule';
@@ -99,6 +100,7 @@ export const generateTake: Handler = async (ctx) => {
   // the plate, on every shot that shows them), what the clip starts from, the graph — the same resolution the
   // preflight judged
   const pack = resolveShotPack(state, p, sh, { backend, bible: world.outcome.view.revision?.bible });
+  await ctx.event(pack.context.gaps.length ? 'warn' : 'info', `production context ${pack.context.hash}: ${pack.context.characters.length} character(s), ${pack.context.location ? pack.context.location.name : 'no place'}, ${pack.context.shot.boundary}${pack.context.anchoring.reanchor ? ', re-anchoring' : ''}${pack.context.gaps.length ? `; gaps: ${pack.context.gaps.join('; ')}` : ''}`, { context: contextRecord(pack.context) });
   await ctx.event('info', `scene state (${pack.sceneState.boundary}): ${pack.sceneState.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'time of day unknown'}${pack.sceneState.weather ? `, ${pack.sceneState.weather}` : ''}${pack.sceneState.lighting ? `, ${pack.sceneState.lighting}` : ''}; ${pack.sceneState.present.length} present, ${pack.sceneState.props.length} prop(s); environment from ${pack.sceneState.sources.environment.kind.toLowerCase().replace(/_/g, ' ')}`, { sceneState: pack.sceneState });
   let seconds = Math.min(15, Math.max(1, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it — and from the job,
@@ -313,8 +315,8 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const draftPrompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState })].filter(Boolean).join(' '));
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context })].filter(Boolean).join(' '));
   // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
   const subjectOfPack = (id: string) => { const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
   const named = bindNamesOutsideDialogue(draftPrompt, cast, subjectOfPack);
@@ -545,7 +547,7 @@ export const generateTake: Handler = async (ctx) => {
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
@@ -609,4 +611,12 @@ export const generateTake: Handler = async (ctx) => {
  *  earlier attempt — the engine's own execution time, else nothing (the page then shows when it was made). */
 export function takeGenerationMs(r: { resumed: boolean; engineMs?: number; waitedMs: number }): number | undefined {
   return r.resumed ? r.engineMs : r.waitedMs;
+}
+
+/** FIRST-ATTEMPT RELIABILITY (cloud directive 2026-10-05 §11: "Track attempt #1 separately from retries"). Which
+ *  generation of the shot this take is (the shot's takes before it + 1) and which attempt of its job made it: a take
+ *  with `firstForShot` and `jobAttempt` 1 is a first-attempt take; anything else is a retry (by the queue) or a
+ *  regeneration (by a person). The engine room counts first-attempt acceptance from these. */
+export function attemptRecord(jobAttempt: number, takesBefore: number): { jobAttempt: number; shotGeneration: number; firstForShot: boolean; firstAttempt: boolean } {
+  return { jobAttempt, shotGeneration: takesBefore + 1, firstForShot: takesBefore === 0, firstAttempt: takesBefore === 0 && jobAttempt <= 1 };
 }

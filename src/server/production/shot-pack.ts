@@ -1,12 +1,13 @@
 import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take, type WorldBible } from '@/domain/types';
 import { orderedShots, shotWindowFrames } from '@/domain/timeline';
-import { sceneStateFor, type SceneState } from '@/domain/scene-state';
+import type { SceneState } from '@/domain/scene-state';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { locationIdentity } from '@/domain/location';
 import { castOf, worldOf } from '@/studio/selectors';
 import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
 import type { H3Binding } from '@/server/story/prompts';
 import { capabilityFor, resolveContinuation, type ContinuationSettings } from '@/domain/video-capability';
+import { productionContextFor, type ProductionContext } from '@/domain/production-context';
 
 /** THE SHOT PACK — what one take of a shot is conditioned on, resolved once from the studio records by a pure
  *  function, so the preflight that judges the request and the handler that sends it see the same thing
@@ -71,6 +72,9 @@ export interface ShotPack {
   /** THE CONTINUATION SETTINGS this request uses (src/domain/video-capability.ts): the engine's capability, the
    *  studio's and the shot's choice, resolved — the guide length the tail is cut to and the trim drops */
   continuation: ContinuationSettings;
+  /** THE PRODUCTION CONTEXT the take is made from (src/domain/production-context.ts): character, location, shot and
+   *  story state, the re-anchoring decision; its hash is recorded on the take */
+  context: ProductionContext;
   notes: string[];
 }
 
@@ -173,8 +177,20 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   const { relation, planned, boundary, previous } = effectiveRelation(p, sh);
   const notes: string[] = [];
   const local = opts.backend === 'local';
-  const continuation = resolveContinuation(capabilityFor(opts.backend), state.settings?.generation?.continuation, sh.continuation);
+  const cap = capabilityFor(opts.backend);
+  let continuation = resolveContinuation(cap, state.settings?.generation?.continuation, sh.continuation);
   for (const pr of continuation.problems) notes.push(pr);
+  const context = productionContextFor(state, p, sh, { bible: opts.bible });
+  // RE-ANCHORING (production-context.ts REANCHOR): deep in a chain of continuous shots the tail carries the motion
+  // only — the shortest guide the engine keeps — so the canonical references dominate the look again; a shot that
+  // chose its own guide length keeps it
+  if (context.anchoring.reanchor && cap.guides && continuation.source.guideFrames !== 'SHOT') {
+    const shortest = Math.min(...cap.guides.continuationChoices);
+    if (shortest < continuation.guideFrames) {
+      notes.push(`re-anchor: ${context.anchoring.why}; guide ${continuation.guideFrames} → ${shortest} frames`);
+      continuation = { ...continuation, guideFrames: shortest };
+    }
+  }
   const guideFrames = continuation.guideFrames || H3_GUIDE_FRAMES;
   if (boundary && sh.boundary) notes.push(`boundary ${boundary}: ${boundary === 'continuous' ? 'the action carries on from the previous take\'s tail' : boundary === 'cut' ? 'a new camera on the same moment (same cast, place and story state); no tail is anchored' : 'a new place or time: the destination\'s references and the story state there; nothing of the previous shot is anchored'}`);
   // what the clip starts from
@@ -240,8 +256,8 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   } else graph = opening.kind === 'FRAME' || ending ? 'FRAMES' : 'TEXT';
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
   // THE SCENE STATE (src/domain/scene-state.ts): what is true when this shot is filmed, carried shot to shot
-  const sceneState = sceneStateFor(p, sh, { bible: opts.bible });
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, notes };
+  const sceneState = context.sceneState;
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, context, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */

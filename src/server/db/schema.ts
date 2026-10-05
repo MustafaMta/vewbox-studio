@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, ShotDialogue, ShotStaging, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
+import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, SceneStory, ShotDialogue, ShotStaging, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
+import type { ContinuationChoice } from '@/domain/video-capability';
 import type { RunPhaseEvent } from '@/domain/phases';
 import type { JobError, JobProgress } from '@/domain/jobs';
 import type { Presentation } from '@/domain/presentation';
@@ -112,6 +113,8 @@ export const scenes = pgTable('scenes', {
   exitState: text('exit_state'),
   /** "establish here": the scene is its place's first appearance and may be filmed without a plate (src/domain/types.ts Scene) */
   establishLocation: boolean('establish_location'),
+  /** what the scene changes in the story: events, knowledge, persistent changes, relationships (src/domain/types.ts SceneStory) */
+  story: jsonb('story').$type<SceneStory>(),
   ...tombstone(),
 }, (t) => [index('scenes_production_idx').on(t.productionId)]);
 
@@ -141,6 +144,8 @@ export const shots = pgTable('shots', {
   boundary: text('boundary'),
   /** timed beats, in-take cuts, pace, point of view, extras (src/domain/types.ts ShotStaging) */
   staging: jsonb('staging').$type<ShotStaging>(),
+  /** the shot's own continuation choice inside the engine's capability (src/domain/video-capability.ts) */
+  continuation: jsonb('continuation').$type<ContinuationChoice>(),
   ...tombstone(),
 }, (t) => [index('shots_production_idx').on(t.productionId), index('shots_scene_idx').on(t.sceneId)]);
 

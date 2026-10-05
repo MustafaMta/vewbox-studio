@@ -5,6 +5,7 @@ import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
 import { describeIdentity, locationIdentity } from '@/domain/location';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
+import { contextLines, type ProductionContext } from '@/domain/production-context';
 import { cutTime, markTime, scrubSpeech } from './beats';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
@@ -107,12 +108,14 @@ function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene:
 /** The full prompt for a first-frame (FL2VA) or text-only take: look + setting + people + action + camera + dialogue.
  *  The shot's own `prompt` (written by the story engine or the producer) replaces the generated middle when present;
  *  its dialogue tags are replaced by the exact script lines. */
-export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState } = {}): string {
+export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts) */ context?: ProductionContext } = {}): string {
   const d = styleDirection(p.style);
   const dialogue = opts.includeDialogue === false ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast) : dialogueTags(p, sh, cast);
   const body = shotBody(sh, cast, loc, scene, opts.includeDialogue !== false);
-  const state = opts.sceneState ? sceneStateLine(opts.sceneState, (id) => { const c = cast.find((x) => x.id === id); return c ? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}` : undefined; }) : '';
-  return [d.visual + '.', body, state, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const described = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}` : undefined; };
+  const state = opts.sceneState ? sceneStateLine(opts.sceneState, described) : '';
+  const context = opts.context ? contextLines(opts.context, described) : '';
+  return [d.visual + '.', body, state, context, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
 // -------------------------------------------------------------------------------- MiniMax H3 reference grammar
@@ -216,7 +219,7 @@ export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subj
   return { prompt: out, replaced: [...replaced] };
 }
 
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState } = { relation: 'CUT' }): string {
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
   // SUBJECT NUMBERING: the pictured characters (Subject k = Picture k), the place, then the characters declared from
@@ -326,7 +329,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
       marks.push(`[Shot ${shotNoOfBeat[i]}] At ${cutTime(bt.at)}, hard cut to ${clean(bt.cut.camera)}${place ? ` in ${clean(place.description) || place.name}` : placeNo ? ` in <Subject ${placeNo}>` : ''}. ${text}`);
     } else marks.push(`[${markTime(bt.at)}] ${text}`);
   });
-  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, cont, stateLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  // THE PRODUCTION CONTEXT (src/domain/production-context.ts): what persists about the people and the place
+  const contextLine = opts.context ? contextLines(opts.context, plainSubject) : '';
+  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [
