@@ -75,6 +75,27 @@ describe('ComfyUI container restarted mid-prompt', () => {
   }, 60_000);
 });
 
+describe('ComfyUI container down for a while (docker restart)', () => {
+  it('mid-prompt: the refused polls are waited out, then the forgotten prompt is reported LOST (retryable) — not UNAVAILABLE on the first refusal', async () => {
+    const jobId = await heldJob();
+    comfyStub.modes.push('ok');
+    let restarting: Promise<void> | undefined;
+    const e = await asAttempt(jobId, 1, () => generateVideo({ ...request(), onTaskCreated: () => { setTimeout(() => { restarting = comfyStub.restart(3000); }, 100); } })).catch((x) => x);
+    await restarting;
+    expect(e.kind).toBe('LOST');
+    expect(e.message).toMatch(/no longer knows prompt/);
+    expect(verdict(e)).toEqual({ failureClass: 'INFRASTRUCTURE', autoRetry: true });
+  }, 60_000);
+  it('an attempt that starts while the engine is still coming up waits for it instead of failing', async () => {
+    const jobId = await heldJob();
+    comfyStub.modes.push('ok');
+    const down = comfyStub.restart(4000);
+    const r = await asAttempt(jobId, 1, () => generateVideo(request()));
+    await down;
+    expect(fs.statSync(r.file).size).toBe(fs.statSync(clipFile).size);
+  }, 60_000);
+});
+
 describe('GPU out of memory', () => {
   it('an execution_error OutOfMemory is RESOURCE_EXHAUSTION, retryable, and the engine is told to free its memory', async () => {
     const jobId = await heldJob();
@@ -120,6 +141,13 @@ describe('voice and transcription services', () => {
     expect(e.code).toBe('UNAVAILABLE');
     expect(verdict(e)).toEqual({ failureClass: 'INFRASTRUCTURE', autoRetry: true });
   });
+  it('inside a job, a voice container that is restarting (connections refused) is waited for: the line is spoken, no attempt lost', async () => {
+    const jobId = await heldJob();
+    const down = speechStub.restart(4000);
+    const r = await asAttempt(jobId, 1, () => synthesize({ text: 'Hello', language: 'EN', referenceWav: wavFile }, work));
+    await down;
+    expect(fs.statSync(r.file).size).toBe(fs.statSync(wavFile).size);
+  }, 60_000);
   it('a zero-byte or truncated WAV is OUTPUT_CORRUPTION, named as the service’s failure', async () => {
     for (const mode of ['zero', 'truncated'] as const) {
       speechStub.modes.push(mode);

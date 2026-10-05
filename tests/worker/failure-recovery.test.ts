@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -199,6 +199,53 @@ describe('cancelled job (§26)', () => {
     expect((await row(job.id)).attempts).toBe(1);
     expect((await attempts(job.id)).map((x) => x.outcome)).toEqual(['CANCELLED']);
     expect(await takesOf(shots[5])).toEqual([]);
+  }, 120_000);
+});
+
+describe('invalid input and missing reference (§26) — the REAL take handler, refused before any engine', () => {
+  const settled = (id: string) => until('settled', async () => { const r = await row(id); return ['COMPLETED', 'FAILED', 'CANCELLED'].includes(r.status) ? r : undefined; }, 90_000);
+
+  it('a take for a shot that does not exist fails once as INVALID_INPUT — no retry, no engine call', async () => {
+    const w = startWorker('fault-invalid', { FIXTURE_TAKE: '0' });
+    const job = await takeJob('shot-that-does-not-exist');
+    const r = await settled(job.id);
+    await stop(w);
+    expect(r.status).toBe('FAILED');
+    expect(r.attempts).toBe(1);
+    expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
+    expect((r.error as { message: string }).message).toMatch(/Shot not found/);
+  }, 120_000);
+
+  it('a character whose canonical picture file is gone: refused as MISSING_REFERENCE naming the picture — once, before any voice or video inference', async () => {
+    const { character: c } = await command('addCharacter', [{ name: `Ref Missing ${Date.now().toString(36)}`, style: 'ANIME', sex: 'FEMALE', ageYears: 30, language: 'EN', role: '', build: '', face: '', hair: '', skin: '', eyes: '', wardrobe: '', personality: '', distinguishing: [] }]);
+    const png = execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=256x256', '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'png', '-']);
+    const { storeBuffer, assetFromStored } = await import('@/server/media');
+    const stamp = Date.now().toString(16).padStart(20, '0').slice(-20);
+    const assetId = `gen-${stamp}`; const plateId = `gen-${stamp.slice(0, 19)}f`;
+    const stored = await storeBuffer(assetId, png, { expectKind: 'IMAGE' });
+    const plate = await storeBuffer(plateId, png, { expectKind: 'IMAGE' });
+    await commands([{ name: 'addAsset', args: [assetFromStored(assetId, stored, { label: 'FIXTURE canonical', tags: ['fixture'], origin: 'GENERATED' })] }, { name: 'addAsset', args: [assetFromStored(plateId, plate, { label: 'FIXTURE plate', tags: ['fixture'], origin: 'GENERATED' })] }, { name: 'setCanonicalImage', args: [c.id, { assetId, jobId: 'job-fixture', check: { ok: true } }] }]);
+    const version = (await readState()).state.characters.find((x) => x.id === c.id)!.canonicalImage!.version;
+    await command('approveCanonicalImage', [c.id, version]);
+    // a place with its plate (on disk), so the preflight passes and the file check is what refuses
+    const { location } = await command('addLocation', [{ name: `Pier ${stamp.slice(-4)}`, kind: 'EXTERIOR', description: 'a pier', style: 'ANIME', lighting: [], landmarks: [], props: [] }]);
+    await command('addLocationRefs', [location.id, [{ id: `ref-${stamp}`, role: 'MASTER', assetId: plateId, label: 'master' }]]);
+    let p = (await readState()).state.productions.find((x) => x.id === productionId)!;
+    await command('updateProduction', [productionId, { castIds: [c.id], locationIds: [location.id] }]);
+    await command('updateScene', [productionId, p.scenes[0].id, { locationId: location.id }]);
+    p = (await readState()).state.productions.find((x) => x.id === productionId)!;
+    const shotId = (await command('addShot', [productionId, { sceneId: p.scenes[0].id, purpose: '', action: 'she looks up', framing: 'MEDIUM', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [c.id], dialogue: [], transition: 'CUT' }])).shot.id;
+    fs.rmSync(stored.absPath, { force: true }); // the file is gone; the record stays
+    const w = startWorker('fault-missing-ref', { FIXTURE_TAKE: '0' });
+    const job = await takeJob(shotId);
+    const r = await settled(job.id);
+    await stop(w);
+    expect(r.status).toBe('FAILED');
+    expect(r.attempts).toBe(1);
+    const at = await attempts(job.id);
+    expect(at.map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'MISSING_REFERENCE']]);
+    expect((r.error as { message: string }).message).toMatch(new RegExp(`missing reference file: reference picture 1 \\(subject\\) \\(asset ${assetId}\\)`));
+    expect(await takesOf(shotId)).toEqual([]);
   }, 120_000);
 });
 

@@ -63,6 +63,29 @@ export async function storageReadiness(dir: string, minFreeBytes = 2 * 1024 ** 3
   }
 }
 
+/** THE REFERENCE FILES ARE ON DISK (directive §20 "required references"): every picture the shot pack conditions on,
+ *  the clip or frame it opens from, its ending frame and every recorded line it reuses, by file — an asset row whose
+ *  file is gone (a restore without the library, a manual clean-up) is refused BEFORE the engine is asked, naming what
+ *  is missing, instead of failing mid-request as an unclassified "no such file". `fileOf` resolves an asset's file. */
+export interface ReferenceNeed { assetId: string; what: string }
+export function referenceNeeds(pack: { pictures: Array<{ assetId: string; role: string }>; opening: { kind: string; assetId?: string }; ending?: { assetId: string } }, lines: Array<{ id: string; audioAssetId?: string }> = []): ReferenceNeed[] {
+  const needs: ReferenceNeed[] = pack.pictures.map((p, i) => ({ assetId: p.assetId, what: `reference picture ${i + 1} (${p.role.toLowerCase().replace('_', ' ')})` }));
+  if (pack.opening.assetId) needs.push({ assetId: pack.opening.assetId, what: `opening ${pack.opening.kind === 'TAIL' ? "clip (the previous take's tail)" : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? "frame (the previous take's last frame)" : 'frame'}` });
+  if (pack.ending) needs.push({ assetId: pack.ending.assetId, what: 'ending frame' });
+  for (const l of lines) if (l.audioAssetId) needs.push({ assetId: l.audioAssetId, what: `recorded line ${l.id}` });
+  const seen = new Set<string>();
+  return needs.filter((n) => (seen.has(`${n.assetId}:${n.what}`) ? false : (seen.add(`${n.assetId}:${n.what}`), true)));
+}
+
+export async function referenceFilesReadiness(needs: ReferenceNeed[], fileOf: (assetId: string) => string | undefined, exists: (file: string) => Promise<boolean> = async (f) => fsp.stat(f).then((s) => s.isFile() && s.size > 0, () => false)): Promise<{ ok: boolean; missing: Array<ReferenceNeed & { file?: string }>; detail: string }> {
+  const missing: Array<ReferenceNeed & { file?: string }> = [];
+  for (const n of needs) {
+    const file = fileOf(n.assetId);
+    if (!file || !(await exists(file))) missing.push({ ...n, ...(file ? { file } : {}) });
+  }
+  return { ok: missing.length === 0, missing, detail: missing.length ? `missing reference file${missing.length > 1 ? 's' : ''}: ${missing.map((m) => `${m.what} (asset ${m.assetId}${m.file ? '' : ', no record'})`).join('; ')}` : `${needs.length} reference file(s) present` };
+}
+
 /** The engine's answer is reused for a minute per requirement set (object_info is large; a scene asks many times). A
  *  failed answer is never cached: the next take asks again. */
 const cache = new Map<string, { at: number; r: Readiness }>();

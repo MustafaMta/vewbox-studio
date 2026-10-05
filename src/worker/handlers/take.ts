@@ -9,6 +9,7 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
+import { referenceFilesReadiness, referenceNeeds } from '@/server/production/readiness';
 import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, padAudio, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
@@ -146,6 +147,14 @@ export const generateTake: Handler = async (ctx) => {
   const reused = new Set<string>();
   const lineText = (d: ShotDialogue) => (p.language === 'AR' ? d.textAr || d.text : d.text).trim();
   const storedLine = (d: ShotDialogue): Asset | undefined => { const c = cast.find((x) => x.id === d.characterId); return c && lineRecordingCurrent(d, c, state.assets) ? byId(d.audioAssetId) : undefined; };
+  // THE REFERENCE FILES ARE ON DISK (src/server/production/readiness.ts): every picture, opening/ending frame or tail
+  // and reused recording the request will send — before any voice or video inference runs
+  await step(ctx, 'executive-producer', `take-preflight: reference files of shot ${sh.number}`, async () => {
+    const needs = referenceNeeds(pack, sh.dialogue.filter((d) => lineText(d) && storedLine(d)));
+    const r = await referenceFilesReadiness(needs, (id) => { const a = byId(id); return a ? assetFile(a) : undefined; });
+    await ctx.event(r.ok ? 'info' : 'error', `reference files: ${r.detail}`, { missing: r.missing });
+    if (!r.ok) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} cannot be filmed: ${r.detail}. Restore the files (docs/OPERATIONS-BACKUP.md) or choose other references.`, { missing: r.missing }), { failureClass: 'MISSING_REFERENCE', retryable: false });
+  });
   for (const cid of speakers) {
     const c = cast.find((x) => x.id === cid);
     if (!c) continue;

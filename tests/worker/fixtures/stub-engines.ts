@@ -16,6 +16,7 @@ export interface StubComfy {
   views: number;
   frees: number;
   close: () => Promise<void>;
+  restart: (downMs: number) => Promise<void>;
 }
 
 const listen = (srv: http.Server) => new Promise<string>((r) => srv.listen(0, '127.0.0.1', () => r(`http://127.0.0.1:${(srv.address() as AddressInfo).port}`)));
@@ -26,7 +27,7 @@ const json = (res: http.ServerResponse, code: number, v: unknown) => { res.write
 export async function stubComfy(opts: { nodes: string[]; models: Record<string, string[]>; goodClip: Buffer; runMs?: number }): Promise<StubComfy> {
   const prompts = new Map<string, { mode: PromptMode; at: number }>();
   const runMs = opts.runMs ?? 400;
-  const state: StubComfy = { url: '', modes: [], submitted: [], views: 0, frees: 0, close: async () => {} };
+  const state: StubComfy = { url: '', modes: [], submitted: [], views: 0, frees: 0, close: async () => {}, restart: async () => {} };
   const status = (id: string): 'pending' | 'in_progress' | 'completed' | 'failed' | 'gone' => {
     const p = prompts.get(id);
     if (!p) return 'gone';
@@ -73,15 +74,22 @@ export async function stubComfy(opts: { nodes: string[]; models: Record<string, 
     json(res, 404, { error: `stub: ${p}` });
   });
   state.url = await listen(srv);
+  const port = Number(new URL(state.url).port);
   state.close = () => new Promise((r) => { srv.closeAllConnections(); srv.close(() => r()); });
+  /** a container restart: the port refuses connections for `downMs`, then the engine is back knowing nothing */
+  state.restart = (downMs: number) => new Promise<void>((r) => {
+    prompts.clear();
+    srv.closeAllConnections();
+    srv.close(() => setTimeout(() => srv.listen(port, '127.0.0.1', () => r()), downMs));
+  });
   return state;
 }
 
 export type SpeechMode = 'ok' | 'reset-mid-body' | 'zero' | 'truncated' | 'malformed-json';
 
 /** A voice + transcription service stand-in (POST /synthesize answers a WAV, POST /transcribe JSON). */
-export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes: SpeechMode[]; close: () => Promise<void> }> {
-  const s = { url: '', modes: [] as SpeechMode[], close: async () => {} };
+export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes: SpeechMode[]; close: () => Promise<void>; restart: (downMs: number) => Promise<void> }> {
+  const s = { url: '', modes: [] as SpeechMode[], close: async () => {}, restart: async (_downMs: number) => {} };
   const srv = http.createServer(async (req, res) => {
     await body(req);
     const mode = s.modes.shift() ?? 'ok';
@@ -99,6 +107,9 @@ export async function stubSpeech(goodWav: Buffer): Promise<{ url: string; modes:
     res.end(out);
   });
   s.url = await listen(srv);
+  const port = Number(new URL(s.url).port);
   s.close = () => new Promise((r) => { srv.closeAllConnections(); srv.close(() => r()); });
+  /** a container restart: connections refused for `downMs` */
+  s.restart = (downMs: number) => new Promise<void>((r) => { srv.closeAllConnections(); srv.close(() => setTimeout(() => srv.listen(port, '127.0.0.1', () => r()), downMs)); });
   return s;
 }
