@@ -15,6 +15,9 @@ import type { HonouredSettingKey, SettingsHonoured } from '@/domain/settings';
 import { MINIMAX_H3_LOCAL, type ContinuationChoice } from '@/domain/video-capability';
 import { REANCHOR } from '@/domain/production-context';
 import { designedIraqiAllowed } from '@/components/character/contract';
+import { ENGINE_LICENCES, DISTRIBUTION_NOTE } from '@/domain/licences';
+import { TERMS_VERSION, termsAccepted } from '@/domain/terms';
+import { fmtDate } from '@/lib/format';
 
 /** SETTINGS (docs/DESIGN-SYSTEM-V5.md §8.13) — how the studio makes new work, in plain words: the engines it runs on
  *  (said, not offered: the server configures them; MiniMax H3 on this machine is the only video engine); continuity
@@ -133,6 +136,22 @@ export function SettingsPage() {
           <SettingRow label="Dialogue language" hint="The language the characters speak in the film." unused={off('defaultLanguage')}>{(id) => <Select id={id} value={s.defaults.language} onChange={(e) => set({ defaults: { ...s.defaults, language: e.target.value as typeof s.defaults.language } })} options={LANGUAGES.map((x) => ({ value: x, label: x === 'EN' ? 'English' : 'Arabic' }))} />}</SettingRow>
           <SettingRow label="Arabic dialect" unused={off('defaultDialect')}>{(id) => <Select id={id} value={s.defaults.dialect} onChange={(e) => set({ defaults: { ...s.defaults, dialect: e.target.value as typeof s.defaults.dialect } })} options={DIALECTS.map((x) => ({ value: x, label: dialectLabel(x) }))} />}</SettingRow>
         </div>
+      </Section>
+
+      <Section id="licences" title="Licences and terms" description="What the engines’ licences allow, and what they ask of the studio and of you. The full record: docs/LICENSES.md.">
+        <div className="card st-panel">
+          <div className="st-row"><span className="st-row-words"><span className="st-label">Terms of use</span><span className="t-meta">{termsAccepted(s) ? `Accepted${s.terms?.acceptedAt ? ` on ${fmtDate(s.terms.acceptedAt)}` : ''} (version ${TERMS_VERSION}).` : 'Not accepted yet: the studio makes nothing new until they are.'}</span></span><Link href="/terms" className={termsAccepted(s) ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}>{termsAccepted(s) ? 'Read the terms' : 'Read and accept'}</Link></div>
+          <InfoRow label="Where films may be shown" hint={DISTRIBUTION_NOTE} value={<StateWord tone="waiting">Territory licence pending</StateWord>} />
+          <InfoRow label="AI disclosure" hint="Every cut and export says in its file’s metadata that it is AI-generated with MiniMax H3; an export can also end on a card naming the engines." value="Always on" />
+        </div>
+        <ul className="card st-panel st-credits" role="list" aria-label="The engines and their licences">
+          {ENGINE_LICENCES.map((l) => (
+            <li key={l.id} className="st-row">
+              <span className="st-row-words"><span className="st-label">{l.engine}{l.status === 'EVALUATING' ? <StateWord tone="waiting" className="st-src">Under evaluation</StateWord> : null}</span><span className="t-meta">{l.role}. {l.obligations.join(' ')}</span></span>
+              <span className="st-control st-value">{l.licence}</span>
+            </li>
+          ))}
+        </ul>
       </Section>
 
       <Section id="elsewhere" title="Elsewhere">

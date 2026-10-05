@@ -6,6 +6,8 @@ import type { JobPayload, JobType } from '@/domain/jobs';
 import { useLive } from '@/studio/org';
 import { JobButton } from '@/components/ui/jobs';
 import { cls } from '@/components/ui/kit';
+import { useStudio } from '@/studio/store';
+import { TERMS_NEEDED, termsAccepted } from '@/domain/terms';
 
 /** WHETHER THE STUDIO CAN MAKE SOMETHING RIGHT NOW — the two real states the generation controls must show while
  *  generation is paused (docs/design/PAGE-ENGINEERING-BRIEF.md §3): job intake paused (GET /api/health `intake`), and an
@@ -25,11 +27,16 @@ export interface StudioGate {
   offline: (engine: Engine) => boolean;
   /** why a job on this engine cannot be taken now, in words; null when it can (or the state is not known yet) */
   blocked: (engine: Engine) => string | null;
+  /** the terms of use wait for acceptance (the words to show), else null */
+  terms: string | null;
 }
 
 export function useStudioGate(): StudioGate {
   const { data: health } = useLive<Health>('/api/health');
   const { data: engines } = useLive<Engines>('/api/status');
+  const { state, ready } = useStudio();
+  // the terms of use not accepted: no new work through the pages (src/domain/terms.ts)
+  const terms = ready && !termsAccepted(state.settings) ? TERMS_NEEDED : null;
   const paused = health ? Boolean(health.intake?.paused) : null;
   const offline = (e: Engine) => Boolean(engines && engines[e] && engines[e]?.ok === false);
   const NAME: Record<Engine, string> = { video: 'The video engine', images: 'The picture engine', voice: 'The voice engine', story: 'The story engine', music: 'The music engine' };
@@ -37,7 +44,8 @@ export function useStudioGate(): StudioGate {
     paused,
     pausedSince: health?.intake?.since ?? null,
     offline,
-    blocked: (e) => (paused ? PAUSED :offline(e) ? `${NAME[e]} is offline.` : null),
+    blocked: (e) => terms ?? (paused ? PAUSED : offline(e) ? `${NAME[e]} is offline.` : null),
+    terms,
   };
 }
 
@@ -69,7 +77,7 @@ export function GenButton<K extends JobType>({ gate, engine, type, payload, targ
   // while the server has not answered, the control waits in its disabled shape and the reason's line holds its place
   // without words (the answer never moves the page, and no 'checking…' sits beside a settled sentence)
   const checking = gate.paused === null;
-  const why = checking ? null : (engine ? gate.blocked(engine) : gate.paused ? PAUSED : null) ?? (disabled ? reason ?? null : null);
+  const why = checking ? null : (engine ? gate.blocked(engine) : gate.terms ?? (gate.paused ? PAUSED : null)) ?? (disabled ? reason ?? null : null);
   return (
     <span className={cls('ws-gen', className)}>
       <JobButton type={type} payload={payload} target={target} variant={variant} size={size} icon={icon} disabled={checking || Boolean(why) || disabled} title={why ?? undefined} confirm={confirm}>{children}</JobButton>

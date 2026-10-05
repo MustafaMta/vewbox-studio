@@ -352,6 +352,8 @@ function Generate({ p, shot, gate, dirty }: { p: Production; shot: Shot; gate: R
     <div className="ws-gen-block">
       <Segmented<'draft' | 'final'> label="Quality" size="sm" value={quality} onChange={setQuality} options={[{ value: 'draft', label: 'Draft · faster' }, { value: 'final', label: 'Final' }]} />
       {quality === 'draft' && <p className="t-meta">Today every take is made at final quality; a draft request is recorded with the take.</p>}
+      {/* the MiniMax H3 Community License §IV.2: the engine is named where video is made */}
+      <p className="t-meta ws-engine-credit">Video by MiniMax H3, on this machine</p>
       <GenButton gate={gate} engine="video" type="GENERATE_TAKE" variant="primary" icon={<IconTake aria-hidden />} target={{ productionId: p.id, shotId: shot.id }}
         payload={{ productionId: p.id, shotId: shot.id, quality, ...(select ? { select: true } : {}), ...(seed === 'reuse' && last?.seed !== undefined ? { seed: last.seed } : {}) }}
         disabled={dirty} reason="Save the shot first: the new take is made from the saved shot.">{shot.takes.length ? 'New take' : 'Make the first take'}</GenButton>
