@@ -16,6 +16,7 @@ import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
+import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -209,7 +210,37 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
   const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine };
   const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
+  if (prepared.leadIn) {
+    // a one-word line was spoken after a lead-in sentence (lead-in.ts): cut at the silence before the word, found by
+    // the transcript's word timings; a take whose word cannot be located is spoken again without the lead-in (and
+    // judged by the line check like any other) — the lead-in never reaches a film
+    const cut = await cutOneWordLeadIn(ctx, r.file, text, route.language);
+    if (cut) { await ctx.event('info', `one-word line cut after its lead-in at ${cut.from.toFixed(2)} s`, { characterId: c.id, heard: cut.heard }); return { file: cut.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: cut.durationSeconds, fallback: route.fallback }; }
+    await ctx.event('warn', `one-word line: the word was not found after the lead-in; spoken alone instead`, { characterId: c.id });
+    const alone = { ...local, text: prepared.text.slice(prepared.leadIn.length).trim() };
+    const r2 = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(alone, dir), { label: route.engine, input: alone }), { jobId: ctx.job.id });
+    return { file: r2.file, engine: r2.engine, model: r2.model, ms: r2.ms, language: route.language, durationSeconds: r2.durationSeconds, fallback: route.fallback };
+  }
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };
+}
+
+/** The cut of a one-word line's lead-in (src/server/media/lead-in.ts): transcribe with word timings, find the line's
+ *  word as the last thing heard, cut at the quietest 10 ms between the lead-in and it. `null` when the transcription
+ *  is away or the word is not found. */
+async function cutOneWordLeadIn(ctx: HandlerContext, file: string, line: string, language: Language): Promise<{ file: string; from: number; durationSeconds: number; heard: string } | null> {
+  try {
+    const asr = { file, language: language === 'AR' ? ('ar' as const) : ('en' as const) };
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'one-word lead-in', input: asr }), { jobId: ctx.job.id });
+    const at = leadInCutPoint(t.segments.flatMap((s) => s.words), line);
+    if (!at) return null;
+    const wav = await fsp.readFile(file);
+    const { samples, sampleRate } = readPcm16(wav);
+    const from = quietestPoint(samples, sampleRate, at.from, at.to);
+    const out = file.replace(/\.wav$/i, '-cut.wav');
+    const cut = cutWavStart(wav, from);
+    await fsp.writeFile(out, cut);
+    return { file: out, from, durationSeconds: readPcm16(cut).samples.length / sampleRate, heard: t.text };
+  } catch (e) { await ctx.event('warn', `one-word line: the lead-in could not be cut (${(e as Error).message})`); return null; }
 }
 
 /** What hearing a line back proved. `ok` only on PASS (coverage AND CER within the gate); `status` is the contract's

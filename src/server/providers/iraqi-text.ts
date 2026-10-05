@@ -1,4 +1,5 @@
 import type { Dialect, Language } from '@/domain/vocabulary';
+import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
 
 /** LINE PREPARATION FOR THE ARABIC ENGINES — pure text, applied in `speakLine` between the script and the
  *  `/synthesize` call (docs/voice/IRAQI-EVAL-SET-2026-10.md §5; research: docs/research/VOICE-IDENTITY-V2.md §2.5
@@ -34,7 +35,9 @@ import type { Dialect, Language } from '@/domain/vocabulary';
 
 export type PrepareEngine = 'habibi' | 'indextts';
 export interface PrepareOptions { engine: PrepareEngine; language: Language; dialect?: Dialect }
-export interface PreparedText { text: string; changes: string[] }
+/** `leadIn`: the sentence spoken before a one-word IndexTTS line (src/server/media/lead-in.ts) — the handler cuts it off
+ *  after synthesis at the silence before the word. */
+export interface PreparedText { text: string; changes: string[]; leadIn?: string }
 
 // ------------------------------------------------------------------------------------------------ number words
 
@@ -193,6 +196,9 @@ export function prepareLineText(text: string, opts: PrepareOptions): PreparedTex
   t = spellNumbers(t, style, changes);
   // 7. spacing
   t = t.replace(/\s+([،؛؟!?.,;:])/g, '$1').replace(/\s+/g, ' ').trim();
+  // 8. a one-word line on IndexTTS is spoken after a lead-in sentence and cut after synthesis (lead-in.ts): alone, the
+  //    engine runs on past the word into an invented syllable (MODEL-EVAL-2026-10 §4, open item 7)
+  if (opts.engine === 'indextts' && isOneWordLine(t)) return { text: `${ONE_WORD_LEAD_IN} ${t}`, changes: [...changes, 'one-word line: spoken after a lead-in sentence, cut after synthesis'], leadIn: ONE_WORD_LEAD_IN };
   if (t === original) return { text: original, changes: [] };
   return { text: t, changes };
 }

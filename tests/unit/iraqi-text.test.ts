@@ -63,7 +63,7 @@ describe('prepareLineText for the Iraqi engine', () => {
   it('turns Latin marks after Arabic letters into Arabic ones and collapses runs; hand diacritics and گ چ stay', () => {
     expect(prepareLineText('هسه؟!! شنو, زين?', IQ)).toEqual({ text: 'هسه؟! شنو، زين؟', changes: ['Latin ? , ; → Arabic ؟ ، ؛', 'repeated marks collapsed'] });
     expect(prepareLineText('ويّاي للسوگ باچر', IQ).text).toBe('ويّاي للسوگ باچر');
-    expect(prepareLineText('ready?', EN).text).toBe('ready?');
+    expect(prepareLineText('ready now?', EN).text).toBe('ready now?'); // (a one-word line gets its lead-in: lead-in.test.ts)
   });
   it('gives an MSA line MSA words and an English line nothing', () => {
     expect(prepareLineText('السعر 250 ألف دينار', MSA)).toEqual({ text: 'السعر مئتان وخمسون ألف دينار', changes: ['numbers spelled in MSA words'] });
