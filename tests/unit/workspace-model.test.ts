@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from '@/domain/jobs';
-import type { Production, Shot, Take } from '@/domain/types';
-import { breakdownOf, decisionsOf, failedShotsOf, fractionOf, jobWords, linesToHear, neighbours, nextTab, shotState, stagePills, tabFrom, takeVerdict, waitingWords, workspaceHref } from '@/components/workspace/model';
+import type { Location, Production, Shot, Take } from '@/domain/types';
+import { boundaryOf, breakdownOf, decisionsOf, driftOf, locationRefusalOf, refusalOf, sceneStateOfTake, staleShotsOf, failedShotsOf, fractionOf, jobWords, linesToHear, neighbours, nextTab, shotState, stagePills, tabFrom, takeVerdict, waitingWords, workspaceHref } from '@/components/workspace/model';
 import type { Decision } from '@/studio/selectors/decisions';
 
 const take = (id: string, x: Partial<Take> = {}): Take => ({ id, label: id, assetId: `a-${id}`, createdAt: '2026-10-03T08:00:00Z', status: 'READY', provider: 'MINIMAX', ...x });
@@ -83,6 +83,37 @@ describe('orchestrators and failed shots', () => {
     const retaken = prod({ shots: [shot('b', 'sc2', 1, { takes: [take('t9', { createdAt: '2026-10-03T10:00:00Z' })] })] });
     expect(failedShotsOf(retaken, [pass, child])).toEqual([]);
     expect(failedShotsOf(p, [pass, child, job({ id: 'again', shotId: 'b', status: 'QUEUED' })])).toEqual([]);
+  });
+});
+
+describe('continuity and the Location Bible', () => {
+  it('marks a stale continuation and lists it with the take it should continue', () => {
+    const p = prod({ shots: [shot('a', 'sc1', 1, { takes: [take('a1'), take('a2')], selectedTakeId: 'a2' }), shot('a2s', 'sc1', 2, { takes: [take('c1', { relation: 'CONTINUATION', continuesTakeId: 'a1', stale: { since: 'x', because: 'PREDECESSOR_RESELECTED', previousShotId: 'a', expectedTakeId: 'a2', detail: '' } })], selectedTakeId: 'c1' })] });
+    expect(shotState(p, p.shots[1], []).kind).toBe('stale');
+    expect(staleShotsOf(p).map((s) => [s.shot.id, s.expected?.id])).toEqual([['a2s', 'a2']]);
+  });
+  it('reads the boundary: its own, else what the scene order implies', () => {
+    const p = prod({ shots: [shot('a', 'sc1', 1), shot('b', 'sc1', 2), shot('c', 'sc2', 1, { boundary: 'continuous' })] });
+    expect(boundaryOf(p, p.shots[1])).toBe('cut');
+    expect(boundaryOf(p, p.shots[2])).toBe('cut'); // a continuation across scenes is a cut
+    expect(boundaryOf(p, shot('x', 'sc1', 3, { boundary: 'transition' }) as Shot)).toBe('transition');
+  });
+  it('names a refusal for an unestablished place, from the job or predicted from the plates', () => {
+    const loc = { id: 'L', name: 'Café', refs: [], masterAssetId: undefined } as unknown as Location;
+    const p = prod({ scenes: [{ id: 'sc1', number: 1, title: 'One', timeOfDay: 'NIGHT', characterIds: [], beats: [], locationId: 'L' }], shots: [shot('a', 'sc1', 1)] });
+    expect(locationRefusalOf(p, p.shots[0], [], [loc], [])).toMatchObject({ locationId: 'L', predicted: true });
+    const established = prod({ ...p, scenes: [{ ...p.scenes[0], establishLocation: true }] });
+    expect(locationRefusalOf(established, established.shots[0], [], [loc], [])).toBeNull();
+    const failed = job({ shotId: 'a', status: 'FAILED', error: { code: 'MISSING_REFERENCE', message: 'x', details: { rule: 'location-identity', locationId: 'L', locationName: 'Café' } } });
+    expect(refusalOf(failed)).toEqual({ locationId: 'L', name: 'Café' });
+    const withPlate = { ...loc, masterAssetId: 'plate' } as Location;
+    expect(locationRefusalOf(p, p.shots[0], [failed], [withPlate], [{ id: 'plate' } as never])).toMatchObject({ predicted: false });
+  });
+  it('reads a take’s drift checks and its scene state', () => {
+    const t = take('t', { qa: { ok: true, checks: [{ name: 'location-matches-plate', ok: false, value: 0.31, threshold: 0.18 }, { name: 'identity-references-applied', ok: true, value: 2, threshold: 2 }] }, params: { sceneState: { present: [{ characterId: 'c' }], props: [], timeOfDay: 'NIGHT' } } });
+    expect(driftOf(t)).toMatchObject({ review: true, place: { value: 0.31, threshold: 0.18, ok: false }, identity: { applied: 2, of: 2 } });
+    expect(driftOf(take('u'))).toBeNull();
+    expect(sceneStateOfTake(t)?.timeOfDay).toBe('NIGHT');
   });
 });
 

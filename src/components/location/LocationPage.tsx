@@ -16,6 +16,7 @@ import { Frame, MediaTile, PosterCard } from '@/components/media';
 import { IconCheck, IconDelete, IconEdit, IconGenerate, IconPlus, IconUpload } from '@/components/ui/icons';
 import { BackLink, CardHead, CastSection, nameLang, usable } from '@/components/character/parts';
 import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
+import { locationIdentity } from '@/domain/location';
 
 const ROLE_WORD: Record<LocationRefRole, string> = { MASTER: 'Master plate', VIEW: 'View', STATE: 'Lighting state' };
 
@@ -97,6 +98,7 @@ export function LocationPage({ l }: { l: Location }) {
 
       <CastSection id="about" title="The place">
         {l.description ? <p className="t-prose char-prose" dir="auto">{l.description}</p> : <p className="t-body pc-empty-line">No description yet.</p>}
+        <Identity l={l} />
       </CastSection>
       <Plates l={l} />
       <section className="pc-section loc-cols" aria-label="Landmarks and props">
@@ -113,6 +115,20 @@ export function LocationPage({ l }: { l: Location }) {
         {edit && <LocationForm initial={l} formId={formId} footer={false} onSaved={() => setEdit(false)} />}
       </Dialog>
     </article>
+  );
+}
+
+/** The place's canonical identity (the Location Bible): its version — it moves on whenever the master plate, the
+ *  layout, the landmarks or the permanent props change — and the one identity line every prompt that shows the place
+ *  carries. Takes record the version they were filmed against. */
+function Identity({ l }: { l: Location }) {
+  const id = l.identity ?? locationIdentity(l);
+  return (
+    <div className="card loc-identity" aria-labelledby="loc-identity-h">
+      <div className="loc-identity-head"><h3 id="loc-identity-h" className="t-title">Place identity</h3><span className="badge badge-neutral">Version {id.version}</span></div>
+      {id.line ? <p className="t-body content-para" dir="auto">{id.line}</p> : <p className="t-body">Nothing written yet: the description, landmarks and props make the identity line.</p>}
+      <p className="t-meta">Carried in every prompt that shows this place; a take records the version it was filmed against.</p>
+    </div>
   );
 }
 

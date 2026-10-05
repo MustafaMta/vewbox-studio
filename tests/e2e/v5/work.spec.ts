@@ -225,6 +225,90 @@ test('a waiting orchestrator reads "Waiting for its shots (3 of 8 done)" from it
   await expect(row.getByRole('progressbar').last()).toHaveAttribute('aria-valuenow', '38');
 });
 
+/** The film as the continuity batches would leave it: 2.3's chosen take continues a take of 2.2 no longer chosen
+ *  (stale), with drift checks (the place drifted) and its recorded scene state; 2.3 has staging and no boundary. */
+async function continuityFilm(page: Page) {
+  await page.route('**/api/studio', async (r) => {
+    const res = await r.fetch(); const body = await res.json();
+    body.state.productions = body.state.productions.map((p: { id: string; shots: Array<Record<string, unknown> & { id: string; selectedTakeId?: string; takes: Array<Record<string, unknown> & { id: string }> }> }) => p.id !== FILM ? p : { ...p, shots: p.shots.map((sh) => sh.id !== SHOT ? sh : {
+      ...sh, boundary: undefined,
+      staging: { pace: 'NORMAL', pov: undefined, beats: [{ at: 0, action: 'Najm leans in to the radio.' }, { at: 3.5, action: 'The photograph flickers.', cut: { camera: 'Close-up on the photo' } }], extras: [{ description: 'gulls outside the window', count: 3 }] },
+      takes: sh.takes.map((t) => t.id !== sh.selectedTakeId ? t : { ...t, relation: 'CONTINUATION', continuesTakeId: 'take-gone', stale: { since: '2026-10-05T10:00:00Z', because: 'PREDECESSOR_RESELECTED', previousShotId: SPEAKING, detail: 'test' },
+        qa: { ok: true, checks: [{ name: 'location-matches-plate', ok: false, value: 0.31, threshold: 0.18, detail: 'drifted' }, { name: 'identity-references-applied', ok: true, value: 2, threshold: 2 }] },
+        params: { sceneState: { shotId: SHOT, sceneId: 'x', boundary: 'continuous', relation: 'CONTINUATION', timeOfDay: 'NIGHT', weather: 'a storm at sea', lighting: 'one desk lamp', present: [{ characterId: 'char-56c47abc59', wardrobe: 'striped sweater' }], props: [{ name: 'the radio', state: 'humming' }], sources: {} } } }),
+    }) });
+    return r.fulfill({ response: res, json: body });
+  });
+}
+
+test('continuity on the map and the cut: the out-of-step take, Regenerate, and "Assemble anyway" (routed)', async ({ page }) => {
+  let job: Record<string, unknown> | null = null;
+  await (prepare as Prep)(page, { motion: 'reduce' });
+  await continuityFilm(page);
+  await page.route('**/api/health', (r) => r.fulfill({ json: READY }));
+  await page.route('**/api/status', (r) => r.fulfill({ json: { video: { ok: true }, images: { ok: true }, voice: { ok: true } } }));
+  await page.route(/\/api\/jobs$/, (r) => { if (r.request().method() === 'POST') { job = r.request().postDataJSON(); return r.fulfill({ status: 201, json: { job: running({ id: 'job-test-asm', type: 'ASSEMBLE', status: 'QUEUED', shotId: undefined }) } }); } return r.continue(); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MAP, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.ws:not(.ws-skeleton) .ws-map', { timeout: 90_000 });
+  await expect(page.locator('#stale')).toContainText('Shot 2.3');
+  await expect(page.locator('#stale').getByRole('button', { name: 'Regenerate this shot' })).toBeEnabled();
+  await expect(page.locator('#scenes .ws-shot').nth(6)).toContainText('Out of step');
+  const joins = page.locator('#ws-stale-joins');
+  await expect(joins).toContainText('One join is out of step');
+  await joins.getByRole('button', { name: 'Assemble anyway' }).click();
+  await expect.poll(() => job).toMatchObject({ type: 'ASSEMBLE', payload: { productionId: FILM, allowStaleJoins: true } });
+});
+
+test('the shot inspector: the boundary edited, the staging, the drift checks with Review, the scene state', async ({ page }) => {
+  await (prepare as Prep)(page, { motion: 'reduce' });
+  await continuityFilm(page);
+  await page.route('**/api/commands', async (route: Route) => { try { commands.push(...(route.request().postDataJSON()?.commands ?? [])); } catch { /* beacon */ } await route.fulfill({ json: { ok: true, version: 1, hash: 'test', results: [] } }); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/shorts/${FILM}/shots/${SHOT}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.ws:not(.ws-skeleton) .ws-stage .ws-take', { timeout: 90_000 });
+  await expect(page.locator('#ws-stale')).toContainText('out of step');
+  const join = page.getByRole('radiogroup', { name: 'Join with the shot before' }).or(page.getByRole('group', { name: 'Join with the shot before' }));
+  await expect(page.getByText('(planned from the scene order; choose to set it)')).toBeVisible();
+  await join.getByText('Transition', { exact: true }).click();
+  await expect(page.getByText('A new place or time: the shot starts fresh')).toBeVisible();
+  await page.getByRole('button', { name: 'Save the shot' }).click();
+  await expect.poll(() => commands.filter((c) => c.name === 'updateShot').map((c) => (c.args[2] as { boundary?: string }).boundary)).toContain('transition');
+  await expect(page.locator('.ws-staging')).toContainText('The photograph flickers.');
+  await expect(page.locator('.ws-staging')).toContainText('cut to close-up on the photo');
+  const selected = page.locator('.ws-take[data-selected]');
+  await expect(selected.locator('.badge', { hasText: 'Review' })).toBeVisible();
+  await page.locator('.ws-disc-sum', { hasText: /^Details/ }).click();
+  await expect(page.locator('.ws-drift').first()).toContainText('difference 0.310, limit 0.180');
+  await expect(page.locator('.ws-drift').nth(1)).toContainText('striped sweater');
+  await expect(page.locator('.ws-drift').nth(1)).toContainText('a storm at sea');
+});
+
+test('an unestablished place: the refusal names both fixes, and the scene can establish it (routed)', async ({ page }) => {
+  const refused = running({ id: 'job-test-refused', shotId: SPEAKING, status: 'FAILED', error: { code: 'MISSING_REFERENCE', message: 'no plate', details: { rule: 'location-identity', locationId: 'loc-cde19129ca', locationName: 'Elias’s Workshop' } }, finishedAt: new Date().toISOString() });
+  await open(page, `/shorts/${FILM}/shots/${SPEAKING}`, { jobs: [refused] });
+  const notice = page.locator('#ws-unestablished');
+  await expect(notice).toContainText('Refused: Elias’s Workshop has no plate yet');
+  await expect(notice.getByRole('link', { name: 'Draw the location’s plates' })).toHaveAttribute('href', '/locations/loc-cde19129ca');
+  await notice.getByRole('button', { name: 'Mark this scene as establishing it' }).click();
+  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => c.args[2])).toContainEqual({ establishLocation: true });
+  // the scene editor's own toggle
+  commands.length = 0;
+  await page.goto(`${MAP}?tab=story`);
+  await page.waitForSelector('.ws-scene-card', { timeout: 90_000 });
+  await page.locator('.ws-scene-card').first().getByLabel('Establish this place here').check();
+  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => c.args[2])).toContainEqual({ establishLocation: true });
+});
+
+test('the location page shows the place’s identity version and line', async ({ page }) => {
+  await (prepare as Prep)(page, { motion: 'reduce' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/locations/loc-cde19129ca', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#loc-name', { timeout: 90_000 });
+  await expect(page.locator('.loc-identity')).toContainText(/Version \d+/);
+  await expect(page.locator('.loc-identity .content-para')).not.toHaveText('');
+});
+
 test('the loading state: the workspace skeleton keeps the real panels', async ({ page }) => {
   await page.route('**/api/studio', async (r) => { await new Promise((x) => setTimeout(x, 2500)); await r.continue(); });
   await page.setViewportSize({ width: 1440, height: 900 });
