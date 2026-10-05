@@ -8,6 +8,8 @@ import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits }
 import type { H3Binding } from '@/server/story/prompts';
 import { capabilityFor, resolveContinuation, type ContinuationSettings } from '@/domain/video-capability';
 import { productionContextFor, type ProductionContext } from '@/domain/production-context';
+import { canvasFor, derivedFaceReference, faceReferenceFor, faceReferenceMode, type FaceReferenceDecision } from '@/domain/face-reference';
+import { ASPECT_INFO } from '@/domain/vocabulary';
 
 /** THE SHOT PACK — what one take of a shot is conditioned on, resolved once from the studio records by a pure
  *  function, so the preflight that judges the request and the handler that sends it see the same thing
@@ -34,7 +36,7 @@ export type PackOpening =
   | { kind: 'FRAME'; assetId: string }
   | { kind: 'NONE' };
 
-export interface PackPicture { assetId: string; role: 'SUBJECT' | 'LOCATION' | 'OPENING_FRAME'; characterId?: string; locationId?: string; binding: string }
+export interface PackPicture { assetId: string; role: 'SUBJECT' | 'LOCATION' | 'FACE_REFERENCE' | 'OPENING_FRAME'; characterId?: string; locationId?: string; binding: string }
 
 export interface ShotPack {
   backend: 'local' | 'api';
@@ -75,6 +77,9 @@ export interface ShotPack {
   /** THE PRODUCTION CONTEXT the take is made from (src/domain/production-context.ts): character, location, shot and
    *  story state, the re-anchoring decision; its hash is recorded on the take */
   context: ProductionContext;
+  /** THE DERIVED FACE REFERENCES (src/domain/face-reference.ts): per pictured character, whether its face crop rides
+   *  beside its canonical image (a picture after the plate, never a subject of its own) and why */
+  faceReferences: FaceReferenceDecision[];
   notes: string[];
 }
 
@@ -240,6 +245,18 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   // accepted take's opening frame then becomes its plate (take.ts)
   const establishing: ShotPack['establishing'] = !plate && loc && identity && scene?.establishLocation ? { locationId: loc.id, name: loc.name, identity: { version: identity.version, line: identity.line } } : undefined;
   if (establishing) notes.push(`establish here: ${loc!.name} has no plate yet; the take is filmed from its identity line and its first frame becomes the place's plate`);
+  // THE DERIVED FACE REFERENCES (src/domain/face-reference.ts): a close framing whose canonical image keeps too few face
+  // pixels after the engine's scaling also sends that character's face crop — after the plate, never displacing a
+  // character, the plate or the bound opening frame (the first to go when the picture budget is short)
+  const canvas = canvasFor(ASPECT_INFO[p.aspect] ?? ASPECT_INFO.WIDE_16_9);
+  const mode = local ? faceReferenceMode(state.settings) : 'OFF';
+  const faceReferences: FaceReferenceDecision[] = subjects.filter((s) => s.source === 'CANONICAL').map((s) => faceReferenceFor({ cap, mode, framing: sh.framing, canvas, characterId: s.characterId, canonical: byId(s.assetId), derived: derivedFaceReference(state.assets, s.assetId) }));
+  for (const f of faceReferences) {
+    if (!f.use || !f.assetId) continue;
+    if (!usableImage(byId(f.assetId)) || pictures.length + (wantsOpeningPicture ? 1 : 0) >= PACK_LIMITS.pictures) { f.use = false; f.reason = `${f.reason} — left out: ${usableImage(byId(f.assetId)) ? `the ${PACK_LIMITS.pictures}-picture budget is full` : 'its file is not usable'}`; continue; }
+    pictures.push({ assetId: f.assetId, role: 'FACE_REFERENCE', characterId: f.characterId, binding: '' });
+    notes.push(`face reference for ${cast.find((c) => c.id === f.characterId)?.name ?? f.characterId}: ${f.reason}`);
+  }
   const hasRefs = pictures.length > 0;
   let openingPicture: number | undefined;
   if (wantsOpeningPicture && hasRefs && opening.kind === 'FRAME') { pictures.push({ assetId: opening.assetId, role: 'OPENING_FRAME', binding: '' }); openingPicture = pictures.length; }
@@ -257,7 +274,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
   // THE SCENE STATE (src/domain/scene-state.ts): what is true when this shot is filmed, carried shot to shot
   const sceneState = context.sceneState;
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, context, notes };
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, context, faceReferences, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */
@@ -272,6 +289,8 @@ export function bindingOf(pack: ShotPack, audioRefs: Array<{ characterId: string
     audioRefs,
     // a character with no picture (no canonical image, or beyond the budget) is declared from their description
     described: pack.unreferenced.map((u) => ({ characterId: u.characterId })),
+    // a derived face crop beside a canonical image (src/domain/face-reference.ts)
+    faceRefs: pack.pictures.map((pic, i) => (pic.role === 'FACE_REFERENCE' && pic.characterId ? { characterId: pic.characterId, picture: i + 1 } : undefined)).filter((x): x is { characterId: string; picture: number } => Boolean(x)),
   };
 }
 
