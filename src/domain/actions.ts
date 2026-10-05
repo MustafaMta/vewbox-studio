@@ -348,7 +348,20 @@ export function replaceSceneShots(s: S, productionId: string, sceneId: string, s
 }
 
 export function updateShot(s: S, productionId: string, shotId: string, patch: Partial<Omit<Shot, 'id' | 'number'>>): S {
-  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? { ...sh, ...patch } : sh))) }; });
+  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? { ...sh, ...patch, ...plannedDirectionAfter(sh, patch) } : sh))) }; });
+}
+
+/** THE PRODUCER'S "WHAT HAPPENS" WINS. The planner's direction of a shot — its prompt body and its timed staging beats —
+ *  describes the action it planned; when the action is rewritten (and the same edit does not bring a new prompt or
+ *  staging of its own), that direction no longer describes the shot and is dropped, so the take is filmed from the new
+ *  action (src/server/story/prompts.ts `shotBody`) instead of the old one. Pace, point of view and extras stay.
+ *  Found by the acceptance run 2026-10-05: shot 1.3's edited action never reached the take, whose planned staging kept
+ *  a sip at 0:00 over the spoken line. */
+export function plannedDirectionAfter(sh: Pick<Shot, 'action' | 'prompt' | 'staging'>, patch: Partial<Pick<Shot, 'action' | 'prompt' | 'staging'>>): Partial<Pick<Shot, 'prompt' | 'staging'>> {
+  if (patch.action === undefined || patch.action.trim() === (sh.action ?? '').trim()) return {};
+  if (patch.prompt !== undefined || patch.staging !== undefined) return {};
+  if (!sh.prompt && !sh.staging?.beats?.length) return {};
+  return { prompt: undefined, ...(sh.staging ? { staging: { ...sh.staging, beats: [] } } : {}) };
 }
 
 export function deleteShot(s: S, productionId: string, shotId: string): S {
