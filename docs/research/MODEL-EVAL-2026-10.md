@@ -216,6 +216,23 @@ not fold numbers). **Real failures 2/20: both one-word lines** — «Nothing.» 
 (IndexTTS appends a garbled syllable to a one-word line). Mean −18.3 LUFS, peak ≤ −0.99 dBTP, median 2.1 s per line
 (RTF 0.65). Emotion (calm vs angry E1/E2) is a listening item.
 
+**ASR A/B for Arabic** (`scripts/asr-ab-iraqi.py` + `scripts/asr-ab-score.ts`, `…/2026-10-run1/asr-ab/`): the same
+107 Habibi WAVs transcribed by large-v3 and by the dialect fine-tune (faster-whisper, `language=ar`, beam 5, one-off
+container of the `asr` image; 37 s / 40 s for all 107), scored with the studio's own fold and take-gate verdict:
+
+| | large-v3 | whisper-large-v3-arabic-dialectal-v2 |
+|---|---|---|
+| mean / median CER (studio fold) | 0.102 / 0.057 | **0.096 / 0.034** |
+| CER ≤ 0.15 | 86/107 | **90/107** |
+| take-gate PASS / REVIEW / FAIL | 44 / 25 / 38 | **54 / 25 / 28** |
+| per line | — | better on 31, worse on 14, equal on 62 |
+
+The dialect model writes dialect spelling (ماكو for «مكو», تلاثين) where large-v3 normalises; where it loses, it
+writes digits or mishears one word. **§5.9's gate (folded CER ≤ 0.8 × large-v3's) is not met on this proxy: 0.94× on
+the mean (0.60× on the median)** — and the gate is defined on 40 real Iraqi clips, which do not exist yet.
+**Decision: keep the dialect model for `language=ar`** (the routing the conversion switched on): better on every
+aggregate, no regression, English stays on large-v3; `ASR_MODEL_DIR_AR=` (empty) returns Arabic to large-v3.
+
 **Verdict:** keep **Habibi IRQ** (Iraqi) and **IndexTTS 2.5** (English, code-switched) — the measurements show no
 engine fault that another installed engine would fix, the text preparation is required for digits, and one-word lines
 on IndexTTS need a guard (open item). Iraqi quality is **pending the native listening review**.
