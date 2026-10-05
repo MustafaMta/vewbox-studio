@@ -27,7 +27,14 @@ export const WAITING = 'WAITING';
 /** A child is SETTLED for its parent once nothing more happens to it without a person. */
 export const SETTLED_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'] as const;
 
-export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string }
+export interface EnqueueInput<T extends JobType = JobType> { type: T; payload: unknown; priority?: number; maxAttempts?: number; idempotencyKey?: string; parentId?: string; runAfter?: string; /** a request identical to an ACTIVE job (type + payload) returns that job instead of queueing a second one (the web's submissions) */ dedupeActive?: boolean }
+
+/** JSON with sorted keys (a stable lock key for one request). */
+export function canonicalJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v as Record<string, unknown>).filter((k) => (v as Record<string, unknown>)[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson((v as Record<string, unknown>)[k])}`).join(',')}}`;
+  return JSON.stringify(v);
+}
 
 const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, GENERATE_SONG: 2, AUTO_IDEA: 1, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1, VOICE_DESIGN: 2 };
 
@@ -61,6 +68,26 @@ export async function enqueue<T extends JobType>(input: EnqueueInput<T>): Promis
     productionId: (p.productionId as string | undefined) ?? null, sceneId: (p.sceneId as string | undefined) ?? null, shotId: (p.shotId as string | undefined) ?? null, characterId: (p.characterId as string | undefined) ?? null, locationId: (p.locationId as string | undefined) ?? null,
     createdAt: now, updatedAt: now,
   };
+  // A DUPLICATE SUBMISSION (directive §26): the same request (type + identical payload) sent again while the first is
+  // still active — a double click, two tabs, a client retry after a lost answer — gets the active job back
+  // (created: false) instead of a second render. Atomic: the check and the insert run under one advisory lock on the
+  // request, so two concurrent submissions cannot both insert. A request whose earlier twin has ended is new.
+  if (input.dedupeActive) {
+    const out = await db().transaction(async (tx) => {
+      await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${`enqueue:${input.type}:${canonicalJson(p)}`}))`);
+      const same = await tx.select().from(schema.jobs).where(and(eq(schema.jobs.type, input.type), inArray(schema.jobs.status, [...ACTIVE_STATUSES, WAITING]), dsql`${schema.jobs.payload} = ${JSON.stringify(p)}::jsonb`)).orderBy(asc(schema.jobs.createdAt)).limit(1);
+      if (same[0]) return { job: rowToJob(same[0]), created: false };
+      const ins = input.idempotencyKey
+        ? await tx.insert(schema.jobs).values(row).onConflictDoNothing({ target: schema.jobs.idempotencyKey }).returning()
+        : await tx.insert(schema.jobs).values(row).returning();
+      if (ins[0]) return { job: rowToJob(ins[0]), created: true };
+      const existing = await tx.select().from(schema.jobs).where(eq(schema.jobs.idempotencyKey, input.idempotencyKey!));
+      return { job: rowToJob(existing[0]), created: false };
+    });
+    if (out.created) { await notifyJobs(out.job.id, 'QUEUED'); await addEvent(out.job.id, 'info', 'queued'); }
+    else await addEvent(out.job.id, 'info', 'a duplicate submission of this request was answered with this job (no second job was queued)').catch(() => undefined);
+    return out;
+  }
   // the check above is a fast path; the partial unique index jobs_one_active_per_character (migration 0014) is the
   // guarantee: a concurrent insert that loses the race gets the winner back
   const oneActive = async <T>(insert: () => Promise<T>): Promise<T | { job: Job; created: false }> => {
@@ -184,6 +211,14 @@ export async function retry(id: string): Promise<Job> {
 // ------------------------------------------------------------------------------------------------------ worker side
 
 export const LEASE_SECONDS = 90;
+/** The lease in force: WORKER_LEASE_SECONDS (≥ 3; the failure-injection tests use a few seconds so a killed worker's
+ *  job is reclaimed quickly), else 90 s. Read per call. Every process sharing the database must use the same value. */
+export function leaseSeconds(env: Record<string, string | undefined> = process.env): number {
+  const v = Number(env.WORKER_LEASE_SECONDS);
+  return Number.isFinite(v) && v >= 3 ? v : LEASE_SECONDS;
+}
+/** How often a running job renews its lease: a quarter of the lease, at most every 20 s. */
+export const heartbeatIntervalMs = (env: Record<string, string | undefined> = process.env): number => Math.min(20_000, Math.floor((leaseSeconds(env) * 1000) / 4));
 const RUNNING_STATUSES: JobStatus[] = ['PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING'];
 
 /** THE REAPER (audit H4) — settles running jobs whose worker went quiet (no heartbeat within the lease) and that no
@@ -196,7 +231,7 @@ const RUNNING_STATUSES: JobStatus[] = ['PREPARING', 'GENERATING', 'DOWNLOADING',
  *  every worker at once. Returns the jobs it settled. */
 export async function reapStale(now = new Date()): Promise<{ cancelled: string[]; failed: string[]; woken?: string[] }> {
   const nowIso = now.toISOString();
-  const staleBefore = new Date(now.getTime() - LEASE_SECONDS * 1000).toISOString();
+  const staleBefore = new Date(now.getTime() - leaseSeconds() * 1000).toISOString();
   const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)));
   const cancelled = await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'cancelled', message: 'cancelled; its worker had stopped' } })
     .where(and(stale, eq(schema.jobs.cancelRequested, true))).returning({ id: schema.jobs.id });
@@ -272,8 +307,8 @@ export async function claim(workerId: string, types: JobType[]): Promise<Job | u
   if ((await intakeState()).paused) return undefined;
   const now = new Date();
   const nowIso = now.toISOString();
-  const staleBefore = new Date(now.getTime() - LEASE_SECONDS * 1000).toISOString();
-  return db().transaction(async (tx) => {
+  const staleBefore = new Date(now.getTime() - leaseSeconds() * 1000).toISOString();
+  const taken = await db().transaction(async (tx) => {
     const rows = await tx.select().from(schema.jobs).where(and(
       inArray(schema.jobs.type, types),
       or(
@@ -288,16 +323,55 @@ export async function claim(workerId: string, types: JobType[]): Promise<Job | u
     if (!r) return undefined;
     const reclaimed = r.status !== 'QUEUED';
     const updated = await tx.update(schema.jobs).set({ status: 'PREPARING', lockedBy: workerId, lockedAt: nowIso, heartbeatAt: nowIso, startedAt: r.startedAt ?? nowIso, attempts: r.attempts + 1, updatedAt: nowIso, progress: reclaimed ? { phase: 'recovering', message: 'picked up after a worker went quiet' } : { phase: 'preparing' } }).where(eq(schema.jobs.id, r.id)).returning();
-    if (reclaimed) log.warn({ jobId: r.id, previousWorker: r.lockedBy }, 'reclaimed a stale job');
-    return rowToJob(updated[0]);
+    if (reclaimed) {
+      log.warn({ jobId: r.id, previousWorker: r.lockedBy }, 'reclaimed a stale job');
+      // THE LOST ATTEMPT STAYS VISIBLE (directive §20/§26): the attempt whose worker went quiet (killed, crashed, frozen)
+      // is closed on its own row — FAILED, INFRASTRUCTURE, WORKER_LOST — in the same transaction as the takeover, so
+      // the history never shows it "running" forever nor hides it behind the attempt that took over. A row the lost
+      // worker never managed to write is created; one it already closed is left as it is.
+      const msg = `its worker (${r.lockedBy ?? 'unknown'}) stopped responding — no heartbeat for ${leaseSeconds()} s (WORKER_LOST); attempt ${r.attempts + 1} took the job over`;
+      await tx.execute(dsql`insert into job_attempts (job_id, attempt, job_type, production_id, shot_id, worker_id, started_at, finished_at, outcome, failure_class, failure_message)
+        values (${r.id}, ${r.attempts}, ${r.type}, ${r.productionId}, ${r.shotId}, ${r.lockedBy}, ${r.lockedAt ?? r.startedAt ?? nowIso}, ${nowIso}, 'FAILED', 'INFRASTRUCTURE', ${msg})
+        on conflict (job_id, attempt) do update set finished_at = excluded.finished_at, outcome = excluded.outcome, failure_class = excluded.failure_class, failure_message = excluded.failure_message
+        where job_attempts.outcome is null`);
+      return { job: rowToJob(updated[0]), lost: { attempt: r.attempts, worker: r.lockedBy, msg } };
+    }
+    return { job: rowToJob(updated[0]) };
   });
+  if (taken?.lost) await addEvent(taken.job.id, 'warn', `attempt ${taken.lost.attempt} lost: ${taken.lost.msg}`, { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST', previousWorker: taken.lost.worker, lostAttempt: taken.lost.attempt }).catch(() => undefined);
+  return taken?.job;
 }
 
-export async function heartbeat(id: string, workerId: string): Promise<{ cancelRequested: boolean }> {
+/** Renew the lease. Fenced on the worker AND, when given, the attempt: a worker id reused by a restarted process
+ *  (WORKER_ID set) never renews an attempt that is not its own. */
+export async function heartbeat(id: string, workerId: string, attempt?: number): Promise<{ cancelRequested: boolean }> {
   const now = new Date().toISOString();
-  const rows = await db().update(schema.jobs).set({ heartbeatAt: now }).where(and(eq(schema.jobs.id, id), eq(schema.jobs.lockedBy, workerId))).returning({ cancelRequested: schema.jobs.cancelRequested });
+  const conds = [eq(schema.jobs.id, id), eq(schema.jobs.lockedBy, workerId), inArray(schema.jobs.status, RUNNING_STATUSES)];
+  if (attempt !== undefined) conds.push(eq(schema.jobs.attempts, attempt));
+  const rows = await db().update(schema.jobs).set({ heartbeatAt: now }).where(and(...conds)).returning({ cancelRequested: schema.jobs.cancelRequested });
   if (rows.length === 0) throw new StudioError('CONFLICT', 'Lost the lease on this job.');
   return { cancelRequested: rows[0].cancelRequested };
+}
+
+/** A WORKER THAT IS STOPPING (a restart, a deploy, Ctrl+C) hands its running job back instead of letting the lease
+ *  go stale (audit M7): the job is QUEUED again at once for the next worker, and the interrupted attempt does not
+ *  count against its budget (`max_attempts + 1`, as a wake does) — a restart is not a failure of the job. The attempt
+ *  stays in the history, closed as INTERRUPTED. Nothing is cancelled: a provider task the attempt started (a ComfyUI
+ *  prompt, a hosted MiniMax task) keeps running and the next attempt adopts it by its recorded id / prompt key.
+ *  Fenced on the lease: a job that already moved on is not touched. Returns false when the lease was lost. */
+export async function releaseForRestart(id: string, lease: Lease, reason = 'the worker is stopping'): Promise<boolean> {
+  const now = new Date().toISOString();
+  const rows = await db().update(schema.jobs).set({
+    status: 'QUEUED', lockedBy: null, lockedAt: null, heartbeatAt: null, runAfter: null, updatedAt: now,
+    maxAttempts: dsql`${schema.jobs.maxAttempts} + 1`,
+    progress: { phase: 'queued', message: `handed back: ${reason}; the next worker continues it` },
+  }).where(and(owned(id, lease), inArray(schema.jobs.status, RUNNING_STATUSES))).returning({ id: schema.jobs.id });
+  if (!rows.length) return leaseLost(id, lease, 'hand-back');
+  await db().update(schema.jobAttempts).set({ finishedAt: now, outcome: 'INTERRUPTED', failureMessage: `handed back to the queue: ${reason}` })
+    .where(and(eq(schema.jobAttempts.jobId, id), eq(schema.jobAttempts.attempt, lease.attempt), isNull(schema.jobAttempts.outcome))).catch(() => undefined);
+  await addEvent(id, 'warn', `attempt ${lease.attempt} interrupted: ${reason}; handed back to the queue (it does not count against the attempts)`, { reason: 'WORKER_STOPPING', worker: lease.workerId });
+  await notifyJobs(id, 'QUEUED');
+  return true;
 }
 
 /** The lease a worker's attempt holds (claim sets `locked_by` and increments `attempts`). A write fenced on it touches

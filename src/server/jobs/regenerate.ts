@@ -9,7 +9,7 @@ import { enqueue } from './queue';
  *  (DIALOGUE_AUDIO for that line alone, even when its recording is current) — nothing else of the production is
  *  queued, re-planned or touched. A new take is added beside the shot's others; it replaces the chosen take only when
  *  `select` is asked for and it passes its checks. A request carrying an `idempotencyKey` is one job however often it
- *  is sent. */
+ *  is sent; the same request while an identical one is still active (whatever its key) gets that job back. */
 
 export const RegenerateInput = z.object({
   shotId: z.string().min(1).max(80),
@@ -32,9 +32,9 @@ export async function regenerate(productionId: string, input: RegenerateInput): 
   if (input.lineId) {
     const line = sh.dialogue.find((d) => d.id === input.lineId);
     if (!line) throw new StudioError('NOT_FOUND', `Line ${input.lineId} was not found in shot ${sh.number}.`, { shotId: sh.id, lineId: input.lineId });
-    const r = await enqueue({ type: 'DIALOGUE_AUDIO', payload: { productionId, shotIds: [sh.id], lineIds: [line.id], force: true }, idempotencyKey: key });
+    const r = await enqueue({ type: 'DIALOGUE_AUDIO', payload: { productionId, shotIds: [sh.id], lineIds: [line.id], force: true }, idempotencyKey: key, dedupeActive: true });
     return { ...r, scope: 'line' };
   }
-  const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(input.select ? { select: true } : {}), ...(input.prompt ? { prompt: input.prompt } : {}), ...(input.seed !== undefined ? { seed: input.seed } : {}) }, idempotencyKey: key });
+  const r = await enqueue({ type: 'GENERATE_TAKE', payload: { productionId, shotId: sh.id, ...(input.select ? { select: true } : {}), ...(input.prompt ? { prompt: input.prompt } : {}), ...(input.seed !== undefined ? { seed: input.seed } : {}) }, idempotencyKey: key, dedupeActive: true });
   return { ...r, scope: 'shot' };
 }
