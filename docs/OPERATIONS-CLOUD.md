@@ -23,6 +23,14 @@ claiming GPU/video/media acceptance. Tests that read workstation-only media skip
 
 ## Back on the workstation
 
+**One command** (after step 1 below — merging the cloud work): `node scripts/resume-local.mjs` prints the plan;
+`node scripts/resume-local.mjs --go` checks the repository, `.env` files, Docker/WSL memory (≥ 46 GiB), the RTX 5090
+on the host and inside a container, backs up the database, applies migrations, verifies the model files on the volume,
+starts ComfyUI (every node and model checked), the voice and ASR services, waits for the studio's health, reads the
+acceptance checkpoint and prints what stays valid and the real-generation gates. It stops at the first failed step
+(`--from <step>` resumes there), keeps job intake paused unless `--resume-intake`, starts the web server and the worker
+only with `--start-app`, and writes `var/resume/resume-<time>.json`. The steps by hand:
+
 1. `git fetch origin`; review `origin/cloud-session`; merge it into `main` (`git merge --no-ff origin/cloud-session`),
    `npx tsc --noEmit` and focused vitest; push `main`.
 2. Back up the database before applying any new migration
