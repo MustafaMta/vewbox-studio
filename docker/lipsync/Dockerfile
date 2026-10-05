@@ -62,7 +62,8 @@ COPY docker/lipsync/patches/decord /opt/vewbox-stubs/decord
 ENV PYTHONPATH=/opt/vewbox-stubs:/opt/latentsync LATENTSYNC_DIR=/opt/latentsync
 RUN cd /opt/latentsync && python -c "import cv2, torch, torchvision, diffusers, transformers, kornia; cv2.FaceDetectorYN; from mediapipe.tasks.python import vision; vision.FaceLandmarker; from latentsync.models.unet import UNet3DConditionModel; from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline; from latentsync.whisper.audio2feature import Audio2Feature; print('imports ok', torch.__version__, torch.version.cuda, diffusers.__version__, transformers.__version__)"
 WORKDIR /app
-COPY docker/lipsync/face_track.py docker/lipsync/corrector.py docker/lipsync/app.py docker/lipsync/cli.py ./
+COPY docker/lipsync/face_track.py docker/lipsync/corrector.py docker/lipsync/app.py docker/lipsync/cli.py docker/lipsync/eval_batch.py ./
+COPY docker/lipsync/tests ./tests
 RUN mkdir -p /models /cache/nv-jit /cache/torch
 EXPOSE 8040
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=10 CMD curl -fsS http://127.0.0.1:8040/health || exit 1

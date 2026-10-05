@@ -16,7 +16,7 @@ export interface LipsyncUnavailable { available: false; reason: string; status?:
 
 export interface LipsyncReport {
   frames: number; fps: number; size: number[]; outFrames: number;
-  track: { frames: number; framesWithFace: number; framesBridged: number; framesEdited: number; faceHeightPx: { median: number; min: number } | null; identityToReference: { median: number; min: number } | null; lostRuns: number[][]; minFacePx: number };
+  track: { frames: number; framesWithFace: number; framesBridged: number; framesEdited: number; framesProfile: number; strengthMean: number; framesFullStrength: number; faceHeightPx: { median: number; min: number } | null; identityToReference: { median: number; min: number } | null; lostRuns: number[][]; minFacePx: number };
   params: Record<string, number>;
   mouthChangeMad: number | null;
   timingS: Record<string, number>;
@@ -67,6 +67,8 @@ export interface CorrectOptions {
   audioOffset?: number;
   /** The speaker's canonical image: the face to correct is chosen by identity (never another character's). */
   reference?: string;
+  /** The OTHER characters' canonical images: a face is taken for the speaker only if it resembles the speaker more. */
+  others?: string[];
   /** The speaker's face box [x0, y0, x1, y1] in video pixels (from the mouth check), when there is no reference. */
   hintBox?: [number, number, number, number];
   steps?: number; guidance?: number; seed?: number;
@@ -83,6 +85,7 @@ export async function correctLipSync(video: string, audio: string, out: string, 
   fd.set('video', await read(video, 'video'), path.basename(video));
   fd.set('audio', await read(audio, 'audio'), path.basename(audio));
   if (opts.reference) fd.set('reference', await read(opts.reference, 'reference image'), path.basename(opts.reference));
+  for (const o of opts.others ?? []) fd.append('others', await read(o, 'other character image'), path.basename(o));
   if (opts.audioOffset !== undefined) fd.set('audio_offset', String(opts.audioOffset));
   if (opts.hintBox) fd.set('hint_box', JSON.stringify(opts.hintBox));
   if (opts.steps !== undefined) fd.set('steps', String(opts.steps));

@@ -177,6 +177,10 @@ export interface Take {
   ratingReason?: string;
   ratedBy?: string;
   ratedAt?: string;
+  /** A take made FROM another take of the shot by a post-process (src/domain/lipsync-correction.ts): the original is
+   *  kept unchanged; this one carries the process, the reason it was asked for and its before/after measurements in
+   *  `params.postProcess`. */
+  derivedFrom?: { takeId: string; process: 'LIPSYNC_CORRECTION'; jobId?: string };
 }
 
 export type TakeRating = 'GOOD' | 'REJECTED';

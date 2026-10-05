@@ -15,6 +15,7 @@ export const JOB_TYPES = [
   'LOCATION_PLATES',    // description → master plate + views
   'SHOT_FRAMES',        // shot + refs → opening (and ending) frame
   'GENERATE_TAKE',      // shot → MiniMax video → validated take
+  'CORRECT_LIPSYNC',    // a flagged, confirmed take → a NEW take with the mouth redrawn to the authoritative audio (never generates video)
   'VOICE_BUILD',        // character → voice identity + sample
   'VOICE_PREVIEW',      // character + text → one line of speech
   'DIALOGUE_AUDIO',     // production → every line spoken
@@ -123,6 +124,11 @@ export const JOB_PAYLOADS = {
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
   GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional(), /** make the new take the shot's choice when it passes its checks, replacing the current one (a re-record the producer asked for) */ select: z.boolean().optional(), /** the quality tier asked for (docs/CONTRACTS-REDESIGN-BACKEND.md B6). The take records the tier it was really made at in `params.quality`; today every take is `final` (local MiniMax H3 has one path), and a `draft` request is kept as `params.qualityRequested`. */ quality: z.enum(['draft', 'final']).optional() }),
+  /** src/domain/lipsync-correction.ts: the producer confirms the correction of ONE take and says what the visual review
+   *  found; the result is a new take of the shot beside the original (`derivedFrom`), chosen only with `select` and only
+   *  when it passes its acceptance checks. `steps`/`guidance`/`seed`: the corrector's own parameters (defaults: its
+   *  evaluated values). */
+  CORRECT_LIPSYNC: z.object({ productionId: id, shotId: id, takeId: id, confirm: z.literal(true), reason: z.string().trim().min(3).max(1000), select: z.boolean().optional(), steps: z.number().int().min(5).max(60).optional(), guidance: z.number().min(1).max(3).optional(), seed: z.number().int().min(0).max(2 ** 31 - 1).optional() }),
   /** docs/CONTRACTS-VOICE-IDENTITY-V2.md §2. REFERENCE clones from that validated, consented upload. AUTOMATIC: a
    *  consented recording when there is one, otherwise EN/MSA are designed from the profile (VOICE_DESIGN's pipeline in
    *  the same job → gates → line-engine previews → pick) and Iraqi is refused MISSING_REFERENCE (the experiment switch
@@ -185,7 +191,7 @@ export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
   EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM', CREATE_CHARACTER: 'CPU',
-  VOICE_DESIGN: 'GPU',
+  VOICE_DESIGN: 'GPU', CORRECT_LIPSYNC: 'GPU',
   // research calls hosted public APIs (network, no GPU); the stages after it are language-model calls
   IDEA_RESEARCH: 'HOSTED', IDEA_AUDIENCE: 'LLM', IDEA_CONCEPTS: 'LLM', IDEA_WRITE: 'LLM', IDEA_REVIEW: 'LLM',
 };
@@ -201,6 +207,7 @@ export const JOB_LABELS: Record<JobType, string> = {
   LOCATION_PLATES: 'Location plates',
   SHOT_FRAMES: 'Prepare frames',
   GENERATE_TAKE: 'Generate video',
+  CORRECT_LIPSYNC: 'Correct the lip-sync of a take',
   VOICE_BUILD: 'Build the voice',
   VOICE_PREVIEW: 'Voice preview',
   DIALOGUE_AUDIO: 'Record the dialogue',
