@@ -123,6 +123,37 @@
         { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "classifier.ckpt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 5534328, "sha256": "fd9e3634fe68bd0a427c95e354c0c677374f62b3f434e45b78599950d860d535", "license": "Apache-2.0" },
         { "repo": "speechbrain/spkrec-ecapa-voxceleb", "revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286", "file": "label_encoder.txt", "folder": "eval/spkrec-ecapa-voxceleb", "bytes": 128619, "sha256": "e13c3a167bb4112685670ee896d20e2b565af16b3a4ceeaa8689fa4d22adb8b9", "license": "Apache-2.0" }
       ]
+    },
+    {
+      "name": "qa-align",
+      "purpose": "Script forced alignment in the asr service (POST /align, docker/asr/align.py; docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md §B.2): wav2vec2 CTC emissions + a numpy re-implementation of WhisperX's trellis/backtrack (BSD-2, not the whisperx package). EN facebook/wav2vec2-base-960h (~0.38 GB), AR jonatasgrosman/wav2vec2-large-xlsr-53-arabic (~1.26 GB). Licences ◐ (Apache-2.0 per search summaries only). The file lists, sizes and sha256 could NOT be read in the cloud session (Hugging Face blocked): no bytes/sha256/revision are pinned here; the fetcher resolves the revision at the first fetch and records revision and sha256 in /models/.manifest-state.json — copy them into this manifest after the first workstation fetch. align.py needs config.json, vocab.json, preprocessor_config.json and pytorch_model.bin (or model.safetensors). MMS / ctc-forced-aligner weights are CC-BY-NC and are NOT used. Not in the default MODEL_GROUPS: MODEL_GROUPS=qa-align.",
+      "files": [
+        { "repo": "facebook/wav2vec2-base-960h", "file": "config.json", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "facebook/wav2vec2-base-960h", "file": "preprocessor_config.json", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "facebook/wav2vec2-base-960h", "file": "vocab.json", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "facebook/wav2vec2-base-960h", "file": "tokenizer_config.json", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "facebook/wav2vec2-base-960h", "file": "special_tokens_map.json", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "facebook/wav2vec2-base-960h", "file": "pytorch_model.bin", "folder": "align/wav2vec2-base-960h", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "jonatasgrosman/wav2vec2-large-xlsr-53-arabic", "file": "config.json", "folder": "align/wav2vec2-large-xlsr-53-arabic", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "jonatasgrosman/wav2vec2-large-xlsr-53-arabic", "file": "preprocessor_config.json", "folder": "align/wav2vec2-large-xlsr-53-arabic", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "jonatasgrosman/wav2vec2-large-xlsr-53-arabic", "file": "vocab.json", "folder": "align/wav2vec2-large-xlsr-53-arabic", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "jonatasgrosman/wav2vec2-large-xlsr-53-arabic", "file": "special_tokens_map.json", "folder": "align/wav2vec2-large-xlsr-53-arabic", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" },
+        { "repo": "jonatasgrosman/wav2vec2-large-xlsr-53-arabic", "file": "pytorch_model.bin", "folder": "align/wav2vec2-large-xlsr-53-arabic", "license": "Apache-2.0 ◐ (card not read; confirm before the first fetch)" }
+      ]
+    },
+    {
+      "name": "qa-identity",
+      "purpose": "Face identity QA in the asr service, CPU (POST /qa/identity, docker/asr/qa.py; research §D): OpenCV Zoo YuNet 2023mar face detector (MIT ✔, opencv_zoo models/face_detection_yunet/LICENSE) and SFace 2021dec face embedder (Apache-2.0 ✔, models/face_recognition_sface/LICENSE), used through cv2.FaceDetectorYN / cv2.FaceRecognizerSF; SFace cosine, START threshold 0.363. Same files and folder as the copies already on the volume since 2026-10-03 (docs/MODELS.md), so a fetch only verifies them; sizes and sha256 re-checked 2026-10-05 against the opencv_zoo LFS objects. No InsightFace. Not in the default MODEL_GROUPS: MODEL_GROUPS=qa-identity.",
+      "files": [
+        { "repo": "opencv/face_detection_yunet", "file": "face_detection_yunet_2023mar.onnx", "folder": "identity", "bytes": 232589, "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4", "license": "MIT" },
+        { "repo": "opencv/face_recognition_sface", "file": "face_recognition_sface_2021dec.onnx", "folder": "identity", "bytes": 38696353, "sha256": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79", "license": "Apache-2.0" }
+      ]
     }
-  ]
+  ],
+  "service_fetched": {
+    "comment": "Weights a service fetches itself from a pinned URL and sha256 because they are not on Hugging Face (fetch.py reads only `groups`). Recorded here for licence and provenance.",
+    "files": [
+      { "name": "mediapipe-face-landmarker", "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", "folder": "qa", "file": "face_landmarker.task", "bytes": 3758596, "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff", "license": "Apache-2.0 (MediaPipe code ✔ google-ai-edge/mediapipe LICENSE; the model card's terms ◐ not read)", "fetched_by": "asr service, docker/asr/qa.py ensure_landmarker() on the first /qa/mouth call (QA_AUTOFETCH=0 disables; then fetch it by hand, docs/MODELS.md)", "purpose": "Mouth-activity lip-sync check (POST /qa/mouth; research §C.2 Tier 1): 478-point face mesh per frame, inner-lip aperture over mouth width, CPU", "sha256_checked": "2026-10-05, downloaded from the URL above (Last-Modified 2023-05-03)" }
+    ]
+  }
 }
