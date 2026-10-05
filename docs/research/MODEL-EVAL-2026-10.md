@@ -19,10 +19,10 @@
 Iraqi is verified until it is merged; (2) `MINIMAX_API_KEY` (hosted H3, 2K, H3-Max) — external; (3) `.wslconfig`
 `memory=80GB` + `wsl --shutdown` — H3 alone reaches 40.8 of 46.8 GiB; (4) the live `.env` sets
 `OPENAI_COMPATIBLE_MODEL` itself: change it to `gemma4:31b-it-qat` (or remove the line) for the switch to take effect;
-(5) Gemma's Arabic shot plan can exceed the 9000-token output budget (1/2) — measure a larger budget / 32K context
-before relying on it; (6) `engine.ts` `CharacterDesignSchema` strict enums cost a repair on every local design;
-(7) IndexTTS appends a garbled syllable to one-word lines (2/2); (8) `IMAGE_VRAM_MB` / VIDEO lease estimates
-under-report the measured peaks; (9) real Iraqi clips for the §5.9 ASR gate; Gemma as VLM (§5.6 L3) untested.
+(9) real Iraqi clips for the §5.9 ASR gate; Gemma as VLM (§5.6 L3) untested. **Closed 2026-10-05 (§6):** (5) the
+Arabic shot plan's truncation — plans now fit the context or are planned in parts, Gemma re-run 3/3; (6) the design
+schema's strict enums; (7) IndexTTS one-word lines — 18/18 clean after the lead-in cut; (8) the IMAGE/VIDEO lease
+estimates are the measured peaks.
 
 AI Research Director, 2026-10-05. The controlled tests of `MODEL-STACK-2026-10.md` §5, run on the RTX 5090 (32 GB)
 with the studio's own graph builders, straight against the services (ComfyUI :8188, Ollama :11434, TTS :8020/:8021,
@@ -308,3 +308,79 @@ no extension/continuation endpoint is documented. What it would add over local: 
 card or host-RAM pressure. Today's guide says frame and reference roles can be combined, which contradicts
 MODEL-STACK §2.2 ("cannot be mixed", 2026-10-04) — the shot-pack lowering (`lowering` for hosted reference mode)
 should be re-checked against a real key before any hosted run.
+
+## 6. Follow-up fixes (Backend, 2026-10-05): open items 5–8
+
+Job intake stayed paused; the services were started one at a time (`llm`, then `tts` / `asr` alternately) and called
+directly; nothing was written to `vewbox` or the library (the LLM harness reads and leases on the copy
+`vewbox_modeleval`, migrated to 0026 for this run).
+
+### 6.1 Gemma's Arabic shot plan no longer truncates (item 5)
+
+**Cause.** The plan asks 10–15 shots for the 60 s scene; Gemma writes ≈ 700–1,100 tokens per shot (pretty-printed
+JSON), so a long plan needs 11–17K tokens against `max_tokens` 9000 — and the two repairs that sent the cut answer back
+ran out of the 16K context themselves (10,885 + 5,499 and 15,697 + 687 tokens, `ar-plan-run2`).
+
+**Fix** (`src/server/providers/llm.ts`, `src/server/story/engine.ts`): every answer reports its stop reason;
+a cut answer (`finish_reason: "length"`, or JSON left unterminated) is never repaired or parsed — it is asked again once
+with the whole room the context has left (`OLLAMA_CONTEXT_LENGTH` − prompt − 384), else `TruncatedAnswerError`. The
+planner gives each call that whole room (≈ 10.6–10.8K here, inside the measured 16K context — no larger context was
+needed) and **plans the scene in parts** (beats halved, up to 8 parts; the second part continues from the first part's
+last shot, its lines indexed on their own) when the most shots it may take × 1,100 tokens would not fit, or when an
+answer is cut anyway; a one-beat scene that is cut fails the job. Repair rounds get only the room left after the
+history. Tests: `tests/unit/llm-truncation.test.ts`.
+
+**Re-run** (`scripts/model-eval-llm.ts --tasks ar-plan --runs 3 --ar-scene-from …/ar-script-run1.json`, the same Arabic
+scene and prompt as the failed run; evidence `docs/evidence/model-eval-2026-10/llm/gemma4_31b-it-qat/rerun-2026-10-05-ar-plan/`):
+
+| Run | Calls (prompt + answer tokens, stop reason) | Result | Time | Card peak |
+|---|---|---|---|---|
+| 1 | part 1: 3,785 + 5,274 stop; part 2: 3,955 + 6,580 stop | **valid**, 14 shots / 63 s, all 6 lines once | 258 s | 20.6 GB |
+| 2 | part 1: 3,785 + 6,474 stop → repair (one `screenDirection` value invalid) 7,742 + 4,196 stop; part 2: 3,944 + 5,553 stop | **valid**, 13 shots / 65 s, all 6 lines once | 310 s | 20.6 GB |
+| 3 | part 1: 3,785 + 6,151 stop; part 2: 3,953 + 5,273 stop | **valid**, 12 shots / 62 s, all 6 lines once | 221 s | 20.6 GB |
+
+**3/3 valid, 0 truncations** (was 1/2 with one unrecovered failure). Every plan totalled 11.4–12.0K answer tokens —
+more than the old 9000 and more than one call's room — so the split, not a larger budget alone, is what makes it fit;
+no part needed more than 6,580 of its ≈ 10.6K. Parts make the plan 2–2.5× slower than one call (221–310 s against
+125 s for the one valid run before). The second part's first shot was planned `continuous` in run 2 (the shaping now
+keeps a later part's opening boundary; only the scene's first shot is forced to a transition). The repair in run 2
+was sent with `max_tokens` 10,776 on a 7,742-token prompt (above num_ctx); repairs are now capped at the room left.
+
+### 6.2 Character design accepts what the models write (item 6)
+
+`CharacterDesignSchema` (engine.ts) and the reference-mode design read `sex`, `voice.pitch`, `voice.pace` from the
+model's words (`wordEnum`, `src/server/story/lenient.ts`): the exact value in any case, else the one category whose
+whole words appear ("male" → MALE, "Medium-low" → LOW, "mid-high" → HIGH, "rhythmic with theatrical pauses" →
+MEASURED, "Slow and rhythmic" → SLOW); no category ("purple", "gravelly") or contradicting ones ("low to high", "male or
+female") still fail. On the recorded first answers: Gemma 2/2 and qwen3 run 2 now valid without a repair; qwen3 run 1
+keeps only its genuine mistake (a 120+ character `role`). Test: `tests/unit/design-enums.test.ts` (reads the evidence).
+
+### 6.3 One-word English lines on IndexTTS (item 7)
+
+**Cause (through the TTS API, `tests/fixtures/speech-en.wav`, seeds 7/11/23):** IndexTTS 2.5 does not stop after one
+word — its speech model generates to ≈ 1.3–1.5 s and fills the rest with an invented syllable; the take is
+deterministic per seed. Punctuation does not cure it: "Nothing..." 1/3 still garbled, "... Nothing." 3/3, "Nothing,"
+3/3; "Now?!" was clean 3/3 but changes the delivery. Spoken after a sentence, the word ends a longer utterance and is
+clean with its own closing mark (lead-in before: 36/36 clean over two lead-ins; a carrier after the word: 6/6, but the
+word loses its final intonation).
+
+**Fix:** `prepareLineText` (IndexTTS, one Latin word) prepends "That is all I have to say."; `speakLine` transcribes
+the take, finds the line's word as the last thing heard, cuts at the latest quiet 10 ms before it (keeping 40 ms of the
+pause and the WAV's provenance chunk, 12 ms fade-in); a take whose word is not found is spoken again alone (and judged
+by the line check). Evidence `docs/evidence/model-eval-2026-10/voice-en/one-word/` (`scripts/one-word-eval.ts`,
+large-v3):
+
+| | Nothing. | Now? | Yes. | Run! | Why? | Okay. | Clean |
+|---|---|---|---|---|---|---|---|
+| **Before** (alone) | "Nothing. Thang." / "Nothing. Thing." / "Nothing. Sound." | "Now, de-sip." / "Now, MC." / "Now." | "Yes." / "Yes. Yes." / "Yes, yes." | "Run." / "Run." / "Run. Sean." | "Why?" / "Y. Singer." / "Why? Jerk." | 3 × "Okay." | **8/18** |
+| **After** (lead-in, cut) | 3 × "Nothing." | "Now" / "Now." / "Now." | 3 × "Yes" | 3 × "Run" | 3 × "Why?" | 3 × "Okay." | **18/18** (word located 18/18) |
+
+Cut lines are 0.61–1.07 s, the word starting at 0–0.11 s. The question intonation of "Now?" is heard by ASR as "Now."
+before and after (as for the one clean take alone): a listening item, not measured here. Test: `tests/unit/lead-in.test.ts`.
+
+### 6.4 Lease estimates (item 8)
+
+`src/server/gpu/estimates.ts`: `IMAGE_VRAM_MB` 30400 (was 24000; Edit-2511 peak 30.4 GB, 2512 29.8, klein 20.1) and
+`VIDEO_H3_VRAM_MB` 31900 (was 28000; H3 V4 peak), with H3's host RAM recorded beside them (40.8 of 46.8 GiB, ≈ 6 GiB
+headroom until `.wslconfig`). `tests/unit/gpu-estimates.test.ts` reads GPU-STAGING §6 and fails if an estimate is below a
+recorded peak. `GPU_VRAM_BUDGET_MB` stays 30000: its warning now fires on every Qwen and H3 job (a decision left open).
