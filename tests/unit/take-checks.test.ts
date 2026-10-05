@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { checkInfo, lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf } from '@/components/workspace/checks';
+import { takeVerdict, takeVerdictOf } from '@/domain/take-checks';
 import type { Take } from '@/domain/types';
+
+describe('the take’s verdict (QA Q6): one rule for the worker’s auto-select and the pages', () => {
+  it('ACCEPT chooses itself; a flagged review check or a kept gate failure is REVIEW and never auto-chosen; not measured does not block; a failed gate is REJECT', () => {
+    expect(takeVerdict({ ok: true, checks: [{ name: 'decodable', ok: true }, { name: 'lip-sync', ok: true, detail: 'not measured (offline)' }] })).toEqual({ decision: 'ACCEPT', autoChoose: true, flags: [], notMeasured: ['lip-sync'] });
+    expect(takeVerdict({ ok: true, checks: [{ name: 'decodable', ok: true }, { name: 'no-accidental-fade', ok: false }] })).toMatchObject({ decision: 'REVIEW', autoChoose: false, flags: ['no-accidental-fade'] });
+    // a gate check the worker kept for a look (a photo of someone on screen): the gate passed, the take is REVIEW
+    expect(takeVerdict({ ok: true, checks: [{ name: 'people-on-screen', ok: false }] })).toMatchObject({ decision: 'REVIEW', autoChoose: false });
+    expect(takeVerdict({ ok: false, checks: [{ name: 'decodable', ok: false }] })).toMatchObject({ decision: 'REJECT', autoChoose: false });
+    expect(takeVerdict({ ok: true, checks: [] }, { unverified: true })).toMatchObject({ decision: 'REVIEW', autoChoose: false, flags: ['script-spoken'] });
+  });
+  it('the recorded verdict wins; an older take is judged from its checks and status', () => {
+    expect(takeVerdictOf({ status: 'READY', qa: { ok: true, checks: [] }, params: { verdict: { decision: 'REVIEW', autoChoose: false, flags: ['lip-sync'], notMeasured: [] } } }).decision).toBe('REVIEW');
+    expect(takeVerdictOf({ status: 'READY', qa: { ok: true, checks: [{ name: 'identity-similarity', ok: false }] } }).decision).toBe('REVIEW');
+    expect(takeVerdictOf({ status: 'REJECTED', qa: { ok: true, checks: [] } }).decision).toBe('REJECT');
+    expect(takeVerdictOf({ status: 'READY', qa: { ok: true, checks: [{ name: 'script-spoken', ok: false, detail: 'not verified (transcription unavailable): x' }] } }).decision).toBe('REVIEW');
+  });
+});
 
 const take = (checks: NonNullable<Take['qa']>['checks'], over: Partial<Take> = {}): Pick<Take, 'qa' | 'params' | 'status'> => ({ status: 'READY', qa: { ok: checks.every((c) => c.ok), checks }, ...over });
 

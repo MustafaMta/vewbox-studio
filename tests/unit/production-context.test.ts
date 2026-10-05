@@ -110,6 +110,11 @@ describe('shot state, gaps, record', () => {
     expect(c.gaps.join(' ')).toMatch(/speaks but has no voice identity/);
   });
 
+  it('recorded lines longer than the planned shot are not a gap: the take is made as long as its words (QA m3)', () => {
+    const { state, p } = fixture();
+    const q = withShot(p, 's12', (s) => ({ ...s, durationSeconds: 4, dialogue: s.dialogue.map((d) => ({ ...d, durationSeconds: 5.9 })) }));
+    expect(productionContextFor(state, q, shotOf(q, 's12')).gaps.join(' ')).not.toMatch(/longer than the shot/);
+  });
   it('the hash moves when the state does, and the take records a compact copy', () => {
     const { state, p } = fixture();
     const c1 = productionContextFor(state, p, shotOf(p, 's12'));
