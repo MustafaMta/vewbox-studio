@@ -1,0 +1,377 @@
+{
+ "id": "short-efe98843f0",
+ "kind": "SHORT",
+ "title": "Tea at Mutanabbi",
+ "titleAr": "شاي في المتنبي",
+ "logline": "An English photographer new to Baghdad stops at Abu Haidar's tea stall on Mutanabbi Street. A simple request for tea leads to a warm moment of hospitality and connection.",
+ "synopsis": "A bright, sunny morning illuminates Mutanabbi Street, where the air is a thick blend of old book dust and brewing tea. Clara Hughes, an English photographer with a vintage camera slung across her chest, wanders through the bustle, her eyes wide with curiosity at the historic architecture and the stacks of second-hand books.",
+ "style": "CARTOON",
+ "language": "EN",
+ "aspect": "WIDE_16_9",
+ "targetSeconds": 15,
+ "stage": "FINAL_CUT",
+ "brief": {
+  "mode": "MANUAL",
+  "text": "On a sunny morning Clara, an English photographer new to Baghdad, stops at Abu Haidar's tea stall on Mutanabbi Street. She asks in English whether this is the famous tea; he answers warmly in Iraqi Arabic and pours her a glass; she tastes it and thanks him. One continuous moment at the counter, three short shots."
+ },
+ "castIds": [
+  "char-3a54ed1937",
+  "char-0556d14a04"
+ ],
+ "locationIds": [
+  "loc-75cdbdb376"
+ ],
+ "genre": "Slice of Life",
+ "mood": "Warm, sunny, and welcoming",
+ "cutAssetId": "gen-c7cd61bebcf4e6c3b58d",
+ "createdAt": "2026-10-05 17:09:54.758+00",
+ "updatedAt": "2026-10-05 19:03:02.217+00",
+ "scenes": [
+  {
+   "id": "scene-420beb3158",
+   "number": 1,
+   "title": "A Taste of Mutanabbi",
+   "locationId": "loc-75cdbdb376",
+   "timeOfDay": "MORNING",
+   "characterIds": [
+    "char-3a54ed1937",
+    "char-0556d14a04"
+   ],
+   "beats": [
+    {
+     "id": "beat-5cc61def58",
+     "lines": [
+      {
+       "id": "line-c066061248",
+       "text": "Excuse me, is this the famous tea everyone talks about?",
+       "delivery": "hesitant, hopeful",
+       "characterId": "char-0556d14a04"
+      }
+     ],
+     "action": "Clara steps up to the wooden counter of the tea stall, her vintage camera on her chest, and points at the tulip-shaped tea glasses with a hopeful smile. Abu Haidar, behind the counter beside the brass samovar, looks up from polishing a glass."
+    },
+    {
+     "id": "beat-dd93175779",
+     "lines": [
+      {
+       "id": "line-ff31335ffc",
+       "text": "هلا بيج عيني، هذا أطيب چاي ببغداد. تفضلي اگعدي.",
+       "delivery": "warmly, gesturing to the glass",
+       "characterId": "char-3a54ed1937"
+      }
+     ],
+     "action": "Abu Haidar chuckles warmly, takes a tulip glass and pours dark amber tea from the brass samovar, then sets it on a saucer in front of Clara."
+    },
+    {
+     "id": "beat-43ce933625",
+     "lines": [
+      {
+       "id": "line-efab0ca83f",
+       "text": "Oh, that is wonderful. Thank you!",
+       "delivery": "enthusiastically",
+       "characterId": "char-0556d14a04"
+      }
+     ],
+     "action": "Clara lifts the glass with both hands, takes a careful sip, and her face lights up; she smiles at Abu Haidar."
+    }
+   ],
+   "purpose": "To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea.",
+   "emotionalObjective": "Create a feeling of hospitality and cross-cultural connection.",
+   "entryState": "Clara approaches the wooden counter, looking curiously at the samovar; Abu Haidar is polishing a glass.",
+   "exitState": "Clara is smiling and satisfied after tasting the tea; Abu Haidar is beaming with hospitality."
+  }
+ ],
+ "shots": [
+  {
+   "id": "shot-cb4a02d3cc",
+   "sceneId": "scene-420beb3158",
+   "number": 1,
+   "purpose": "Establish the location and the first interaction",
+   "action": "Clara approaches the tea stall and asks about the tea while Abu Haidar looks up.",
+   "framing": "TWO_SHOT",
+   "cameraMove": "PUSH_IN",
+   "durationSeconds": 5,
+   "characterIds": [
+    "char-0556d14a04",
+    "char-3a54ed1937"
+   ],
+   "dialogue": [
+    {
+     "id": "line-c066061248",
+     "text": "Excuse me, is this the famous tea everyone talks about?",
+     "characterId": "char-0556d14a04",
+     "audioAssetId": "gen-ce083627c68d092944d1",
+     "voiceRevision": 1,
+     "durationSeconds": 4.469841
+    }
+   ],
+   "transition": "CUT",
+   "openingFrameAssetId": "gen-637acb5a44dd0d9f99f5",
+   "selectedTakeId": "take-ce083627c68deb3ea2bb",
+   "continuity": {
+    "props": [
+     {
+      "name": "brass samovar",
+      "state": "steaming",
+      "position": "right end of counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glasses",
+      "state": "arranged in rows",
+      "position": "on counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     }
+    ],
+    "camera": {
+     "move": "PUSH_IN",
+     "angle": "straight",
+     "framing": "TWO_SHOT",
+     "lensIntent": "35mm, eye level"
+    },
+    "version": 1,
+    "characters": [
+     {
+      "pose": "standing, leaning slightly forward",
+      "emotion": "curious",
+      "eyeline": "at Abu Haidar",
+      "holding": [
+       "vintage film camera"
+      ],
+      "position": "left third, facing right",
+      "wardrobe": "olive green field jacket, cream sweater, denim jeans, brown boots",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     },
+     {
+      "pose": "standing behind counter",
+      "emotion": "welcoming",
+      "eyeline": "at Clara",
+      "holding": [
+       "tea glass",
+       "polishing cloth"
+      ],
+      "position": "right third, facing left",
+      "wardrobe": "white cotton dishdasha, red-and-white keffiyeh on right shoulder, gold-rimmed glasses on cord",
+      "characterId": "char-3a54ed1937",
+      "screenDirection": "LEFT"
+     }
+    ],
+    "environment": {
+     "state": "bustling but peaceful street",
+     "weather": "sunny",
+     "lighting": "warm, soft morning sunlight with bounce light",
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376"
+    },
+    "relationToPrevious": "STORY_TRANSITION"
+   },
+   "prompt": "A sun-drenched outdoor tea stall on Mutanabbi Street with an old brick arcade and book tables in the background. A slim woman in her early thirties with auburn hair in a ponytail, wearing an olive green field jacket and a vintage camera on her chest, approaches the wooden counter from the left. Behind the counter, a plump older man with salt-and-pepper thinning hair, apple-cheeks, and a white dishdasha with a red-and-white keffiyeh on his shoulder looks up from polishing a glass. He has gold-rimmed glasses on a cord around his neck. The wooden counter holds a brass samovar and rows of clear tulip-shaped tea glasses. The camera pushes in slowly as the woman speaks with a hopeful, curious expression.",
+   "boundary": "transition",
+   "staging": {
+    "pace": "NORMAL",
+    "beats": [
+     {
+      "at": 0,
+      "action": "Clara steps up to the wooden counter, her vintage camera bouncing slightly on her chest."
+     },
+     {
+      "at": 2,
+      "action": "She points to the tulip glasses with a hopeful smile; Abu Haidar stops polishing and looks up."
+     }
+    ],
+    "actions": [
+     "approaches counter",
+     "points to glasses",
+     "looks up"
+    ]
+   },
+   "takeIds": [
+    "take-ce083627c68deb3ea2bb"
+   ]
+  },
+  {
+   "id": "shot-6ad9db5269",
+   "sceneId": "scene-420beb3158",
+   "number": 2,
+   "purpose": "Show Abu Haidar's hospitality and the ritual of pouring tea",
+   "action": "Abu Haidar chuckles warmly without a word, takes a tulip glass and fills it with dark amber tea from the tap of the brass samovar, then sets it on a saucer in front of Clara.",
+   "framing": "TWO_SHOT",
+   "cameraMove": "STATIC",
+   "durationSeconds": 5,
+   "characterIds": [
+    "char-3a54ed1937",
+    "char-0556d14a04"
+   ],
+   "dialogue": [],
+   "transition": "EXTEND",
+   "selectedTakeId": "take-ecc5c02658d8d2ef75d6",
+   "continuity": {
+    "props": [
+     {
+      "name": "brass samovar",
+      "state": "pouring",
+      "position": "right end of counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glass",
+      "state": "filling with amber liquid",
+      "position": "center counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     }
+    ],
+    "camera": {
+     "move": "STATIC",
+     "angle": "straight",
+     "framing": "TWO_SHOT",
+     "lensIntent": "50mm, eye level"
+    },
+    "version": 1,
+    "characters": [
+     {
+      "pose": "leaning over the counter",
+      "emotion": "beaming",
+      "eyeline": "at Clara",
+      "holding": [
+       "brass samovar handle"
+      ],
+      "position": "right, facing left",
+      "wardrobe": "white cotton dishdasha, red-and-white keffiyeh on right shoulder, gold-rimmed glasses on cord",
+      "characterId": "char-3a54ed1937",
+      "screenDirection": "LEFT"
+     },
+     {
+      "pose": "standing, watching intently",
+      "emotion": "anticipating",
+      "eyeline": "at the tea glass",
+      "holding": [],
+      "position": "left, facing right",
+      "wardrobe": "olive green field jacket, cream sweater",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     }
+    ],
+    "environment": {
+     "state": "same as previous",
+     "weather": "sunny",
+     "lighting": "warm morning sun, saturated colours",
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376"
+    },
+    "relationToPrevious": "CUT"
+   },
+   "prompt": "A medium two-shot of the tea seller and the photographer. The plump older man with apple-cheeks and a white dishdasha chuckles warmly, his dark brown eyes twinkling. He pours a thin, steady stream of dark amber tea from a brass samovar into a small, clear tulip-shaped glass. The woman with the auburn ponytail and olive jacket watches the tea fill the glass with a look of eager curiosity. The lighting is warm and saturated, highlighting the tactile texture of the wooden counter and the glint of the brass samovar.",
+   "boundary": "continuous",
+   "staging": {
+    "pace": "NORMAL",
+    "beats": [
+     {
+      "at": 0,
+      "action": "Abu Haidar chuckles warmly, his eyes twinkling."
+     },
+     {
+      "at": 2,
+      "action": "He pours a stream of dark amber tea from the samovar into a tulip glass and slides it onto a saucer toward Clara."
+     }
+    ],
+    "actions": [
+     "chuckles",
+     "pours tea",
+     "serves glass"
+    ]
+   },
+   "takeIds": [
+    "take-6394fe8c2f5a19e52873",
+    "take-ecc5c02658d8d2ef75d6"
+   ]
+  },
+  {
+   "id": "shot-050ff6f102",
+   "sceneId": "scene-420beb3158",
+   "number": 3,
+   "purpose": "Capture the emotional payoff of the first taste",
+   "action": "Clara, alone in the frame, holds the warm tulip glass in both hands and smiles as she speaks; after her words she takes a small sip.",
+   "framing": "MEDIUM",
+   "cameraMove": "STATIC",
+   "durationSeconds": 4,
+   "characterIds": [
+    "char-0556d14a04"
+   ],
+   "dialogue": [
+    {
+     "id": "line-efab0ca83f",
+     "text": "Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.",
+     "characterId": "char-0556d14a04",
+     "audioAssetId": "gen-e9834af668f3faf62e91",
+     "voiceRevision": 1,
+     "durationSeconds": 5.863039
+    }
+   ],
+   "transition": "CUT",
+   "openingFrameAssetId": "gen-4ecaa7969e73e194b398",
+   "endingFrameAssetId": "gen-4ecaa7969e73c2b6c5b3",
+   "selectedTakeId": "take-34af7614550bf525df9f",
+   "continuity": {
+    "props": [
+     {
+      "name": "tulip glass",
+      "state": "half-full",
+      "position": "in her hands",
+      "ownerCharacterId": "char-0556d14a04"
+     }
+    ],
+    "camera": {
+     "move": "STATIC",
+     "angle": "straight",
+     "framing": "MEDIUM_CLOSE_UP",
+     "lensIntent": "85mm, eye level"
+    },
+    "version": 1,
+    "characters": [
+     {
+      "pose": "holding glass to lips",
+      "emotion": "delighted",
+      "eyeline": "at Abu Haidar (off-screen)",
+      "holding": [
+       "tulip glass"
+      ],
+      "position": "center, facing right",
+      "wardrobe": "olive green field jacket, cream sweater",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     }
+    ],
+    "environment": {
+     "state": "same as previous",
+     "weather": "sunny",
+     "lighting": "warm morning sun, soft glow on face",
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376"
+    },
+    "relationToPrevious": "CUT"
+   },
+   "boundary": "cut",
+   "staging": {
+    "pace": "DWELL",
+    "beats": [],
+    "actions": [
+     "lifts glass",
+     "sips tea",
+     "smiles"
+    ]
+   },
+   "takeIds": [
+    "take-07d261d254b4152880d6",
+    "take-290fd4e7e1ed8f60c6fc",
+    "take-ac80015f0c3f0dd00120",
+    "take-1cd2fe78d368c49c2516",
+    "take-d1a85ebd80a22327cb75",
+    "take-66dfa20e3cbbee6ea159",
+    "take-57fe000bbef99adca983",
+    "take-e9834af668f3c525e575",
+    "take-34af7614550bf525df9f"
+   ]
+  }
+ ]
+}

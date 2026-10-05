@@ -1,0 +1,33 @@
+{
+ "stoppedAt": "2026-10-05T19:05:00Z",
+ "why": "producer power-off",
+ "state": {
+  "intake": "paused (producer power-off)",
+  "worker": "stopped",
+  "containersStopped": ["comfyui", "tts", "asr", "tts-habibi", "tts-design", "llm"],
+  "running": ["vewbox-db-1"],
+  "settings.voice.allowDesignedIraqi": false,
+  "production": { "id": "short-efe98843f0", "title": "Tea at Mutanabbi", "language": "EN", "story": "APPROVED", "selectedTakes": { "1.1": "take-ce083627c68deb3ea2bb", "1.2": "take-ecc5c02658d8d2ef75d6", "1.3": "take-34af7614550bf525df9f" }, "currentCut": "gen-c7cd61bebcf4e6c3b58d", "currentCutFile": "var/library/video/2026/10/gen-c7cd61bebcf4e6c3b58d.a1.mp4", "currentCutInspected": false, "editApproval": "not given", "export": "not started" }
+ },
+ "next": [
+  "docker compose -p vewbox up -d asr tts-design   (ASR transcript + ECAPA similarity only)",
+  "start the driver detached: node docs/evidence/acceptance-v1/driver/driver.mjs",
+  "inspect cut 4: powershell -File docs/evidence/acceptance-v1/driver/cut-check.ps1 var/library/video/2026/10/gen-c7cd61bebcf4e6c3b58d.a1.mp4 docs/evidence/acceptance-v1/cut 144,264  (shot frames 144/120/192 = 456)",
+  "lip-sync strips for shot 1.1 (speaking) and 1.2 (silent: mouths closed); ECAPA shot 1.1 speech vs shot 1.3 speech in the cut (gate item 'same voice' is OPEN: 0.45 on cut 2)",
+  "if every gate item passes: approve the cut (Final cut tab), export MP4 H.264 1080p + English subtitles, watch the export with cut-check.ps1, bundle.mjs short-efe98843f0 tea-at-mutanabbi export, commit, message the coordinator, then the Short",
+  "generation needs: scripts/studio-intake.ts resume, the worker (detached), comfyui (+ node scripts/check-comfy-nodes.mjs), tts, asr; llm only for story/planning, never beside H3 (host RAM peak 45.1 of 46.8 GiB)"
+ ],
+ "gate": {
+  "sameCharacter": "PASS (by eye)",
+  "sameVoice": "OPEN (H3 re-voices each take; 0.45 ECAPA between H3 shots 1 and 3 on cut 2, shot 3 then guided by a stale recording; re-measure on cut 4)",
+  "stableLocation": "PASS (plate match 12.6-17.5 of 36 on shots 1 and 3; shot 2 flagged 59.8 = check calibration on a closer continuation)",
+  "continuousBoundary": "PASS on cut 3 (join PSNR 22.7 vs 24.1-27.1 intra; no repeated frames; 3-frame sound cross-fade); re-check on cut 4",
+  "cutBoundary": "PASS on cut 3 (12.3 dB at the join); re-check on cut 4",
+  "lipSync": "shot 1.3 take 9 PASS; 1.1 and 1.2 to inspect",
+  "noDuplicatedGuide": "PASS on cut 3",
+  "noFadeOrBlack": "PASS on cut 3",
+  "exportWatched": "NOT STARTED"
+ },
+ "commits": ["56845d4", "d35fe3d", "d0d180d", "b162d2d", "f71c5f2", "97d0823", "3ddb966"],
+ "note": "REPORT.md could not be written (a hook blocks report .md files for this agent); the report text was returned to the coordinator."
+}

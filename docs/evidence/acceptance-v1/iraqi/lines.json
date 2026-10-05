@@ -1,0 +1,83 @@
+[
+ {
+  "id": "abu-haidar-proof",
+  "kind": "proof line (voice build)",
+  "text": "هلا بيك. اني اسمي أبو حيدر، وهذا صوتي.",
+  "assetId": "gen-3c2d25886a",
+  "heard": "هلا بيك. اني اسمي أبو حيدر وهذا صوتي.",
+  "cer": 0,
+  "jobId": "job-d21ce20a09",
+  "engine": "Habibi-TTS IRQ (F5-TTS v1)",
+  "file": "abu-haidar-proof.wav"
+ },
+ {
+  "id": "abu-haidar-designed-seed",
+  "kind": "designed seed (VoxCPM2, synthetic; the clone reference)",
+  "text": "(calibration text, MSA)",
+  "assetId": "gen-4ff84d698b",
+  "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+  "cer": 0,
+  "jobId": "job-d21ce20a09",
+  "engine": "openbmb/VoxCPM2",
+  "file": "abu-haidar-designed-seed.wav"
+ },
+ {
+  "id": "abu-haidar-probe-1",
+  "kind": "Iraqi probe line (design ranking)",
+  "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+  "assetId": "gen-7d765a2397",
+  "heard": "شكو ماكوت. هسه وصلت من الشغل.",
+  "cer": 0.0385,
+  "jobId": "job-d21ce20a09",
+  "engine": "habibi",
+  "file": "abu-haidar-probe-1.wav"
+ },
+ {
+  "id": "abu-haidar-probe-2",
+  "kind": "Iraqi probe line (design ranking)",
+  "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+  "assetId": "gen-26795fbdd8",
+  "heard": "گلتلك ماكو وقت، لازم نطلع هسه.",
+  "cer": 0,
+  "jobId": "job-d21ce20a09",
+  "engine": "habibi",
+  "file": "abu-haidar-probe-2.wav"
+ },
+ {
+  "id": "abu-haidar-probe-3",
+  "kind": "Iraqi probe line (design ranking)",
+  "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+  "assetId": "gen-a0f6e02db0",
+  "heard": "ألفاي حار هواية. أنطيني شوية مي بارد.",
+  "cer": 0.0286,
+  "jobId": "job-d21ce20a09",
+  "engine": "habibi",
+  "file": "abu-haidar-probe-3.wav"
+ },
+ {
+  "id": "abu-haidar-probe-4",
+  "kind": "Iraqi probe line (design ranking)",
+  "text": "باچر الصبح نگعد وياكم بالگهوة.",
+  "assetId": "gen-5ec5285e2c",
+  "heard": "باسر الصبح. نقعد وياكم بالغهوة.",
+  "cer": 0.069,
+  "jobId": "job-d21ce20a09",
+  "engine": "habibi",
+  "file": "abu-haidar-probe-4.wav"
+ },
+ {
+  "id": "abu-haidar-preview-job-0509c0003d",
+  "kind": "preview line (profile, Speak it)",
+  "text": "هلا بيج عيني، هذا أطيب چاي ببغداد. تفضلي اگعدي.",
+  "assetId": "gen-84ca7c276a",
+  "heard": "هلا بيجعيني. هذا أطيب آي ببغداد. تفضلي إعدي.",
+  "cer": 0.06818181818181818,
+  "status": "REVIEW",
+  "reasons": [
+   "چ not confirmable by ASR: «چاي» heard «آي» — a listener decides"
+  ],
+  "jobId": "job-0509c0003d",
+  "engine": "Habibi-TTS IRQ (F5-TTS v1)",
+  "file": "abu-haidar-preview-job-0509c0003d.wav"
+ }
+]

@@ -1,0 +1,36 @@
+{
+ "production": {
+  "id": "short-efe98843f0",
+  "title": "Tea at Mutanabbi",
+  "kind": "SHORT",
+  "language": "EN",
+  "stage": "FINAL_CUT"
+ },
+ "generatedBy": "docs/evidence/acceptance-v1/driver/bundle.mjs",
+ "updatedAt": "2026-10-05T19:03:51.621Z",
+ "lastStage": "power-off checkpoint: cut 4 assembled (take 9 selected), gate in progress",
+ "files": {
+  "production.json": "story, scenes and the shot plan (prompts, staging, boundaries) as stored",
+  "characters.json": "cast with canonical image records, file sha256 and proxies",
+  "voices.json": "voice identities: engine, reference clip, settings, proof",
+  "locations.json": "location plates with revision and sha256",
+  "takes.json": "every take: MiniMax prompt, guides, references, seed, length, model, checks",
+  "jobs.json": "every job with attempts, errors and events",
+  "cut.json": "cuts and exports with the authoritative audio timeline, joins, subtitles, loudness",
+  "models.json": "models and workflows from the registry",
+  "attempts.jsonl": "append-only first-attempt/retry record",
+  "stages.jsonl": "one line per bundle update",
+  "images/": "JPEG proxies of canonical images and plates",
+  "qa.md": "QA findings and corrections (hand-written)",
+  "gpu.md": "GPU/RAM measurements (hand-written)"
+ },
+ "counts": {
+  "characters": 2,
+  "locations": 1,
+  "shots": 3,
+  "takes": 12,
+  "jobs": 32,
+  "cuts": 3,
+  "exports": 0
+ }
+}
