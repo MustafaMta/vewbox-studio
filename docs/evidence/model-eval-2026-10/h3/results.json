@@ -1,26 +1,362 @@
 {
   "V1": {
     "question": "the shot as the take handler sends it: Ref2VA, canonical image + plate + drawn opening frame bound, the frame anchored at 0, 4-step turbo, simple; 5 s; the English line",
-    "submitted": false,
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\library\\image\\2026\\10\\gen-4b28ba8fe5.png'",
-    "wallMs": 4,
-    "vramPeakMiB": null,
-    "at": "2026-10-05T12:27:26.943Z"
+    "line": "Obsolescence. Always obsolescence.",
+    "seed": 970007,
+    "seconds": 5,
+    "expectedFrames": 124,
+    "engineMs": 119150,
+    "wallMs": 121808,
+    "vramPeakMiB": 28354,
+    "comfyRam": "vewbox-comfyui-1 40.8GiB / 46.79GiB",
+    "output": {
+      "frames": 124,
+      "width": 1344,
+      "height": 768,
+      "fps": "24/1",
+      "duration": 5.166688,
+      "audio": {
+        "sampleRate": 32000,
+        "channels": 2,
+        "rmsDb": -17.269018
+      }
+    },
+    "stills": [
+      0,
+      12,
+      21,
+      22,
+      23,
+      48,
+      72,
+      96,
+      110,
+      123
+    ],
+    "inputs": {
+      "<Picture 1>": "SUBJECT gen-4b28ba8fe5",
+      "<Picture 2>": "LOCATION gen-816d6af220",
+      "<Picture 3>": "OPENING_FRAME gen-84a699a15b"
+    },
+    "prompt": "subject_definitions:\n<Subject 1> is the 72-year-old man in <Picture 1>, featuring Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios, Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone, Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave hair, Tanned, with a network of faint blue veins visible on his hands and arms skin, Warm hazel, with a glint of curiosity that never fades eyes, wearing Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread), A faded navy wool cap with a single red button on his own left side, A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves.\n<Subject 2> is the interior environment in <Picture 2>, featuring A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.; A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp, A large multi-pane window on the back wall, facing the sea, Shelves of old radios stacked floor to ceiling on the left wall, One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart; The cracked valve radio with a faded 1987 label, A glass jar of screws on the workbench, A screwdriver and a small wrench, A soldering iron on its stand.\n<Picture 3> is the first frame of [Shot 1], showing how elias squints at the radio, tightening a bolt with a wrench. The radio crackles as static fills the room.\n\nsummary:\n[keyframe completion + reference generation] The target video shows <Subject 1> in <Subject 2>: elias squints at the radio, tightening a bolt with a wrench. The radio crackles as static fills the room. It begins from <Picture 3>, a new camera angle on the same moment as the previous shot.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 2> are kept; the camera position and framing may differ.\n<Picture 3> ([Shot 1] first frame): fully_preserved - the video starts exactly from <Picture 3>'s framing, positions and light.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] The shot begins from <Picture 3>. High-end 3D animated feature film still, stylized CG characters with appealing squash-and-stretch. A man in his sixties with a gaunt face, graying hair, and a yellow raincoat squints at a radio on the workbench. His hands grip a rusted wrench as he tightens a bolt. The camera pulls back to reveal the dim workshop, with a single bulb casting warm light on the cluttered workbench. Cool blue light from the wrench contrasts with the warm glow, emphasizing the static crackling in the background. <Subject 1> (S1) is Center, facing left, faces away from the camera, looks At the radio, holds wrench. Props: wrench (Oiled, rusted edges) In Elias's right hand. Light: Cool blue light from the wrench, warm bulb on the workbench. <Subject 1> (S1) says, <d>[English] Obsolescence. Always obsolescence.</d> Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nIndoor ambience of the place at night; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+    "pack": {
+      "backend": "local",
+      "shotId": "shot-7f9b93a882",
+      "relation": "CUT",
+      "plannedRelation": "CUT",
+      "boundary": "cut",
+      "previousShotId": "shot-24bf719d21",
+      "graph": "REF2VA",
+      "subjects": [
+        {
+          "characterId": "char-56c47abc59",
+          "assetId": "gen-4b28ba8fe5",
+          "source": "CANONICAL",
+          "approved": true,
+          "picture": 1
+        }
+      ],
+      "location": {
+        "locationId": "loc-cde19129ca",
+        "assetId": "gen-816d6af220",
+        "role": "MASTER",
+        "picture": 2
+      },
+      "pictures": [
+        {
+          "assetId": "gen-4b28ba8fe5",
+          "role": "SUBJECT",
+          "characterId": "char-56c47abc59",
+          "binding": "<Picture 1> = <Subject 1>"
+        },
+        {
+          "assetId": "gen-816d6af220",
+          "role": "LOCATION",
+          "locationId": "loc-cde19129ca",
+          "binding": "<Picture 2> = <Subject 2>"
+        },
+        {
+          "assetId": "gen-84a699a15b",
+          "role": "OPENING_FRAME",
+          "binding": "<Picture 3>"
+        }
+      ],
+      "opening": {
+        "kind": "FRAME",
+        "assetId": "gen-84a699a15b"
+      },
+      "openingPicture": 3,
+      "unreferenced": [],
+      "trimStartFrames": 0,
+      "notes": []
+    },
+    "workflowVersion": "a0e43bf09e546a82",
+    "file": "var\\model-eval\\h3\\V1.mp4",
+    "at": "2026-10-05T12:31:51.691Z"
   },
   "V4": {
     "question": "the next shot as a CONTINUATION of V1: V1’s last 22 frames AND their sound in one AddGuide at 0 (the continuity code’s assumption: the head re-renders the tail), the canonical images and the plate re-applied; 5 s of new picture",
-    "submitted": false,
-    "error": "The file could not be read as media: Command failed: ffprobe -v error -print_format json -show_format -show_streams D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\h3\\V1.mp4",
-    "wallMs": 27,
-    "vramPeakMiB": 770,
-    "at": "2026-10-05T12:27:26.971Z"
+    "line": "It’s still… functional, isn’t it?",
+    "seed": 970008,
+    "seconds": 5.9167,
+    "expectedFrames": 158,
+    "engineMs": 144748,
+    "wallMs": 147860,
+    "vramPeakMiB": 31908,
+    "comfyRam": "vewbox-comfyui-1 40.53GiB / 46.79GiB",
+    "output": {
+      "frames": 158,
+      "width": 1344,
+      "height": 768,
+      "fps": "24/1",
+      "duration": 6.583333,
+      "audio": {
+        "sampleRate": 32000,
+        "channels": 2,
+        "rmsDb": -22.710222
+      }
+    },
+    "stills": [
+      0,
+      12,
+      21,
+      22,
+      23,
+      48,
+      72,
+      96,
+      110,
+      157
+    ],
+    "inputs": {
+      "<Picture 1>": "SUBJECT gen-f90820998a",
+      "<Picture 2>": "SUBJECT gen-4b28ba8fe5",
+      "<Picture 3>": "LOCATION gen-816d6af220",
+      "guide@0": "V1 tail: 22 frames, 0.916667 s sound"
+    },
+    "prompt": "subject_definitions:\n<Subject 1> is the 65-year-old man in <Picture 1>.\n<Subject 2> is the 72-year-old man in <Picture 2>, featuring Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios, Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone, Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave hair, Tanned, with a network of faint blue veins visible on his hands and arms skin, Warm hazel, with a glint of curiosity that never fades eyes, wearing Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread), A faded navy wool cap with a single red button on his own left side, A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves.\n<Subject 3> is the interior environment in <Picture 3>, featuring A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.; A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp, A large multi-pane window on the back wall, facing the sea, Shelves of old radios stacked floor to ceiling on the left wall, One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart; The cracked valve radio with a faded 1987 label, A glass jar of screws on the workbench, A screwdriver and a small wrench, A soldering iron on its stand.\n\nsummary:\n[keyframe completion + reference generation] The target video shows <Subject 1> and <Subject 2> in <Subject 3>: <Subject 1> adjusts a wire on the radio. A meteor streaks across the window, briefly illuminating Elias's face. It continues the previous shot without a cut: the first 0.9 seconds are the end of the previous shot, anchored on the timeline, and the action carries on from there.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 2> are kept exactly.\n<Subject 3> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 3> are kept; the camera position and framing may differ.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there: High-end 3D animated feature film still, stylized CG characters with appealing squash-and-stretch. A two-shot of a man in his sixties with a round face, thinning hair, and wire-rimmed glasses (<Subject 1>) adjusting a cracked radio on the workbench, and a gaunt man in his sixties with graying hair and a yellow raincoat (Elias) standing beside him. A meteor streaks across the window, casting a brief blue light that illuminates Elias's face. The camera pans left, capturing both men's focused expressions as they work on the radio under the warm glow of the workbench bulb. <Subject 1> (S1) is Right third, facing left, faces the camera, looks At the radio, holds cracked valve radio. <Subject 2> is Left third, facing right, faces the camera, looks At Najm, holds wrench. Props: cracked valve radio (Cracked casing, faded '1987' label) On the workbench; wrench (Oiled, rusted edges) In Elias's right hand. Light: Flickering meteor light through the window, warm bulb on the workbench. <Subject 1> (S1) says, <d>[English] It’s still… functional, isn’t it?</d> Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nIndoor ambience of the place at night; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+    "pack": {
+      "backend": "local",
+      "shotId": "shot-0b22524f0c",
+      "relation": "CUT",
+      "plannedRelation": "CUT",
+      "boundary": "cut",
+      "previousShotId": "shot-7f9b93a882",
+      "graph": "REF2VA",
+      "subjects": [
+        {
+          "characterId": "char-e71e80cde4",
+          "assetId": "gen-f90820998a",
+          "source": "CANONICAL",
+          "approved": true,
+          "picture": 1
+        },
+        {
+          "characterId": "char-56c47abc59",
+          "assetId": "gen-4b28ba8fe5",
+          "source": "CANONICAL",
+          "approved": true,
+          "picture": 2
+        }
+      ],
+      "location": {
+        "locationId": "loc-cde19129ca",
+        "assetId": "gen-816d6af220",
+        "role": "MASTER",
+        "picture": 3
+      },
+      "pictures": [
+        {
+          "assetId": "gen-f90820998a",
+          "role": "SUBJECT",
+          "characterId": "char-e71e80cde4",
+          "binding": "<Picture 1> = <Subject 1>"
+        },
+        {
+          "assetId": "gen-4b28ba8fe5",
+          "role": "SUBJECT",
+          "characterId": "char-56c47abc59",
+          "binding": "<Picture 2> = <Subject 2>"
+        },
+        {
+          "assetId": "gen-816d6af220",
+          "role": "LOCATION",
+          "locationId": "loc-cde19129ca",
+          "binding": "<Picture 3> = <Subject 3>"
+        },
+        {
+          "assetId": "gen-c92dd3ba0e",
+          "role": "OPENING_FRAME",
+          "binding": "<Picture 4>"
+        }
+      ],
+      "opening": {
+        "kind": "FRAME",
+        "assetId": "gen-c92dd3ba0e"
+      },
+      "openingPicture": 4,
+      "unreferenced": [],
+      "trimStartFrames": 0,
+      "notes": [],
+      "tail": {
+        "frames": 22,
+        "hasAudio": true,
+        "audioSeconds": 0.916667,
+        "sampleRate": 48000,
+        "sourceEndFrame": 124,
+        "sourceTotalFrames": 124
+      }
+    },
+    "workflowVersion": "3cb76277b3d3bf4b",
+    "file": "var\\model-eval\\h3\\V4.mp4",
+    "at": "2026-10-05T12:34:20.699Z",
+    "join": {
+      "frames": {
+        "previous": 124,
+        "continuation": 158,
+        "guide": 22
+      },
+      "head": {
+        "psnrMean": 35.27,
+        "psnrMin": 33.76,
+        "ssimMean": 0.963,
+        "psnr": [
+          35.25,
+          35.52,
+          34.74,
+          35.8,
+          35.36,
+          35.29,
+          34.94,
+          35.25,
+          35.36,
+          35.42,
+          34.05,
+          35.05,
+          35.4,
+          34.85,
+          33.76,
+          35.8,
+          36.12,
+          36.53,
+          35.84,
+          35.22,
+          35.22,
+          35.27
+        ]
+      },
+      "join": {
+        "psnr": 25.39,
+        "ssim": 0.855995
+      },
+      "intra": {
+        "psnrP5": 18.16,
+        "psnrMedian": 24.25,
+        "psnrMin": 16.65,
+        "ssimMedian": 0.866829
+      },
+      "joinPasses": true,
+      "audio": {
+        "previousLast200msDb": -44,
+        "continuationFirstKept200msDb": -38.1,
+        "previousTailDb": -31.3,
+        "continuationHeadDb": -31.5
+      }
+    }
   },
   "V2": {
     "question": "V1 with an Iraqi Arabic <d>[Arabic] …</d> line (the eval set’s Baghdadi rendering of the same line): does the local H3 speak the dialect (listening item) and the words (dialect ASR)?",
-    "submitted": false,
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\library\\image\\2026\\10\\gen-4b28ba8fe5.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-05T12:27:26.973Z"
+    "line": "عتيگ. كلشي يصير عتيگ.",
+    "seed": 970007,
+    "seconds": 5,
+    "expectedFrames": 124,
+    "engineMs": 86924,
+    "wallMs": 89581,
+    "vramPeakMiB": 31206,
+    "comfyRam": "vewbox-comfyui-1 40.24GiB / 46.79GiB",
+    "output": {
+      "frames": 124,
+      "width": 1344,
+      "height": 768,
+      "fps": "24/1",
+      "duration": 5.166688,
+      "audio": {
+        "sampleRate": 32000,
+        "channels": 2,
+        "rmsDb": -18.268566
+      }
+    },
+    "stills": [
+      0,
+      12,
+      21,
+      22,
+      23,
+      48,
+      72,
+      96,
+      110,
+      123
+    ],
+    "inputs": {
+      "<Picture 1>": "SUBJECT gen-4b28ba8fe5",
+      "<Picture 2>": "LOCATION gen-816d6af220",
+      "<Picture 3>": "OPENING_FRAME gen-84a699a15b"
+    },
+    "prompt": "subject_definitions:\n<Subject 1> is the 72-year-old man in <Picture 1>, featuring Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios, Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone, Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave hair, Tanned, with a network of faint blue veins visible on his hands and arms skin, Warm hazel, with a glint of curiosity that never fades eyes, wearing Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread), A faded navy wool cap with a single red button on his own left side, A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves.\n<Subject 2> is the interior environment in <Picture 2>, featuring A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.; A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp, A large multi-pane window on the back wall, facing the sea, Shelves of old radios stacked floor to ceiling on the left wall, One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart; The cracked valve radio with a faded 1987 label, A glass jar of screws on the workbench, A screwdriver and a small wrench, A soldering iron on its stand.\n<Picture 3> is the first frame of [Shot 1], showing how elias squints at the radio, tightening a bolt with a wrench. The radio crackles as static fills the room.\n\nsummary:\n[keyframe completion + reference generation] The target video shows <Subject 1> in <Subject 2>: elias squints at the radio, tightening a bolt with a wrench. The radio crackles as static fills the room. It begins from <Picture 3>, a new camera angle on the same moment as the previous shot.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 2> are kept; the camera position and framing may differ.\n<Picture 3> ([Shot 1] first frame): fully_preserved - the video starts exactly from <Picture 3>'s framing, positions and light.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] The shot begins from <Picture 3>. High-end 3D animated feature film still, stylized CG characters with appealing squash-and-stretch. A man in his sixties with a gaunt face, graying hair, and a yellow raincoat squints at a radio on the workbench. His hands grip a rusted wrench as he tightens a bolt. The camera pulls back to reveal the dim workshop, with a single bulb casting warm light on the cluttered workbench. Cool blue light from the wrench contrasts with the warm glow, emphasizing the static crackling in the background. <Subject 1> (S1) is Center, facing left, faces away from the camera, looks At the radio, holds wrench. Props: wrench (Oiled, rusted edges) In Elias's right hand. Light: Cool blue light from the wrench, warm bulb on the workbench. <Subject 1> (S1) says, <d>[Arabic] عتيگ. كلشي يصير عتيگ.</d> Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nIndoor ambience of the place at night; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+    "pack": {
+      "backend": "local",
+      "shotId": "shot-7f9b93a882",
+      "relation": "CUT",
+      "plannedRelation": "CUT",
+      "boundary": "cut",
+      "previousShotId": "shot-24bf719d21",
+      "graph": "REF2VA",
+      "subjects": [
+        {
+          "characterId": "char-56c47abc59",
+          "assetId": "gen-4b28ba8fe5",
+          "source": "CANONICAL",
+          "approved": true,
+          "picture": 1
+        }
+      ],
+      "location": {
+        "locationId": "loc-cde19129ca",
+        "assetId": "gen-816d6af220",
+        "role": "MASTER",
+        "picture": 2
+      },
+      "pictures": [
+        {
+          "assetId": "gen-4b28ba8fe5",
+          "role": "SUBJECT",
+          "characterId": "char-56c47abc59",
+          "binding": "<Picture 1> = <Subject 1>"
+        },
+        {
+          "assetId": "gen-816d6af220",
+          "role": "LOCATION",
+          "locationId": "loc-cde19129ca",
+          "binding": "<Picture 2> = <Subject 2>"
+        },
+        {
+          "assetId": "gen-84a699a15b",
+          "role": "OPENING_FRAME",
+          "binding": "<Picture 3>"
+        }
+      ],
+      "opening": {
+        "kind": "FRAME",
+        "assetId": "gen-84a699a15b"
+      },
+      "openingPicture": 3,
+      "unreferenced": [],
+      "trimStartFrames": 0,
+      "notes": []
+    },
+    "workflowVersion": "a0e43bf09e546a82",
+    "file": "var\\model-eval\\h3\\V2.mp4",
+    "at": "2026-10-05T12:35:53.319Z"
   }
 }
