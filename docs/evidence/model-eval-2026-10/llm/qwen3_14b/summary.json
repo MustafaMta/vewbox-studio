@@ -1,0 +1,731 @@
+{
+  "model": "qwen3:14b",
+  "numCtx": "16384 (default)",
+  "keepAlive": "2m (default)",
+  "calls": [
+    {
+      "task": "develop",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 52915,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 52664,
+          "status": 200,
+          "promptTokens": 2241,
+          "completionTokens": 1228,
+          "head": "{\n  \"logline\": \"A retired librarian and a lighthouse keeper repair a broken radio, uncovering a decades-old distress call from the ship that vanished with Elias",
+          "requestChars": 10273,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 770,
+      "vramPeakMiB": 11471,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:46:05.737209689Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 1.542GiB / 46.79GiB",
+      "at": "2026-10-05T11:44:06.922Z"
+    },
+    {
+      "task": "script",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 14560,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 14485,
+          "status": 200,
+          "promptTokens": 2516,
+          "completionTokens": 1514,
+          "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-941b9d0b95\",\n      \"beats\": [\n        {\n          \"action\": \"Najm stumbles into the workshop, clutching the cracke",
+          "requestChars": 11142,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11471,
+      "vramPeakMiB": 11475,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:46:21.465757689Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 1.825GiB / 46.79GiB",
+      "at": "2026-10-05T11:44:22.637Z"
+    },
+    {
+      "task": "plan",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 37329,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 37173,
+          "status": 200,
+          "promptTokens": 3485,
+          "completionTokens": 3699,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Introduce the workshop and Najm's entrance\",\n      \"action\": \"Najm stumbles into the dim workshop, clutching the cracked ",
+          "requestChars": 15331,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11475,
+      "vramPeakMiB": 11475,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:46:59.818225386Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 2.155GiB / 46.79GiB",
+      "at": "2026-10-05T11:45:01.434Z",
+      "checks": {
+        "shots": 4,
+        "budget": 30,
+        "totalSeconds": 20,
+        "scriptLines": 3,
+        "linesAssignedByPlanner": 3,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "withBeats": 4,
+        "withPrompt": 4,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ar-script",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 17453,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 11317,
+          "status": 200,
+          "promptTokens": 2090,
+          "completionTokens": 1122,
+          "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-941b9d0b95\",\n      \"beats\": [\n        {\n          \"action\": \"Najm pushes open the creaking workshop door, holding ",
+          "requestChars": 9360,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 6034,
+          "status": 200,
+          "promptTokens": 156,
+          "completionTokens": 669,
+          "head": "{\"lines\": [{\"n\":0,\"english\":\"How's it going?\"},{\"n\":1,\"english\":\"This boy died 40 years ago.\"},{\"n\":2,\"english\":\"No echo...\"},{\"n\":3,\"english\":\"Silence sometime",
+          "requestChars": 683,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11475,
+      "vramPeakMiB": 11475,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:47:18.879248692Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 2.999GiB / 46.79GiB",
+      "at": "2026-10-05T11:45:20.436Z"
+    },
+    {
+      "task": "ar-plan",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 76461,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 35811,
+          "status": 200,
+          "promptTokens": 3667,
+          "completionTokens": 3672,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the workshop and Najm's entrance\",\n      \"action\": \"Najm pushes open the creaking door, holding the cracked rad",
+          "requestChars": 15776,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 40602,
+          "status": 200,
+          "promptTokens": 6647,
+          "completionTokens": 3833,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the workshop and Najm's entrance\",\n      \"action\": \"Najm pushes open the creaking door, holding the cracked rad",
+          "requestChars": 29022,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11475,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:48:36.883492965Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 3.338GiB / 46.79GiB",
+      "at": "2026-10-05T11:46:38.054Z"
+    },
+    {
+      "task": "design",
+      "run": 1,
+      "model": "qwen3:14b",
+      "ms": 19861,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 12094,
+          "status": 200,
+          "promptTokens": 842,
+          "completionTokens": 1329,
+          "head": "{\n  \"name\": \"Kamal\",\n  \"nameAr\": \"كامل\",\n  \"role\": \"A gentle, stubborn, and humorous elderly kite-maker who communicates with the wind, selling handcrafted pape",
+          "requestChars": 4132,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 7702,
+          "status": 200,
+          "promptTokens": 1390,
+          "completionTokens": 797,
+          "head": "{\n  \"name\": \"Kamal\",\n  \"nameAr\": \"كامل\",\n  \"role\": \"A gentle, stubborn kite-maker who talks to the wind, selling kites on the Tigris\",\n  \"sex\": \"MALE\",\n  \"ageYe",
+          "requestChars": 6416,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:48:57.901599321Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 4.366GiB / 46.79GiB",
+      "at": "2026-10-05T11:46:59.073Z"
+    },
+    {
+      "task": "develop",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 9929,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 9897,
+          "status": 200,
+          "promptTokens": 2241,
+          "completionTokens": 1071,
+          "head": "{\n  \"logline\": \"A retired librarian and a lighthouse keeper repair a broken radio, uncovering a decades-old distress call from the ship that vanished with Elias",
+          "requestChars": 10273,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:49:08.984195623Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 4.262GiB / 46.79GiB",
+      "at": "2026-10-05T11:47:10.544Z"
+    },
+    {
+      "task": "script",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 11130,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 11110,
+          "status": 200,
+          "promptTokens": 2516,
+          "completionTokens": 1194,
+          "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-941b9d0b95\",\n      \"beats\": [\n        {\n          \"action\": \"Najm stumbles into the workshop, clutching the cracke",
+          "requestChars": 11142,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:49:21.663837559Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 4.205GiB / 46.79GiB",
+      "at": "2026-10-05T11:47:22.828Z"
+    },
+    {
+      "task": "plan",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 101563,
+      "attempts": 3,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 34079,
+          "status": 200,
+          "promptTokens": 3485,
+          "completionTokens": 3652,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the workshop and Najm’s entrance\",\n      \"action\": \"Najm stumbles into the workshop, clutching the cracked radi",
+          "requestChars": 15331,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 33651,
+          "status": 200,
+          "promptTokens": 6551,
+          "completionTokens": 3400,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the workshop and Najm’s entrance\",\n      \"action\": \"Najm stumbles into the workshop, clutching the cracked radi",
+          "requestChars": 28598,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 33687,
+          "status": 200,
+          "promptTokens": 9572,
+          "completionTokens": 3290,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the workshop and Najm’s entrance\",\n      \"action\": \"Najm stumbles into the workshop, clutching the cracked radi",
+          "requestChars": 41660,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11489,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:51:04.379868501Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 4.508GiB / 46.79GiB",
+      "at": "2026-10-05T11:49:05.543Z",
+      "checks": {
+        "shots": 4,
+        "budget": 30,
+        "totalSeconds": 24,
+        "scriptLines": 3,
+        "linesAssignedByPlanner": 3,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "withBeats": 4,
+        "withPrompt": 4,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ar-script",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 17416,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 17394,
+          "status": 200,
+          "promptTokens": 2090,
+          "completionTokens": 1703,
+          "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-941b9d0b95\",\n      \"beats\": [\n        {\n          \"action\": \"Najm pushes open the creaking workshop door, clutchin",
+          "requestChars": 9360,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:51:22.949344224Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 5.552GiB / 46.79GiB",
+      "at": "2026-10-05T11:49:24.118Z"
+    },
+    {
+      "task": "ar-plan",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 42648,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "attemptsDetail": [
+        {
+          "ms": 42623,
+          "status": 200,
+          "promptTokens": 3667,
+          "completionTokens": 4580,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Introduce the meteor shower and Najm's entrance\",\n      \"action\": \"Najm pushes open the creaking door, holding the cracke",
+          "requestChars": 15776,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:52:06.750102309Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 5.266GiB / 46.79GiB",
+      "at": "2026-10-05T11:50:07.919Z"
+    },
+    {
+      "task": "design",
+      "run": 2,
+      "model": "qwen3:14b",
+      "ms": 17145,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 11095,
+          "status": 200,
+          "promptTokens": 842,
+          "completionTokens": 1217,
+          "head": "{\"name\": \"Abu Talib\", \"nameAr\": \"أبو طالب\", \"role\": \"Baghdadi Kite-Maker Who Communicates with the Wind\", \"sex\": \"male\", \"ageYears\": 70, \"species\": \"human\", \"bu",
+          "requestChars": 4132,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 5942,
+          "status": 200,
+          "promptTokens": 1275,
+          "completionTokens": 654,
+          "head": "{\"name\": \"Abu Talib\", \"nameAr\": \"أبو طالب\", \"role\": \"Baghdadi Kite-Maker Who Communicates with the Wind\", \"sex\": \"MALE\", \"ageYears\": 70, \"species\": \"human\", \"bu",
+          "requestChars": 5946,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 11477,
+      "vramPeakMiB": 11477,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3:14b",
+            "model": "qwen3:14b",
+            "size": 10569195191,
+            "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "14.8B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-10-05T11:52:25.032354876Z",
+            "size_vram": 10569195191,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 5.926GiB / 46.79GiB",
+      "at": "2026-10-05T11:50:26.260Z"
+    }
+  ],
+  "byTask": {
+    "develop": {
+      "n": 2,
+      "medianMs": 9929,
+      "firstAttemptValid": 2,
+      "errors": 0,
+      "peakMiB": 11477
+    },
+    "script": {
+      "n": 2,
+      "medianMs": 11130,
+      "firstAttemptValid": 2,
+      "errors": 0,
+      "peakMiB": 11477
+    },
+    "plan": {
+      "n": 2,
+      "medianMs": 37329,
+      "firstAttemptValid": 1,
+      "errors": 0,
+      "peakMiB": 11489
+    },
+    "ar-script": {
+      "n": 2,
+      "medianMs": 17416,
+      "firstAttemptValid": 1,
+      "errors": 0,
+      "peakMiB": 11477
+    },
+    "ar-plan": {
+      "n": 2,
+      "medianMs": 42648,
+      "firstAttemptValid": 1,
+      "errors": 0,
+      "peakMiB": 11477
+    },
+    "design": {
+      "n": 2,
+      "medianMs": 17145,
+      "firstAttemptValid": 0,
+      "errors": 0,
+      "peakMiB": 11477
+    }
+  }
+}
