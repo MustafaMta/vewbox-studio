@@ -253,6 +253,9 @@ describe('GENERATE_TAKE by relation', () => {
     expect(req.prompt).toContain('a new camera angle on the same moment as the previous shot');
     const t = addTake();
     expect(t).toMatchObject({ relation: 'CUT' });
+    // the take records the scene state it was filmed in (carried across the cut), and the prompt carries it
+    expect(t.params).toMatchObject({ sceneState: { shotId: 's13', boundary: 'cut', timeOfDay: 'DUSK', lighting: 'cool fluorescent light', sources: { environment: { kind: 'PREVIOUS_SHOT', shotId: 's12' } } } });
+    expect(req.prompt).toContain('Scene state (carried across the cut): dusk');
     expect(t.trimStartFrames).toBeUndefined();
     expect(t.continuesTakeId).toBeUndefined();
     expect(t.references).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'FIRST_FRAME', assetId: 'open-13', binding: 'guide@0' }), expect.objectContaining({ kind: 'LAST_FRAME', assetId: 'end-13', binding: 'guide@-1' })]));

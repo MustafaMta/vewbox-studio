@@ -1,5 +1,6 @@
-import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take } from '@/domain/types';
+import { BOUNDARY_RELATION, RELATION_BOUNDARY, type Asset, type Character, type Location, type Production, type Shot, type ShotBoundary, type ShotRelation, type StudioState, type Take, type WorldBible } from '@/domain/types';
 import { orderedShots, shotWindowFrames } from '@/domain/timeline';
+import { sceneStateFor, type SceneState } from '@/domain/scene-state';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/domain/identity';
 import { locationIdentity } from '@/domain/location';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -63,6 +64,9 @@ export interface ShotPack {
   trimStartFrames: number;
   /** why the plan was changed for the backend, recorded in provenance */
   lowering?: string;
+  /** THE SCENE STATE the take is filmed in (src/domain/scene-state.ts): carried from the previous shot across a cut
+   *  or a continuation, reset to the scene's declaration on a transition; written into the prompt, recorded on the take */
+  sceneState: SceneState;
   notes: string[];
 }
 
@@ -156,7 +160,7 @@ export function plateFor(loc: Location | undefined, timeOfDay: string | undefine
   return master ? { assetId: master, role: 'MASTER' } : undefined;
 }
 
-export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opts: { backend: 'local' | 'api' }): ShotPack {
+export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opts: { backend: 'local' | 'api'; /** the World Bible revision the production reads (the scene state of a returning place comes from it) */ bible?: WorldBible }): ShotPack {
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   const cast = castOf(state, p); const world = worldOf(state, p);
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
@@ -224,7 +228,9 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
     if (opening.kind === 'FRAME' || ending) { lowering = 'hosted reference mode: the drawn opening/ending frame is not sent (frame and reference roles cannot be mixed); identity from the canonical images and the plate'; }
   } else graph = opening.kind === 'FRAME' || ending ? 'FRAMES' : 'TEXT';
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, notes };
+  // THE SCENE STATE (src/domain/scene-state.ts): what is true when this shot is filmed, carried shot to shot
+  const sceneState = sceneStateFor(p, sh, { bible: opts.bible });
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */

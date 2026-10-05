@@ -96,7 +96,8 @@ export const generateTake: Handler = async (ctx) => {
   // THE SHOT PACK: the relation to the previous shot, the identity references (every character's canonical image and
   // the plate, on every shot that shows them), what the clip starts from, the graph — the same resolution the
   // preflight judged
-  const pack = resolveShotPack(state, p, sh, { backend });
+  const pack = resolveShotPack(state, p, sh, { backend, bible: world.outcome.view.revision?.bible });
+  await ctx.event('info', `scene state (${pack.sceneState.boundary}): ${pack.sceneState.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'time of day unknown'}${pack.sceneState.weather ? `, ${pack.sceneState.weather}` : ''}${pack.sceneState.lighting ? `, ${pack.sceneState.lighting}` : ''}; ${pack.sceneState.present.length} present, ${pack.sceneState.props.length} prop(s); environment from ${pack.sceneState.sources.environment.kind.toLowerCase().replace(/_/g, ' ')}`, { sceneState: pack.sceneState });
   let seconds = Math.min(15, Math.max(1, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it — and from the job,
   // so every attempt of this request asks for the same clip
@@ -310,8 +311,8 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const prompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene)].filter(Boolean).join(' '));
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState })].filter(Boolean).join(' '));
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
     const failed = lint.checks.filter((c) => !c.ok && c.hard);
@@ -504,7 +505,7 @@ export const generateTake: Handler = async (ctx) => {
   // invented here.
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization

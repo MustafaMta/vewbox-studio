@@ -3,6 +3,7 @@ import type { Framing, TimeOfDay } from './vocabulary';
 import { canonical, hashString } from './hash';
 import { usableImage } from './identity';
 import { locationIdentity } from './location';
+import { sceneEndState } from './scene-state';
 
 /** THE WORLD BIBLE, PURE (docs/research/MINIMAX-CONTINUITY.md §4; directive Part 7). Everything here is state in,
  *  value out, so the worker, the tests and any page compute the same thing:
@@ -100,20 +101,14 @@ function propsOf(prev: WorldProp[], locations: StudioState['locations'], prods: 
   return [...out.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
+/** The state each scene leaves behind: the accumulated scene state of its last shot (src/domain/scene-state.ts — what
+ *  every cut carried), so a return to the place starts from it. */
 function statesOf(prev: WorldSceneState[], prods: Production[]): WorldSceneState[] {
   const out = new Map(prev.map((s) => [s.id, s]));
   prods.forEach((p, pi) => {
     for (const sc of scenesInOrder(p)) {
-      const last = shotsOfScene(p, sc.id).filter((s) => s.continuity).at(-1);
-      if (!last && !sc.exitState) continue;
-      const c = last?.continuity;
-      out.set(`state-${sc.id}`, {
-        id: `state-${sc.id}`, productionId: p.id, sceneId: sc.id, order: pi * 1000 + sc.number, locationId: sc.locationId,
-        environment: { timeOfDay: c?.environment.timeOfDay ?? sc.timeOfDay, weather: c?.environment.weather, lighting: c?.environment.lighting, state: c?.environment.state },
-        characters: (c?.characters ?? []).map((x) => ({ characterId: x.characterId, wardrobe: x.wardrobe, position: x.position, holding: x.holding })),
-        props: (c?.props ?? []).map((x) => ({ name: x.name, state: x.state, position: x.position, ownerCharacterId: x.ownerCharacterId })),
-        exitState: sc.exitState,
-      });
+      const st = sceneEndState(p, sc, pi);
+      if (st) out.set(st.id, st);
     }
   });
   return [...out.values()].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
