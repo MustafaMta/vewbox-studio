@@ -9,7 +9,7 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
-import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
+import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, padAudio, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
 import { jobOutputs, stableSeed } from '@/server/jobs/outputs';
@@ -271,12 +271,26 @@ export const generateTake: Handler = async (ctx) => {
     continuesTakeId = pack.opening.takeId;
     references.push({ kind: 'FIRST_FRAME', assetId: prevAsset.id, binding: 'first_frame', note: 'hosted continuation: the previous take’s last frame' });
   }
-  if (soundtrackFile) { guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile }); soundtrackGuideFrame = trimStartFrames; }
   if (songReference) references.push({ ...songReference, binding: `guide@${trimStartFrames}` });
   // the clip: the new content plus the guide frames (the length the node keeps), snapped up to the engine's grid and
   // held in its trained range
   const clip = clipSecondsFor({ trimStartFrames }, seconds);
   if (clip.truncated) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} needs ${Math.round(seconds * H3_FPS)} frames; the engine makes at most ${clip.newFrames} after a ${trimStartFrames}-frame guide.`), { failureClass: 'WRONG_PARAMETERS' });
+  // THE SILENCE AFTER THE LAST LINE IS AUTHORITATIVE TOO (root cause of "Thank you. Thank you.", acceptance 2026-10-05
+  // shot 1.3): local H3 never makes fewer than 124 frames, so a short line's soundtrack ended seconds before the clip
+  // did, and H3 filled the unguided rest with more speech. The dialogue guide now runs to the clip's last frame, the
+  // frames after the lines anchored to silence (H3 follows the anchored sound word by word: acceptance 2026-10-06).
+  let guideSilence: { padSeconds: number; guideSeconds: number } | undefined;
+  if (soundtrackFile) {
+    let guideAudio = soundtrackFile;
+    if (soundtrack?.kind === 'DIALOGUE') {
+      const guideSeconds = (clip.frames - trimStartFrames) / H3_FPS;
+      const have = (await ffprobe(soundtrackFile)).durationSeconds ?? 0;
+      if (guideSeconds - have > 0.05) { guideAudio = await padAudio(soundtrackFile, path.join(work, 'dialogue-guide.wav'), guideSeconds); guideSilence = { padSeconds: Number((guideSeconds - have).toFixed(3)), guideSeconds: Number(guideSeconds.toFixed(3)) }; }
+    }
+    guides.push({ frameIdx: trimStartFrames, audioFile: guideAudio }); soundtrackGuideFrame = trimStartFrames;
+    if (guideSilence) await ctx.event('info', `the dialogue guide runs to the clip's end: ${guideSilence.padSeconds} s of silence after the last line are anchored (nobody speaks there)`, guideSilence);
+  }
 
   // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the primary image of each character in the shot (the
   // canonical front full-body image, else a legacy portrait), every character the picture budget holds, in the shot's
@@ -620,7 +634,7 @@ export const generateTake: Handler = async (ctx) => {
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(guideSilence ? { dialogueGuide: guideSilence } : {}), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization

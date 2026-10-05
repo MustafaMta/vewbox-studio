@@ -118,6 +118,12 @@ export async function trimAudio(input: string, out: string, from: number, to: nu
   return out;
 }
 
+/** The audio padded with silence (or cut) to exactly `seconds`, mono 48 kHz PCM. */
+export async function padAudio(input: string, out: string, seconds: number): Promise<string> {
+  await ffmpeg(['-y', '-v', 'error', '-i', input, '-vn', '-af', `aformat=sample_rates=48000:channel_layouts=mono,apad=whole_dur=${seconds.toFixed(3)},atrim=0:${seconds.toFixed(3)}`, '-ac', '1', '-ar', '48000', '-c:a', 'pcm_s16le', out]);
+  return out;
+}
+
 /** Join spoken lines into one soundtrack with silence between them: a lead-in, a gap after every line, a tail. Mono
  *  48 kHz PCM. Returns each line's window inside the track (exact, from the measured durations). */
 export async function joinSpeech(lines: Array<{ file: string; durationSeconds: number }>, out: string, opts: { leadIn?: number; gap?: number; tail?: number } = {}): Promise<{ file: string; durationSeconds: number; windows: Array<{ from: number; to: number }> }> {
