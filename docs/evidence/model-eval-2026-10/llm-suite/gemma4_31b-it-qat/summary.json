@@ -1,0 +1,206 @@
+{
+  "model": "gemma4:31b-it-qat",
+  "numCtx": "16384 (default)",
+  "keepAlive": "2m (default)",
+  "callTimeoutMs": 3600000,
+  "byTask": {
+    "ep-develop": {
+      "n": 1,
+      "medianMs": 200852,
+      "firstAttemptValid": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 21764,
+      "ramPeak": {
+        "containerGiB": 4.71,
+        "vmUsedGiB": 10.56
+      }
+    },
+    "ep-script": {
+      "n": 1,
+      "medianMs": 97316,
+      "firstAttemptValid": 1,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 21764,
+      "ramPeak": {
+        "containerGiB": 6.26,
+        "vmUsedGiB": 12.18
+      }
+    }
+  },
+  "calls": [
+    {
+      "task": "ep-develop",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 200852,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 6466,
+      "tokPerS": 32.4,
+      "attemptsDetail": [
+        {
+          "ms": 144743,
+          "status": 200,
+          "maxTokens": 8000,
+          "head": "{\n  \"logline\": \"Elias and Najm confront a reluctant harbour master to uncover a hidden truth in a decades-old logbook, sparking a new lead from the static of th",
+          "tail": "the black sea.\",\n      \"exitState\": \"Cut to Najm unrolling a large nautical chart on the workbench, marking the bearing.\",\n      \"targetSeconds\": 45\n    }\n  ]\n}",
+          "requestChars": 11964,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 2668,
+          "completionTokens": 3711,
+          "tokPerS": 25.6
+        },
+        {
+          "ms": 54832,
+          "status": 200,
+          "maxTokens": 8000,
+          "head": "{\n  \"logline\": \"Elias and Najm confront a reluctant harbour master to uncover a hidden truth in a decades-old logbook, sparking a new lead from the static of th",
+          "tail": "the black sea.\",\n      \"exitState\": \"Cut to Najm unrolling a large nautical chart on the workbench, marking the bearing.\",\n      \"targetSeconds\": 45\n    }\n  ]\n}",
+          "requestChars": 22806,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 5277,
+          "completionTokens": 2755,
+          "tokPerS": 50.2
+        }
+      ],
+      "vramBeforeMiB": 1133,
+      "vramPeakMiB": 21764,
+      "ram": {
+        "containerGiB": 4.71,
+        "vmUsedGiB": 10.56
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:44:16.610742144Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:42:16.978Z",
+      "checks": {
+        "scenes": 11,
+        "expectedScenes": 11,
+        "totalSeconds": 420,
+        "targetSeconds": 480,
+        "withinTenPercent": false,
+        "newCharacters": [
+          "Ingrid Dahl"
+        ],
+        "newLocations": [
+          "Kerran Point Harbour Office"
+        ],
+        "unresolvedNames": [],
+        "regularsPresent": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "synopsisWords": 205
+      }
+    },
+    {
+      "task": "ep-script",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 97316,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 5070,
+      "tokPerS": 52.3,
+      "attemptsDetail": [
+        {
+          "ms": 96954,
+          "status": 200,
+          "maxTokens": 9000,
+          "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-bench-1\",\n      \"number\": 1,\n      \"title\": \"The Approach\",\n      \"location\": \"Kerran Point Harbour Office\",\n     ",
+          "tail": " \"Najm\",\n              \"text\": \"Then I will go for both of us.\",\n              \"delivery\": \"firm, quiet\"\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+          "requestChars": 18707,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 4114,
+          "completionTokens": 5070,
+          "tokPerS": 52.3
+        }
+      ],
+      "vramBeforeMiB": 21764,
+      "vramPeakMiB": 21764,
+      "ram": {
+        "containerGiB": 6.26,
+        "vmUsedGiB": 12.18
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:45:53.941514848Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:43:54.305Z",
+      "checks": {
+        "scenesReturned": 11,
+        "scenesExpected": 11,
+        "everySceneOnce": true,
+        "beatsPerScene": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          3,
+          4,
+          3,
+          4,
+          3
+        ],
+        "beatsOutside2to6": 0,
+        "lines": 18,
+        "linesOver15Words": 2,
+        "unknownSpeakers": [
+          "Ruth Moore"
+        ],
+        "actionWords": 23
+      }
+    }
+  ]
+}
