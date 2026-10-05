@@ -169,7 +169,10 @@ export interface Take {
   stale?: TakeStale;
   /** The authoritative soundtrack this take was generated to follow (recorded dialogue or the song stretch), with
    *  each line's exact window inside the take: subtitles and the mix use these, never estimates. */
-  soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number }> };
+  /** `lines`: where each line is heard in the take (seconds on its clock); `anchoredFrom`/`audioAssetId`: where the
+   *  line's recording was anchored as the take's audio guide, and which recording (src/domain/timeline.ts
+   *  anchoredLineStarts — the cut plays the authoritative recording there) */
+  soundtrack?: { kind: 'DIALOGUE' | 'SONG'; assetId?: string; lines: Array<{ lineId: string; from: number; to: number; anchoredFrom?: number; audioAssetId?: string }> };
   /** THE PRODUCER'S JUDGEMENT (docs/CONTRACTS-REDESIGN-BACKEND.md B5), apart from `status` (the inspectors' and the
    *  older rejectTake's verdict): GOOD or REJECTED with an optional reason, who gave it and when. Written only by
    *  `rateTake`; a REJECTED take is kept (never deleted) and cannot be chosen for the cut. */

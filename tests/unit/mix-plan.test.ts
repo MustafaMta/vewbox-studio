@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, Production, ShotRelation, Take } from '@/domain/types';
-import { auditTimeline, buildAudioTimeline, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
+import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
 import { buildMixPlan, buildTimeline, CUT_RATE } from '@/server/media/assembly';
 import { gainExpression, mixPlanOf, trackFilter } from '@/server/media/mix';
 import { DEFAULT_AUDIO_POLICY } from '@/domain/world';
@@ -102,8 +102,41 @@ describe('the dialogue policy', () => {
     const line = tl.cues.find((c) => c.kind === 'DIALOGUE')!;
     expect(line).toMatchObject({ sourceAssetId: 'rec-1', startSample: head, durationSamples: 1.5 * CUT_RATE, voice: true, lineId: 'l1' });
     const take = tl.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!;
-    expect(take.automation?.spans).toEqual([{ from: head, to: head + 1.5 * CUT_RATE, gain: 0 }]);
+    expect(take.automation?.spans).toEqual([{ from: head - REPLACED_SPEECH_PAD_SAMPLES, to: head + 1.5 * CUT_RATE + REPLACED_SPEECH_PAD_SAMPLES, gain: 0 }]);
     expect(tl.problems).toEqual([]);
+  });
+
+  it('AUTO, audio-first: a take generated to the current recordings plays them where they were anchored (not where the transcriber heard them), its own re-voicing muted', () => {
+    const { p, assets } = speaking(true);
+    const t = p.shots[0].takes[0];
+    // heard by the transcriber at 0.5 s after the head; anchored (the guide) at 0.9 s after it
+    t.soundtrack = { kind: 'DIALOGUE', assetId: 'joined', lines: [{ lineId: 'l1', from: 0.5 + 22 / 24, to: 2.0 + 22 / 24, anchoredFrom: 0.9 + 22 / 24, audioAssetId: 'rec-1' }] };
+    const tl = buildAudioTimeline(p, assets);
+    const line = tl.cues.find((c) => c.kind === 'DIALOGUE')!;
+    expect(line).toMatchObject({ sourceAssetId: 'rec-1', startSample: Math.round(0.9 * CUT_RATE), lineId: 'l1' });
+    expect(line.policy).toMatch(/generated to it \(audio-first\)/);
+    expect(tl.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!.automation?.spans).toHaveLength(1);
+    expect(tl.problems).toEqual([]);
+    // the line was recorded again since: the take was not made to it — its own speech stays (its check passed)
+    t.soundtrack.lines[0].audioAssetId = 'rec-0';
+    expect(buildAudioTimeline(p, assets).cues.some((c) => c.kind === 'DIALOGUE')).toBe(false);
+    // MODEL_VOICE keeps the take's speech anyway
+    t.soundtrack.lines[0].audioAssetId = 'rec-1';
+    expect(buildAudioTimeline(p, assets, { policy: { ...DEFAULT_AUDIO_POLICY, dialogue: 'MODEL_VOICE' } }).cues.some((c) => c.kind === 'DIALOGUE')).toBe(false);
+  });
+
+  it('a take made before the anchor was recorded: read from its joined soundtrack’s line list with the join rule', () => {
+    const { p, assets } = production('SHORT', [{ seconds: 8, lines: [{ id: 'l1', audio: 'rec-1', seconds: 1.5, from: 0.05, to: 1.6 }, { id: 'l2', audio: 'rec-2', seconds: 2, from: 2.0, to: 4.0 }] }]);
+    const t = p.shots[0].takes[0];
+    t.soundtrack = { ...t.soundtrack!, assetId: 'joined' };
+    assets.push({ ...media('joined', { kind: 'AUDIO', seconds: 4.55 }), provenance: { path: 'x/joined', lineAssets: ['rec-1', 'rec-2'] } } as Asset);
+    expect([...anchoredLineStarts(p.shots[0], t, (id) => assets.find((a) => a.id === id))!]).toEqual([['l1', JOIN_SPEECH.leadIn], ['l2', JOIN_SPEECH.leadIn + 1.5 + JOIN_SPEECH.gap]]);
+    const lines = buildAudioTimeline(p, assets).cues.filter((c) => c.kind === 'DIALOGUE');
+    expect(lines.map((c) => c.startSample)).toEqual([Math.round(0.4 * CUT_RATE), Math.round(2.25 * CUT_RATE)]);
+    // a line whose recording is not in the joined track: not anchored
+    p.shots[0].dialogue[1].audioAssetId = 'rec-3';
+    assets.push(media('rec-3', { kind: 'AUDIO', seconds: 2 }));
+    expect(anchoredLineStarts(p.shots[0], t, (id) => assets.find((a) => a.id === id))).toBeUndefined();
   });
 
   it('AUTO keeps a take whose speech passed; RECORDED_VOICE replaces it anyway; MODEL_VOICE never does', () => {

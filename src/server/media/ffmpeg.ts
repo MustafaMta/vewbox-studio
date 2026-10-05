@@ -4,6 +4,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { StudioError } from '@/domain/errors';
 import type { QaCheck, QaReport } from '@/domain/types';
+import { JOIN_SPEECH } from '@/domain/timeline';
 import { ffprobe, type Probe } from '../media';
 import { execFileP } from './exec';
 import { log } from '../log';
@@ -120,7 +121,8 @@ export async function trimAudio(input: string, out: string, from: number, to: nu
 /** Join spoken lines into one soundtrack with silence between them: a lead-in, a gap after every line, a tail. Mono
  *  48 kHz PCM. Returns each line's window inside the track (exact, from the measured durations). */
 export async function joinSpeech(lines: Array<{ file: string; durationSeconds: number }>, out: string, opts: { leadIn?: number; gap?: number; tail?: number } = {}): Promise<{ file: string; durationSeconds: number; windows: Array<{ from: number; to: number }> }> {
-  const leadIn = opts.leadIn ?? 0.4, gap = opts.gap ?? 0.35, tail = opts.tail ?? 0.3;
+  // the cut reads the same rule back to place each recording where the take was anchored on it (anchoredLineStarts)
+  const leadIn = opts.leadIn ?? JOIN_SPEECH.leadIn, gap = opts.gap ?? JOIN_SPEECH.gap, tail = opts.tail ?? JOIN_SPEECH.tail;
   const args: string[] = ['-y', '-v', 'error'];
   const parts: string[] = [];
   const windows: Array<{ from: number; to: number }> = [];

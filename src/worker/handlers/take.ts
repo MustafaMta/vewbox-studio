@@ -120,6 +120,10 @@ export const generateTake: Handler = async (ctx) => {
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
   let dialogueLineAssets: string[] | undefined;
+  /** each recorded line's place in the joined soundtrack (seconds) and its recording; with the guide frame the
+   *  soundtrack is anchored at, where the cut plays the authoritative line (soundtrack.lines[].anchoredFrom) */
+  let joinedLines: Array<{ lineId: string; from: number; audioAssetId: string }> | undefined;
+  let soundtrackGuideFrame: number | undefined;
   /** the checks of the lines recorded by THIS take (reused lines were checked when they were recorded) */
   const spokenChecks: Array<LineCheck | null> = [];
   /** each line's aligned words (seconds into its own recording), when the aligner answered */
@@ -196,6 +200,7 @@ export const generateTake: Handler = async (ctx) => {
       const lineAssets = spoken.map((s) => s.assetId);
       const prior = sh.takes.map((t) => t.soundtrack).find((st) => { if (!st || st.kind !== 'DIALOGUE' || !st.assetId) return false; const a = byId(st.assetId); const was = a?.provenance?.lineAssets as string[] | undefined; return Boolean(a && !a.unavailable && was && was.length === lineAssets.length && was.every((x, i) => x === lineAssets[i])); });
       soundtrack = { kind: 'DIALOGUE', assetId: prior?.assetId, lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
+      joinedLines = spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, audioAssetId: s.assetId }));
       dialogueLineAssets = lineAssets;
       await ctx.event('info', `dialogue ${spoken.every((s) => s.reused) ? 'reused' : spoken.some((s) => s.reused) ? 'partly reused' : 'recorded'} as the shot's soundtrack${prior ? ' (joined track reused too)' : ''}`, { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, assetId: s.assetId, reused: s.reused, durationSeconds: s.durationSeconds, coverage: s.check?.coverage, wer: s.check?.wer, heard: s.check?.heard })) });
     }
@@ -266,7 +271,7 @@ export const generateTake: Handler = async (ctx) => {
     continuesTakeId = pack.opening.takeId;
     references.push({ kind: 'FIRST_FRAME', assetId: prevAsset.id, binding: 'first_frame', note: 'hosted continuation: the previous take’s last frame' });
   }
-  if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
+  if (soundtrackFile) { guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile }); soundtrackGuideFrame = trimStartFrames; }
   if (songReference) references.push({ ...songReference, binding: `guide@${trimStartFrames}` });
   // the clip: the new content plus the guide frames (the length the node keeps), snapped up to the engine's grid and
   // held in its trained range
@@ -568,6 +573,8 @@ export const generateTake: Handler = async (ctx) => {
     }
     soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? soundtrackId };
   }
+  // where each recording was anchored on the take's clock (the cut plays it there: src/domain/timeline.ts)
+  if (soundtrack?.kind === 'DIALOGUE' && joinedLines && soundtrackGuideFrame !== undefined) soundtrack = { ...soundtrack, lines: soundtrack.lines.map((l) => { const j = joinedLines!.find((x) => x.lineId === l.lineId); return j ? { ...l, anchoredFrom: Number((soundtrackGuideFrame! / H3_FPS + j.from).toFixed(4)), audioAssetId: j.audioAssetId } : l; }) };
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
   const playable = path.join(dir, 'take.mp4');
