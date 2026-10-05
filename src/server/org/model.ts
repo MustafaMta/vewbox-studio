@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 12;
+export const ORG_VERSION = 13;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -303,13 +303,15 @@ export const AGENTS: AgentDef[] = [
   { id: 'world-continuity', name: 'World Continuity', department: 'WORLD', role: 'The World Bible: pinned revisions, places reused on return',
     description: 'Keeps the World Bible: a structured, versioned record per show (or per short and music video) of the characters with their canonical images and voice identities, relationships, places with their plates, architecture and layout, props, wardrobe, the story timeline, light and weather, each scene’s end state, the world’s rules and the audio policy. Writes a revision whenever the world changes (after story development, the shot plan and an episode’s continuity record); pins a production to the revision its approved story is made against at its first production run, and moves the pin only when nothing the production already filmed would change; gives every take the place’s plate the bible chooses (an established frame of an approved take before a drawn plate, by id) and the pinned canonical images, and records what the take read; registers the frames an approved cut establishes, so a returning place is filmed against what the audience saw.',
     systemInstructions: S(`One world per show (or per short and music video), in append-only revisions; a production reads the revision its story was approved against and follows a newer one only when nothing it already filmed would change; a returning place is filmed against its established frames or plates by id, never redrawn from a description; every take records the revision it read.`),
-    model: 'rule set (src/domain/world.ts, src/server/world)', skills: ['world-continuity'], tools: [], inputSchema: 'Production, World Bible revision', outputSchema: 'WorldRevision / WorldPin / WorldRead', version: '1.0.0',
-    qualityRequirements: ['every take records the World Bible revision it read', 'a returning place is filmed against its plates by id', 'revisions are append-only'], ...STEP_ONLY,
+    model: 'rule set (src/domain/world.ts, src/domain/location.ts, src/server/world, src/server/production/location-rule.ts)', skills: ['world-continuity'], tools: [], inputSchema: 'Production, World Bible revision', outputSchema: 'WorldRevision / WorldPin / WorldRead', version: '1.1.0',
+    qualityRequirements: ['every take records the World Bible revision it read', 'a returning place is filmed against its plates by id', 'revisions are append-only', 'a place without a plate is never filmed from words: refused, or established by the scene’s own declaration'], ...STEP_ONLY,
     steps: [
       { id: 'world-sync', name: 'World Bible revision after the story changes', where: W('handlers/story.ts') },
       { id: 'world-pin', name: 'World Bible pin of a production', where: W('handlers/produce.ts') },
       { id: 'world-read', name: 'World Bible read for a take', where: W('handlers/take.ts') },
       { id: 'establish-locations', name: 'Established frames of an approved cut', where: W('handlers/assemble.ts') },
+      { id: 'establish-here', name: 'A place established by its first take (the scene marked "establish here")', where: W('handlers/take.ts') },
+      { id: 'drift-check', name: 'The take’s place measured against its canonical plate', where: W('handlers/take.ts') },
     ] },
   // Pre-Production
   { id: 'film-director', name: 'Film Director', department: 'PREPRODUCTION', role: 'Director: the shot plan',

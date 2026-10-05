@@ -4,6 +4,7 @@ import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget } from '@/server/production/guide';
 import { identityConditioning } from '@/server/production/identity-rule';
+import { locationPlateVerdict } from '@/server/production/location-rule';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
@@ -88,8 +89,12 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // THE IDENTITY RE-APPLICATION RULE on the pack (src/server/production/identity-rule.ts): every present character's
   // canonical image and the place's plate are conditioned on, or the request is refused as MISSING_REFERENCE; the
   // worker checks the same rule again on the request it built (connected files, prompt bindings)
+  // THE LOCATION PLATE RULE (src/server/production/location-rule.ts): a place is filmed against its plate (the
+  // Location Bible) or, when the scene is marked "establish here", from its identity line; never from words alone
+  const plateRule = locationPlateVerdict(pack, scene, loc);
+  if (loc) add('location-plate', plateRule.ok, 'MISSING_REFERENCE', plateRule.detail);
   const identity = identityConditioning(pack, sh, cast, p.kind === 'MUSIC_VIDEO' ? loc : loc, {});
-  if (identityNeeded || loc) add('identity-conditioning', identity.ok, 'MISSING_REFERENCE', identity.ok ? (identity.lowered ? `waived: ${identity.lowered}` : `${identity.characters.length} character image(s)${identity.location ? ' and the plate' : ''} conditioned on`) : identity.problems.join('; '));
+  if (identityNeeded || loc) add('identity-conditioning', identity.ok, 'MISSING_REFERENCE', identity.ok ? (identity.lowered ? `waived: ${identity.lowered}` : `${identity.characters.length} character image(s)${identity.location ? (plateRule.mode === 'ESTABLISHING' ? ' and the place from its identity line (establish here)' : ' and the plate') : ''} conditioned on`) : identity.problems.join('; '));
   if (identityNeeded) {
     const missing = inShot.filter((c) => !usableImage(byId(primaryImageOf(c))));
     const legacy = inShot.filter((c) => primaryImageSourceOf(c) === 'PORTRAIT' && usableImage(byId(c.portraitAssetId)));

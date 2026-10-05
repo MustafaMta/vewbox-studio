@@ -13,7 +13,7 @@ import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechA
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
 import { jobOutputs, stableSeed } from '@/server/jobs/outputs';
-import { commitTake, committedTake, type TakeCommit } from './take-commit';
+import { commitTake, committedTake, takeIdOf, type TakeCommit } from './take-commit';
 import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
@@ -27,6 +27,11 @@ import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
+import { assertLocationPlate } from '@/server/production/location-rule';
+import { identityAppliedChecks, measurePlateDrift, type PlateDrift } from '@/server/media/plate-drift';
+import { establishFromTake } from '@/server/world';
+import { outputId } from '@/server/jobs/outputs';
+import type { CommandSpec } from '@/server/studio/engine';
 import { guideHeadRecord, measureGuideHead } from '@/server/media/guide-head';
 import { recordProducedTake } from '@/server/studio/notes';
 
@@ -83,13 +88,17 @@ export const generateTake: Handler = async (ctx) => {
     await ctx.event(preflight.ok ? (preflight.warnings.length ? 'warn' : 'info') : 'error', `preflight ${preflight.ok ? (preflight.warnings.length ? `passed with ${preflight.warnings.length} warning(s): ${preflight.warnings.map((w) => w.detail ?? w.name).join('; ').slice(0, 300)}` : 'passed') : 'FAILED'}`, { checks: preflight.checks, warnings: preflight.warnings });
     if (!preflight.ok) {
       const failed = preflight.checks.filter((c) => !c.ok);
+      // THE LOCATION PLATE RULE (src/server/production/location-rule.ts): a place without a plate is refused as its own
+      // error class, the two ways out named — never filmed from words
+      if (failed.some((c) => c.name === 'location-plate')) assertLocationPlate(resolveShotPack(state, p, sh, { backend }), p, sh, scene, loc);
       throw Object.assign(new StudioError('INVALID', `Preflight failed for shot ${sh.number}: ${failed.map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ''}`).join('; ')}`, { checks: preflight.checks }), { failureClass: failed[0].failureClass });
     }
   });
   // THE SHOT PACK: the relation to the previous shot, the identity references (every character's canonical image and
   // the plate, on every shot that shows them), what the clip starts from, the graph — the same resolution the
   // preflight judged
-  const pack = resolveShotPack(state, p, sh, { backend });
+  const pack = resolveShotPack(state, p, sh, { backend, bible: world.outcome.view.revision?.bible });
+  await ctx.event('info', `scene state (${pack.sceneState.boundary}): ${pack.sceneState.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'time of day unknown'}${pack.sceneState.weather ? `, ${pack.sceneState.weather}` : ''}${pack.sceneState.lighting ? `, ${pack.sceneState.lighting}` : ''}; ${pack.sceneState.present.length} present, ${pack.sceneState.props.length} prop(s); environment from ${pack.sceneState.sources.environment.kind.toLowerCase().replace(/_/g, ' ')}`, { sceneState: pack.sceneState });
   let seconds = Math.min(15, Math.max(1, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it — and from the job,
   // so every attempt of this request asks for the same clip
@@ -303,8 +312,8 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const prompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene)].filter(Boolean).join(' '));
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState })].filter(Boolean).join(' '));
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
     const failed = lint.checks.filter((c) => !c.ok && c.hard);
@@ -437,6 +446,27 @@ export const generateTake: Handler = async (ctx) => {
       await ctx.event('warn', `shot ${sh.number}: the people on screen could not be counted (${(e as Error).message})`, { shotId: sh.id });
     }
   }
+  // DRIFT CHECKS (the World Continuity step; src/server/media/plate-drift.ts) — measured facts on the take, never a
+  // score: (1) the place in the take's first kept frame against the canonical plate it was conditioned on (provisional
+  // threshold: a mismatch is REVIEW, the take is not rejected); (2) each present character's identity reference was
+  // applied in the request that was sent (the identity rule's report on the request)
+  const driftChecks: QaCheck[] = [];
+  const applied = identityAppliedChecks(identityRule);
+  driftChecks.push({ name: 'identity-references-applied', ok: applied.ok, value: applied.characters.filter((c) => c.applied).length, threshold: applied.characters.length, detail: applied.detail });
+  let plateDrift: PlateDrift | undefined;
+  let plateDriftNote: string | undefined;
+  if (pack.location && loc) {
+    const plateAsset = byId(pack.location.assetId);
+    try {
+      plateDrift = await step(ctx, 'world-continuity', `drift-check: shot ${sh.number}`, () => measurePlateDrift(result.file, trimStartFrames, assetFile(plateAsset!), pack.location!.assetId));
+      driftChecks.push({ name: 'location-matches-plate', ok: plateDrift.matches, value: plateDrift.meanDiff, threshold: plateDrift.threshold, detail: plateDrift.detail });
+      if (!plateDrift.matches) await ctx.event('warn', `shot ${sh.number}: ${plateDrift.detail}`, { plateDrift });
+    } catch (e) {
+      plateDriftNote = `not measured (${(e as Error).message.split('\n')[0]})`;
+      driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
+    }
+  } else if (pack.establishing) driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${pack.establishing.name} is established by this take: there is no earlier plate to compare with` });
+  report.checks.push(...driftChecks);
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
   // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as an
@@ -459,6 +489,23 @@ export const generateTake: Handler = async (ctx) => {
   await webReady(result.file, playable, probe);
   const poster = path.join(dir, 'poster.jpg');
   await thumbnail(playable, poster, { at: Math.min(0.5, (probe.durationSeconds ?? 1) / 4) });
+  // "ESTABLISH HERE" (the World Continuity step; src/server/production/location-rule.ts): a take that passed its checks
+  // in a place that had no plate — by the scene's own declaration — establishes the place: a quarter second after its
+  // first kept frame (the opening of the shot, as an approved cut establishes it) becomes the place's master plate,
+  // written in the take's commit, and an ESTABLISHED frame of the World Bible (below, after the commit)
+  const extraAssets: Array<Omit<Asset, 'createdAt'>> = [];
+  const extraCommands: CommandSpec[] = [];
+  let established: { imageAssetId: string; frame: number } | undefined;
+  if (pack.establishing && loc && scene && report.ok) {
+    const frame = Math.max(trimStartFrames, Math.min(trimStartFrames + 6, clip.frames - 1));
+    const png = await frameAt(playable, path.join(dir, 'established.png'), frame);
+    const { id: plateId, stored: storedPlate } = await out.adopt('established-plate', png, { expectKind: 'IMAGE' });
+    const label = `${loc.name} — established in “${p.title}”, scene ${scene.number} shot ${sh.number} (${sh.framing.toLowerCase().replace(/_/g, ' ')})`;
+    extraAssets.push(assetFromStored(plateId, storedPlate, { label, tags: ['location', 'established'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { takeId: takeIdOf(ctx.job.id), shotId: sh.id, frame, productionId: p.id, locationId: loc.id, view: 'ESTABLISHED', establishedHere: true, identityVersion: pack.establishing.identity.version } }));
+    extraCommands.push({ name: 'addLocationRefs', args: [loc.id, [{ id: outputId(ctx.job.id, 'established-plate-ref', 'ref'), role: 'MASTER', assetId: plateId, label, timeOfDay: scene.timeOfDay }]] });
+    established = { imageAssetId: plateId, frame };
+    await ctx.event('info', `${loc.name} is established by this take: frame ${frame} becomes its master plate (${plateId})`, { locationId: loc.id, assetId: plateId, frame });
+  } else if (pack.establishing && !report.ok) await ctx.event('warn', `${pack.establishing.name} is not established by this take: it failed its checks; the next accepted take establishes it`, { locationId: pack.establishing.locationId });
 
   // files into the library (named for this job and attempt), then every record in ONE commit
   const { id: posterId, stored: storedPoster } = await out.adopt('poster', poster, { expectKind: 'IMAGE' });
@@ -473,20 +520,25 @@ export const generateTake: Handler = async (ctx) => {
   // a head kept because it did not repeat the tail is new picture: the whole take is the window then
   const headKept = Boolean(guideRecord?.head && !guideRecord.head.repeats);
   const takeTimeline = { newFrames: headKept ? clip.frames : Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.frames - trimStartFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
-  const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
+  const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location?.assetId ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, location: loc ? { locationId: loc.id, identityVersion: pack.location?.identity.version ?? pack.establishing?.identity.version, establishedHere: Boolean(established) } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
   // THE QUALITY TIER (B6): what the take was really made at. The local MiniMax H3 path has one tier today (the
   // official template: turbo LoRA, 4 or 8 steps — the standard, not a draft) and the hosted API has none, so every
   // take is `final`; a `draft` request is kept as asked so the page can say it was not honoured. No second path is
   // invented here.
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
   // Inspector)
   const pictureOk = pictureChecks.every((c) => c.ok);
   const qaReports: TakeCommit['qa'] = [{ name: 'picture', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id }];
+  // the drift checks as their own report (the take's QA record): ACCEPT, or REVIEW when the place drifted from its
+  // plate or an identity was not applied — never a rejection on the provisional plate threshold
+  const driftOk = driftChecks.every((c) => c.ok);
+  qaReports.push({ name: 'continuity', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'visual-quality-inspector', checks: driftChecks, failureClass: driftOk ? undefined : applied.ok ? 'ENVIRONMENT_INCONSISTENCY' : 'CHARACTER_INCONSISTENCY', decision: driftOk ? 'ACCEPT' : 'REVIEW', notes: driftOk ? undefined : 'look before choosing this take: the measured drift is over the provisional threshold', evidenceAssetIds: [videoId, ...(pack.location ? [pack.location.assetId] : [])], jobId: ctx.job.id });
   if (scriptCheck) qaReports.push({ name: 'script', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: TAKE_COVERAGE, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.cer !== undefined ? [{ name: 'character-error-rate', ok: scriptCheck.cer <= VOICE_GATES.cer, value: scriptCheck.cer, threshold: VOICE_GATES.cer, detail: 'after the dialect fold; gated' }] : []), ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
   // THE COMMIT: the assets, the take (its id is the job's), its selection — the first accepted take of a shot is
   // chosen so the cut can be assembled, also over a bundled sample clip; a producer's own choice of a real take is
@@ -494,14 +546,25 @@ export const generateTake: Handler = async (ctx) => {
   newAssets.push(
     assetFromStored(posterId, storedPoster, { label: `${p.title} ${sh.number} — ${label} poster`, tags: ['take', 'poster'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { from: videoId } }),
     assetFromStored(videoId, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${label}`, tags: ['take', 'minimax'], origin: 'GENERATED', jobId: ctx.job.id, provenance, poster: `/api/media/${posterId}` }),
+    ...extraAssets.map((a) => ({ ...a, provenance: { ...(a.provenance ?? {}), from: videoId } })),
   );
   const take = await commitTake({
     jobId: ctx.job.id, productionId: p.id, shotId: sh.id, assets: newAssets, qa: qaReports,
     take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
     // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
     worldRead: { productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id },
+    // a place established by this take: its new master plate, in the same commit
+    commands: extraCommands,
   });
   const r = { take };
+  // the established frame goes into the World Bible as a new revision (by id; the place is locked from now on)
+  if (established && loc && scene) {
+    await step(ctx, 'world-continuity', `establish-here: shot ${sh.number}`, async () => {
+      const fresh = (await readState()).state;
+      const rev = await establishFromTake(fresh, fresh.productions.find((x) => x.id === p.id) ?? p, { locationId: loc.id, sceneId: scene.id, shotId: sh.id, takeId: take.id, videoAssetId: videoId, frame: established!.frame, imageAssetId: established!.imageAssetId, timeOfDay: scene.timeOfDay, framing: sh.framing, label: `${loc.name} — established in “${p.title}”, scene ${scene.number} shot ${sh.number}` }, { jobId: ctx.job.id });
+      await ctx.event('info', `World Bible revision ${rev.revision.number}${rev.created ? ' written' : ' unchanged'}: ${loc.name} established by take ${take.id} (frame ${established!.frame}), locked`, { revision: rev.revision.number, locationId: loc.id, takeId: take.id });
+    });
+  }
   // audio before video: the shot's recorded lines are Sound's handoff to Video Production (one per speaking shot)
   if (soundtrack?.kind === 'DIALOGUE' && soundtrackId) {
     await recordHandoff({ id: out.id('handoff:audio-prep', 'handoff'), productionId: p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [soundtrackId, ...(dialogueLineAssets ?? [])], outputVersions: { shotId: sh.id, lines: soundtrack.lines.length, recordedNow: spokenChecks.length }, validation: { ok: flaggedLines === 0 && unverifiedLines === 0, checks: [{ name: 'lines-recorded', ok: true, detail: `${soundtrack.lines.length} line(s) in the characters' voices (${spokenChecks.length} recorded now)` }, { name: 'lines-verified-by-transcription', ok: flaggedLines === 0 && unverifiedLines === 0, detail: flaggedLines || unverifiedLines ? `${flaggedLines} line(s) drifted, ${unverifiedLines} not heard back` : undefined }] }, jobId: ctx.job.id });

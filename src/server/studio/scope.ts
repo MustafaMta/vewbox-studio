@@ -87,6 +87,8 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   // shows and seasons (season numbering and the show's version are the show's)
   addShow: (sc) => { sc.shows = true; },
   updateShow: show, updateShowBible: show,
+  // the episode (its scenes, its season and number) and its show's bible; the show is locked by its id in the episode
+  finishEpisode: (sc, a) => { production(sc, a); sc.shows = true; },
   addSeason: show,
   updateSeason: (sc) => { sc.shows = true; },
   deleteShow: full, deleteSeason: full,

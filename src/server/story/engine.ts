@@ -378,12 +378,21 @@ timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NI
 
 export interface ScriptResult { scenes: Array<{ sceneId: string; beats: Array<{ action: string; lines: Array<{ characterName: string; text: string; textAr?: string; delivery?: string }> }> }> }
 
-export async function writeScript(_s: StudioState, p: Production, scenes: Scene[], cast: Character[], world: Location[], opts: EngineOptions = {}): Promise<ScriptResult> {
+/** What the script writer is told from the World Bible: the world's rules, the relationships, the latest timeline
+ *  facts and the open storylines (the same block story development reads, from the production's pinned revision). */
+export function scriptWorld(bible: WorldBible | undefined): string {
+  if (!bible) return '';
+  const w = worldForStory(bible);
+  return `World Bible (respect every fact; nobody contradicts it): ${compact({ rules: w.rules, relationships: w.relationships, timeline: w.timeline, openStorylines: w.openStorylines, styleNotes: w.styleNotes })}`;
+}
+
+export async function writeScript(_s: StudioState, p: Production, scenes: Scene[], cast: Character[], world: Location[], opts: EngineOptions = {}, bible?: WorldBible): Promise<ScriptResult> {
   const sceneCards = scenes.map((sc) => ({ sceneId: sc.id, number: sc.number, title: sc.title, location: world.find((l) => l.id === sc.locationId)?.name ?? '(unspecified)', timeOfDay: sc.timeOfDay, characters: sc.characterIds.map((id) => cast.find((c) => c.id === id)?.name).filter(Boolean), purpose: sc.purpose, emotionalObjective: sc.emotionalObjective, entryState: sc.entryState, exitState: sc.exitState, existingBeats: sc.beats.map((b) => ({ action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })) }));
   const perScene = Math.round(p.targetSeconds / Math.max(1, p.scenes.length));
   const user = `Write the script for these scenes of "${p.title}" (${p.kind === 'MUSIC_VIDEO' ? 'music video' : p.kind === 'SHORT' ? 'short film' : 'episode'}).
 Logline: ${p.logline}
 Synopsis: ${p.synopsis}
+${scriptWorld(bible)}
 Cast (voices, personalities; use exact names as characterName): ${compact(cast.map(castSummary))}
 Places: ${compact(world.map(locationSummary))}
 Scenes to write (keep sceneId): ${compact(sceneCards)}

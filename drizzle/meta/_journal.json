@@ -183,6 +183,13 @@
       "when": 1791147104334,
       "tag": "0025_shot_staging",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791154586538,
+      "tag": "0026_location_identity",
+      "breakpoints": true
     }
   ]
 }

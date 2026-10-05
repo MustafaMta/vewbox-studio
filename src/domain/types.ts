@@ -93,6 +93,11 @@ export interface Scene {
   emotionalObjective?: string;
   entryState?: string;
   exitState?: string;
+  /** "ESTABLISH HERE" (the Location Bible): the production declares that this scene is the place's first appearance —
+   *  its shots may be filmed without a plate, and the first accepted take's opening frame becomes the place's master
+   *  plate and an ESTABLISHED frame of the World Bible. Without it a shot in a place that has no plate is refused
+   *  (UnestablishedLocationError, src/server/production/location-rule.ts). */
+  establishLocation?: boolean;
 }
 
 export type TakeStatus = 'READY' | 'REJECTED';
@@ -742,6 +747,14 @@ export interface Character {
 
 export interface LocationRef { id: string; role: LocationRefRole; assetId: string; label: string; timeOfDay?: TimeOfDay }
 
+/** THE LOCATION IDENTITY (the Location Bible; src/domain/location.ts). What makes a place itself: its master plate,
+ *  its architecture, layout, materials, landmarks, permanent furniture and props, entrances and camera zones — summed
+ *  up in one identity line (carried in every prompt that shows the place) and VERSIONED: the version moves on whenever
+ *  any of it changes (a redrawn master, a changed layout), so a take records the identity it was filmed against and a
+ *  pinned production notices the change (`repinSafety`). The per-lighting plates are additions that never change the
+ *  identity. Derived by the reducers on every change; a row without one is identity version 1 of what it holds. */
+export interface LocationIdentity { version: number; hash: string; line: string; updatedAt: string }
+
 export interface Location {
   id: string;
   name: string;
@@ -755,6 +768,8 @@ export interface Location {
   refs: LocationRef[];
   masterAssetId?: string;
   layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string };
+  /** the canonical identity and its version (see `LocationIdentity`) */
+  identity?: LocationIdentity;
   createdAt: string;
   updatedAt: string;
 }
@@ -853,6 +868,8 @@ export interface WorldLocation {
   locationId: string;
   name: string;
   kind: 'INTERIOR' | 'EXTERIOR';
+  /** the canonical identity as pinned (src/domain/location.ts): its version, hash and the line every prompt carries */
+  identity: { version: number; hash: string; line: string };
   /** what never changes: architecture, materials, fixed features, layout */
   canon: { description: string; architecture?: string; materials: string[]; fixedFeatures: string[]; geography?: string; spatial?: string; entrances: string[]; zones: string[] };
   lighting: TimeOfDay[];
@@ -865,8 +882,8 @@ export interface WorldLocation {
 
 export interface WorldProp { id: string; name: string; ownerCharacterId?: string; fixedAtLocationId?: string; description?: string; last?: { state?: string; position?: string; productionId: string; sceneId: string; shotId: string } }
 
-/** A fact on the story timeline, in story order. */
-export interface WorldEvent { id: string; order: number; text: string; productionId?: string; sceneId?: string; timeOfDay?: TimeOfDay; source: 'SHOW_BIBLE' | 'SCENE' | 'PRODUCER' }
+/** A fact on the story timeline, in story order. A SCENE event names its place, so a later scene there is a return. */
+export interface WorldEvent { id: string; order: number; text: string; productionId?: string; sceneId?: string; locationId?: string; timeOfDay?: TimeOfDay; source: 'SHOW_BIBLE' | 'SCENE' | 'PRODUCER' }
 
 /** The state of the world when a scene ends (its last shot's continuity): where people are, what they wear and hold,
  *  where the props are, the light and the weather. The next scene at that place starts from it. */
@@ -931,7 +948,9 @@ export interface WorldRead {
   revisionId: string;
   revisionNumber: number;
   pinned: boolean;
-  location?: { locationId: string; assetId: string; role: WorldPlateRole; label: string; why: string; source: WorldPlate['source']; alternates: string[] };
+  /** the place as read: the plate chosen (none when the revision has no usable plate — the shot is then refused
+   *  unless the scene is marked "establish here") and the identity version the prompt carries */
+  location?: { locationId: string; assetId?: string; role?: WorldPlateRole; label?: string; why: string; source?: WorldPlate['source']; alternates: string[]; identityVersion?: number };
   characters: Array<{ characterId: string; pinnedVersion?: number; assetId?: string; currentVersion?: number; usedPinned: boolean }>;
   conflicts: string[];
 }

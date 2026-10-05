@@ -20,7 +20,7 @@ import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightPlan } from '@/server/org/preflight';
-import { syncWorld, worldOfProduction } from '@/server/world';
+import { recordEpisode, syncWorld, worldOfProduction } from '@/server/world';
 import { summarizeChanges } from '@/domain/world';
 import type { WorldBible } from '@/domain/types';
 
@@ -73,16 +73,19 @@ export const episodeContinuity: Handler = async (ctx) => {
   await ctx.progress('GENERATING', { phase: 'writing', message: `Recording ${p.title} in the bible of ${show.title}` });
   const out = await ctx.tool('story.structured_answer', () => continuityUpdate(state, show, p, castOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'continuity', input: { task: 'continuity', productionId: p.id, showId: show.id } });
   await ctx.checkpoint();
-  const season = state.seasons.find((x) => x.id === p.seasonId);
-  const tag = `S${season?.number ?? '?'}E${p.episodeNumber ?? '?'}`;
-  // INTENT, not a whole bible (audit H3, step 11): this episode's entries replace an earlier record of the same episode
-  // (a re-cut), never another episode's — applied to the bible as it is NOW, so what the producer wrote in it while
-  // the model was writing stays
-  await command('updateShowBible', [show.id, { timeline: { dropPrefix: `${tag}:`, add: out.events.map((e) => (e.startsWith(tag) ? e : `${tag}: ${e}`)) }, unresolved: { resolve: out.resolved ?? [], add: out.unresolved, max: 12 }, relationships: { add: out.relationships ?? [], max: 24 } }], 'worker');
+  // FINISHING THE EPISODE (src/server/world recordEpisode): an INTENT, not a whole bible (audit H3, step 11) — this
+  // episode's entries replace an earlier record of the same episode (a re-cut), never another episode's, applied to the
+  // bible as it is NOW (the producer's own entries stay); idempotent; the show's World Bible takes the facts as a new
+  // revision, which the next episode or season pins
+  const recorded = await step(ctx, 'world-continuity', `world-sync: episode finished`, async () => {
+    const r = await recordEpisode(p, { events: out.events, unresolved: out.unresolved, resolved: out.resolved ?? [], relationships: out.relationships ?? [] }, { jobId: ctx.job.id });
+    await ctx.event('info', `${r.tag} recorded in the show's bible${r.bibleChanged ? '' : ' (unchanged: already recorded)'}; World Bible ${r.created ? `revision ${r.revision.number} written (${summarizeChanges(r.revision.changes)})` : `unchanged at revision ${r.revision.number}`}`, { revision: r.revision.number, created: r.created });
+    return r;
+  });
+  const tag = recorded.tag;
   const b = (await readState()).state.shows.find((x) => x.id === show.id)?.bible ?? {};
   const timeline = b.timeline ?? []; const unresolved = b.unresolved ?? [];
-  // the show's World Bible takes the episode's facts as a new revision (the next episode pins it)
-  const revision = await syncBible(ctx, p.id, `continuity of ${tag}`);
+  const revision = recorded.revision.number;
   await recordHandoff({ productionId: p.id, stage: 'EDIT', producerDepartment: 'STORY', receiverDepartment: 'EXECUTIVE', artifactIds: [show.id], outputVersions: { timelineEntries: timeline.length, unresolved: unresolved.length, ...(revision ? { worldRevision: revision } : {}) }, validation: { ok: out.events.length > 0, checks: [{ name: 'events-recorded', ok: out.events.length > 0, detail: `${out.events.length} event(s) under ${tag}` }, { name: 'open-storylines-carried', ok: true, detail: `${unresolved.length} open` }] }, jobId: ctx.job.id });
   await ctx.activity('BIBLE_UPDATED', `${show.title}: ${tag} recorded in the bible (${out.events.length} events, ${unresolved.length} open storylines)`, { showId: show.id, events: out.events.length, unresolved: unresolved.length });
   return { events: out.events.length, unresolved: unresolved.length, resolved: out.resolved?.length ?? 0 };
@@ -230,13 +233,15 @@ export const writeScript: Handler = async (ctx) => {
   if (p.scenes.length === 0) throw new StudioError('INVALID', 'There are no scenes to write yet. Develop the story first.');
   const cast = castOf(state, p); const world = worldOf(state, p);
   const targets = sceneIds?.length ? p.scenes.filter((sc) => sceneIds.includes(sc.id)) : p.scenes;
+  // the writer works inside the World Bible: the pinned revision once the story is approved, else the latest
+  const bible = targets.length ? await readBible(ctx, p.id, 'before writing the script') : undefined;
   // in batches so long episodes stay within the model's attention
   const batches: Scene[][] = [];
   for (let i = 0; i < targets.length; i += 4) batches.push(targets.slice(i, i + 4));
   let written = 0;
   for (const [bi, batch] of batches.entries()) {
     await ctx.progress('GENERATING', { phase: 'writing', message: `Writing scenes ${batch[0].number}–${batch[batch.length - 1].number}`, step: bi + 1, total: batches.length });
-    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
+    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
     await ctx.checkpoint();
     const byName = (n: string) => cast.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim());
     for (const sc of out.scenes) {

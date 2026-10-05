@@ -43,7 +43,7 @@ export interface ConditioningRequest {
 }
 
 /** Judge a pack (and, when given, the request built from it) against the rule. */
-export function identityConditioning(pack: Pick<ShotPack, 'backend' | 'graph' | 'subjects' | 'location' | 'pictures' | 'opening' | 'unreferenced' | 'lowering'>, sh: Pick<Shot, 'characterIds'>, cast: Character[], loc: Location | undefined, request: ConditioningRequest = {}): IdentityConditioningReport {
+export function identityConditioning(pack: Pick<ShotPack, 'backend' | 'graph' | 'subjects' | 'location' | 'establishing' | 'pictures' | 'opening' | 'unreferenced' | 'lowering'>, sh: Pick<Shot, 'characterIds'>, cast: Character[], loc: Location | undefined, request: ConditioningRequest = {}): IdentityConditioningReport {
   const problems: string[] = [];
   const local = pack.backend === 'local';
   const label = (k: number) => (local ? `<Picture ${k}>` : `Image ${k}`);
@@ -79,7 +79,10 @@ export function identityConditioning(pack: Pick<ShotPack, 'backend' | 'graph' | 
   for (const c of characters) if (!c.ok && c.why) problems.push(c.why);
   let location: IdentityConditioningReport['location'];
   if (loc) {
-    if (!pack.location) location = { locationId: loc.id, name: loc.name, ok: false, why: `${loc.name} has no usable plate: draw the place first` };
+    // "establish here" (the Location Bible): the place has no plate yet by the production's own declaration — the
+    // identity line stands in, and this take's first frame becomes the plate (src/server/production/location-rule.ts)
+    if (!pack.location && pack.establishing?.locationId === loc.id) location = { locationId: loc.id, name: loc.name, ok: true, why: `${loc.name} is established here: filmed from its identity line (v${pack.establishing.identity.version}); the first frame becomes its plate` };
+    else if (!pack.location) location = { locationId: loc.id, name: loc.name, ok: false, why: `${loc.name} has no usable plate: draw the place first` };
     else if (pack.location.locationId !== loc.id) location = { locationId: loc.id, name: loc.name, assetId: pack.location.assetId, picture: pack.location.picture, ok: false, why: `the plate conditioned on belongs to another place (${pack.location.locationId}), not ${loc.name}` };
     else { const bad = connected(pack.location.picture, pack.location.assetId); location = { locationId: loc.id, name: loc.name, assetId: pack.location.assetId, picture: pack.location.picture, ok: !bad, why: bad ? `${loc.name}'s plate: ${bad}` : undefined }; }
     if (!location.ok && location.why) problems.push(location.why);

@@ -12,6 +12,7 @@ import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
 import { cutInputsHash } from './cut';
 import { reconcileContinuationChain } from './continuation';
+import { advanceIdentity, withLocationIdentity } from './location';
 
 export { nid } from './ids';
 
@@ -161,6 +162,42 @@ export function updateShowBible(s: S, showId: string, patch: ShowBiblePatch): S 
   return updateShow(s, showId, { bible: next });
 }
 
+/** What a finished episode leaves its show (the Continuity Writer's answer, or nothing — then the scenes' own exit
+ *  states are the facts). */
+export interface EpisodeFacts { events?: string[]; unresolved?: string[]; resolved?: string[]; relationships?: string[] }
+
+/** `S{season}E{episode}` — the tag an episode's facts carry in its show's bible timeline (the World Bible places them
+ *  after that episode's scenes, src/domain/world.ts timelineOf). */
+export function episodeTag(s: Pick<S, 'seasons'>, p: Pick<Production, 'seasonId' | 'episodeNumber'>): string {
+  return `S${s.seasons.find((x) => x.id === p.seasonId)?.number ?? '?'}E${p.episodeNumber ?? '?'}`;
+}
+
+/** The facts of an episode as its show's bible records them: tagged timeline events (given, else each scene's exit
+ *  state in scene order), the storylines it opens and closes, the relationships it changed. Pure. */
+export function episodeFactsOf(s: Pick<S, 'seasons'>, p: Production, facts: EpisodeFacts = {}): Required<EpisodeFacts> & { tag: string } {
+  const tag = episodeTag(s, p);
+  const clean = (x: string) => x.replace(/\s+/g, ' ').trim();
+  const given = (facts.events ?? []).map(clean).filter(Boolean);
+  const derived = [...p.scenes].sort((a, b) => a.number - b.number).map((sc) => clean(sc.exitState ?? '')).filter(Boolean);
+  const events = Array.from(new Set((given.length ? given : derived).map((e) => (e.startsWith(`${tag}:`) ? e : `${tag}: ${e}`))));
+  const list = (xs?: string[]) => Array.from(new Set((xs ?? []).map(clean).filter(Boolean)));
+  return { tag, events, unresolved: list(facts.unresolved), resolved: list(facts.resolved), relationships: list(facts.relationships) };
+}
+
+/** FINISHING AN EPISODE (the show's bible; src/server/world recordEpisode): its facts are appended to its show's bible
+ *  — its timeline entries REPLACE this episode's earlier ones (a re-cut), the storylines it closed leave the open list,
+ *  the ones it opened join it, changed relationships are added — so the next episode's (or season's) World Bible
+ *  revision starts from them. IDEMPOTENT: finishing the same episode with the same facts again changes nothing (the
+ *  same state object comes back, so no revision is written). Applied to the bible as it is now: the producer's own
+ *  entries stay. */
+export function finishEpisode(s: S, productionId: string, facts: EpisodeFacts = {}): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  if (!p.showId) throw new StudioError('INVALID', 'Only an episode of a show is recorded in its show’s bible.', { productionId });
+  mustFind(s.shows, p.showId, 'Show');
+  const f = episodeFactsOf(s, p, facts);
+  return updateShowBible(s, p.showId, { ...(f.events.length ? { timeline: { dropPrefix: `${f.tag}:`, add: f.events } } : {}), unresolved: { resolve: f.resolved, add: f.unresolved, max: 12 }, relationships: { add: f.relationships, max: 24 } });
+}
+
 /** The production fields a worker computed (a logline, a synopsis, a genre…), each written only where the field is
  *  still what the worker read (`base`) — a field the producer changed meanwhile keeps the producer's value. */
 export type ProductionFields = Partial<Pick<Production, 'logline' | 'synopsis' | 'genre' | 'mood' | 'titleAr' | 'title' | 'artist' | 'concept'>>;
@@ -217,9 +254,9 @@ function withProduction(s: S, id: string, fn: (p: Production) => Production): S 
 /** The cut is out of date (only when there is one). */
 const markCutStale = (p: Production): Production => (p.cutAssetId ? { ...p, cutStale: true } : p);
 
-export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats'] }): { state: S; scene: Scene } {
+export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats']; establishLocation?: boolean }): { state: S; scene: Scene } {
   const p = mustFind(s.productions, productionId, 'Production');
-  const scene: Scene = { id: nid('scene'), number: p.scenes.length + 1, title: input.title.trim(), locationId: input.locationId || undefined, timeOfDay: input.timeOfDay, characterIds: input.characterIds ?? [], beats: input.beats ?? [], purpose: input.purpose, emotionalObjective: input.emotionalObjective, entryState: input.entryState, exitState: input.exitState };
+  const scene: Scene = { id: nid('scene'), number: p.scenes.length + 1, title: input.title.trim(), locationId: input.locationId || undefined, timeOfDay: input.timeOfDay, characterIds: input.characterIds ?? [], beats: input.beats ?? [], purpose: input.purpose, emotionalObjective: input.emotionalObjective, entryState: input.entryState, exitState: input.exitState, ...(input.establishLocation ? { establishLocation: true } : {}) };
   return { state: withProduction(s, productionId, (x) => ({ ...x, scenes: [...x.scenes, scene] })), scene };
 }
 
@@ -852,13 +889,21 @@ export type LocationInput = Omit<Location, 'id' | 'createdAt' | 'updatedAt' | 'r
 export function addLocation(s: S, input: LocationInput): { state: S; location: Location } {
   const t = now();
   if (!input.name?.trim()) throw new StudioError('INVALID', 'A location needs a name.');
-  const location: Location = { ...input, name: input.name.trim(), id: nid('loc'), refs: input.refs ?? [], createdAt: t, updatedAt: t };
+  // the identity (the Location Bible) is the studio's: version 1 of what the place holds, never a caller's
+  const { identity: _given, ...fields } = input as LocationInput & { identity?: unknown };
+  void _given;
+  const location: Location = withLocationIdentity({ ...fields, name: input.name.trim(), id: nid('loc'), refs: input.refs ?? [], createdAt: t, updatedAt: t }, t);
   return { state: { ...s, locations: [...s.locations, location] }, location };
 }
 
+/** A change of the place: its identity version moves on when the canon changed (src/domain/location.ts) — a patch
+ *  never writes the identity itself. */
 export function updateLocation(s: S, id: string, patch: Partial<Omit<Location, 'id' | 'createdAt'>>): S {
   mustFind(s.locations, id, 'Location');
-  return { ...s, locations: s.locations.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: now() } : l)) };
+  const t = now();
+  const { identity: _given, ...fields } = patch as typeof patch & { identity?: unknown };
+  void _given;
+  return { ...s, locations: s.locations.map((l) => (l.id === id ? advanceIdentity(l, { ...l, ...fields, updatedAt: t }, t) : l)) };
 }
 
 /** The studio drew plates for a location. A new MASTER starts a new plate set (the views and states made from the

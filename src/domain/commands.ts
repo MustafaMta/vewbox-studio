@@ -13,7 +13,7 @@ export const COMMANDS = {
   addSeason: A.addSeason, updateSeason: A.updateSeason, deleteSeason: A.deleteSeason,
   addProduction: A.addProduction, updateProduction: A.updateProduction, deleteProduction: A.deleteProduction, duplicateProduction: A.duplicateProduction,
   setStage: A.setStage, markStepDone: A.markStepDone, recordExport: A.recordExport, setCut: A.setCut,
-  addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, fillProductionFields: A.fillProductionFields,
+  addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, finishEpisode: A.finishEpisode, fillProductionFields: A.fillProductionFields,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
   selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
@@ -176,7 +176,7 @@ export const SYSTEM_COMMANDS = [
   'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
   'setCanonicalImage', 'addLocationRefs', 'addAsset', 'updateAsset',
   // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
-  'addCastMember', 'addLocationMember', 'updateShowBible', 'fillProductionFields',
+  'addCastMember', 'addLocationMember', 'updateShowBible', 'finishEpisode', 'fillProductionFields',
 ] as const satisfies readonly CommandName[];
 export type SystemCommandName = (typeof SYSTEM_COMMANDS)[number];
 export type ClientCommandName = Exclude<CommandName, SystemCommandName>;
@@ -228,8 +228,8 @@ const ProductionPatch = z.object({ showId: id, seasonId: id, episodeNumber: z.nu
 
 const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();
-const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional() }).passthrough();
-const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000) }).partial().extend(owned('id', 'number')).passthrough();
+const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional(), establishLocation: z.boolean().optional() }).passthrough();
+const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000), establishLocation: z.boolean() }).partial().extend(owned('id', 'number')).passthrough();
 
 const ShotDialogue = z.object({ id, characterId: id, text: line(8000) }).passthrough();
 const Continuity = z.object({ characters: z.array(z.object({ characterId: id }).passthrough()).max(50), props: z.array(z.object({ name: line(300) }).passthrough()).max(100), environment: z.object({}).passthrough(), camera: z.object({}).passthrough() }).partial().passthrough();
@@ -245,8 +245,9 @@ const UploadedTake = z.object({ assetId: id, provider: z.literal('UPLOAD'), labe
 
 const LocationRef = z.object({ id, role: z.enum(LOCATION_REF_ROLES), assetId: id, label: titleText, timeOfDay: timeOfDay.optional() }).passthrough();
 const locationFields = { name: z.string().min(1).max(200), nameAr: titleText, kind: z.enum(['INTERIOR', 'EXTERIOR']), description: line(8000), style, lighting: z.array(timeOfDay).max(20), landmarks: textList(400), props: textList(400), refs: z.array(LocationRef).max(200), masterAssetId: id, layout: z.object({}).passthrough() };
-const LocationInput = z.object(locationFields).partial().required({ name: true, kind: true, style: true }).extend(owned('id', 'createdAt')).passthrough();
-const LocationPatch = z.object(locationFields).partial().extend(owned('id', 'createdAt')).passthrough();
+/** the identity (its version) is the studio's: derived by the reducers, never sent by a page */
+const LocationInput = z.object(locationFields).partial().required({ name: true, kind: true, style: true }).extend(owned('id', 'createdAt', 'identity')).passthrough();
+const LocationPatch = z.object(locationFields).partial().extend(owned('id', 'createdAt', 'identity')).passthrough();
 
 const SettingsPatch = z.object({ reducedMotion: z.boolean(), defaults: z.object({ style, language, dialect, aspect }).partial().passthrough(), generation: z.object({ videoModel: line(200), videoResolution: line(40), llmProvider: line(80), voiceProvider: z.enum(['LOCAL_TTS', 'MINIMAX']) }).partial().passthrough(), voice: z.object({ allowDesignedIraqi: z.boolean() }).partial().passthrough(), research: z.object({ enabled: z.boolean(), cacheHours: z.number().min(1).max(168) }).partial().passthrough() }).partial().passthrough();
 

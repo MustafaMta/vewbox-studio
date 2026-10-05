@@ -1,7 +1,9 @@
-import type { Asset, Character, Production, Scene, Shot, StudioState, Take, WorldAudioPolicy, WorldBible, WorldChange, WorldCharacter, WorldEvent, WorldLocation, WorldPlate, WorldProp, WorldRead, WorldRelationship, WorldRule, WorldSceneState, WorldScope, WorldSong, WorldWardrobe } from './types';
+import type { Asset, Character, Location, Production, Scene, Shot, StudioState, Take, WorldAudioPolicy, WorldBible, WorldChange, WorldCharacter, WorldEvent, WorldLocation, WorldPlate, WorldProp, WorldRead, WorldRelationship, WorldRule, WorldSceneState, WorldScope, WorldSong, WorldWardrobe } from './types';
 import type { Framing, TimeOfDay } from './vocabulary';
 import { canonical, hashString } from './hash';
 import { usableImage } from './identity';
+import { locationIdentity } from './location';
+import { sceneEndState } from './scene-state';
 
 /** THE WORLD BIBLE, PURE (docs/research/MINIMAX-CONTINUITY.md §4; directive Part 7). Everything here is state in,
  *  value out, so the worker, the tests and any page compute the same thing:
@@ -76,8 +78,10 @@ function locationOf(l: StudioState['locations'][number], prev: WorldLocation | u
   const plates: WorldPlate[] = (prev?.plates ?? []).filter((p) => locked || p.role === 'ESTABLISHED');
   for (const d of drawn) if (!plates.some((p) => p.assetId === d.assetId)) plates.push({ ...d, addedAt: prev?.plates.find((p) => p.assetId === d.assetId)?.addedAt ?? now });
   const lay = l.layout ?? {};
+  const identity = locationIdentity(l);
   return {
     locationId: l.id, name: l.name, kind: l.kind,
+    identity: { version: identity.version, hash: identity.hash, line: identity.line },
     canon: { description: l.description, architecture: lay.architecture, materials: lay.materials ?? [], fixedFeatures: l.landmarks, geography: lay.geography, spatial: lay.spatial, entrances: lay.entrances ?? [], zones: lay.cameraZones ?? [] },
     lighting: l.lighting, plates, ambience: prev?.ambience, locked,
   };
@@ -97,20 +101,14 @@ function propsOf(prev: WorldProp[], locations: StudioState['locations'], prods: 
   return [...out.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
+/** The state each scene leaves behind: the accumulated scene state of its last shot (src/domain/scene-state.ts — what
+ *  every cut carried), so a return to the place starts from it. */
 function statesOf(prev: WorldSceneState[], prods: Production[]): WorldSceneState[] {
   const out = new Map(prev.map((s) => [s.id, s]));
   prods.forEach((p, pi) => {
     for (const sc of scenesInOrder(p)) {
-      const last = shotsOfScene(p, sc.id).filter((s) => s.continuity).at(-1);
-      if (!last && !sc.exitState) continue;
-      const c = last?.continuity;
-      out.set(`state-${sc.id}`, {
-        id: `state-${sc.id}`, productionId: p.id, sceneId: sc.id, order: pi * 1000 + sc.number, locationId: sc.locationId,
-        environment: { timeOfDay: c?.environment.timeOfDay ?? sc.timeOfDay, weather: c?.environment.weather, lighting: c?.environment.lighting, state: c?.environment.state },
-        characters: (c?.characters ?? []).map((x) => ({ characterId: x.characterId, wardrobe: x.wardrobe, position: x.position, holding: x.holding })),
-        props: (c?.props ?? []).map((x) => ({ name: x.name, state: x.state, position: x.position, ownerCharacterId: x.ownerCharacterId })),
-        exitState: sc.exitState,
-      });
+      const st = sceneEndState(p, sc, pi);
+      if (st) out.set(st.id, st);
     }
   });
   return [...out.values()].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
@@ -122,7 +120,7 @@ function timelineOf(prev: WorldEvent[], state: Pick<StudioState, 'seasons' | 'lo
     for (const sc of scenesInOrder(p)) {
       const where = state.locations.find((l) => l.id === sc.locationId)?.name;
       const what = sc.exitState || sc.purpose || sc.title;
-      events.push({ id: `ev-${sc.id}`, order: pi * 1000 + sc.number, productionId: p.id, sceneId: sc.id, timeOfDay: sc.timeOfDay, text: `${p.title} — scene ${sc.number} “${sc.title}”${where ? ` at ${where}` : ''} (${sc.timeOfDay.toLowerCase().replace('_', ' ')}): ${what}`, source: 'SCENE' });
+      events.push({ id: `ev-${sc.id}`, order: pi * 1000 + sc.number, productionId: p.id, sceneId: sc.id, locationId: sc.locationId, timeOfDay: sc.timeOfDay, text: `${p.title} — scene ${sc.number} “${sc.title}”${where ? ` at ${where}` : ''} (${sc.timeOfDay.toLowerCase().replace('_', ' ')}): ${what}`, source: 'SCENE' });
     }
   });
   // the show bible's entries ("S1E2: …") sit after their episode's scenes; untagged ones at the end
@@ -207,6 +205,7 @@ export function diffWorld(a: WorldBible | undefined, b: WorldBible): WorldChange
     const was = al.get(l.locationId);
     if (!was) { out.push({ op: 'ADD', path: `locations/${l.locationId}`, detail: l.name }); continue; }
     if (canonical(was.canon) !== canonical(l.canon) || was.kind !== l.kind) out.push({ op: 'UPDATE', path: `locations/${l.locationId}/canon`, detail: `${l.name}: architecture, layout or fixed features changed` });
+    if (was.identity.hash !== l.identity.hash) out.push({ op: 'UPDATE', path: `locations/${l.locationId}/identity`, detail: `${l.name}: identity v${was.identity.version} → v${l.identity.version}` });
     if (was.locked !== l.locked) out.push({ op: 'UPDATE', path: `locations/${l.locationId}/locked`, detail: `${l.name}: ${l.locked ? 'locked (used in an approved cut)' : 'unlocked'}` });
     if (canonical(was.ambience) !== canonical(l.ambience)) out.push({ op: 'UPDATE', path: `locations/${l.locationId}/ambience`, detail: l.name });
     if (canonical(was.lighting) !== canonical(l.lighting)) out.push({ op: 'UPDATE', path: `locations/${l.locationId}/lighting`, detail: `${l.name}: ${l.lighting.join(', ')}` });
@@ -250,7 +249,7 @@ export function repinSafety(diff: WorldChange[], usage: { characterIds: Set<stri
     if (!m) return false;
     const [, kind, id, part] = m;
     if (kind === 'characters') return usage.characterIds.has(id) && ((part === 'canonical' || part === 'voice') ? c.op !== 'ADD' : !part && c.op === 'REMOVE');
-    return usage.locationIds.has(id) && ((part === 'plates' && c.op === 'REMOVE') || part === 'canon' || (!part && c.op === 'REMOVE'));
+    return usage.locationIds.has(id) && ((part === 'plates' && c.op === 'REMOVE') || part === 'canon' || part === 'identity' || (!part && c.op === 'REMOVE'));
   });
   return { safe: blocking.length === 0, blocking };
 }
@@ -285,10 +284,22 @@ export function choosePlate(loc: WorldLocation, want: { timeOfDay?: TimeOfDay; f
   return undefined;
 }
 
+/** The place's identity as pinned: the stored one when it is the revision's, else the revision's version and line
+ *  (a conflict is named when the studio's place moved on since the pin). */
+function pinnedIdentity(l: StudioState['locations'][number], wl: WorldLocation, conflicts: string[]): Location['identity'] {
+  const live = locationIdentity(l);
+  if (live.hash === wl.identity.hash) return live;
+  conflicts.push(`${wl.name}: the place's identity is v${live.version} now, the production is pinned to v${wl.identity.version}; the pinned identity line is used`);
+  // the overlaid place (never persisted) carries the pinned version and line under the hash of what it holds now, so
+  // every reader of the overlay (`locationIdentity`) answers with the pin instead of re-deriving the later edit
+  return { version: wl.identity.version, hash: live.hash, line: wl.identity.line, updatedAt: l.identity?.updatedAt ?? l.updatedAt };
+}
+
 /** The pinned revision laid over the studio state for one shot: the scene's place offers the chosen plate first (so
  *  the shot pack conditions the take on it), each character in the shot carries its pinned canonical image when the
- *  current one is a different version (a redraw after the pin does not reach a pinned production). Returns the state
- *  to resolve the shot pack from and the record of what was read. */
+ *  current one is a different version (a redraw after the pin does not reach a pinned production); the place carries
+ *  its pinned identity (the version and line the revision holds, so a layout edit after the pin does not reach the
+ *  prompt). Returns the state to resolve the shot pack from and the record of what was read. */
 export function overlayWorld(state: StudioState, bible: WorldBible, p: Production, sh: Shot, rev: { id: string; number: number; pinned: boolean }): { state: StudioState; read: WorldRead } {
   const conflicts: string[] = [];
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
@@ -302,9 +313,13 @@ export function overlayWorld(state: StudioState, bible: WorldBible, p: Productio
     if (!live) conflicts.push(`${wl.name} is no longer in the studio`);
     else if (choice) {
       const master = wl.plates.find((x) => x.role === 'MASTER' && plateUsable(x, state.assets))?.assetId;
-      locations = state.locations.map((l) => (l.id !== wl.locationId ? l : { ...l, masterAssetId: master ?? l.masterAssetId, refs: [{ id: `world-${choice.plate.assetId}`, role: 'STATE' as const, assetId: choice.plate.assetId, label: choice.plate.label, timeOfDay: scene.timeOfDay }, ...l.refs.filter((r) => r.assetId !== choice.plate.assetId)] }));
-      location = { locationId: wl.locationId, assetId: choice.plate.assetId, role: choice.plate.role, label: choice.plate.label, why: choice.why, source: choice.plate.source, alternates: choice.alternates };
-    } else conflicts.push(`${wl.name} has no usable plate in the World Bible revision ${rev.number}`);
+      locations = state.locations.map((l) => (l.id !== wl.locationId ? l : { ...l, masterAssetId: master ?? l.masterAssetId, refs: [{ id: `world-${choice.plate.assetId}`, role: 'STATE' as const, assetId: choice.plate.assetId, label: choice.plate.label, timeOfDay: scene.timeOfDay }, ...l.refs.filter((r) => r.assetId !== choice.plate.assetId)], identity: pinnedIdentity(l, wl, conflicts) }));
+      location = { locationId: wl.locationId, assetId: choice.plate.assetId, role: choice.plate.role, label: choice.plate.label, why: choice.why, source: choice.plate.source, alternates: choice.alternates, identityVersion: wl.identity.version };
+    } else {
+      conflicts.push(`${wl.name} has no usable plate in the World Bible revision ${rev.number}`);
+      locations = state.locations.map((l) => (l.id !== wl.locationId ? l : { ...l, identity: pinnedIdentity(l, wl, conflicts) }));
+      location = { locationId: wl.locationId, why: 'no usable plate in the revision', alternates: [], identityVersion: wl.identity.version };
+    }
   }
   const reads: WorldRead['characters'] = [];
   const characters = state.characters.map((c) => {
@@ -339,16 +354,20 @@ export function worldForPlanner(bible: WorldBible, p: Production, scene: Scene):
   const rules = bible.rules.filter((r) => r.scope === 'WORLD' || r.source === 'PRODUCER').map((r) => r.text);
   if (rules.length) parts.push(`World rules: ${rules.join(' ')}`);
   const wl = scene.locationId ? bible.locations.find((l) => l.locationId === scene.locationId) : undefined;
-  // the scene's own place in story order: states of scenes before this one (earlier productions, earlier scenes)
-  const prods = bible.scope.kind === 'SHOW' ? uniq(bible.states.map((s) => s.productionId)) : [p.id];
-  const myOrder = Math.max(0, prods.indexOf(p.id)) * 1000 + scene.number;
+  // the scene's own place in story order (the production's index in the scope, from its own timeline events or
+  // states): states of scenes before this one (earlier productions, earlier scenes)
+  const own = bible.timeline.find((e) => e.source === 'SCENE' && e.productionId === p.id) ?? bible.states.find((s) => s.productionId === p.id);
+  const myOrder = (own ? Math.floor(own.order / 1000) : 0) * 1000 + scene.number;
   const before = bible.states.filter((s) => s.order < myOrder && s.sceneId !== scene.id);
   if (wl) {
     const est = wl.plates.filter((x) => x.role === 'ESTABLISHED');
     const canon = [wl.canon.architecture, wl.canon.fixedFeatures.length ? `fixed features: ${wl.canon.fixedFeatures.join(', ')}` : '', wl.canon.spatial].filter(Boolean).join('; ');
     const here = before.filter((s) => s.locationId === wl.locationId).at(-1);
-    if (here || est.length) {
-      parts.push(`RETURNING LOCATION (World Bible): ${wl.name} was already shown${est.length ? ` in an approved cut — its established frames are reused by id (${est.map((x) => `${x.label}${x.timeOfDay ? `, ${tod(x.timeOfDay)}` : ''}`).join('; ')})` : ''}. Same architecture, layout and fixed features; do not redesign it${canon ? ` (${canon})` : ''}.${here ? ` Left at the end of an earlier scene: ${JSON.stringify({ light: here.environment.lighting, weather: here.environment.weather, state: here.environment.state, props: here.props.map((x) => `${x.name}${x.position ? ` (${x.position})` : ''}${x.state ? ` ${x.state}` : ''}`) })}.` : ''} Only light, weather, time of day and movable things may differ now, and the shots should say how.`);
+    // a scene at this place earlier in the story (this production or an earlier episode), even one whose shots carry
+    // no continuity record yet: the place is a return by id, never a redesign
+    const earlier = bible.timeline.filter((e) => e.source === 'SCENE' && e.locationId === wl.locationId && e.order < myOrder && e.sceneId !== scene.id);
+    if (here || est.length || earlier.length) {
+      parts.push(`RETURNING LOCATION (World Bible): ${wl.name} was already shown${est.length ? ` in an approved cut — its established frames are reused by id (${est.map((x) => `${x.label}${x.timeOfDay ? `, ${tod(x.timeOfDay)}` : ''}`).join('; ')})` : earlier.length ? ` in ${earlier.length} earlier scene${earlier.length > 1 ? 's' : ''} (its plates are reused by id)` : ''}. Same architecture, layout and fixed features; do not redesign it${canon ? ` (${canon})` : ''}.${here ? ` Left at the end of an earlier scene: ${JSON.stringify({ light: here.environment.lighting, weather: here.environment.weather, state: here.environment.state, props: here.props.map((x) => `${x.name}${x.position ? ` (${x.position})` : ''}${x.state ? ` ${x.state}` : ''}`) })}.` : ''} Only light, weather, time of day and movable things may differ now, and the shots should say how.`);
     } else if (canon) parts.push(`The place's canon (World Bible): ${canon}.`);
   }
   const present = new Set(scene.characterIds);
