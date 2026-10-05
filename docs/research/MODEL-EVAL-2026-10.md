@@ -134,3 +134,50 @@ what the table says. Reads (MediaPipe + Qwen3.5-4B, once per upload): 1 face eac
 
 First-attempt success, shipping arms: T2I canonical 6/6, stress 9/9, plates 6/6, posters 4/4 (P2 title 2/2),
 reference klein 10/10, E1 placement 8/12, views 0/6.
+
+## 3. Language model: qwen3:14b vs gemma4:31b-it-qat
+
+`llm` service alone (ComfyUI freed): Ollama 0.35.1, both models present (gemma4 QAT Q4_0 17.56 GB, qwen3:14b Q4_K_M
+8.64 GB on disk), idle 0.65 GB RAM. Harness `scripts/model-eval-llm.ts`: the story engine's own calls
+(`developStory`, `writeScript`, `planShotsDraft` with the shaping and the cast-vs-actions check, an Iraqi `writeScript`
++ `planShotsDraft` of the same scene with the cast speaking Baghdadi, `designCharacter` in Arabic) on The Static Sky
+read from the **copy** database `vewbox_modeleval` (the local path takes the GPU lease, which writes
+`resource_leases`); the app's own request (`num_ctx` 16384, `keep_alive` 2m, `think: false`, its `max_tokens`).
+2 runs per task; every POST is recorded. Evidence: `docs/evidence/model-eval-2026-10/llm/<model>/` (request, answer,
+timings, `ollama ps`, container RAM per call).
+
+| | qwen3:14b | gemma4:31b-it-qat |
+|---|---|---|
+| Loaded (`ollama ps`, 16K ctx, q8_0 KV) | 10.57 GB, 100 % GPU | 19.1 GB, 100 % GPU |
+| Card peak (nvidia-smi, incl. ≈ 0.8 GB of idle contexts) | **11.5 GB** | **21.4 GB** |
+| `llm` container RAM | ≤ 5.9 GB | ≤ 11.9 GB |
+| develop (cold / warm) | 53 / 10 s | 134 / 32 s |
+| script | 11–15 s | 49–52 s |
+| shot plan, one scene | 37 s (102 s with 2 repairs) | 102–108 s |
+| Arabic script / Arabic shot plan | 17 s / 43–76 s | 42–46 s / 125 s |
+| Schema-valid on the first call (12 calls) | 8/12 | 9/12 |
+| Valid after the engine's repairs | 12/12 | **11/12** — Arabic plan run 2: the first answer hit `max_tokens` 9000 (truncated JSON, 4076 + 9000 tokens), two repairs did not recover it: job failure |
+| Character design | 0/2 first call (repaired) | 0/2 first call (repaired) |
+
+**The design repairs are an app fault, not a model fault:** both models answer `"sex": "male"`; `engine.ts`'s
+local `CharacterDesignSchema` uses a strict `z.enum(['FEMALE','MALE'])` (and for `voice.pitch/pace`) instead of the
+lenient enums of `story/schemas.ts`, so every local design costs a repair round (≈ +10–20 s). Flagged, not fixed here.
+
+**Quality (my reading; the Arabic needs the native raters of §5.6 L2):**
+
+- **Iraqi Arabic script** — qwen3:14b writes mostly MSA with broken grammar and misused dialect words: «هذي النموذج»
+  (gender), «اللحام ما زادت، كنت تعتقد الزمن ما خربت إيوي», «الصمت أحيانًا يصرخ أقوى» (MSA), «هواية… شنو تقول؟» glossed
+  "Hobby…" (هواية = "a lot"), «خوش؟» glossed "How's it going?". Gemma writes natural Baghdadi with the studio's
+  spelling: «آني… لگيته. أخيراً لگيته»، «يا ستار! نجم؟ شجابك بهالليل والجو مگلوب؟»، «فدوة لعينك»، «خل نشوف هذا الگلب
+  القديم بعده يدگ لو لا»، «أوووف! بعده بي حيل!», glosses accurate (one «لكيت» with ك in run 2).
+- **Shot plan (scene 1, 30 s budget)** — qwen3: 4 shots / 20 s, three actions crammed into 1.5–4 s beats, prompts
+  with placeholders ("Elias's Workshop: same as before"); Gemma: 5 shots / 30–33 s, beats timed to the action
+  (3–4 s), speaker named in the beat, prompts concrete and name-free with motivated light; one missed cast member was
+  added by the cast-vs-actions check (`notes`), as designed.
+
+**Verdict.** Gemma 4 31B is clearly better at what the local model is for in this studio (Iraqi dialogue, staged shot
+plans) at 2.5–3× the latency and 2× the card. Reliability is not better: 1 unrecovered failure in 12 (a truncation
+with a known cause) against 0. **Decision: Gemma becomes the local default for story and planning; qwen3:14b stays
+selectable** (`OPENAI_COMPATIBLE_MODEL=qwen3:14b`) — on the condition recorded as an open item: the Arabic shot plan's
+output budget (9000 tokens inside a 16K context) must be re-measured, since a verbose Gemma plan can exceed it. The
+hosted engines still win `LLM_PROVIDER=auto` when a key exists. The VLM role (§5.6 L3) was not tested here.
