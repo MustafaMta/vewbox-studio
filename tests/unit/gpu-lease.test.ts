@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { admits, createMemoryGpuLease } from '@/server/gpu/lease';
-import { enginesToUnload, type Engine } from '@/server/gpu/unloaders';
+import { GPU_FAMILIES, admits, createMemoryGpuLease } from '@/server/gpu/lease';
+import { engines, enginesToUnload, type Engine } from '@/server/gpu/unloaders';
 
 /** THE GPU LEASE'S RULES (docs/BACKEND-AUDIT-2026-10.md H7, step 8), pure: who is admitted, and which engines let go
  *  of the card when the family changes. The database lease itself is tested in tests/worker/gpu-lease.test.ts. */
@@ -45,6 +45,16 @@ describe('unloaders', () => {
     expect(names('LLM', 'ASR')).toEqual(['comfyui', 'tts', 'tts-design', 'ollama']);
     expect(names('VIDEO', 'VIDEO')).toEqual([]);
     expect(names(null, 'IMAGE')).toEqual(['tts', 'tts-design', 'asr', 'ollama']);
+  });
+  it('LIPSYNC is its own family: taking the card for the corrector unloads ComfyUI (H3), and the corrector lets go for VIDEO', () => {
+    const withLipsync: Engine[] = [...list, { name: 'lipsync', serves: ['LIPSYNC'], unload: async () => {} }];
+    const n = (from: Parameters<typeof enginesToUnload>[0], to: Parameters<typeof enginesToUnload>[1]) => enginesToUnload(from, to, withLipsync).map((e) => e.name);
+    expect(n('VIDEO', 'LIPSYNC')).toEqual(['comfyui', 'tts', 'tts-design', 'asr', 'ollama']);
+    expect(n('LIPSYNC', 'VIDEO')).toEqual(['tts', 'tts-design', 'asr', 'ollama', 'lipsync']);
+    expect(n('LIPSYNC', 'LIPSYNC')).toEqual([]);
+    // the default engine list carries the corrector
+    expect(engines().map((e) => e.name)).toContain('lipsync');
+    expect(GPU_FAMILIES).toContain('LIPSYNC');
   });
 });
 
