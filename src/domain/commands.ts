@@ -230,11 +230,16 @@ const SceneLine = z.object({ id, characterId: id, text: line(8000) }).passthroug
 const Beat = z.object({ id, action: line(8000), lines: z.array(SceneLine).max(200) }).passthrough();
 /** a scene's story record (src/domain/types.ts SceneStory): bounded lists of short facts */
 const fact = { id, text: line(1000), atShotId: id.optional() };
+/** A fact with no words is refused (QA Q1, 2026-10-06: the page's "Add a change" stored `{text: ''}` at once, and the
+ *  empty fact reached every later take's prompt): the page keeps a blank row as an unsaved draft until it has text.
+ *  A `cleared` change may be wordless (it ends a change by key). */
+const worded = (x: { text: string; cleared?: boolean }) => x.cleared === true || x.text.trim().length > 0;
+const NO_WORDS = { message: 'a story fact needs words (a blank row stays a draft on the page)', path: ['text'] };
 const SceneStoryZ = z.object({
-  events: z.array(z.object(fact)).max(100),
-  knowledge: z.array(z.object({ ...fact, characterId: id })).max(200),
-  changes: z.array(z.object({ ...fact, subject: z.union([z.object({ kind: z.literal('CHARACTER'), characterId: id }), z.object({ kind: z.literal('PROP'), name: line(300) }), z.object({ kind: z.literal('LOCATION'), locationId: id })]), key: line(120).optional(), cleared: z.boolean().optional() })).max(200),
-  relationships: z.array(z.object({ ...fact, characterIds: idList })).max(100),
+  events: z.array(z.object(fact).refine(worded, NO_WORDS)).max(100),
+  knowledge: z.array(z.object({ ...fact, characterId: id }).refine(worded, NO_WORDS)).max(200),
+  changes: z.array(z.object({ ...fact, subject: z.union([z.object({ kind: z.literal('CHARACTER'), characterId: id }), z.object({ kind: z.literal('PROP'), name: line(300) }), z.object({ kind: z.literal('LOCATION'), locationId: id })]), key: line(120).optional(), cleared: z.boolean().optional() }).refine(worded, NO_WORDS)).max(200),
+  relationships: z.array(z.object({ ...fact, characterIds: idList }).refine(worded, NO_WORDS)).max(100),
 }).partial().strict();
 const SceneInput = z.object({ title: z.string().min(1).max(300), timeOfDay, locationId: id.optional(), characterIds: idList.optional(), purpose: line(8000).optional(), emotionalObjective: line(8000).optional(), entryState: line(8000).optional(), exitState: line(8000).optional(), beats: z.array(Beat).max(200).optional(), establishLocation: z.boolean().optional(), story: SceneStoryZ.optional() }).passthrough();
 const ScenePatch = z.object({ title: titleText, locationId: id, timeOfDay, characterIds: idList, beats: z.array(Beat).max(200), purpose: line(8000), emotionalObjective: line(8000), entryState: line(8000), exitState: line(8000), establishLocation: z.boolean(), story: SceneStoryZ }).partial().extend(owned('id', 'number')).passthrough();

@@ -177,6 +177,9 @@ export function storyFactsBefore<T extends StoryFact>(p: Production, sh: Shot, p
   for (const sc of [...p.scenes].sort((a, b) => a.number - b.number)) {
     if (!sc.story || (myScene && sc.number > myScene.number)) continue;
     for (const fact of pick(sc.story) ?? []) {
+      // a fact with no words is never carried (QA Q1: an empty row stored by the page reached every later prompt and
+      // crashed it); a wordless `cleared` change still ends one by its key
+      if (!fact || (!clean(fact.text) && !(fact as Partial<PersistentChange>).cleared)) continue;
       if (sc.id !== sh.sceneId) { out.push({ fact, sceneId: sc.id }); continue; }
       if (!fact.atShotId) continue;
       const i = ordered.findIndex((x) => x.id === fact.atShotId);
@@ -313,12 +316,12 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
   if (opts.bible) {
     const mine = opts.bible.timeline.filter((e) => e.productionId === p.id);
     const myOrder = mine.length ? Math.min(...mine.map((e) => e.order)) : Number.POSITIVE_INFINITY;
-    for (const e of opts.bible.timeline) if (e.productionId !== p.id && e.order < myOrder) events.push({ text: clean(e.text)!, source: { kind: 'WORLD', productionId: e.productionId, sceneId: e.sceneId } });
+    for (const e of opts.bible.timeline) if (e.productionId !== p.id && e.order < myOrder && clean(e.text)) events.push({ text: clean(e.text)!, source: { kind: 'WORLD', productionId: e.productionId, sceneId: e.sceneId } });
   }
   for (const sc of [...p.scenes].sort((a, b) => a.number - b.number)) if (scene && sc.number < scene.number && clean(sc.exitState)) events.push({ text: clean(sc.exitState)!, source: { kind: 'SCENE', sceneId: sc.id } });
   for (const { fact, sceneId } of storyFactsBefore<StoryFact>(p, sh, (s) => s.events)) events.push({ text: clean(fact.text)!, source: { kind: 'STORY', sceneId, factId: fact.id } });
   const relationships: StoryContext['relationships'] = [];
-  for (const r of opts.bible?.relationships ?? []) relationships.push({ text: clean(r.text)!, characterIds: r.characterIds, source: { kind: 'WORLD' } });
+  for (const r of opts.bible?.relationships ?? []) if (clean(r.text)) relationships.push({ text: clean(r.text)!, characterIds: r.characterIds, source: { kind: 'WORLD' } });
   for (const { fact, sceneId } of storyFactsBefore<RelationshipFact>(p, sh, (s) => s.relationships)) relationships.push({ text: clean(fact.text)!, characterIds: fact.characterIds, source: { kind: 'STORY', sceneId, factId: fact.id } });
   const story: StoryContext = {
     sceneObjective: clean(scene?.purpose), emotionalObjective: clean(scene?.emotionalObjective), entryState: clean(scene?.entryState),
@@ -368,8 +371,10 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
   for (const x of c.characters) {
     const w = who(x.characterId);
     if (!w) continue;
+    // a context built from older records may still hold a wordless fact: it is skipped, never written (QA Q1)
+    const condition = x.condition.filter((k) => typeof k.text === 'string' && k.text.trim());
     const bits = [
-      x.condition.length && `is ${x.condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
+      condition.length && `is ${condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
       x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
       x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
       x.startPose && `starts ${x.startPose.text.replace(/\.$/, '')}`,
@@ -380,7 +385,8 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
   }
   const staging = c.blocking ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
   if (staging) out.push(staging);
-  if (c.location?.changes.length) out.push(`The place as the story left it: ${c.location.changes.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
+  const placeChanges = (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
+  if (placeChanges.length) out.push(`The place as the story left it: ${placeChanges.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
   const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)));
   if (own.length) out.push(`Must hold: ${own.map((k) => k.replace(/\.$/, '')).join('; ')}.`);
   return out.join(' ');
