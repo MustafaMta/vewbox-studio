@@ -81,7 +81,11 @@ async function main() {
   const scene = p.scenes.find((sc) => sc.id === shot1.sceneId);
   const loc = world.find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
-  const fileOf = (id: string) => { const a = byId(id); if (!a) throw new Error(`asset ${id} missing`); return path.join(LIBRARY, a.path); };
+  // the studio's own resolver (run 1 read `a.path`, which the state's assets do not carry: a harness error before any
+  // graph was sent); LIBRARY_ROOT comes from .env.local, read-only here
+  const { assetFile } = await import('@/server/media');
+  const fileOf = (id: string) => { const a = byId(id); if (!a) throw new Error(`asset ${id} missing`); return assetFile(a); };
+  void LIBRARY;
   const info = ASPECT_INFO[p.aspect];
   console.log(`production "${p.title}" (${p.style}); shot ${shot1.number} of scene ${scene?.number} (${shot1.framing}, ${shot1.dialogue.length} line) → V1/V2; shot ${shot2.number} → V4 continuation; frame ${info.width}×${info.height}`);
 
@@ -149,10 +153,15 @@ async function main() {
   const order = only.length ? only : ['V1', 'V4', 'V2'];
   for (const id of order) {
     const v = variants.find((x) => x.id === id); if (!v) { console.log(`unknown ${id}`); continue; }
+    // FIRST ATTEMPTS ONLY: a clip that reached the engine (a file, or an engine error) is never generated again
+    const prior = results[id];
+    if (prior && (prior.file || (prior.error && prior.submitted !== false))) { console.log(`${id}: already attempted, kept`); continue; }
     const t0 = Date.now();
+    let submitted = false;
     process.stdout.write(`${id} … `);
     try {
       const { graph, prompt, seconds, inputs, pack } = await v.build();
+      submitted = true;
       const r = await comfy.run(graph, { timeoutMs: 60 * 60_000 });
       const out = comfy.firstOutput(r.outputs, 'video') ?? comfy.firstOutput(r.outputs, 'gifs') ?? comfy.firstOutput(r.outputs, 'images');
       if (!out) throw new Error('no output');
@@ -169,8 +178,8 @@ async function main() {
       }
       console.log(`${pr.frames} frames (${pr.width}×${pr.height}), audio ${pr.audio ? `${pr.audio.sampleRate} Hz ${pr.audio.channels} ch, RMS ${pr.audio.rmsDb} dB` : 'NONE'}, engine ${Math.round((r.engineMs ?? 0) / 1000)} s, wall ${Math.round((Date.now() - t0) / 1000)} s, peak ${meter.peak(t0)} MiB`);
     } catch (e) {
-      results[id] = { question: v.question, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: meter.peak(t0), at: new Date().toISOString() };
-      console.log(`ERROR ${(e as Error).message}`);
+      results[id] = { question: v.question, submitted, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: meter.peak(t0), at: new Date().toISOString() };
+      console.log(`${submitted ? 'ENGINE ERROR' : 'HARNESS ERROR (not an attempt)'} ${(e as Error).message}`);
     }
     await save();
   }
