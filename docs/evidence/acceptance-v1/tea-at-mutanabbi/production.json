@@ -9,7 +9,7 @@
  "language": "EN",
  "aspect": "WIDE_16_9",
  "targetSeconds": 15,
- "stage": "FINAL_CUT",
+ "stage": "COMPLETE",
  "brief": {
   "mode": "MANUAL",
   "text": "On a sunny morning Clara, an English photographer new to Baghdad, stops at Abu Haidar's tea stall on Mutanabbi Street. She asks in English whether this is the famous tea; he answers warmly in Iraqi Arabic and pours her a glass; she tastes it and thanks him. One continuous moment at the counter, three short shots."
@@ -23,9 +23,22 @@
  ],
  "genre": "Slice of Life",
  "mood": "Warm, sunny, and welcoming",
- "cutAssetId": "gen-c7cd61bebcf4e6c3b58d",
+ "cutAssetId": "gen-b0c2a3db715ae05bc65e",
+ "exports": [
+  {
+   "id": "export-41d2d6f28b14485fc891",
+   "bytes": 14726238,
+   "jobId": "job-d615229295",
+   "format": "mp4-h264",
+   "assetId": "gen-41d2d6f28b1403707810",
+   "createdAt": "2026-10-05T23:23:32.050Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 19
+  }
+ ],
  "createdAt": "2026-10-05 17:09:54.758+00",
- "updatedAt": "2026-10-05 19:03:02.217+00",
+ "updatedAt": "2026-10-05 23:23:32.05+00",
  "scenes": [
   {
    "id": "scene-420beb3158",

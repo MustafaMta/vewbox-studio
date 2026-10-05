@@ -2453,5 +2453,188 @@
     "message": "completed"
    }
   ]
+ },
+ {
+  "id": "job-9e666f6b00",
+  "type": "ASSEMBLE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 22:20:12.582+00",
+  "startedAt": "2026-10-05 22:20:13.737+00",
+  "finishedAt": "2026-10-05 22:20:25.637+00",
+  "payload": {
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 11817,
+   "joins": 1,
+   "runId": "run-7d69e5b34c",
+   "shots": 3,
+   "agentId": "video-editor",
+   "loudness": {
+    "truePeak": -7.19,
+    "integrated": -22.67
+   },
+   "joinJumps": 0,
+   "cutAssetId": "gen-9b08798b5c7751b37974",
+   "subtitleAssets": [
+    "gen-9b08798b5c7781ca12a4",
+    "gen-9b08798b5c77a7813573"
+   ],
+   "durationSeconds": 19,
+   "audioTimelineRevision": 3
+  },
+  "events": [
+   {
+    "at": "2026-10-05 22:20:12.647+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 22:20:13.971+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-05 22:20:24.437+00",
+    "level": "info",
+    "message": "cut validation passed"
+   },
+   {
+    "at": "2026-10-05 22:20:24.491+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-05 22:20:25.641+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-3b575a193d",
+  "type": "ASSEMBLE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 22:46:11.642+00",
+  "startedAt": "2026-10-05 22:46:12.728+00",
+  "finishedAt": "2026-10-05 22:46:27.528+00",
+  "payload": {
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 14792,
+   "joins": 1,
+   "runId": "run-80b7b88264",
+   "shots": 3,
+   "agentId": "video-editor",
+   "loudness": {
+    "truePeak": -7.65,
+    "integrated": -23.16
+   },
+   "joinJumps": 0,
+   "cutAssetId": "gen-b0c2a3db715ae05bc65e",
+   "subtitleAssets": [
+    "gen-b0c2a3db715a124a805c",
+    "gen-b0c2a3db715a8804bfe7"
+   ],
+   "durationSeconds": 19,
+   "audioTimelineRevision": 4
+  },
+  "events": [
+   {
+    "at": "2026-10-05 22:46:11.657+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 22:46:12.878+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-05 22:46:26.15+00",
+    "level": "info",
+    "message": "cut validation passed"
+   },
+   {
+    "at": "2026-10-05 22:46:26.203+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-05 22:46:27.531+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-d615229295",
+  "type": "EXPORT",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 23:23:14.856+00",
+  "startedAt": "2026-10-05 23:23:15.739+00",
+  "finishedAt": "2026-10-05 23:23:32.197+00",
+  "payload": {
+   "format": "mp4-h264",
+   "subtitles": "en",
+   "resolution": "1080",
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 16449,
+   "size": {
+    "width": 1920,
+    "height": 1080
+   },
+   "runId": "run-243449a195",
+   "agentId": "export-engineer",
+   "loudness": {
+    "truePeak": -7.65,
+    "integrated": -23.16
+   },
+   "exportAssetId": "gen-41d2d6f28b1403707810",
+   "subtitleAssets": [
+    "gen-41d2d6f28b14388e6122",
+    "gen-41d2d6f28b14362efde0"
+   ],
+   "durationSeconds": 19,
+   "establishedFrames": 1
+  },
+  "events": [
+   {
+    "at": "2026-10-05 23:23:14.867+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 23:23:16.819+00",
+    "level": "info",
+    "message": "World Bible: 1 frame(s) established (revision 3)"
+   },
+   {
+    "at": "2026-10-05 23:23:17.037+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-05 23:23:30.611+00",
+    "level": "info",
+    "message": "export validation passed"
+   },
+   {
+    "at": "2026-10-05 23:23:30.701+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-05 23:23:32.202+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
  }
 ]

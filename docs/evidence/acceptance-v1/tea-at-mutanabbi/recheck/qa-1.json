@@ -1,0 +1,2019 @@
+{
+ "at": "2026-10-05T22:23:20.964Z",
+ "spec": "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/qa-spec-1.json",
+ "results": {
+  "transcribe:cut5-full": {
+   "status": 200,
+   "ms": 5313,
+   "body": {
+    "language": "en",
+    "language_probability": 1,
+    "duration": 19,
+    "segments": [
+     {
+      "start": 0.05,
+      "end": 12.78,
+      "text": "excuse me is this the famous tea everyone talks about oh that is wonderful",
+      "avg_logprob": -0.168,
+      "no_speech_prob": 0.032,
+      "words": [
+       {
+        "start": 0.05,
+        "end": 0.83,
+        "word": " excuse",
+        "probability": 0.411
+       },
+       {
+        "start": 0.83,
+        "end": 1.23,
+        "word": " me",
+        "probability": 0.998
+       },
+       {
+        "start": 1.23,
+        "end": 1.75,
+        "word": " is",
+        "probability": 0.788
+       },
+       {
+        "start": 1.75,
+        "end": 2.01,
+        "word": " this",
+        "probability": 0.999
+       },
+       {
+        "start": 2.01,
+        "end": 2.23,
+        "word": " the",
+        "probability": 0.997
+       },
+       {
+        "start": 2.23,
+        "end": 2.69,
+        "word": " famous",
+        "probability": 0.997
+       },
+       {
+        "start": 2.69,
+        "end": 3.03,
+        "word": " tea",
+        "probability": 0.98
+       },
+       {
+        "start": 3.03,
+        "end": 3.53,
+        "word": " everyone",
+        "probability": 0.99
+       },
+       {
+        "start": 3.53,
+        "end": 3.99,
+        "word": " talks",
+        "probability": 0.999
+       },
+       {
+        "start": 3.99,
+        "end": 4.43,
+        "word": " about",
+        "probability": 0.999
+       },
+       {
+        "start": 4.43,
+        "end": 5.91,
+        "word": " oh",
+        "probability": 0.654
+       },
+       {
+        "start": 10.8,
+        "end": 12,
+        "word": " that",
+        "probability": 0.98
+       },
+       {
+        "start": 12,
+        "end": 12.32,
+        "word": " is",
+        "probability": 0.998
+       },
+       {
+        "start": 12.32,
+        "end": 12.78,
+        "word": " wonderful",
+        "probability": 1
+       }
+      ]
+     },
+     {
+      "start": 12.78,
+      "end": 16.96,
+      "text": "thank you so much it really is the best tea in Baghdad",
+      "avg_logprob": -0.168,
+      "no_speech_prob": 0.032,
+      "words": [
+       {
+        "start": 12.78,
+        "end": 13.54,
+        "word": " thank",
+        "probability": 0.971
+       },
+       {
+        "start": 13.54,
+        "end": 13.8,
+        "word": " you",
+        "probability": 0.999
+       },
+       {
+        "start": 13.8,
+        "end": 14.04,
+        "word": " so",
+        "probability": 1
+       },
+       {
+        "start": 14.04,
+        "end": 14.44,
+        "word": " much",
+        "probability": 1
+       },
+       {
+        "start": 14.44,
+        "end": 14.9,
+        "word": " it",
+        "probability": 0.988
+       },
+       {
+        "start": 14.9,
+        "end": 15.18,
+        "word": " really",
+        "probability": 0.999
+       },
+       {
+        "start": 15.18,
+        "end": 15.52,
+        "word": " is",
+        "probability": 1
+       },
+       {
+        "start": 15.52,
+        "end": 15.66,
+        "word": " the",
+        "probability": 1
+       },
+       {
+        "start": 15.66,
+        "end": 15.88,
+        "word": " best",
+        "probability": 1
+       },
+       {
+        "start": 15.88,
+        "end": 16.14,
+        "word": " tea",
+        "probability": 0.993
+       },
+       {
+        "start": 16.14,
+        "end": 16.42,
+        "word": " in",
+        "probability": 0.999
+       },
+       {
+        "start": 16.42,
+        "end": 16.96,
+        "word": " Baghdad",
+        "probability": 0.96
+       }
+      ]
+     }
+    ],
+    "text": "excuse me is this the famous tea everyone talks about oh that is wonderful thank you so much it really is the best tea in Baghdad",
+    "ms": 5292,
+    "model": "large-v3"
+   }
+  },
+  "align:rec-line1": {
+   "status": 200,
+   "ms": 5697,
+   "body": {
+    "words": [
+     {
+      "text": "Excuse",
+      "norm": "excuse",
+      "start": 0.18,
+      "end": 0.74,
+      "score": 0.731,
+      "aligned": true
+     },
+     {
+      "text": "me,",
+      "norm": "me",
+      "start": 0.8,
+      "end": 1,
+      "score": 0.663,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 1.4,
+      "end": 1.5,
+      "score": 0.84,
+      "aligned": true
+     },
+     {
+      "text": "this",
+      "norm": "this",
+      "start": 1.56,
+      "end": 1.78,
+      "score": 0.835,
+      "aligned": true
+     },
+     {
+      "text": "the",
+      "norm": "the",
+      "start": 1.86,
+      "end": 2.02,
+      "score": 0.865,
+      "aligned": true
+     },
+     {
+      "text": "famous",
+      "norm": "famous",
+      "start": 2.1,
+      "end": 2.52,
+      "score": 0.871,
+      "aligned": true
+     },
+     {
+      "text": "tea",
+      "norm": "tea",
+      "start": 2.62,
+      "end": 2.86,
+      "score": 0.75,
+      "aligned": true
+     },
+     {
+      "text": "everyone",
+      "norm": "everyone",
+      "start": 3.02,
+      "end": 3.46,
+      "score": 0.801,
+      "aligned": true
+     },
+     {
+      "text": "talks",
+      "norm": "talks",
+      "start": 3.52,
+      "end": 3.86,
+      "score": 0.836,
+      "aligned": true
+     },
+     {
+      "text": "about?",
+      "norm": "about",
+      "start": 3.96,
+      "end": 4.26,
+      "score": 0.973,
+      "aligned": true
+     }
+    ],
+    "coverage": 1,
+    "char_coverage": 1,
+    "mean_score": 0.824,
+    "unaligned_words": [],
+    "score_floor": 0.3,
+    "frame_seconds": 0.02,
+    "frames": 223,
+    "tokens": 53,
+    "language": "en",
+    "model": "facebook/wav2vec2-base-960h",
+    "device": "cuda",
+    "vocab_mode": "upper",
+    "duration": 4.47,
+    "ms": 422
+   }
+  },
+  "align:rec-line3": {
+   "status": 200,
+   "ms": 89,
+   "body": {
+    "words": [
+     {
+      "text": "Oh,",
+      "norm": "oh",
+      "start": 0.22,
+      "end": 0.32,
+      "score": 0.255,
+      "aligned": true
+     },
+     {
+      "text": "that",
+      "norm": "that",
+      "start": 0.62,
+      "end": 0.86,
+      "score": 0.855,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 0.96,
+      "end": 1.06,
+      "score": 0.782,
+      "aligned": true
+     },
+     {
+      "text": "wonderful.",
+      "norm": "wonderful",
+      "start": 1.16,
+      "end": 1.74,
+      "score": 0.871,
+      "aligned": true
+     },
+     {
+      "text": "Thank",
+      "norm": "thank",
+      "start": 2.1,
+      "end": 2.36,
+      "score": 0.941,
+      "aligned": true
+     },
+     {
+      "text": "you",
+      "norm": "you",
+      "start": 2.4,
+      "end": 2.54,
+      "score": 0.98,
+      "aligned": true
+     },
+     {
+      "text": "so",
+      "norm": "so",
+      "start": 2.64,
+      "end": 2.84,
+      "score": 0.921,
+      "aligned": true
+     },
+     {
+      "text": "much,",
+      "norm": "much",
+      "start": 2.92,
+      "end": 3.2,
+      "score": 0.791,
+      "aligned": true
+     },
+     {
+      "text": "it",
+      "norm": "it",
+      "start": 3.52,
+      "end": 3.6,
+      "score": 0.869,
+      "aligned": true
+     },
+     {
+      "text": "really",
+      "norm": "really",
+      "start": 3.7,
+      "end": 4.04,
+      "score": 0.793,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 4.12,
+      "end": 4.22,
+      "score": 0.825,
+      "aligned": true
+     },
+     {
+      "text": "the",
+      "norm": "the",
+      "start": 4.28,
+      "end": 4.36,
+      "score": 0.878,
+      "aligned": true
+     },
+     {
+      "text": "best",
+      "norm": "best",
+      "start": 4.4,
+      "end": 4.64,
+      "score": 0.916,
+      "aligned": true
+     },
+     {
+      "text": "tea",
+      "norm": "tea",
+      "start": 4.72,
+      "end": 4.94,
+      "score": 0.939,
+      "aligned": true
+     },
+     {
+      "text": "in",
+      "norm": "in",
+      "start": 5,
+      "end": 5.08,
+      "score": 0.993,
+      "aligned": true
+     },
+     {
+      "text": "Baghdad.",
+      "norm": "baghdad",
+      "start": 5.14,
+      "end": 5.68,
+      "score": 0.914,
+      "aligned": true
+     }
+    ],
+    "coverage": 1,
+    "char_coverage": 1,
+    "mean_score": 0.8606,
+    "unaligned_words": [],
+    "score_floor": 0.3,
+    "frame_seconds": 0.02,
+    "frames": 292,
+    "tokens": 75,
+    "language": "en",
+    "model": "facebook/wav2vec2-base-960h",
+    "device": "cuda",
+    "vocab_mode": "upper",
+    "duration": 5.863,
+    "ms": 35
+   }
+  },
+  "align:h3-take11": {
+   "status": 200,
+   "ms": 96,
+   "body": {
+    "words": [
+     {
+      "text": "Excuse",
+      "norm": "excuse",
+      "start": 0.56,
+      "end": 1.12,
+      "score": 0.745,
+      "aligned": true
+     },
+     {
+      "text": "me,",
+      "norm": "me",
+      "start": 1.18,
+      "end": 1.34,
+      "score": 0.754,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 1.36,
+      "end": 1.4,
+      "score": 0,
+      "aligned": true
+     },
+     {
+      "text": "this",
+      "norm": "this",
+      "start": 1.96,
+      "end": 2.16,
+      "score": 0.918,
+      "aligned": true
+     },
+     {
+      "text": "the",
+      "norm": "the",
+      "start": 2.26,
+      "end": 2.4,
+      "score": 0.991,
+      "aligned": true
+     },
+     {
+      "text": "famous",
+      "norm": "famous",
+      "start": 2.48,
+      "end": 2.9,
+      "score": 0.994,
+      "aligned": true
+     },
+     {
+      "text": "tea",
+      "norm": "tea",
+      "start": 3.02,
+      "end": 3.26,
+      "score": 0.718,
+      "aligned": true
+     },
+     {
+      "text": "everyone",
+      "norm": "everyone",
+      "start": 3.42,
+      "end": 3.84,
+      "score": 0.892,
+      "aligned": true
+     },
+     {
+      "text": "talks",
+      "norm": "talks",
+      "start": 3.92,
+      "end": 4.26,
+      "score": 0.931,
+      "aligned": true
+     },
+     {
+      "text": "about?",
+      "norm": "about",
+      "start": 4.34,
+      "end": 4.66,
+      "score": 0.975,
+      "aligned": true
+     }
+    ],
+    "coverage": 1,
+    "char_coverage": 1,
+    "mean_score": 0.8503,
+    "unaligned_words": [],
+    "score_floor": 0.3,
+    "frame_seconds": 0.02,
+    "frames": 328,
+    "tokens": 53,
+    "language": "en",
+    "model": "facebook/wav2vec2-base-960h",
+    "device": "cuda",
+    "vocab_mode": "upper",
+    "duration": 6.575,
+    "ms": 42
+   }
+  },
+  "align:h3-take13": {
+   "status": 200,
+   "ms": 93,
+   "body": {
+    "words": [
+     {
+      "text": "Oh,",
+      "norm": "oh",
+      "start": 0.6,
+      "end": 0.72,
+      "score": 0.278,
+      "aligned": true
+     },
+     {
+      "text": "that",
+      "norm": "that",
+      "start": 1.02,
+      "end": 1.26,
+      "score": 0.956,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 1.36,
+      "end": 1.46,
+      "score": 0.595,
+      "aligned": true
+     },
+     {
+      "text": "wonderful.",
+      "norm": "wonderful",
+      "start": 1.56,
+      "end": 2.14,
+      "score": 0.908,
+      "aligned": true
+     },
+     {
+      "text": "Thank",
+      "norm": "thank",
+      "start": 2.48,
+      "end": 2.74,
+      "score": 0.813,
+      "aligned": true
+     },
+     {
+      "text": "you",
+      "norm": "you",
+      "start": 2.78,
+      "end": 2.94,
+      "score": 0.94,
+      "aligned": true
+     },
+     {
+      "text": "so",
+      "norm": "so",
+      "start": 3.04,
+      "end": 3.24,
+      "score": 0.908,
+      "aligned": true
+     },
+     {
+      "text": "much,",
+      "norm": "much",
+      "start": 3.32,
+      "end": 3.58,
+      "score": 0.833,
+      "aligned": true
+     },
+     {
+      "text": "it",
+      "norm": "it",
+      "start": 3.92,
+      "end": 4,
+      "score": 0.985,
+      "aligned": true
+     },
+     {
+      "text": "really",
+      "norm": "really",
+      "start": 4.1,
+      "end": 4.44,
+      "score": 0.777,
+      "aligned": true
+     },
+     {
+      "text": "is",
+      "norm": "is",
+      "start": 4.52,
+      "end": 4.62,
+      "score": 0.767,
+      "aligned": true
+     },
+     {
+      "text": "the",
+      "norm": "the",
+      "start": 4.66,
+      "end": 4.76,
+      "score": 0.82,
+      "aligned": true
+     },
+     {
+      "text": "best",
+      "norm": "best",
+      "start": 4.8,
+      "end": 5.04,
+      "score": 0.923,
+      "aligned": true
+     },
+     {
+      "text": "tea",
+      "norm": "tea",
+      "start": 5.12,
+      "end": 5.34,
+      "score": 0.918,
+      "aligned": true
+     },
+     {
+      "text": "in",
+      "norm": "in",
+      "start": 5.4,
+      "end": 5.48,
+      "score": 0.992,
+      "aligned": true
+     },
+     {
+      "text": "Baghdad.",
+      "norm": "baghdad",
+      "start": 5.54,
+      "end": 6.06,
+      "score": 0.931,
+      "aligned": true
+     }
+    ],
+    "coverage": 1,
+    "char_coverage": 1,
+    "mean_score": 0.8558,
+    "unaligned_words": [],
+    "score_floor": 0.3,
+    "frame_seconds": 0.02,
+    "frames": 399,
+    "tokens": 75,
+    "language": "en",
+    "model": "facebook/wav2vec2-base-960h",
+    "device": "cuda",
+    "vocab_mode": "upper",
+    "duration": 8,
+    "ms": 46
+   }
+  },
+  "mouth:take11-own": {
+   "status": 200,
+   "ms": 46903,
+   "body": {
+    "available": true,
+    "fps": 24,
+    "frames": 158,
+    "size": [
+     960,
+     548
+    ],
+    "duration": 6.583,
+    "audio_source": "video",
+    "audio_offset": 0,
+    "windows_source": "energy",
+    "speech_frames": 100,
+    "faces_per_frame_max": 1,
+    "max_lag_frames": 7,
+    "mode": "speech",
+    "tracks": [
+     {
+      "id": 0,
+      "frames": 7,
+      "first_frame": 59,
+      "last_frame": 72,
+      "mean_box": [
+       501.6,
+       101.1,
+       596.4,
+       221.4
+      ],
+      "face_height_px": 118.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 1,
+      "frames": 67,
+      "first_frame": 82,
+      "last_frame": 157,
+      "mean_box": [
+       434,
+       95,
+       549.2,
+       233.5
+      ],
+      "face_height_px": 136.3,
+      "scored": true,
+      "activity_inside": 0.5913,
+      "activity_outside": 0.4444,
+      "activity_ratio": 1.3305,
+      "inside_frames": 31,
+      "outside_frames": 31,
+      "corr_lag0": 0.2326,
+      "corr_best": 0.2326,
+      "best_lag_frames": 0,
+      "best_lag_ms": 0,
+      "lag_at_search_edge": false,
+      "is_speaker": true,
+      "flags": []
+     }
+    ],
+    "speaker_tracks": [
+     1
+    ],
+    "thresholds": {
+     "track_iou_min": 0.3,
+     "track_max_gap": 6,
+     "min_track_frames": 12,
+     "mouth_active_min": 0.35,
+     "activity_ratio_min": 1.3,
+     "extra_corr": 0.3,
+     "vad_above_floor_db": 12,
+     "vad_min_dbfs": -45
+    },
+    "syncnet": {
+     "available": false,
+     "reason": "disabled: SYNCNET_DIR (/models/qa/syncnet) does not exist; syncnet_v2.model has no stated licence (internal QA only, legal check owed)"
+    },
+    "model": "MediaPipe Face Landmarker (float16/1)",
+    "ms": 1774
+   }
+  },
+  "mouth:take11-recorded@0.05": {
+   "status": 200,
+   "ms": 5752,
+   "body": {
+    "available": true,
+    "fps": 24,
+    "frames": 158,
+    "size": [
+     960,
+     548
+    ],
+    "duration": 6.583,
+    "audio_source": "upload",
+    "audio_offset": 0.05,
+    "windows_source": "energy",
+    "speech_frames": 82,
+    "faces_per_frame_max": 1,
+    "max_lag_frames": 7,
+    "mode": "speech",
+    "tracks": [
+     {
+      "id": 0,
+      "frames": 7,
+      "first_frame": 59,
+      "last_frame": 72,
+      "mean_box": [
+       501.6,
+       101.1,
+       596.4,
+       221.4
+      ],
+      "face_height_px": 118.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 1,
+      "frames": 67,
+      "first_frame": 82,
+      "last_frame": 157,
+      "mean_box": [
+       434,
+       95,
+       549.2,
+       233.5
+      ],
+      "face_height_px": 136.3,
+      "scored": true,
+      "activity_inside": 0.5954,
+      "activity_outside": 0.4992,
+      "activity_ratio": 1.1926,
+      "inside_frames": 12,
+      "outside_frames": 50,
+      "corr_lag0": 0.2324,
+      "corr_best": 0.3243,
+      "best_lag_frames": -2,
+      "best_lag_ms": -83.3,
+      "lag_at_search_edge": false,
+      "is_speaker": true,
+      "flags": [
+       "MOUTH_MOVING_WHILE_SILENT"
+      ]
+     }
+    ],
+    "speaker_tracks": [
+     1
+    ],
+    "thresholds": {
+     "track_iou_min": 0.3,
+     "track_max_gap": 6,
+     "min_track_frames": 12,
+     "mouth_active_min": 0.35,
+     "activity_ratio_min": 1.3,
+     "extra_corr": 0.3,
+     "vad_above_floor_db": 12,
+     "vad_min_dbfs": -45
+    },
+    "syncnet": {
+     "available": false,
+     "reason": "disabled: SYNCNET_DIR (/models/qa/syncnet) does not exist; syncnet_v2.model has no stated licence (internal QA only, legal check owed)"
+    },
+    "model": "MediaPipe Face Landmarker (float16/1)",
+    "ms": 5637
+   }
+  },
+  "mouth:take13-own": {
+   "status": 200,
+   "ms": 1733,
+   "body": {
+    "available": true,
+    "fps": 24,
+    "frames": 192,
+    "size": [
+     960,
+     548
+    ],
+    "duration": 8,
+    "audio_source": "video",
+    "audio_offset": 0,
+    "windows_source": "energy",
+    "speech_frames": 133,
+    "faces_per_frame_max": 1,
+    "max_lag_frames": 7,
+    "mode": "speech",
+    "tracks": [
+     {
+      "id": 0,
+      "frames": 2,
+      "first_frame": 70,
+      "last_frame": 71,
+      "mean_box": [
+       521.1,
+       70.1,
+       604.2,
+       175.1
+      ],
+      "face_height_px": 104.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 1,
+      "frames": 2,
+      "first_frame": 80,
+      "last_frame": 81,
+      "mean_box": [
+       508.6,
+       73.6,
+       609,
+       195.5
+      ],
+      "face_height_px": 121.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 2,
+      "frames": 1,
+      "first_frame": 98,
+      "last_frame": 98,
+      "mean_box": [
+       497.3,
+       78.2,
+       604.1,
+       187.4
+      ],
+      "face_height_px": 109.2,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     }
+    ],
+    "speaker_tracks": [],
+    "thresholds": {
+     "track_iou_min": 0.3,
+     "track_max_gap": 6,
+     "min_track_frames": 12,
+     "mouth_active_min": 0.35,
+     "activity_ratio_min": 1.3,
+     "extra_corr": 0.3,
+     "vad_above_floor_db": 12,
+     "vad_min_dbfs": -45
+    },
+    "syncnet": {
+     "available": false,
+     "reason": "disabled: SYNCNET_DIR (/models/qa/syncnet) does not exist; syncnet_v2.model has no stated licence (internal QA only, legal check owed)"
+    },
+    "model": "MediaPipe Face Landmarker (float16/1)",
+    "ms": 1614
+   }
+  },
+  "mouth:take13-recorded@0.05": {
+   "status": 200,
+   "ms": 9301,
+   "body": {
+    "available": true,
+    "fps": 24,
+    "frames": 192,
+    "size": [
+     960,
+     548
+    ],
+    "duration": 8,
+    "audio_source": "upload",
+    "audio_offset": 0.05,
+    "windows_source": "energy",
+    "speech_frames": 117,
+    "faces_per_frame_max": 1,
+    "max_lag_frames": 7,
+    "mode": "speech",
+    "tracks": [
+     {
+      "id": 0,
+      "frames": 2,
+      "first_frame": 70,
+      "last_frame": 71,
+      "mean_box": [
+       521.1,
+       70.1,
+       604.2,
+       175.1
+      ],
+      "face_height_px": 104.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 1,
+      "frames": 2,
+      "first_frame": 80,
+      "last_frame": 81,
+      "mean_box": [
+       508.6,
+       73.6,
+       609,
+       195.5
+      ],
+      "face_height_px": 121.9,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     },
+     {
+      "id": 2,
+      "frames": 1,
+      "first_frame": 98,
+      "last_frame": 98,
+      "mean_box": [
+       497.3,
+       78.2,
+       604.1,
+       187.4
+      ],
+      "face_height_px": 109.2,
+      "scored": false,
+      "reason": "track shorter than 12 frames",
+      "is_speaker": false,
+      "flags": []
+     }
+    ],
+    "speaker_tracks": [],
+    "thresholds": {
+     "track_iou_min": 0.3,
+     "track_max_gap": 6,
+     "min_track_frames": 12,
+     "mouth_active_min": 0.35,
+     "activity_ratio_min": 1.3,
+     "extra_corr": 0.3,
+     "vad_above_floor_db": 12,
+     "vad_min_dbfs": -45
+    },
+    "syncnet": {
+     "available": false,
+     "reason": "disabled: SYNCNET_DIR (/models/qa/syncnet) does not exist; syncnet_v2.model has no stated licence (internal QA only, legal check owed)"
+    },
+    "model": "MediaPipe Face Landmarker (float16/1)",
+    "ms": 9193
+   }
+  },
+  "mouth:take12-own": {
+   "status": 200,
+   "ms": 21751,
+   "body": {
+    "available": true,
+    "fps": 24,
+    "frames": 158,
+    "size": [
+     960,
+     548
+    ],
+    "duration": 6.583,
+    "audio_source": "video",
+    "audio_offset": 0,
+    "windows_source": "energy",
+    "speech_frames": 6,
+    "faces_per_frame_max": 2,
+    "max_lag_frames": 7,
+    "mode": "speech",
+    "tracks": [
+     {
+      "id": 0,
+      "frames": 156,
+      "first_frame": 0,
+      "last_frame": 157,
+      "mean_box": [
+       327.5,
+       33.8,
+       472.3,
+       197.8
+      ],
+      "face_height_px": 167.1,
+      "scored": true,
+      "activity_inside": 0.3738,
+      "activity_outside": 0.2361,
+      "activity_ratio": 1.5834,
+      "inside_frames": 6,
+      "outside_frames": 147,
+      "corr_lag0": 0.4448,
+      "corr_best": 0.4448,
+      "best_lag_frames": 0,
+      "best_lag_ms": 0,
+      "lag_at_search_edge": false,
+      "is_speaker": false,
+      "flags": [
+       "NON_SPEAKER_TALKING"
+      ]
+     },
+     {
+      "id": 1,
+      "frames": 25,
+      "first_frame": 27,
+      "last_frame": 64,
+      "mean_box": [
+       5.6,
+       146.7,
+       144.1,
+       306.2
+      ],
+      "face_height_px": 159.5,
+      "scored": true,
+      "activity_inside": 4.8259,
+      "activity_outside": 1.2768,
+      "activity_ratio": 3.7797,
+      "inside_frames": 3,
+      "outside_frames": 14,
+      "corr_lag0": 0.1456,
+      "corr_best": 0.4997,
+      "best_lag_frames": -7,
+      "best_lag_ms": -291.7,
+      "lag_at_search_edge": true,
+      "is_speaker": false,
+      "flags": [
+       "NON_SPEAKER_TALKING"
+      ]
+     }
+    ],
+    "speaker_tracks": [],
+    "thresholds": {
+     "track_iou_min": 0.3,
+     "track_max_gap": 6,
+     "min_track_frames": 12,
+     "mouth_active_min": 0.35,
+     "activity_ratio_min": 1.3,
+     "extra_corr": 0.3,
+     "vad_above_floor_db": 12,
+     "vad_min_dbfs": -45
+    },
+    "syncnet": {
+     "available": false,
+     "reason": "disabled: SYNCNET_DIR (/models/qa/syncnet) does not exist; syncnet_v2.model has no stated licence (internal QA only, legal check owed)"
+    },
+    "model": "MediaPipe Face Landmarker (float16/1)",
+    "ms": 21637
+   }
+  },
+  "identity:cut5": {
+   "status": 200,
+   "ms": 1715,
+   "body": {
+    "available": true,
+    "sample_fps": 2,
+    "frames": 38,
+    "faces_per_frame_max": 2,
+    "size": [
+     1280,
+     720
+    ],
+    "characters": {
+     "clara": {
+      "reference": {
+       "available": true,
+       "faces_in_reference": 1,
+       "face_box": [
+        365.1,
+        114.5,
+        155.2,
+        200.6
+       ],
+       "score": 0.936
+      },
+      "series": [
+       {
+        "t": 0,
+        "cosine": 0.5205,
+        "box": [
+         368.6,
+         177.7,
+         68.7,
+         105
+        ]
+       },
+       {
+        "t": 0.5,
+        "cosine": 0.5815,
+        "box": [
+         405.4,
+         197.5,
+         83.7,
+         113.3
+        ]
+       },
+       {
+        "t": 1,
+        "cosine": 0.3588,
+        "box": [
+         447,
+         193.6,
+         76.7,
+         111.7
+        ]
+       },
+       {
+        "t": 1.5,
+        "cosine": 0.3456,
+        "box": [
+         416.5,
+         194,
+         76.7,
+         108.6
+        ]
+       },
+       {
+        "t": 2,
+        "cosine": 0.5093,
+        "box": [
+         409.7,
+         188.1,
+         90.2,
+         144.7
+        ]
+       },
+       {
+        "t": 2.5,
+        "cosine": 0.5031,
+        "box": [
+         376,
+         194.4,
+         96.9,
+         144.7
+        ]
+       },
+       {
+        "t": 3,
+        "cosine": 0.2774,
+        "box": [
+         336.5,
+         184.4,
+         94.6,
+         162
+        ]
+       },
+       {
+        "t": 3.5,
+        "cosine": 0.2986,
+        "box": [
+         280.8,
+         174.5,
+         92.6,
+         161.6
+        ]
+       },
+       {
+        "t": 4,
+        "cosine": 0.4537,
+        "box": [
+         265.7,
+         193.8,
+         101.8,
+         169.9
+        ]
+       },
+       {
+        "t": 4.5,
+        "cosine": 0.4294,
+        "box": [
+         221,
+         173.4,
+         106.9,
+         190.3
+        ]
+       },
+       {
+        "t": 5,
+        "cosine": 0.5147,
+        "box": [
+         179.1,
+         163.7,
+         113.4,
+         206.6
+        ]
+       },
+       {
+        "t": 5.5,
+        "cosine": 0.5633,
+        "box": [
+         156.1,
+         179.4,
+         111.4,
+         190.2
+        ]
+       },
+       {
+        "t": 6,
+        "cosine": 0.6741,
+        "box": [
+         83.3,
+         185.1,
+         156.7,
+         216.5
+        ]
+       },
+       {
+        "t": 6.5,
+        "cosine": 0.7114,
+        "box": [
+         37.1,
+         167.7,
+         166.4,
+         241.5
+        ]
+       },
+       {
+        "t": 7,
+        "cosine": 0.6466,
+        "box": [
+         12.3,
+         164.1,
+         145.8,
+         251.1
+        ]
+       },
+       {
+        "t": 7.5,
+        "cosine": 0.6021,
+        "box": [
+         9.5,
+         105.5,
+         172,
+         294.1
+        ]
+       },
+       {
+        "t": 8,
+        "cosine": 0.5668,
+        "box": [
+         3,
+         24.4,
+         139.3,
+         305.3
+        ]
+       },
+       {
+        "t": 8.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 9,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 9.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 10,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 10.5,
+        "cosine": 0.3188,
+        "box": [
+         -9.4,
+         1.3,
+         266.6,
+         268.2
+        ]
+       },
+       {
+        "t": 11,
+        "cosine": 0.6583,
+        "box": [
+         760.4,
+         90.4,
+         90.1,
+         117.7
+        ]
+       },
+       {
+        "t": 11.5,
+        "cosine": 0.5505,
+        "box": [
+         771.7,
+         85.7,
+         84.6,
+         117.8
+        ]
+       },
+       {
+        "t": 12,
+        "cosine": 0.7918,
+        "box": [
+         740.8,
+         87.9,
+         101.5,
+         122
+        ]
+       },
+       {
+        "t": 12.5,
+        "cosine": 0.6657,
+        "box": [
+         710.2,
+         114.2,
+         89,
+         119.2
+        ]
+       },
+       {
+        "t": 13,
+        "cosine": 0.7321,
+        "box": [
+         704.6,
+         96.1,
+         94.7,
+         129.5
+        ]
+       },
+       {
+        "t": 13.5,
+        "cosine": 0.5908,
+        "box": [
+         699.5,
+         83.6,
+         96.5,
+         136.4
+        ]
+       },
+       {
+        "t": 14,
+        "cosine": 0.6127,
+        "box": [
+         677.1,
+         94.7,
+         92.4,
+         128.8
+        ]
+       },
+       {
+        "t": 14.5,
+        "cosine": 0.7782,
+        "box": [
+         675.3,
+         91.8,
+         104.9,
+         138.5
+        ]
+       },
+       {
+        "t": 15,
+        "cosine": 0.6723,
+        "box": [
+         667.4,
+         97,
+         105.9,
+         142.1
+        ]
+       },
+       {
+        "t": 15.5,
+        "cosine": 0.6736,
+        "box": [
+         667.7,
+         96.4,
+         98.9,
+         133.5
+        ]
+       },
+       {
+        "t": 16,
+        "cosine": 0.7843,
+        "box": [
+         676.4,
+         92.6,
+         105.3,
+         145
+        ]
+       },
+       {
+        "t": 16.5,
+        "cosine": 0.7459,
+        "box": [
+         693.5,
+         88.8,
+         107.1,
+         137.8
+        ]
+       },
+       {
+        "t": 17,
+        "cosine": 0.6917,
+        "box": [
+         684.2,
+         104,
+         99.7,
+         132.6
+        ]
+       },
+       {
+        "t": 17.5,
+        "cosine": 0.6482,
+        "box": [
+         685.9,
+         97.4,
+         96.7,
+         142.4
+        ]
+       },
+       {
+        "t": 18,
+        "cosine": 0.6069,
+        "box": [
+         688.1,
+         96.8,
+         96.2,
+         137.8
+        ]
+       },
+       {
+        "t": 18.5,
+        "cosine": 0.7348,
+        "box": [
+         694.4,
+         101.8,
+         95.9,
+         131
+        ]
+       }
+      ],
+      "summary": {
+       "frames": 38,
+       "frames_with_face": 34,
+       "min": 0.2774,
+       "median": 0.6045,
+       "mean": 0.5827,
+       "p10": 0.3496,
+       "below_threshold": 5,
+       "share_below": 0.1471,
+       "drift": 0.2431,
+       "threshold": 0.363
+      }
+     },
+     "abu-haidar": {
+      "reference": {
+       "available": true,
+       "faces_in_reference": 1,
+       "face_box": [
+        329.3,
+        164.7,
+        224,
+        301.5
+       ],
+       "score": 0.942
+      },
+      "series": [
+       {
+        "t": 0,
+        "cosine": 0.8413,
+        "box": [
+         766.4,
+         120.5,
+         97.7,
+         122.9
+        ]
+       },
+       {
+        "t": 0.5,
+        "cosine": 0.847,
+        "box": [
+         742.6,
+         136.7,
+         96.8,
+         124.8
+        ]
+       },
+       {
+        "t": 1,
+        "cosine": 0.7993,
+        "box": [
+         713.4,
+         131.9,
+         100.1,
+         139.3
+        ]
+       },
+       {
+        "t": 1.5,
+        "cosine": 0.8538,
+        "box": [
+         699.7,
+         133.2,
+         110.1,
+         139.8
+        ]
+       },
+       {
+        "t": 2,
+        "cosine": 0.8303,
+        "box": [
+         691.6,
+         136.5,
+         108.4,
+         144.7
+        ]
+       },
+       {
+        "t": 2.5,
+        "cosine": 0.8533,
+        "box": [
+         671,
+         128.2,
+         113.2,
+         156.3
+        ]
+       },
+       {
+        "t": 3,
+        "cosine": 0.8459,
+        "box": [
+         645.4,
+         120.9,
+         121.9,
+         164.3
+        ]
+       },
+       {
+        "t": 3.5,
+        "cosine": 0.842,
+        "box": [
+         625.9,
+         120.7,
+         128.3,
+         165.3
+        ]
+       },
+       {
+        "t": 4,
+        "cosine": 0.8478,
+        "box": [
+         598.6,
+         112.3,
+         133,
+         181.3
+        ]
+       },
+       {
+        "t": 4.5,
+        "cosine": 0.8522,
+        "box": [
+         580.4,
+         120,
+         144.8,
+         187
+        ]
+       },
+       {
+        "t": 5,
+        "cosine": 0.8773,
+        "box": [
+         558.8,
+         115.2,
+         148.7,
+         199
+        ]
+       },
+       {
+        "t": 5.5,
+        "cosine": 0.8876,
+        "box": [
+         556.2,
+         112,
+         158.1,
+         208.4
+        ]
+       },
+       {
+        "t": 6,
+        "cosine": 0.8765,
+        "box": [
+         552.5,
+         107.5,
+         159.7,
+         215.2
+        ]
+       },
+       {
+        "t": 6.5,
+        "cosine": 0.8782,
+        "box": [
+         516.8,
+         109.3,
+         163.5,
+         217.6
+        ]
+       },
+       {
+        "t": 7,
+        "cosine": 0.8769,
+        "box": [
+         504.3,
+         100.6,
+         176.6,
+         236.6
+        ]
+       },
+       {
+        "t": 7.5,
+        "cosine": 0.8656,
+        "box": [
+         487,
+         65.9,
+         184.9,
+         252.9
+        ]
+       },
+       {
+        "t": 8,
+        "cosine": 0.8479,
+        "box": [
+         441.3,
+         18.6,
+         202.1,
+         266.2
+        ]
+       },
+       {
+        "t": 8.5,
+        "cosine": 0.7934,
+        "box": [
+         393.9,
+         4.1,
+         208.5,
+         233.8
+        ]
+       },
+       {
+        "t": 9,
+        "cosine": 0.7302,
+        "box": [
+         361.6,
+         1.1,
+         221,
+         207.9
+        ]
+       },
+       {
+        "t": 9.5,
+        "cosine": 0.6996,
+        "box": [
+         356.6,
+         1.7,
+         214.3,
+         205.8
+        ]
+       },
+       {
+        "t": 10,
+        "cosine": 0.6853,
+        "box": [
+         347.3,
+         2.8,
+         212.5,
+         197.3
+        ]
+       },
+       {
+        "t": 10.5,
+        "cosine": 0.6748,
+        "box": [
+         337.7,
+         3,
+         208,
+         198.5
+        ]
+       },
+       {
+        "t": 11,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 11.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 12,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 12.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 13,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 13.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 14,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 14.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 15,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 15.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 16,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 16.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 17,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 17.5,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 18,
+        "cosine": null,
+        "box": null
+       },
+       {
+        "t": 18.5,
+        "cosine": null,
+        "box": null
+       }
+      ],
+      "summary": {
+       "frames": 38,
+       "frames_with_face": 22,
+       "min": 0.6748,
+       "median": 0.8474,
+       "mean": 0.823,
+       "p10": 0.7027,
+       "below_threshold": 0,
+       "share_below": 0,
+       "drift": 0.1665,
+       "threshold": 0.363
+      }
+     }
+    },
+    "threshold": 0.363,
+    "review_below": 0.5,
+    "drift_review": 0.15,
+    "model": "YuNet 2023mar + SFace 2021dec (cosine)",
+    "ms": 1449
+   }
+  },
+  "similarity:cut-shot1-vs-cut-shot3 (H3 voices as heard)": {
+   "status": 200,
+   "ms": 4739,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.6792,
+    "a": {
+     "duration": 6
+    },
+    "b": {
+     "duration": 8
+    },
+    "ms": 4726
+   }
+  },
+  "similarity:recorded1-vs-recorded3": {
+   "status": 200,
+   "ms": 2676,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.7045,
+    "a": {
+     "duration": 4.47
+    },
+    "b": {
+     "duration": 5.863
+    },
+    "ms": 2668
+   }
+  },
+  "similarity:recorded1-vs-cut-shot1": {
+   "status": 200,
+   "ms": 1710,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.9169,
+    "a": {
+     "duration": 4.47
+    },
+    "b": {
+     "duration": 6
+    },
+    "ms": 1627
+   }
+  },
+  "similarity:recorded3-vs-cut-shot3": {
+   "status": 200,
+   "ms": 1205,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.9261,
+    "a": {
+     "duration": 5.863
+    },
+    "b": {
+     "duration": 8
+    },
+    "ms": 1196
+   }
+  },
+  "similarity:voice-ref-vs-recorded1": {
+   "status": 200,
+   "ms": 2107,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.6158,
+    "a": {
+     "duration": 8.8
+    },
+    "b": {
+     "duration": 4.47
+    },
+    "ms": 2086
+   }
+  },
+  "similarity:voice-ref-vs-recorded3": {
+   "status": 200,
+   "ms": 708,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.8607,
+    "a": {
+     "duration": 8.8
+    },
+    "b": {
+     "duration": 5.863
+    },
+    "ms": 693
+   }
+  },
+  "similarity:voice-ref-vs-cut-shot1": {
+   "status": 200,
+   "ms": 1564,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.5583,
+    "a": {
+     "duration": 8.8
+    },
+    "b": {
+     "duration": 6
+    },
+    "ms": 1541
+   }
+  },
+  "similarity:voice-ref-vs-cut-shot3": {
+   "status": 200,
+   "ms": 1091,
+   "body": {
+    "ok": true,
+    "model": "speechbrain/spkrec-ecapa-voxceleb",
+    "version": "speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e",
+    "cosine": 0.7906,
+    "a": {
+     "duration": 8.8
+    },
+    "b": {
+     "duration": 8
+    },
+    "ms": 1083
+   }
+  }
+ }
+}
