@@ -28,6 +28,7 @@ import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { assertLocationPlate } from '@/server/production/location-rule';
+import { identityAppliedChecks, measurePlateDrift, type PlateDrift } from '@/server/media/plate-drift';
 import { establishFromTake } from '@/server/world';
 import { outputId } from '@/server/jobs/outputs';
 import type { CommandSpec } from '@/server/studio/engine';
@@ -445,6 +446,27 @@ export const generateTake: Handler = async (ctx) => {
       await ctx.event('warn', `shot ${sh.number}: the people on screen could not be counted (${(e as Error).message})`, { shotId: sh.id });
     }
   }
+  // DRIFT CHECKS (the World Continuity step; src/server/media/plate-drift.ts) — measured facts on the take, never a
+  // score: (1) the place in the take's first kept frame against the canonical plate it was conditioned on (provisional
+  // threshold: a mismatch is REVIEW, the take is not rejected); (2) each present character's identity reference was
+  // applied in the request that was sent (the identity rule's report on the request)
+  const driftChecks: QaCheck[] = [];
+  const applied = identityAppliedChecks(identityRule);
+  driftChecks.push({ name: 'identity-references-applied', ok: applied.ok, value: applied.characters.filter((c) => c.applied).length, threshold: applied.characters.length, detail: applied.detail });
+  let plateDrift: PlateDrift | undefined;
+  let plateDriftNote: string | undefined;
+  if (pack.location && loc) {
+    const plateAsset = byId(pack.location.assetId);
+    try {
+      plateDrift = await step(ctx, 'world-continuity', `drift-check: shot ${sh.number}`, () => measurePlateDrift(result.file, trimStartFrames, assetFile(plateAsset!), pack.location!.assetId));
+      driftChecks.push({ name: 'location-matches-plate', ok: plateDrift.matches, value: plateDrift.meanDiff, threshold: plateDrift.threshold, detail: plateDrift.detail });
+      if (!plateDrift.matches) await ctx.event('warn', `shot ${sh.number}: ${plateDrift.detail}`, { plateDrift });
+    } catch (e) {
+      plateDriftNote = `not measured (${(e as Error).message.split('\n')[0]})`;
+      driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
+    }
+  } else if (pack.establishing) driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${pack.establishing.name} is established by this take: there is no earlier plate to compare with` });
+  report.checks.push(...driftChecks);
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
   // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as an
@@ -505,13 +527,18 @@ export const generateTake: Handler = async (ctx) => {
   // invented here.
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
   // Inspector)
   const pictureOk = pictureChecks.every((c) => c.ok);
   const qaReports: TakeCommit['qa'] = [{ name: 'picture', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'visual-quality-inspector', checks: pictureChecks, failureClass: pictureOk ? undefined : 'OUTPUT_CORRUPTION', decision: pictureOk ? 'ACCEPT' : 'REJECT', evidenceAssetIds: [videoId, posterId], jobId: ctx.job.id }];
+  // the drift checks as their own report (the take's QA record): ACCEPT, or REVIEW when the place drifted from its
+  // plate or an identity was not applied — never a rejection on the provisional plate threshold
+  const driftOk = driftChecks.every((c) => c.ok);
+  qaReports.push({ name: 'continuity', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'visual-quality-inspector', checks: driftChecks, failureClass: driftOk ? undefined : applied.ok ? 'ENVIRONMENT_INCONSISTENCY' : 'CHARACTER_INCONSISTENCY', decision: driftOk ? 'ACCEPT' : 'REVIEW', notes: driftOk ? undefined : 'look before choosing this take: the measured drift is over the provisional threshold', evidenceAssetIds: [videoId, ...(pack.location ? [pack.location.assetId] : [])], jobId: ctx.job.id });
   if (scriptCheck) qaReports.push({ name: 'script', productionId: p.id, subjectKind: 'TAKE', subjectId: '', inspectorId: 'audio-sync-inspector', checks: [{ name: 'script-spoken', ok: scriptCheck.ok, value: scriptCheck.coverage, threshold: TAKE_COVERAGE, detail: scriptCheck.heard ? `heard: ${scriptCheck.heard.slice(0, 160)}` : scriptCheck.detail }, ...(scriptCheck.cer !== undefined ? [{ name: 'character-error-rate', ok: scriptCheck.cer <= VOICE_GATES.cer, value: scriptCheck.cer, threshold: VOICE_GATES.cer, detail: 'after the dialect fold; gated' }] : []), ...(scriptCheck.wer !== undefined ? [{ name: 'word-error-rate', ok: true, value: scriptCheck.wer, detail: 'reported, not gated' }] : [])], failureClass: scriptCheck.ok || takeUnverified ? undefined : 'LIP_SYNC_FAILURE', decision: takeUnverified ? 'REVIEW' : scriptCheck.ok ? 'ACCEPT' : 'REJECT', notes: takeUnverified ? 'transcription unavailable: listen before choosing this take' : undefined, evidenceAssetIds: [videoId, ...(soundtrack?.assetId ? [soundtrack.assetId] : [])], jobId: ctx.job.id });
   // THE COMMIT: the assets, the take (its id is the job's), its selection — the first accepted take of a shot is
   // chosen so the cut can be assembled, also over a bundled sample clip; a producer's own choice of a real take is

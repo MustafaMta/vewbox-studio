@@ -311,6 +311,7 @@ export const AGENTS: AgentDef[] = [
       { id: 'world-read', name: 'World Bible read for a take', where: W('handlers/take.ts') },
       { id: 'establish-locations', name: 'Established frames of an approved cut', where: W('handlers/assemble.ts') },
       { id: 'establish-here', name: 'A place established by its first take (the scene marked "establish here")', where: W('handlers/take.ts') },
+      { id: 'drift-check', name: 'The take’s place measured against its canonical plate', where: W('handlers/take.ts') },
     ] },
   // Pre-Production
   { id: 'film-director', name: 'Film Director', department: 'PREPRODUCTION', role: 'Director: the shot plan',
