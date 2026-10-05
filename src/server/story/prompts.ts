@@ -39,11 +39,26 @@ const describedSpeaker = (cast: Character[]): SpeakerLabel => (id) => { const c 
  *  "end statements with appropriate terminal marks before </d>"); the words are never touched. */
 const spoken = (text: string) => { const t = clean(text); return /[.!?…؟!。»”"')\]]$/.test(t) ? t : `${t}.`; };
 
+/** The language tag of one spoken line: the line's own script when it has only one (an Iraqi line written in Arabic
+ *  inside an English production is `[Arabic]`, an English line inside an Arabic production `[English]`); a mixed or
+ *  letterless line keeps the production's language. Found by the acceptance run 2026-10-05: shot 1.2 of "Tea at
+ *  Mutanabbi" went to H3 as `<d>[English] هلا بيج عيني…</d>`. */
+export function lineLanguageTag(text: string, productionLanguage: string): string {
+  const arabic = /\p{Script=Arabic}/u.test(text);
+  const latin = /[A-Za-zÀ-ɏ]{2,}/.test(text);
+  if (arabic && !latin) return 'Arabic';
+  if (latin && !arabic) return 'English';
+  return LANG_TAG[productionLanguage] ?? 'English';
+}
+
 export function dialogueTags(p: Production, sh: Shot, cast: Character[], speaker: SpeakerLabel = describedSpeaker(cast), verb = ''): string {
   if (!sh.dialogue.length) return '';
-  const lang = LANG_TAG[p.language] ?? 'English';
-  return sh.dialogue.map((d) => { const text = p.language === 'AR' ? (d.textAr || d.text) : d.text; const who = speaker(d.characterId); return `${who}${who && verb ? ` ${verb}` : ''} <d>[${lang}] ${spoken(text)}</d>`.trim(); }).join(' ');
+  return sh.dialogue.map((d) => { const text = p.language === 'AR' ? (d.textAr || d.text) : d.text; const who = speaker(d.characterId); return `${who}${who && verb ? ` ${verb}` : ''} <d>[${lineLanguageTag(text, p.language)}] ${spoken(text)}</d>`.trim(); }).join(' ');
 }
+
+/** Said after the last line of a speaking shot: the clip usually runs longer than its words, and H3 fills the rest by
+ *  speaking again (acceptance 2026-10-05, shot 1.3: "Thank you!" said twice in 2 of 2 takes, 0.8 s after the line). */
+export const AFTER_LAST_LINE = 'After the last line nobody speaks again: no repeated or added words; only the ambience is heard.';
 
 /** Music video: the lines the shot's window covers, sung by their assigned performer (described, never named), and
  *  nobody else. Listeners are told not to mouth the words; an instrumental window says so. */
@@ -287,7 +302,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   // THE SCENE STATE (src/domain/scene-state.ts): the carried facts — time of day, weather, light, the place as the
   // story left it, what people hold, the props — after the shot's own continuity; nothing the body already says
   const stateLine = opts.sceneState ? sceneStateLine(opts.sceneState, plainSubject).split(/(?<=\.)\s+/).filter((s) => !cont.includes(s.replace(/^Scene state \([^)]*\): /, '').replace(/\.$/, ''))).join(' ') : '';
-  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : dialogueTags(p, sh, cast, speaker, 'says,');
+  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : `${dialogueTags(p, sh, cast, speaker, 'says,')} ${AFTER_LAST_LINE}`;
   // THE TIMED BEATS: `[M:SS]` point marks inside a shot (never read as cuts); a beat with a cut opens the next
   // `[Shot N] At MM:SS.mmm, hard cut to …`
   const marks: string[] = [];

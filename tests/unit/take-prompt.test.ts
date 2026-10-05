@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { h3ReferencePrompt, lintH3Prompt, stripDialogueTags, takePrompt, type H3Binding } from '@/server/story/prompts';
+import { AFTER_LAST_LINE, h3ReferencePrompt, lineLanguageTag, lintH3Prompt, stripDialogueTags, takePrompt, type H3Binding } from '@/server/story/prompts';
 import { fixture, shotOf } from './continuity-fixture';
 
 /** The take prompt: the planner's dialogue tags are stripped without eating the picture direction in front of them
@@ -71,6 +71,31 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     for (const c of cast) expect(prompt).not.toContain(c.name);
     expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 4, audios: 0, lines: ['We close in ten minutes.'], names: cast.map((c) => c.name) })).toMatchObject({ ok: true });
     expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 4, audios: 0, lines: ['We close in ten minutes.'], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
+  });
+
+  it('acceptance 2026-10-05: each line is tagged in its own script, and the take is told nobody speaks after the last line', () => {
+    const { p, cast, loc } = setup();
+    const sh = shotOf(p, 's12');
+    const [a, b] = sh.characterIds;
+    const binding: H3Binding = { ...cutBinding, subjects: [{ characterId: a, picture: 1 }, { characterId: b, picture: 2 }], location: { picture: 3 }, opening: { kind: 'FRAME', picture: 4 } };
+    // an Iraqi line written in Arabic inside an English production
+    const iraqi = { ...sh, dialogue: [{ ...sh.dialogue[0], text: 'هلا بيج عيني، هذا أطيب چاي ببغداد.' }] };
+    const prompt = h3ReferencePrompt({ ...p, language: 'EN' }, iraqi, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
+    expect(prompt).toContain('<d>[Arabic] هلا بيج عيني، هذا أطيب چاي ببغداد.</d>');
+    expect(prompt).not.toContain('[English] هلا');
+    expect(prompt).toContain(AFTER_LAST_LINE);
+    expect(prompt.indexOf(AFTER_LAST_LINE)).toBeGreaterThan(prompt.indexOf('</d>'));
+    // a silent shot keeps its own sentence and is not told about a last line
+    const silent = h3ReferencePrompt(p, { ...sh, dialogue: [] }, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
+    expect(silent).not.toContain(AFTER_LAST_LINE);
+  });
+
+  it('lineLanguageTag: the script of the line, else the production language', () => {
+    expect(lineLanguageTag('Excuse me, is this the famous tea?', 'AR')).toBe('English');
+    expect(lineLanguageTag('تفضلي اگعدي.', 'EN')).toBe('Arabic');
+    expect(lineLanguageTag('شغّل الـ wifi', 'AR')).toBe('Arabic');
+    expect(lineLanguageTag('شغّل الـ wifi', 'EN')).toBe('English');
+    expect(lineLanguageTag('...', 'AR')).toBe('Arabic');
   });
 
   it('the boundary in words: a cut without an opening frame is a new camera on the same moment; a transition opens a new scene with the story state, names bound to subjects', () => {
