@@ -192,6 +192,24 @@ describe('export: subtitle tracks for an English film (QA Q4)', () => {
   }, 300_000);
 });
 
+describe('missing reference at assembly (§26)', () => {
+  it('a chosen take whose file is gone: the cut is refused before rendering, naming the shot (MISSING_REFERENCE, one attempt)', async () => {
+    const p = await production();
+    const take = (await readState()).state.assets.find((a) => a.id === p.shots[1].takes.find((t) => t.id === p.shots[1].selectedTakeId)!.assetId)!;
+    const file = assetFile(take); const aside = `${file}.aside`;
+    fs.renameSync(file, aside);
+    try {
+      const { job } = await enqueue({ type: 'ASSEMBLE', payload: { productionId } });
+      made.push(job.id);
+      const done = await runToEnd(job.id, 'assemble-missing');
+      expect(done.status).toBe('FAILED');
+      expect(done.attempts).toBe(1);
+      expect((done.error as { message: string }).message).toMatch(/cannot be assembled: missing reference file: the chosen take of shot 1\.2/);
+      expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'MISSING_REFERENCE']]);
+    } finally { fs.renameSync(aside, file); }
+  }, 200_000);
+});
+
 describe('assembly validation', () => {
   it('the cut is validated for codec, container, one picture + one sound, its length and the disclosure', async () => {
     const { job } = await enqueue({ type: 'ASSEMBLE', payload: { productionId } });
