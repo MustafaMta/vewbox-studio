@@ -1,0 +1,2595 @@
+{
+  "checked": "2026-10-04T23:06:07.828Z",
+  "base": "http://localhost:4261",
+  "report": [
+    {
+      "page": "home",
+      "path": "/",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 49529,
+      "skeleton": {
+        "at": 838,
+        "parts": 71,
+        "height": 2715,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 866,
+          "state": "page",
+          "height": 2715
+        },
+        {
+          "t": 48713,
+          "state": "content",
+          "height": 2715
+        }
+      ],
+      "title": "Home · Vewbox Studio",
+      "h1": "The Static Sky",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2735,
+      "pageHeight": 2855,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.home-hero-title \"The Static Sky\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Shows\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Shorts\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Music videos\"",
+          "section.shelf",
+          "div.shead",
+          "h2.t-section.shead-title \"Characters\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.home",
+      "textNodes": 54,
+      "fonts": {
+        "Geist": 54
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 11,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 2,
+      "faded": 2,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0.0002,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "shorts",
+      "path": "/shorts",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 50181,
+      "skeleton": {
+        "at": 1608,
+        "parts": 14,
+        "height": 1550,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 1626,
+          "state": "page",
+          "height": 1550
+        },
+        {
+          "t": 49369,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Shorts · Vewbox Studio",
+      "h1": "Shorts",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.shorts-head",
+          "div.shorts-head-words",
+          "h1.t-page.shorts-title \"Shorts\"",
+          "ul.shorts-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.shorts-title",
+      "textNodes": 10,
+      "fonts": {
+        "Geist": 10
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 1,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "short",
+      "path": "/shorts/short-28bdb3342b",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 56735,
+      "skeleton": {
+        "at": 1194,
+        "parts": 24,
+        "height": 724,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 1215,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 55916,
+          "state": "content",
+          "height": 3674
+        }
+      ],
+      "title": "The Static Sky · Shorts · Vewbox Studio",
+      "h1": "The Static Sky",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 3674,
+      "pageHeight": 3794,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.film-head",
+          "div.film-head-row",
+          "h1.t-display.film-title \"The Static Sky\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Downloads\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Story\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Cast and locations\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Credits\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "main.shell-main",
+      "textNodes": 104,
+      "fonts": {
+        "Geist": 101,
+        "Geist Mono": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 8,
+      "arabicUi": [],
+      "images": 11,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "h1.t-display.film-title \"The Static Sky\""
+      ],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "music-videos",
+      "path": "/music-videos",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 3475,
+      "skeleton": {
+        "at": 648,
+        "parts": 14,
+        "height": 1117,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 668,
+          "state": "page",
+          "height": 1117
+        },
+        {
+          "t": 2652,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Music Videos · Vewbox Studio",
+      "h1": "Music videos",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.mv-cat-head",
+          "h1.t-page.mv-cat-title \"Music videos\"",
+          "ul.mv-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.mv-cat-title",
+      "textNodes": 10,
+      "fonts": {
+        "Geist": 10
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 4,
+      "arabicUi": [],
+      "images": 2,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.mcard-meta \"Layla & Karim · 0:36 · Story\"",
+        "span.mcard-meta \"Nour · 0:48 · Cast and world\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "music-video",
+      "path": "/music-videos/river-lights",
+      "fixture": true,
+      "width": 390,
+      "loadedMs": 3533,
+      "skeleton": {
+        "at": 653,
+        "parts": 34,
+        "height": 1460,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 674,
+          "state": "page",
+          "height": 1460
+        },
+        {
+          "t": 2722,
+          "state": "content",
+          "height": 2001
+        }
+      ],
+      "title": "River Lights · Music Videos · Vewbox Studio",
+      "h1": "River Lights",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2001,
+      "pageHeight": 2121,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "div.mv-head",
+          "h1.t-display.mv-title \"River Lights\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Lyrics\"",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.mv-sec-head",
+          "div.shead",
+          "h2.t-section.shead-title \"Cast\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.hero.mv-page",
+      "textNodes": 56,
+      "fonts": {
+        "Geist": 46,
+        "Geist Mono": 10
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 5,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "h1.t-display.mv-title \"River Lights\""
+      ],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "characters",
+      "path": "/characters",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3425,
+      "skeleton": {
+        "at": 668,
+        "parts": 17,
+        "height": 1375,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 689,
+          "state": "page",
+          "height": 1375
+        },
+        {
+          "t": 2609,
+          "state": "content",
+          "height": 1423
+        }
+      ],
+      "title": "Characters · Vewbox Studio",
+      "h1": "Characters5",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1423,
+      "pageHeight": 1543,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.pc-head",
+          "div.pc-head-words",
+          "h1.t-page.pc-head-title \"Characters5\"",
+          "p.t-body.pc-head-desc",
+          "div.pc-head-acts",
+          "ul.pc-grid"
+        ],
+        "161": [
+          "span.pc-head-count"
+        ]
+      },
+      "edgeKeys": [
+        16,
+        161
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.pc-page",
+      "textNodes": 13,
+      "fonts": {
+        "Geist": 12,
+        "Geist Mono": 1
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 5,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "character-en",
+      "path": "/characters/char-56c47abc59",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 12052,
+      "skeleton": {
+        "at": 9121,
+        "parts": 11,
+        "height": 980,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 9144,
+          "state": "page",
+          "height": 980
+        },
+        {
+          "t": 11238,
+          "state": "content",
+          "height": 4185
+        }
+      ],
+      "title": "Elias Moore · Characters · Vewbox Studio",
+      "h1": "Elias Moore",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 4185,
+      "pageHeight": 4305,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.t-hero.char-name \"Elias Moore\"",
+          "div.shead",
+          "h2.t-section.shead-title \"About\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Voice\"",
+          "div.pc-card-head",
+          "div.shead",
+          "h2.t-section.shead-title \"Appears in\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Notes for the writers\"",
+          "form.char-form"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "article.pc-page",
+      "textNodes": 97,
+      "fonts": {
+        "Geist": 86,
+        "Geist Mono": 11
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button.btn.btn-secondary",
+          "text": "Edit",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(41, 41, 41)",
+          "ratio": 2.1,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        }
+      ],
+      "onArt": 16,
+      "arabicUi": [],
+      "images": 9,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.arow-title \"“Hello. My name is Elias Moore, and this\"",
+        "span.arow-meta \"Designed voice, not a real person · Engl\"",
+        "span.arow-title \"“Did you see the 1987 storm, Clara? Thir\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [
+        "button.btn.btn-secondary \"Saved\""
+      ],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "character-new-auto",
+      "path": "/characters/new",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3889,
+      "skeleton": {
+        "at": 666,
+        "parts": 23,
+        "height": 724,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 686,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 3073,
+          "state": "content",
+          "height": 900
+        }
+      ],
+      "title": "New character · Characters · Vewbox Studio",
+      "h1": "New character",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 900,
+      "pageHeight": 1020,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.pc-head",
+          "div.pc-head-words",
+          "h1.t-page.pc-head-title \"New character\"",
+          "p.t-body.pc-head-desc"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.pc-page.pc-create",
+      "textNodes": 41,
+      "fonts": {
+        "Geist": 41
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "button.link-quiet",
+          "name": "Change",
+          "w": 47,
+          "h": 20
+        }
+      ],
+      "targetsTotal": 1,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "character-new-manual",
+      "path": "/characters/new?start=sheet",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3823,
+      "skeleton": {
+        "at": 658,
+        "parts": 23,
+        "height": 724,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 679,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 3012,
+          "state": "content",
+          "height": 931
+        }
+      ],
+      "title": "New character · Characters · Vewbox Studio",
+      "h1": "New character",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 931,
+      "pageHeight": 1051,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.pc-head",
+          "div.pc-head-words",
+          "h1.t-page.pc-head-title \"New character\"",
+          "p.t-body.pc-head-desc"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.pc-page.pc-create",
+      "textNodes": 55,
+      "fonts": {
+        "Geist": 55
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "character-new-picture",
+      "path": "/characters/new?start=picture",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3877,
+      "skeleton": {
+        "at": 667,
+        "parts": 23,
+        "height": 724,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 688,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 3065,
+          "state": "content",
+          "height": 1403
+        }
+      ],
+      "title": "New character · Characters · Vewbox Studio",
+      "h1": "New character",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1403,
+      "pageHeight": 1523,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.pc-head",
+          "div.pc-head-words",
+          "h1.t-page.pc-head-title \"New character\"",
+          "p.t-body.pc-head-desc"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.pc-page.pc-create",
+      "textNodes": 46,
+      "fonts": {
+        "Geist": 46
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "input.dropzone-input \"\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "input.dropzone-input",
+          "name": "",
+          "w": 1,
+          "h": 1
+        },
+        {
+          "el": "button.link-quiet",
+          "name": "Change",
+          "w": 47,
+          "h": 20
+        }
+      ],
+      "targetsTotal": 2,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "location",
+      "path": "/locations/loc-cde19129ca",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3429,
+      "skeleton": {
+        "at": 655,
+        "parts": 9,
+        "height": 724,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 673,
+          "state": "page",
+          "height": 724
+        },
+        {
+          "t": 2621,
+          "state": "content",
+          "height": 2756
+        }
+      ],
+      "title": "Elias’s Workshop · Locations · Vewbox Studio",
+      "h1": "Elias’s Workshop",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2756,
+      "pageHeight": 2876,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.t-hero \"Elias’s Workshop\"",
+          "div.shead",
+          "h2.t-section.shead-title \"The place\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Plates\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Appears in\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "article.pc-page",
+      "textNodes": 44,
+      "fonts": {
+        "Geist": 40,
+        "Geist Mono": 4
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button.btn.btn-secondary",
+          "text": "Add",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(41, 41, 41)",
+          "ratio": 2.1,
+          "need": 4.5,
+          "size": 14,
+          "disabled": true
+        }
+      ],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 4,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [
+        "button.btn.btn-secondary \"Add\""
+      ],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "location-new",
+      "path": "/locations/new",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3440,
+      "skeleton": {
+        "at": 659,
+        "parts": 25,
+        "height": 839,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 679,
+          "state": "page",
+          "height": 839
+        },
+        {
+          "t": 2632,
+          "state": "content",
+          "height": 2750
+        }
+      ],
+      "title": "New location · Locations · Vewbox Studio",
+      "h1": "New location",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 2750,
+      "pageHeight": 2870,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.pc-head",
+          "div.pc-head-words",
+          "h1.t-page.pc-head-title \"New location\"",
+          "p.t-body.pc-head-desc"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.pc-page.pc-create",
+      "textNodes": 20,
+      "fonts": {
+        "Geist": 20
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "textarea.textarea.input-lg",
+          "name": "",
+          "w": 30,
+          "h": 120
+        },
+        {
+          "el": "input.input",
+          "name": "",
+          "w": 26,
+          "h": 44
+        }
+      ],
+      "targetsTotal": 2,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "workspace",
+      "path": "/shorts/short-28bdb3342b/production",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 4974,
+      "skeleton": {
+        "at": 666,
+        "parts": 170,
+        "height": 3656,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 696,
+          "state": "page",
+          "height": 3656
+        },
+        {
+          "t": 4163,
+          "state": "content",
+          "height": 3843
+        }
+      ],
+      "title": "Production · The Static Sky · Shorts · Vewbox Studio",
+      "h1": "The production map of The Static Sky",
+      "contentLeft": 0,
+      "contentWidth": 390,
+      "mainHeight": 3843,
+      "pageHeight": 3963,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "div.shead",
+          "h2.t-section.shead-title \"Waiting for you\"",
+          "div.shead",
+          "h2.t-section.shead-title \"On the floor\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Story\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Breakdown review\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Scenes and shots\"",
+          "div.ws-scene-head",
+          "div.ws-scene-head",
+          "div.shead",
+          "h2.t-section.shead-title \"Final cut\"",
+          "div.shead",
+          "h2.t-section.shead-title \"About this production\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "main.shell-main",
+      "textNodes": 225,
+      "fonts": {
+        "Geist": 195,
+        "Geist Mono": 30
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button.btn.btn-secondary",
+          "text": "Produce every shot",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(31, 31, 31)",
+          "ratio": 2.38,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        }
+      ],
+      "onArt": 10,
+      "arabicUi": [],
+      "images": 19,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [
+        {
+          "name": "Two lines to hear again",
+          "dx": 16
+        },
+        {
+          "name": "The production pass",
+          "dx": 16
+        }
+      ],
+      "progress": [],
+      "truncated": [
+        "span.ws-shot-purpose \"Establish the workshop and Najm's entran\"",
+        "span.ws-shot-name \"Medium close-up · pull back · 6 s\"",
+        "span.ws-shot-purpose \"Focus on Elias examining the radio\"",
+        "span.ws-shot-purpose \"Show Najm's interaction with the radio\"",
+        "span.ws-shot-name \"Medium wide · truck left · 9 s\"",
+        "span.ws-shot-purpose \"Show the radio's reaction and Najm's sur\"",
+        "span.ws-shot-purpose \"Show the radio's activation and Elias's \"",
+        "span.ws-shot-purpose \"Capture Elias's stunned expression and t\"",
+        "span.ws-shot-purpose \"Introduce Najm's reaction and the photo'\"",
+        "span.ws-shot-name \"Medium close-up · push in · 10 s\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.ws-studioline-link",
+          "name": "Resume in the Studio CompanyRe",
+          "w": 49,
+          "h": 18
+        },
+        {
+          "el": "a",
+          "name": "Story: the approved script",
+          "w": 186,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "2 scenes",
+          "w": 58,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "8 shots",
+          "w": 47,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "15 takes, 8 selected",
+          "w": 126,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "Final cut 3",
+          "w": 67,
+          "h": 32
+        },
+        {
+          "el": "a",
+          "name": "Shot 1.2, 6 seconds",
+          "w": 34,
+          "h": 64
+        },
+        {
+          "el": "a",
+          "name": "Shot 2.1, 7 seconds",
+          "w": 39,
+          "h": 64
+        },
+        {
+          "el": "a",
+          "name": "Shot 2.2, 6 seconds",
+          "w": 34,
+          "h": 64
+        },
+        {
+          "el": "a",
+          "name": "Shot 2.3, 7 seconds",
+          "w": 39,
+          "h": 64
+        },
+        {
+          "el": "a.ws-textlink",
+          "name": "Screen",
+          "w": 46,
+          "h": 20
+        },
+        {
+          "el": "a.ws-textlink",
+          "name": "Screen",
+          "w": 46,
+          "h": 20
+        }
+      ],
+      "targetsTotal": 12,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": false,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "names on the frame edge",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "shot",
+      "path": "/shorts/short-28bdb3342b/shots/shot-24bf719d21",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 4314,
+      "skeleton": {
+        "at": 665,
+        "parts": 124,
+        "height": 4863,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 692,
+          "state": "page",
+          "height": 4863
+        },
+        {
+          "t": 3507,
+          "state": "content",
+          "height": 4111
+        }
+      ],
+      "title": "Shot 1.1 · The Static Sky · Shorts · Vewbox Studio",
+      "h1": "Shot 1.1 of The Static Sky",
+      "contentLeft": 0,
+      "contentWidth": 390,
+      "mainHeight": 4111,
+      "pageHeight": 4231,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "0": [
+          "div.ws-insp-head"
+        ],
+        "16": [
+          "div.ws-stage-head",
+          "div.ws-sub-head",
+          "h2.t-title \"Takes 1\"",
+          "div.ws-sub-head",
+          "h2.t-title \"Attempts\""
+        ],
+        "20": [
+          "h2.ws-insp-title \"Shot 1.1\""
+        ]
+      },
+      "edgeKeys": [
+        0,
+        16,
+        20
+      ],
+      "headLefts": [
+        16,
+        20
+      ],
+      "rows": [],
+      "container": "main.shell-main",
+      "textNodes": 150,
+      "fonts": {
+        "Geist": 142,
+        "Geist Mono": 8
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button",
+          "text": "Ending frame",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(31, 31, 31)",
+          "ratio": 2.38,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        },
+        {
+          "el": "button.btn.btn-primary",
+          "text": "New take",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(41, 41, 41)",
+          "ratio": 2.1,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        },
+        {
+          "el": "button.btn.btn-secondary",
+          "text": "Draw the frames again",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(31, 31, 31)",
+          "ratio": 2.38,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        }
+      ],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 6,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.pick-label \"Extreme close-up\"",
+        "span.pick-label \"Over the shoulder\""
+      ],
+      "clamped": [],
+      "disabledNoReason": [
+        "a.btn.btn-secondary \"No previous shot\"",
+        "button \"Ending frame\"",
+        "button.btn.btn-primary \"Save the shot\""
+      ],
+      "targets": [
+        {
+          "el": "a.ws-studioline-link",
+          "name": "Resume in the Studio CompanyRe",
+          "w": 49,
+          "h": 18
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Mark in",
+          "w": 40,
+          "h": 44
+        },
+        {
+          "el": "button.btn.btn-quiet",
+          "name": "Mark out",
+          "w": 40,
+          "h": 44
+        },
+        {
+          "el": "input",
+          "name": "",
+          "w": 13,
+          "h": 13
+        }
+      ],
+      "targetsTotal": 4,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": false,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "one start edge for heads",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "screening-film",
+      "path": "/screening?p=short-28bdb3342b",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3950,
+      "skeleton": {
+        "at": 670,
+        "parts": 18,
+        "height": 816,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 694,
+          "state": "page",
+          "height": 816
+        },
+        {
+          "t": 3133,
+          "state": "content",
+          "height": 1190
+        }
+      ],
+      "title": "The Static Sky · Screening Room · Vewbox Studio",
+      "h1": "The Static Sky",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 1190,
+      "pageHeight": 1310,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "form.theatre-composer",
+          "h1.t-hero.theatre-title \"The Static Sky\""
+        ],
+        "32": [
+          "div.theatre-note-head",
+          "div.theatre-note-head"
+        ]
+      },
+      "edgeKeys": [
+        16,
+        32
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "div.theatre",
+      "textNodes": 53,
+      "fonts": {
+        "Geist Mono": 12,
+        "Geist": 41
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [
+        {
+          "el": "button.btn.btn-primary",
+          "text": "Add note",
+          "fg": "rgb(90, 90, 88)",
+          "bg": "rgb(41, 41, 41)",
+          "ratio": 2.1,
+          "need": 4.5,
+          "size": 13,
+          "disabled": true
+        }
+      ],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [
+        "button.btn.btn-primary \"Add note\""
+      ],
+      "targets": [
+        {
+          "el": "button.theatre-note-tc.t-ro",
+          "name": "Jump to 0:00, note 1",
+          "w": 41,
+          "h": 20
+        },
+        {
+          "el": "button.theatre-note-tc.t-ro",
+          "name": "Jump to 0:00, note 2",
+          "w": 41,
+          "h": 20
+        }
+      ],
+      "targetsTotal": 2,
+      "cls": 0.0002,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "screening",
+      "path": "/screening",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3571,
+      "skeleton": {
+        "at": 678,
+        "parts": 18,
+        "height": 816,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 700,
+          "state": "page",
+          "height": 816
+        },
+        {
+          "t": 2755,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Screening Room · Vewbox Studio",
+      "h1": "Screening Room",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.theatre-lobby-head",
+          "h1.t-page \"Screening Room\"",
+          "ul.theatre-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page",
+      "textNodes": 4,
+      "fonts": {
+        "Geist": 4
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 1,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "studio",
+      "path": "/studio",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 6059,
+      "skeleton": {
+        "at": 659,
+        "parts": 55,
+        "height": 1771,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 682,
+          "state": "page",
+          "height": 1771
+        },
+        {
+          "t": 5254,
+          "state": "content",
+          "height": 4345
+        }
+      ],
+      "title": "Studio Company · Vewbox Studio",
+      "h1": "Studio Company",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 4345,
+      "pageHeight": 4465,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.cp-head",
+          "div.cp-head-row",
+          "div.cp-head-words",
+          "h1.t-page.cp-title \"Studio Company\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Running now\"",
+          "div.shead",
+          "h2.t-section.shead-title \"On the record\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Departments\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.cp-title",
+      "textNodes": 255,
+      "fonts": {
+        "Geist": 199,
+        "Geist Mono": 56
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": []
+    },
+    {
+      "page": "production",
+      "path": "/production",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 4821,
+      "skeleton": {
+        "at": 662,
+        "parts": 75,
+        "height": 2055,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 687,
+          "state": "page",
+          "height": 2055
+        },
+        {
+          "t": 4002,
+          "state": "content",
+          "height": 4613
+        }
+      ],
+      "title": "(4) Production · Vewbox Studio",
+      "h1": "Production",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 4733,
+      "pageHeight": 4853,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.cp-head",
+          "div.cp-head-row",
+          "div.cp-head-words",
+          "h1.t-page.cp-title \"Production\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Needs you\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Running now\"",
+          "div.shead",
+          "h2.t-section.shead-title \"History\"",
+          "div.shead",
+          "h2.t-section.shead-title \"Engine room\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.cp-title",
+      "textNodes": 205,
+      "fonts": {
+        "Geist": 184,
+        "Geist Mono": 21
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 2,
+      "arabicUi": [],
+      "images": 4,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [
+        {
+          "name": "Hana Mori",
+          "dx": 16
+        },
+        {
+          "name": "Salam",
+          "dx": 16
+        },
+        {
+          "name": "Two lines to hear again",
+          "dx": 16
+        },
+        {
+          "name": "The production pass",
+          "dx": 16
+        }
+      ],
+      "progress": [],
+      "truncated": [],
+      "clamped": [
+        "span.dcard-desc.t-body \"Drawn from the reference picture you upl\"",
+        "span.cp-row-title \"Voice preview · Najm\"",
+        "span.cp-row-title \"Export · The Static Sky\"",
+        "span.cp-row-title \"Assemble the cut · The Static Sky\"",
+        "span.cp-row-title \"Generate video · The Static Sky · shot 2\"",
+        "span.cp-row-title \"Generate video · The Static Sky · shot 2\"",
+        "span.cp-row-title \"Assemble the cut · The Static Sky\"",
+        "span.cp-row-title \"Generate video · The Static Sky · shot 2\"",
+        "span.cp-row-title \"Generate video · The Static Sky · shot 2\"",
+        "span.cp-row-title \"Generate video · The Static Sky · shot 1\""
+      ],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.cp-link",
+          "name": "Najm",
+          "w": 35,
+          "h": 46
+        }
+      ],
+      "targetsTotal": 1,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": false,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "names on the frame edge",
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "assets",
+      "path": "/assets",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3577,
+      "skeleton": {
+        "at": 665,
+        "parts": 41,
+        "height": 1320,
+        "generic": false,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 685,
+          "state": "page",
+          "height": 1320
+        },
+        {
+          "t": 2763,
+          "state": "content",
+          "height": 15627
+        }
+      ],
+      "title": "Files · Vewbox Studio",
+      "h1": "Files",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 15627,
+      "pageHeight": 15747,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "header.cp-head",
+          "div.cp-head-row",
+          "div.cp-head-words",
+          "h1.t-page.cp-title \"Files\"",
+          "div.cp-head-end",
+          "form.search-field.fl-search",
+          "div.shead",
+          "h2.t-section.shead-title \"Characters\"",
+          "ul.fl-grid",
+          "ul.fl-grid",
+          "ul.fl-grid",
+          "ul.fl-grid",
+          "ul.fl-grid",
+          "div.shead",
+          "h2.t-section.shead-title \"Locations\"",
+          "ul.fl-grid",
+          "div.shead",
+          "h2.t-section.shead-title \"Productions\"",
+          "ul.fl-grid"
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.t-page.cp-title",
+      "textNodes": 567,
+      "fonts": {
+        "Geist": 534,
+        "Geist Mono": 33
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 19,
+      "arabicUi": [],
+      "images": 77,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [
+        "span.name.mtile-title \"canonical image\"",
+        "span.t-facts.mtile-meta \"Canonical928×1664\"",
+        "span.name.mtile-title \"canonical image\"",
+        "span.t-facts.mtile-meta \"Canonical928×1664\"",
+        "span.t-facts.mtile-meta \"Made by the studio928×1664\"",
+        "span.name.mtile-title \"canonical image\"",
+        "span.t-facts.mtile-meta \"Made by the studio928×1664\"",
+        "span.name.mtile-title \"canonical image\"",
+        "span.t-facts.mtile-meta \"Canonical928×1664\"",
+        "span.name.mtile-title \"canonical image\""
+      ],
+      "clamped": [
+        "span.cp-row-title \"“Did you see the 1987 storm, Clara? Thir\"",
+        "span.cp-row-title \"voice proof\"",
+        "span.cp-row-title \"designed voice 2, preview 1 (indextts)\"",
+        "span.cp-row-title \"designed voice 2, preview 2 (indextts)\"",
+        "span.cp-row-title \"designed voice 3, preview 1 (indextts)\"",
+        "span.cp-row-title \"designed voice 3, preview 2 (indextts)\"",
+        "span.cp-row-title \"designed voice 1, preview 1 (indextts)\"",
+        "span.cp-row-title \"designed voice 1, preview 2 (indextts)\"",
+        "span.cp-row-title \"designed voice 3 (24 kHz reference)\"",
+        "span.cp-row-title \"designed voice 3 (48 kHz original)\""
+      ],
+      "disabledNoReason": [],
+      "targets": [
+        {
+          "el": "a.cp-link",
+          "name": "Najm",
+          "w": 39,
+          "h": 48
+        }
+      ],
+      "targetsTotal": 1,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": true,
+        "one loading picture, then content": true,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": false
+      },
+      "bad": [
+        "touch targets ≥ 44"
+      ]
+    },
+    {
+      "page": "kit",
+      "path": "/kit",
+      "fixture": false,
+      "width": 390,
+      "loadedMs": 3390,
+      "skeleton": {
+        "at": 657,
+        "parts": 31,
+        "height": 787,
+        "generic": true,
+        "label": ""
+      },
+      "sequence": [
+        {
+          "t": 676,
+          "state": "shell",
+          "height": 787
+        },
+        {
+          "t": 2577,
+          "state": "content",
+          "height": 724
+        }
+      ],
+      "title": "Interface kit · Vewbox Studio",
+      "h1": "Not here",
+      "contentLeft": 16,
+      "contentWidth": 358,
+      "mainHeight": 724,
+      "pageHeight": 844,
+      "sidebar": 0,
+      "bottomBar": 65,
+      "topBar": 56,
+      "edges": {
+        "16": [
+          "h1.page-title \"Not here\""
+        ]
+      },
+      "edgeKeys": [
+        16
+      ],
+      "headLefts": [
+        16
+      ],
+      "rows": [],
+      "container": "h1.page-title",
+      "textNodes": 3,
+      "fonts": {
+        "Geist": 3
+      },
+      "small": [],
+      "upper": [],
+      "contrast": [],
+      "onArt": 0,
+      "arabicUi": [],
+      "images": 0,
+      "broken": [],
+      "unavailable": [],
+      "notDecoded": 0,
+      "faded": 0,
+      "overflow": 0,
+      "radii": {},
+      "cardBorders": [],
+      "cardShadows": [],
+      "outlined": [],
+      "nameMis": [],
+      "progress": [],
+      "truncated": [],
+      "clamped": [],
+      "disabledNoReason": [],
+      "targets": [],
+      "targetsTotal": 0,
+      "cls": 0,
+      "shifts": [],
+      "focus": {
+        "firstMain": -1,
+        "count": 0,
+        "noRing": [],
+        "hidden": [],
+        "stops": []
+      },
+      "checks": {
+        "skeleton seen": true,
+        "page skeleton (not the generic shell)": false,
+        "one loading picture, then content": false,
+        "CLS < 0.02": true,
+        "one start edge for heads": true,
+        "equal heights in rows": true,
+        "fonts Geist": true,
+        "no text < 12 px": true,
+        "no uppercase": true,
+        "no horizontal overflow": true,
+        "no broken pictures": true,
+        "contrast AA": true,
+        "radius family": true,
+        "cards: no border, no shadow": true,
+        "no outlined buttons": true,
+        "English-only interface": true,
+        "names on the frame edge": true,
+        "touch targets ≥ 44": true
+      },
+      "bad": [
+        "page skeleton (not the generic shell)",
+        "one loading picture, then content"
+      ]
+    }
+  ]
+}

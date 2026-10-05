@@ -1,0 +1,226 @@
+{
+  "checked": "2026-10-04T23:06:57.502Z",
+  "base": "http://localhost:4261",
+  "results": [
+    {
+      "step": "sidebar: expanded by default at 1440",
+      "ok": true,
+      "note": "240 px"
+    },
+    {
+      "step": "sidebar: Collapse button → 64",
+      "ok": true,
+      "note": "64 px · stored collapsed"
+    },
+    {
+      "step": "sidebar: collapsed items are 40×40 with tooltips",
+      "ok": true,
+      "note": "40×40 · 13/13 have a tip"
+    },
+    {
+      "step": "sidebar: hover shows the tooltip after 400 ms",
+      "ok": true,
+      "note": "\"Shows\""
+    },
+    {
+      "step": "sidebar: Ctrl+\\ → 240",
+      "ok": true,
+      "note": "240 px"
+    },
+    {
+      "step": "palette: Ctrl+K opens, input focused",
+      "ok": true,
+      "note": "15 options before typing"
+    },
+    {
+      "step": "palette: typing \"static\" finds the film",
+      "ok": true,
+      "note": "The Static Sky | 2 lines to hear again in The Static Sky | Production pass of The Static Sky"
+    },
+    {
+      "step": "palette: Esc closes and returns focus",
+      "ok": true,
+      "note": "focus → button.nav-collapse \"Collapse the sidebar\""
+    },
+    {
+      "step": "palette: opened from the sidebar Search, Esc returns focus to it",
+      "ok": true,
+      "note": "focus back on Search"
+    },
+    {
+      "step": "palette: Enter opens the first result",
+      "ok": true,
+      "note": "/shorts/short-28bdb3342b"
+    },
+    {
+      "step": "shortcut sheet: ? opens, Esc closes",
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "step": "home shelves: arrows present only when the row overflows",
+      "ok": true,
+      "note": "home-shows-h: fits, 0 arrows · home-shorts-h: fits, 0 arrows · home-music-h: fits, 0 arrows · home-cast-h: fits, 0 arrows"
+    },
+    {
+      "step": "home shelves: Next scrolls the row",
+      "ok": true,
+      "note": "no enabled arrow on Home (rows fit)"
+    },
+    {
+      "step": "home: every button does something (has a handler, a href or a type=submit)",
+      "ok": true,
+      "note": "all buttons handled"
+    },
+    {
+      "step": "/shows: New menu opens, Esc closes and returns focus",
+      "ok": true,
+      "note": "no menu trigger on this page"
+    },
+    {
+      "step": "/shows: search / filters",
+      "ok": true,
+      "note": "no search box · 0 chips · 0 Filters button"
+    },
+    {
+      "step": "/shorts: New menu opens, Esc closes and returns focus",
+      "ok": true,
+      "note": "Let the studio proposeOne li | Write it yourselfA title or  · focus → button.btn \"More ways to start a short\""
+    },
+    {
+      "step": "/shorts: search / filters",
+      "ok": true,
+      "note": "no search box · 0 chips · 0 Filters button"
+    },
+    {
+      "step": "/music-videos: New menu opens, Esc closes and returns focus",
+      "ok": true,
+      "note": "no menu trigger on this page"
+    },
+    {
+      "step": "/music-videos: search / filters",
+      "ok": true,
+      "note": "no search box · 0 chips · 0 Filters button"
+    },
+    {
+      "step": "/characters: New menu opens, Esc closes and returns focus",
+      "ok": true,
+      "note": "AutoDescribe them in one lin | ManualName, role, style and  | From a pictureUpload a refer · focus → button.btn \"More ways to create a characte\""
+    },
+    {
+      "step": "/characters: search / filters",
+      "ok": true,
+      "note": "search box present · 0 chips · 0 Filters button · empty result wording present"
+    },
+    {
+      "step": "/locations: New menu opens, Esc closes and returns focus",
+      "ok": true,
+      "note": "AutoDescribe the place in on | ManualName, kind, landmarks, · focus → button.btn \"More ways to create a location\""
+    },
+    {
+      "step": "/locations: search / filters",
+      "ok": true,
+      "note": "no search box · 0 chips · 0 Filters button"
+    },
+    {
+      "step": "/characters: search \"Hana\" narrows to one",
+      "ok": true,
+      "note": "1 card"
+    },
+    {
+      "step": "/characters/[id]: Edit details dialog opens, Esc closes, focus returns",
+      "ok": true,
+      "note": "focus inside: input.input \"\"; after Esc: button.btn \"Edit details\""
+    },
+    {
+      "step": "/characters/[id]: More menu → Delete asks for confirmation; Cancel",
+      "ok": true,
+      "note": "Delete Elias Moore? They are removed from every cast list. Finished shots and cuts keep their pictures and sound. Cancel"
+    },
+    {
+      "step": "/new: Auto and Manual links per kind",
+      "ok": true,
+      "note": "/new/show?mode=auto · /new/show?mode=manual · /new/short?mode=auto · /new/short?mode=manual · /new/music-video?mode=auto · /new/music-video?mode=manual"
+    },
+    {
+      "step": "/new/short?mode=manual: submitting an empty brief shows a validation message",
+      "ok": true,
+      "note": "\"Create short\" → 1 invalid fields · Give the short a title or one line about it. · focus input.input \"\""
+    },
+    {
+      "step": "/new/short: Auto|Manual segmented switches ?mode=",
+      "ok": true,
+      "note": "mode=auto"
+    },
+    {
+      "step": "/shorts/[id]: player transports (play, seek, captions, fullscreen)",
+      "ok": true,
+      "note": "pause button shown · video playing · after seek 10: \"0:10 / 0:56\" · captions false · fullscreen present"
+    },
+    {
+      "step": "/shorts/[id]: keyboard on the seek slider",
+      "ok": true,
+      "note": "10.6666666666667 → 10.7083333333333"
+    },
+    {
+      "step": "/screening?p: notes composer posts a note (to this server only)",
+      "ok": true,
+      "note": "note listed · status: "
+    },
+    {
+      "step": "/screening?p: Play puts the lights down, Esc / Pause restores",
+      "ok": true,
+      "note": "playing: data-lights=down · paused: null"
+    },
+    {
+      "step": "/screening?p: tabs (Notes / Shots / Export) reachable",
+      "ok": true,
+      "note": "Notes3 | Shots8 | Export1 → selected \"Shots8\""
+    },
+    {
+      "step": "/production#engine-room: the anchor scrolls to the engine room",
+      "ok": true,
+      "note": "scrollY 1658, #engine-room top 16"
+    },
+    {
+      "step": "/shorts/[id]/production: the workspace has no fabricated progress",
+      "ok": true,
+      "note": "0 progress bars () · 0 running marks · paused banner: true"
+    },
+    {
+      "step": "/shorts/[id]/production: disabled regenerate carries its reason",
+      "ok": true,
+      "note": "\"Produce every shot\" → has reason"
+    },
+    {
+      "step": "390: top bar and bottom bar",
+      "ok": true,
+      "note": "top 56 · bottom 65 at y 779 · Home 78×64 | Productions 78×64 | Characters 78×64 | Studio 78×64 | More 78×64"
+    },
+    {
+      "step": "390: More opens the sheet; Esc closes it",
+      "ok": true,
+      "note": "Shows | Shorts | Music Videos | Locations | Production4 | Screening Room | Files | Settings | Help & shortcuts | Studio paused · item heights 44"
+    },
+    {
+      "step": "390: top-bar Search opens the palette",
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "step": "390: Productions tab → /shows with the segmented control",
+      "ok": true,
+      "note": "/shows · Shows | Shorts | Music Videos"
+    },
+    {
+      "step": "390: player transport hit areas",
+      "ok": true,
+      "note": "Play 44×44 · Seek 80×44 · Captions 44×44 · Mute 44×44 · Volume 0×0 · Fullscreen 44×44"
+    },
+    {
+      "step": "390: character rail / grid and the New split",
+      "ok": true,
+      "note": "grid display grid · columns 2 · first card 173 wide · menu trigger present"
+    }
+  ]
+}
