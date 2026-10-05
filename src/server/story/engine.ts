@@ -10,7 +10,7 @@ import { primaryImageOf } from '@/domain/identity';
 import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
-import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
+import { CharacterDesignFromReferenceSchema, designSex, voicePace, voicePitch, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
 import type { PictureFacts } from '../workflows/canonical-image';
 import { intentDirective } from './development/intent';
@@ -180,12 +180,14 @@ Return JSON: { events: [3–8 one-sentence facts that later episodes must respec
 
 // ------------------------------------------------------------------------------------------- Character design
 
-const CharacterDesignSchema = z.object({
+/** The local design's shape. Sex and the voice's pitch and pace are read from the model's words (`designSex`,
+ *  `voicePitch`, `voicePace`): the strict enums here cost a repair round on every local design (MODEL-EVAL-2026-10 §3). */
+export const CharacterDesignSchema = z.object({
   name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(120),
-  sex: z.enum(['FEMALE', 'MALE']), ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
+  sex: designSex, ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
   build: z.string().min(2).max(200), face: z.string().min(2).max(300), hair: z.string().min(2).max(200), skin: z.string().min(2).max(120), eyes: z.string().min(2).max(120),
   distinguishing: z.array(z.string().max(120)).max(6), wardrobe: z.string().min(2).max(300), personality: z.string().min(2).max(400),
-  voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']), timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
+  voice: z.object({ pitch: voicePitch, pace: voicePace, timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
 });
 export type CharacterDesign = z.infer<typeof CharacterDesignSchema>;
 type ReferenceDesign = z.infer<typeof CharacterDesignFromReferenceSchema>;
