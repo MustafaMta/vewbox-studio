@@ -132,7 +132,6 @@ export function SettingsPage() {
 
       <Section id="elsewhere" title="Elsewhere">
         <div className="card st-panel">
-          <div className="st-row"><span className="st-row-words"><span className="st-label">Engines, models and reliability</span><span className="t-meta">What the studio runs on and how it ran.</span></span><Link href="/production#engine-room" className="btn btn-secondary btn-sm">Open the engine room</Link></div>
           <div className="st-row"><span className="st-row-words"><span className="st-label">The studio holds</span><span className="t-meta">{state.productions.length} {state.productions.length === 1 ? 'production' : 'productions'} · {state.characters.length} {state.characters.length === 1 ? 'character' : 'characters'} · {state.locations.length} {state.locations.length === 1 ? 'location' : 'locations'} · {state.assets.length} files</span></span><Link href="/assets" className="btn btn-secondary btn-sm">Open Files</Link></div>
         </div>
       </Section>

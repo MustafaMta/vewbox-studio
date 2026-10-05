@@ -366,12 +366,35 @@ test('people and story state: a person’s condition and end pose saved as conti
   await expect(page.locator('.ws-context')).toContainText('What the next take is made from');
 });
 
+test('people and story state: unsaved edits are guarded like the shot’s own (QA Q2, m1)', async ({ page }) => {
+  await open(page, `/shorts/${FILM}/shots/${SHOT}`);
+  await page.locator('.ws-disc-sum', { hasText: 'People and story state' }).click();
+  const person = page.locator('.ws-context-person').first();
+  // opening it changes nothing: no phantom unsaved state
+  await expect(page.getByRole('button', { name: 'Save the people’s state' })).toBeDisabled();
+  await person.getByLabel('Condition').fill('out of breath');
+  await expect(page.locator('.ws-insp-foot')).toContainText('The people’s state is not saved');
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press(']');
+  await expect(page.getByRole('alertdialog').or(page.getByRole('dialog'))).toContainText('unsaved changes');
+  await expect(page).toHaveURL(new RegExp(`${SHOT}$`));
+});
+
 test('what a scene changes: a persistent change and what someone learns, saved on the scene (routed)', async ({ page }) => {
   await open(page, `${MAP}?tab=story`);
   await page.waitForSelector('.ws-scene-card', { timeout: 90_000 });
   const card = page.locator('.ws-scene-card').first();
+  const sentScene = () => commands.filter((c) => c.name === 'updateScene').map((c) => JSON.stringify(c.args[2]));
+  // a new fact is a draft on the page until it has words (the studio refuses a fact without them; QA m5)
   await card.getByRole('button', { name: 'Add a change' }).click();
-  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => JSON.stringify(c.args[2]))).toContainEqual(expect.stringContaining('"changes"'));
+  await expect(card.getByText('Not saved until it has words.')).toBeVisible();
+  expect(sentScene().some((s) => s.includes('"changes"'))).toBe(false);
+  await card.getByPlaceholder('The change, as it should look').last().fill('a bandaged left arm');
+  await expect.poll(sentScene).toContainEqual(expect.stringContaining('a bandaged left arm'));
   await card.getByRole('button', { name: 'Add an event' }).click();
-  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => JSON.stringify(c.args[2]))).toContainEqual(expect.stringContaining('"events"'));
+  await card.getByPlaceholder('What has happened').last().fill('the tea is poured');
+  await expect.poll(sentScene).toContainEqual(expect.stringContaining('"events"'));
+  // the change rows have their own layout: no control is squeezed under 120 px at 1440 (QA Q5)
+  const widths = await card.locator('.ws-fact-change').last().locator('input, select').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+  expect(Math.min(...widths)).toBeGreaterThan(120);
 });

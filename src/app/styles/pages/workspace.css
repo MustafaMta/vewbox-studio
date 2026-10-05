@@ -199,6 +199,21 @@
   .ws-beat-n { padding-block-start: 10px; font-size: 12px; line-height: 16px; color: var(--text-3); }
   .ws-lines { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0 0 0 48px; list-style: none; }
   .ws-line { display: grid; grid-template-columns: 160px minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+  /* the scene's story facts (QA Q5): their own rows — an event is its words and a remove; a change is a small block
+     (who or what · the change · from when and its key · ends-an-earlier-change and remove); a learning is who · what ·
+     from when · remove. Each stacks to one column on a phone. */
+  .ws-facts { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .ws-fact { display: grid; gap: 8px; align-items: center; min-inline-size: 0; }
+  .ws-fact > * { min-inline-size: 0; }
+  .ws-fact-event { grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-fact-know { grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) minmax(180px, 240px) auto; }
+  .ws-fact-change { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px; border-radius: var(--r-sm); background: var(--surface-2); }
+  .ws-fact-change .ws-fact-who { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .ws-fact-change .ws-fact-who > :only-child { grid-column: 1 / -1; }
+  .ws-fact-change .ws-fact-text { grid-column: 1 / -1; }
+  .ws-fact-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; grid-column: 1 / -1; }
+  .ws-fact-foot .ws-fact-x { margin-inline-start: auto; }
+  .ws-fact-note { grid-column: 1 / -1; }
   .ws-line-texts { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .ws-line-ar { text-align: right; font-size: 15px; }
   .ws-beat-foot { padding-inline-start: 48px; }
@@ -442,6 +457,11 @@
     .ws-prod-acts { justify-content: flex-start; }
     .ws-line { grid-template-columns: minmax(0, 1fr) auto; }
     .ws-line > :first-child { grid-column: 1 / -1; }
+    .ws-fact-know { grid-template-columns: minmax(0, 1fr) auto; }
+    .ws-fact-know > .ws-fact-who { grid-column: 1; }
+    .ws-fact-know > .ws-fact-x { grid-column: 2; grid-row: 1; }
+    .ws-fact-know > :is(.ws-fact-text, .ws-fact-when) { grid-column: 1 / -1; }
+    .ws-fact-change, .ws-fact-change .ws-fact-who { grid-template-columns: minmax(0, 1fr); }
     .ws-lines, .ws-beat-foot { padding-inline-start: 0; }
     .ws-beat-head { grid-template-columns: 32px minmax(0, 1fr) auto; }
     .ws-att-list > li { grid-template-columns: minmax(0, 1fr) auto; }

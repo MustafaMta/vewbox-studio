@@ -55,7 +55,7 @@ export function StudioLine({ gate, engines = ['video', 'images', 'voice'] }: { g
       ) : down.length === 0 ? <span className="ws-studioline-words">The studio is ready: a new take starts when you ask for one.</span> : (
         <span className="ws-studioline-words">The engines for {down.map((e) => NAMES[e]).join(' and ')} are offline. You can edit and choose; nothing new can be made until they are back.</span>
       )}
-      {gate.paused !== null && <Link className="ws-studioline-link" href={gate.paused ? '/studio' : '/settings#engines'}>{gate.paused ? <><span className="ws-long">Resume in the Studio Company</span><span className="ws-short">Resume</span></> : 'Engines'}</Link>}
+      {gate.paused !== null && <Link className="ws-studioline-link" href={gate.paused ? '/studio' : '/production#engine-room'}>{gate.paused ? <><span className="ws-long">Resume in the Studio Company</span><span className="ws-short">Resume</span></> : 'Engines'}</Link>}
     </div>
   );
 }

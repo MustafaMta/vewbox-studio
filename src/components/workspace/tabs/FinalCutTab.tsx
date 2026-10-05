@@ -8,7 +8,7 @@ import { assetById, castOf } from '@/studio/selectors';
 import { cutVersionsOf } from '@/studio/selectors/cuts';
 import { speakingVoices } from '@/domain/voice-identity';
 import { useToast } from '@/components/ui/toast';
-import { Button, Field, PanelCard, SectionHead, Select, StateWord } from '@/components/ui/kit';
+import { Button, Checkbox, Field, PanelCard, SectionHead, Select, StateWord } from '@/components/ui/kit';
 import { useStartJob } from '@/components/ui/jobs';
 import { CanvasPlayer } from '@/components/players/CanvasPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
@@ -18,7 +18,9 @@ import { runtime, shortWhen } from '@/components/home/model';
 import { fmtBytes } from '@/lib/format';
 import { GenButton, type StudioGate } from '../gate';
 import { CutLine } from '../ProductionMap';
-import { orderedShots, frameRatioOf } from '../model';
+import { orderedShots, frameRatioOf, subtitleChoicesOf, type SubtitleChoice } from '../model';
+
+const SUBTITLE_LABEL: Record<SubtitleChoice, string> = { none: 'None', en: 'English', ar: 'Arabic', both: 'Arabic and English' };
 
 /** EDITING AND THE FINAL CUT — the current cut on the canvas, every cut version (assembled from the selected takes, the
  *  newest first), the assembly it is made from (each selected take as wide as its shot), the subtitles written with it,
@@ -44,7 +46,11 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const { start, busy } = useStartJob();
   const [format, setFormat] = useState<'mp4-h264' | 'mp4-h265' | 'mov-prores'>('mp4-h264');
   const [res, setRes] = useState<'720' | '1080' | '2160'>('1080');
-  const [subs, setSubs] = useState<'none' | 'ar' | 'en' | 'both'>(p.language === 'AR' ? 'both' : 'en');
+  // only the tracks the film has text for (QA Q4); the worker refuses the others
+  const subtitleChoices = useMemo(() => subtitleChoicesOf(p), [p]);
+  const [subsPicked, setSubs] = useState<SubtitleChoice | null>(null);
+  const subs: SubtitleChoice = subsPicked && subtitleChoices.choices.includes(subsPicked) ? subsPicked : subtitleChoices.preferred;
+  const [credits, setCredits] = useState(true);
   const cutAsset = shown ? assetById(state, shown.assetId) : undefined;
   const exportWhy = gate.paused ? 'Intake is paused: new work waits until the studio resumes.' : missing > 0 ? `${missing} ${missing === 1 ? 'shot has' : 'shots have'} no selected take.` : anySample ? 'A sample clip is in the cut; film a real take first.' : !current ? 'Assemble the cut first.' : cutApproved === false ? 'Approve the cut first.' : null;
   const subtitleFiles = (shown?.subtitleAssetIds ?? []).map((id) => assetById(state, id)).filter((a): a is NonNullable<typeof a> => Boolean(a));
@@ -124,9 +130,11 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
             <h2 id="ws-exp-h" className="t-title">Export</h2>
             <Field label="Format"><Select value={format} onChange={(e) => setFormat(e.target.value as typeof format)} options={[{ value: 'mp4-h264', label: 'MP4 · H.264' }, { value: 'mp4-h265', label: 'MP4 · H.265' }, { value: 'mov-prores', label: 'MOV · ProRes' }]} /></Field>
             <Field label="Resolution"><Select value={res} onChange={(e) => setRes(e.target.value as typeof res)} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} /></Field>
-            <Field label="Subtitles"><Select value={subs} onChange={(e) => setSubs(e.target.value as typeof subs)} options={[{ value: 'none', label: 'None' }, { value: 'en', label: 'English' }, { value: 'ar', label: 'Arabic' }, { value: 'both', label: 'Arabic and English' }]} /></Field>
-            <Button variant="primary" icon={<IconDownload aria-hidden />} loading={busy} disabled={Boolean(exportWhy)} onClick={() => void start('EXPORT', { productionId: p.id, format, resolution: res, subtitles: subs })}>Export</Button>
-            {exportWhy && <p className="ws-gen-why">{exportWhy}</p>}
+            <Field label="Subtitles" help={subtitleChoices.choices.length === 1 ? 'The film has no lines or lyrics to subtitle.' : undefined}><Select value={subs} onChange={(e) => setSubs(e.target.value as SubtitleChoice)} options={subtitleChoices.choices.map((v) => ({ value: v, label: SUBTITLE_LABEL[v] }))} /></Field>
+            <Checkbox label="End credits: the engines used" help="A short card at the end that names the AI engines the film was made with." checked={credits} onChange={(e) => setCredits(e.target.checked)} />
+            <Button variant="primary" icon={<IconDownload aria-hidden />} loading={busy} disabled={Boolean(exportWhy)} aria-describedby={exportWhy ? 'ws-exp-why' : 'ws-exp-note'} onClick={() => void start('EXPORT', { productionId: p.id, format, resolution: res, subtitles: subs, credits })}>Export</Button>
+            {exportWhy && <p className="ws-gen-why" id="ws-exp-why">{exportWhy}</p>}
+            <p className="t-meta" id="ws-exp-note">Every export says in its file’s metadata that it is AI-generated, made with MiniMax H3 and the studio’s other engines. When you post it publicly, say so too (<Link href="/settings#licences" className="link-quiet">licences and terms</Link>).</p>
           </div>
 
           <div className="card ws-side-card" aria-labelledby="ws-exps-h">
