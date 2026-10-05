@@ -129,9 +129,10 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </div>
         <div className="ws-canvas-bar">
           <Segmented<View> label="On the canvas" value={view} onChange={(v) => { setView(v); setComparing(false); }} size="sm" options={[
-            { value: 'take', label: shown ? `Take ${takeNo(shown)}` : 'Take', disabled: !shown },
-            { value: 'opening', label: 'Opening frame', disabled: !opening },
-            { value: 'ending', label: 'Ending frame', disabled: !ending },
+            // a disabled view says why, in words beside the switch (Design QA p3)
+            { value: 'take', label: shown ? `Take ${takeNo(shown)}` : 'Take', disabled: !shown, reason: 'No take has been filmed yet.' },
+            { value: 'opening', label: 'Opening frame', disabled: !opening, reason: 'No opening frame has been drawn yet.' },
+            { value: 'ending', label: 'Ending frame', disabled: !ending, reason: 'This shot has no ending frame; it ends where the take ends.' },
           ]} />
           {compare.length === 2 && <Button size="sm" icon={<IconCompare aria-hidden />} onClick={() => setComparing((c) => !c)} aria-pressed={comparing}>{comparing ? 'Stop comparing' : `Compare takes ${compare.map((id) => takeNo(shot.takes.find((t) => t.id === id)!)).join(' and ')}`}</Button>}
         </div>
@@ -232,10 +233,11 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </details>
 
         <div className="ws-insp-foot" data-dirty={dirty || undefined}>
-          {dirty ? <span className="t-meta">Unsaved changes</span> : <span className="t-meta">Saved</span>}
+          {dirty ? <span className="t-meta" id={`ws-save-state-${shot.id}`}>Unsaved changes</span> : <span className="t-meta" id={`ws-save-state-${shot.id}`}>Saved</span>}
           <span className="ws-actions">
             {dirty && <Button size="sm" variant="quiet" onClick={reset}>Discard</Button>}
-            <Button size="sm" variant="primary" disabled={!dirty} onClick={save}>Save the shot</Button>
+            {/* disabled until something changes; the state beside it is its reason */}
+            <Button size="sm" variant="primary" disabled={!dirty} aria-describedby={dirty ? undefined : `ws-save-state-${shot.id}`} onClick={save}>Save the shot</Button>
             <Menu label={`Shot ${shotLabel(p, shot)}: more`}>
               <label className="menu-item ws-upload" aria-disabled={uploading}><IconUpload aria-hidden />{uploading ? 'Adding your clip…' : 'Add your own clip as a take'}<input type="file" accept="video/mp4,video/quicktime,video/webm" className="sr-only" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadTake(f); e.target.value = ''; }} /></label>
               <MenuItem icon={<IconDuplicate aria-hidden />} onClick={() => { act('duplicateShot', p.id, shot.id); toast.ok('Shot duplicated.'); router.push(workspaceHref(p, 'storyboard')); }}>Duplicate the shot</MenuItem>

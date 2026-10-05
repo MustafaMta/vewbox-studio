@@ -555,6 +555,8 @@
   .settings-summary-line { display: flex; flex-wrap: wrap; align-items: baseline; margin: 0; font-size: 13px; line-height: 20px; color: var(--text-2); }
   .link-quiet { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-control); text-underline-offset: 3px; border-radius: var(--r-xs); cursor: pointer; }
   .link-quiet:hover { text-decoration-color: var(--text-1); }
+  /* coarse pointers (Design QA M7 residue): a 44 px target around the word; the line keeps its height */
+  @media (pointer: coarse) { .link-quiet { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -12px; vertical-align: middle; } }
   .settings-summary-controls:not([hidden]) { display: flex; flex-direction: column; gap: 16px; margin-block-start: 16px; }
   /* the chip field: the field's box holding removable chips and the text input */
   .chip-input { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: var(--control-h); padding: 4px 6px; border: 1px solid var(--line-control); border-radius: var(--r-sm); background: var(--surface-1); cursor: text; transition: border-color var(--dur-1) var(--ease-out); }
@@ -687,6 +689,7 @@
   .kit-spec-sheet-list { display: flex; flex-direction: column; gap: 2px; }
   .kit-spec-drag .dropzone { border-style: solid; border-color: var(--text-1); background: var(--surface-2); }
   .kit-spec-sk { display: flex; flex-direction: column; gap: 16px; }
+  .kit-skeleton-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; min-block-size: 40px; }
   .kit-spec-sk-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
   .kit-spec-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
   .kit-spec-swatch { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 12px; align-items: center; }

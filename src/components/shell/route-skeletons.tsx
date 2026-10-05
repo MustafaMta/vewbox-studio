@@ -17,6 +17,7 @@ import { CharacterSkeleton, CharactersSkeleton } from '@/components/character/sk
 import { LocationSkeleton, LocationsSkeleton } from '@/components/location/skeletons';
 import { CreateCharacterSkeleton } from '@/components/character/create/CreateCharacterSkeleton';
 import { CreateLocationSkeleton } from '@/components/location/LocationCreateSkeleton';
+import { KitSkeleton } from '@/components/ui/kit/specimen/KitSkeleton';
 
 /** ROUTE SKELETONS — what the main area shows while the studio's first snapshot is on its way (the shell renders a
  *  page only once the store is ready), and what `app/(app)/loading.tsx` shows while a route's code loads. The standard
@@ -69,6 +70,8 @@ export const ROUTE_SKELETONS: Entry[] = [
   { match: (p) => /^\/characters\/(?!new$)[^/]+$/.test(p), Skeleton: CharacterSkeleton },
   { match: (p) => p === '/locations', Skeleton: LocationsSkeleton },
   { match: (p) => /^\/locations\/(?!new$)[^/]+$/.test(p), Skeleton: LocationSkeleton },
+  // the interface kit's specimen (development only; Design QA N2)
+  { match: (p) => p === '/kit', Skeleton: KitSkeleton },
 ];
 
 /** The skeleton registered for a path, or the generic one for a route nobody registered. */

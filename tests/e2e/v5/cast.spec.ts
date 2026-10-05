@@ -51,16 +51,23 @@ test.describe('the casting directory', () => {
     await expect(discs.first()).toHaveAccessibleName(/^Play .+’s voice$/);
   });
 
-  test('search narrows the cast and says when nothing matches; no filters with six or fewer', async ({ page }) => {
+  test('search, filters and sorting appear only once the cast is larger than six (§5.23; Design QA m9)', async ({ page, request }) => {
+    const snap: Snapshot = await (await request.get('/api/studio')).json();
     await open(page, '/characters');
-    await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0);
+    const cards = page.locator('.pc-grid .fcard:not(.fcard-start)');
+    await expect(cards).toHaveCount(snap.state.characters.length);
+    if (snap.state.characters.length <= 6) {
+      await expect(page.getByRole('searchbox')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0);
+      return;
+    }
     const search = page.getByRole('searchbox');
-    await search.fill('Hana');
-    await expect(page.locator('.pc-grid .fcard:not(.fcard-start)')).toHaveCount(1);
+    await search.fill(snap.state.characters[0].name);
+    await expect(cards).toHaveCount(1);
     await search.fill('zzzz-nobody');
     await expect(page.getByText('No character matches “zzzz-nobody”.')).toBeVisible();
     await page.getByRole('button', { name: 'Clear the search' }).click();
-    await expect(page.locator('.pc-grid .fcard:not(.fcard-start)').first()).toBeVisible();
+    await expect(cards.first()).toBeVisible();
   });
 
   test('"New character" is the primary split: Auto by default, Manual and From a picture in its menu', async ({ page }) => {

@@ -31,7 +31,6 @@
   .ws-studioline-link .ws-short { display: none; }
   .ws-studioline-link { font-weight: 500; color: var(--text-1); text-decoration: none; white-space: nowrap; }
   .ws-studioline-link:hover { text-decoration: underline; text-underline-offset: 4px; }
-
   /* --------------------------------------------------------------------------------------------------- the room */
   .ws-room { display: grid; grid-template-columns: 280px minmax(0, 1fr); align-items: start; min-block-size: calc(100dvh - 64px); }
   .ws-room[data-view='shot'] { grid-template-columns: 280px minmax(0, 1fr) 360px; }
@@ -434,5 +433,23 @@
     .ws-skeleton .ws-sk-refs { min-block-size: 863px; }
     .ws-skeleton .ws-sk-action { min-block-size: 460px; }
     .ws-gate[data-state='loading'] { min-block-size: 94px; }
+  }
+
+  /* (last in the layer, so these win over the base rules above at the same specificity) */
+  /* coarse pointers (Design QA M7 residue): 44 px targets for the workspace's text links, the line keeps its height
+     (the padding is given back as margin); the flow's links and the cut line's shots grow to 44 */
+  @media (pointer: coarse) {
+    .ws-studioline-link { display: inline-flex; align-items: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -13px; }
+    .ws-textlink { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -12px; }
+    .ws-flow a, .ws-skeleton .ws-flow > span { min-block-size: 44px; }
+    .ws-cutline { overflow-x: auto; scrollbar-width: none; } /* v5-lint: allow strip — coarse pointers only: the cut line keeps 44 px shots and scrolls a few pixels; the strip opt-in would pad the desktop line */
+    .ws-cutline::-webkit-scrollbar { display: none; } /* v5-lint: allow strip — as above */
+    .ws-cutline > li { flex-shrink: 0; min-inline-size: 44px; }
+    /* the checkboxes of the shot (Compare, Put the new take in the cut): a 44 px box, the 16 px square drawn in its
+       middle */
+    :is(.ws-check, .ws-compare-tick) > input[type='checkbox'] { position: relative; flex: none; inline-size: 44px; block-size: 44px; margin: -14px -10px -14px -14px; appearance: none; background: none; cursor: pointer; }
+    :is(.ws-check, .ws-compare-tick) > input[type='checkbox']::before { content: ''; position: absolute; inset: 14px; border: 1.5px solid var(--line-control); border-radius: var(--r-xs); background: var(--surface-1); }
+    :is(.ws-check, .ws-compare-tick) > input[type='checkbox']:checked::before { border-color: var(--text-1); background: var(--text-1); }
+    :is(.ws-check, .ws-compare-tick) > input[type='checkbox']:checked::after { content: ''; position: absolute; inset-block-start: 17px; inset-inline-start: 19px; inline-size: 5px; block-size: 9px; border: solid var(--bg-page); border-width: 0 2px 2px 0; transform: rotate(45deg); }
   }
 }

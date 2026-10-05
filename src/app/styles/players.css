@@ -129,6 +129,7 @@
   .pt-tc { flex: none; color: var(--text-1); }
   .pt-tc-total { color: var(--text-3); }
   .pt-mark { min-inline-size: 40px; padding-inline: 8px; }
+  @media (pointer: coarse) { .pt-mark { min-inline-size: 44px; } }
   .ptransport-edit { gap: 8px 12px; }
   @media (max-width: 767px) {
     .ptransport-edit { flex-wrap: wrap; block-size: auto; min-block-size: 52px; padding-block: 8px; }
