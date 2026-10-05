@@ -1,0 +1,197 @@
+{
+  "runId": "voice-en",
+  "at": "2026-10-05T12:17:33.232Z",
+  "services": {
+    "base": "http://127.0.0.1:8021",
+    "asr": "http://127.0.0.1:8030",
+    "indextts": "http://127.0.0.1:8020"
+  },
+  "set": "tests\\fixtures\\voice\\english-eval-set.json",
+  "params": {
+    "seed": 7,
+    "nfe_step": 32,
+    "cfg_strength": 2,
+    "sway_sampling_coef": -1,
+    "speed": 1
+  },
+  "prepareMode": "raw",
+  "studioMetrics": true,
+  "textPreparation": true,
+  "voices": [
+    {
+      "id": "fixture-en",
+      "sex": "M",
+      "file": "tests\\fixtures\\speech-en.wav",
+      "label": "tests/fixtures/speech-en.wav (the acceptance runs' English recording)",
+      "origin": "FIXTURE",
+      "durationSeconds": 6.273,
+      "sampleRate": 22050,
+      "sha256": "50a41265ed02b3a1df2e1a3584bd88cbe0438e53f6d2b1f96808bc0c5b73074e",
+      "engineOutput": null,
+      "synthetic": false
+    }
+  ],
+  "lines": [
+    {
+      "id": "en-e1-calm",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "I told you we'd make it before the storm.",
+      "changes": []
+    },
+    {
+      "id": "en-e2-angry",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "I told you we'd make it before the storm!",
+      "changes": []
+    },
+    {
+      "id": "en-e3-sad",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Don't go. Please... not tonight.",
+      "changes": []
+    },
+    {
+      "id": "en-e4-monologue",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "When I was a boy my grandfather kept a radio on the workbench, and every night he would turn the dial until the static thinned into a voice. He said the sky was never silent; we had only forgotten how to listen to it.",
+      "changes": []
+    },
+    {
+      "id": "en-q-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Where were you at half past seven?",
+      "changes": []
+    },
+    {
+      "id": "en-q-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "You knew about the signal, didn't you?",
+      "changes": []
+    },
+    {
+      "id": "en-ex-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Look at that! It's still working!",
+      "changes": []
+    },
+    {
+      "id": "en-num-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "The price is two hundred and fifty thousand dinars, not a dinar more.",
+      "changes": []
+    },
+    {
+      "id": "en-num-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "The appointment is at 7:30 on the 15th, and the price is 250 thousand.",
+      "changes": []
+    },
+    {
+      "id": "en-name-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Abu Salam said he would come after the afternoon prayer, and Umm Hussein is waiting in Adhamiya.",
+      "changes": []
+    },
+    {
+      "id": "en-name-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "The Mariner vanished in eighty-seven. Nobody heard from her again.",
+      "changes": []
+    },
+    {
+      "id": "en-whisper-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Listen... there's something moving behind the door. Don't open it.",
+      "changes": []
+    },
+    {
+      "id": "en-tired-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Honestly, there's nothing wrong. I'm just a little tired.",
+      "changes": []
+    },
+    {
+      "id": "en-humour-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "I told him to see a doctor. He said the doctor is the one who needs him.",
+      "changes": []
+    },
+    {
+      "id": "en-tender-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Don't be afraid, my dear. I'm here. I'm not leaving.",
+      "changes": []
+    },
+    {
+      "id": "en-short-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Nothing.",
+      "changes": []
+    },
+    {
+      "id": "en-short-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Now?",
+      "changes": []
+    },
+    {
+      "id": "en-film-01",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Obsolescence. Always obsolescence.",
+      "changes": []
+    },
+    {
+      "id": "en-film-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "Static's just a story waiting to be told.",
+      "changes": []
+    },
+    {
+      "id": "en-long-02",
+      "voice": "fixture-en",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "This morning I left the house early; the whole street was quiet, only the vendors' voices and the smell of bread from the bakery, and I felt as if the city were breathing with me.",
+      "changes": []
+    }
+  ],
+  "skipped": []
+}

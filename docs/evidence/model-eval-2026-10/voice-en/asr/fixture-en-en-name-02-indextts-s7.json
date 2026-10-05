@@ -1,0 +1,88 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 4.029,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.38,
+      "text": "The Mariner vanished in 87.",
+      "avg_logprob": -0.261,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.08,
+          "word": " The",
+          "probability": 0.955
+        },
+        {
+          "start": 0.08,
+          "end": 0.44,
+          "word": " Mariner",
+          "probability": 0.812
+        },
+        {
+          "start": 0.44,
+          "end": 0.72,
+          "word": " vanished",
+          "probability": 0.987
+        },
+        {
+          "start": 0.72,
+          "end": 1.06,
+          "word": " in",
+          "probability": 1
+        },
+        {
+          "start": 1.06,
+          "end": 1.38,
+          "word": " 87.",
+          "probability": 0.565
+        }
+      ]
+    },
+    {
+      "start": 1.98,
+      "end": 3.72,
+      "text": "Nobody heard from her again.",
+      "avg_logprob": -0.261,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 1.98,
+          "end": 2.58,
+          "word": " Nobody",
+          "probability": 0.996
+        },
+        {
+          "start": 2.58,
+          "end": 3.02,
+          "word": " heard",
+          "probability": 0.999
+        },
+        {
+          "start": 3.02,
+          "end": 3.26,
+          "word": " from",
+          "probability": 1
+        },
+        {
+          "start": 3.26,
+          "end": 3.46,
+          "word": " her",
+          "probability": 1
+        },
+        {
+          "start": 3.46,
+          "end": 3.72,
+          "word": " again.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "The Mariner vanished in 87. Nobody heard from her again.",
+  "ms": 324,
+  "model": "large-v3"
+}

@@ -1,0 +1,40 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 1.428,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.3,
+      "text": "Nothing.",
+      "avg_logprob": -0.592,
+      "no_speech_prob": 0.012,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.3,
+          "word": " Nothing.",
+          "probability": 0.601
+        }
+      ]
+    },
+    {
+      "start": 0.68,
+      "end": 1.28,
+      "text": "Thang.",
+      "avg_logprob": -0.592,
+      "no_speech_prob": 0.012,
+      "words": [
+        {
+          "start": 0.68,
+          "end": 1.28,
+          "word": " Thang.",
+          "probability": 0.54
+        }
+      ]
+    }
+  ],
+  "text": "Nothing. Thang.",
+  "ms": 205,
+  "model": "large-v3"
+}
