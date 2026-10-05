@@ -52,7 +52,8 @@ test('the map: the stage pipeline as pills, the hierarchy, the decisions, the fl
   // the outline: two scenes, eight shots, story and cut
   await expect(page.locator('.ws-outline .ws-ol-shot')).toHaveCount(8);
   await page.locator('.ws-outline .ws-ol-shot').nth(6).click();
-  await expect(page).toHaveURL(new RegExp(`/shorts/${FILM}/shots/${SHOT}$`));
+  // a client navigation to a route the dev server has not compiled for the browser yet can take its compile time
+  await expect(page).toHaveURL(new RegExp(`/shorts/${FILM}/shots/${SHOT}$`), { timeout: 60_000 });
 });
 
 test('the pills and the old tab names open the stage tabs', async ({ page }) => {
