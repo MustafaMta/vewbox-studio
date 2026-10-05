@@ -1,4 +1,5 @@
-import type { Character, ContinuityState, KnowledgeFact, Location, PersistentChange, Production, RelationshipFact, ScreenDirection, Shot, ShotBoundary, ShotMotion, ShotRelation, StoryFact, StudioState, WorldBible } from './types';
+import type { Character, ContinuityState, KnowledgeFact, Location, PersistentChange, Production, RelationshipFact, ScreenDirection, Shot, ShotBoundary, ShotMotion, ShotRelation, StoryFact, StudioState, Take, WorldBible } from './types';
+import { blockingFor, blockingLine, blockingRecord, type BlockingState } from './blocking';
 import type { CameraMove, Framing, TimeOfDay } from './vocabulary';
 import { canonical, hashString } from './hash';
 import { orderedShots } from './timeline';
@@ -28,7 +29,7 @@ import { locationIdentity } from './location';
  *  production history says exactly what state a take was made from, and a later change of state is detectable.
  *  The prompt builders, the preflight and the pages read this one function — never their own partial copies. */
 
-export const PRODUCTION_CONTEXT_VERSION = 1;
+export const PRODUCTION_CONTEXT_VERSION = 2;
 
 /** RE-ANCHORING (directive §9: "Long sequences must periodically re-anchor to canonical references so identity drift
  *  does not accumulate"). Every shot already carries the canonical images and the plate (the shot pack's identity
@@ -39,7 +40,40 @@ export const PRODUCTION_CONTEXT_VERSION = 1;
  *  (acceptance gate 5, a 4–8 shot continuous scene; 4 per docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md §A, where
  *  the stronger alternative — a forced cut back to the canonical image — is the GPU comparison G-test). The studio can change `after` (settings.generation.continuation
  *  .reanchorAfter); a shot's own explicit guide length always wins. */
-export const REANCHOR = { after: 4 } as const;
+export const REANCHOR = { after: 4, identityDrop: 0.10 } as const;
+
+/** DRIFT-TRIGGERED RE-ANCHORING (docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md T5(b); continuity gaps 2026-10-06
+ *  item 4). Chain length is a proxy; the measurement is better. The take a continuation would inherit its tail from
+ *  carries its face check against the canonical images (`params.identityCheck`, take.ts): when a person present in
+ *  this shot was REVIEW or FAIL there, or their median similarity fell by more than `REANCHOR.identityDrop` (START)
+ *  since the take the chain started from, the tail carries drift — this shot re-anchors at once, whatever the chain
+ *  length. A take with no measurement (offline QA, a stylised face) never triggers it. Pure. */
+export interface IdentityMeasure { verdict?: string; median?: number | null }
+export const identityOfTake = (t: Pick<Take, 'params'> | undefined): Record<string, IdentityMeasure> | undefined => {
+  const ic = t?.params?.identityCheck as { characters?: Record<string, IdentityMeasure> } | undefined;
+  return ic?.characters && typeof ic.characters === 'object' ? ic.characters : undefined;
+};
+export function identityDrift(p: Production, sh: Shot, chainLength: number, drop: number = REANCHOR.identityDrop): Array<{ characterId: string; detail: string }> {
+  if (chainLength < 1) return [];
+  const ordered = orderedShots(p);
+  const i = ordered.findIndex((x) => x.id === sh.id);
+  const prev = i > 0 ? ordered[i - 1] : undefined;
+  const chosen = (s?: Shot) => s?.takes.find((t) => t.id === s.selectedTakeId);
+  const now = identityOfTake(chosen(prev));
+  if (!prev || !now) return [];
+  // the take the chain started from: the shot before the first continuous one
+  const start = ordered[i - chainLength];
+  const then = start && start.id !== prev.id ? identityOfTake(chosen(start)) : undefined;
+  const out: Array<{ characterId: string; detail: string }> = [];
+  for (const id of sh.characterIds) {
+    const m = now[id];
+    if (!m) continue;
+    const t0 = then?.[id]?.median;
+    if (m.verdict === 'REVIEW' || m.verdict === 'FAIL') out.push({ characterId: id, detail: `face check ${m.verdict} on shot ${prev.number}'s take` });
+    else if (typeof m.median === 'number' && typeof t0 === 'number' && t0 - m.median > drop) out.push({ characterId: id, detail: `face similarity ${t0.toFixed(2)} → ${m.median.toFixed(2)} along the chain (a drop over ${drop})` });
+  }
+  return out;
+}
 
 export type FactSource =
   | { kind: 'SHOT'; shotId: string } | { kind: 'PREVIOUS_SHOT'; shotId: string } | { kind: 'SCENE'; sceneId: string }
@@ -109,7 +143,7 @@ export interface StoryContext {
   changes: Array<{ text: string; subject: PersistentChange['subject']; source: FactSource }>;
 }
 
-export interface AnchoringContext { chainLength: number; reanchor: boolean; after: number; why?: string }
+export interface AnchoringContext { chainLength: number; reanchor: boolean; after: number; why?: string; /** what decided it: the chain's length, or the measured identity of the take the tail comes from */ trigger?: 'CHAIN_LENGTH' | 'IDENTITY_DRIFT' }
 
 export interface ProductionContext {
   version: typeof PRODUCTION_CONTEXT_VERSION;
@@ -119,6 +153,9 @@ export interface ProductionContext {
   shot: ShotContext;
   story: StoryContext;
   anchoring: AnchoringContext;
+  /** BLOCKING (src/domain/blocking.ts): the scene's 180° line, each person's carried side, facing and travel, and the
+   *  staging this shot contradicts */
+  blocking: BlockingState;
   /** the carried scene state the context was built on (src/domain/scene-state.ts) */
   sceneState: SceneState;
   /** facts the context lacks that the shot needs (read by the preflight; never invented) */
@@ -140,6 +177,9 @@ export function storyFactsBefore<T extends StoryFact>(p: Production, sh: Shot, p
   for (const sc of [...p.scenes].sort((a, b) => a.number - b.number)) {
     if (!sc.story || (myScene && sc.number > myScene.number)) continue;
     for (const fact of pick(sc.story) ?? []) {
+      // a fact with no words is never carried (QA Q1: an empty row stored by the page reached every later prompt and
+      // crashed it); a wordless `cleared` change still ends one by its key
+      if (!fact || (!clean(fact.text) && !(fact as Partial<PersistentChange>).cleared)) continue;
       if (sc.id !== sh.sceneId) { out.push({ fact, sceneId: sc.id }); continue; }
       if (!fact.atShotId) continue;
       const i = ordered.findIndex((x) => x.id === fact.atShotId);
@@ -199,10 +239,13 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     if (clean(mine?.condition)) condition.push({ text: clean(mine!.condition)!, source: { kind: 'SHOT', shotId: sh.id } });
     else if (relation !== 'STORY_TRANSITION' && clean(before?.condition)) condition.push({ text: clean(before!.condition)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } });
     for (const ch of changes) if (ch.change.subject.kind === 'CHARACTER' && ch.change.subject.characterId === characterId && !condition.some((x) => norm(x.text) === norm(ch.change.text))) condition.push({ text: clean(ch.change.text)!, source: changeSource(ch) });
-    // a continuous shot starts where the previous one ended
+    // a continuous shot starts where the previous one ended — and so does a cut on the same moment (MATCH ON ACTION:
+    // the new angle picks the action up where the old one left it; continuity gaps 2026-10-06 item 3)
+    const sameMoment = relation === 'CONTINUATION' || (relation === 'CUT' && prevShot?.sceneId === sh.sceneId);
     let startPose: CharacterContext['startPose'];
     if (clean(mine?.startPose)) startPose = { text: clean(mine!.startPose)!, source: { kind: 'SHOT', shotId: sh.id } };
-    else if (relation === 'CONTINUATION' && clean(before?.endPose)) startPose = { text: clean(before!.endPose)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } };
+    else if (sameMoment && clean(before?.endPose)) startPose = { text: clean(before!.endPose)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } };
+    else if (relation === 'CONTINUATION' && c && prevShot && sh.characterIds.length && prevShot.characterIds.includes(characterId)) gaps.push(`shot list: shot ${prevShot.number} gives no end pose for ${c.name}, so where this continuous shot starts is unknown`);
     const interactingWith = (mine?.interactingWith ?? []).filter((id) => id !== characterId && sh.characterIds.includes(id));
     if (!c) gaps.push(`character ${characterId} is not in the studio`);
     else if (!image) gaps.push(`${c.name} has no canonical image`);
@@ -213,7 +256,7 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
       voice: v ? { revision: v.revision, model: v.model, status: v.status, language: v.language, dialect: v.dialect } : undefined,
       wardrobe: carried?.wardrobe ? { text: carried.wardrobe, source: sceneState.sources.wardrobe[characterId] ? { kind: 'SCENE', sceneId: sh.sceneId } : { kind: 'CHARACTER' } } : clean(c?.wardrobe) ? { text: clean(c!.wardrobe)!, source: { kind: 'CHARACTER' } } : undefined,
       condition,
-      emotion: clean(mine?.emotion) ?? (relation === 'CONTINUATION' ? clean(before?.emotion) : undefined),
+      emotion: clean(mine?.emotion) ?? (sameMoment ? clean(before?.emotion) : undefined),
       position: carried?.position, screenDirection: carried?.screenDirection, eyeline: clean(mine?.eyeline), holding: carried?.holding,
       startPose, endPose: clean(mine?.endPose), motion: mine?.motion ?? (relation === 'CONTINUATION' ? before?.motion : undefined),
       interactingWith, speaks: speakers.has(characterId),
@@ -273,12 +316,12 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
   if (opts.bible) {
     const mine = opts.bible.timeline.filter((e) => e.productionId === p.id);
     const myOrder = mine.length ? Math.min(...mine.map((e) => e.order)) : Number.POSITIVE_INFINITY;
-    for (const e of opts.bible.timeline) if (e.productionId !== p.id && e.order < myOrder) events.push({ text: clean(e.text)!, source: { kind: 'WORLD', productionId: e.productionId, sceneId: e.sceneId } });
+    for (const e of opts.bible.timeline) if (e.productionId !== p.id && e.order < myOrder && clean(e.text)) events.push({ text: clean(e.text)!, source: { kind: 'WORLD', productionId: e.productionId, sceneId: e.sceneId } });
   }
   for (const sc of [...p.scenes].sort((a, b) => a.number - b.number)) if (scene && sc.number < scene.number && clean(sc.exitState)) events.push({ text: clean(sc.exitState)!, source: { kind: 'SCENE', sceneId: sc.id } });
   for (const { fact, sceneId } of storyFactsBefore<StoryFact>(p, sh, (s) => s.events)) events.push({ text: clean(fact.text)!, source: { kind: 'STORY', sceneId, factId: fact.id } });
   const relationships: StoryContext['relationships'] = [];
-  for (const r of opts.bible?.relationships ?? []) relationships.push({ text: clean(r.text)!, characterIds: r.characterIds, source: { kind: 'WORLD' } });
+  for (const r of opts.bible?.relationships ?? []) if (clean(r.text)) relationships.push({ text: clean(r.text)!, characterIds: r.characterIds, source: { kind: 'WORLD' } });
   for (const { fact, sceneId } of storyFactsBefore<RelationshipFact>(p, sh, (s) => s.relationships)) relationships.push({ text: clean(fact.text)!, characterIds: fact.characterIds, source: { kind: 'STORY', sceneId, factId: fact.id } });
   const story: StoryContext = {
     sceneObjective: clean(scene?.purpose), emotionalObjective: clean(scene?.emotionalObjective), entryState: clean(scene?.entryState),
@@ -286,13 +329,24 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     changes: changes.map((c) => ({ text: clean(c.change.text)!, subject: c.change.subject, source: changeSource(c) })),
   };
 
-  // ---- anchoring
+  // ---- anchoring: by chain length, or at once when the take the tail comes from measured identity drift
   const after = Math.max(1, Math.round(state.settings?.generation?.continuation?.reanchorAfter ?? REANCHOR.after));
   const chainLength = continuousChainLength(p, sh, (s) => relationOf(p, s).relation);
-  const reanchor = relation === 'CONTINUATION' && chainLength > after;
-  const anchoring: AnchoringContext = { chainLength, after, reanchor, why: reanchor ? `the ${chainLength}th continuous shot in a row (re-anchor after ${after}): the shortest guide carries the motion and the canonical references the look` : undefined };
+  const byLength = relation === 'CONTINUATION' && chainLength > after;
+  const drift = relation === 'CONTINUATION' ? identityDrift(p, sh, chainLength) : [];
+  const reanchor = byLength || drift.length > 0;
+  const nameOf = (id: string) => characters.find((x) => x.characterId === id)?.name ?? id;
+  const anchoring: AnchoringContext = {
+    chainLength, after, reanchor,
+    trigger: byLength ? 'CHAIN_LENGTH' : drift.length ? 'IDENTITY_DRIFT' : undefined,
+    why: byLength ? `the ${chainLength}th continuous shot in a row (re-anchor after ${after}): the shortest guide carries the motion and the canonical references the look`
+      : drift.length ? `identity drift in the tail (${drift.map((d) => `${nameOf(d.characterId)}: ${d.detail}`).join('; ')}): the shortest guide carries the motion and the canonical references the look` : undefined,
+  };
 
-  const body = { version: PRODUCTION_CONTEXT_VERSION, productionId: p.id, characters, location, shot, story, anchoring, gaps };
+  // ---- blocking: the scene's 180° line, carried sides, facing and travel
+  const blocking = blockingFor(p, sh);
+
+  const body = { version: PRODUCTION_CONTEXT_VERSION, productionId: p.id, characters, location, shot, story, anchoring, blocking, gaps };
   return { ...body, sceneState, hash: hashString(canonical(body)).slice(0, 16) } as ProductionContext;
 }
 
@@ -305,7 +359,7 @@ export function contextRecord(c: ProductionContext): Record<string, unknown> {
     characters: c.characters.map((x) => ({ characterId: x.characterId, canonical: x.canonical ? { assetId: x.canonical.assetId, version: x.canonical.version, status: x.canonical.status } : undefined, voiceRevision: x.voice?.revision, condition: x.condition.map((k) => k.text), emotion: x.emotion, startPose: x.startPose?.text, endPose: x.endPose, motion: x.motion, interactingWith: x.interactingWith.length ? x.interactingWith : undefined })),
     location: c.location ? { locationId: c.location.locationId, identityVersion: c.location.identity.version, identityHash: c.location.identity.hash, timeOfDay: c.location.timeOfDay, changes: c.location.changes.map((k) => k.text) } : undefined,
     dialogue: c.shot.dialogue.map((d) => ({ lineId: d.lineId, durationSeconds: d.durationSeconds, source: d.source })),
-    constraints: c.shot.constraints, changes: c.story.changes.map((k) => k.text), anchoring: c.anchoring, gaps: c.gaps,
+    constraints: c.shot.constraints, changes: c.story.changes.map((k) => k.text), anchoring: c.anchoring, blocking: blockingRecord(c.blocking), gaps: c.gaps,
   };
 }
 
@@ -317,8 +371,10 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
   for (const x of c.characters) {
     const w = who(x.characterId);
     if (!w) continue;
+    // a context built from older records may still hold a wordless fact: it is skipped, never written (QA Q1)
+    const condition = x.condition.filter((k) => typeof k.text === 'string' && k.text.trim());
     const bits = [
-      x.condition.length && `is ${x.condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
+      condition.length && `is ${condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
       x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
       x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
       x.startPose && `starts ${x.startPose.text.replace(/\.$/, '')}`,
@@ -327,7 +383,10 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
     ].filter(Boolean);
     if (bits.length) out.push(`${w} ${bits.join(', ')}.`);
   }
-  if (c.location?.changes.length) out.push(`The place as the story left it: ${c.location.changes.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
+  const staging = c.blocking ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
+  if (staging) out.push(staging);
+  const placeChanges = (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
+  if (placeChanges.length) out.push(`The place as the story left it: ${placeChanges.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
   const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)));
   if (own.length) out.push(`Must hold: ${own.map((k) => k.replace(/\.$/, '')).join('; ')}.`);
   return out.join(' ');
