@@ -20,6 +20,7 @@ vi.mock('@/server/providers/minimax', () => ({
 }));
 vi.mock('@/server/providers/comfy', () => ({
   health: async () => ({ ok: true }),
+  healthWithin: async () => ({ ok: true }),
   uploadInput: async (file: string) => `up-${path.basename(file)}`,
   run: async (graph: Record<string, { class_type: string; inputs: Record<string, unknown> }>) => { fake.graphs.push(graph); return { promptId: 'p1', outputs: { '16': { video: [{ filename: 'h3.mp4', subfolder: 'vewbox', type: 'output' }] } }, ms: 10, engineMs: 9, workflowVersion: 'wv' }; },
   firstOutput: (outputs: Record<string, { video?: unknown[] }>, kind: string) => (kind === 'video' ? outputs['16']?.video?.[0] : undefined),

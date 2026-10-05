@@ -139,7 +139,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
     return { file, backend, model, requestId: taskId, resumed: Boolean(req.resumeTaskId && req.resumeTaskId === taskId), resolution: task.resolution ?? resolution, seconds: task.duration ?? seconds, costUsd: minimax.estimateVideoCostUsd(model, task.resolution ?? resolution, task.duration ?? seconds, (req.referenceImages?.length ?? 0) + (req.firstFrame ? 1 : 0) + (req.lastFrame ? 1 : 0)), ms: Date.now() - t0, params: { ratio, content: content.map((c) => ({ type: c.type, role: c.role })), usage: task.usage, ...(req.lowering ? { lowering: req.lowering } : {}) } };
   }
   // local: ComfyUI MiniMax H3
-  const h = await comfy.health();
+  // an engine that is restarting is waited for (up to COMFY_START_WAIT_MS, default 3 min) before the attempt fails
+  const h = await comfy.healthWithin(Number(process.env.COMFY_START_WAIT_MS ?? 180_000));
   if (!h.ok) throw new StudioError('UNAVAILABLE', 'The local MiniMax H3 engine (ComfyUI) is not reachable. Start the comfyui service or set MINIMAX_API_KEY for the hosted API.');
   const first = req.firstFrame ? await comfy.uploadInput(req.firstFrame.file) : undefined;
   const last = req.lastFrame ? await comfy.uploadInput(req.lastFrame.file) : undefined;
