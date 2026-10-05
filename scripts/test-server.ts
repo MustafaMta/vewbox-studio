@@ -38,8 +38,10 @@ const env: NodeJS.ProcessEnv = {
 const keep = ['next-env.d.ts', 'tsconfig.json'].map((f) => ({ f, text: fs.readFileSync(f, 'utf8') }));
 const restore = () => { for (const k of keep) { try { if (fs.readFileSync(k.f, 'utf8') !== k.text) fs.writeFileSync(k.f, k.text); } catch { /* gone: leave it */ } } };
 const watcher = setInterval(restore, 500);
-// a checkout whose node_modules is a junction (a git worktree) needs webpack: Turbopack refuses the junction
-const webpack = process.env.TEST_SERVER_WEBPACK === '1' ? ['--webpack'] : [];
+// a checkout whose node_modules is a junction (a git worktree) needs webpack: Turbopack refuses the junction — detected
+// here, or forced with TEST_SERVER_WEBPACK=1
+const linkedModules = (() => { try { return fs.lstatSync('node_modules').isSymbolicLink(); } catch { return false; } })();
+const webpack = process.env.TEST_SERVER_WEBPACK === '1' || linkedModules ? ['--webpack'] : [];
 const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), 'dev', ...webpack, '-p', String(port), '-H', '127.0.0.1'], { stdio: 'inherit', env });
 child.on('exit', (code) => { clearInterval(watcher); restore(); process.exit(code ?? 0); });
 for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => child.kill(sig));
