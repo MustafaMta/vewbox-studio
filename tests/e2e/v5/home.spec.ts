@@ -97,8 +97,8 @@ test('the six tool cards: the five things the studio makes and the company, 112 
   expect(heights).toEqual([112, 112, 112, 112, 112, 112]);
   // the company's line is its real size once the organisation has answered
   await expect(tools.last().locator('.tool-card-line')).toHaveText(/^\d+ departments? · \d+ agents?$|^The team that makes it$/);
-  await tools.first().click();
-  await expect(page).toHaveURL(/\/new\/show$/);
+  // a client navigation into a route the dev server may still be compiling: wait for the URL, not a fixed budget
+  await Promise.all([page.waitForURL(/\/new\/show$/, { timeout: 60_000 }), tools.first().click()]);
 });
 
 test('the shelves: Shows, Shorts and Music videos with their start cards, at one card size per object', async ({ page, request }) => {
@@ -215,11 +215,11 @@ test('phone 390: a 4:5 banner, the shelves swiped edge to edge, two cards across
   expect(new Set(tools.map((t) => t[0])).size).toBe(2);
   expect(tools.every((t) => t[1] === 104)).toBe(true);
   // a shelf bleeds to the viewport's edges and scrolls inside itself; its cards are two across (posters, figures)
-  const shelf = await page.locator('#home-shorts .shelf-track').evaluate((el) => { const b = el.getBoundingClientRect(); return { left: Math.round(b.left), right: Math.round(b.right), scrolls: el.scrollWidth > el.clientWidth, card: Math.round((el.firstElementChild as HTMLElement).getBoundingClientRect().width), label: el.closest('.shelf')!.querySelector('.shead-link-short')?.textContent ?? '' }; });
+  const shelf = await page.locator('section[aria-labelledby="home-shorts-h"] .shelf-track').evaluate((el) => { const b = el.getBoundingClientRect(); return { left: Math.round(b.left), right: Math.round(b.right), scrolls: el.scrollWidth > el.clientWidth, card: Math.round((el.firstElementChild as HTMLElement).getBoundingClientRect().width), label: el.closest('.shelf')!.querySelector('.shead-link-short')?.textContent ?? '' }; });
   expect(shelf.left).toBe(0);
   expect(shelf.right).toBe(390);
   expect(shelf.card).toBe(173);
   expect(shelf.label).toBe('All');
-  if (s.state.characters.length >= 2) expect(await page.locator('#home-cast .shelf-track').evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  if (s.state.characters.length >= 2) expect(await page.locator('section[aria-labelledby="home-cast-h"] .shelf-track').evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
   expect(await overflow()).toBe(0);
 });

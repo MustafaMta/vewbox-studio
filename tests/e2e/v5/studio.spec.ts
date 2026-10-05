@@ -149,7 +149,14 @@ test('Production: a running job shows its phase and elapsed time, and Cancel ask
   const row = page.locator('#running .cp-row').first();
   await expect(row).toContainText('Generate video', { timeout: 120_000 });
   await expect(row.locator('.job-run-phase')).toContainText('Drawing frame 13 of 20');
-  await expect(row.locator('.job-run-time')).toHaveText(/^0:4\d$/);
+  // the elapsed clock counts from the job's start (42 s before the page opened), however long the page took to load
+  const started = Date.parse(now);
+  await expect.poll(async () => {
+    const m = /^(\d+):(\d\d)$/.exec(((await row.locator('.job-run-time').textContent()) ?? '').trim());
+    if (!m) return false;
+    const shown = Number(m[1]) * 60 + Number(m[2]);
+    return shown >= 42 && Math.abs(shown - (Date.now() - started) / 1000) <= 3;
+  }).toBe(true);
   await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '65');
   await row.getByRole('button', { name: 'Cancel' }).click();
   await expect(row.getByRole('button', { name: 'Cancelling…' })).toBeDisabled();
