@@ -287,11 +287,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-realistic-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.466Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-edit-q-s970008.png",
+    "proxy": "edit\\E1-C3-pharmacist-edit-q-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 101526,
+    "wallMs": 102033,
+    "vramBeforeMiB": null,
+    "vramPeakMiB": 29712,
+    "coldLoad": true,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T11:16:01.886Z"
   },
   "plate/L1-anime-2512d-s970007": {
     "id": "plate/L1-anime-2512d-s970007",
@@ -638,6 +644,221 @@
         }
       ],
       "text": "{\n  \"ageRange\": \"child\",\n  \"sex\": \"female\",\n  \"build\": \"slender\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"round\",\n  \"hair\": {\n    \"colour\": \"brown\",\n    \"length\": \"medium\",\n    \"texture\": \"curly\",\n    \"style\": \"pigtails\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark\",\n  \"glasses\": \"none\",\n  \"marks\": [\n    \"freckles\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"hoodie\",\n      \"colour\": \"yellow\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"shirt\",\n      \"colour\": \"blue and yellow\",\n      \"pattern\": \"striped\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [],\n  \"notVisible\": [\n    \"hands\",\n    \"legs\",\n    \"feet\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"high\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```"
+    },
+    "upload-photo-headshot.png": {
+      "upload": "vb-0df968d661dce82e.png",
+      "description": {
+        "ageRange": "30-40",
+        "sex": "female",
+        "build": "not visible",
+        "skinTone": "light",
+        "faceShape": "oval",
+        "hair": {
+          "colour": "dark brown",
+          "length": "medium",
+          "texture": "straight",
+          "style": "loose, pulled back"
+        },
+        "facialHair": "none",
+        "eyes": "brown",
+        "eyebrows": "dark, natural",
+        "glasses": "black, rectangular frames",
+        "marks": [
+          "small mole on left cheek",
+          "small mole on right cheek"
+        ],
+        "clothing": [
+          {
+            "item": "lab coat",
+            "colour": "white",
+            "pattern": "solid"
+          },
+          {
+            "item": "collared shirt",
+            "colour": "maroon",
+            "pattern": "solid"
+          }
+        ],
+        "footwear": "not visible",
+        "accessories": [
+          "earring in right ear"
+        ],
+        "notVisible": [
+          "body",
+          "hands",
+          "feet"
+        ],
+        "confidence": {
+          "ageRange": "medium",
+          "sex": "high",
+          "build": "low",
+          "skinTone": "high",
+          "faceShape": "medium",
+          "facialHair": "high",
+          "eyebrows": "high",
+          "glasses": "high",
+          "marks": "high",
+          "footwear": "high",
+          "accessories": "high",
+          "notVisible": "high"
+        }
+      },
+      "faceRect": {
+        "x": 4,
+        "y": 4,
+        "width": 1019,
+        "height": 1019
+      },
+      "boxes": [
+        {
+          "x": 232.13796997070312,
+          "y": 119.18359375,
+          "width": 562.2047424316406,
+          "height": 679.5428466796875,
+          "score": 0.9488498568534851
+        }
+      ],
+      "text": "{\n  \"ageRange\": \"30-40\",\n  \"sex\": \"female\",\n  \"build\": \"not visible\",\n  \"skinTone\": \"light\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"dark brown\",\n    \"length\": \"medium\",\n    \"texture\": \"straight\",\n    \"style\": \"loose, pulled back\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"dark, natural\",\n  \"glasses\": \"black, rectangular frames\",\n  \"marks\": [\n    \"small mole on left cheek\",\n    \"small mole on right cheek\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"lab coat\",\n      \"colour\": \"white\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"collared shirt\",\n      \"colour\": \"maroon\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    \"earring in right ear\"\n  ],\n  \"notVisible\": [\n    \"body\",\n    \"hands\",\n    \"feet\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"low\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"medium\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```"
+    },
+    "ix1-bust-photo-to-realistic.png": {
+      "upload": "vb-19a58ded4ba9f8d7.png",
+      "description": {
+        "ageRange": "60-70",
+        "sex": "male",
+        "build": "average",
+        "skinTone": "fair",
+        "faceShape": "oval",
+        "hair": {
+          "colour": "grey",
+          "length": "short",
+          "texture": "straight",
+          "style": "short"
+        },
+        "facialHair": "short grey beard and mustache",
+        "eyes": "brown",
+        "eyebrows": "grey",
+        "glasses": "none",
+        "marks": [],
+        "clothing": [
+          {
+            "item": "flat cap",
+            "colour": "grey",
+            "pattern": "solid"
+          },
+          {
+            "item": "blazer",
+            "colour": "brown",
+            "pattern": "solid"
+          },
+          {
+            "item": "sweater",
+            "colour": "cream",
+            "pattern": "solid"
+          }
+        ],
+        "footwear": "not visible",
+        "accessories": [],
+        "notVisible": [],
+        "confidence": {
+          "ageRange": "medium",
+          "sex": "high",
+          "build": "medium",
+          "skinTone": "high",
+          "faceShape": "medium",
+          "facialHair": "high",
+          "eyebrows": "high",
+          "glasses": "high",
+          "marks": "high",
+          "footwear": "high",
+          "accessories": "high",
+          "notVisible": "high"
+        }
+      },
+      "faceRect": {
+        "x": 75,
+        "y": 426,
+        "width": 789,
+        "height": 789
+      },
+      "boxes": [
+        {
+          "x": 233.40438842773438,
+          "y": 515.2882690429688,
+          "width": 473.1034851074219,
+          "height": 526.5895385742188,
+          "score": 0.9011639356613159
+        }
+      ],
+      "text": "{\n  \"ageRange\": \"60-70\",\n  \"sex\": \"male\",\n  \"build\": \"average\",\n  \"skinTone\": \"fair\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"grey\",\n    \"length\": \"short\",\n    \"texture\": \"straight\",\n    \"style\": \"short\"\n  },\n  \"facialHair\": \"short grey beard and mustache\",\n  \"eyes\": {\n    \"colour\": \"brown\"\n  },\n  \"eyebrows\": \"grey\",\n  \"glasses\": \"none\",\n  \"marks\": [],\n  \"clothing\": [\n    {\n      \"item\": \"flat cap\",\n      \"colour\": \"grey\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"blazer\",\n      \"colour\": \"brown\",\n      \"pattern\": \"solid\"\n    },\n    {\n      \"item\": \"sweater\",\n      \"colour\": \"cream\",\n      \"pattern\": \"solid\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [],\n  \"notVisible\": [],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": \"high\",\n    \"notVisible\": \"high\"\n  }\n}\n```"
+    },
+    "ix2-waist-photo-to-cartoon.png": {
+      "upload": "vb-49d45afdc4ced21d.png",
+      "description": {
+        "ageRange": "20-30",
+        "sex": "female",
+        "build": "slender",
+        "skinTone": "fair",
+        "faceShape": "oval",
+        "hair": {
+          "colour": "red",
+          "length": "long",
+          "texture": "wavy",
+          "style": "loose"
+        },
+        "facialHair": "none",
+        "eyes": "green",
+        "eyebrows": "natural",
+        "glasses": "none",
+        "marks": [
+          "freckles"
+        ],
+        "clothing": [
+          {
+            "item": "sweater",
+            "colour": "green",
+            "pattern": "cable"
+          }
+        ],
+        "footwear": "not visible",
+        "accessories": [
+          "earrings both gold hoops"
+        ],
+        "notVisible": [
+          "hands",
+          "legs",
+          "feet",
+          "necklace"
+        ],
+        "confidence": {
+          "ageRange": "medium",
+          "sex": "high",
+          "build": "medium",
+          "skinTone": "high",
+          "faceShape": "medium",
+          "facialHair": "high",
+          "eyebrows": "high",
+          "glasses": "high",
+          "marks": "high",
+          "footwear": "high",
+          "notVisible": "high"
+        }
+      },
+      "faceRect": {
+        "x": 247,
+        "y": 402,
+        "width": 490,
+        "height": 490
+      },
+      "boxes": [
+        {
+          "x": 351.7950134277344,
+          "y": 457.68475341796875,
+          "width": 280.3135681152344,
+          "height": 326.81732177734375,
+          "score": 0.917585015296936
+        }
+      ],
+      "text": "{\n  \"ageRange\": \"20-30\",\n  \"sex\": \"female\",\n  \"build\": \"slender\",\n  \"skinTone\": \"fair\",\n  \"faceShape\": \"oval\",\n  \"hair\": {\n    \"colour\": \"red\",\n    \"length\": \"long\",\n    \"texture\": \"wavy\",\n    \"style\": \"loose\"\n  },\n  \"facialHair\": \"none\",\n  \"eyes\": {\n    \"colour\": \"green\"\n  },\n  \"eyebrows\": \"natural\",\n  \"glasses\": \"none\",\n  \"marks\": [\n    \"freckles\"\n  ],\n  \"clothing\": [\n    {\n      \"item\": \"sweater\",\n      \"colour\": \"green\",\n      \"pattern\": \"cable\"\n    }\n  ],\n  \"footwear\": \"not visible\",\n  \"accessories\": [\n    {\n      \"item\": \"earrings\",\n      \"side\": \"both\",\n      \"description\": \"gold hoops\"\n    }\n  ],\n  \"notVisible\": [\n    \"hands\",\n    \"legs\",\n    \"feet\",\n    \"necklace\"\n  ],\n  \"confidence\": {\n    \"ageRange\": \"medium\",\n    \"sex\": \"high\",\n    \"build\": \"medium\",\n    \"skinTone\": \"high\",\n    \"faceShape\": \"medium\",\n    \"hair\": {\n      \"colour\": \"high\",\n      \"length\": \"high\",\n      \"texture\": \"high\",\n      \"style\": \"high\"\n    },\n    \"facialHair\": \"high\",\n    \"eyes\": {\n      \"colour\": \"high\"\n    },\n    \"eyebrows\": \"high\",\n    \"glasses\": \"high\",\n    \"marks\": \"high\",\n    \"clothing\": {\n      \"item\": \"high\",\n      \"colour\": \"high\",\n      \"pattern\": \"high\"\n    },\n    \"footwear\": \"high\",\n    \"accessories\": {\n      \"item\": \"high\",\n      \"side\": \"high\",\n      \"description\": \"high\"\n    },\n    \"notVisible\": \"high\"\n  }\n}\n```"
     }
   },
   "reference/ic3-teen-edit-ref-s970007": {
@@ -803,15 +1024,37 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\upload-photo-headshot.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.068Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-edit-ref-s970007.png",
+    "proxy": "reference\\ir2-bust-edit-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 120096,
+    "wallMs": 142169,
+    "vramBeforeMiB": 28496,
+    "vramPeakMiB": 30162,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25,
+        "y": 0.0546875,
+        "w": 0.5084269662921348,
+        "h": 0.91875
+      },
+      "margins": {
+        "top": 0.0546875,
+        "bottom": 0.0265625,
+        "left": 0.25,
+        "right": 0.24157303370786518
+      },
+      "reasons": []
+    },
+    "workflowVersion": "cb899dfd075fcd2a",
+    "at": "2026-10-05T11:18:24.057Z"
   },
   "reference/ir2-bust-edit-ref-s970008": {
     "id": "reference/ir2-bust-edit-ref-s970008",
@@ -820,15 +1063,39 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\upload-photo-headshot.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.069Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-edit-ref-s970008.png",
+    "proxy": "reference\\ir2-bust-edit-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 101828,
+    "wallMs": 102487,
+    "vramBeforeMiB": 27570,
+    "vramPeakMiB": 29266,
+    "coldLoad": false,
+    "framing": {
+      "ok": false,
+      "box": {
+        "x": 0.20786516853932585,
+        "y": 0.1265625,
+        "w": 0.6685393258426966,
+        "h": 0.8734375
+      },
+      "margins": {
+        "top": 0.1265625,
+        "bottom": 0,
+        "left": 0.20786516853932585,
+        "right": 0.12359550561797752
+      },
+      "reasons": [
+        "the feet touch or leave the bottom edge"
+      ]
+    },
+    "workflowVersion": "cb899dfd075fcd2a",
+    "at": "2026-10-05T11:20:06.546Z"
   },
   "reference/ix1-bust-edit-ref-s970007": {
     "id": "reference/ix1-bust-edit-ref-s970007",
@@ -837,15 +1104,37 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix1-bust-photo-to-realistic.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.070Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-edit-ref-s970007.png",
+    "proxy": "reference\\ix1-bust-edit-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 120451,
+    "wallMs": 140379,
+    "vramBeforeMiB": 27570,
+    "vramPeakMiB": 29874,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2696629213483146,
+        "y": 0.078125,
+        "w": 0.47752808988764045,
+        "h": 0.890625
+      },
+      "margins": {
+        "top": 0.078125,
+        "bottom": 0.03125,
+        "left": 0.2696629213483146,
+        "right": 0.25280898876404495
+      },
+      "reasons": []
+    },
+    "workflowVersion": "34c5143b1a647fcf",
+    "at": "2026-10-05T11:22:26.927Z"
   },
   "reference/ix1-bust-edit-ref-s970008": {
     "id": "reference/ix1-bust-edit-ref-s970008",
@@ -854,15 +1143,39 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix1-bust-photo-to-realistic.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.071Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-edit-ref-s970008.png",
+    "proxy": "reference\\ix1-bust-edit-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 101958,
+    "wallMs": 102652,
+    "vramBeforeMiB": 27890,
+    "vramPeakMiB": 29586,
+    "coldLoad": false,
+    "framing": {
+      "ok": false,
+      "box": {
+        "x": 0,
+        "y": 0.146875,
+        "w": 1,
+        "h": 0.853125
+      },
+      "margins": {
+        "top": 0.146875,
+        "bottom": 0,
+        "left": 0,
+        "right": 0
+      },
+      "reasons": [
+        "the feet touch or leave the bottom edge"
+      ]
+    },
+    "workflowVersion": "34c5143b1a647fcf",
+    "at": "2026-10-05T11:24:09.582Z"
   },
   "reference/ix2-waist-edit-ref-s970007": {
     "id": "reference/ix2-waist-edit-ref-s970007",
@@ -871,15 +1184,37 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix2-waist-photo-to-cartoon.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.072Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-edit-ref-s970007.png",
+    "proxy": "reference\\ix2-waist-edit-ref-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 117631,
+    "wallMs": 136518,
+    "vramBeforeMiB": 27602,
+    "vramPeakMiB": 29874,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25842696629213485,
+        "y": 0.0515625,
+        "w": 0.48314606741573035,
+        "h": 0.8765625
+      },
+      "margins": {
+        "top": 0.0515625,
+        "bottom": 0.071875,
+        "left": 0.25842696629213485,
+        "right": 0.25842696629213485
+      },
+      "reasons": []
+    },
+    "workflowVersion": "db681557ba4470af",
+    "at": "2026-10-05T11:26:26.103Z"
   },
   "reference/ix2-waist-edit-ref-s970008": {
     "id": "reference/ix2-waist-edit-ref-s970008",
@@ -888,15 +1223,39 @@
     "arm": "edit-ref",
     "family": "qwen",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix2-waist-photo-to-cartoon.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:01:21.073Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-edit-ref-s970008.png",
+    "proxy": "reference\\ix2-waist-edit-ref-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 101755,
+    "wallMs": 102411,
+    "vramBeforeMiB": 27858,
+    "vramPeakMiB": 29586,
+    "coldLoad": false,
+    "framing": {
+      "ok": false,
+      "box": {
+        "x": 0.19382022471910113,
+        "y": 0.1984375,
+        "w": 0.6404494382022472,
+        "h": 0.8015625
+      },
+      "margins": {
+        "top": 0.1984375,
+        "bottom": 0,
+        "left": 0.19382022471910113,
+        "right": 0.16573033707865167
+      },
+      "reasons": [
+        "the feet touch or leave the bottom edge"
+      ]
+    },
+    "workflowVersion": "db681557ba4470af",
+    "at": "2026-10-05T11:28:08.517Z"
   },
   "stress/C1-kite-maker-crossed-2512q-s970007": {
     "id": "stress/C1-kite-maker-crossed-2512q-s970007",
@@ -1982,15 +2341,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\upload-photo-headshot.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.434Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-klein-s970007.png",
+    "proxy": "reference\\ir2-bust-klein-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 14531,
+    "wallMs": 15179,
+    "vramBeforeMiB": 690,
+    "vramPeakMiB": 19986,
+    "coldLoad": true,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.22752808988764045,
+        "y": 0.0453125,
+        "w": 0.5393258426966292,
+        "h": 0.934375
+      },
+      "margins": {
+        "top": 0.0453125,
+        "bottom": 0.0203125,
+        "left": 0.22752808988764045,
+        "right": 0.23314606741573032
+      },
+      "reasons": []
+    },
+    "workflowVersion": "02efe29b8c880d2d",
+    "at": "2026-10-05T11:28:26.704Z"
   },
   "reference/ir2-bust-klein-s970008": {
     "id": "reference/ir2-bust-klein-s970008",
@@ -1999,15 +2380,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a woman aged about 30-40; oval face; medium straight dark brown hair, loose, pulled back; brown eyes; light skin; glasses (black, rectangular frames); small mole on left cheek; small mole on right cheek; wearing white lab coat, maroon collared shirt; accessories: earring in right ear. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "upload-photo-headshot.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\upload-photo-headshot.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.435Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ir2-bust-klein-s970008.png",
+    "proxy": "reference\\ir2-bust-klein-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 3661,
+    "wallMs": 4127,
+    "vramBeforeMiB": 15986,
+    "vramPeakMiB": 20018,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25,
+        "y": 0.0484375,
+        "w": 0.5028089887640449,
+        "h": 0.925
+      },
+      "margins": {
+        "top": 0.0484375,
+        "bottom": 0.0265625,
+        "left": 0.25,
+        "right": 0.24719101123595505
+      },
+      "reasons": []
+    },
+    "workflowVersion": "02efe29b8c880d2d",
+    "at": "2026-10-05T11:28:30.834Z"
   },
   "reference/ix1-bust-klein-s970007": {
     "id": "reference/ix1-bust-klein-s970007",
@@ -2016,15 +2419,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix1-bust-photo-to-realistic.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.436Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-klein-s970007.png",
+    "proxy": "reference\\ix1-bust-klein-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 4113,
+    "wallMs": 4580,
+    "vramBeforeMiB": 15986,
+    "vramPeakMiB": 18066,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.22752808988764045,
+        "y": 0.0671875,
+        "w": 0.547752808988764,
+        "h": 0.90625
+      },
+      "margins": {
+        "top": 0.0671875,
+        "bottom": 0.0265625,
+        "left": 0.22752808988764045,
+        "right": 0.2247191011235955
+      },
+      "reasons": []
+    },
+    "workflowVersion": "16a87a7d0222465d",
+    "at": "2026-10-05T11:28:35.417Z"
   },
   "reference/ix1-bust-klein-s970008": {
     "id": "reference/ix1-bust-klein-s970008",
@@ -2033,15 +2458,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a photorealistic full-length studio photograph of a real person: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Keep the face, age, skin tone, hair and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: photorealistic real person, a man aged about 60-70; average build; oval face; short straight grey hair, short; brown eyes; fair skin; short grey beard and mustache; wearing grey flat cap, brown blazer, cream sweater. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear.",
     "inputs": {
       "upload": "ix1-bust-photo-to-realistic.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix1-bust-photo-to-realistic.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.437Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix1-bust-klein-s970008.png",
+    "proxy": "reference\\ix1-bust-klein-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 3671,
+    "wallMs": 4329,
+    "vramBeforeMiB": 15986,
+    "vramPeakMiB": 20114,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2303370786516854,
+        "y": 0.0765625,
+        "w": 0.5224719101123596,
+        "h": 0.890625
+      },
+      "margins": {
+        "top": 0.0765625,
+        "bottom": 0.0328125,
+        "left": 0.2303370786516854,
+        "right": 0.24719101123595505
+      },
+      "reasons": []
+    },
+    "workflowVersion": "16a87a7d0222465d",
+    "at": "2026-10-05T11:28:39.748Z"
   },
   "reference/ix2-waist-klein-s970007": {
     "id": "reference/ix2-waist-klein-s970007",
@@ -2050,15 +2497,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970007,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face as in image 2, as a stylized 3D animated feature-film character, a CG render from an animated movie: appealing stylized proportions with a slightly larger head and eyes, simplified smooth shapes, smooth stylized skin, soft subsurface CG shading: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Change the rendering completely into this style, keeping the person recognisable: the same age, skin tone, hair and every visible garment and colour as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix2-waist-photo-to-cartoon.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.438Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-klein-s970007.png",
+    "proxy": "reference\\ix2-waist-klein-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 4117,
+    "wallMs": 4580,
+    "vramBeforeMiB": 15986,
+    "vramPeakMiB": 17778,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25,
+        "y": 0.0734375,
+        "w": 0.5028089887640449,
+        "h": 0.896875
+      },
+      "margins": {
+        "top": 0.0734375,
+        "bottom": 0.0296875,
+        "left": 0.25,
+        "right": 0.24719101123595505
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1ed0533cc0c326e4",
+    "at": "2026-10-05T11:28:44.332Z"
   },
   "reference/ix2-waist-klein-s970008": {
     "id": "reference/ix2-waist-klein-s970008",
@@ -2067,15 +2536,37 @@
     "arm": "klein",
     "family": "klein",
     "seed": 970008,
-    "prompt": "(written from the reading)",
+    "prompt": "Redraw the person in image 1, with the face as in image 2, as a stylized 3D animated feature-film character, a CG render from an animated movie: appealing stylized proportions with a slightly larger head and eyes, simplified smooth shapes, smooth stylized skin, soft subsurface CG shading: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light. Change the rendering completely into this style, keeping the person recognisable: the same age, skin tone, hair and every visible garment and colour as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a woman aged about 20-30; slender build; oval face; long wavy red hair, loose; green eyes; fair skin; freckles; wearing green cable sweater; accessories: earrings gold hoops. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
     "inputs": {
       "upload": "ix2-waist-photo-to-cartoon.png"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\var\\flux-vs-qwen\\confirmation\\fixtures\\ix2-waist-photo-to-cartoon.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T23:16:28.439Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\reference\\ix2-waist-klein-s970008.png",
+    "proxy": "reference\\ix2-waist-klein-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 3649,
+    "wallMs": 4101,
+    "vramBeforeMiB": 15986,
+    "vramPeakMiB": 20018,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2443820224719101,
+        "y": 0.0703125,
+        "w": 0.4747191011235955,
+        "h": 0.8953125
+      },
+      "margins": {
+        "top": 0.0703125,
+        "bottom": 0.034375,
+        "left": 0.2443820224719101,
+        "right": 0.2808988764044944
+      },
+      "reasons": []
+    },
+    "workflowVersion": "1ed0533cc0c326e4",
+    "at": "2026-10-05T11:28:48.439Z"
   },
   "t2i/C1-kite-maker-klein-s970007": {
     "id": "t2i/C1-kite-maker-klein-s970007",
