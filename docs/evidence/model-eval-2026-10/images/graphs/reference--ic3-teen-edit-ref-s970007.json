@@ -1,0 +1,182 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2511_fp8mixed.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Qwen-Image-Edit-2511"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "shift": 3.1
+    }
+  },
+  "6": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a Japanese anime character, drawn like a modern Japanese TV anime (anime character design: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not 3D): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: Japanese anime character, a teenage boy aged about 10-19; slender build; oval face; short straight black hair, short cut; dark eyes; fair skin; no facial hair; wearing red hoodie, black white stripes pants; white sneakers. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition.",
+      "vae": [
+        "3",
+        0
+      ],
+      "image1": [
+        "img1s",
+        0
+      ],
+      "image2": [
+        "img2s",
+        0
+      ]
+    }
+  },
+  "7": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
+      "vae": [
+        "3",
+        0
+      ],
+      "image1": [
+        "img1s",
+        0
+      ],
+      "image2": [
+        "img2s",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 928,
+      "height": 1664,
+      "batch_size": 1
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "8",
+        0
+      ],
+      "seed": 970007,
+      "steps": 24,
+      "cfg": 4,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "img1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "vb-ae275645517e508b.png"
+    }
+  },
+  "img1s": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "img1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 16
+    }
+  },
+  "facecrop": {
+    "class_type": "ImageCrop",
+    "inputs": {
+      "image": [
+        "img1",
+        0
+      ],
+      "width": 310,
+      "height": 310,
+      "x": 261,
+      "y": 127
+    }
+  },
+  "img2s": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "facecrop",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "center"
+    }
+  },
+  "save_canonical": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "10",
+        0
+      ],
+      "filename_prefix": "vewbox/eval/edit-ref"
+    }
+  }
+}

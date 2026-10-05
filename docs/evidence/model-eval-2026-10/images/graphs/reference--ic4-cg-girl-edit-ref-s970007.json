@@ -1,0 +1,182 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2511_fp8mixed.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Qwen-Image-Edit-2511"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "shift": 3.1
+    }
+  },
+  "6": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Redraw the person in image 1, with the face exactly as in image 2, as a stylized 3D animated feature-film character (CG render, not a photograph): one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Keep the face shape, age, skin tone, hair, facial hair, glasses and every visible garment and colour exactly as in the picture; complete what the picture does not show from the description. Identity: stylized 3D animated character, a girl; slender build; round face; medium curly brown hair, pigtails; brown eyes; light skin; freckles; wearing yellow hoodie, blue and yellow striped shirt. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition.",
+      "vae": [
+        "3",
+        0
+      ],
+      "image1": [
+        "img1s",
+        0
+      ],
+      "image2": [
+        "img2s",
+        0
+      ]
+    }
+  },
+  "7": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
+      "vae": [
+        "3",
+        0
+      ],
+      "image1": [
+        "img1s",
+        0
+      ],
+      "image2": [
+        "img2s",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 928,
+      "height": 1664,
+      "batch_size": 1
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "8",
+        0
+      ],
+      "seed": 970007,
+      "steps": 24,
+      "cfg": 4,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "img1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "vb-cbdb622de3bb20ca.png"
+    }
+  },
+  "img1s": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "img1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 16
+    }
+  },
+  "facecrop": {
+    "class_type": "ImageCrop",
+    "inputs": {
+      "image": [
+        "img1",
+        0
+      ],
+      "width": 586,
+      "height": 586,
+      "x": 204,
+      "y": 233
+    }
+  },
+  "img2s": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "facecrop",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "center"
+    }
+  },
+  "save_canonical": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "10",
+        0
+      ],
+      "filename_prefix": "vewbox/eval/edit-ref"
+    }
+  }
+}

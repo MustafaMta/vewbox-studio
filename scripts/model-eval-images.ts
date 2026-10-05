@@ -35,7 +35,9 @@ const PHASES = opt('phases', 't2i,plate,views,poster,edit,reference,stress').spl
 const ARMS = new Set(opt('arms', '2512q,2512d,klein,qi21,edit-q,edit-d,qi21e,edit-ref,qi21-ref').split(','));
 const SEEDS = opt('seeds', '970007,970008').split(',').map(Number);
 const ONLY = opt('only', '');
-const UPLOADS = process.env.EVAL_UPLOADS ?? 'D:/volexar-studio/volexar-studio/var/flux-vs-qwen/confirmation/fixtures';
+/** the A/B's uploads live in two folders (the first A/B's and the confirmation's); a file is looked up in both */
+const UPLOAD_DIRS = (process.env.EVAL_UPLOADS ?? 'D:/volexar-studio/volexar-studio/var/flux-vs-qwen/confirmation/fixtures;D:/volexar-studio/volexar-studio/var/flux-vs-qwen/fixtures').split(';');
+const uploadPath = async (file: string) => { for (const d of UPLOAD_DIRS) { const p = path.join(d, file); if (await fs.access(p).then(() => true, () => false)) return p; } throw new Error(`upload ${file} not found in ${UPLOAD_DIRS.join(', ')}`); };
 
 // ------------------------------------------------------------------------------------------ the evaluation set
 /** The evaluation-only Qwen-Image-2.1 files (manifest group eval-qwen-image-2.1; Qwen Research Licence). */
@@ -149,7 +151,7 @@ async function sheet(files: string[], dst: string, cell: { w: number; h: number 
 }
 
 interface Item { id: string; phase: string; style: Style; arm: string; family: string; seed: number; prompt: string; negative?: string; inputs?: Record<string, string>; build: () => Promise<Graph>; canonicalFrame?: boolean }
-interface Result { id: string; phase: string; style: Style; arm: string; family: string; seed: number; prompt: string; negative?: string; inputs?: Record<string, string>; file?: string; proxy?: string; width?: number; height?: number; engineMs?: number; wallMs?: number; vramBeforeMiB?: number; vramPeakMiB?: number; coldLoad?: boolean; framing?: FramingCheck; workflowVersion?: string; error?: string; skipped?: string; at: string }
+interface Result { id: string; phase: string; style: Style; arm: string; family: string; seed: number; prompt: string; negative?: string; inputs?: Record<string, string>; /** false: the item failed before its graph reached ComfyUI (a harness error, not an attempt) */ submitted?: boolean; file?: string; proxy?: string; width?: number; height?: number; engineMs?: number; wallMs?: number; vramBeforeMiB?: number; vramPeakMiB?: number; coldLoad?: boolean; framing?: FramingCheck; workflowVersion?: string; error?: string; skipped?: string; at: string }
 
 const FAMILY: Record<string, string> = { '2512q': 'qwen', '2512d': 'qwen', 'edit-q': 'qwen', 'edit-d': 'qwen', 'edit-ref': 'qwen', klein: 'klein', qi21: 'qi21', qi21e: 'qi21', 'qi21-ref': 'qi21', read: 'read' };
 const ARM_MODEL: Record<string, string> = { '2512q': MODELS.qwenDit, '2512d': MODELS.qwenDit, 'edit-q': MODELS.qwenEditDit, 'edit-d': MODELS.qwenEditDit, 'edit-ref': MODELS.qwenEditDit, klein: MODELS.kleinDit, qi21: QI21.dit, qi21e: QI21.dit, 'qi21-ref': QI21.dit };
@@ -240,7 +242,7 @@ async function main() {
   const reads: Record<string, { upload: string; description: CharacterDescription; faceRect?: PxRect; boxes: unknown; text: string }> = (results['reads'] as unknown as typeof reads) ?? {};
   async function readUpload(file: string) {
     if (reads[file]) return reads[file];
-    const abs = path.join(UPLOADS, file);
+    const abs = await uploadPath(file);
     const up = await upload(abs);
     const t0 = Date.now();
     const r = await comfy.run(referenceReadGraph({ image: up, describe: true }), { timeoutMs: 20 * 60_000 });
@@ -258,7 +260,11 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------------------------------- run, by family
-  const todo = items.filter((it) => !ONLY || it.id.startsWith(ONLY)).filter((it) => !results[it.id]?.file);
+  // FIRST ATTEMPTS ONLY: an item that reached the engine (a picture, or an engine error) is never drawn again; an item
+  // that failed before submission (a missing input file: a harness error, `submitted: false`) or was skipped because
+  // its weights were absent never reached a model and is run
+  const done = (r?: Result) => Boolean(r && (r.file || (r.error && r.submitted !== false)));
+  const todo = items.filter((it) => !ONLY || it.id.startsWith(ONLY)).filter((it) => !done(results[it.id]));
   // by family (one load each), then by phase so an edit finds the plate and the canonical image it is built from
   // (run 1 ordered the ids alphabetically and the E1 edits ran before their inputs existed: harness errors, re-run)
   const order = ['qwen', 'klein', 'read', 'qi21'];
@@ -274,8 +280,10 @@ async function main() {
     const cold = family !== it.family; family = it.family;
     const t0 = Date.now(); const before = meter.now();
     process.stdout.write(`${it.id} … `);
+    let submitted = false;
     try {
       const graph = await it.build();
+      submitted = true;
       const r = await comfy.run(graph, { timeoutMs: 30 * 60_000 });
       const file = path.join(OUT, `${it.id}.png`);
       await saveOutput(r, file);
@@ -289,8 +297,10 @@ async function main() {
       await fs.writeFile(path.join(EVID, 'graphs', `${it.id.replace(/\//g, '--')}.json`), JSON.stringify(graph, null, 2));
       console.log(`engine ${Math.round((r.engineMs ?? 0) / 1000)} s, wall ${Math.round((Date.now() - t0) / 1000)} s, peak ${meter.peak(t0)} MiB${framing ? `, framing ${framing.ok ? 'ok' : `FAIL (${framing.reasons.join('; ')})`}` : ''}`);
     } catch (e) {
-      results[it.id] = { id: it.id, phase: it.phase, style: it.style, arm: it.arm, family: it.family, seed: it.seed, prompt: it.prompt, negative: it.negative, inputs: it.inputs, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: meter.peak(t0), at: new Date().toISOString() };
-      console.log(`ERROR ${(e as Error).message}`);
+      // the reference read runs inside build(): an engine error there is an attempt as well (it reached ComfyUI)
+      const engineError = submitted || e instanceof comfy.ComfyError;
+      results[it.id] = { id: it.id, phase: it.phase, style: it.style, arm: it.arm, family: it.family, seed: it.seed, prompt: it.prompt, negative: it.negative, inputs: it.inputs, submitted: engineError, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: meter.peak(t0), at: new Date().toISOString() };
+      console.log(`${engineError ? 'ENGINE ERROR' : 'HARNESS ERROR (not an attempt)'} ${(e as Error).message}`);
     }
     await save();
   }
