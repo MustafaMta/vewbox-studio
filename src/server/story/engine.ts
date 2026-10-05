@@ -7,7 +7,7 @@ import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
 import { nid } from '@/domain/ids';
 import { StudioError } from '@/domain/errors';
 import { primaryImageOf } from '@/domain/identity';
-import { json as llmJson, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
+import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
@@ -462,18 +462,83 @@ export function planningWorld(p: Production, scene: Scene, bible?: WorldBible): 
   return [fromBible, /RETURNING LOCATION/.test(fromBible) ? '' : establishedAt(p, scene)].filter(Boolean).join('\n');
 }
 
+/** The running time a scene (or a run of its beats) is planned to: the production's target shared by written beats. */
+export function sceneBudget(p: Pick<Production, 'targetSeconds' | 'scenes'>, beats: number): number {
+  return Math.max(4, Math.round(p.targetSeconds * (beats || 1) / Math.max(1, p.scenes.reduce((a, sc) => a + (sc.beats.length || 1), 0))));
+}
+
+/** What one shot of a plan costs in output tokens, at most: measured on Gemma 4 31B, the English plan 5 shots in
+ *  ≈ 5,000 tokens and the Arabic plan 6 shots in 6,330 (1,055 per shot) — and 13 shots cut off at 9,000
+ *  (MODEL-EVAL-2026-10 §3, `ar-plan-run2`). 1,100 per shot plus the object around them. */
+export const PLAN_TOKENS_PER_SHOT = 1100;
+const PLAN_TOKENS_FIXED = 400;
+/** The output a plan of `budget` seconds needs when the model takes the most shots it is offered (budget / 4). */
+export const planOutputTokens = (budget: number) => PLAN_TOKENS_FIXED + PLAN_TOKENS_PER_SHOT * Math.max(2, Math.round(budget / 4));
+/** How deep a scene is halved when its plan does not fit one answer: at most 2³ = 8 parts. */
+const MAX_PLAN_SPLITS = 3;
+
+/** A scene's beats in two runs, in order, for planning in two calls (the first holds the extra beat). */
+export function halveBeats<T>(beats: T[]): [T[], T[]] { const k = Math.ceil(beats.length / 2); return [beats.slice(0, k), beats.slice(k)]; }
+
+/** THE SCENE'S SHOT PLAN. One call plans the whole scene when its plan fits the room the engine has for an answer
+ *  (`outputRoom`: on the local Ollama, the context OLLAMA_CONTEXT_LENGTH minus the prompt); the call is given that
+ *  whole room as its budget. When the most shots the scene may take (`planOutputTokens`) would not fit — or an answer
+ *  is cut off anyway (TruncatedAnswerError) — the scene is planned in PARTS: its beats halved (up to 8 parts), each
+ *  part with its share of the running time and its own lines, the second part continuing from the first part's last
+ *  shot. A cut-off plan is never shaped or kept: it is planned again smaller, or the job fails (a scene of one beat
+ *  that does not fit). */
 export async function planShotsDraft(_s: StudioState, p: Production, scene: Scene, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string } , opts: EngineOptions = {}, bible?: WorldBible): Promise<ShotPlanDraft> {
+  const budget = sceneBudget(p, scene.beats.length);
+  const maxShot = 10;
+  const shots = await planBeats(p, scene, { from: 0, beats: scene.beats }, cast, world, previous, opts, bible, 0);
+  return { shots, budget, maxShot };
+}
+
+interface BeatRun { from: number; beats: Scene['beats'] }
+
+async function planBeats(p: Production, scene: Scene, run: BeatRun, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string }, opts: EngineOptions, bible: WorldBible | undefined, depth: number): Promise<PlannedShot[]> {
+  const budget = sceneBudget(p, run.beats.length);
+  const maxShot = 10;
+  const messages = shotPlanMessages(p, scene, run, budget, maxShot, cast, world, previous, opts, bible);
+  const room = outputRoom(messages, { provider: opts.provider });
+  const canSplit = run.beats.length > 1 && depth < MAX_PLAN_SPLITS;
+  const split = async (): Promise<PlannedShot[]> => {
+    const [a, b] = halveBeats(run.beats);
+    const first = await planBeats(p, scene, { from: run.from, beats: a }, cast, world, previous, opts, bible, depth + 1);
+    const second = await planBeats(p, scene, { from: run.from + a.length, beats: b }, cast, world, { shot: first[first.length - 1] }, opts, bible, depth + 1);
+    return [...first, ...second];
+  };
+  if (canSplit && planOutputTokens(budget) > room) return split();
+  // a run's running time needs enough shots at ≤ maxShot seconds each; a one-shot answer is sent back for more
+  const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
+  const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
+  let r: Awaited<ReturnType<typeof llmJson<ShotPlanOut>>>;
+  try { r = await llmJson(schema, messages, { ...opts, maxTokens: room, temperature: 0.6 }); } catch (e) {
+    if (isTruncatedAnswer(e) && canSplit) return split();
+    throw e;
+  }
+  opts.onResult?.(r.result);
+  const runScene: Scene = { ...scene, beats: run.beats };
+  const lines = planLines(run.beats, cast);
+  return shapeShotPlan(r.data, { cast, scene: runScene, lines, maxShot, firstOfProduction: !previous.shot, locations: world, musicVideo: p.kind === 'MUSIC_VIDEO', opensScene: run.from === 0 });
+}
+
+const planLines = (beats: Scene['beats'], cast: Character[]): PlanLine[] => beats.flatMap((b) => b.lines.map((l) => ({ characterName: cast.find((c) => c.id === l.characterId)?.name ?? '?', characterId: l.characterId, text: l.text, textAr: l.textAr, id: l.id })));
+
+function shotPlanMessages(p: Production, scene: Scene, run: BeatRun, budget: number, maxShot: number, cast: Character[], world: Location[], previous: { shot?: PlannedShot; sceneExit?: string }, opts: EngineOptions, bible: WorldBible | undefined): LlmMessage[] {
   const loc = world.find((l) => l.id === scene.locationId);
   const present = scene.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[];
-  const lines = scene.beats.flatMap((b) => b.lines.map((l) => ({ characterName: cast.find((c) => c.id === l.characterId)?.name ?? '?', characterId: l.characterId, text: l.text, textAr: l.textAr, id: l.id })));
+  const lines = planLines(run.beats, cast);
   const d = styleDirection(p.style);
-  const budget = Math.max(4, Math.round(p.targetSeconds * (scene.beats.length || 1) / Math.max(1, p.scenes.reduce((a, sc) => a + (sc.beats.length || 1), 0))));
-  const maxShot = 10;
-  const user = `Plan the shots for Scene ${scene.number} "${scene.title}" of "${p.title}". Aspect ${p.aspect}. The scene should run about ${budget} seconds in ${Math.max(1, Math.round(budget / 6))}–${Math.max(2, Math.round(budget / 4))} shots of 3–${maxShot} seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).
+  const whole = run.from === 0 && run.beats.length === scene.beats.length;
+  const last = run.from + run.beats.length;
+  const next = scene.beats[last];
+  const part = whole ? '' : ` — PART: beats ${run.from + 1}–${last} of the scene's ${scene.beats.length} (the other beats are planned separately; plan only these, ${run.from === 0 ? 'starting the scene' : 'continuing straight on from the previous shot below'}${next ? `, ending where beat ${last + 1} begins: "${next.action.slice(0, 160)}"` : ', ending the scene'})`;
+  const user = `Plan the shots for Scene ${scene.number} "${scene.title}" of "${p.title}"${part}. Aspect ${p.aspect}. ${whole ? 'The scene' : 'This part'} should run about ${budget} seconds in ${Math.max(1, Math.round(budget / 6))}–${Math.max(2, Math.round(budget / 4))} shots of 3–${maxShot} seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).
 Location: ${loc ? compact(locationSummary(loc)) : '(none set — describe a plausible place consistent with the story and keep it identical across shots)'}
-Time of day: ${scene.timeOfDay}. Purpose: ${scene.purpose ?? ''}. Emotional objective: ${scene.emotionalObjective ?? ''}. Entry state: ${scene.entryState ?? previous.sceneExit ?? ''}. Exit state: ${scene.exitState ?? ''}.
+Time of day: ${scene.timeOfDay}. Purpose: ${scene.purpose ?? ''}. Emotional objective: ${scene.emotionalObjective ?? ''}. Entry state: ${run.from === 0 ? scene.entryState ?? previous.sceneExit ?? '' : '(mid-scene: as the previous shot ends)'}. Exit state: ${next ? '(mid-scene: the scene goes on after these beats)' : scene.exitState ?? ''}.
 Characters present (exact names; include their look so prompts can describe them): ${compact(present.map(castSummary))}
-Beats and lines of the scene, in order: ${compact(scene.beats.map((b, i) => ({ beat: i + 1, action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })))}
+Beats and lines of the ${whole ? 'scene' : 'part'}, in order: ${compact(run.beats.map((b, i) => ({ beat: run.from + i + 1, action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })))}
 Dialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): ${compact(lines.map((l, i) => ({ index: i, who: l.characterName, line: l.textAr || l.text })))}
 ${previous.shot ? `The previous shot (from the preceding scene or earlier in this scene) ended like this; keep continuity or mark a clear transition: ${compact({ action: previous.shot.action, continuity: previous.shot.continuity })}` : 'This is the first shot of the production.'}
 ${planningWorld(p, scene, bible)}
@@ -486,14 +551,7 @@ Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, 
 Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","boundary":"transition","beats":[{"seconds":1.5,"action":"She stops at the gate, hand on the latch."},{"seconds":3.5,"action":"She pushes the gate open and steps through."}],"actions":["stops at the gate","pushes the gate open","steps through"],"pace":"NORMAL","extras":[],"continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"]}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot."},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
 Every continuity.characters entry must use the key "characterName" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.
 framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
-  const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
-  // a scene's running time needs enough shots at ≤ maxShot seconds each; a one-shot scene is sent back for more
-  const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
-  const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
-  const r = await llmJson(schema, messages, { ...opts, maxTokens: 9000, temperature: 0.6 });
-  opts.onResult?.(r.result);
-  const shots = shapeShotPlan(r.data, { cast, scene, lines, maxShot, firstOfProduction: !previous.shot, locations: world, musicVideo: p.kind === 'MUSIC_VIDEO' });
-  return { shots, budget, maxShot };
+  return [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
 }
 
 /** A script line as the planner indexes it. */
@@ -504,7 +562,7 @@ export interface PlanLine { id: string; characterId: string; characterName: stri
  *  THE BOUNDARY set on every shot — the planner's explicit `boundary`, else its `relationToPrevious`; the first shot
  *  of a scene is never `continuous` (it opens the scene: a transition), and `continuity.relationToPrevious` is kept
  *  in step with the boundary for the readers of older plans. */
-export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene: Scene; lines: PlanLine[]; maxShot: number; firstOfProduction?: boolean; locations?: Location[]; musicVideo?: boolean }): PlannedShot[] {
+export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene: Scene; lines: PlanLine[]; maxShot: number; firstOfProduction?: boolean; locations?: Location[]; musicVideo?: boolean; /** false for a later part of a scene planned in parts: its first shot continues the part before */ opensScene?: boolean }): PlannedShot[] {
   const { cast, scene, lines, maxShot } = ctx;
   const norm = (s: string) => s.trim().toLowerCase().replace(/^(the|a|an)\s+/, '');
   const byName = (name: string) => { const n = norm(name); return cast.find((c) => norm(c.name) === n || c.nameAr?.trim() === name.trim()) ?? cast.find((c) => n.includes(norm(c.name)) || norm(c.name).includes(n) || (c.nameAr && name.includes(c.nameAr))); };
@@ -520,7 +578,7 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
     const cont = sh.continuity;
     // the boundary: explicit, else from the relation; a scene's first shot opens it (a transition), never continues
     let boundary: ShotBoundary = sh.boundary ?? RELATION_BOUNDARY[cont.relationToPrevious];
-    if (i === 0 && boundary !== 'transition') boundary = 'transition';
+    if (i === 0 && ctx.opensScene !== false && boundary !== 'transition') boundary = 'transition';
     const durationSeconds = Math.min(maxShot, Math.max(3, Math.round(sh.durationSeconds)));
     // THE STAGING (src/server/story/beats.ts): timed beats tiled over the shot, cuts policed, the point of view and
     // the extras resolved, the discrete actions kept
