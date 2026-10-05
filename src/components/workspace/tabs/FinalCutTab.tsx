@@ -6,6 +6,7 @@ import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { assetById, castOf } from '@/studio/selectors';
 import { cutVersionsOf } from '@/studio/selectors/cuts';
+import { speakingVoices } from '@/domain/voice-identity';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, PanelCard, SectionHead, Select, StateWord } from '@/components/ui/kit';
 import { useStartJob } from '@/components/ui/jobs';
@@ -38,6 +39,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
   const lines = shots.reduce((a, sh) => a + sh.dialogue.length, 0);
   const voiced = shots.reduce((a, sh) => a + sh.dialogue.filter((d) => d.audioAssetId).length, 0);
   const cast = castOf(state, p);
+  const speaking = speakingVoices(p, cast);
   const cutApproved = useGate(p, 'EDIT').approved;
   const { start, busy } = useStartJob();
   const [format, setFormat] = useState<'mp4-h264' | 'mp4-h265' | 'mov-prores'>('mp4-h264');
@@ -85,7 +87,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
               <li>{missing === 0 ? 'Every shot has a selected take' : `${missing} ${missing === 1 ? 'shot' : 'shots'} without a selected take`}</li>
               {lines > 0 && <li>{voiced} of {lines} lines recorded</li>}
               {p.song && <li>Music: <bdi>{p.song.title}</bdi></li>}
-              <li>{cast.filter((c) => c.voice.selectedSampleId).length} of {cast.length} voices chosen</li>
+              {speaking.speakers > 0 && <li>{speaking.voiced} of {speaking.speakers} speaking {speaking.speakers === 1 ? 'character has' : 'characters have'} a voice</li>}
             </ul>
           </section>
 

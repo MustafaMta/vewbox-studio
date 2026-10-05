@@ -44,7 +44,7 @@ export function sectionFor(song: Song, w: Window): LyricSection | undefined {
   return best ?? song.sections.find((s) => w.from < s.to && w.to > s.from);
 }
 
-export interface SungLine { singerId: string; text: string; textAr?: string }
+export interface SungLine { singerId: string; text: string; textAr?: string; role?: 'LEAD' | 'BACKING' }
 
 /** The lyric lines a shot's window covers, with their singers. Alternating sections carry their own per-line
  *  assignment; otherwise the section's lines are spread evenly over its duration and every assigned singer sings. */
@@ -56,7 +56,7 @@ export function sungLinesFor(song: Song, w: Window, language: 'EN' | 'AR'): Sung
     const n = sec.lines.length;
     return sec.lines.map((l, i) => ({ ...l, from: l.from ?? sec.from + (span * i) / n, to: l.to ?? sec.from + (span * (i + 1)) / n }))
       .filter((l) => l.from < w.to && l.to > w.from)
-      .map((l) => ({ singerId: l.singerId, text: l.text }));
+      .map((l) => ({ singerId: l.singerId, text: l.text, ...(l.role ? { role: l.role } : {}) }));
   }
   const source = (language === 'AR' ? sec.textAr || sec.text : sec.text) || '';
   const lines = source.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
@@ -327,7 +327,7 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
         const la = byId(d.audioAssetId)!;
         const dur = secS(la.durationSeconds ?? d.durationSeconds ?? 2);
         const w = placed.find((x) => x.lineId === d.id);
-        let start = w && w.from >= head ? shotStart + secS(w.from - head) : cursor;
+        let start = Math.max(shotStart, (w && w.from >= head ? shotStart + secS(w.from - head) : cursor) + lipSyncShiftSamples(t));
         const before = lineCues.at(-1);
         if (before && start < before.startSample + before.durationSamples) { start = before.startSample + before.durationSamples + secS(0.1); notes.push(`shot ${sh.id}: line ${d.id} would overlap the line before it; moved after it`); }
         let durationSamples = dur;
@@ -453,4 +453,18 @@ export function auditTimeline(t: Pick<AudioTimeline, 'cues'>): AudioProblem[] {
 /** A compact, stable form of a timeline for provenance and the stored revision (cue ids, kinds, placements). */
 export function timelineDigest(t: AudioTimeline) {
   return { clock: t.clock, totalFrames: t.totalFrames, songOffsetFrames: t.songOffsetFrames, policy: t.policy, shots: t.shots.map((s) => ({ shotId: s.shotId, takeId: s.takeId, startFrame: s.startFrame, frames: s.frames, sourceStartFrame: s.sourceStartFrame, holdFrames: s.holdFrames, basis: s.basis, relation: s.relation, join: s.join })), cues: t.cues.map((c) => ({ id: c.id, kind: c.kind, source: c.sourceAssetId, lineage: c.lineage, start: c.startSample, duration: c.durationSamples, offset: c.sourceOffsetSamples, gain: c.gain, muted: c.muted ?? false, ducked: c.automation?.spans.length ?? 0 })), problems: t.problems, notes: t.notes };
+}
+
+/** LIP-SYNC REPAIR BY THE SOUND, NEVER THE PICTURE (docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md §C.4; cloud
+ *  directive §7 "apply a correction stage only when required"). The take's lip-sync check (src/worker/handlers/take.ts,
+ *  `params.lipSync`) measured how far its mouths run from the recorded lines: within one frame it is in sync; a lag of
+ *  2–6 frames is repaired here by playing the recorded line that much later (positive) or earlier (negative) — the
+ *  face is never changed; beyond 6 frames nothing is shifted (the take is flagged for review instead). Applies only
+ *  where the cut plays the recorded line. */
+export const LIPSYNC_SHIFT = { inSyncFrames: 1, maxShiftFrames: 6 } as const;
+export function lipSyncShiftSamples(t: Pick<Take, 'params'>): number {
+  const ls = (t.params as { lipSync?: { lagFrames?: unknown; against?: unknown } } | undefined)?.lipSync;
+  const lag = typeof ls?.lagFrames === 'number' ? Math.round(ls.lagFrames) : 0;
+  if (ls?.against !== 'RECORDED') return 0;
+  return Math.abs(lag) > LIPSYNC_SHIFT.inSyncFrames && Math.abs(lag) <= LIPSYNC_SHIFT.maxShiftFrames ? lag * SAMPLES_PER_FRAME : 0;
 }

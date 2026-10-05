@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { frameCheckOf } from '@/domain/frames';
 import type { Job } from '@/domain/jobs';
 import type { Production, Shot, ShotBoundary, ShotDialogue, Take } from '@/domain/types';
 import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
@@ -29,6 +30,7 @@ import { RunningRow } from './Running';
 import { ShotFailure } from './Failed';
 import { ShotLocationRefusal, StaleNotice } from './Continuity';
 import { WorkspaceShell } from './WorkspaceShell';
+import { ShotContext } from './ShotContext';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
 import { BOUNDARY_WORDS, boundaryOf, driftOf, sceneStateOfTake, activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
 
@@ -228,6 +230,11 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </details>
 
         <details className="ws-disc">
+          <summary className="ws-disc-sum">People and story state</summary>
+          <div className="ws-disc-body"><ShotContext key={`${shot.id}:${shot.continuity?.version ?? 0}`} p={p} shot={shot} /></div>
+        </details>
+
+        <details className="ws-disc">
           <summary className="ws-disc-sum">Notes</summary>
           <div className="ws-disc-body">
             <Field label="Notes for this shot"><Textarea value={draft.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} rows={3} dir="auto" /></Field>
@@ -403,6 +410,7 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
               <Frame asset={a} ratio={frameRatioOf(p)} fit="cover" alt="" decorative art={artVars(a)} title={a ? label : 'Not drawn'} titleState="notDrawn" radius="none" judge />
               {a && <button type="button" className="btn btn-secondary btn-sm btn-icon ws-slot-x" aria-label={`Remove the ${label.toLowerCase().replace(' (optional)', '')}`} onClick={() => patch({ [key]: undefined } as Partial<Draft>)}><IconClose aria-hidden /></button>}
             </span>
+            {(() => { const pc = frameCheckOf(a); return pc && !pc.ok ? <p className="t-meta ws-slot-warn" role="status">Holds {pc.counted} {pc.counted === 1 ? 'person' : 'people'}; the shot has {pc.expected}. It will not be filmed from until it is drawn again or removed.</p> : null; })()}
           </div>
         ))}
       </div>

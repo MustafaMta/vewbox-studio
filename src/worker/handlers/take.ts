@@ -19,17 +19,21 @@ import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
 import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, shouldRegenerate, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
-import { h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
+import { bindNamesOutsideDialogue, h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
 import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { contextRecord } from '@/domain/production-context';
+import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
+import { alignScript, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
+import { shotPerformers } from '@/domain/music-performance';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { assertLocationPlate } from '@/server/production/location-rule';
-import { identityAppliedChecks, measurePlateDrift, type PlateDrift } from '@/server/media/plate-drift';
+import { identityAppliedChecks, measurePlateDrift, plateComparable, type PlateDrift } from '@/server/media/plate-drift';
 import { establishFromTake } from '@/server/world';
 import { outputId } from '@/server/jobs/outputs';
 import type { CommandSpec } from '@/server/studio/engine';
@@ -99,6 +103,7 @@ export const generateTake: Handler = async (ctx) => {
   // the plate, on every shot that shows them), what the clip starts from, the graph — the same resolution the
   // preflight judged
   const pack = resolveShotPack(state, p, sh, { backend, bible: world.outcome.view.revision?.bible });
+  await ctx.event(pack.context.gaps.length ? 'warn' : 'info', `production context ${pack.context.hash}: ${pack.context.characters.length} character(s), ${pack.context.location ? pack.context.location.name : 'no place'}, ${pack.context.shot.boundary}${pack.context.anchoring.reanchor ? ', re-anchoring' : ''}${pack.context.gaps.length ? `; gaps: ${pack.context.gaps.join('; ')}` : ''}`, { context: contextRecord(pack.context) });
   await ctx.event('info', `scene state (${pack.sceneState.boundary}): ${pack.sceneState.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'time of day unknown'}${pack.sceneState.weather ? `, ${pack.sceneState.weather}` : ''}${pack.sceneState.lighting ? `, ${pack.sceneState.lighting}` : ''}; ${pack.sceneState.present.length} present, ${pack.sceneState.props.length} prop(s); environment from ${pack.sceneState.sources.environment.kind.toLowerCase().replace(/_/g, ' ')}`, { sceneState: pack.sceneState });
   let seconds = Math.min(15, Math.max(1, Math.round(payload.durationSeconds ?? sh.durationSeconds)));
   // the seed is chosen here, not inside the engine, so the take records the number that made it — and from the job,
@@ -117,6 +122,8 @@ export const generateTake: Handler = async (ctx) => {
   let dialogueLineAssets: string[] | undefined;
   /** the checks of the lines recorded by THIS take (reused lines were checked when they were recorded) */
   const spokenChecks: Array<LineCheck | null> = [];
+  /** each line's aligned words (seconds into its own recording), when the aligner answered */
+  const alignedLines = new Map<string, Array<{ start: number; end: number }>>();
 
   // 1) SOUND FIRST. A speaking shot starts from its sound: every line recorded with its character's canonical voice
   //    and checked by transcription, joined with natural gaps. The recording sets the shot's length and is anchored
@@ -152,6 +159,8 @@ export const generateTake: Handler = async (ctx) => {
       if (have) {
         const dur = have.durationSeconds ?? d.durationSeconds ?? (await ctx.tool('media.probe', () => ffprobe(assetFile(have)), { input: { file: assetFile(have) } })).durationSeconds ?? 2;
         spoken.push({ file: assetFile(have), durationSeconds: dur, lineId: d.id, assetId: have.id, check: (have.provenance?.check as LineCheck | null | undefined) ?? null, reused: true });
+        const kept = (have.provenance?.alignment as { words?: Array<{ start: number; end: number }> } | undefined)?.words;
+        if (kept?.length) alignedLines.set(d.id, kept);
         continue;
       }
       const ref = voices.get(d.characterId)!;
@@ -162,8 +171,12 @@ export const generateTake: Handler = async (ctx) => {
       // crash before its commit leaves a file of this job the next attempt's GC removes
       const { id, stored: st } = await out.adopt(`line:${d.id}:a${ctx.job.attempts}`, line.file, { expectKind: 'AUDIO' });
       const durationSeconds = st.probe?.durationSeconds ?? line.durationSeconds ?? 2;
+      // WORD TIMING OF THE AUTHORITATIVE LINE (forced alignment of the script, qa-service /align; directive §7 step 6):
+      // kept on the recording; an offline aligner is recorded as such, never guessed
+      const alignment = await lineAlignment(st.absPath, text, line.language === 'AR' ? 'ar' : 'en');
+      alignedLines.set(d.id, alignment.words);
       await commands([
-        { name: 'addAsset', args: [assetFromStored(id, st, { label: `${p.title} ${sh.number} — ${c.name}: “${text.slice(0, 32)}”`, tags: ['dialogue', 'voice'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, characterId: c.id, shotId: sh.id, lineId: d.id, voiceRevision: c.voice.identity?.revision, check } })] },
+        { name: 'addAsset', args: [assetFromStored(id, st, { label: `${p.title} ${sh.number} — ${c.name}: “${text.slice(0, 32)}”`, tags: ['dialogue', 'voice'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, characterId: c.id, shotId: sh.id, lineId: d.id, voiceRevision: c.voice.identity?.revision, check, alignment } })] },
         { name: 'setDialogueAudio', args: [p.id, sh.id, d.id, { audioAssetId: id, durationSeconds, voiceRevision: c.voice.identity?.revision }] },
       ], 'worker');
       spoken.push({ file: st.absPath, durationSeconds, lineId: d.id, assetId: id, check, reused: false });
@@ -229,7 +242,7 @@ export const generateTake: Handler = async (ctx) => {
     if (!verdict.ok) throw Object.assign(new StudioError('INVALID', `The continuation guide for shot ${sh.number} is unusable: ${verdict.problems.join('; ')}`, { guide: { frames: tail.frames, audioSeconds: tail.audioSeconds, hasAudio: tail.hasAudio }, verdict }), { failureClass: 'WRONG_PARAMETERS' });
     trimStartFrames = verdict.frames;
     tailFile = tail.file;
-    guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame };
+    guideRecord = { frames: verdict.frames, sourceFrames: tail.frames, withAudio: Boolean(songTail || pack.opening.withAudio), audioSeconds: tail.audioSeconds, audioLatentSteps: verdict.audioLatentSteps, sourceEndFrame: tail.sourceEndFrame, settings: { engine: pack.continuation.engine, guideFrames: pack.continuation.guideFrames, guideAudio: pack.continuation.guideAudio, source: pack.continuation.source } };
     // THE FRAME BUDGET (G11): the words set the length (sound first), and a continuation carries at most 362 − guide
     // new frames. Over budget the take is a HARD CUT without its guide rather than a truncated continuation: the
     // planned content is never lost silently, and the take says why it is a cut
@@ -312,9 +325,14 @@ export const generateTake: Handler = async (ctx) => {
   const custom = payload.prompt?.trim();
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
-  const prompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState })].filter(Boolean).join(' '));
+  const draftPrompt = refsGraph
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context })].filter(Boolean).join(' '));
+  // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
+  const subjectOfPack = (id: string) => { const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
+  const named = bindNamesOutsideDialogue(draftPrompt, cast, subjectOfPack);
+  const prompt = named.prompt;
+  if (named.replaced.length) await ctx.event('info', `names bound in the prompt: ${named.replaced.join(', ')}`, { replaced: named.replaced });
   const lint = lintH3Prompt(prompt, { labels: binding.labels, pictures: refsGraph ? referenceImages.length : 0, audios: refsGraph ? referenceAudio.length : 0, lines: custom || p.kind === 'MUSIC_VIDEO' ? [] : sh.dialogue.map(lineText).filter(Boolean), names: cast.map((c) => c.name) });
   if (!lint.ok) {
     const failed = lint.checks.filter((c) => !c.ok && c.hard);
@@ -351,8 +369,14 @@ export const generateTake: Handler = async (ctx) => {
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
   }), { label: backend, input: request }));
-  const genMs = Date.now() - t0;
-  await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
+  // A RECOVERED RUN (acceptance 2026-10-05, open item 3: a recovered take said "made in 8 s"): when an earlier
+  // attempt's engine run was adopted, the wall clock here measured only the wait after adoption. The take then carries
+  // the engine's own execution time (ComfyUI's history), or no time at all — never the adoption wait.
+  const resumedRun = Boolean(result.resumed || request.resumeTaskId);
+  const waitedMs = Date.now() - t0;
+  const genMs = takeGenerationMs({ resumed: resumedRun, engineMs: result.engineMs, waitedMs });
+  if (genMs !== undefined) await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds, ...(resumedRun ? { resumed: true } : {}) }, ctx.job.id);
+  if (resumedRun) await ctx.event('info', `the engine run was adopted from an earlier attempt: ${result.engineMs ? `engine time ${(result.engineMs / 1000).toFixed(0)} s` : 'engine time unknown'}, waited ${(waitedMs / 1000).toFixed(0)} s after the restart`, { engineMs: result.engineMs, waitedMs });
   if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
@@ -384,6 +408,8 @@ export const generateTake: Handler = async (ctx) => {
   const { report, probe } = await step(ctx, 'visual-quality-inspector', `picture-check: shot ${sh.number}`, (tool) => tool('media.qa_take', () => qaTake(qa.file, qa.expect), { input: qa }));
   report.checks.push(...headChecks);
   const pictureChecks = report.checks.map((c) => ({ ...c }));
+  // where each line was anchored (the authoritative recording, placed at the first new frame): the timing check's expectation
+  const plannedLines = soundtrack?.kind === 'DIALOGUE' ? soundtrack.lines.map((l) => ({ lineId: l.lineId, expectedFrom: trimStartFrames / H3_FPS + l.from, recordedSeconds: l.to - l.from })) : [];
   await ctx.checkpoint();
   let scriptCheck: { ok: boolean; coverage?: number; wer?: number; cer?: number; heard?: string; detail?: string } | undefined;
   let takeUnverified = false;
@@ -457,7 +483,11 @@ export const generateTake: Handler = async (ctx) => {
   driftChecks.push({ name: 'identity-references-applied', ok: applied.ok, value: applied.characters.filter((c) => c.applied).length, threshold: applied.characters.length, detail: applied.detail });
   let plateDrift: PlateDrift | undefined;
   let plateDriftNote: string | undefined;
-  if (pack.location && loc) {
+  const comparable = plateComparable(sh.framing);
+  if (pack.location && loc && !comparable.comparable) {
+    plateDriftNote = `not comparable: ${comparable.why}`;
+    driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
+  } else if (pack.location && loc) {
     const plateAsset = byId(pack.location.assetId);
     try {
       plateDrift = await step(ctx, 'world-continuity', `drift-check: shot ${sh.number}`, () => measurePlateDrift(result.file, trimStartFrames, assetFile(plateAsset!), pack.location!.assetId));
@@ -468,6 +498,59 @@ export const generateTake: Handler = async (ctx) => {
       driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
     }
   } else if (pack.establishing) driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${pack.establishing.name} is established by this take: there is no earlier plate to compare with` });
+  // LIP-SYNC AND IDENTITY (the ASR service's picture QA, src/server/providers/qa-service.ts; directive §7 steps 9-10,
+  // §10): the mouths against the AUTHORITATIVE audio (the recorded lines, else the song stretch, placed where the take
+  // was conditioned on them; else the take's own sound), and each pictured character's face against their canonical
+  // image. Flags for REVIEW with their numbers; an offline service is recorded as "not measured", never as a pass.
+  // The lag against the recorded lines is kept on the take: the cut repairs 2-6 frames by moving the sound
+  // (src/domain/timeline.ts lipSyncShiftSamples), never the face.
+  let lipSyncRecord: Record<string, unknown> | undefined;
+  let identityRecord: Record<string, unknown> | undefined;
+  if (backend === 'local') {
+    const headSeconds = trimStartFrames / H3_FPS;
+    const speaking = p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length > 0;
+    const singing = p.kind === 'MUSIC_VIDEO' && soundtrack?.kind === 'SONG' && Boolean(soundtrackFile);
+    if (speaking || singing) {
+      try {
+        const against: 'RECORDED' | 'SONG' | 'TAKE_AUDIO' = singing ? 'SONG' : soundtrackFile ? 'RECORDED' : 'TAKE_AUDIO';
+        // word windows of the recorded lines, on the clip's clock (the soundtrack guide sits at the first new frame)
+        const windows = against === 'RECORDED' && plannedLines.length ? plannedLines.flatMap((l) => { const ws = alignedLines.get(l.lineId); return ws?.length ? ws.map((w) => ({ start: l.expectedFrom + w.start, end: l.expectedFrom + w.end })) : [{ start: l.expectedFrom, end: l.expectedFrom + l.recordedSeconds }]; }) : undefined;
+        const onScreen = singing && p.song ? shotPerformers(p.song, { from: songWindowFrames(p).windows.get(sh.id)!.fromFrame / CLOCK_FPS, to: songWindowFrames(p).windows.get(sh.id)!.toFrame / CLOCK_FPS }, sh.characterIds).lead.length : speakers.length;
+        const measured = await step(ctx, 'audio-sync-inspector', `lip-sync-check: shot ${sh.number}`, () => mouthActivity(result.file, { ...(against !== 'TAKE_AUDIO' ? { audio: soundtrackFile!, audioOffset: headSeconds } : {}), windows, fps: H3_FPS, mode: singing ? 'singing' : 'speech', speakers: Math.max(1, onScreen) }));
+        const j = judgeLipSync(measured);
+        lipSyncRecord = { verdict: j.verdict, against, lagFrames: j.lagFrames, lagMs: j.lagMs, offsetRepair: j.offsetRepair, speakerTrack: j.speakerTrack, flags: j.flags, thresholds: 'START' };
+        driftChecks.push({ name: singing ? 'singing-sync' : 'lip-sync', ok: j.verdict === 'PASS' || j.verdict === 'NOT_MEASURED', value: j.lagFrames ?? undefined, threshold: '|lag| ≤ 1 frame; 2–6 repaired by moving the sound', detail: `${j.verdict === 'NOT_MEASURED' ? '' : `${j.verdict.toLowerCase()} against the ${against === 'RECORDED' ? 'recorded lines' : against === 'SONG' ? 'song' : 'take’s own sound'}: `}${j.detail.join('; ') || 'in sync'}${j.offsetRepair && against === 'RECORDED' ? ' — the cut moves the line onto the mouths' : ''}` });
+      } catch (e) {
+        driftChecks.push({ name: singing ? 'singing-sync' : 'lip-sync', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });
+      }
+    }
+    const faces = pack.subjects.map((x) => ({ characterId: x.characterId, a: byId(x.assetId) })).filter((x) => x.a);
+    if (faces.length) {
+      try {
+        const measured = await step(ctx, 'visual-quality-inspector', `identity-check: shot ${sh.number}`, () => faceIdentity(result.file, faces.map((x) => ({ characterId: x.characterId, image: assetFile(x.a!) }))));
+        const j = judgeIdentity(measured);
+        identityRecord = { verdict: j.verdict, characters: j.characters, thresholds: 'START' };
+        driftChecks.push({ name: 'identity-similarity', ok: j.verdict === 'PASS' || j.verdict === 'NOT_MEASURED', detail: j.verdict === 'PASS' ? `${Object.keys(j.characters).length} face(s) match their canonical image` : j.detail.join('; ') });
+      } catch (e) {
+        driftChecks.push({ name: 'identity-similarity', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });
+      }
+    }
+  }
+  // CONTINUITY QA WITHOUT A MODEL (src/server/media/continuity-qa.ts; cloud directive §10): accidental fades, repeated
+  // frames, cuts the shot did not plan, speech repeated beyond the script, each line heard on time, a container the
+  // cut can use. Flags for REVIEW with their numbers — never a rejection, never a silent regeneration
+  if (backend === 'local') {
+    const headSeconds = trimStartFrames / H3_FPS;
+    const plannedCuts = (sh.staging?.beats ?? []).filter((b) => b.cut && b.at > 0).map((b) => headSeconds + b.at);
+    try {
+      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard }));
+      driftChecks.push(...measured);
+    } catch (e) {
+      driftChecks.push({ name: 'continuity-measured', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });
+    }
+    if (plannedLines.length && soundtrack?.kind === 'DIALOGUE' && scriptCheck?.heard) driftChecks.push(judgeLineTiming(plannedLines, soundtrack.lines));
+  }
+  driftChecks.push(judgeContainer(probe, { fps: backend === 'local' ? H3_FPS : (probe.fps ?? H3_FPS), expectAudio: true }));
   report.checks.push(...driftChecks);
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
@@ -530,7 +613,7 @@ export const generateTake: Handler = async (ctx) => {
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
@@ -589,3 +672,29 @@ export const generateTake: Handler = async (ctx) => {
   // a take or a line that could not be heard back (transcription away) waits for a human ear: never passed silently
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, takeUnverified, awaitingReview: unverifiedLines > 0 || takeUnverified, libraryRoot: libraryRoot() };
 };
+
+/** The generation time a take records: the wall clock of this attempt, or — when the engine run was adopted from an
+ *  earlier attempt — the engine's own execution time, else nothing (the page then shows when it was made). */
+export function takeGenerationMs(r: { resumed: boolean; engineMs?: number; waitedMs: number }): number | undefined {
+  return r.resumed ? r.engineMs : r.waitedMs;
+}
+
+/** FIRST-ATTEMPT RELIABILITY (cloud directive 2026-10-05 §11: "Track attempt #1 separately from retries"). Which
+ *  generation of the shot this take is (the shot's takes before it + 1) and which attempt of its job made it: a take
+ *  with `firstForShot` and `jobAttempt` 1 is a first-attempt take; anything else is a retry (by the queue) or a
+ *  regeneration (by a person). The engine room counts first-attempt acceptance from these. */
+export function attemptRecord(jobAttempt: number, takesBefore: number): { jobAttempt: number; shotGeneration: number; firstForShot: boolean; firstAttempt: boolean } {
+  return { jobAttempt, shotGeneration: takesBefore + 1, firstForShot: takesBefore === 0, firstAttempt: takesBefore === 0 && jobAttempt <= 1 };
+}
+
+/** A recorded line's word timing from the forced aligner (qa-service /align), or why there is none. */
+async function lineAlignment(file: string, text: string, language: 'en' | 'ar'): Promise<{ verdict: string; words: Array<{ text: string; start: number; end: number }>; coverage?: number | null; detail?: string[] }> {
+  try {
+    const r = await alignScript(file, text, language);
+    if (isQaUnavailable(r)) return { verdict: 'NOT_MEASURED', words: [], detail: [r.reason] };
+    const j = judgeAlignment(r, text);
+    return { verdict: j.verdict, coverage: j.coverage, words: j.words.filter((w) => w.aligned && w.start !== null && w.end !== null).map((w) => ({ text: w.text, start: w.start!, end: w.end! })), detail: j.detail };
+  } catch (e) {
+    return { verdict: 'NOT_MEASURED', words: [], detail: [(e as Error).message.split('\n')[0]] };
+  }
+}

@@ -1,4 +1,5 @@
-import { H3_FPS, H3_MAX_FRAMES, h3GuideClipFrames } from '@/server/workflows/minimax-h3';
+import { H3_FPS, h3GuideClipFrames } from '@/server/workflows/minimax-h3';
+import { MINIMAX_H3_LOCAL, continuationBudget, guideLengths, type VideoCapability } from '@/domain/video-capability';
 import type { GuideHeadRecord, GuideJoin } from '@/server/media/guide-head';
 
 /** THE CONTINUATION GUIDE, VALIDATED (docs/research/STORYBUILDER-INTEGRATION.md §f.1, gap V1). `MiniMaxH3AddGuide`
@@ -10,8 +11,8 @@ import type { GuideHeadRecord, GuideJoin } from '@/server/media/guide-head';
 
 /** The guide lengths the installed node keeps at 24 fps (5, 22, 39 …); the audio latent runs at 40 Hz, so no guide
  *  length lands on an audio-latent step (22 frames = 36.67 steps) — the reason the join cross-fades. */
-export const H3_GUIDE_LENGTHS = [5, 22, 39] as const;
-export const H3_AUDIO_LATENT_HZ = 40;
+export const H3_GUIDE_LENGTHS = guideLengths(MINIMAX_H3_LOCAL, 39);
+export const H3_AUDIO_LATENT_HZ = MINIMAX_H3_LOCAL.guides!.audioLatentHz;
 
 export interface GuideClipFacts { frames: number; hasAudio: boolean; audioSeconds?: number }
 export interface GuideWant { /** the guide length the pack planned (what the trim will drop) */ frames: number; withAudio: boolean }
@@ -57,6 +58,8 @@ export interface GuideRecord {
   join?: GuideJoin;
   /** why the join is HARD, or why the trim moved */
   why?: string;
+  /** the continuation settings the request was built from (engine capability, studio and shot choice) */
+  settings?: { engine: string; guideFrames: number; guideAudio: string; source: { guideFrames: string; guideAudio: string } };
 }
 
 /** The frame budget of a continuation (docs/research/STORYBUILDER-INTEGRATION.md §f.2, G11): after the guide, the
@@ -64,8 +67,6 @@ export interface GuideRecord {
  *  silently: the plan is refused (preflight), and a dialogue that grows past it at generation time turns the take into
  *  a hard cut without a guide (SB's rule: refuse the guide rather than lose the words). */
 export interface FrameBudget { guideFrames: number; budgetFrames: number; neededFrames: number; fits: boolean }
-export function frameBudget(guideFrames: number, newSeconds: number, fps = H3_FPS): FrameBudget {
-  const neededFrames = Math.max(1, Math.round(newSeconds * fps));
-  const budgetFrames = H3_MAX_FRAMES - Math.max(0, guideFrames);
-  return { guideFrames, budgetFrames, neededFrames, fits: neededFrames <= budgetFrames };
+export function frameBudget(guideFrames: number, newSeconds: number, cap: VideoCapability = MINIMAX_H3_LOCAL): FrameBudget {
+  return continuationBudget(cap, guideFrames, newSeconds);
 }

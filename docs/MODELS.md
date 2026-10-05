@@ -89,6 +89,9 @@ removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /mo
 | `diffusion_models/flux-2-klein-base-4b.safetensors` (Comfy-Org/flux2-klein-4B) | 7 751 105 712 | `9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92` | Apache-2.0 (klein Base, evaluated and not chosen: 20× slower, worse likeness; out of the manifest since the klein group became `images-flux2-klein`; `rm /models/diffusion_models/flux-2-klein-base-4b.safetensors` frees 7.75 GB) |
 | `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
 
+Since 2026-10-05 the YuNet and SFace files above are used again, by the face-identity QA of the `asr` service
+(manifest group `qa-identity`, same folder and sha256; see "Alignment and picture QA" below). Do not delete them.
+
 ## Voices and transcription
 
 | Purpose | Engine | Where | Licence | Notes |
@@ -138,6 +141,31 @@ Measured on every generated file (20 WAVs + 2 line-engine renderings; ASR = fast
   `iraqi-male-c1-s5002`: CER 0.016, 6/2/0). «الچاي» and «باچر» never came back with a /tʃ/ letter (0 of 36, also with
   Habibi's own real Iraqi demo clip as reference) — a listener question, not settled by ASR. Space-insensitive view:
   `src/server/media/arabic-align.ts` (6 of 72 lines were REVIEW only because «گلتلك» was written «قلت لك»).
+
+## Alignment and picture QA (`asr` service)
+
+Research and decisions: `docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md` §B, §C.2 (Tier 1), §D. Client and judges:
+`src/server/providers/qa-service.ts` (`alignScript`, `mouthActivity`, `faceIdentity`; `judgeAlignment`, `judgeLipSync`,
+`judgeIdentity`). Every threshold is a **START** value; none has been calibrated on H3 output yet.
+
+| Purpose | Model | Where | Licence | Notes |
+|---|---|---|---|---|
+| Word/character times of the KNOWN script text (dialogue windows, subtitles, lip-sync windows) | `facebook/wav2vec2-base-960h` (EN) | `asr` `POST /align` (`docker/asr/align.py`), CUDA when available, else CPU | Apache-2.0 **◐** (card not read: Hugging Face was blocked in the cloud session; confirm before the first fetch) | group `qa-align` → `/models/align/wav2vec2-base-960h` (`ALIGN_MODEL_DIR_EN`). WhisperX's CTC trellis/backtrack re-implemented in numpy (BSD-2 notice in `align.py`; the whisperx package is not installed). 30 s emission windows; ≤ 180 s per call (`ALIGN_MAX_AUDIO_S`). Score floor START 0.30 |
+| The same for Arabic | `jonatasgrosman/wav2vec2-large-xlsr-53-arabic` (AR) | `asr` `POST /align` | Apache-2.0 **◐** (as above) | group `qa-align` → `/models/align/wav2vec2-large-xlsr-53-arabic` (`ALIGN_MODEL_DIR_AR`). The vocabulary is read at load: Arabic letters are used directly, a Buckwalter vocabulary gets a transliteration. Diacritics and tatweel are stripped; digits in Arabic lines are not spelled (those words are timed from their neighbours) |
+| Mouth activity per face track against the speech of the audio that plays in the cut (Tier-1 lip-sync; extra singers) | MediaPipe Face Landmarker `face_landmarker.task` (float16/1, 3 758 596 B, sha256 `64184e22…c9ff`) | `asr` `POST /qa/mouth` (`docker/asr/qa.py`), CPU | Apache-2.0 (MediaPipe ✔; the model card's terms ◐) | Not on Hugging Face: recorded under `service_fetched` in the manifest; the service downloads it once into `/models/qa/` and checks the sha256 (`QA_AUTOFETCH=0` disables; then `docker run --rm -v vewbox_models:/models curlimages/curl -L -o /models/qa/face_landmarker.task <url>` and check the sha256). Needs `libegl1`/`libgles2` in the image even on CPU |
+| Face identity of each character against its canonical image | OpenCV Zoo YuNet 2023mar + SFace 2021dec (`cv2.FaceDetectorYN`, `cv2.FaceRecognizerSF`) | `asr` `POST /qa/identity`, CPU | MIT ✔ (YuNet) / Apache-2.0 ✔ (SFace) | group `qa-identity` → `/models/identity/` (the files already on the volume). SFace cosine per sampled frame (default 2 fps), faces assigned one-to-one to characters; START fail < 0.363, review < 0.50, drift review > 0.15. Realistic faces only; advisory on stylised faces |
+| Lip-sync Tier 2 (LSE-C/LSE-D, AV offset) | SyncNet (`joonson/syncnet_python`) | interface only (`qa.syncnet_check`) | code MIT; **weights: no stated licence** | disabled; answers `{available: false}` unless `SYNCNET_DIR` exists, and even then no runner is wired until the licence is confirmed (internal QA only) |
+
+Not usable (licence): MMS forced-alignment weights and ctc-forced-aligner's default model (CC-BY-NC), InsightFace model
+packs (non-commercial), Wav2Lip, Diff2Lip.
+
+Packages added to the `asr` image (PyPI, 2026-10-05): `transformers==5.18.0`, `opencv-python-headless==4.14.0.94`,
+`mediapipe==1.0.1` (installed `--no-deps`: it declares the GUI `opencv-contrib-python`), `numpy==2.5.3`, and what
+MediaPipe's vision tasks import (`absl-py`, `flatbuffers`, `matplotlib`, `certifi`). `/health` → `capabilities` says, per
+capability, whether it can run and why not; a missing module or weight never stops transcription or separation.
+
+VRAM/CPU cost: **not measured** (no GPU in the session that built this). The QA endpoints are CPU-only by design so they
+can run beside H3; `/align` uses the card when one is visible (`ALIGN_DEVICE=cpu` forces CPU) and is dropped by `/unload`.
 
 ## Music
 

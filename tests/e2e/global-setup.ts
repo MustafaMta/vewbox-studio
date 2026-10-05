@@ -111,7 +111,7 @@ export default async function globalSetup() {
   // first browser request — which in a test is a click, and on a busy dev server can take longer than an expectation
   const t0 = Date.now();
   let slow = 0;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.E2E_CHROMIUM ? { executablePath: process.env.E2E_CHROMIUM } : {});
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   await page.addInitScript(() => { try { localStorage.setItem('vewbox.ui', JSON.stringify({ motion: true })); } catch { /* fine */ } });

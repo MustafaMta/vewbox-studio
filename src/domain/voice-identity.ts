@@ -329,3 +329,15 @@ export function voiceLabels(i: Pick<VoiceIdentity, 'origin' | 'language' | 'dial
   if (!i.listening?.length) out.push(NATURALNESS_PENDING);
   return out;
 }
+
+/** Whether a character has a voice to speak with: a pinned identity that is not STALE (a voice identity v2 record), or
+ *  — for a character from before identities — a chosen sample. Acceptance 2026-10-05, open item 7: the Final cut tab
+ *  counted only the legacy `selectedSampleId` and said "0 of 2 voices chosen" with both speakers voiced. */
+export const hasVoice = (c: Pick<Character, 'voice'>): boolean => Boolean((c.voice.identity && c.voice.identity.status !== 'STALE') || (!c.voice.identity && c.voice.selectedSampleId));
+
+/** The speaking characters of a production (anyone with a line in a shot) and how many of them have a voice. */
+export function speakingVoices(p: { shots: Array<{ dialogue: Array<{ characterId: string }> }> }, cast: Array<Pick<Character, 'id' | 'voice'>>): { speakers: number; voiced: number } {
+  const ids = new Set(p.shots.flatMap((sh) => sh.dialogue.map((d) => d.characterId)));
+  const speakers = cast.filter((c) => ids.has(c.id));
+  return { speakers: speakers.length, voiced: speakers.filter(hasVoice).length };
+}

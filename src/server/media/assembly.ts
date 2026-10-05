@@ -170,6 +170,18 @@ const vttTime = (t: number) => srtTime(t).replace(',', '.');
 
 export interface Cue { start: number; end: number; text: string; speaker?: string }
 
+/** THE TEXT OF A CUE IN ONE SUBTITLE LANGUAGE, or nothing (acceptance 2026-10-05, open item 4: an "ar" track full of
+ *  English was written for an English film). A track holds only text in its own script: the Arabic track takes the
+ *  Arabic line (`textAr`, or `text` when it is Arabic), the English track the Latin-script line (`text`, or the gloss);
+ *  a film with no Arabic text has no Arabic track at all, and an Arabic line with no English gloss has no English cue. */
+const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const LATIN_LETTER = /[A-Za-z\u00C0-\u024F]/;
+export function cueTextIn(lang: 'ar' | 'en', d: { text?: string; textAr?: string }): string | undefined {
+  const candidates = lang === 'ar' ? [d.textAr, d.text] : [d.text, d.textAr];
+  const fits = (t?: string) => Boolean(t?.trim()) && (lang === 'ar' ? ARABIC_SCRIPT.test(t!) : LATIN_LETTER.test(t!) && !ARABIC_SCRIPT.test(t!));
+  return candidates.find(fits)?.trim();
+}
+
 /** Subtitle cues from the shots' dialogue: where the audio timeline plays a recorded line, exactly there; else where
  *  the take was heard to speak it; else a slice of its shot proportional to its length. Arabic text keeps its own
  *  direction; the player handles RTL. */
@@ -177,12 +189,12 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
   const cues: Cue[] = [];
   const played = new Map(timeline.audio.cues.filter((c) => c.kind === 'DIALOGUE' && !c.muted && c.lineId).map((c) => [c.lineId!, c]));
   for (const it of timeline.items) {
-    const lines = it.shot.dialogue.filter((d) => (lang === 'ar' ? d.textAr || d.text : d.text || d.textAr));
+    const lines = it.shot.dialogue.filter((d) => cueTextIn(lang, d));
     if (!lines.length) continue;
     if (lines.every((d) => played.has(d.id))) {
       for (const d of lines) {
         const c = played.get(d.id)!;
-        cues.push({ start: c.startSample / CUT_RATE, end: (c.startSample + c.durationSamples) / CUT_RATE, text: rtlMark(lang, lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || ''), speaker: cast.find((x) => x.id === d.characterId)?.name });
+        cues.push({ start: c.startSample / CUT_RATE, end: (c.startSample + c.durationSamples) / CUT_RATE, text: rtlMark(lang, cueTextIn(lang, d)!), speaker: cast.find((x) => x.id === d.characterId)?.name });
       }
       continue;
     }
@@ -194,17 +206,17 @@ export function dialogueCues(_p: Production, timeline: Timeline, cast: Character
         const w = exact.find((x) => x.lineId === d.id);
         if (!w) continue;
         const who = cast.find((c) => c.id === d.characterId);
-        cues.push({ start: it.start + Math.max(0, w.from - head), end: Math.min(it.start + it.duration, it.start + w.to - head), text: rtlMark(lang, lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || ''), speaker: who?.name });
+        cues.push({ start: it.start + Math.max(0, w.from - head), end: Math.min(it.start + it.duration, it.start + w.to - head), text: rtlMark(lang, cueTextIn(lang, d)!), speaker: who?.name });
       }
       continue;
     }
-    const weights = lines.map((d) => Math.max(1, (lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || '').split(/\s+/).length));
+    const weights = lines.map((d) => Math.max(1, cueTextIn(lang, d)!.split(/\s+/).length));
     const total = weights.reduce((a, b) => a + b, 0);
     let cursor = it.start + 0.15;
     const avail = it.duration - 0.3;
     lines.forEach((d, i) => {
       const dur = d.durationSeconds ?? (avail * weights[i]) / total;
-      const text = rtlMark(lang, lang === 'ar' ? d.textAr || d.text : d.text || d.textAr || '');
+      const text = rtlMark(lang, cueTextIn(lang, d)!);
       const who = cast.find((c) => c.id === d.characterId);
       cues.push({ start: cursor, end: Math.min(it.start + it.duration, cursor + dur), text, speaker: who?.name });
       cursor += dur;
@@ -219,7 +231,7 @@ export function lyricCues(p: Production, lang: 'ar' | 'en'): Cue[] {
   if (!p.song) return [];
   const cues: Cue[] = [];
   for (const s of p.song.sections) {
-    const text = (lang === 'ar' ? s.textAr || s.text : s.text || s.textAr) ?? '';
+    const text = cueTextIn(lang, s) ?? '';
     const lines = text.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     if (!lines.length) continue;
     const span = Math.max(0, s.to - s.from) / lines.length;

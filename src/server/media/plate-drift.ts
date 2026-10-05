@@ -1,4 +1,5 @@
 import { greyFrames, meanAbsDiff } from './assembly-joins';
+import type { Framing } from '@/domain/vocabulary';
 
 /** DOES THE TAKE'S PLACE MATCH ITS CANONICAL PLATE? (the Location Bible's drift check.) The take's first kept frame
  *  (after a continuation's repeated head) is compared with the plate the take was conditioned on, with the measure of
@@ -22,6 +23,17 @@ export const PLATE_DRIFT = {
   measure: 'mean absolute luma difference, 64x36 grey, each picture minus its own mean (src/server/media/assembly-joins.ts)',
   basis: 'provisional: same place re-rendered 0.1–27.2, another picture 51.2–70.1 (ffmpeg-made, tests/unit/plate-drift.test.ts); calibrate over real takes',
 } as const;
+
+/** WHEN THE PLATE CAN BE COMPARED AT ALL (acceptance 2026-10-05, open item 6: the check flagged a closer continuation
+ *  shot at 59.8 against the provisional 36 while the place was right by eye). The measure compares whole frames on a
+ *  64×36 grid; the plates are drawn wide, so only a shot framed about as wide as the plate shows the same picture. A
+ *  closer framing shows a crop of the place behind people — the grid then measures framing, not place — and is
+ *  recorded as NOT COMPARABLE (the place is still conditioned on the plate; a perceptual comparison is the QA
+ *  service's job, docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md). */
+export const PLATE_COMPARABLE_FRAMINGS: readonly Framing[] = ['EXTREME_WIDE', 'WIDE', 'MEDIUM_WIDE'];
+export function plateComparable(framing: Framing): { comparable: boolean; why?: string } {
+  return PLATE_COMPARABLE_FRAMINGS.includes(framing) ? { comparable: true } : { comparable: false, why: `a ${framing.toLowerCase().replace(/_/g, ' ')} shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place` };
+}
 
 export interface PlateDrift {
   plateAssetId: string;

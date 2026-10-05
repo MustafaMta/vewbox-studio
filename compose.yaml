@@ -214,7 +214,7 @@ services:
     restart: unless-stopped
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all, ASR_MODEL_DIR_AR: "${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}" }
-    volumes: [ "models:/models", "nvjit:/cache/nv-jit", "./docker/asr/app.py:/app/app.py:ro" ]
+    volumes: [ "models:/models", "nvjit:/cache/nv-jit", "./docker/asr/app.py:/app/app.py:ro", "./docker/asr/align.py:/app/align.py:ro", "./docker/asr/qa.py:/app/qa.py:ro" ]
     ports: [ "127.0.0.1:${ASR_PORT:-8030}:8030" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8030/health"], interval: 20s, timeout: 10s, start_period: 60s, retries: 10 }

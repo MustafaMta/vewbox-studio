@@ -1,9 +1,12 @@
 import type { Character, Location, Production, Shot } from '@/domain/types';
+import type { Framing } from '@/domain/vocabulary';
 import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
 import { describeIdentity, locationIdentity } from '@/domain/location';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
+import { contextLines, type ProductionContext } from '@/domain/production-context';
+import { shotPerformers } from '@/domain/music-performance';
 import { cutTime, markTime, scrubSpeech } from './beats';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
@@ -67,13 +70,17 @@ export function singingTags(p: Production, sh: Shot, cast: Character[], speaker:
   if (!perf || perf.mode === 'INSTRUMENTAL') return 'Instrumental passage: nobody sings or mouths words.';
   const who = speaker;
   // only performers who are actually in the shot sing on camera; an assigned singer who is off screen is heard, not seen
-  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id));
-  const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId));
+  // THE PERFORMANCE PLAN (src/domain/music-performance.ts): the lead singers of the window carry the words, backing
+  // singers harmonise softly without the lead's words, everyone else on screen keeps their lips closed
+  const plan = shotPerformers(p.song, w, sh.characterIds);
+  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id) && !plan.backing.includes(id));
+  const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId) && l.role !== 'BACKING');
   const sung = lines.map((l) => `${who(l.singerId)} sings <d>[${lang}] ${clean(p.language === 'AR' ? l.textAr || l.text : l.text)}</d>`).join(' ');
+  const backing = plan.backing.map(who).filter(Boolean);
   const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
-  const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
+  const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !plan.backing.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
   const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : 'The song continues off camera: nobody on screen sings or mouths words.';
-  return [performing, listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing.` : ''].filter(Boolean).join(' ');
+  return [performing, backing.length ? `${backing.join(' and ')} sing${backing.length === 1 ? 's' : ''} soft backing harmonies, not the lead words.` : '', listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing; their lips stay closed.` : ''].filter(Boolean).join(' ');
 }
 
 /** The planner's dialogue tags, removed: the script is the only source of spoken words, and a planner's `<d>` is a
@@ -106,12 +113,14 @@ function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene:
 /** The full prompt for a first-frame (FL2VA) or text-only take: look + setting + people + action + camera + dialogue.
  *  The shot's own `prompt` (written by the story engine or the producer) replaces the generated middle when present;
  *  its dialogue tags are replaced by the exact script lines. */
-export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState } = {}): string {
+export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts) */ context?: ProductionContext } = {}): string {
   const d = styleDirection(p.style);
   const dialogue = opts.includeDialogue === false ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast) : dialogueTags(p, sh, cast);
   const body = shotBody(sh, cast, loc, scene, opts.includeDialogue !== false);
-  const state = opts.sceneState ? sceneStateLine(opts.sceneState, (id) => { const c = cast.find((x) => x.id === id); return c ? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}` : undefined; }) : '';
-  return [d.visual + '.', body, state, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const described = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}` : undefined; };
+  const state = opts.sceneState ? sceneStateLine(opts.sceneState, described) : '';
+  const context = opts.context ? contextLines(opts.context, described) : '';
+  return [d.visual + '.', body, state, context, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
 // -------------------------------------------------------------------------------- MiniMax H3 reference grammar
@@ -199,7 +208,23 @@ export function bindNames(text: string, cast: Character[], subjectOf: (id: strin
   return out;
 }
 
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState } = { relation: 'CUT' }): string {
+/** THE LAST NAME PASS (acceptance 2026-10-05, open item 2: "character names leak into H3 prompts; the app only
+ *  warns"). A producer's own prompt, a planner body or a carried continuity note can still name a person; the whole
+ *  prompt is bound once more before it is linted — outside the spoken `<d>…</d>` lines, whose words are the script
+ *  and are never rewritten (a line may say a name aloud). Returns the prompt and the names it replaced. */
+export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subjectOf: (id: string) => string | undefined): { prompt: string; replaced: string[] } {
+  const replaced = new Set<string>();
+  const parts = prompt.split(/(<d>[\s\S]*?<\/d>)/g);
+  const out = parts.map((part) => {
+    if (part.startsWith('<d>')) return part;
+    const bound = bindNames(part, cast, subjectOf);
+    if (bound !== part) for (const c of cast) for (const n of [c.name, c.nameAr]) if (n && n.trim().length > 1 && new RegExp(`(^|[^\\p{L}])${n.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'u').test(part)) replaced.add(n.trim());
+    return bound;
+  }).join('');
+  return { prompt: out, replaced: [...replaced] };
+}
+
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
   // SUBJECT NUMBERING: the pictured characters (Subject k = Picture k), the place, then the characters declared from
@@ -254,7 +279,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   }
   // crowds and extras are described, never referenced: each one a separate individual, none wearing a cast member's face
   const pictured = b.subjects.map((s) => `<Subject ${subjectNo.get(s.characterId)}>`);
-  extras.forEach((e, i) => defs.push(`<Subject ${extraNo[i]}> is the group of ${e.count ? `${e.count} ` : ''}${clean(e.description)}; each one a separate individual with their own face, hair and clothes${pictured.length ? `, none of them sharing the face, hair or clothes of ${pictured.join(' or ')}` : ''}; no reference picture.`));
+  // in a music video nobody but the performers sings: an extra who mouths the lyrics reads as a random singer (§8)
+  const extrasSilent = p.kind === 'MUSIC_VIDEO' ? '; their lips stay closed: they never sing or mouth the lyrics' : '';
+  extras.forEach((e, i) => defs.push(`<Subject ${extraNo[i]}> is the group of ${e.count ? `${e.count} ` : ''}${clean(e.description)}; each one a separate individual with their own face, hair and clothes${pictured.length ? `, none of them sharing the face, hair or clothes of ${pictured.join(' or ')}` : ''}${extrasSilent}; no reference picture.`));
   const action = lowerFirst(clean(bind(sh.action)).replace(/\.$/, ''));
   if (b.opening?.kind === 'FRAME' && b.opening.picture) defs.push(`${pictureLabel(b, b.opening.picture)} is the first frame of [Shot 1], showing how ${action}.`);
   (b.audioRefs ?? []).forEach((a, j) => { const who = subjectOf(a.characterId); if (who) defs.push(`${audioLabel(b, j + 1)} is the voice-timbre reference for ${who}.`); });
@@ -309,7 +336,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
       marks.push(`[Shot ${shotNoOfBeat[i]}] At ${cutTime(bt.at)}, hard cut to ${clean(bt.cut.camera)}${place ? ` in ${clean(place.description) || place.name}` : placeNo ? ` in <Subject ${placeNo}>` : ''}. ${text}`);
     } else marks.push(`[${markTime(bt.at)}] ${text}`);
   });
-  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, cont, stateLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  // THE PRODUCTION CONTEXT (src/domain/production-context.ts): what persists about the people and the place
+  const contextLine = opts.context ? contextLines(opts.context, plainSubject) : '';
+  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [
@@ -363,13 +392,33 @@ export function lintH3Prompt(prompt: string, expect: { labels: 'LOCAL' | 'HOSTED
 }
 
 /** Prompt for a still frame of the shot (the opening image): same content without dialogue or motion. */
+/** WHAT A FRAMING SHOWS, in words a still-image model follows (acceptance 2026-10-05, open item 1: frames were drawn at
+ *  the wide plate's framing whatever the shot asked for, and H3 then hard-cut inside the take to reach the planned
+ *  framing). The camera distance leads the frame prompt, and a closer framing tells the model the plate is the PLACE,
+ *  not the camera. */
+export const FRAMING_WORDS: Record<Framing, string> = {
+  EXTREME_WIDE: 'an extreme wide shot: the whole place, the people small within it',
+  WIDE: 'a wide shot: the people seen head to toe with the room around them',
+  MEDIUM_WIDE: 'a medium wide shot: the people from the knees up, the room around them',
+  MEDIUM: 'a medium shot: the people from the waist up; the place is the background behind them',
+  MEDIUM_CLOSE_UP: 'a medium close-up: head and chest fill most of the frame; the place is a soft background',
+  CLOSE_UP: 'a close-up: the face fills the frame; the place is only a blurred background',
+  EXTREME_CLOSE_UP: 'an extreme close-up: one detail of the face fills the frame',
+  INSERT: 'an insert: one object or hand detail fills the frame',
+  TWO_SHOT: 'a two-shot: both people from the waist up, side by side in the frame',
+  OVER_THE_SHOULDER: 'an over-the-shoulder shot: the back of one person’s shoulder and head in the foreground, the other person facing the camera',
+};
+/** Framings at which the drawn frame shows about as much of the place as its wide plate. */
+export const PLATE_WIDE_FRAMINGS: readonly Framing[] = ['EXTREME_WIDE', 'WIDE', 'MEDIUM_WIDE'];
+
 export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
+  const camera = `Camera: ${FRAMING_WORDS[sh.framing] ?? sh.framing.toLowerCase().replace(/_/g, ' ')}.${PLATE_WIDE_FRAMINGS.includes(sh.framing) ? '' : ' The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing.'}`;
   // a person shown by a reference picture is described by that picture's note alone: a second description in words
   // read as a second person (D30)
   const people = cast.filter((c) => sh.characterIds.includes(c.id) && !opts.pictured?.has(c.id));
-  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, `Framing: ${sh.framing.toLowerCase().replace(/_/g, ' ')}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
-  return `${d.visual}. ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
+  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
+  return `${d.visual}. ${camera} ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
 /** Plates describe an unoccupied place in positive terms. Negations ("no people") are unreliable for a diffusion

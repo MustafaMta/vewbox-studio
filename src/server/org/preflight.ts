@@ -1,4 +1,7 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
+import { frameCheckOf } from '@/domain/frames';
+import { linesCutAt, performanceSegments, shotPerformers } from '@/domain/music-performance';
+import { shotWindows } from '@/domain/timeline';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
@@ -63,6 +66,9 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // truncated (the worker turns a dialogue that grows past the budget into a hard cut without the guide)
   const budget = frameBudget(pack.trimStartFrames, sh.durationSeconds);
   add('continuation-fits-budget', budget.fits, 'WRONG_PARAMETERS', budget.fits ? (pack.trimStartFrames ? `${budget.neededFrames} new frames after a ${pack.trimStartFrames}-frame guide (budget ${budget.budgetFrames})` : undefined) : `a continuation carries at most ${budget.budgetFrames} new frames (${(budget.budgetFrames / 24).toFixed(1)} s) after its ${pack.trimStartFrames}-frame guide; the planned ${sh.durationSeconds} s needs ${budget.neededFrames} — split the shot (it is never truncated)`);
+  // the continuation choice (src/domain/video-capability.ts): a guide length the engine does not keep is never floored
+  // silently — the engine default is used and the producer is told which choice was set aside
+  if (pack.continuation.problems.length) warnings.push({ name: 'continuation-choice-set-aside', detail: pack.continuation.problems.join('; ') });
   // references and their limits (the pack's slot order): each character's primary image is the canonical front
   // full-body image (a character drawn before canonical images falls back to the legacy portrait), then the plate,
   // then the drawn opening frame when it is bound as a picture
@@ -75,6 +81,12 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // identity; a hosted continuation in frame mode is the one documented exception)
   const identityNeeded = sh.characterIds.length > 0;
   const identityOk = !identityNeeded || primaries.length > 0 || (pack.opening.kind === 'LAST_FRAME_AS_FIRST');
+  // THE ANCHORED FRAMES HOLD THE RIGHT PEOPLE (acceptance 2026-10-05, open item 5): a drawn opening or ending frame
+  // whose people count failed is never filmed from — an anchored stranger becomes a person in the take
+  for (const [which, aid] of [['opening', pack.opening.kind === 'FRAME' ? pack.opening.assetId : undefined], ['ending', pack.ending?.assetId]] as const) {
+    const pc = frameCheckOf(byId(aid));
+    if (pc) add(`${which}-frame-people`, pc.ok, 'INCONSISTENT_PLAN', pc.ok ? `${pc.counted} of ${pc.expected} people` : `the ${which} frame holds ${pc.counted} ${pc.counted === 1 ? 'person' : 'people'} where the shot has ${pc.expected}: draw the frames again or remove it`);
+  }
   add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (identityNeeded ? (pack.graph === 'FRAMES' ? 'the previous take’s last frame (hosted frame mode)' : `${pack.subjects.length} character image(s) bound as subjects`) : undefined) : 'the shot has characters but none has a canonical image to hold their identity; draw them first');
   // guides: count and fit, as the request will chain them (the soundtrack guide exists for a speaking or singing shot)
   const soundtrack = opts.backend === 'local' && !opts.customPrompt && ((p.kind === 'MUSIC_VIDEO' && Boolean(p.song?.assetId) && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') || (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length > 0));
@@ -101,7 +113,25 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     add('every-character-has-image', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no canonical image for ${missing.map((c) => c.name).join(', ')}; draw the character first` : legacy.length ? `legacy portrait for ${legacy.map((c) => c.name).join(', ')}` : undefined);
     const w = identityWarning(inShot);
     if (w) warnings.push(w);
+    // FIRST USE LOCKS THE LOOK (docs/CHARACTER-CONTINUITY.md): a take of a character never seen in a video freezes
+    // the appearance it was made with, so a DRAFT canonical image is approved before its first take — afterwards a
+    // draft can no longer be redrawn (cloud directive §11: "approved canonical characters exist")
+    const firstUseDraft = inShot.filter((c) => c.canonicalImage?.status === 'DRAFT' && c.usage?.known === true && c.usage.videos.length === 0);
+    add('canonical-approved-before-first-use', firstUseDraft.length === 0, 'MISSING_REFERENCE', firstUseDraft.length ? `approve the canonical image of ${firstUseDraft.map((c) => c.name).join(', ')} first: the first take locks the look it was filmed with` : undefined);
   }
+  // THE AUTHORITATIVE AUDIO FITS THE CLIP (audio first, directive §7): the lines (recorded lengths, else an estimate)
+  // with their lead-in, gaps and tail must fit the new picture the engine can make for this shot — a shot whose words
+  // do not fit is split in the plan, never truncated or sped up
+  const timed = pack.context.shot.dialogue;
+  if (p.kind !== 'MUSIC_VIDEO' && timed.length) {
+    const speech = timed.reduce((a, l) => a + (l.durationSeconds ?? 0), 0) + 0.4 + 0.35 * (timed.length - 1) + 0.3;
+    const room = (H3_LIMITS.maxFrames - pack.trimStartFrames) / 24;
+    const estimated = timed.some((l) => l.source === 'ESTIMATE');
+    add('dialogue-fits-clip', speech <= room, 'WRONG_PARAMETERS', `${speech.toFixed(1)} s of dialogue${estimated ? ' (partly estimated: not yet recorded)' : ' (recorded)'} in at most ${room.toFixed(1)} s of new picture${speech > room ? ': split the shot' : ''}`);
+  }
+  // the production context's gaps (src/domain/production-context.ts): named, never invented
+  for (const gap of pack.context.gaps) warnings.push({ name: 'context-gap', detail: gap });
+  if (pack.context.anchoring.reanchor) warnings.push({ name: 're-anchor', detail: pack.context.anchoring.why ?? 're-anchoring' });
   // audio before video: a speaking shot (film, local engine) needs a voice for every speaker, judged as the worker
   // judges it (take.ts): every line of the speaker already has a current stored recording (reused), or there is a
   // reference to speak from (pickReference: a design seed, or a consented recording that is present). A speaker with
@@ -120,19 +150,30 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const song = byId(p.song?.assetId);
     add('song-present', usableAudio(song), 'MISSING_REFERENCE', usableAudio(song) ? undefined : 'the music video has no generated or uploaded song yet');
   }
+  // THE PERFORMANCE PLAN (src/domain/music-performance.ts): a shot boundary in the middle of a measured sung line
+  // breaks the performance (a word cut in two); someone in the shot who does not perform there must keep lips closed
+  if (p.kind === 'MUSIC_VIDEO' && p.song) {
+    const w = shotWindows(p).get(sh.id);
+    if (w) {
+      const broken = linesCutAt(performanceSegments(p.song), w);
+      if (broken.length) warnings.push({ name: 'cuts-sung-line', detail: broken.map((b) => `the shot ${Math.abs(b.at - w.from) < 1e-6 ? 'starts' : 'ends'} at ${b.at.toFixed(2)} s, inside the sung line “${b.segment.text}” (${b.segment.from.toFixed(2)}–${b.segment.to.toFixed(2)} s)`).join('; ') });
+      const perf = shotPerformers(p.song, w, sh.characterIds);
+      if (perf.silent.length && (perf.lead.length || perf.backing.length)) warnings.push({ name: 'non-performers-in-shot', detail: `${perf.silent.map((id) => cast.find((c) => c.id === id)?.name ?? id).join(', ')} ${perf.silent.length === 1 ? 'does' : 'do'} not sing here: told to keep lips closed; the singing check flags anyone who does`, characterIds: perf.silent });
+    }
+  }
   // THE BOUNDARY (src/domain/types.ts ShotBoundary): an explicit `continuous` needs a previous shot in the same scene
   // with a usable tail — a chosen real take whose window on the cut holds the guide's frames (a shorter one would be
   // floored by the node, gap V1); an explicit `cut` on the same moment needs a previous shot in the same scene. An
   // older plan's CONTINUATION at a scene's start is lowered to a cut, as before.
   const { boundary, explicit } = boundaryOf(sh);
   if (explicit) {
-    const problem = boundaryProblem(state, p, sh);
+    const problem = boundaryProblem(state, p, sh, pack.backend);
     add('boundary-honoured', !problem, 'INCONSISTENT_PLAN', problem ?? `${boundary}: ${pack.relation.toLowerCase().replace('_', ' ')}`);
   }
   if (boundary === 'continuous') {
     const prev = previousShot(p, sh);
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
-    const tail = sameScene ? continuationTail(state, p, prev) : undefined;
+    const tail = sameScene ? continuationTail(state, p, prev, pack.continuation.guideFrames || undefined) : undefined;
     const ok = !sameScene || Boolean(tail?.source);
     add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0; its window shows ${tail?.windowFrames ?? '?'} frames` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `this shot continues shot ${prev?.number}: ${tail?.problem ?? 'no usable tail'}`);
   }
@@ -254,3 +295,4 @@ export function preflightPlan(p: Production, sceneIds?: string[]): Preflight {
   checks.push({ name: 'scenes-located', ok: noLocation.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: noLocation.length ? `${noLocation.length} scene(s) without a location` : undefined });
   return { ok: checks.every((c) => c.ok), checks, warnings: [] };
 }
+

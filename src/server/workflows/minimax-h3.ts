@@ -1,4 +1,5 @@
 import { MODELS, seed32, snap, type Graph } from './index';
+import { MINIMAX_H3_LOCAL as CAP, framesFor, guideFramesKept } from '@/domain/video-capability';
 
 /** LOCAL MINIMAX H3 — the open-weights MiniMax video model running in ComfyUI on the RTX 5090. Text-to-video and
  *  first/last-frame-to-video with native audio (FL2VA checkpoint), or reference-to-video (Ref2VA) with up to nine
@@ -7,13 +8,14 @@ import { MODELS, seed32, snap, type Graph } from './index';
  *  24 fps, frame count on the 17k+5 grid, turbo LoRA for 8 (FL2VA) or 4 (Ref2VA) steps. Verified against ComfyUI
  *  v0.38.1 `comfy_extras/nodes_minimax_h3.py` (docs/research/MINIMAX-CONTINUITY.md §1). */
 
-export const H3_FPS = 24;
+/** The numbers below are READ from the engine's capability record (src/domain/video-capability.ts), never restated. */
+export const H3_FPS = CAP.fps;
 /** The trained range of the model (node tooltip: "124 = ~5s; trained range is ~124-362, longer is untested"). */
-export const H3_MIN_FRAMES = 124;
-export const H3_MAX_FRAMES = 362;
+export const H3_MIN_FRAMES = CAP.minFrames;
+export const H3_MAX_FRAMES = CAP.maxFrames;
 /** Reference limits of `MiniMaxH3ReferenceToVideo` (autogrow max): 9 images, 3 videos (+ their soundtracks), 3 audios. */
-export const H3_MAX_REF_IMAGES = 9;
-export const H3_MAX_REF_AUDIOS = 3;
+export const H3_MAX_REF_IMAGES = CAP.refs.images;
+export const H3_MAX_REF_AUDIOS = CAP.refs.audios;
 
 /** ComfyUI's `align_frame_count`: the next frame count on the 17k+5 grid at or above n (never below 5). */
 export function h3AlignFrames(n: number): number {
@@ -25,17 +27,13 @@ export function h3AlignFrames(n: number): number {
  *  template do (`max(5, round(s·24)) + (5 − n % 17) % 17` in Python, where % is never negative), then held inside the
  *  trained range 124–362 (≈5.17–15.08 s). Over-generation is safe (the cut takes its window); under-generation is not. */
 export function h3FrameCount(seconds: number): number {
-  const raw = Math.max(5, Math.round(seconds * H3_FPS));
-  return Math.min(H3_MAX_FRAMES, Math.max(H3_MIN_FRAMES, h3AlignFrames(raw)));
+  return framesFor(CAP, seconds);
 }
 
 /** Frames `MiniMaxH3AddGuide` keeps of an image batch: fewer than 5 → the first image only; otherwise snapped DOWN to
  *  5, 22, 39 … (17k+5) (`nodes_minimax_h3.py` MiniMaxH3AddGuide.execute). */
 export function h3GuideClipFrames(n: number): number {
-  if (n < 5) return 1;
-  let g = Math.floor(n);
-  while (g % 17 !== 5) g--;
-  return g;
+  return guideFramesKept(CAP, n);
 }
 
 /** Whether a guide of `guideFrames` frames anchored at `frameIdx` fits a clip of `frames` frames (the node refuses
@@ -80,9 +78,10 @@ export interface H3Input {
   filenamePrefix?: string;
 }
 
-/** Frames of the continuation guide: the previous shot's last 22 frames (≈0.92 s at 24 fps: motion, speech rhythm and
- *  room tone; the template's idiom). Valid clip lengths are 5, 22, 39 … — 5 is the smallest. */
-export const H3_GUIDE_FRAMES = 22;
+/** The engine's DEFAULT continuation guide length (22 frames ≈ 0.92 s: motion, speech rhythm and room tone; the
+ *  template's idiom). A request reads the resolved choice (`resolveContinuation`: shot > studio > engine) from its shot
+ *  pack, never this constant; it stays for the tests and tools that describe the default. */
+export const H3_GUIDE_FRAMES = CAP.guides!.defaultContinuationFrames;
 
 export type H3GraphKind = 'FL2VA' | 'REF2VA';
 export const h3GraphKind = (i: Pick<H3Input, 'referenceImages' | 'referenceAudio'>): H3GraphKind => (i.referenceImages?.length || i.referenceAudio?.length ? 'REF2VA' : 'FL2VA');

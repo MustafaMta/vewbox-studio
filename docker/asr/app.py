@@ -3,7 +3,18 @@
 POST /transcribe  multipart: file, language (ar|en|auto), prompt (optional), words (1|0)  -> JSON segments/words
 POST /separate    multipart: file, stems (two|four)  -> zip of WAV stems (vocals + no_vocals, or the four htdemucs stems)
 POST /unload      drop the models from the GPU (the worker calls this when another family needs the card)
-GET  /health      model names, loaded flags, GPU memory
+GET  /health      model names, loaded flags, GPU memory, and per-capability availability (with the reason when not)
+POST /align       multipart: file, text, language (en|ar), start/end (optional, seconds), chars (1|0) -> word/char times
+                  of the KNOWN text (wav2vec2 CTC forced alignment, align.py; CUDA when available, else CPU)
+POST /qa/mouth    multipart: video, audio (optional; else the video's own track), audio_offset (s), windows (JSON,
+                  optional), fps, mode (speech|singing), speakers, max_lag_ms -> per face track mouth activity vs
+                  speech (qa.py, CPU)
+POST /qa/identity multipart: video, references (one or more images), characters (JSON: ids in file order, or
+                  {filename: id}), sample_fps -> SFace cosine series per character against its canonical image (qa.py, CPU)
+
+align.py and qa.py are imported lazily-safe: if either module or one of its dependencies (transformers, mediapipe,
+opencv) is missing, the service still starts, transcription and separation keep working, and /health says why the
+capability is unavailable; the endpoint answers 503 with that reason.
 
 Two Whisper models, one on the card at a time (docs/research/MODEL-STACK-2026-10.md §3.9, §7.2): ASR_MODEL_DIR serves
 every language; ASR_MODEL_DIR_AR (the CTranslate2 copy of whisper-large-v3-arabic-dialectal-v2) serves `language=ar`
@@ -13,6 +24,7 @@ when its model.bin exists. Each is loaded lazily on first use, and loading one d
 from __future__ import annotations
 
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -24,6 +36,21 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, Response
+from starlette.concurrency import run_in_threadpool
+
+# alignment and picture QA: optional capabilities; a missing module or dependency must not stop the service
+try:
+    import align as align_mod  # type: ignore
+    _align_import_error: str | None = None
+except Exception as _e:  # noqa: BLE001
+    align_mod = None  # type: ignore[assignment]
+    _align_import_error = f"{type(_e).__name__}: {_e}"
+try:
+    import qa as qa_mod  # type: ignore
+    _qa_import_error: str | None = None
+except Exception as _e:  # noqa: BLE001
+    qa_mod = None  # type: ignore[assignment]
+    _qa_import_error = f"{type(_e).__name__}: {_e}"
 
 MODEL_DIR = os.environ.get("ASR_MODEL_DIR", "/models/asr/faster-whisper-large-v3")
 MODEL_NAME = os.environ.get("ASR_MODEL_NAME", "large-v3")
@@ -132,7 +159,32 @@ def health():
         "demucs_loaded": _demucs is not None,
         "gpu": gpu_mem(),
         "weights_present": weights_present("default"),
+        "capabilities": capabilities(),
     }
+
+
+def capabilities() -> dict[str, Any]:
+    """Per capability: {available, reason} (and model details), without importing torch, transformers or mediapipe."""
+    out: dict[str, Any] = {}
+    if align_mod is None:
+        out["align"] = {lang: {"available": False, "reason": f"align.py could not be imported ({_align_import_error})"} for lang in ("en", "ar")}
+    else:
+        try:
+            out["align"] = align_mod.status()
+        except Exception as e:  # noqa: BLE001
+            out["align"] = {lang: {"available": False, "reason": f"status failed: {e}"} for lang in ("en", "ar")}
+    if qa_mod is None:
+        why = f"qa.py could not be imported ({_qa_import_error})"
+        out["qa_mouth"] = {"available": False, "reason": why}
+        out["qa_identity"] = {"available": False, "reason": why}
+        out["syncnet"] = {"available": False, "reason": why}
+    else:
+        try:
+            st = qa_mod.status()
+            out["qa_mouth"], out["qa_identity"], out["syncnet"] = st["mouth"], st["identity"], st["syncnet"]
+        except Exception as e:  # noqa: BLE001
+            out["qa_mouth"] = out["qa_identity"] = out["syncnet"] = {"available": False, "reason": f"status failed: {e}"}
+    return out
 
 
 @app.post("/separate")
@@ -217,6 +269,12 @@ def unload():
         _model_key = None
     with _demucs_lock:
         _demucs = None
+    for mod in (align_mod, qa_mod):
+        if mod is not None:
+            try:
+                mod.unload()
+            except Exception:  # noqa: BLE001
+                pass
     try:
         import gc
 
@@ -266,3 +324,152 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("auto"),
             os.unlink(path)
         except OSError:
             pass
+
+
+# ------------------------------------------------------------------------------------------------ alignment and QA
+
+
+def _float_or_none(v: str, name: str) -> float | None:
+    if v is None or str(v).strip() == "":
+        return None
+    try:
+        x = float(v)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"{name} must be a number") from e
+    if x != x or x in (float("inf"), float("-inf")) or x < 0:
+        raise HTTPException(status_code=400, detail=f"{name} must be a finite number ≥ 0")
+    return x
+
+
+async def _save(upload: UploadFile, work: str, name: str) -> str:
+    data = await upload.read()
+    if not data:
+        raise HTTPException(status_code=400, detail=f"empty file: {name}")
+    path = os.path.join(work, name + (os.path.splitext(upload.filename or "")[1] or ".bin"))
+    with open(path, "wb") as f:
+        f.write(data)
+    return path
+
+
+@app.post("/align")
+async def align_endpoint(file: UploadFile = File(...), text: str = Form(...), language: str = Form("en"), start: str = Form(""), end: str = Form(""), chars: str = Form("1")):
+    """Word and character times of the KNOWN text in the audio (CTC forced alignment, align.py)."""
+    if align_mod is None:
+        raise HTTPException(status_code=503, detail=f"alignment unavailable: align.py could not be imported ({_align_import_error})")
+    lang = (language or "").strip().lower()
+    if lang not in ("en", "ar"):
+        raise HTTPException(status_code=400, detail="language must be en or ar")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="text is empty")
+    st = align_mod.status()[lang]
+    if not st["available"]:
+        raise HTTPException(status_code=503, detail=f"alignment ({lang}) unavailable: {st['reason']}")
+    t_start, t_end = _float_or_none(start, "start"), _float_or_none(end, "end")
+    if t_start is not None and t_end is not None and t_end <= t_start:
+        raise HTTPException(status_code=400, detail="end must be after start")
+    work = tempfile.mkdtemp(prefix="align-")
+    try:
+        src = await _save(file, work, "in")
+        cmd = ["ffmpeg", "-v", "error"]
+        if t_start is not None:
+            cmd += ["-ss", f"{t_start:.3f}"]
+        if t_end is not None:
+            cmd += ["-t", f"{t_end - (t_start or 0.0):.3f}"]
+        cmd += ["-i", src, "-vn", "-f", "f32le", "-ac", "1", "-ar", "16000", "-"]
+        import numpy as np  # type: ignore
+
+        pcm = subprocess.run(cmd, check=True, capture_output=True, timeout=600).stdout
+        audio = np.frombuffer(pcm, dtype=np.float32)
+        if audio.size == 0:
+            raise HTTPException(status_code=400, detail="no audio could be decoded from the file (or the window is empty)")
+        try:
+            out = await run_in_threadpool(align_mod.align_audio, audio, text, lang, t_start or 0.0)
+        except align_mod.AlignmentUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"alignment ({lang}) unavailable: {e}") from e
+        except align_mod.AlignmentError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        if chars != "1":
+            out.pop("chars", None)
+        return JSONResponse(out)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@app.post("/qa/mouth")
+async def qa_mouth(video: UploadFile = File(...), audio: UploadFile | None = File(None), windows: str = Form(""), fps: str = Form(""), mode: str = Form("speech"), speakers: int = Form(1), max_lag_ms: float = Form(200), audio_offset: float = Form(0.0)):
+    """Tier-1 lip-sync check: mouth activity of every face track against the speech of the audio that plays in the cut."""
+    if qa_mod is None:
+        raise HTTPException(status_code=503, detail=f"mouth QA unavailable: qa.py could not be imported ({_qa_import_error})")
+    st = qa_mod.status()["mouth"]
+    if not st["available"]:
+        raise HTTPException(status_code=503, detail=f"mouth QA unavailable: {st['reason']}")
+    try:
+        win = json.loads(windows) if windows.strip() else None
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"windows is not JSON: {e}") from e
+    f = _float_or_none(fps, "fps")
+    if f is not None and not (1 <= f <= 120):
+        raise HTTPException(status_code=400, detail="fps must be within 1–120")
+    if not (0 <= max_lag_ms <= 2000) or not (0 <= speakers <= 8) or not (-600 <= audio_offset <= 600):
+        raise HTTPException(status_code=400, detail="max_lag_ms must be within 0–2000, speakers within 0–8 and audio_offset within ±600 s")
+    work = tempfile.mkdtemp(prefix="qa-mouth-")
+    try:
+        vpath = await _save(video, work, "video")
+        apath = await _save(audio, work, "audio") if audio is not None else None
+        try:
+            out = await run_in_threadpool(qa_mod.mouth_check, vpath, apath, win, f, mode, speakers, max_lag_ms, audio_offset)
+        except qa_mod.QaUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"mouth QA unavailable: {e}") from e
+        except qa_mod.QaInputError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        return JSONResponse(out)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {(e.stderr or b'').decode(errors='ignore')[:200]}") from e
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@app.post("/qa/identity")
+async def qa_identity(video: UploadFile = File(...), references: list[UploadFile] = File(...), characters: str = Form(...), sample_fps: float = Form(2.0)):
+    """SFace cosine of each character's canonical face against the faces of sampled frames."""
+    if qa_mod is None:
+        raise HTTPException(status_code=503, detail=f"identity QA unavailable: qa.py could not be imported ({_qa_import_error})")
+    st = qa_mod.status()["identity"]
+    if not st["available"]:
+        raise HTTPException(status_code=503, detail=f"identity QA unavailable: {st['reason']}")
+    if not (0.1 <= sample_fps <= 30):
+        raise HTTPException(status_code=400, detail="sample_fps must be within 0.1–30")
+    try:
+        mapping = json.loads(characters)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"characters is not JSON: {e}") from e
+    if isinstance(mapping, list):
+        if len(mapping) != len(references):
+            raise HTTPException(status_code=400, detail=f"characters lists {len(mapping)} ids for {len(references)} reference files")
+        ids = [str(x) for x in mapping]
+    elif isinstance(mapping, dict):
+        missing = [r.filename for r in references if (r.filename or "") not in mapping]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"characters has no id for reference file(s): {missing}")
+        ids = [str(mapping[r.filename or ""]) for r in references]
+    else:
+        raise HTTPException(status_code=400, detail="characters must be a JSON array or object")
+    if len(set(ids)) != len(ids) or any(not i for i in ids):
+        raise HTTPException(status_code=400, detail="character ids must be non-empty and unique (one canonical image each)")
+    work = tempfile.mkdtemp(prefix="qa-id-")
+    try:
+        vpath = await _save(video, work, "video")
+        refs = {cid: await _save(r, work, f"ref-{k}") for k, (cid, r) in enumerate(zip(ids, references))}
+        try:
+            out = await run_in_threadpool(qa_mod.identity_check, vpath, refs, sample_fps)
+        except qa_mod.QaUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"identity QA unavailable: {e}") from e
+        except qa_mod.QaInputError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        return JSONResponse(out)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {(e.stderr or b'').decode(errors='ignore')[:200]}") from e
+    finally:
+        shutil.rmtree(work, ignore_errors=True)

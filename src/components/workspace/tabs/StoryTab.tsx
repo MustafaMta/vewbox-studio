@@ -13,6 +13,7 @@ import { IconAuto, IconDelete, IconGenerate, IconPlus } from '@/components/ui/ic
 import { ApprovalGate, useGate } from '../Decide';
 import { GenButton, type StudioGate } from '../gate';
 import { vocab } from '../model';
+import { SceneStoryEditor } from '../SceneStory';
 
 /** STORY AND SCENE PLANNING (docs/DESIGN-SYSTEM-V5.md §8.10) — the logline and the synopsis, the brief the story
  *  started from, then the script by scene, beat and line. Each scene carries its settings (where, when, who is in it,
@@ -135,6 +136,7 @@ export function SceneEditor({ p, scene, cast, locations }: { p: Production; scen
         <legend className="t-label">In the scene</legend>
         <div className="ws-checks">{cast.map((c) => <Checkbox key={c.id} label={<bdi>{c.name}</bdi>} checked={scene.characterIds.includes(c.id)} onChange={(e) => set({ characterIds: e.target.checked ? [...scene.characterIds, c.id] : scene.characterIds.filter((x) => x !== c.id) })} />)}{cast.length === 0 && <span className="t-meta">No cast yet.</span>}</div>
       </fieldset>
+      <SceneStoryEditor p={p} scene={scene} cast={cast} set={set} />
       <ol className="ws-beats" role="list">
         {scene.beats.map((b, bi) => (
           <li key={b.id} className="ws-beat">
