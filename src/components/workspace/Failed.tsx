@@ -10,7 +10,7 @@ import { useErrorCopy } from '@/components/ui/progress';
 import { Button, SectionHead } from '@/components/ui/kit';
 import { IconRetry } from '@/components/ui/icons';
 import type { StudioGate } from './gate';
-import { activeShotJob, failedShotsOf, type FailedShot } from './model';
+import { activeShotJob, failedShotsOf, refusalOf, type FailedShot } from './model';
 
 /** FAILED SHOTS (a production pass's `failedShots`): a shot that failed fails alone — the rest of the film is kept.
  *  Each says its real error class in plain words and offers one recovery: a new take of that shot only
@@ -45,7 +45,7 @@ export function RegenerateShot({ p, shotId, gate, compact }: { p: Production; sh
 /** What went wrong, in words: the failed child job's error class, else the pass's own reason. */
 export function useFailureWords() {
   const copyOf = useErrorCopy();
-  return (f: FailedShot) => (f.job?.error ? copyOf(f.job.error).title : f.job?.status === 'CANCELLED' || f.reason === 'cancelled' ? 'Cancelled before it finished' : f.reason || 'The take could not be made');
+  return (f: FailedShot) => (refusalOf(f.job) ? `Refused: ${refusalOf(f.job)!.name ?? 'the place'} has no plate yet` : f.job?.error ? copyOf(f.job.error).title : f.job?.status === 'CANCELLED' || f.reason === 'cancelled' ? 'Cancelled before it finished' : f.reason || 'The take could not be made');
 }
 
 /** The map's list of failed shots (absent when none failed). */
@@ -64,7 +64,7 @@ export function FailedShots({ p, gate }: { p: Production; gate: StudioGate }) {
             <li key={f.shotId} className="ws-failed-row" data-failed="">
               <Link className="ws-versions-n" href={shotHref(p, sh.id)}>Shot {shotLabel(p, sh)}</Link>
               <span className="ws-versions-d"><span className="state-dot" data-tone="failed" aria-hidden /> {words(f)}</span>
-              <span className="ws-versions-t name" dir="auto"><bdi>{sh.purpose || sh.action}</bdi></span>
+              <span className="ws-versions-t name" dir="auto">{refusalOf(f.job) ? <Link className="ws-textlink" href={shotHref(p, sh.id)}>Draw the plates or establish the place</Link> : <bdi>{sh.purpose || sh.action}</bdi>}</span>
               <RegenerateShot p={p} shotId={sh.id} gate={gate} compact />
             </li>
           );
@@ -80,6 +80,8 @@ export function ShotFailure({ p, shotId, gate }: { p: Production; shotId: string
   const words = useFailureWords();
   const f = failedShotsOf(p, jobs).find((x) => x.shotId === shotId);
   if (!f) return null;
+  // the place has no plate yet: ShotLocationRefusal (./Continuity) says it, naming both fixes
+  if (refusalOf(f.job)) return null;
   return (
     <div className="ws-gate ws-failure" data-state="failed" role="status">
       <span className="ws-gate-words">

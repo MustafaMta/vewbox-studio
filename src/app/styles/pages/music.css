@@ -32,8 +32,10 @@
   .mv-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; block-size: 20px; margin-block-end: 20px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color var(--dur-1) var(--ease-out); }
   .mv-back:hover { color: var(--text-1); }
   .mv-back svg { inline-size: 16px; block-size: 16px; }
-  .mv-head { display: grid; grid-template-columns: var(--mv-sleeve) minmax(0, 1fr); align-items: end; column-gap: 40px; }
-  .mv-sleeve { align-self: start; inline-size: var(--mv-sleeve); border-radius: var(--r-lg); box-shadow: var(--shadow-contact); }
+  /* the words start on the content grid's fifth column line, as the lyrics and the cast below sit on the first and the
+     ninth (12 columns, 16 px gaps; Design QA p1): the sleeve is four columns and four gaps less the 40 px gap */
+  .mv-head { display: grid; grid-template-columns: calc((100% - 176px) / 3 + 24px) minmax(0, 1fr); align-items: end; column-gap: 40px; }
+  .mv-sleeve { align-self: start; inline-size: 100%; border-radius: var(--r-lg); box-shadow: var(--shadow-contact); }
   .mv-sleeve-frame { border-radius: var(--r-lg); }
   .mv-words { display: flex; flex-direction: column; min-inline-size: 0; }
   .mv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0; min-inline-size: 0; }

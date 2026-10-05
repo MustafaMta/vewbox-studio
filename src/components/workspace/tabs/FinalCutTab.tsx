@@ -12,6 +12,7 @@ import { useStartJob } from '@/components/ui/jobs';
 import { CanvasPlayer } from '@/components/players/CanvasPlayer';
 import { IconDownload, IconFinalCut } from '@/components/ui/icons';
 import { ApprovalGate, StaleCut, useGate } from '../Decide';
+import { StaleJoins } from '../Continuity';
 import { runtime, shortWhen } from '@/components/home/model';
 import { fmtBytes } from '@/lib/format';
 import { GenButton, type StudioGate } from '../gate';
@@ -69,6 +70,7 @@ export function FinalCutTab({ p, gate }: { p: Production; gate: StudioGate }) {
               </div>
             )}
             <StaleCut p={p} gate={gate} />
+            <StaleJoins p={p} gate={gate} />
             <div className="ws-gen-row">
               <GenButton gate={gate} type="ASSEMBLE" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconFinalCut aria-hidden />} variant={current ? 'secondary' : 'primary'}
                 disabled={missing > 0 || anySample} reason={missing > 0 ? 'Every shot needs a selected take first.' : 'A sample clip is in the sequence.'}>{current ? 'Assemble a new cut' : 'Assemble the cut'}</GenButton>

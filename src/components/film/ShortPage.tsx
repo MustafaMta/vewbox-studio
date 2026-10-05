@@ -236,7 +236,8 @@ function Credits({ p }: { p: Production }) {
           {credits.map((c) => (
             <div key={c.department} className="film-credit">
               <dt className="t-label">{c.role}</dt>
-              <dd className="t-credit film-credit-name"><Link href={c.href}>{c.name}</Link></dd>
+              {/* the name clips to one line; data-clips lets its link's focus ring through (base.css) */}
+              <dd className="t-credit film-credit-name" data-clips><Link href={c.href}>{c.name}</Link></dd>
               <dd className="t-body film-credit-made">{c.made}</dd>
             </div>
           ))}

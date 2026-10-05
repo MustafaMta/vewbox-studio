@@ -19,7 +19,7 @@
   @media (pointer: coarse) {
     .cp-back { min-block-size: 44px; margin-block: -10px; }
     .co-state-link { min-block-size: 44px; margin-block: -12px; }
-    .cp-link { display: inline-block; padding-block: 13px; margin-block: -13px; }
+    .cp-link { display: inline-block; min-inline-size: 44px; padding-block: 13px; margin-block: -13px; }
   }
   .cp-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
   .cp-head-words { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }

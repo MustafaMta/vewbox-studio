@@ -555,6 +555,8 @@
   .settings-summary-line { display: flex; flex-wrap: wrap; align-items: baseline; margin: 0; font-size: 13px; line-height: 20px; color: var(--text-2); }
   .link-quiet { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-control); text-underline-offset: 3px; border-radius: var(--r-xs); cursor: pointer; }
   .link-quiet:hover { text-decoration-color: var(--text-1); }
+  /* coarse pointers (Design QA M7 residue): a 44 px target around the word; the line keeps its height */
+  @media (pointer: coarse) { .link-quiet { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -12px; vertical-align: middle; } }
   .settings-summary-controls:not([hidden]) { display: flex; flex-direction: column; gap: 16px; margin-block-start: 16px; }
   /* the chip field: the field's box holding removable chips and the text input */
   .chip-input { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: var(--control-h); padding: 4px 6px; border: 1px solid var(--line-control); border-radius: var(--r-sm); background: var(--surface-1); cursor: text; transition: border-color var(--dur-1) var(--ease-out); }
@@ -687,6 +689,7 @@
   .kit-spec-sheet-list { display: flex; flex-direction: column; gap: 2px; }
   .kit-spec-drag .dropzone { border-style: solid; border-color: var(--text-1); background: var(--surface-2); }
   .kit-spec-sk { display: flex; flex-direction: column; gap: 16px; }
+  .kit-skeleton-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; min-block-size: 40px; }
   .kit-spec-sk-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
   .kit-spec-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
   .kit-spec-swatch { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 12px; align-items: center; }
@@ -789,7 +792,9 @@
   .shelf + .shelf, * + .shelf { margin-block-start: var(--section-gap); }
   .shell-column:has(.shelf) { overflow-x: clip; }
   /* the card widths are the tokens every catalogue grid reads too (tokens.css --card-*: one size per object, M6) */
-  .shelf-track { --card-w: var(--card-wide); --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -4px calc(-1 * var(--bleed)) -4px 0; padding: 4px var(--bleed) 4px 0; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
+  /* 8 px of padding on every side, given back as margin, so a card's focus ring (2 px at 3 px) is never clipped by the
+     row's own scroll box at the column's start edge or above and below the cards (the DS-1 focus gate) */
+  .shelf-track { --card-w: var(--card-wide); --bleed: max(var(--pad), calc((100vw - var(--shell-nav-w) - 100%) / 2)); display: flex; gap: 12px; margin: -8px calc(-1 * var(--bleed)) -8px -8px; padding: 8px var(--bleed) 8px 8px; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 8px 0; overscroll-behavior-x: contain; }
   .shelf-track > * { flex: none; inline-size: var(--card-w); min-inline-size: 0; scroll-snap-align: start; }
   .shelf[data-kind='poster'] > .shelf-track { --card-w: var(--card-poster); }
   .shelf[data-kind='sleeve'] > .shelf-track { --card-w: var(--card-sleeve); }
@@ -798,6 +803,7 @@
   .shelf-track > * > :is(.mcard, .fcard, .tool-card, .start-card, .dcard) { block-size: 100%; }
   @media (max-width: 639px) {
     .shelf-track { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
+    .shelf-track > * { scroll-margin-inline-start: 0; }
   }
 
   /* ---- the tool card (§5.8; Home's tool cards): a level-1 card that is one link, 112 high (104 on phones), padding 16;

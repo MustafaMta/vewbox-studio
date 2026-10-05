@@ -19,6 +19,7 @@ import { GenButton, type StudioGate } from './gate';
 import { RunningRow } from './Running';
 import { ProductionDetails } from './ProductionDetails';
 import { FailedShots } from './Failed';
+import { StaleJoins, StaleShots } from './Continuity';
 import { breakdownOf, decisionsOf, expectationWords, flowOf, frameRatioOf, leadOf, orderedShots, runningOf, shotState, vocab, workspaceHref } from './model';
 
 /** THE PRODUCTION MAP (docs/DESIGN-SYSTEM-V5.md §8.10) — the production as one hierarchy you move through: where it
@@ -82,6 +83,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
       </section>
 
       <FailedShots p={p} gate={gate} />
+      <StaleShots p={p} gate={gate} />
 
       <section className="ws-sec" aria-labelledby="ws-story-h" id="story">
         <SectionHead id="ws-story-h" title="Story" link={{ href: workspaceHref(p, storyTab), label: music ? 'Open the visual story' : 'Open the script', short: 'Open' }} />
@@ -161,6 +163,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
       <section className="ws-sec" aria-labelledby="ws-cut-h" id="cut">
         <SectionHead id="ws-cut-h" title="Final cut" link={{ href: workspaceHref(p, 'final'), label: 'Open the final cut', short: 'Open' }} />
         <StaleCut p={p} gate={gate} />
+        <StaleJoins p={p} gate={gate} />
         <CutLine p={p} />
         {cuts.length === 0 ? <p className="t-body ws-empty">{flow.selected === p.shots.length && p.shots.length ? 'Every shot has a take: the cut can be assembled.' : 'The cut is assembled once every shot has a selected take.'}</p> : (
           <ol className="ws-versions" role="list">

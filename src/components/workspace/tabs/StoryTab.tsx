@@ -126,6 +126,10 @@ export function SceneEditor({ p, scene, cast, locations }: { p: Production; scen
         <Field label="Location"><Select value={scene.locationId ?? ''} onChange={(e) => set({ locationId: e.target.value || undefined })} placeholder="—" options={locations.map((l) => ({ value: l.id, label: l.name }))} /></Field>
         <Field label="Time of day"><Select value={scene.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value as TimeOfDay })} options={TIMES_OF_DAY.map((t) => ({ value: t, label: vocab(t) }))} /></Field>
       </div>
+      <div className="ws-scene-establish">
+        <Checkbox label="Establish this place here" disabled={!scene.locationId} checked={Boolean(scene.establishLocation)} onChange={(e) => set({ establishLocation: e.target.checked })} />
+        <span className="t-meta">{scene.locationId ? 'This scene is the place’s first appearance: its shots are filmed from the place’s description, and the first accepted take becomes its master plate.' : 'Choose the scene’s location first.'}</span>
+      </div>
       <Field label="What the scene is for" help="The script writer and the shot planner read it."><Textarea value={scene.purpose ?? ''} onChange={(e) => set({ purpose: e.target.value })} rows={2} dir="auto" /></Field>
       <fieldset className="ws-fieldset">
         <legend className="t-label">In the scene</legend>

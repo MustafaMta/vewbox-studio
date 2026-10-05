@@ -40,6 +40,7 @@
   .film-stage { --transport: 52px; --gap: 16px; display: grid; gap: var(--gap); margin-block-start: 24px; align-items: start;
     grid-template-columns: calc((100% - var(--gap) + var(--transport) * 16 / 9) / (2 / 3 + 16 / 9) * 2 / 3) minmax(0, 1fr);
     grid-template-areas: 'poster screen' 'poster strip'; }
+  @media (pointer: coarse) { .film-stage { --transport: 60px; } }   /* the kit's docked transport is 60 on a coarse pointer */
   .film-poster { grid-area: poster; display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; margin: 0; }
   .film-poster-frame { inline-size: 100%; aspect-ratio: 2 / 3; }
   .film-poster-cap { margin: 0; }
@@ -88,10 +89,11 @@
   .film-credit-name a { color: var(--text-1); text-decoration: none; }
   .film-credit-name a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
   .film-credit-name, .film-credit-made { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* coarse pointers (M7): a credit's link is a 44 px target (the name may wrap; the clip would cut the hit area) */
+  /* coarse pointers (M7): a credit's link is a 44 px target — the name's row grows to hold it (a negative margin would
+     put the link, and its focus ring, outside the row's clip), and the name may wrap */
   @media (pointer: coarse) {
     .film-credit-name:has(a) { overflow: visible; white-space: normal; }
-    .film-credit-name a { display: inline-block; padding-block: 9px; margin-block: -9px; }
+    .film-credit-name a { display: inline-block; padding-block: 9px; }
   }
 
   /* ------------------------------------------------------------------------------------------- the skeletons */
@@ -119,11 +121,20 @@
     .film-head { margin-block-start: 16px; }
     .film-head-row { flex-direction: column; align-items: stretch; }
     .film-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .film-strip { overflow-x: auto; scrollbar-width: none; }
+    /* the strip scrolls on a phone: as the kit's strips (base.css F3), 8 px of padding on every side given back on the
+       inline axis, and an 8 px scroll padding, so a shot's focus ring is never clipped by the scroller */
+    .film-strip { overflow-x: auto; scrollbar-width: none; padding: 8px 12px; margin-inline: -12px; scroll-padding-inline: 12px; }
+    /* the scene's name never widens its scene (it ellipsises inside the shots' width) */
+    .film-strip-label { contain: inline-size; }
     .film-strip::-webkit-scrollbar { display: none; }
-    .film-strip-scene { flex-shrink: 0; }
-    .film-strip-shots > * { min-inline-size: 72px; }
+    /* each scene takes its shots' own width (72 px each) and the strip scrolls: a share of the column (flex-basis 0)
+       made the scenes overlap on a phone, one scene's shots painted over the next's */
+    .film-strip-scene { flex: none; }
+    .film-strip-shots > * { flex: none; inline-size: 72px; }
+    /* focus scrolling brings a shot in with room for its ring (it does not honour the scroller's scroll-padding) */
+    .film-strip-shot { scroll-margin-inline: 8px; }
     .film-transport { gap: 4px; padding-inline: 8px; }
+    .film-stage .ptransport { padding-inline: 8px; }
     .film-files { grid-template-columns: minmax(0, 1fr); }
     .film-cast { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
     .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }

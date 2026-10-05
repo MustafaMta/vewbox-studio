@@ -111,15 +111,25 @@
   .iplayer[data-theatre] > .ptransport { background: var(--black); }
   .iplayer video::cue { font-family: var(--font-ui); font-size: 15px; line-height: 22px; background: var(--chip-on-art); color: var(--text-1); }
   .ptransport { display: flex; flex: none; align-items: center; gap: 8px; block-size: 52px; padding: 0 12px; background: var(--surface-1); }
+  /* coarse pointers: the 44 px buttons keep 8 px above and below, so a focus ring (2 px at 2 px) and its black band
+     never land on the player's edge (the DS-1 focus gate at 390); pages that size the dock read --transport */
+  @media (pointer: coarse) { .ptransport { block-size: 60px; } }
   .ptransport .pt-time { flex: none; color: var(--text-2); }
   .ptransport .pt-seek { flex: 1; min-inline-size: 80px; }
-  @media (max-width: 479px) { .ptransport .pvol-track { display: none; } }
+  /* a phone: the transport fits the column with four 44 px buttons and the time — tighter gaps, the seek bar may
+     narrow to 48 (it flexes to the room left) */
+  @media (max-width: 479px) {
+    .ptransport .pvol-track { display: none; }
+    .ptransport { gap: 4px; padding-inline: 8px; }
+    .ptransport .pt-seek { min-inline-size: 48px; }
+  }
   /* the cutting room's transport: the same dock, more controls; the timecode in mono text-1; below 768 the seek track
      takes its own row */
   .pt-group { display: inline-flex; flex: none; align-items: center; gap: 4px; }
   .pt-tc { flex: none; color: var(--text-1); }
   .pt-tc-total { color: var(--text-3); }
   .pt-mark { min-inline-size: 40px; padding-inline: 8px; }
+  @media (pointer: coarse) { .pt-mark { min-inline-size: 44px; } }
   .ptransport-edit { gap: 8px 12px; }
   @media (max-width: 767px) {
     .ptransport-edit { flex-wrap: wrap; block-size: auto; min-block-size: 52px; padding-block: 8px; }

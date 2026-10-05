@@ -150,6 +150,7 @@ export function ShotWorkspaceSkeleton() {
                   <span className="ws-take-name"><Skeleton.Line width="3rem" /></span>
                   <span className="t-meta"><Skeleton.Line width="5rem" /></span>
                   <span className="t-meta"><Skeleton.Line width="7rem" /></span>
+                  <span className="ws-drift-line" />
                   <span className="ws-take-acts"><Btn width="100%" /><Btn width="60%" /><Skeleton.Block className="ws-sk-tick" width="50%" height="auto" radius="xs" /></span>
                 </li>
               ))}

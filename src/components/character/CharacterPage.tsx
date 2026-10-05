@@ -179,9 +179,12 @@ function Notes({ c }: { c: Character }) {
     <CastSection id="notes" title="Notes for the writers" description="Habits, history, how to play them. Never used to draw the character.">
       <form className="char-form" onSubmit={(e) => { e.preventDefault(); try { act('updateCharacter', c.id, { notes }); toast.ok('Notes saved.'); } catch (err) { toast.bad((err as Error).message); } }}>
         <Textarea aria-label="Notes for the writers" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} maxLength={4000} />
-        <div className="char-form-acts">
-          <Button type="submit" variant="secondary" size="sm" disabled={!dirty}>{dirty ? 'Save notes' : 'Saved'}</Button>
-          {dirty && <StateWord tone="waiting">Unsaved changes</StateWord>}
+        {/* the saved state is said in words, not drawn as a disabled button (Design QA m8); the button appears with
+            the first change, in the row's reserved height */}
+        <div className="char-form-acts char-notes-acts">
+          {dirty
+            ? <><Button type="submit" variant="secondary" size="sm">Save notes</Button><StateWord tone="waiting">Unsaved changes</StateWord></>
+            : <StateWord tone="done">Saved</StateWord>}
         </div>
       </form>
     </CastSection>
