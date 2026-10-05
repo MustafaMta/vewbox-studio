@@ -204,6 +204,46 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8022/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
     stop_grace_period: 30s
 
+  # Voice BENCH engines (docs/research/VOICE-BENCH-2026-10.md): candidate cloning engines behind the /synthesize contract,
+  # profile `bench` only — never started by `up`, never used by the app. Start one at a time, under scripts/gpu-hold.ts:
+  # `docker compose --profile bench up -d --no-deps tts-bench-voxcpm2`. Models volume read-only; nothing downloads.
+  tts-bench-voxcpm2:
+    logging: *logging
+    image: vewbox/tts-design:${CODE_VERSION:-dev}
+    profiles: ["bench"]
+    environment: { NVIDIA_VISIBLE_DEVICES: all, BENCH_ENGINE: voxcpm2, MODEL_ROOT: /models, HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1", TQDM_DISABLE: "1" }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
+    working_dir: /opt/bench
+    entrypoint: []
+    command: ["/opt/habibi/.venv/bin/python", "-m", "uvicorn", "vewbox_bench_app:app", "--host", "0.0.0.0", "--port", "8040", "--workers", "1"]
+    ports: [ "127.0.0.1:${TTS_BENCH_VOXCPM2_PORT:-8040}:8040" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8040/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
+
+  tts-bench-dots:
+    logging: *logging
+    build: { context: ., dockerfile: docker/tts-bench/Dockerfile, target: dots, args: { DESIGN_IMAGE: "vewbox/tts-design:${CODE_VERSION:-dev}" }, secrets: [extra_ca] }
+    image: vewbox/tts-bench-dots:${CODE_VERSION:-dev}
+    profiles: ["bench"]
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
+    ports: [ "127.0.0.1:${TTS_BENCH_DOTS_PORT:-8041}:8041" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8041/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
+
+  tts-bench-moss:
+    logging: *logging
+    build: { context: ., dockerfile: docker/tts-bench/Dockerfile, target: moss, secrets: [extra_ca] }
+    image: vewbox/tts-bench-moss:${CODE_VERSION:-dev}
+    profiles: ["bench"]
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
+    ports: [ "127.0.0.1:${TTS_BENCH_MOSS_PORT:-8042}:8042" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8042/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+
   # Transcription: faster-whisper large-v3 (every language) and, for `language=ar`, the Arabic-dialect fine-tune
   # (ASR_MODEL_DIR_AR, CTranslate2 fp16 written by the asr-convert one-off). One Whisper model on the card at a time:
   # the service drops the other before loading (docker/asr/app.py). Until the ct2 folder exists, `ar` uses large-v3.

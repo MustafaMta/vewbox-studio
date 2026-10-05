@@ -1,0 +1,13 @@
+{
+  "name": "iraqi-engine-comparison-arms-2026-10",
+  "note": "The arms of the dedicated Iraqi Arabic phase (docs/voice/IRAQI-ENGINE-COMPARISON-2026-10.md). PREPARED, NOT RUN: the phase starts after the English pipeline is stable (FINAL-LOCAL-DIRECTIVE §28). Producer's rule 2026-10-06: commercial-safe only in the runtime; an arm with researchReference=true is a labelled research reference, never wired into the app or its config.",
+  "arms": [
+    { "engine": "habibi", "service": "http://127.0.0.1:8021", "kind": "synthesize", "model": "SWivid/Habibi-TTS Specialized/IRQ model_100000", "licence": "Apache-2.0 per licensor; data-provenance risk (F5-TTS init on Emilia, CC-BY-NC); legal review before commercial release", "researchReference": false, "incumbent": true },
+    { "engine": "indextts", "service": "http://127.0.0.1:8020", "kind": "synthesize", "model": "IndexTeam/IndexTTS-2.5", "licence": "bilibili Model Use License (commercial OK below 100M MAU / RMB 1bn; §3.4c)", "researchReference": false, "incumbent": true },
+    { "engine": "voxcpm2", "service": "http://127.0.0.1:8040", "kind": "synthesize", "model": "openbmb/VoxCPM2 (clone)", "licence": "Apache-2.0", "researchReference": false, "compose": "tts-bench-voxcpm2" },
+    { "engine": "dots", "service": "http://127.0.0.1:8041", "kind": "synthesize", "model": "dots-studio/dots.tts-soar", "licence": "Apache-2.0", "researchReference": false, "compose": "tts-bench-dots" },
+    { "engine": "moss", "service": "http://127.0.0.1:8042", "kind": "synthesize", "model": "OpenMOSS-Team/MOSS-TTS-v1.5", "licence": "Apache-2.0", "researchReference": false, "compose": "tts-bench-moss" },
+    { "engine": "fish-s2", "service": "http://127.0.0.1:8043", "kind": "synthesize", "model": "fishaudio S2 Pro (open weights)", "licence": "Fish Audio Research License — NON-COMMERCIAL (commercial use needs a separate licence from Fish Audio)", "researchReference": true, "status": "bench target not built yet: docs/voice/IRAQI-ENGINE-COMPARISON-2026-10.md §4 (evaluation-only manifest group, like eval-qwen-image-2.1)" },
+    { "engine": "minimax-h3-native", "service": null, "kind": "import", "model": "MiniMax H3 local Ref2VA (ComfyUI), the line in <d>[Arabic]…</d>, reference audio for timbre", "licence": "MiniMax H3 Community License (the studio's video engine)", "researchReference": false, "status": "rendered clips imported with `voice-bench.ts import --engine minimax-h3-native --dir <speaker>/<line>.mp4`; GPU-heavy (≈ 90–145 s and 31.9 GB per 5 s clip): a subset of lines only" }
+  ]
+}

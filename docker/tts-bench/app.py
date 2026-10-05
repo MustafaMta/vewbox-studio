@@ -119,24 +119,20 @@ class DotsEngine:
         from dots_tts.runtime import DotsTtsRuntime  # type: ignore
 
         d = os.path.join(MODEL_ROOT, "tts", "bench", "dots.tts-soar")
-        self.rt = DotsTtsRuntime.from_pretrained(d, precision="bfloat16")
-        self.sample_rate = int(getattr(self.rt, "sample_rate", 48000))
-        self.version = f"dots.tts {_pkg_version('dots.tts') or _pkg_version('dots-tts')}; model dots.tts-soar{_manifest_rev('tts/bench/dots.tts-soar/model.safetensors')}; torch {_pkg_version('torch')}"
+        # max_generate_length: audio patches per request (the runtime's default 500); raised for the 25–30 s monologues
+        self.rt = DotsTtsRuntime.from_pretrained(d, precision="bfloat16", optimize=False, max_generate_length=int(os.environ.get("DOTS_MAX_PATCHES", "1000")))
+        self.sample_rate = int(self.rt.sample_rate)
+        self.version = f"dots.tts {_pkg_version('dots.tts')}; model dots.tts-soar{_manifest_rev('tts/bench/dots.tts-soar/model.safetensors')}; torch {_pkg_version('torch')}"
 
     def synthesize(self, text: str, language: str, ref: str, ref_text: str | None, emotion: str | None, p: dict[str, Any]) -> np.ndarray:
+        # dots.tts 0.3.1 generate() has no seed argument: the global generators are seeded (seed_everything)
         seed_everything(int(p["seed"]))
-        kw: dict[str, Any] = {"text": text, "prompt_audio_path": ref, "num_steps": int(p["steps"]), "guidance_scale": float(p["cfg"]), "seed": int(p["seed"]), "language": "English" if language == "en" else "Arabic"}
+        kw: dict[str, Any] = {"text": text, "prompt_audio_path": ref, "num_steps": int(p["steps"]), "guidance_scale": float(p["cfg"]), "language": language, "normalize_text": False}
         if ref_text:
             kw["prompt_text"] = ref_text
         res = self.rt.generate(**kw)
-        wav = getattr(res, "audio", None)
-        if wav is None and isinstance(res, dict):
-            wav = res.get("audio") or res.get("wav")
-        if wav is None:
-            wav = res
-        sr = getattr(res, "sample_rate", None) or (res.get("sample_rate") if isinstance(res, dict) else None)
-        if sr:
-            self.sample_rate = int(sr)
+        wav = res["audio"]
+        self.sample_rate = int(res.get("sample_rate") or self.sample_rate)
         try:
             import torch  # type: ignore
 
