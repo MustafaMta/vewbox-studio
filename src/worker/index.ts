@@ -14,6 +14,7 @@ import { waitRequestOf } from './handlers/wait';
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
+import { workDeadlineMs } from '@/server/jobs/work-deadline';
 import { isFencedWrite } from '@/server/jobs/fence';
 import { sweepJobFiles } from '@/server/jobs/outputs';
 import { settleDialogueReviews } from '@/server/jobs/reviews';
@@ -65,7 +66,8 @@ async function run(job: Job, lane: Lane) {
   // children, aborts provider requests and cancels ComfyUI prompts (src/server/jobs/context.ts)
   const jobCtrl = new AbortController();
   const stop = (reason: unknown) => { if (!jobCtrl.signal.aborted) jobCtrl.abort(reason); };
-  const deadline = jobDeadline(job.type);
+  // the flat deadline, or longer when the job's own work asks for it (PLAN_SHOTS: its scenes at the model's speed)
+  const deadline = jobDeadline(job.type, process.env, await workDeadlineMs(job));
   const deadlineTimer = deadline.mode === 'off' ? undefined : setTimeout(() => {
     jl.warn({ deadlineMs: deadline.ms, mode: deadline.mode }, 'job passed its deadline');
     void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms }).catch(() => undefined);

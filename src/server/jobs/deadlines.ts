@@ -27,10 +27,26 @@ export const JOB_DEADLINE_MS: Record<JobType, number> = {
 
 export type DeadlineMode = 'enforce' | 'log' | 'off';
 
-/** The deadline of one attempt of `type` under this environment. */
-export function jobDeadline(type: JobType, env: Record<string, string | undefined> = process.env): { ms: number; mode: DeadlineMode } {
+/** The deadline of one attempt of `type` under this environment. `workMs`: a deadline computed from the job's own
+ *  work (PLAN_SHOTS: `planShotsWorkMs`) — used instead of the flat value when it is longer. */
+export function jobDeadline(type: JobType, env: Record<string, string | undefined> = process.env, workMs?: number): { ms: number; mode: DeadlineMode } {
   const mode: DeadlineMode = env.JOB_DEADLINES === 'off' || env.JOB_DEADLINES === 'log' ? env.JOB_DEADLINES : 'enforce';
   const scale = Number(env.JOB_DEADLINE_SCALE);
-  const ms = Math.round(JOB_DEADLINE_MS[type] * (Number.isFinite(scale) && scale > 0 ? scale : 1));
+  const base = Math.max(JOB_DEADLINE_MS[type], workMs && Number.isFinite(workMs) ? workMs : 0);
+  const ms = Math.round(base * (Number.isFinite(scale) && scale > 0 ? scale : 1));
   return { ms, mode };
+}
+
+/** The longest a shot-planning attempt is ever given (a whole season's worth of scenes on the slowest local model). */
+export const PLAN_SHOTS_DEADLINE_CAP_MS = 8 * HOUR;
+
+/** THE SHOT PLANNER'S DEADLINE FROM ITS WORK: every scene's plan at its most (the answer tokens of the most shots the
+ *  scene may take, `answerTokens`, in as many parts as the context needs, `parts`), at the model's measured speed —
+ *  answer tokens per second plus the reading of each part's prompt — twice over (the module's headroom: a repair
+ *  round or a re-ask), plus 10 minutes for the World Bible and the writes. Never below the flat 60 min, never above
+ *  PLAN_SHOTS_DEADLINE_CAP_MS. */
+export function planShotsWorkMs(scenes: Array<{ answerTokens: number; parts: number }>, speed: { tokensPerSecond: number; promptSecondsPerPart: number }): number {
+  const tps = Math.max(1, speed.tokensPerSecond);
+  const seconds = scenes.reduce((a, sc) => a + sc.answerTokens / tps + Math.max(1, sc.parts) * speed.promptSecondsPerPart, 0);
+  return Math.min(PLAN_SHOTS_DEADLINE_CAP_MS, Math.max(JOB_DEADLINE_MS.PLAN_SHOTS, Math.round(2 * seconds * 1000 + 10 * MIN)));
 }

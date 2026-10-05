@@ -70,6 +70,21 @@ export function llmLeaseMb(model: string): number {
   return LOCAL_LLM_VRAM_MB.find(([prefix]) => m.startsWith(prefix))?.[1] ?? UNMEASURED_LLM_VRAM_MB;
 }
 
+/** How fast a local model answers on the RTX 5090, warm, at num_ctx 16384 (answer tokens per second over whole calls,
+ *  prompt reading included; seconds to read one ≈ 4K-token shot-plan prompt): gemma4:31b-it-qat 52 tok/s (MODEL-EVAL-2026-10
+ *  §7, shot plans), qwen3:14b ≈ 100 (§3). The shot planner's deadline is computed from it (src/server/jobs/work-deadline.ts).
+ *  A model never measured is assumed slow (8 tok/s, a large model with experts on the CPU) so its jobs are not cut short. */
+export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
+export const UNMEASURED_LLM_SPEED = { tokensPerSecond: 8, promptSecondsPerPart: 90 };
+/** A hosted engine's speed for the same purpose (fast; its deadline stays near the flat value). */
+export const HOSTED_LLM_SPEED = { tokensPerSecond: 40, promptSecondsPerPart: 10 };
+export function llmSpeed(model: string, provider: LlmProvider = 'openai-compatible', baseUrl = ''): { tokensPerSecond: number; promptSecondsPerPart: number } {
+  if (provider !== 'openai-compatible' || (baseUrl && !isLocalOllama(baseUrl))) return HOSTED_LLM_SPEED;
+  const m = model.trim().toLowerCase();
+  const hit = LOCAL_LLM_SPEED.find(([prefix]) => m.startsWith(prefix));
+  return hit ? { tokensPerSecond: hit[1], promptSecondsPerPart: hit[2] } : UNMEASURED_LLM_SPEED;
+}
+
 export function resolveProvider(preferred?: string): { provider: LlmProvider; model: string; baseUrl: string; apiKey: string } {
   const e = env();
   const pick = (p: string | undefined): LlmProvider | null => {
