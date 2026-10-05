@@ -26,8 +26,8 @@ and recorded in the repo, **[V]** verified from a primary source, **[E]** an est
 
 | compose service | Family served | Models (compose / manifest) | VRAM on the card | Lease estimate in code |
 |---|---|---|---|---|
-| `comfyui` | IMAGE | Qwen-Image-2512 fp8 DiT 20.4 GB + Qwen2.5-VL-7B fp8 TE 9.4 GB + VAE (`images-qwen`); or Qwen-Image-Edit-2511 fp8mixed 20.5 GB + the same TE; or FLUX.2 klein 4B 7.75 + Qwen3-4B TE 8.0 + VAE (`images-flux2-klein`) + MediaPipe + Qwen3.5-4B 9.3 GB (`images-vlm`) | Qwen: 29.6–31.7 GB card total with both Qwen DiTs and the TE resident; Edit quality mode ≤ 31.9 GB; klein ≈ 22 GB **[R]** `docs/MODELS.md` | `IMAGE_VRAM_MB = 24000` (`handlers/images.ts`); 9000 for the people graph (`handlers/people.ts`) |
-| `comfyui` | VIDEO | MiniMax H3: FL2VA *or* Ref2VA pruned int8 DiT 21.0 GB, Qwen3-VL-32B nvfp4 TE 15.7 GB (staged: encodes, then to RAM), video VAE int8 2.8, audio VAE 0.6, turbo LoRA 2.0 (`video-minimax-h3`, `video-minimax-h3-reference`) | 22–32 GB while generating **[R]** `docs/evidence/minimax-p1` | 28000 (`handlers/take.ts`) |
+| `comfyui` | IMAGE | Qwen-Image-2512 fp8 DiT 20.4 GB + Qwen2.5-VL-7B fp8 TE 9.4 GB + VAE (`images-qwen`); or Qwen-Image-Edit-2511 fp8mixed 20.5 GB + the same TE; or FLUX.2 klein 4B 7.75 + Qwen3-4B TE 8.0 + VAE (`images-flux2-klein`) + MediaPipe + Qwen3.5-4B 9.3 GB (`images-vlm`) | Qwen: 29.6–31.7 GB card total with both Qwen DiTs and the TE resident; Edit quality mode ≤ 31.9 GB; klein ≈ 22 GB **[R]** `docs/MODELS.md` | `IMAGE_VRAM_MB = 30400` (`gpu/estimates.ts`, measured peak §6; was 24000); 9000 for the people graph (`handlers/people.ts`) |
+| `comfyui` | VIDEO | MiniMax H3: FL2VA *or* Ref2VA pruned int8 DiT 21.0 GB, Qwen3-VL-32B nvfp4 TE 15.7 GB (staged: encodes, then to RAM), video VAE int8 2.8, audio VAE 0.6, turbo LoRA 2.0 (`video-minimax-h3`, `video-minimax-h3-reference`) | 22–32 GB while generating **[R]** `docs/evidence/minimax-p1` | `VIDEO_H3_VRAM_MB = 31900` (`gpu/estimates.ts`, measured peak §6; was 28000) |
 | `comfyui` | MUSIC | ACE-Step 1.5 XL turbo 10.0 + LMs 3.7 + 1.2 + VAE 0.3 (`music-ace-step`); or MiniMax Music 3 int8 2.5 + TE 9.2 + VAE 0.2 (`music-minimax-3`); Demucs stems through `asr` | not recorded; ≤ 20 GB **[E]** | 20000 (`handlers/music.ts`) |
 | `tts` | TTS | IndexTTS 2.5 (fetched by its entrypoint into `hf-home`) | ≈ 6 GB (card 3.5 → 9.5 GB loaded) **[R]** | `TTS_VRAM = 8000` (`handlers/voice-measure.ts`) |
 | `tts-habibi` | TTS | Habibi-TTS IRQ (F5-TTS DiT + Vocos) | ≈ 1 GB above baseline after one line **[R]** | within `TTS_VRAM` |
@@ -64,10 +64,10 @@ same sequence without batching.
 | # | Step | Lease | Unloads first | Loads | Time |
 |---|---|---|---|---|---|
 | 1 | Plan the shot (beats, `<d>` line, references) | LLM (21500 with Gemma, 12000 with qwen3:14b) | ComfyUI `/free`, `tts*`/`asr` `/unload` (no-ops when nothing is loaded) | Ollama: Gemma 19.1 GB (card 21.4) or qwen3:14b 10.6 GB (card 11.5) **[R]** | one scene's shot plan: Gemma 102–125 s, qwen3:14b 37–76 s; Gemma cold develop 134 s vs 32 s warm **[R]** (§6) |
-| 2 | The shot's frame (first frame from the canonical character + location plate) | IMAGE (24000) | Ollama `keep_alive: 0` (≈ immediate; `OLLAMA_KEEP_ALIVE=2m` would otherwise keep it) | ComfyUI: Edit-2511 fp8mixed + TE + VAE ≈ 30 GB | ≈ 19 s load when the TE is resident, 75 s cold; Lightning edit 12–22 s, quality 60–80 s **[R]** |
+| 2 | The shot's frame (first frame from the canonical character + location plate) | IMAGE (30400) | Ollama `keep_alive: 0` (≈ immediate; `OLLAMA_KEEP_ALIVE=2m` would otherwise keep it) | ComfyUI: Edit-2511 fp8mixed + TE + VAE ≈ 30 GB | ≈ 19 s load when the TE is resident, 75 s cold; Lightning edit 12–22 s, quality 60–80 s **[R]** |
 | 3 | The line, Iraqi (Habibi) or English (IndexTTS) | TTS (8000) | ComfyUI `/free` (the whole image set leaves the card) | `tts` or `tts-habibi` (≈ 6 GB or ≈ 1–2 GB), 15–33 s first use **[R]** | ≈ 1–5 s per line warm **[E]** |
 | 4 | The line check (transcribe back, WER against the script) | ASR (4000) | `tts*` `/unload` (host RAM trimmed) | `asr`: Whisper large-v3 for `en`; the dialect model for `ar` (the other Whisper is dropped first) | load ≈ 8 s cold; 6 s of speech in 1.2 s warm **[R]** |
-| 5 | The clip (Ref2VA with the frame, the canonical image, the plate and the line's audio as references) | VIDEO (28000) | `asr` `/unload`; ComfyUI `/free` if an image checkpoint is still resident | ComfyUI: Ref2VA int8 DiT 21 GB resident, the nvfp4 TE 15.7 GB encodes then moves to RAM, VAEs, LoRA: card 22–32 GB | cold 50–80 s above warm; 69–76 s for a 5 s clip at 4 steps warm; 124–186 s with a load or 12 steps **[R]** |
+| 5 | The clip (Ref2VA with the frame, the canonical image, the plate and the line's audio as references) | VIDEO (31900) | `asr` `/unload`; ComfyUI `/free` if an image checkpoint is still resident | ComfyUI: Ref2VA int8 DiT 21 GB resident, the nvfp4 TE 15.7 GB encodes then moves to RAM, VAEs, LoRA: card 22–32 GB | cold 50–80 s above warm; 69–76 s for a 5 s clip at 4 steps warm; 124–186 s with a load or 12 steps **[R]** |
 | 6 | Take gate: transcribe the clip's own audio, compare with the line | ASR (4000) | ComfyUI `/free` (**this evicts the 21 GB DiT**: the next clip pays the 50–80 s cold load again) | `asr` Whisper | 1–2 s warm |
 | 7 | Vision QA of the frame or the clip's frames (Gemma, image input) | LLM (21500) | ComfyUI `/free`; `asr` `/unload` | Ollama: Gemma | per image **[E]**, to measure (§5.6 L3 of MODEL-STACK) |
 
@@ -119,11 +119,11 @@ host RAM idle. Every speech service and Ollama load lazily: up and idle they hol
 
 | Family / engine | Card peak (measured) | Host RAM (container) | Lease estimate in code | Fits the estimate? |
 |---|---|---|---|---|
-| IMAGE — Qwen-Image-2512 quality / Lightning | **29.8 GB** | ≤ 2.8 GB | `IMAGE_VRAM_MB` 24000 | **under-reports by ≈ 6 GB** |
-| IMAGE — Qwen-Image-Edit-2511 (edit, Image Reference rollback) | **30.0–30.4 GB** | — | 24000 | under-reports |
-| IMAGE — FLUX.2 klein 4B (+ Qwen3-4B TE) | **20.1 GB** | — | 24000 | yes |
+| IMAGE — Qwen-Image-2512 quality / Lightning | **29.8 GB** | ≤ 2.8 GB | `IMAGE_VRAM_MB` **30400** (was 24000) | yes |
+| IMAGE — Qwen-Image-Edit-2511 (edit, Image Reference rollback) | **30.0–30.4 GB** | — | 30400 | yes (the family's estimate is this peak) |
+| IMAGE — FLUX.2 klein 4B (+ Qwen3-4B TE) | **20.1 GB** | — | 30400 | yes (over-estimates by ≈ 10 GB) |
 | IMAGE — Qwen-Image-2.1 int8 (evaluation only) | 17.0–22.4 GB | — | — | — |
-| VIDEO — MiniMax H3 Ref2VA int8, 4-step turbo, 5 s at 1344×768 | **28.4–31.9 GB** | **40.2–40.8 GiB of 46.8** | 28000 | under-reports by ≈ 4 GB |
+| VIDEO — MiniMax H3 Ref2VA int8, 4-step turbo, 5 s at 1344×768 | **28.4–31.9 GB** | **40.2–40.8 GiB of 46.8** | `VIDEO_H3_VRAM_MB` **31900** (was 28000); host RAM `VIDEO_H3_HOST_RAM_MB` 40.8 GiB recorded | yes |
 | LLM — gemma4:31b-it-qat, 16K q8_0 | **21.4 GB** (19.1 GB model) | ≤ 11.9 GB | 21500 (new) | yes |
 | LLM — qwen3:14b, 16K q8_0 | **11.5 GB** (10.6 GB model) | ≤ 5.9 GB | 12000 | yes |
 | TTS + ASR — IndexTTS + Habibi IRQ + Whisper (dialect or large-v3), all loaded | **13.5 GB** together | tts 2.5, habibi 2.5, asr 1.0 GB | 8000 / 4000 | — |
@@ -136,7 +136,8 @@ host RAM idle. Every speech service and Ollama load lazily: up and idle they hol
 - **H3: alone** — 31.9 GB of the card and 40.8 GiB of the VM's 46.8 GiB host RAM: with the speech services merely idle
   (≈ 6 GB RAM loaded) the VM is at its limit; `.wslconfig` (`memory=80GB`) is still the producer action.
 
-**What the code should follow (not changed here; only the LLM estimate was in scope):** `IMAGE_VRAM_MB` 24000 and the
-VIDEO 28000 both under-report the measured peaks (30.4 / 31.9 GB); with `GPU_VRAM_BUDGET_MB=30000` the budget warning
-would fire on every Qwen and H3 job if they were raised to the measured values — the budget, not only the estimates,
-needs a decision.
+**The code follows the measured peaks (2026-10-05, `src/server/gpu/estimates.ts`, test `tests/unit/gpu-estimates.test.ts`,
+which reads this table):** `IMAGE_VRAM_MB` 30400 (was 24000) and `VIDEO_H3_VRAM_MB` 31900 (was 28000); H3's host RAM
+(40.8 GiB of the VM's 46.8, ≈ 6 GiB headroom) is recorded beside them as `VIDEO_H3_HOST_RAM_MB`. With
+`GPU_VRAM_BUDGET_MB=30000` the budget warning now fires on every Qwen and H3 job, which is what those jobs really put on
+the card — the budget itself still needs a decision.

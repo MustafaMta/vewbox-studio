@@ -33,6 +33,7 @@ import { lookWritten, primaryImageOf, redrawsFromEarlierPicture, usableImage } f
 import { recordMetric } from '@/server/jobs/queue';
 import { committedOutput, jobOutputs, stableSeed } from '@/server/jobs/outputs';
 import { recordHandoff } from '@/server/org/runs';
+import { IMAGE_VRAM_MB } from '@/server/gpu/estimates';
 
 /** PICTURES — the canonical character image, optional secondary character material, location plates and views,
  *  storyboard frames. All drawn by Qwen-Image (text to image) and Qwen-Image-Edit (multi-reference editing) in ComfyUI
@@ -49,7 +50,6 @@ import { recordHandoff } from '@/server/org/runs';
  *  CHARACTER_REFS draws optional SECONDARY material on request, one pass from that image. Evidence and the A/B behind
  *  every choice: docs/evidence/image-v2/REPORT.md. */
 
-const IMAGE_VRAM_MB = 24000;
 
 async function requireComfy() {
   const h = await comfy.health();
