@@ -1,0 +1,67 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.517,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.26,
+      "text": "اسمع، اكو شي يتحرك وراة الباب لا تفتحه.",
+      "avg_logprob": -0.152,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.54,
+          "word": " اسمع،",
+          "probability": 0.723
+        },
+        {
+          "start": 0.54,
+          "end": 0.84,
+          "word": " اكو",
+          "probability": 0.941
+        },
+        {
+          "start": 0.84,
+          "end": 0.94,
+          "word": " شي",
+          "probability": 0.999
+        },
+        {
+          "start": 0.94,
+          "end": 1.34,
+          "word": " يتحرك",
+          "probability": 0.998
+        },
+        {
+          "start": 1.34,
+          "end": 1.56,
+          "word": " وراة",
+          "probability": 0.658
+        },
+        {
+          "start": 1.56,
+          "end": 1.78,
+          "word": " الباب",
+          "probability": 0.998
+        },
+        {
+          "start": 1.78,
+          "end": 1.88,
+          "word": " لا",
+          "probability": 0.977
+        },
+        {
+          "start": 1.88,
+          "end": 2.26,
+          "word": " تفتحه.",
+          "probability": 0.999
+        }
+      ]
+    }
+  ],
+  "text": "اسمع، اكو شي يتحرك وراة الباب لا تفتحه.",
+  "ms": 408,
+  "model": "large-v3-arabic-dialectal-v2"
+}

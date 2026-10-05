@@ -1,0 +1,61 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.869,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.74,
+      "text": "شغل الواي فاي وافتح تطبيق البطارية خلصت.",
+      "avg_logprob": -0.117,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.54,
+          "word": "شغل",
+          "probability": 1
+        },
+        {
+          "start": 0.54,
+          "end": 0.82,
+          "word": " الواي",
+          "probability": 0.921
+        },
+        {
+          "start": 0.82,
+          "end": 1.06,
+          "word": " فاي",
+          "probability": 0.994
+        },
+        {
+          "start": 1.06,
+          "end": 1.4,
+          "word": " وافتح",
+          "probability": 0.922
+        },
+        {
+          "start": 1.4,
+          "end": 1.82,
+          "word": " تطبيق",
+          "probability": 0.989
+        },
+        {
+          "start": 1.82,
+          "end": 2.28,
+          "word": " البطارية",
+          "probability": 0.982
+        },
+        {
+          "start": 2.28,
+          "end": 2.74,
+          "word": " خلصت.",
+          "probability": 0.969
+        }
+      ]
+    }
+  ],
+  "text": "شغل الواي فاي وافتح تطبيق البطارية خلصت.",
+  "ms": 477,
+  "model": "large-v3-arabic-dialectal-v2"
+}

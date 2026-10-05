@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.824,
+  "segments": [
+    {
+      "start": 0.11,
+      "end": 1.63,
+      "text": "ليش ما قلتلي من البداية؟",
+      "avg_logprob": -0.233,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.11,
+          "end": 0.65,
+          "word": " ليش",
+          "probability": 0.491
+        },
+        {
+          "start": 0.65,
+          "end": 0.71,
+          "word": " ما",
+          "probability": 0.998
+        },
+        {
+          "start": 0.71,
+          "end": 1.01,
+          "word": " قلتلي",
+          "probability": 0.889
+        },
+        {
+          "start": 1.01,
+          "end": 1.13,
+          "word": " من",
+          "probability": 1
+        },
+        {
+          "start": 1.13,
+          "end": 1.63,
+          "word": " البداية؟",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "ليش ما قلتلي من البداية؟",
+  "ms": 263,
+  "model": "large-v3-arabic-dialectal-v2"
+}

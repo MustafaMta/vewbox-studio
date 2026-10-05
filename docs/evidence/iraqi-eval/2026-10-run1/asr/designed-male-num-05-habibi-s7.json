@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.411,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.12,
+      "text": "ثلاث سنين وما شفتك، تقول ثلاثين.",
+      "avg_logprob": -0.17,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.34,
+          "word": " ثلاث",
+          "probability": 0.75
+        },
+        {
+          "start": 0.34,
+          "end": 0.64,
+          "word": " سنين",
+          "probability": 0.999
+        },
+        {
+          "start": 0.64,
+          "end": 0.82,
+          "word": " وما",
+          "probability": 0.989
+        },
+        {
+          "start": 0.82,
+          "end": 1.34,
+          "word": " شفتك،",
+          "probability": 0.925
+        },
+        {
+          "start": 1.34,
+          "end": 1.72,
+          "word": " تقول",
+          "probability": 0.938
+        },
+        {
+          "start": 1.72,
+          "end": 2.12,
+          "word": " ثلاثين.",
+          "probability": 0.875
+        }
+      ]
+    }
+  ],
+  "text": "ثلاث سنين وما شفتك، تقول ثلاثين.",
+  "ms": 355,
+  "model": "large-v3-arabic-dialectal-v2"
+}

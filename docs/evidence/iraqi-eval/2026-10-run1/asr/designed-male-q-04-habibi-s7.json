@@ -1,0 +1,43 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.365,
+  "segments": [
+    {
+      "start": 0.14,
+      "end": 1.24,
+      "text": "منو هذا اللي وياك؟",
+      "avg_logprob": -0.382,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.14,
+          "end": 0.66,
+          "word": " منو",
+          "probability": 0.41
+        },
+        {
+          "start": 0.66,
+          "end": 0.78,
+          "word": " هذا",
+          "probability": 0.504
+        },
+        {
+          "start": 0.78,
+          "end": 1,
+          "word": " اللي",
+          "probability": 0.943
+        },
+        {
+          "start": 1,
+          "end": 1.24,
+          "word": " وياك؟",
+          "probability": 0.998
+        }
+      ]
+    }
+  ],
+  "text": "منو هذا اللي وياك؟",
+  "ms": 243,
+  "model": "large-v3-arabic-dialectal-v2"
+}

@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.165,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.04,
+      "text": "والله ماكو شي، بس تعبان شوية.",
+      "avg_logprob": -0.22,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.56,
+          "word": "والله",
+          "probability": 0.91
+        },
+        {
+          "start": 0.56,
+          "end": 0.78,
+          "word": " ماكو",
+          "probability": 0.997
+        },
+        {
+          "start": 0.78,
+          "end": 1.04,
+          "word": " شي،",
+          "probability": 0.998
+        },
+        {
+          "start": 1.04,
+          "end": 1.4,
+          "word": " بس",
+          "probability": 1
+        },
+        {
+          "start": 1.4,
+          "end": 1.72,
+          "word": " تعبان",
+          "probability": 0.999
+        },
+        {
+          "start": 1.72,
+          "end": 2.04,
+          "word": " شوية.",
+          "probability": 0.994
+        }
+      ]
+    }
+  ],
+  "text": "والله ماكو شي، بس تعبان شوية.",
+  "ms": 314,
+  "model": "large-v3-arabic-dialectal-v2"
+}

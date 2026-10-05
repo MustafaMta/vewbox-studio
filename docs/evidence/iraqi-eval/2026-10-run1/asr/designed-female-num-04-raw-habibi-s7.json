@@ -1,0 +1,79 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.944,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.88,
+      "text": "الموعد الساعة ساعة نا أثاف، يوم خس عرش من الشهر.",
+      "avg_logprob": -0.225,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.5,
+          "word": " الموعد",
+          "probability": 0.667
+        },
+        {
+          "start": 0.5,
+          "end": 0.8,
+          "word": " الساعة",
+          "probability": 0.992
+        },
+        {
+          "start": 0.8,
+          "end": 1.08,
+          "word": " ساعة",
+          "probability": 0.941
+        },
+        {
+          "start": 1.08,
+          "end": 1.2,
+          "word": " نا",
+          "probability": 0.41
+        },
+        {
+          "start": 1.2,
+          "end": 1.58,
+          "word": " أثاف،",
+          "probability": 0.738
+        },
+        {
+          "start": 1.58,
+          "end": 1.82,
+          "word": " يوم",
+          "probability": 0.998
+        },
+        {
+          "start": 1.82,
+          "end": 2.1,
+          "word": " خس",
+          "probability": 0.983
+        },
+        {
+          "start": 2.1,
+          "end": 2.36,
+          "word": " عرش",
+          "probability": 0.889
+        },
+        {
+          "start": 2.36,
+          "end": 2.44,
+          "word": " من",
+          "probability": 0.999
+        },
+        {
+          "start": 2.44,
+          "end": 2.88,
+          "word": " الشهر.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "الموعد الساعة ساعة نا أثاف، يوم خس عرش من الشهر.",
+  "ms": 408,
+  "model": "large-v3-arabic-dialectal-v2"
+}

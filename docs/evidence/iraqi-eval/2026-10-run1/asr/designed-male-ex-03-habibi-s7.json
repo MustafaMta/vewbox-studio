@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.208,
+  "segments": [
+    {
+      "start": 0.3,
+      "end": 2.1,
+      "text": "يا ويلي، نسيت المفتاح بالبيت.",
+      "avg_logprob": -0.146,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.3,
+          "end": 0.72,
+          "word": " يا",
+          "probability": 0.001
+        },
+        {
+          "start": 0.72,
+          "end": 1.02,
+          "word": " ويلي،",
+          "probability": 0.969
+        },
+        {
+          "start": 1.02,
+          "end": 1.34,
+          "word": " نسيت",
+          "probability": 1
+        },
+        {
+          "start": 1.34,
+          "end": 1.7,
+          "word": " المفتاح",
+          "probability": 0.999
+        },
+        {
+          "start": 1.7,
+          "end": 2.1,
+          "word": " بالبيت.",
+          "probability": 0.999
+        }
+      ]
+    }
+  ],
+  "text": "يا ويلي، نسيت المفتاح بالبيت.",
+  "ms": 340,
+  "model": "large-v3-arabic-dialectal-v2"
+}

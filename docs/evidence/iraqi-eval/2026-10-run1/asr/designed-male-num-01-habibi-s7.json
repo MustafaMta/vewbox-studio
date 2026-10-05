@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.208,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.88,
+      "text": "عمري ١٢ سنة وأخوي ١٥.",
+      "avg_logprob": -0.253,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.56,
+          "word": " عمري",
+          "probability": 0.666
+        },
+        {
+          "start": 0.56,
+          "end": 0.84,
+          "word": " ١٢",
+          "probability": 0.878
+        },
+        {
+          "start": 0.84,
+          "end": 1.14,
+          "word": " سنة",
+          "probability": 0.999
+        },
+        {
+          "start": 1.14,
+          "end": 1.48,
+          "word": " وأخوي",
+          "probability": 0.926
+        },
+        {
+          "start": 1.48,
+          "end": 1.88,
+          "word": " ١٥.",
+          "probability": 0.969
+        }
+      ]
+    }
+  ],
+  "text": "عمري ١٢ سنة وأخوي ١٥.",
+  "ms": 376,
+  "model": "large-v3-arabic-dialectal-v2"
+}

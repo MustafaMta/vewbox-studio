@@ -1,0 +1,43 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 3.552,
+  "segments": [
+    {
+      "start": 0.3,
+      "end": 3.34,
+      "text": "انولدت بسنة 1987 ببغداد.",
+      "avg_logprob": -0.2,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.3,
+          "end": 1.06,
+          "word": "انولدت",
+          "probability": 0.841
+        },
+        {
+          "start": 1.06,
+          "end": 1.38,
+          "word": " بسنة",
+          "probability": 0.999
+        },
+        {
+          "start": 1.38,
+          "end": 1.94,
+          "word": " 1987",
+          "probability": 0.864
+        },
+        {
+          "start": 1.94,
+          "end": 3.34,
+          "word": " ببغداد.",
+          "probability": 0.984
+        }
+      ]
+    }
+  ],
+  "text": "انولدت بسنة 1987 ببغداد.",
+  "ms": 299,
+  "model": "large-v3-arabic-dialectal-v2"
+}

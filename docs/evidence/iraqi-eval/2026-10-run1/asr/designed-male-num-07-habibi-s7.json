@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.952,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.7,
+      "text": "بس ال ١٤ شباب تتذكر.",
+      "avg_logprob": -0.286,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.38,
+          "word": " بس",
+          "probability": 0.472
+        },
+        {
+          "start": 0.38,
+          "end": 0.44,
+          "word": " ال",
+          "probability": 0.69
+        },
+        {
+          "start": 0.44,
+          "end": 0.78,
+          "word": " ١٤",
+          "probability": 0.871
+        },
+        {
+          "start": 0.78,
+          "end": 1.12,
+          "word": " شباب",
+          "probability": 0.811
+        },
+        {
+          "start": 1.12,
+          "end": 1.7,
+          "word": " تتذكر.",
+          "probability": 0.99
+        }
+      ]
+    }
+  ],
+  "text": "بس ال ١٤ شباب تتذكر.",
+  "ms": 295,
+  "model": "large-v3-arabic-dialectal-v2"
+}

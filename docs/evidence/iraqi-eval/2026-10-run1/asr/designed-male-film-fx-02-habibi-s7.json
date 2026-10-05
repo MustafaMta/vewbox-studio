@@ -1,0 +1,37 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.163,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.9,
+      "text": "البيت ما بياه؟",
+      "avg_logprob": -0.428,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.48,
+          "word": " البيت",
+          "probability": 0.664
+        },
+        {
+          "start": 0.48,
+          "end": 0.56,
+          "word": " ما",
+          "probability": 0.932
+        },
+        {
+          "start": 0.56,
+          "end": 0.9,
+          "word": " بياه؟",
+          "probability": 0.53
+        }
+      ]
+    }
+  ],
+  "text": "البيت ما بياه؟",
+  "ms": 229,
+  "model": "large-v3-arabic-dialectal-v2"
+}

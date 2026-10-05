@@ -1,0 +1,67 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.656,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.44,
+      "text": "تعبت، تعبت هواية وما عندي أحد أحكي وياه؟",
+      "avg_logprob": -0.105,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.54,
+          "word": "تعبت،",
+          "probability": 0.907
+        },
+        {
+          "start": 0.54,
+          "end": 0.9,
+          "word": " تعبت",
+          "probability": 0.99
+        },
+        {
+          "start": 0.9,
+          "end": 1.28,
+          "word": " هواية",
+          "probability": 0.825
+        },
+        {
+          "start": 1.28,
+          "end": 1.42,
+          "word": " وما",
+          "probability": 0.957
+        },
+        {
+          "start": 1.42,
+          "end": 1.66,
+          "word": " عندي",
+          "probability": 0.999
+        },
+        {
+          "start": 1.66,
+          "end": 1.84,
+          "word": " أحد",
+          "probability": 0.991
+        },
+        {
+          "start": 1.84,
+          "end": 2.08,
+          "word": " أحكي",
+          "probability": 0.941
+        },
+        {
+          "start": 2.08,
+          "end": 2.44,
+          "word": " وياه؟",
+          "probability": 0.855
+        }
+      ]
+    }
+  ],
+  "text": "تعبت، تعبت هواية وما عندي أحد أحكي وياه؟",
+  "ms": 413,
+  "model": "large-v3-arabic-dialectal-v2"
+}

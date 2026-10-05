@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.837,
+  "segments": [
+    {
+      "start": 0.27,
+      "end": 2.65,
+      "text": "زينب وفاطمة جايات من المنصور بالتاكسي.",
+      "avg_logprob": -0.143,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.27,
+          "end": 0.97,
+          "word": " زينب",
+          "probability": 0.667
+        },
+        {
+          "start": 0.97,
+          "end": 1.37,
+          "word": " وفاطمة",
+          "probability": 0.992
+        },
+        {
+          "start": 1.37,
+          "end": 1.65,
+          "word": " جايات",
+          "probability": 0.958
+        },
+        {
+          "start": 1.65,
+          "end": 1.77,
+          "word": " من",
+          "probability": 0.999
+        },
+        {
+          "start": 1.77,
+          "end": 2.21,
+          "word": " المنصور",
+          "probability": 0.993
+        },
+        {
+          "start": 2.21,
+          "end": 2.65,
+          "word": " بالتاكسي.",
+          "probability": 0.905
+        }
+      ]
+    }
+  ],
+  "text": "زينب وفاطمة جايات من المنصور بالتاكسي.",
+  "ms": 362,
+  "model": "large-v3-arabic-dialectal-v2"
+}

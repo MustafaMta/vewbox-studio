@@ -1,0 +1,67 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 4.11,
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.34,
+      "text": "أوكي، أبو سلام. هسه نسوي تست للراديو، رادي؟",
+      "avg_logprob": -0.156,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.24,
+          "word": " أوكي،",
+          "probability": 0.696
+        },
+        {
+          "start": 0.24,
+          "end": 0.52,
+          "word": " أبو",
+          "probability": 0.981
+        },
+        {
+          "start": 0.52,
+          "end": 0.82,
+          "word": " سلام.",
+          "probability": 0.997
+        },
+        {
+          "start": 0.98,
+          "end": 1.58,
+          "word": " هسه",
+          "probability": 0.875
+        },
+        {
+          "start": 1.58,
+          "end": 2.08,
+          "word": " نسوي",
+          "probability": 0.998
+        },
+        {
+          "start": 2.08,
+          "end": 2.34,
+          "word": " تست",
+          "probability": 0.963
+        },
+        {
+          "start": 2.34,
+          "end": 2.9,
+          "word": " للراديو،",
+          "probability": 0.992
+        },
+        {
+          "start": 2.9,
+          "end": 3.34,
+          "word": " رادي؟",
+          "probability": 0.746
+        }
+      ]
+    }
+  ],
+  "text": "أوكي، أبو سلام. هسه نسوي تست للراديو، رادي؟",
+  "ms": 462,
+  "model": "large-v3-arabic-dialectal-v2"
+}

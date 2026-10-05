@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.443,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.36,
+      "text": "ٱلسعر ٢٥٠ في دينار مو أكثر.",
+      "avg_logprob": -0.211,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.66,
+          "word": "ٱلسعر",
+          "probability": 0.934
+        },
+        {
+          "start": 0.66,
+          "end": 1.52,
+          "word": " ٢٥٠",
+          "probability": 0.973
+        },
+        {
+          "start": 1.52,
+          "end": 1.64,
+          "word": " في",
+          "probability": 0.73
+        },
+        {
+          "start": 1.64,
+          "end": 1.98,
+          "word": " دينار",
+          "probability": 0.995
+        },
+        {
+          "start": 1.98,
+          "end": 2.12,
+          "word": " مو",
+          "probability": 0.983
+        },
+        {
+          "start": 2.12,
+          "end": 2.36,
+          "word": " أكثر.",
+          "probability": 0.985
+        }
+      ]
+    }
+  ],
+  "text": "ٱلسعر ٢٥٠ في دينار مو أكثر.",
+  "ms": 387,
+  "model": "large-v3-arabic-dialectal-v2"
+}

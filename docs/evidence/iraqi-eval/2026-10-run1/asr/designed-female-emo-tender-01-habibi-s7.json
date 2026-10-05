@@ -1,0 +1,61 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.016,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.98,
+      "text": "لا تخاف حبيبي، اني هنا ما اروح.",
+      "avg_logprob": -0.218,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.3,
+          "word": " لا",
+          "probability": 0
+        },
+        {
+          "start": 0.3,
+          "end": 0.56,
+          "word": " تخاف",
+          "probability": 1
+        },
+        {
+          "start": 0.56,
+          "end": 1.02,
+          "word": " حبيبي،",
+          "probability": 0.977
+        },
+        {
+          "start": 1.02,
+          "end": 1.28,
+          "word": " اني",
+          "probability": 0.51
+        },
+        {
+          "start": 1.28,
+          "end": 1.4,
+          "word": " هنا",
+          "probability": 0.983
+        },
+        {
+          "start": 1.4,
+          "end": 1.58,
+          "word": " ما",
+          "probability": 0.991
+        },
+        {
+          "start": 1.58,
+          "end": 1.98,
+          "word": " اروح.",
+          "probability": 0.873
+        }
+      ]
+    }
+  ],
+  "text": "لا تخاف حبيبي، اني هنا ما اروح.",
+  "ms": 300,
+  "model": "large-v3-arabic-dialectal-v2"
+}

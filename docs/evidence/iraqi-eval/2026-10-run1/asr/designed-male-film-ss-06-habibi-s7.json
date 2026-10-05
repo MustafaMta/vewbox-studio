@@ -1,0 +1,43 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.237,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.96,
+      "text": "هي عمرها ما راحت.",
+      "avg_logprob": -0.331,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "هي",
+          "probability": 0.611
+        },
+        {
+          "start": 0.28,
+          "end": 0.58,
+          "word": " عمرها",
+          "probability": 0.978
+        },
+        {
+          "start": 0.58,
+          "end": 0.68,
+          "word": " ما",
+          "probability": 0.999
+        },
+        {
+          "start": 0.68,
+          "end": 0.96,
+          "word": " راحت.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "هي عمرها ما راحت.",
+  "ms": 256,
+  "model": "large-v3-arabic-dialectal-v2"
+}

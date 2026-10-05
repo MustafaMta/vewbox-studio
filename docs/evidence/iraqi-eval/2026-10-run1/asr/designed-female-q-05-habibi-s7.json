@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.653,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.62,
+      "text": "لا عادش أسوي هسه، أنطيني فكرة.",
+      "avg_logprob": -0.307,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.26,
+          "word": " لا",
+          "probability": 0
+        },
+        {
+          "start": 0.26,
+          "end": 0.42,
+          "word": " عادش",
+          "probability": 0.536
+        },
+        {
+          "start": 0.42,
+          "end": 0.72,
+          "word": " أسوي",
+          "probability": 0.933
+        },
+        {
+          "start": 0.72,
+          "end": 0.96,
+          "word": " هسه،",
+          "probability": 0.908
+        },
+        {
+          "start": 0.96,
+          "end": 1.28,
+          "word": " أنطيني",
+          "probability": 0.935
+        },
+        {
+          "start": 1.28,
+          "end": 1.62,
+          "word": " فكرة.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "لا عادش أسوي هسه، أنطيني فكرة.",
+  "ms": 338,
+  "model": "large-v3-arabic-dialectal-v2"
+}
