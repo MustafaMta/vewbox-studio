@@ -58,9 +58,14 @@ describe('leadInCutPoint on the recorded transcripts', () => {
   });
 });
 
-describe('the cut on the samples', () => {
-  const take = takes.find((t) => t.variant === 'prepared' && t.word === 'Nothing.' && t.seed === 7)!;
-  const wav = fs.readFileSync(path.join(EVID, take.file));
+// the recorded WAVs are generated media: they live on the workstation only (not in Git), so a clone without them
+// (a cloud session, CI) skips these two cases; the transcripts in results.json are tracked and tested above
+const sample = takes.find((t) => t.variant === 'prepared' && t.word === 'Nothing.' && t.seed === 7)!;
+const hasSamples = fs.existsSync(path.join(EVID, sample.file));
+
+describe.skipIf(!hasSamples)('the cut on the recorded samples (workstation only: generated WAVs are not in Git)', () => {
+  const take = sample;
+  const wav = hasSamples ? fs.readFileSync(path.join(EVID, take.file)) : Buffer.alloc(0);
 
   it('quietestPoint reproduces the recorded cut and lands in the pause, before the word', () => {
     const { samples, sampleRate } = readPcm16(wav);
@@ -69,14 +74,6 @@ describe('the cut on the samples', () => {
     expect(Math.round(from * 1000) / 1000).toBe(take.cut!.from);
     expect(from).toBeGreaterThanOrEqual(at.from - 0.05);
     expect(from).toBeLessThan(at.to + 0.03);
-  });
-
-  it('quietestPoint picks the latest quiet window of a synthetic pause, keeping 40 ms before the onset', () => {
-    const sr = 1000; const s = new Int16Array(1000);
-    for (let i = 0; i < 300; i++) s[i] = i % 2 ? 8000 : -8000; // "say"
-    for (let i = 600; i < 1000; i++) s[i] = i % 2 ? 8000 : -8000; // the word from 0.6 s
-    const t = quietestPoint(s, sr, 0.3, 0.6);
-    expect(t).toBeGreaterThan(0.5); expect(t).toBeLessThan(0.6);
   });
 
   it('cutWavStart keeps the provenance chunk, drops exactly the lead-in, fades in', () => {
@@ -89,5 +86,15 @@ describe('the cut on the samples', () => {
     expect(cut.includes(Buffer.from('synthetic speech'))).toBe(wav.includes(Buffer.from('synthetic speech')));
     expect(cut.toString('ascii', 0, 4)).toBe('RIFF');
     expect(cut.readUInt32LE(4)).toBe(cut.length - 8);
+  });
+});
+
+describe('the cut on a synthetic pause', () => {
+  it('quietestPoint picks the latest quiet window of a synthetic pause, keeping 40 ms before the onset', () => {
+    const sr = 1000; const s = new Int16Array(1000);
+    for (let i = 0; i < 300; i++) s[i] = i % 2 ? 8000 : -8000; // "say"
+    for (let i = 600; i < 1000; i++) s[i] = i % 2 ? 8000 : -8000; // the word from 0.6 s
+    const t = quietestPoint(s, sr, 0.3, 0.6);
+    expect(t).toBeGreaterThan(0.5); expect(t).toBeLessThan(0.6);
   });
 });
