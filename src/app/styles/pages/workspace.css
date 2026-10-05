@@ -346,7 +346,7 @@
   .ws-review { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 
   .ws-prov { display: flex; flex-direction: column; gap: 12px; }
-  .ws-drift { display: flex; flex-direction: column; gap: 8px; }
+  .ws-drift, .ws-context-next { display: flex; flex-direction: column; gap: 8px; }
   .ws-drift-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: 18px; }
   .ws-staging { display: flex; flex-direction: column; gap: 8px; }
   .ws-beats-ro { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }

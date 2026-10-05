@@ -71,7 +71,7 @@ export function ShotContext({ p, shot }: { p: Production; shot: Shot }) {
       })}
       {people.length > 0 && <div className="ws-actions"><Button size="sm" variant="primary" disabled={!dirty} onClick={save}>Save the people’s state</Button>{dirty && <Button size="sm" variant="quiet" onClick={() => setDraft(initial)}>Discard</Button>}</div>}
 
-      <div className="ws-drift">
+      <div className="ws-context-next">
         <span className="t-label">What the next take is made from</span>
         <dl className="ws-dl">
           <div><dt className="t-label">Join</dt><dd>{ctx.shot.boundary === 'continuous' ? `continues shot ${ctx.shot.previous ? p.shots.find((s) => s.id === ctx.shot.previous!.shotId)?.number ?? '' : ''}${ctx.shot.previous?.takeId ? '' : ' (no chosen take yet)'}` : ctx.shot.boundary === 'cut' ? 'a new camera on the same moment' : 'a new place or time'}</dd></div>

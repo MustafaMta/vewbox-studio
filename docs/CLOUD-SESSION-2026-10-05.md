@@ -22,7 +22,7 @@ missing. **NOT READY** — what is still missing is named.
 | C6 | Music video performance | §8 | `src/domain/music-performance.ts` (per-line plan: lead/backing, aligned timing, instrumental = nobody); prompt: lead words, backing harmonies, everyone else lips closed, extras never sing; preflight `cuts-sung-line`, `non-performers-in-shot`; `src/server/media/song-copies.ts` — a second copy of the song in the cut (REVIEW, `AUDIO_DUPLICATION`) | per-shot singers only (the old model: no backing, no line timing) | — | `tests/unit/music-performance.test.ts` (6) | pass | singing lip-sync, extra-singer frequency, H3 lyric tags (gate 10) | READY FOR LOCAL GPU ACCEPTANCE |
 | C7 | Acceptance open items 1–7 | `docs/evidence/acceptance-v1/REPORT.md` "Still open" | frames drawn at the shot's framing (plate = place, not camera); last name pass on every prompt outside `<d>`; recovered take records engine time; subtitle tracks by script; people count kept on a frame, shown, preflight refuses; plate check only at wide framings; Final cut counts speaking characters with a voice identity | — | — | `acceptance-open-items.test.ts` (7), `prompt-names.test.ts` (2), `take-continuity.test.ts` (+1) | pass | item 1 (framing) and 6 (plate check) on new takes | READY FOR LOCAL GPU ACCEPTANCE |
 | C8 | One-command local resume | §14 | `scripts/resume-local.mjs` (plan / `--go` / `--from` / `--start-app` / `--resume-intake`), pure judgements `scripts/lib/resume-checks.mjs` | a PowerShell-only script (rejected: untestable in the cloud) | Docker Desktop + WSL, compose project `vewbox`, volume `vewbox_models` | `tests/unit/resume-checks.test.ts` (6) | plan mode runs | the run itself | READY FOR LOCAL GPU ACCEPTANCE |
-| C9 | Shot page: people and story state; scene story editor | §4, §12 continuity screens | `ShotContext.tsx` (per-person state editor, the resolved context and its gaps); `SceneStory.tsx` (events, persistent changes, knowledge) | — | — | browser: see below | — | — | DONE (cloud) when the browser run passes |
+| C9 | Shot page: people and story state; scene story editor | §4, §12 continuity screens | `ShotContext.tsx` (per-person state editor, the resolved context and its gaps); `SceneStory.tsx` (events, persistent changes, knowledge) | — | — | `tests/e2e/v5/work.spec.ts` (+2: people state, scene story) | 22 / 22 pass | — | DONE (cloud) |
 | C11 | Forced alignment and picture QA in the ASR service | §7 steps 6 and 9, §10 identity | `docker/asr/align.py` (`POST /align`: CTC forced alignment of the script, WhisperX's algorithm re-implemented, wav2vec2 EN `facebook/wav2vec2-base-960h` / AR `jonatasgrosman/wav2vec2-large-xlsr-53-arabic`), `docker/asr/qa.py` (`/qa/mouth`: MediaPipe lip aperture per face track vs the authoritative audio — lag, speaker, still mouth, extra speaker/singer; `/qa/identity`: YuNet + SFace vs the canonical images); `/health` capabilities; client `src/server/providers/qa-service.ts` (never throws for offline); manifest groups `qa-align`, `qa-identity`; compose mounts the new modules | MMS / torchaudio MMS_FA and ctc-forced-aligner (non-commercial weights), MFA (heavy), InsightFace (non-commercial), SyncNet (weights licence unstated: interface only, off) | licences ◐ for the wav2vec2 cards: confirm before fetching `qa-align` | `docker/asr/tests` (60, pytest), `tests/unit/qa-service.test.ts` (18) | pass; runtime paths exercised on CPU with a synthetic clip (no accuracy claim) | rebuild the asr image (`resume-local --go` does), fetch `qa-align`, calibrate every START threshold (research G1/G2/G5/G7), confirm the lag sign | READY FOR LOCAL GPU ACCEPTANCE |
 | C12 | Audio-first take: alignment, lip-sync, identity, repair | §7 steps 6–10 | every newly recorded line is force-aligned (word times on the recording's provenance; reused lines bring theirs); every local speaking/singing take is checked against its authoritative audio (recorded lines at the first new frame, or the song stretch) with the aligned word windows; every take with pictured characters gets the face check; results in `params.lipSync` / `params.identityCheck` and REVIEW flags (`lip-sync`, `singing-sync`, `identity-similarity`); a 2–6 frame lag against the recorded lines is repaired in the cut by moving the line (`lipSyncShiftSamples`), never the face; offline = "not measured" | LatentSync on every shot (rejected by the directive); re-generating until sync passes (rejected) | — | `take-continuity.test.ts` (+1), `music-performance.test.ts` (+1) | pass | gates 2, 3 and 10 | READY FOR LOCAL GPU ACCEPTANCE |
 | C10 | Library paths on Linux | the first cloud test run: `..\x` was not refused off Windows | backslash is a separator on every platform | — | — | `media-paths.test.ts` | pass | — | DONE (cloud) |
@@ -33,6 +33,23 @@ missing. **NOT READY** — what is still missing is named.
 - `pnpm test:worker` 83 / 84: the one failure is `tests/worker/minimax.test.ts` "with a wrong key", which calls the real
   `api.minimax.io` — the cloud egress proxy answers HTTP 403 before MiniMax does. Environment, not code; it passes on
   the workstation.
+
+- Browser suite (`E2E_CHROMIUM=/opt/pw-browsers/chromium pnpm test:e2e`, the whole v5 project): **147 passed, 14 failed**.
+  One failure was this session's (the new context panel reused the `.ws-drift` class the shot-inspector test looks
+  up); fixed, and `work.spec.ts` re-run: 22 / 22. The other **13 are REQUIRES LOCAL BROWSER MEDIA ACCEPTANCE**: the
+  cloud container's Chromium (HeadlessChrome 141, open-source build) cannot decode the fixture media —
+  `canPlayType('video/mp4; codecs="avc1.42E01E"')` = "", AAC = "", `MediaSource.isTypeSupported(H.264)` = false (VP9
+  "probably") — and every one of them waits for playback: `film.spec.ts:86`, `kit-players.spec.ts:28`,
+  `music.spec.ts:96`, `music.spec.ts:127`, `theatre.spec.ts:57, 74, 92, 109, 162, 171, 213, 228, 250`. None of
+  those specs' components changed in this session; nothing in Vewbox was changed to suit the cloud browser. The
+  theatre subtitle test (`theatre.spec.ts:213`) must pass on the workstation also because the subtitle-track rule
+  changed (C7 item 4).
+
+## What the automated lip-sync signals are, and are not
+
+Forced alignment, word timing, mouth-activity analysis, lag estimation and face-identity QA (C11, C12) are automated
+**signals** that flag a take for review. They do not establish lip-sync. **Lip-sync stays READY FOR LOCAL GPU
+ACCEPTANCE until real generated takes are reviewed by eye against their authoritative audio** (gates 2, 3, 10).
 
 ## Not done yet in this session (next)
 
