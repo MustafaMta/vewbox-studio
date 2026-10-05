@@ -81,6 +81,12 @@ vi.mock('@/server/media/plate-drift', async (orig) => {
 // the picture-QA service is offline in these tests: every check it runs is recorded as "not measured"
 vi.mock('@/server/providers/qa-service', async (orig) => ({ ...(await orig<typeof import('@/server/providers/qa-service')>()), alignScript: async () => ({ available: false, reason: 'offline (test)' }), mouthActivity: async () => fake.mouth ?? { available: false, reason: 'offline (test)' }, faceIdentity: async () => ({ available: false, reason: 'offline (test)' }) }));
 vi.mock('@/server/world/store', () => ({ insertWorldRead: async (_tx: unknown, r: Record<string, unknown>) => { fake.reads.push(r); } }));
+// the fixture's assets have no files: the on-disk reference check is tested in tests/unit/reference-files.test.ts and
+// tests/worker/failure-recovery.test.ts; here every named file "exists"
+vi.mock('@/server/production/readiness', async (orig) => {
+  const real = await orig<typeof import('@/server/production/readiness')>();
+  return { ...real, referenceFilesReadiness: (needs: Parameters<typeof real.referenceFilesReadiness>[0], fileOf: Parameters<typeof real.referenceFilesReadiness>[1]) => real.referenceFilesReadiness(needs, fileOf, async () => true) };
+});
 
 import { generateTake } from '@/worker/handlers/take';
 import { takeIdOf } from '@/worker/handlers/take-commit';
