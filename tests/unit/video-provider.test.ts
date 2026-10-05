@@ -31,6 +31,9 @@ vi.mock('@/server/providers/comfy', () => ({
   listModels: async () => { const { MODELS } = await import('@/server/workflows/index'); return Object.values(MODELS).filter((m) => !fake.missingModels.includes(m)); },
 }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async (prefix: string) => fs.mkdtemp(path.join(os.tmpdir(), `vb-${prefix}-`)) }));
+// the engines' bytes here are placeholders: the output inspection (corrupt clips) is tested on real files in
+// tests/worker/engine-faults.test.ts
+vi.mock('@/server/jobs/evidence', () => ({ videoProblem: async () => null, rejectedTaskIds: async () => [], preserveFailedOutput: async () => undefined, rejectTaskOutput: async () => {} }));
 
 import { generateVideo, hostedVideoProblem } from '@/server/providers/video';
 

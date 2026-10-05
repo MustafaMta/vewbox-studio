@@ -291,6 +291,8 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** consecutive polls with the prompt absent everywhere before it is declared lost (default 3) */
   lostAfterPolls?: number;
+  /** prompt ids whose output was rejected (corrupt): never adopted, the key walks past them like a failed one */
+  rejectPromptIds?: string[];
 }
 
 /** Submit a graph (or adopt the one a previous attempt submitted) and wait for it. */
@@ -313,12 +315,13 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
   if (promptKey) {
     for (let n = 0; n < 20 && !promptId; n++) {
       const id = promptIdFromKey(promptKey, graph, n);
+      if (opts.rejectPromptIds?.includes(id)) continue; // its output was rejected: generate again under the next id
       const st = await promptState(id);
       if (st === 'failed' || st === 'cancelled') continue; // that attempt is over: the next id in the sequence
       promptId = id; resumed = st !== 'unknown';
     }
     if (!promptId) throw new ComfyError('EXECUTION', `ComfyUI: 20 earlier attempts of ${promptKey} failed; giving up.`);
-  } else if (opts.resumePromptId) {
+  } else if (opts.resumePromptId && !opts.rejectPromptIds?.includes(opts.resumePromptId)) {
     const st = await promptState(opts.resumePromptId).catch(() => 'unknown' as PromptState);
     if (st === 'pending' || st === 'running' || st === 'completed') { promptId = opts.resumePromptId; resumed = true; }
     else if (st === 'unknown') promptId = opts.resumePromptId; // never reached ComfyUI, or ComfyUI restarted: same id, recorded already
