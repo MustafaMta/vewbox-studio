@@ -1,6 +1,6 @@
 /** GPU LEASE ESTIMATES FOR THE COMFYUI FAMILIES, set to the peaks measured on the RTX 5090 (32,607 MiB) on 2026-10-05
  *  (docs/research/GPU-STAGING-2026-10.md §6; nvidia-smi card total at 250–500 ms, which includes ≈ 0.5–0.8 GB of idle
- *  CUDA contexts). The lease compares an estimate with GPU_VRAM_BUDGET_MB (default 30000) and warns when it is larger
+ *  CUDA contexts). The lease compares an estimate with GPU_VRAM_BUDGET_MB (default 32000, the RTX 5090's memory) and warns when it is larger
  *  ("the service must offload") — with these values it does for every Qwen and H3 job, which is what the card really
  *  holds: the budget itself is a separate decision (§6, last paragraph). The LLM family's estimate follows the model
  *  (`llmLeaseMb`, providers/llm.ts). */

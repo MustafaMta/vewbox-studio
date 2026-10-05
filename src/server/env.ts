@@ -53,7 +53,7 @@ const Schema = z.object({
   WORKER_CONCURRENCY_HOSTED: z.coerce.number().int().positive().default(4),
   WORKER_CONCURRENCY_LLM: z.coerce.number().int().positive().default(2),
   WORKER_CONCURRENCY_CPU: z.coerce.number().int().positive().default(2),
-  GPU_VRAM_BUDGET_MB: z.coerce.number().int().positive().default(30000),
+  GPU_VRAM_BUDGET_MB: z.coerce.number().int().positive().default(32000),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   LOG_PRETTY: bool,
   /** Version strings stamped onto generated takes. */
