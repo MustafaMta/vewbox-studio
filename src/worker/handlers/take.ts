@@ -29,7 +29,7 @@ import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { assertLocationPlate } from '@/server/production/location-rule';
-import { identityAppliedChecks, measurePlateDrift, type PlateDrift } from '@/server/media/plate-drift';
+import { identityAppliedChecks, measurePlateDrift, plateComparable, type PlateDrift } from '@/server/media/plate-drift';
 import { establishFromTake } from '@/server/world';
 import { outputId } from '@/server/jobs/outputs';
 import type { CommandSpec } from '@/server/studio/engine';
@@ -356,8 +356,14 @@ export const generateTake: Handler = async (ctx) => {
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
   }), { label: backend, input: request }));
-  const genMs = Date.now() - t0;
-  await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds }, ctx.job.id);
+  // A RECOVERED RUN (acceptance 2026-10-05, open item 3: a recovered take said "made in 8 s"): when an earlier
+  // attempt's engine run was adopted, the wall clock here measured only the wait after adoption. The take then carries
+  // the engine's own execution time (ComfyUI's history), or no time at all — never the adoption wait.
+  const resumedRun = Boolean(result.resumed || request.resumeTaskId);
+  const waitedMs = Date.now() - t0;
+  const genMs = takeGenerationMs({ resumed: resumedRun, engineMs: result.engineMs, waitedMs });
+  if (genMs !== undefined) await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds, ...(resumedRun ? { resumed: true } : {}) }, ctx.job.id);
+  if (resumedRun) await ctx.event('info', `the engine run was adopted from an earlier attempt: ${result.engineMs ? `engine time ${(result.engineMs / 1000).toFixed(0)} s` : 'engine time unknown'}, waited ${(waitedMs / 1000).toFixed(0)} s after the restart`, { engineMs: result.engineMs, waitedMs });
   if (result.engineMs) await recordMetric('take.engine_ms', result.engineMs, 'ms', { backend, seconds }, ctx.job.id);
 
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the clip' });
@@ -462,7 +468,11 @@ export const generateTake: Handler = async (ctx) => {
   driftChecks.push({ name: 'identity-references-applied', ok: applied.ok, value: applied.characters.filter((c) => c.applied).length, threshold: applied.characters.length, detail: applied.detail });
   let plateDrift: PlateDrift | undefined;
   let plateDriftNote: string | undefined;
-  if (pack.location && loc) {
+  const comparable = plateComparable(sh.framing);
+  if (pack.location && loc && !comparable.comparable) {
+    plateDriftNote = `not comparable: ${comparable.why}`;
+    driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
+  } else if (pack.location && loc) {
     const plateAsset = byId(pack.location.assetId);
     try {
       plateDrift = await step(ctx, 'world-continuity', `drift-check: shot ${sh.number}`, () => measurePlateDrift(result.file, trimStartFrames, assetFile(plateAsset!), pack.location!.assetId));
@@ -594,3 +604,9 @@ export const generateTake: Handler = async (ctx) => {
   // a take or a line that could not be heard back (transcription away) waits for a human ear: never passed silently
   return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, takeUnverified, awaitingReview: unverifiedLines > 0 || takeUnverified, libraryRoot: libraryRoot() };
 };
+
+/** The generation time a take records: the wall clock of this attempt, or — when the engine run was adopted from an
+ *  earlier attempt — the engine's own execution time, else nothing (the page then shows when it was made). */
+export function takeGenerationMs(r: { resumed: boolean; engineMs?: number; waitedMs: number }): number | undefined {
+  return r.resumed ? r.engineMs : r.waitedMs;
+}

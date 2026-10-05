@@ -1,4 +1,5 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
+import { frameCheckOf } from '@/domain/frames';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
@@ -78,6 +79,12 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // identity; a hosted continuation in frame mode is the one documented exception)
   const identityNeeded = sh.characterIds.length > 0;
   const identityOk = !identityNeeded || primaries.length > 0 || (pack.opening.kind === 'LAST_FRAME_AS_FIRST');
+  // THE ANCHORED FRAMES HOLD THE RIGHT PEOPLE (acceptance 2026-10-05, open item 5): a drawn opening or ending frame
+  // whose people count failed is never filmed from — an anchored stranger becomes a person in the take
+  for (const [which, aid] of [['opening', pack.opening.kind === 'FRAME' ? pack.opening.assetId : undefined], ['ending', pack.ending?.assetId]] as const) {
+    const pc = frameCheckOf(byId(aid));
+    if (pc) add(`${which}-frame-people`, pc.ok, 'INCONSISTENT_PLAN', pc.ok ? `${pc.counted} of ${pc.expected} people` : `the ${which} frame holds ${pc.counted} ${pc.counted === 1 ? 'person' : 'people'} where the shot has ${pc.expected}: draw the frames again or remove it`);
+  }
   add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (identityNeeded ? (pack.graph === 'FRAMES' ? 'the previous take’s last frame (hosted frame mode)' : `${pack.subjects.length} character image(s) bound as subjects`) : undefined) : 'the shot has characters but none has a canonical image to hold their identity; draw them first');
   // guides: count and fit, as the request will chain them (the soundtrack guide exists for a speaking or singing shot)
   const soundtrack = opts.backend === 'local' && !opts.customPrompt && ((p.kind === 'MUSIC_VIDEO' && Boolean(p.song?.assetId) && (sh.performance?.mode ?? 'SOLO') !== 'INSTRUMENTAL') || (p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length > 0));
@@ -257,3 +264,4 @@ export function preflightPlan(p: Production, sceneIds?: string[]): Preflight {
   checks.push({ name: 'scenes-located', ok: noLocation.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: noLocation.length ? `${noLocation.length} scene(s) without a location` : undefined });
   return { ok: checks.every((c) => c.ok), checks, warnings: [] };
 }
+

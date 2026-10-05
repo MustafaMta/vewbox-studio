@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { frameCheckOf } from '@/domain/frames';
 import type { Job } from '@/domain/jobs';
 import type { Production, Shot, ShotBoundary, ShotDialogue, Take } from '@/domain/types';
 import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
@@ -403,6 +404,7 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
               <Frame asset={a} ratio={frameRatioOf(p)} fit="cover" alt="" decorative art={artVars(a)} title={a ? label : 'Not drawn'} titleState="notDrawn" radius="none" judge />
               {a && <button type="button" className="btn btn-secondary btn-sm btn-icon ws-slot-x" aria-label={`Remove the ${label.toLowerCase().replace(' (optional)', '')}`} onClick={() => patch({ [key]: undefined } as Partial<Draft>)}><IconClose aria-hidden /></button>}
             </span>
+            {(() => { const pc = frameCheckOf(a); return pc && !pc.ok ? <p className="t-meta ws-slot-warn" role="status">Holds {pc.counted} {pc.counted === 1 ? 'person' : 'people'}; the shot has {pc.expected}. It will not be filmed from until it is drawn again or removed.</p> : null; })()}
           </div>
         ))}
       </div>

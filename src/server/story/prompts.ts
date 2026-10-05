@@ -1,4 +1,5 @@
 import type { Character, Location, Production, Shot } from '@/domain/types';
+import type { Framing } from '@/domain/vocabulary';
 import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
@@ -379,13 +380,33 @@ export function lintH3Prompt(prompt: string, expect: { labels: 'LOCAL' | 'HOSTED
 }
 
 /** Prompt for a still frame of the shot (the opening image): same content without dialogue or motion. */
+/** WHAT A FRAMING SHOWS, in words a still-image model follows (acceptance 2026-10-05, open item 1: frames were drawn at
+ *  the wide plate's framing whatever the shot asked for, and H3 then hard-cut inside the take to reach the planned
+ *  framing). The camera distance leads the frame prompt, and a closer framing tells the model the plate is the PLACE,
+ *  not the camera. */
+export const FRAMING_WORDS: Record<Framing, string> = {
+  EXTREME_WIDE: 'an extreme wide shot: the whole place, the people small within it',
+  WIDE: 'a wide shot: the people seen head to toe with the room around them',
+  MEDIUM_WIDE: 'a medium wide shot: the people from the knees up, the room around them',
+  MEDIUM: 'a medium shot: the people from the waist up; the place is the background behind them',
+  MEDIUM_CLOSE_UP: 'a medium close-up: head and chest fill most of the frame; the place is a soft background',
+  CLOSE_UP: 'a close-up: the face fills the frame; the place is only a blurred background',
+  EXTREME_CLOSE_UP: 'an extreme close-up: one detail of the face fills the frame',
+  INSERT: 'an insert: one object or hand detail fills the frame',
+  TWO_SHOT: 'a two-shot: both people from the waist up, side by side in the frame',
+  OVER_THE_SHOULDER: 'an over-the-shoulder shot: the back of one person’s shoulder and head in the foreground, the other person facing the camera',
+};
+/** Framings at which the drawn frame shows about as much of the place as its wide plate. */
+export const PLATE_WIDE_FRAMINGS: readonly Framing[] = ['EXTREME_WIDE', 'WIDE', 'MEDIUM_WIDE'];
+
 export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
+  const camera = `Camera: ${FRAMING_WORDS[sh.framing] ?? sh.framing.toLowerCase().replace(/_/g, ' ')}.${PLATE_WIDE_FRAMINGS.includes(sh.framing) ? '' : ' The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing.'}`;
   // a person shown by a reference picture is described by that picture's note alone: a second description in words
   // read as a second person (D30)
   const people = cast.filter((c) => sh.characterIds.includes(c.id) && !opts.pictured?.has(c.id));
-  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, `Framing: ${sh.framing.toLowerCase().replace(/_/g, ' ')}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
-  return `${d.visual}. ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
+  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
+  return `${d.visual}. ${camera} ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
 /** Plates describe an unoccupied place in positive terms. Negations ("no people") are unreliable for a diffusion

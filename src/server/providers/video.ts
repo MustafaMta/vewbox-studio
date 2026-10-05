@@ -39,7 +39,7 @@ export interface VideoRequest {
   onTaskCreated?: (taskId: string) => Promise<void> | void;
 }
 
-export interface VideoResult { file: string; backend: VideoBackend; model: string; requestId: string; resolution: string; seconds: number; costUsd?: number; ms: number; /** the engine's own generation time, without queueing (local backend) */ engineMs?: number; workflowVersion?: string; params: Record<string, unknown> }
+export interface VideoResult { file: string; backend: VideoBackend; model: string; requestId: string; resolution: string; seconds: number; costUsd?: number; ms: number; /** the engine's own generation time, without queueing (local backend) */ engineMs?: number; workflowVersion?: string; /** an earlier attempt's engine run was adopted (a worker restart): `ms` then counts only the wait after adoption */ resumed?: boolean; params: Record<string, unknown> }
 
 export function chooseBackend(): VideoBackend {
   const want = env().VIDEO_BACKEND;
@@ -139,7 +139,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const dir = await tmpDir('h3');
   const file = path.join(dir, out.filename.endsWith('.mp4') ? out.filename : `${out.filename}.mp4`);
   await fsp.writeFile(file, bytes);
-  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, params: { graph: graphKind, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
+  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, resumed: run.resumed, params: { graph: graphKind, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
 }
 
 export async function videoBackendStatus(): Promise<{ backend: VideoBackend | null; ready: boolean; detail: string }> {

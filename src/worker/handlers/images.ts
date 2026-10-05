@@ -24,7 +24,7 @@ import {
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
 } from '@/server/workflows';
-import { frameContinuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -529,7 +529,7 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const refs: Asset[] = [];
   const notes: string[] = [];
   const plateAsset = byId(plate?.assetId);
-  if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(`image ${refs.length} is the exact place (keep its architecture, layout and props)`); }
+  if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(PLATE_WIDE_FRAMINGS.includes(sh.framing) ? `image ${refs.length} is the exact place (keep its architecture, layout and props)` : `image ${refs.length} is the place (keep its architecture, materials, colours and light) seen from much further away than this shot: do not copy its framing`); }
   // the production's cast order is the screen order: the same pair stands the same way round in every shot (D29 —
   // Najm left of Elias in one two-shot, right of him in the next, crossed the line between cuts)
   const order = (id: string) => { const i = p.castIds.indexOf(id); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
@@ -595,6 +595,13 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
     await ctx.checkpoint();
   }
   const wrong = expected !== undefined && counted !== undefined && counted !== expected;
+  // THE COUNT IS KEPT ON THE FRAME (acceptance 2026-10-05, open item 5: a frame that failed the people count was kept
+  // and the warning lived only in the job log): the shot page shows it beside the frame, and the preflight refuses to
+  // film from an opening frame that holds the wrong people until it is redrawn or removed
+  if (kept && expected !== undefined && counted !== undefined) {
+    const a = (await readState({ shared: true })).state.assets.find((x) => x.id === kept!.id);
+    await command('updateAsset', [kept.id, { provenance: { ...(a?.provenance ?? {}), peopleCheck: { expected, counted, ok: !wrong, at: new Date().toISOString() } } }], 'worker');
+  }
   // an ending frame is optional and a take is guided towards it: a wrong one is left out rather than filmed towards
   if (wrong && opts.ending) {
     await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ending frame still holds ${counted} people where the shot has ${expected} (${kept!.id}); the shot keeps no ending frame`, { shotId: sh.id, assetId: kept!.id, expected, counted });
