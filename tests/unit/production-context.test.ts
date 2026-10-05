@@ -77,6 +77,25 @@ describe('story state', () => {
     expect(productionContextFor(state, q, shotOf(q, 's12')).story.sceneObjective).toBe('close the shop');
   });
 
+  it('a wardrobe change the story made is not the canonical image’s clothes: retention switches to attribute_transfer; a condition shows on top; cleared returns to the canonical clothes (gap 5)', () => {
+    const { state, p } = fixture();
+    const [a] = p.castIds;
+    const q = withScenes(p, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: { changes: [
+      { id: 'w1', subject: { kind: 'CHARACTER', characterId: a }, key: 'wardrobe', text: 'a dark blue police uniform with a peaked cap', atShotId: 's11' },
+      { id: 'h1', subject: { kind: 'CHARACTER', characterId: a }, key: 'hand', text: 'a bandage on her left hand', atShotId: 's11' },
+    ] } } : sc)));
+    const pack = resolveShotPack(state, q, shotOf(q, 's12'), { backend: 'local' });
+    const ca = pack.context.characters.find((x) => x.characterId === a)!;
+    expect(ca.wardrobeChange?.text).toBe('a dark blue police uniform with a peaked cap');
+    expect(ca.condition.map((k) => k.text)).toEqual(['a bandage on her left hand']);
+    const prompt = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState });
+    expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone and build of <Picture 1> are kept exactly; as the story has them now: a bandage on her left hand.');
+    expect(prompt).toContain("<Subject 1>'s clothes: attribute_transfer - not the clothes of <Picture 1>: a dark blue police uniform with a peaked cap.");
+    expect(prompt).toContain('<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 2> are kept exactly.');
+    // the change cleared later: the canonical clothes again
+    const back = withScenes(q, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: { changes: [...sc.story!.changes!, { id: 'w2', subject: { kind: 'CHARACTER', characterId: a }, key: 'wardrobe', text: '', cleared: true, atShotId: 's12' }] } } : sc)));
+    expect(productionContextFor(state, back, shotOf(back, 's13')).characters[0].wardrobeChange).toBeUndefined();
+  });
   it('the location carries its persistent changes into a return; the prompt says them about the bound subject, never by name', () => {
     const { state, p } = fixture();
     const q = withShot(story(p), 's21', (s) => s);

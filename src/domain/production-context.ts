@@ -5,7 +5,7 @@ import { canonical, hashString } from './hash';
 import { orderedShots } from './timeline';
 import { relationOf, sceneStateFor, type SceneState } from './scene-state';
 import { primaryImageOf, primaryImageSourceOf } from './identity';
-import { locationIdentity } from './location';
+import { lightRuleAt, locationIdentity } from './location';
 
 /** THE PRODUCTION CONTEXT OF ONE SHOT (cloud directive 2026-10-05 §4: "Each generated shot must be created from
  *  structured production state … stored by the application, not information that exists only inside an LLM prompt").
@@ -86,6 +86,10 @@ export interface CharacterContext {
   canonical?: { assetId: string; version?: number; status: 'DRAFT' | 'APPROVED' | 'PORTRAIT' };
   voice?: { revision: number; model: string; status: string; language: string; dialect?: string };
   wardrobe?: { text: string; source: FactSource };
+  /** A WARDROBE CHANGE THE STORY MADE (a persistent change keyed wardrobe/outfit/costume/clothes…): the clothes are then
+   *  NOT those of the canonical image, and the prompt says so (src/server/story/prompts.ts retention) — the canonical
+   *  image stays the face and body. Never inferred from the planner's wardrobe words (D30). */
+  wardrobeChange?: { text: string; source: FactSource };
   condition: Array<{ text: string; source: FactSource }>;
   emotion?: string;
   position?: string;
@@ -111,6 +115,8 @@ export interface LocationContext {
   timeOfDay?: TimeOfDay;
   weather?: string;
   lighting?: string;
+  /** where the light came from: the scene state (carried or stated), or the place's own rule for the time of day */
+  lightingFrom?: 'SCENE' | 'LOCATION_RULE';
   placeState?: string;
   changes: Array<{ text: string; source: FactSource }>;
   hasPlate: boolean;
@@ -201,6 +207,12 @@ export function changesInForce(p: Production, sh: Shot): Array<{ change: Persist
   return [...out.values()];
 }
 
+/** A persistent change to a person that changes their clothes: keyed so (wardrobe, outfit, costume, clothes, dress,
+ *  uniform…), or, without a key, worded so ("changes into", "now wears", "puts on"). */
+const WARDROBE_KEY = /\b(wardrobe|outfit|costume|clothes|clothing|dress|uniform|attire)\b/i;
+const WARDROBE_TEXT = /\b(changes? into|changed into|now wears|is now wearing|puts? on (?:a|an|the|his|her|their)\b|dressed in)\b/i;
+export const isWardrobeChange = (c: Pick<PersistentChange, 'key' | 'text' | 'subject'>): boolean => c.subject.kind === 'CHARACTER' && (c.key ? WARDROBE_KEY.test(c.key) : WARDROBE_TEXT.test(c.text ?? ''));
+
 /** How many consecutive continuous shots end at this one (this one included; 0 when it is not continuous). */
 export function continuousChainLength(p: Production, sh: Shot, relationOf: (s: Shot) => ShotRelation): number {
   const ordered = orderedShots(p);
@@ -238,7 +250,12 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     const condition: CharacterContext['condition'] = [];
     if (clean(mine?.condition)) condition.push({ text: clean(mine!.condition)!, source: { kind: 'SHOT', shotId: sh.id } });
     else if (relation !== 'STORY_TRANSITION' && clean(before?.condition)) condition.push({ text: clean(before!.condition)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } });
-    for (const ch of changes) if (ch.change.subject.kind === 'CHARACTER' && ch.change.subject.characterId === characterId && !condition.some((x) => norm(x.text) === norm(ch.change.text))) condition.push({ text: clean(ch.change.text)!, source: changeSource(ch) });
+    let wardrobeChange: CharacterContext['wardrobeChange'];
+    for (const ch of changes) {
+      if (ch.change.subject.kind !== 'CHARACTER' || ch.change.subject.characterId !== characterId) continue;
+      if (isWardrobeChange(ch.change)) { wardrobeChange = { text: clean(ch.change.text)!, source: changeSource(ch) }; continue; }
+      if (!condition.some((x) => norm(x.text) === norm(ch.change.text))) condition.push({ text: clean(ch.change.text)!, source: changeSource(ch) });
+    }
     // a continuous shot starts where the previous one ended — and so does a cut on the same moment (MATCH ON ACTION:
     // the new angle picks the action up where the old one left it; continuity gaps 2026-10-06 item 3)
     const sameMoment = relation === 'CONTINUATION' || (relation === 'CUT' && prevShot?.sceneId === sh.sceneId);
@@ -255,6 +272,7 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
       canonical: image ? { assetId: image, version: c?.canonicalImage?.version, status: source === 'PORTRAIT' ? 'PORTRAIT' : (c?.canonicalImage?.status ?? 'DRAFT') } : undefined,
       voice: v ? { revision: v.revision, model: v.model, status: v.status, language: v.language, dialect: v.dialect } : undefined,
       wardrobe: carried?.wardrobe ? { text: carried.wardrobe, source: sceneState.sources.wardrobe[characterId] ? { kind: 'SCENE', sceneId: sh.sceneId } : { kind: 'CHARACTER' } } : clean(c?.wardrobe) ? { text: clean(c!.wardrobe)!, source: { kind: 'CHARACTER' } } : undefined,
+      ...(wardrobeChange ? { wardrobeChange } : {}),
       condition,
       emotion: clean(mine?.emotion) ?? (sameMoment ? clean(before?.emotion) : undefined),
       position: carried?.position, screenDirection: carried?.screenDirection, eyeline: clean(mine?.eyeline), holding: carried?.holding,
@@ -274,7 +292,10 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
       architecture: clean(loc.layout?.architecture), layout: clean(loc.layout?.spatial ?? loc.layout?.geography),
       permanent: [...loc.landmarks, ...loc.props].map((x) => clean(x)!).filter(Boolean),
       objects: sceneState.props.map((x) => ({ name: x.name, state: x.state, position: x.position, ownerCharacterId: x.ownerCharacterId })),
-      timeOfDay: sceneState.timeOfDay, weather: sceneState.weather, lighting: sceneState.lighting, placeState: sceneState.placeState,
+      timeOfDay: sceneState.timeOfDay, weather: sceneState.weather,
+      // THE PLACE'S LIGHTING RULE (types.ts LocationLight): the scene's stated or carried light wins; the rule fills in
+      ...(sceneState.lighting ? { lighting: sceneState.lighting, lightingFrom: 'SCENE' as const } : lightRuleAt(loc, sceneState.timeOfDay) ? { lighting: lightRuleAt(loc, sceneState.timeOfDay), lightingFrom: 'LOCATION_RULE' as const } : {}),
+      placeState: sceneState.placeState,
       changes: changes.filter((c) => (c.change.subject.kind === 'LOCATION' && c.change.subject.locationId === loc.id) || (c.change.subject.kind === 'PROP' && sceneState.props.some((x) => norm(x.name) === norm((c.change.subject as { name: string }).name)))).map((c) => ({ text: clean(c.change.text)!, source: changeSource(c) })),
       hasPlate: plate,
     };
@@ -356,7 +377,7 @@ export function contextRecord(c: ProductionContext): Record<string, unknown> {
   return {
     version: c.version, hash: c.hash, boundary: c.shot.boundary, relation: c.shot.relation,
     previous: c.shot.previous ? { shotId: c.shot.previous.shotId, takeId: c.shot.previous.takeId, approved: c.shot.previous.approved } : undefined,
-    characters: c.characters.map((x) => ({ characterId: x.characterId, canonical: x.canonical ? { assetId: x.canonical.assetId, version: x.canonical.version, status: x.canonical.status } : undefined, voiceRevision: x.voice?.revision, condition: x.condition.map((k) => k.text), emotion: x.emotion, startPose: x.startPose?.text, endPose: x.endPose, motion: x.motion, interactingWith: x.interactingWith.length ? x.interactingWith : undefined })),
+    characters: c.characters.map((x) => ({ characterId: x.characterId, canonical: x.canonical ? { assetId: x.canonical.assetId, version: x.canonical.version, status: x.canonical.status } : undefined, voiceRevision: x.voice?.revision, condition: x.condition.map((k) => k.text), wardrobeChange: x.wardrobeChange?.text, emotion: x.emotion, startPose: x.startPose?.text, endPose: x.endPose, motion: x.motion, interactingWith: x.interactingWith.length ? x.interactingWith : undefined })),
     location: c.location ? { locationId: c.location.locationId, identityVersion: c.location.identity.version, identityHash: c.location.identity.hash, timeOfDay: c.location.timeOfDay, changes: c.location.changes.map((k) => k.text) } : undefined,
     dialogue: c.shot.dialogue.map((d) => ({ lineId: d.lineId, durationSeconds: d.durationSeconds, source: d.source })),
     constraints: c.shot.constraints, changes: c.story.changes.map((k) => k.text), anchoring: c.anchoring, blocking: blockingRecord(c.blocking), gaps: c.gaps,
@@ -375,6 +396,7 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
     const condition = x.condition.filter((k) => typeof k.text === 'string' && k.text.trim());
     const bits = [
       condition.length && `is ${condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
+      x.wardrobeChange?.text && `has changed clothes since the reference: ${x.wardrobeChange.text.replace(/\.$/, '')}`,
       x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
       x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
       x.startPose && `starts ${x.startPose.text.replace(/\.$/, '')}`,
@@ -385,6 +407,8 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
   }
   const staging = c.blocking ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
   if (staging) out.push(staging);
+  // the place's own light for the time of day, when the scene states none (the scene state line says a stated one)
+  if (c.location?.lightingFrom === 'LOCATION_RULE' && c.location.lighting) out.push(`Light, as this place always has it${c.location.timeOfDay ? ` at ${c.location.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}: ${c.location.lighting.replace(/\.$/, '')}.`);
   const placeChanges = (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
   if (placeChanges.length) out.push(`The place as the story left it: ${placeChanges.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
   const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)));

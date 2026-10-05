@@ -51,7 +51,10 @@ export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['di
 
 export const LocationDesignSchema = z.preprocess(aliases({ kind: ['type'], lighting: ['timesOfDay', 'times'] }), z.object({
   description: str(600), kind: placeKind, landmarks: strs(120, 8), props: strs(80, 10), lighting: looseArray(timeOfDay, { min: 1, max: 4 }), nameAr: str(60).optional(),
-  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: strs(60, 8).optional(), cameraZones: strs(120, 6).optional(), entrances: strs(80, 4).optional(), spatial: str(400).optional() }).optional(),
+  layout: z.object({ geography: str(300).optional(), architecture: str(300).optional(), materials: strs(60, 8).optional(), cameraZones: strs(120, 6).optional(), entrances: strs(80, 4).optional(), spatial: str(400).optional(),
+    // THE PLACE'S LIGHTING RULES (src/domain/types.ts LocationLight): the light design a return keeps
+    light: z.preprocess((v) => (v === null || typeof v !== 'object' ? undefined : v), z.preprocess(aliases({ key: ['keyLight', 'main', 'source'], practicals: ['practicalLights', 'lamps', 'fixtures'], palette: ['colors', 'colours', 'colourPalette', 'colorPalette'], byTime: ['perTime', 'timesOfDay', 'byTimeOfDay'] }), z.object({ key: str(200).optional(), practicals: strs(80, 6).optional(), palette: strs(40, 6).optional(), byTime: z.preprocess((v) => (v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, s]) => [timeOfDay.safeParse(k).success ? timeOfDay.parse(k) : k, s]).filter(([k, s]) => TIMES_OF_DAY.includes(k as never) && typeof s === 'string' && s.trim())) : undefined), z.record(z.string(), z.string().max(200)).optional()) })).optional()),
+  }).optional(),
 }));
 
 export const DevelopSchema = z.object({
