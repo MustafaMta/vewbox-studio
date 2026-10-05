@@ -8,8 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *  continuation tail's sound (P0.2), records the clip it really makes (frames snapped up) and frees ComfyUI's models
  *  before switching between the FL2VA and Ref2VA checkpoints (the OOM kill measured on 2026-10-03). */
 
-const fake = vi.hoisted(() => ({ backend: 'local' as 'local' | 'api', graphs: [] as Array<Record<string, { class_type: string; inputs: Record<string, unknown> }>>, frees: 0, created: 0 }));
-vi.mock('@/server/env', () => ({ env: () => ({ VIDEO_BACKEND: fake.backend, MINIMAX_API_KEY: fake.backend === 'api' ? 'k' : '', MINIMAX_VIDEO_MODEL: 'MiniMax-H3', MINIMAX_VIDEO_RESOLUTION: '768P', LOG_LEVEL: 'silent' }) }));
+const fake = vi.hoisted(() => ({ backend: 'local' as 'local' | 'api', graphs: [] as Array<Record<string, { class_type: string; inputs: Record<string, unknown> }>>, frees: 0, created: 0, missingNodes: [] as string[], missingModels: [] as string[] }));
+vi.mock('@/server/env', () => ({ env: () => ({ VIDEO_BACKEND: fake.backend, MINIMAX_API_KEY: fake.backend === 'api' ? 'k' : '', MINIMAX_VIDEO_MODEL: 'MiniMax-H3', MINIMAX_VIDEO_RESOLUTION: '768P', LOG_LEVEL: 'silent', LIBRARY_ROOT: process.cwd() }) }));
 vi.mock('@/server/providers/minimax', () => ({
   dataUri: async () => 'data:x',
   createVideo: async () => { fake.created++; return { taskId: 't1' }; },
@@ -25,6 +25,10 @@ vi.mock('@/server/providers/comfy', () => ({
   firstOutput: (outputs: Record<string, { video?: unknown[] }>, kind: string) => (kind === 'video' ? outputs['16']?.video?.[0] : undefined),
   view: async () => Buffer.from('mp4'),
   free: async () => { fake.frees++; },
+  // the readiness check (src/server/production/readiness.ts): every node present unless the test removes one; every
+  // model file the workflows name is listed
+  hasNodes: async (classes: string[]) => ({ missing: classes.filter((c) => fake.missingNodes.includes(c)) }),
+  listModels: async () => { const { MODELS } = await import('@/server/workflows/index'); return Object.values(MODELS).filter((m) => !fake.missingModels.includes(m)); },
 }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async (prefix: string) => fs.mkdtemp(path.join(os.tmpdir(), `vb-${prefix}-`)) }));
 
@@ -83,5 +87,19 @@ describe('local engine', () => {
     expect(fake.frees).toBe(before + 1);
     await generateVideo({ ...base, firstFrame: pic });
     expect(fake.frees).toBe(before + 1);
+  });
+});
+
+describe('readiness before the engine is asked (first-attempt reliability)', () => {
+  beforeEach(async () => { fake.backend = 'local'; fake.missingNodes = []; fake.missingModels = []; fake.graphs = []; (await import('@/server/production/readiness')).resetReadinessCache(); });
+  it('a model file the graph names but ComfyUI does not list refuses the request before it is queued, naming the file', async () => {
+    const { MODELS } = await import('@/server/workflows/index');
+    fake.missingModels = [MODELS.h3Ref2va];
+    await expect(generateVideo({ ...base, referenceImages: [{ file: '/x/a.png', mime: 'image/png' }] } as never)).rejects.toMatchObject({ code: 'UNAVAILABLE', failureClass: 'INFRASTRUCTURE', message: expect.stringMatching(/missing models: diffusion_models\/minimax_h3_ref2va/) });
+    expect(fake.graphs).toEqual([]);
+  });
+  it('a missing node class refuses too; an adopted run (resume) is not re-checked', async () => {
+    fake.missingNodes = ['MiniMaxH3AddGuide'];
+    await expect(generateVideo({ ...base, guides: [{ frameIdx: 0, imageFile: '/x/tail.mp4', imageIsVideo: true, audioFromVideo: true }] } as never)).rejects.toThrow(/missing nodes: MiniMaxH3AddGuide/);
   });
 });

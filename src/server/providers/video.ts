@@ -7,6 +7,8 @@ import * as minimax from './minimax';
 import * as comfy from './comfy';
 import { H3_FPS, h3FrameCount, h3GraphKind, minimaxH3Video } from '../workflows';
 import { tmpDir } from '../media/ffmpeg';
+import { libraryRoot } from '../media';
+import { cachedEngineReadiness, graphRequirements, storageReadiness } from '../production/readiness';
 
 /** VIDEO = MINIMAX, two ways to run it. `api`: the hosted MiniMax H3 on platform.minimax.io. `local`: the
  *  open-weights MiniMax H3 in ComfyUI on this machine's RTX 5090. Same request shape, same result shape, same
@@ -123,6 +125,14 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined, audioFromVideo: gd.audioFromVideo }))) : undefined;
   const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
   const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
+  // FIRST-ATTEMPT RELIABILITY (src/server/production/readiness.ts): the node classes and model files THIS graph names
+  // are present, and the library has room for the take — before the engine is asked (not when adopting a run)
+  if (!req.resumeTaskId) {
+    const ready = await cachedEngineReadiness(graphRequirements(graph as never));
+    if (!ready.ok) throw Object.assign(new StudioError('UNAVAILABLE', `The local MiniMax H3 engine is not ready: ${ready.detail}`, { readiness: ready }), { failureClass: 'INFRASTRUCTURE' });
+    const room = await storageReadiness(libraryRoot());
+    if (!room.ok) throw Object.assign(new StudioError('UNAVAILABLE', `No room for the take: ${room.detail}`, { storage: room }), { failureClass: 'RESOURCE_EXHAUSTION' });
+  }
   // FL2VA and Ref2VA are separate 19.5 GB checkpoints next to a 14.6 GB text encoder: switching between them with both
   // held in host RAM got ComfyUI OOM-killed (exit 137, 2026-10-03, docs/evidence/minimax-p1). Its models are freed
   // before a run on the other checkpoint (the text encoder reloads; a minute at most)

@@ -44,7 +44,7 @@ vi.mock('@/server/media/ffmpeg', async (orig) => ({
   ...(await orig<typeof import('@/server/media/ffmpeg')>()),
   ffmpeg: async (args: string[]) => { fake.ffmpegArgs.push(args); return { stderr: '', ms: 1 }; },
   joinSpeech: async (_lines: unknown[], out: string) => ({ file: out, durationSeconds: fake.dialogueSeconds, windows: [{ from: 0.4, to: fake.dialogueSeconds - 0.35 }] }),
-  qaTake: async (_file: string, expect: { durationSeconds: number }) => { fake.qaExpect.push(expect); return { report: { ok: true, checks: [{ name: 'decodable', ok: true }] }, probe: { durationSeconds: 158 / 24, width: 1280, height: 736, hasAudio: true } }; },
+  qaTake: async (_file: string, expect: { durationSeconds: number }) => { fake.qaExpect.push(expect); return { report: { ok: true, checks: [{ name: 'decodable', ok: true }] }, probe: { durationSeconds: 158 / 24, width: 1280, height: 736, hasAudio: true, hasVideo: true, videoCodec: 'h264', pixFmt: 'yuv420p', fps: 24, audioCodec: 'aac' } }; },
   tailClip: async (...a: unknown[]) => { fake.tails.push(a); return { file: '/tmp/tail.mov', ...fake.tailClip, sourceEndFrame: 124, sourceTotalFrames: 124 }; },
   frameAt: async (...a: unknown[]) => { fake.frames.push(a); return '/tmp/last.png'; },
   lastFrame: async (video: string) => { fake.closing.push(video); return '/tmp/last.png'; },
@@ -343,7 +343,7 @@ describe('GENERATE_TAKE by relation', () => {
     let t = addTake();
     expect(t.params).toMatchObject({ drift: { identity: { ok: true, characters: [{ assetId: 'canon-a', picture: 1, applied: true }, { assetId: 'canon-b', picture: 2, applied: true }] }, location: { plateAssetId: 'plate-dusk', frame: 22, meanDiff: 3, threshold: 36, matches: true, measure: expect.stringMatching(/64x36 grey/), basis: expect.stringMatching(/provisional/) } } });
     expect((t.qa as { checks: Array<{ name: string }> }).checks.map((c) => c.name)).toEqual(expect.arrayContaining(['identity-references-applied', 'location-matches-plate']));
-    expect(fake.qa.find((r) => (r.checks as Array<{ name: string }>).some((c) => c.name === 'location-matches-plate'))).toMatchObject({ inspectorId: 'visual-quality-inspector', decision: 'ACCEPT', checks: [{ name: 'identity-references-applied', ok: true, value: 2, threshold: 2 }, { name: 'location-matches-plate', ok: true, value: 3, threshold: 36 }] });
+    expect(fake.qa.find((r) => (r.checks as Array<{ name: string }>).some((c) => c.name === 'location-matches-plate'))).toMatchObject({ inspectorId: 'visual-quality-inspector', decision: 'ACCEPT', checks: expect.arrayContaining([expect.objectContaining({ name: 'identity-references-applied', ok: true, value: 2, threshold: 2 }), expect.objectContaining({ name: 'location-matches-plate', ok: true, value: 3, threshold: 36 }), expect.objectContaining({ name: 'container-valid', ok: true }), expect.objectContaining({ name: 'dialogue-timing', ok: true })]) });
     // a take whose place drifted: recorded with its numbers, the report is REVIEW, the take is kept and not rejected
     fake.commands = []; fake.qa = []; fake.driftOffset = 60;
     await generateTake(ctx(p.id, 's12'));

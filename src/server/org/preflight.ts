@@ -111,7 +111,25 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     add('every-character-has-image', missing.length === 0, 'MISSING_REFERENCE', missing.length ? `no canonical image for ${missing.map((c) => c.name).join(', ')}; draw the character first` : legacy.length ? `legacy portrait for ${legacy.map((c) => c.name).join(', ')}` : undefined);
     const w = identityWarning(inShot);
     if (w) warnings.push(w);
+    // FIRST USE LOCKS THE LOOK (docs/CHARACTER-CONTINUITY.md): a take of a character never seen in a video freezes
+    // the appearance it was made with, so a DRAFT canonical image is approved before its first take — afterwards a
+    // draft can no longer be redrawn (cloud directive §11: "approved canonical characters exist")
+    const firstUseDraft = inShot.filter((c) => c.canonicalImage?.status === 'DRAFT' && c.usage?.known === true && c.usage.videos.length === 0);
+    add('canonical-approved-before-first-use', firstUseDraft.length === 0, 'MISSING_REFERENCE', firstUseDraft.length ? `approve the canonical image of ${firstUseDraft.map((c) => c.name).join(', ')} first: the first take locks the look it was filmed with` : undefined);
   }
+  // THE AUTHORITATIVE AUDIO FITS THE CLIP (audio first, directive §7): the lines (recorded lengths, else an estimate)
+  // with their lead-in, gaps and tail must fit the new picture the engine can make for this shot — a shot whose words
+  // do not fit is split in the plan, never truncated or sped up
+  const timed = pack.context.shot.dialogue;
+  if (p.kind !== 'MUSIC_VIDEO' && timed.length) {
+    const speech = timed.reduce((a, l) => a + (l.durationSeconds ?? 0), 0) + 0.4 + 0.35 * (timed.length - 1) + 0.3;
+    const room = (H3_LIMITS.maxFrames - pack.trimStartFrames) / 24;
+    const estimated = timed.some((l) => l.source === 'ESTIMATE');
+    add('dialogue-fits-clip', speech <= room, 'WRONG_PARAMETERS', `${speech.toFixed(1)} s of dialogue${estimated ? ' (partly estimated: not yet recorded)' : ' (recorded)'} in at most ${room.toFixed(1)} s of new picture${speech > room ? ': split the shot' : ''}`);
+  }
+  // the production context's gaps (src/domain/production-context.ts): named, never invented
+  for (const gap of pack.context.gaps) warnings.push({ name: 'context-gap', detail: gap });
+  if (pack.context.anchoring.reanchor) warnings.push({ name: 're-anchor', detail: pack.context.anchoring.why ?? 're-anchoring' });
   // audio before video: a speaking shot (film, local engine) needs a voice for every speaker, judged as the worker
   // judges it (take.ts): every line of the speaker already has a current stored recording (reused), or there is a
   // reference to speak from (pickReference: a design seed, or a consented recording that is present). A speaker with

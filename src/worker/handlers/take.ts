@@ -27,6 +27,7 @@ import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { contextRecord } from '@/domain/production-context';
+import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
 import { assertLocationPlate } from '@/server/production/location-rule';
@@ -397,6 +398,8 @@ export const generateTake: Handler = async (ctx) => {
   const { report, probe } = await step(ctx, 'visual-quality-inspector', `picture-check: shot ${sh.number}`, (tool) => tool('media.qa_take', () => qaTake(qa.file, qa.expect), { input: qa }));
   report.checks.push(...headChecks);
   const pictureChecks = report.checks.map((c) => ({ ...c }));
+  // where each line was anchored (the authoritative recording, placed at the first new frame): the timing check's expectation
+  const plannedLines = soundtrack?.kind === 'DIALOGUE' ? soundtrack.lines.map((l) => ({ lineId: l.lineId, expectedFrom: trimStartFrames / H3_FPS + l.from, recordedSeconds: l.to - l.from })) : [];
   await ctx.checkpoint();
   let scriptCheck: { ok: boolean; coverage?: number; wer?: number; cer?: number; heard?: string; detail?: string } | undefined;
   let takeUnverified = false;
@@ -485,6 +488,21 @@ export const generateTake: Handler = async (ctx) => {
       driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${plateDriftNote}; the plate ${pack.location.assetId} was conditioned on` });
     }
   } else if (pack.establishing) driftChecks.push({ name: 'location-matches-plate', ok: true, detail: `${pack.establishing.name} is established by this take: there is no earlier plate to compare with` });
+  // CONTINUITY QA WITHOUT A MODEL (src/server/media/continuity-qa.ts; cloud directive §10): accidental fades, repeated
+  // frames, cuts the shot did not plan, speech repeated beyond the script, each line heard on time, a container the
+  // cut can use. Flags for REVIEW with their numbers — never a rejection, never a silent regeneration
+  if (backend === 'local') {
+    const headSeconds = trimStartFrames / H3_FPS;
+    const plannedCuts = (sh.staging?.beats ?? []).filter((b) => b.cut && b.at > 0).map((b) => headSeconds + b.at);
+    try {
+      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard }));
+      driftChecks.push(...measured);
+    } catch (e) {
+      driftChecks.push({ name: 'continuity-measured', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });
+    }
+    if (plannedLines.length && soundtrack?.kind === 'DIALOGUE' && scriptCheck?.heard) driftChecks.push(judgeLineTiming(plannedLines, soundtrack.lines));
+  }
+  driftChecks.push(judgeContainer(probe, { fps: backend === 'local' ? H3_FPS : (probe.fps ?? H3_FPS), expectAudio: true }));
   report.checks.push(...driftChecks);
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
