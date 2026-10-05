@@ -219,3 +219,51 @@ not fold numbers). **Real failures 2/20: both one-word lines** — «Nothing.» 
 **Verdict:** keep **Habibi IRQ** (Iraqi) and **IndexTTS 2.5** (English, code-switched) — the measurements show no
 engine fault that another installed engine would fix, the text preparation is required for digits, and one-word lines
 on IndexTTS need a guard (open item). Iraqi quality is **pending the native listening review**.
+
+## 5. MiniMax H3 local: what it really does on this install
+
+Speech services stopped, ComfyUI alone (`/free` first). Harness `scripts/model-eval-h3.ts`: **The Static Sky**'s own
+shot (scene 1, shot 2: Elias, MEDIUM_CLOSE_UP, one line), conditioned exactly as the take handler conditions it —
+`resolveShotPack` → `bindingOf` → `h3ReferencePrompt` (linted) → `minimaxH3Video`: the **approved canonical image**
+(`gen-4b28ba8fe5`) as `<Picture 1>`/`<Subject 1>`, the workshop master plate as `<Picture 2>`, the drawn opening frame
+bound as `<Picture 3>` and anchored at frame 0 by `MiniMaxH3AddGuide`; Ref2VA, 4-step turbo, `simple`, 1344×768,
+seed 970007. State read from the copy database; library files read only. Two harness errors before any graph was sent
+(a wrong asset field, then a relative `LIBRARY_ROOT`) are recorded in `results.json` as not attempts.
+Evidence: `docs/evidence/model-eval-2026-10/h3/` (640 px proxies, sheets, stills, graphs, `V4-join-metrics.json`,
+`comfyui-ram.log`).
+
+| Clip | What | Frames (expected) | Audio | Engine | Card peak | ComfyUI RAM | Take gate (large-v3 / dialect ASR) |
+|---|---|---|---|---|---|---|---|
+| V1 | the shot as the handler sends it, English line | 124 (124) | 32 kHz stereo, −17.3 dB RMS | 119 s (cold load included) | 28.4 GB | **40.8 of 46.8 GiB** | "Obsolescence. Always obsolescence." — CER 0, PASS |
+| V4 | the next shot (two-shot, Najm's line) as a **CONTINUATION** of V1: V1's last 22 frames + their sound in one AddGuide at 0, both canonical images + plate re-applied | 158 (158 = 5 s + 22) | yes, −22.7 dB | 145 s | 31.9 GB | 40.5 GiB | from frame 22: "It's still functional, isn't it?" — CER 0, PASS |
+| V2 | V1 with the Iraqi line «عتيگ. كلشي يصير عتيگ.» in `<d>[Arabic]` | 124 (124) | yes, −18.3 dB | 87 s | 31.2 GB | 40.2 GiB | «عتيق. كل شي يصير عتيق.» — CER 0.05 (ق for گ), PASS; dialect = listening item |
+
+**Picture (by eye):**
+
+- **Identity** held in every frame of V1/V2/V4: Elias's cap with the red button, the scar, the fur-collared yellow
+  coat, the striped sweater; in V4 Najm enters matching his canonical image (grey beard, glasses, top knot, brown
+  cardigan). The plate's workshop (window with meteors, shelves of radios, the portrait) is kept.
+- **The opening-frame anchor holds ≈ 1 s, then H3 hard-cuts** to the prompt's MEDIUM_CLOSE_UP (V1, V2) — the drawn
+  opening frame is a wide shot of the room while the shot is planned close; the same conflict as E6b. **V2 shows a
+  translucent double exposure at that cut** (ghosting, one frame strip).
+- **The continuation guide behaves as the continuity code assumes:** the head re-renders V1's tail (PSNR mean
+  35.3 dB, min 33.8, SSIM 0.963 over the 22 frames — close, not identical: it is regenerated, so the trim of 22 frames
+  is needed and correct); the join (V1's last frame → V4's frame 22) PSNR 25.4 dB ≥ the intra-shot 5th percentile
+  18.2 → passes; sound at the join −44.0 → −38.1 dBFS, head −31.5 vs tail −31.3 dB. V4 then changes camera to a wide
+  two-shot inside the take (an in-take cut H3 chose).
+
+**Verdict:** keep local H3 Ref2VA with the turbo LoRA. Measured capabilities: 5 s at 1344×768 with native 32 kHz
+stereo sound, the scripted English line spoken verbatim, an Arabic `<d>` line spoken intelligibly, reference identity
+held, continuation joins within the intra-shot range. **Not supported / not to advertise:** holding a drawn opening
+frame whose framing differs from the shot's (it cuts after ≈ 1 s), a guaranteed single continuous shot (H3 may cut
+inside a take), Iraqi dialect (not claimed by MiniMax; pending the listener). **Memory:** ComfyUI alone reaches
+40.8 GiB of the 46.8 GiB VM while staging H3 — nothing else fits beside it until `.wslconfig` raises the limit.
+
+**Hosted MiniMax (documented only — no `MINIMAX_API_KEY`, external blocker).** The platform guide (fetched
+2026-10-05) lists `MiniMax-H3` (768P and **2K**, 4–15 s) and `MiniMax-H3-Max` (480P/768P, 5–15 s, faster), first and
+last frame, up to 9 reference images, 3 reference videos and 3 reference audios, frame + reference roles combined,
+a **2K regeneration** task (`Create Video Regeneration Task`) and an **H3-Context-IR** prompt-interpretation task;
+no extension/continuation endpoint is documented. What it would add over local: 2K finals, H3-Max throughput, no
+card or host-RAM pressure. Today's guide says frame and reference roles can be combined, which contradicts
+MODEL-STACK §2.2 ("cannot be mixed", 2026-10-04) — the shot-pack lowering (`lowering` for hosted reference mode)
+should be re-checked against a real key before any hosted run.

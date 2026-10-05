@@ -92,7 +92,39 @@
     },
     "workflowVersion": "a0e43bf09e546a82",
     "file": "var\\model-eval\\h3\\V1.mp4",
-    "at": "2026-10-05T12:31:51.691Z"
+    "at": "2026-10-05T12:31:51.691Z",
+    "asr": {
+      "fromFrame": 0,
+      "language": "en",
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "words": [
+        {
+          "w": "Obsolescence.",
+          "s": 0.62,
+          "e": 1.72
+        },
+        {
+          "w": "Always",
+          "s": 1.82,
+          "e": 2.76
+        },
+        {
+          "w": "obsolescence.",
+          "s": 2.76,
+          "e": 4.38
+        }
+      ],
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
+    }
   },
   "V4": {
     "question": "the next shot as a CONTINUATION of V1: V1’s last 22 frames AND their sound in one AddGuide at 0 (the continuity code’s assumption: the head re-renders the tail), the canonical images and the plate re-applied; 5 s of new picture",
@@ -262,6 +294,48 @@
         "previousTailDb": -31.3,
         "continuationHeadDb": -31.5
       }
+    },
+    "asr": {
+      "fromFrame": 22,
+      "language": "en",
+      "model": "large-v3",
+      "text": "It's still functional, isn't it?",
+      "words": [
+        {
+          "w": "It's",
+          "s": 2.32,
+          "e": 2.9
+        },
+        {
+          "w": "still",
+          "s": 2.9,
+          "e": 3.1
+        },
+        {
+          "w": "functional,",
+          "s": 3.1,
+          "e": 4.3
+        },
+        {
+          "w": "isn't",
+          "s": 4.56,
+          "e": 5.26
+        },
+        {
+          "w": "it?",
+          "s": 5.26,
+          "e": 5.36
+        }
+      ],
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "It's still functional, isn't it?"
+      }
     }
   },
   "V2": {
@@ -357,6 +431,48 @@
     },
     "workflowVersion": "a0e43bf09e546a82",
     "file": "var\\model-eval\\h3\\V2.mp4",
-    "at": "2026-10-05T12:35:53.319Z"
+    "at": "2026-10-05T12:35:53.319Z",
+    "asr": {
+      "fromFrame": 0,
+      "language": "ar",
+      "model": "large-v3-arabic-dialectal-v2",
+      "text": "عتيق. كل شي يصير عتيق.",
+      "words": [
+        {
+          "w": "عتيق.",
+          "s": 0.34,
+          "e": 1.14
+        },
+        {
+          "w": "كل",
+          "s": 1.63,
+          "e": 2.39
+        },
+        {
+          "w": "شي",
+          "s": 2.39,
+          "e": 2.67
+        },
+        {
+          "w": "يصير",
+          "s": 2.67,
+          "e": 3.05
+        },
+        {
+          "w": "عتيق.",
+          "s": 3.05,
+          "e": 3.57
+        }
+      ],
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 1,
+        "cer": 0.05263157894736842,
+        "coverage": 1,
+        "heard": "عتيق. كل شي يصير عتيق."
+      }
+    }
   }
 }
