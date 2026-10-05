@@ -306,8 +306,8 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     dialogue: lines, requiredProps: [...required], constraints,
   };
   if (relation === 'CONTINUATION' && !prevTake) gaps.push(`the shot continues shot ${prevShot?.number ?? '?'}, which has no chosen take`);
-  const spoken = lines.reduce((a, l) => a + (l.durationSeconds ?? 0), 0);
-  if (spoken > sh.durationSeconds + 0.5 && lines.every((l) => l.source === 'RECORDED')) gaps.push(`the recorded lines run ${spoken.toFixed(1)} s, longer than the shot's ${sh.durationSeconds} s`);
+  // (QA m3) recorded lines longer than the PLANNED shot are not a gap: sound comes first and the take is made as long
+  // as its words need (take.ts); only words that no clip can hold are a problem — the preflight's `dialogue-fits-clip`
 
   // ---- story
   const knowledge: StoryContext['knowledge'] = {};

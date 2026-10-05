@@ -7,6 +7,7 @@ import { DIALECT_LABELS, DURATIONS } from '@/domain/vocabulary';
 import { nid } from '@/domain/ids';
 import { StudioError } from '@/domain/errors';
 import { primaryImageOf } from '@/domain/identity';
+import { editorialTransition } from '@/domain/editorial';
 import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
@@ -552,7 +553,7 @@ THE STAGING inside each shot: "beats" — 2 to 6 observable actions in order, ea
 Return JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, beats:[{seconds,action,cut?}], actions[], pace, pov?, extras:[{description,count}], continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?,constraints[]}, prompt }] }.
 Example of ONE complete shot (shape only; write your own content): {"purpose":"Establish the yard and her hesitation","action":"She stops at the gate, hand on the latch, then pushes it open.","framing":"WIDE","cameraMove":"STATIC","durationSeconds":5,"characterNames":["Layla"],"dialogueLineIndexes":[0],"transition":"CUT","boundary":"transition","beats":[{"seconds":1.5,"action":"She stops at the gate, hand on the latch."},{"seconds":3.5,"action":"She pushes the gate open and steps through."}],"actions":["stops at the gate","pushes the gate open","steps through"],"pace":"NORMAL","extras":[],"continuity":{"characters":[{"characterName":"Layla","wardrobe":"green coat, red scarf","pose":"standing, hand on latch","position":"left third, facing right","frameSide":"LEFT","screenDirection":"RIGHT","eyeline":"at the gate","emotion":"hesitant","holding":["canvas bag"],"startPose":"standing at the closed gate, hand on the latch","endPose":"one step inside the yard, gate open behind her","motion":{"direction":"LEFT_TO_RIGHT","path":"through the gate into the yard"}}],"props":[{"name":"canvas bag","ownerCharacterName":"Layla","state":"full","position":"on her shoulder"}],"environment":{"timeOfDay":"GOLDEN_HOUR","weather":"clear","lighting":"low warm sun from the right, long shadows","state":"gate closed, leaves on the path"},"camera":{"lensIntent":"35mm, eye level","angle":"slightly low"},"relationToPrevious":"CUT","notes":"Her scarf stays over the left shoulder in every shot.","constraints":["the canvas bag stays on her right shoulder"]},"prompt":"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light."}
 Every continuity.characters entry must use the key "characterName" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.
-framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem).`;
+framing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition: always "CUT" (the studio derives the editorial join from the boundary; there are no dissolves or fades).`;
   return [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
 }
 
@@ -620,7 +621,8 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
       relationToPrevious: BOUNDARY_RELATION[boundary], notes: cont.notes,
       ...(cont.constraints?.length ? { constraints: cont.constraints } : {}),
     };
-    return { purpose: sh.purpose, action, framing, cameraMove: sh.cameraMove, durationSeconds, characterIds, dialogue, transition: sh.transition, continuity, prompt, boundary, ...(staging ? { staging } : {}), ...(notes.length ? { notes } : {}) };
+    // the editorial join follows the boundary (src/domain/editorial.ts): the model's dissolve or fade is not kept
+    return { purpose: sh.purpose, action, framing, cameraMove: sh.cameraMove, durationSeconds, characterIds, dialogue, transition: editorialTransition({ boundary, continuity: { ...continuity, version: 0 } }), continuity, prompt, boundary, ...(staging ? { staging } : {}), ...(notes.length ? { notes } : {}) };
   });
   if (shots.length === 0) throw new StudioError('PROVIDER', 'The story engine returned no shots.');
   // lines the model forgot: spread in script order over the shots, each line going to the next shot (from where the
