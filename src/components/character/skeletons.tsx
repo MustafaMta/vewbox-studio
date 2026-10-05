@@ -18,7 +18,6 @@ export function CharactersSkeleton() {
         </div>
         <div className="pc-head-acts"><Skeleton.Block width={168} height="var(--control-h)" radius="pill" /></div>
       </div>
-      <div className="pc-bar"><Skeleton.Block width="min(28rem, 100%)" height={40} radius="md" /></div>
       <div className="pc-grid">{Array.from({ length: 6 }, (_, i) => <div key={i}><FigureCardSkeleton /></div>)}</div>
     </SkeletonRegion>
   );

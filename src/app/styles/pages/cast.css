@@ -41,7 +41,9 @@
   .pc-plates > li { min-inline-size: 0; }
 
   /* ------------------------------------------------------------------------------------ the character profile */
-  .char { --fig-w: min(480px, 36%, calc((100svh - 48px) * 928 / 1664)); display: grid; grid-template-columns: var(--fig-w) minmax(0, 1fr); gap: 48px; align-items: start; }
+  /* the profile's words start on the content grid's sixth column line (12 columns, 16 px gaps; Design QA p1): the
+     figure is five columns and five gaps less the 48 px gap, never taller than the screen */
+  .char { --fig-w: min(480px, calc((100% - 176px) * 5 / 12 + 32px), calc((100svh - 48px) * 928 / 1664)); display: grid; grid-template-columns: var(--fig-w) minmax(0, 1fr); gap: 48px; align-items: start; }
   .char-figure { position: sticky; inset-block-start: 24px; display: flex; flex-direction: column; min-inline-size: 0; }
   .char-figure-frame { inline-size: 100%; aspect-ratio: 928 / 1664; border-radius: var(--r-lg); }
   .char-main { display: flex; flex-direction: column; min-inline-size: 0; }
@@ -95,6 +97,7 @@
   .char-form-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; }
   .char-form-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .char-form-acts[data-end] { justify-content: flex-end; }
+  .char-notes-acts { min-block-size: var(--control-h-sm); }
   .char-methods { margin-block-end: 20px; }
   .char-posters { display: grid; grid-template-columns: repeat(auto-fill, var(--card-poster)); justify-content: start; gap: 16px; margin: 0; padding: 0; list-style: none; }
   .char-frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }

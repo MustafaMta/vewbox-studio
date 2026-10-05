@@ -80,10 +80,12 @@ export function CastDirectory() {
         </CastSection>
       ) : (
         <>
-          <div className="pc-bar">
-            <CatalogueBar q={cat.q} onQ={cat.setQ} placeholder="Search the cast"
-              {...(large ? { facets: FACETS, filters: cat.filters, onFilters: cat.setFilters, sort: cat.sort, sorts: SORTS.map((s) => ({ ...s })), onSort: cat.setSort } : {})} />
-          </div>
+          {/* search, filters and sorting only once the cast is larger than six (§5.23; Design QA m9) */}
+          {large && (
+            <div className="pc-bar">
+              <CatalogueBar q={cat.q} onQ={cat.setQ} placeholder="Search the cast" facets={FACETS} filters={cat.filters} onFilters={cat.setFilters} sort={cat.sort} sorts={SORTS.map((s) => ({ ...s }))} onSort={cat.setSort} />
+            </div>
+          )}
           {shown.length === 0 ? (
             <div className="pc-none">
               <p className="t-body pc-empty-line">{cat.q ? `No character matches “${cat.q}”.` : 'No character matches these filters.'}</p>

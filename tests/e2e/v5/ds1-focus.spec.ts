@@ -144,25 +144,22 @@ async function measure(page: Page, n: number): Promise<Stop | null> {
   return { n, tag: info.tag, name: info.name, box: info.box, outline: info.outline, offset: info.offset, sides, covered: info.covered, ok };
 }
 
-/** KNOWN FINDINGS (2026-10-04/05, the same six in every run of the suite that day): pages that fail this gate today,
- *  each with what the measurement shows. They run and keep writing their evidence; they are expected to fail, so an
- *  unexpected pass (the page was fixed) fails the test and the entry is removed. The page owners fix the pages, not
- *  this list (docs/TESTING.md "Known findings"):
- *   - home 1440: the Shelf track clips the ring's start side on every card at the column's left edge (x = 288);
- *   - short 1440: the credits links (a 26 px line each) show the ring on their right side only; short 390: the strip's
- *     "Play from shot" buttons and the player's Fullscreen button lose the ring's top and bottom to the strip's
- *     horizontal scroller;
- *   - characters 1440 and 390: the "New character" split button hides the ring's edge between its two halves
- *     (contrast 1.39 against the neighbour).
+/** KNOWN FINDINGS: page/width pairs that fail this gate today, each with what the measurement shows. They run and keep
+ *  writing their evidence; they are expected to fail, so an unexpected pass (the page was fixed) fails the test and
+ *  the entry is removed. The page owners fix the pages, not this list (docs/TESTING.md "Known findings").
+ *  Cleared on 2026-10-05 (the design system's fixes, all in the kit's focus rules):
+ *   - home 1440: the Shelf track clipped the ring's start side at the column's left edge → the track keeps 8 px of
+ *     padding on every side, given back as margin (kit.css .shelf-track);
+ *   - short 1440: the credits' one-line names clipped their link's ring → `data-clips` (base.css: overflow clip with an
+ *     8 px margin while focused); short 390: the strip's scroller and the player's box clipped the shots' and the
+ *     Fullscreen button's rings → the strip pads like the kit's strips and its shots carry a scroll margin (focus
+ *     scrolling ignores scroll-padding), the docked transport fits a phone's column (4 px gaps, the seek bar may
+ *     narrow to 48) and is 60 high on a coarse pointer, `.iplayer` joins the clip-margin rule;
+ *   - characters 1440 and 390: the split button's parts hid the ring's edge between them (1.39:1 against the
+ *     neighbour's fill) → a split part draws its ring just inside its edge (an ink ring 4 px in on the primary fill).
  *  (The profile at 390 — the "Notes for the writers" textarea under nav.bottom-nav, WCAG 2.4.11 — was on this list
  *  until main's QA page fixes of 2026-10-05 moved it clear; the unexpected pass removed the entry.) */
-const KNOWN: Record<string, string> = {
-  'home-1440': 'the Shelf track clips the ring’s start side on the cards at the column’s left edge',
-  'short-1440': 'the credits links show the ring on their right side only',
-  'short-390': 'the strip’s Play-from-shot buttons and the Fullscreen button lose the ring’s top and bottom in the strip’s scroller',
-  'characters-1440': 'the New character split button hides the ring’s edge between its halves',
-  'characters-390': 'the New character split button hides the ring’s edge between its halves',
-};
+const KNOWN: Record<string, string> = {};
 
 for (const width of WIDTHS) {
   for (const [name, url] of PAGES) {

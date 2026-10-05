@@ -125,25 +125,20 @@ Nothing in v4 reset the studio; the reset-based suites are the older `tests/e2e/
 `mobile` projects), which keep running against the same test server and database — and the next `pnpm test:e2e`
 re-seeds whatever they changed.
 
-### Known findings the suite carries (2026-10-05)
+### Known findings the suite carries
 
-A green run still says two things out loud; both are listed in the run's output and must be cleared by the page
-owners, not by the suite:
+None at the moment (2026-10-05, evening). The mechanism stays: `ds1-focus.spec.ts` keeps a `KNOWN` map of page/width
+pairs that are expected to fail the pixel focus-ring gate (`test.fail`, with the finding as the reason); such a test
+keeps measuring and writing its evidence under `test-results/evidence/v5-ds1/`, and when the page is fixed it
+"unexpectedly passes" and fails until its entry is removed. The five pairs the suite carried on 2026-10-05 (Home's
+shelf track clipping a card's ring at the column's edge; the short's credits names and, at 390, its strip and the
+player's box clipping their rings; the "New character" split button hiding the ring between its halves) were cleared
+the same day by the design system's fixes in the kit's focus rules (base.css, kit.css: 8 px of padding given back as
+margin on the shelf track and the strip, `data-clips` on a clipping one-liner, `.iplayer` in the clip-margin rule, an
+inset ring on a split button's parts). `home.spec.ts` was rewritten against the approved Home the same day and its
+fixme removed.
 
-- **Expected failures (`test.fail`)** — `ds1-focus.spec.ts`, the pixel focus-ring gate, on five page/width pairs:
-  Home 1440 (the Shelf track clips the ring's start side on the cards at the column's left edge), the short's title
-  page at 1440 (the credits links show the ring on the right side only) and 390 (the strip's "Play from shot" buttons
-  and the Fullscreen button lose the ring's top and bottom in the strip's scroller), and the casting directory at
-  1440 and 390 (the "New character" split button hides the ring's edge between its halves). Identical in every run.
-  The tests keep measuring and keep writing their evidence under `test-results/evidence/v5-ds1/`; when a page is
-  fixed the test "unexpectedly passes" and fails until its entry is removed from `KNOWN` in the spec — which is how
-  the profile at 390 (the "Notes for the writers" textarea under the phone bar) left the list when main's QA page
-  fixes came in on 2026-10-05.
-- **Fixme (`test.fixme`)** — `home.spec.ts`, five tests: Home was rebuilt twice after the spec (26cf8e4 "Home on the
-  producer's Krea reference", 383c7cf "Home on the shared kit") and is in the producer's design QA; none of the
-  spec's hooks exists any more. The Home engineer rewrites the spec against the approved Home and removes the fixme.
-
-Everything else — 142 tests over the 17 other specs — passes, and must keep passing.
+Everything in the suite passes, and must keep passing.
 
 ## The per-page acceptance scripts
 

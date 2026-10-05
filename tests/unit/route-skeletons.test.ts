@@ -38,6 +38,7 @@ const SAMPLE: Array<[string, string]> = [
   ['/characters/char-1', 'char-figure'],
   ['/locations', 'pc-plates'],
   ['/locations/loc-1', 'loc-hero'],
+  ['/kit', 'kit-skeleton'],
 ];
 
 describe('route skeletons', () => {
@@ -57,7 +58,7 @@ describe('route skeletons', () => {
   });
 
   it('a route nobody registered gets the generic frame; "new" pages draw their own creation frame, not an [id] page', () => {
-    expect(renderToStaticMarkup(h(RouteSkeleton, { pathname: '/kit' }))).toContain('shell-skeleton');
+    expect(renderToStaticMarkup(h(RouteSkeleton, { pathname: '/somewhere-else' }))).toContain('shell-skeleton');
     for (const p of ['/characters/new', '/locations/new']) {
       const html = renderToStaticMarkup(h(RouteSkeleton, { pathname: p }));
       expect(html, p).toContain('pc-create');
