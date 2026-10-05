@@ -28,7 +28,14 @@ export interface VideoCapability {
   maxFrames: number;
   /** the hosted request ceiling in seconds (the local engine is bounded by maxFrames) */
   maxSeconds: number;
-  refs: { images: number; videos: number; audios: number; /** per reference audio clip, seconds */ audioSeconds?: { min: number; max: number }; audioTotalSeconds?: number };
+  refs: { images: number; videos: number; audios: number; /** per reference audio clip, seconds */ audioSeconds?: { min: number; max: number }; audioTotalSeconds?: number;
+    /** how the engine sizes a reference picture before encoding it (nodes_minimax_h3.py MiniMaxH3ReferenceToVideo):
+     *  `match` scales it DOWN (never up) to the generation's pixel area, `max` to `maxShortEdge` on the short edge; each
+     *  side then rounds to `multiple` */
+    imageSizing?: { mode: 'match' | 'max'; maxShortEdge: number; multiple: number };
+    /** the derived face reference (src/domain/face-reference.ts): below `minFacePx` face pixels in the encoded
+     *  canonical picture, a shot at one of `framings` may add a face crop of the canonical image (START values) */
+    faceReference?: { minFacePx: number; framings: import('./vocabulary').Framing[] } };
   /** anchored guides on the target timeline (frames and their sound): what a CONTINUOUS boundary needs */
   guides?: {
     /** how the node keeps an image batch: below `singleFrameBelow` frames → 1 frame; otherwise snapped DOWN onto `grid` */
@@ -60,7 +67,14 @@ export interface VideoCapability {
 export const MINIMAX_H3_LOCAL: VideoCapability = {
   id: 'minimax-h3-local', family: 'MINIMAX', fps: 24,
   grid: { base: 5, step: 17 }, minFrames: 124, maxFrames: 362, maxSeconds: 15,
-  refs: { images: 9, videos: 3, audios: 3 },
+  refs: {
+    images: 9, videos: 3, audios: 3,
+    imageSizing: { mode: 'match', maxShortEdge: 2048, multiple: 32 },
+    // MinimaxStoryBuilder sheets.py (dead code there, but its arithmetic holds for the node): ~140 px of face after the
+    // `match` downscale "is not enough for reference-to-video to hold a likeness"; our full-body canonical at 1280x736
+    // lands there. START: 192 px; G13 calibrates it
+    faceReference: { minFacePx: 192, framings: ['MEDIUM', 'MEDIUM_CLOSE_UP', 'CLOSE_UP', 'EXTREME_CLOSE_UP', 'TWO_SHOT', 'OVER_THE_SHOULDER'] },
+  },
   guides: {
     grid: { base: 5, step: 17 }, singleFrameBelow: 5, audioLatentHz: 40,
     // 22 frames ≈ 0.92 s: motion, speech rhythm and room tone (the official template's continuation idiom). It is the

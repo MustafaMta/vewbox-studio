@@ -824,6 +824,11 @@ export interface GenerationSettings {
    *  (one the engine keeps, e.g. 5, 22 or 39 frames on local H3) and whether the tail's sound is anchored. Absent: the
    *  engine's default. */
   continuation?: import('./video-capability').ContinuationChoice;
+  /** THE DERIVED FACE REFERENCE (src/domain/face-reference.ts): beside a character's canonical full-body image, a close
+   *  crop of its face — a temporary production reference derived from the canonical image — when the shot frames the
+   *  face close and the full-body picture leaves too few face pixels after the engine's reference scaling. AUTO: when
+   *  that is so; ON: on every close framing; OFF (the default until the GPU validation G13 promotes it): never. */
+  faceReference?: 'AUTO' | 'ON' | 'OFF';
 }
 
 /** Voice settings (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). */

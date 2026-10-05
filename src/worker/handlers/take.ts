@@ -29,6 +29,7 @@ import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/
 import { contextRecord } from '@/domain/production-context';
 import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
 import { takeVerdict } from '@/domain/take-checks';
+import { withFaceReferences } from './face-reference';
 import { alignScript, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
 import { shotPerformers } from '@/domain/music-performance';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
@@ -83,7 +84,9 @@ export const generateTake: Handler = async (ctx) => {
     await ctx.event(w.read.conflicts.length || w.outcome.blocking.length ? 'warn' : 'info', `World Bible revision ${w.read.revisionNumber}${w.read.pinned ? ' (pinned)' : ' (not pinned)'}: ${w.outcome.message}; ${w.read.location ? `the place: ${w.read.location.why}` : 'no place'}${w.read.conflicts.length ? `; ${w.read.conflicts.join('; ')}` : ''}`, { read: w.read, action: w.outcome.action, blocking: w.outcome.blocking });
     return w;
   });
-  const state = world.state;
+  // a close shot of a character whose full-body canonical image leaves too few face pixels gets a derived face crop
+  // (src/worker/handlers/face-reference.ts; the studio's `generation.faceReference`, OFF by default)
+  const state = await withFaceReferences(ctx, world.state, p, sh, { backend, out });
   const cast = castOf(state, p); const places = worldOf(state, p);
   const loc = places.find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
@@ -304,6 +307,7 @@ export const generateTake: Handler = async (ctx) => {
         referenceImages.push(file(pic.assetId));
         if (pic.role === 'SUBJECT') references.push({ kind: 'CHARACTER', assetId: pic.assetId, characterId: pic.characterId, binding: pic.binding, note: identity.find((s) => s.characterId === pic.characterId)?.source === 'PORTRAIT' ? 'legacy portrait' : `canonical image${identity.find((s) => s.characterId === pic.characterId)?.approved ? '' : ' (draft)'}` });
         else if (pic.role === 'LOCATION') references.push({ kind: 'LOCATION', assetId: pic.assetId, locationId: pic.locationId, binding: pic.binding, note: world.read.location?.assetId === pic.assetId ? `${world.read.location.why} (World Bible revision ${world.read.revisionNumber})` : `${pack.location?.role === 'STATE' ? `plate for ${scene?.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'the time of day'}` : 'master plate'}` });
+        else if (pic.role === 'FACE_REFERENCE') references.push({ kind: 'CHARACTER', assetId: pic.assetId, characterId: pic.characterId, binding: pic.binding, note: `derived face reference (a crop of the canonical image; ${pack.faceReferences.find((f) => f.characterId === pic.characterId)?.reason ?? ''})` });
         else references.push({ kind: 'FIRST_FRAME', assetId: pic.assetId, binding: pic.binding, note: 'the drawn opening frame, bound as a picture (a production asset, not an identity)' });
       }
     }
