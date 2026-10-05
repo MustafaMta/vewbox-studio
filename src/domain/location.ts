@@ -15,8 +15,21 @@ const list = (xs?: string[] | null) => (xs ?? []).map(clean).filter(Boolean);
 /** What the identity is made of, in a fixed shape (the hash is over this). */
 export function identityFacts(l: Pick<Location, 'kind' | 'description' | 'landmarks' | 'props' | 'layout'>) {
   const lay = l.layout ?? {};
-  return { kind: l.kind, description: clean(l.description), architecture: clean(lay.architecture), geography: clean(lay.geography), spatial: clean(lay.spatial), materials: list(lay.materials), fixedFeatures: list(l.landmarks), props: list(l.props), entrances: list(lay.entrances), zones: list(lay.cameraZones) };
+  const light = lightFacts(lay.light);
+  // the lighting rules join the canon only when the place has any: a place without them keeps its hash (and version)
+  return { kind: l.kind, description: clean(l.description), architecture: clean(lay.architecture), geography: clean(lay.geography), spatial: clean(lay.spatial), materials: list(lay.materials), fixedFeatures: list(l.landmarks), props: list(l.props), entrances: list(lay.entrances), zones: list(lay.cameraZones), ...(light ? { light } : {}) };
 }
+
+/** The place's lighting rules, cleaned; undefined when it states none. */
+export function lightFacts(light?: NonNullable<Location['layout']>['light']): { key: string; practicals: string[]; palette: string[]; byTime: Record<string, string> } | undefined {
+  if (!light) return undefined;
+  const byTime = Object.fromEntries(Object.entries(light.byTime ?? {}).map(([t, s]) => [t, clean(s)]).filter(([, s]) => s).sort(([a], [b]) => a.localeCompare(b)));
+  const f = { key: clean(light.key), practicals: list(light.practicals), palette: list(light.palette), byTime };
+  return f.key || f.practicals.length || f.palette.length || Object.keys(byTime).length ? f : undefined;
+}
+
+/** The place's own light at a time of day (its rule), if it states one. */
+export const lightRuleAt = (l: Pick<Location, 'layout'> | undefined, timeOfDay?: string): string | undefined => (timeOfDay ? lightFacts(l?.layout?.light)?.byTime[timeOfDay] : undefined);
 
 export const identityHashOf = (l: Parameters<typeof identityFacts>[0]): string => hashString(canonical(identityFacts(l)));
 
@@ -34,6 +47,10 @@ export function locationIdentityLine(l: Parameters<typeof identityFacts>[0]): st
     f.props.length && `permanent props: ${f.props.join(', ')}`,
     f.entrances.length && `entrances: ${f.entrances.join('; ')}`,
     f.zones.length && `camera zones: ${f.zones.join('; ')}`,
+    // the light design (per time of day it is the scene state's, not the identity line's)
+    f.light?.key && `key light: ${f.light.key.replace(/\.$/, '')}`,
+    f.light?.practicals.length && `practical lights: ${f.light.practicals.join(', ')}`,
+    f.light?.palette.length && `colour palette: ${f.light.palette.join(', ')}`,
   ].filter((x): x is string => Boolean(x));
   return parts.join('; ');
 }

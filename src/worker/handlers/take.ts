@@ -238,6 +238,12 @@ export const generateTake: Handler = async (ctx) => {
     const a = byId(opening.assetId);
     return ps && pt ? { endFrame: windowEndSourceFrame(p, ps, pt, a), totalFrames: Math.round((pt.durationSeconds ?? a?.durationSeconds ?? 0) * CLOCK_FPS) } : undefined;
   };
+  // the colour join (src/server/media/continuity-qa.ts colourJoin): against the end of the chosen take of the shot before,
+  // in the same scene, on a continuation or a cut (a transition is meant to change the light)
+  const colourAgainst = (prev: { shotId: string; takeId?: string; assetId?: string; sameScene: boolean } | undefined, rel: typeof relation) => {
+    const a = prev?.sameScene && prev.takeId && prev.assetId && rel !== 'STORY_TRANSITION' ? byId(prev.assetId) : undefined;
+    return a && a.kind === 'VIDEO' && !a.unavailable && !a.sample ? { previousFile: assetFile(a), previousEndFrame: prevEnd({ shotId: prev!.shotId, takeId: prev!.takeId!, assetId: a.id })?.endFrame, relation: rel === 'CONTINUATION' ? 'CONTINUATION' as const : 'CUT' as const } : undefined;
+  };
   if (pack.opening.kind === 'TAIL') {
     const prevAsset = byId(pack.opening.assetId)!;
     const end = prevEnd(pack.opening);
@@ -553,7 +559,7 @@ export const generateTake: Handler = async (ctx) => {
     const headSeconds = trimStartFrames / H3_FPS;
     const plannedCuts = (sh.staging?.beats ?? []).filter((b) => b.cut && b.at > 0).map((b) => headSeconds + b.at);
     try {
-      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard }));
+      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard, colour: colourAgainst(pack.context.shot.previous, relation) }));
       driftChecks.push(...measured);
     } catch (e) {
       driftChecks.push({ name: 'continuity-measured', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });

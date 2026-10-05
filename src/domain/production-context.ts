@@ -5,7 +5,7 @@ import { canonical, hashString } from './hash';
 import { orderedShots } from './timeline';
 import { relationOf, sceneStateFor, type SceneState } from './scene-state';
 import { primaryImageOf, primaryImageSourceOf } from './identity';
-import { locationIdentity } from './location';
+import { lightRuleAt, locationIdentity } from './location';
 
 /** THE PRODUCTION CONTEXT OF ONE SHOT (cloud directive 2026-10-05 §4: "Each generated shot must be created from
  *  structured production state … stored by the application, not information that exists only inside an LLM prompt").
@@ -111,6 +111,8 @@ export interface LocationContext {
   timeOfDay?: TimeOfDay;
   weather?: string;
   lighting?: string;
+  /** where the light came from: the scene state (carried or stated), or the place's own rule for the time of day */
+  lightingFrom?: 'SCENE' | 'LOCATION_RULE';
   placeState?: string;
   changes: Array<{ text: string; source: FactSource }>;
   hasPlate: boolean;
@@ -274,7 +276,10 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
       architecture: clean(loc.layout?.architecture), layout: clean(loc.layout?.spatial ?? loc.layout?.geography),
       permanent: [...loc.landmarks, ...loc.props].map((x) => clean(x)!).filter(Boolean),
       objects: sceneState.props.map((x) => ({ name: x.name, state: x.state, position: x.position, ownerCharacterId: x.ownerCharacterId })),
-      timeOfDay: sceneState.timeOfDay, weather: sceneState.weather, lighting: sceneState.lighting, placeState: sceneState.placeState,
+      timeOfDay: sceneState.timeOfDay, weather: sceneState.weather,
+      // THE PLACE'S LIGHTING RULE (types.ts LocationLight): the scene's stated or carried light wins; the rule fills in
+      ...(sceneState.lighting ? { lighting: sceneState.lighting, lightingFrom: 'SCENE' as const } : lightRuleAt(loc, sceneState.timeOfDay) ? { lighting: lightRuleAt(loc, sceneState.timeOfDay), lightingFrom: 'LOCATION_RULE' as const } : {}),
+      placeState: sceneState.placeState,
       changes: changes.filter((c) => (c.change.subject.kind === 'LOCATION' && c.change.subject.locationId === loc.id) || (c.change.subject.kind === 'PROP' && sceneState.props.some((x) => norm(x.name) === norm((c.change.subject as { name: string }).name)))).map((c) => ({ text: clean(c.change.text)!, source: changeSource(c) })),
       hasPlate: plate,
     };
@@ -385,6 +390,8 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
   }
   const staging = c.blocking ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
   if (staging) out.push(staging);
+  // the place's own light for the time of day, when the scene states none (the scene state line says a stated one)
+  if (c.location?.lightingFrom === 'LOCATION_RULE' && c.location.lighting) out.push(`Light, as this place always has it${c.location.timeOfDay ? ` at ${c.location.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}: ${c.location.lighting.replace(/\.$/, '')}.`);
   const placeChanges = (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
   if (placeChanges.length) out.push(`The place as the story left it: ${placeChanges.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
   const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)));
