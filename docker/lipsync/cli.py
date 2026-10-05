@@ -22,6 +22,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--audio-offset", type=float, default=0.0)
     ap.add_argument("--reference")
+    ap.add_argument("--others", default="", help="comma-separated pictures of the OTHER characters in the shot")
     ap.add_argument("--hint-box")
     ap.add_argument("--steps", type=int, default=cr.DEFAULTS["steps"])
     ap.add_argument("--guidance", type=float, default=cr.DEFAULTS["guidance"])
@@ -30,12 +31,18 @@ def main() -> int:
     ap.add_argument("--erode", type=float, default=cr.DEFAULTS["erode"])
     ap.add_argument("--report")
     ap.add_argument("--debug-dir")
+    ap.add_argument("--track-only", action="store_true", help="tracking and alignment only (CPU, no model): writes the debug sheets")
     a = ap.parse_args()
     hint = tuple(float(x) for x in a.hint_box.split(",")) if a.hint_box else None
+    others = [p for p in a.others.split(",") if p]
+    if a.track_only:
+        rep = cr.track_only(a.video, a.debug_dir or os.path.splitext(a.out)[0] + "-track", reference=a.reference, hint=hint, others=others)  # type: ignore[arg-type]
+        print(json.dumps(rep, indent=1))
+        return 0
     c = cr.Corrector()
     with tempfile.TemporaryDirectory() as d:
         try:
-            rep = c.correct(a.video, a.audio, a.out, audio_offset=a.audio_offset, reference=a.reference, hint=hint, steps=a.steps, guidance=a.guidance, seed=a.seed, feather=a.feather, erode=a.erode, workdir=d, debug_dir=a.debug_dir)  # type: ignore[arg-type]
+            rep = c.correct(a.video, a.audio, a.out, audio_offset=a.audio_offset, reference=a.reference, others=others, hint=hint, steps=a.steps, guidance=a.guidance, seed=a.seed, feather=a.feather, erode=a.erode, workdir=d, debug_dir=a.debug_dir)  # type: ignore[arg-type]
         except (cr.InputError, cr.Unavailable) as e:
             print(json.dumps({"ok": False, "error": f"{type(e).__name__}: {e}"}))
             return 2

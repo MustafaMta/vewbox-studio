@@ -27,7 +27,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -203,9 +203,13 @@ class Track:
     edit: list[bool]
     boxes: list[ft.Box | None]
     report: ft.TrackReport
+    frontal: list[float | None]
+    strength: np.ndarray
 
 
-def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray | None, hint: ft.Box | None) -> Track:
+def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray | None, hint: ft.Box | None, others: Sequence[np.ndarray] = ()) -> Track:
+    """The speaker's face through the clip. `ref_vec`: the speaker's SFace embedding; `others`: the embeddings of the
+    other characters in the shot (a face is taken for the speaker only if it resembles the speaker more than them)."""
     import cv2  # type: ignore
 
     n = len(frames)
@@ -215,22 +219,26 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
     lost = 0
     pts: list[np.ndarray | None] = []
     boxes: list[ft.Box | None] = []
+    frontal: list[float | None] = []
     for rgb in frames:
         bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
         faces = tracker.detect(bgr)
         dets = []
         for f in faces:
             box = (float(f[0]), float(f[1]), float(f[0] + f[2]), float(f[1] + f[3]))
-            ident = None
+            ident = rival = None
             if ref_vec is not None:
                 v = tracker.embed(bgr, f)
-                ident = ft_cos(v, ref_vec) if v is not None else None
-            dets.append(ft.Detection(box=box, score=float(f[14]), identity=ident))
+                if v is not None:
+                    ident = ft_cos(v, ref_vec)
+                    rival = max((ft_cos(v, o) for o in others), default=None)
+            dets.append(ft.Detection(box=box, score=float(f[14]), identity=ident, rival=rival))
         i = ft.choose_face(dets, prev, hint)
         m = tracker.mesh(rgb, dets[i].box) if i is not None else None
         if i is None or m is None:
             pts.append(None)
             boxes.append(None)
+            frontal.append(None)
             lost += 1
             if lost > ft.MAX_GAP_FRAMES:
                 smoother.reset()
@@ -241,17 +249,104 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
         lm68 = smoother.smooth(ft.lm68_from_mp478(m))
         pts.append(ft.align_points3(lm68))
         boxes.append(dets[i].box)
+        frontal.append(round(ft.frontalness(m), 3))
         rep.face_height_px.append(dets[i].box[3] - dets[i].box[1])
         if dets[i].identity is not None:
             rep.identity.append(dets[i].identity)  # type: ignore[arg-type]
     filled, found = ft.fill_gaps(pts)
     edit = ft.bridged(found)
+    strength = ft.edit_strength(edit, [f if found[k] else None for k, f in enumerate(frontal)])
     rep.found = int(sum(found))
     rep.bridged = int(sum(edit) - sum(found))
     rep.lost_runs = ft.runs_of(found, False)
+    rep.profile = int(sum(1 for f in frontal if f is not None and f <= ft.FRONTAL_LO))
+    rep.strength_mean = round(float(strength.mean()), 3) if n else 0.0
+    rep.full_strength = int((strength >= 0.999).sum())
     if rep.found == 0:
         raise InputError("the speaker's face was not found in any frame")
-    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep)  # type: ignore[misc]
+    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep, frontal=frontal, strength=strength)  # type: ignore[misc]
+
+
+def align_crops(frames: np.ndarray, track: Track) -> tuple[list[np.ndarray], np.ndarray, tuple[int, int]]:
+    """Each frame's similarity transform onto LatentSync's template and the aligned 512² face crop (grey 127 outside
+    the frame, as upstream's kornia warp fills)."""
+    import cv2  # type: ignore
+
+    tpl, (face_w, face_h) = ft.template(RESOLUTION)
+    affines: list[np.ndarray] = []
+    crops = np.zeros((len(frames), RESOLUTION, RESOLUTION, 3), dtype=np.uint8)
+    p_bias = None
+    for i, fr in enumerate(frames):
+        m, p_bias = ft.similarity_from_points(track.points3[i], tpl, True, p_bias)
+        affines.append(m)
+        crop = cv2.warpAffine(fr, m, (face_w, face_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(127, 127, 127))
+        crops[i] = cv2.resize(crop, (RESOLUTION, RESOLUTION), interpolation=cv2.INTER_LANCZOS4)
+    return affines, crops, (face_w, face_h)
+
+
+def references(tracker: "FaceTracker", reference: str | None, others: Sequence[str]) -> tuple[np.ndarray | None, list[np.ndarray]]:
+    if not reference:
+        return None, []
+    return tracker.reference(reference), [tracker.reference(o) for o in others]
+
+
+def track_only(video: str, debug_dir: str, reference: str | None = None, hint: ft.Box | None = None, others: Sequence[str] = ()) -> dict[str, Any]:
+    """The CPU half alone (no model): tracking and alignment, with the aligned crops written for inspection."""
+    import cv2  # type: ignore
+
+    info = probe(video)
+    frames = read_frames(video, info["width"], info["height"])
+    tracker = FaceTracker()
+    try:
+        ref_vec, other_vecs = references(tracker, reference, others)
+        track = track_speaker(tracker, frames, ref_vec, hint, other_vecs)
+    finally:
+        tracker.close()
+    _aff, crops, _ = align_crops(frames, track)
+    write_debug(debug_dir, frames, frames, crops, list(crops), track, float(info["fps"] or 24))
+    mask = cv2.imread(MASK_PATH, cv2.IMREAD_GRAYSCALE) if os.path.isfile(MASK_PATH) else None
+    if mask is not None:  # the regenerated region drawn on a few aligned crops
+        m = cv2.resize(mask, (RESOLUTION, RESOLUTION)) < 128
+        for i in range(0, len(frames), max(1, len(frames) // 8)):
+            c = crops[i].copy()
+            c[m] = (0.5 * c[m] + 0.5 * np.array([255, 0, 255])).astype(np.uint8)
+            cv2.imwrite(os.path.join(debug_dir, f"masked_{i:04d}.jpg"), cv2.cvtColor(c, cv2.COLOR_RGB2BGR))
+    return {"frames": len(frames), "track": track.report.summary()}
+
+
+def write_debug(d: str, frames: np.ndarray, result: np.ndarray, crops: np.ndarray, out_crops: list[np.ndarray], track: Track, fps: float) -> None:
+    """For looking at the result (evaluation): per frame the speaker's box and whether it was edited (track.json); for
+    every 16 frames a sheet of the face, ORIGINAL above CORRECTED, frame by frame (pairs_<first frame>.jpg); a few
+    aligned 512² crops before/after."""
+    import cv2  # type: ignore
+
+    os.makedirs(d, exist_ok=True)
+    n = len(frames)
+    with open(os.path.join(d, "track.json"), "w") as f:
+        json.dump({"fps": fps, "edit": track.edit, "boxes": [None if b is None else [round(v, 1) for v in b] for b in track.boxes], "points3": [p.round(2).tolist() for p in track.points3]}, f)
+    known = [b for b in track.boxes if b is not None]
+    last = known[0] if known else (0.0, 0.0, float(frames.shape[2]), float(frames.shape[1]))
+    tiles_o, tiles_c = [], []
+    for i in range(n):
+        b = track.boxes[i] or last
+        last = b
+        w, h = b[2] - b[0], b[3] - b[1]
+        x0, y0, side = ft.crop_square((b[0], b[1] + 0.15 * h, b[2], b[3] + 0.15 * h), 1.25, frames.shape[2], frames.shape[1])
+        def cut(img: np.ndarray) -> np.ndarray:
+            pad = np.full((side, side, 3), 0, np.uint8)
+            sx0, sy0, sx1, sy1 = max(0, x0), max(0, y0), min(img.shape[1], x0 + side), min(img.shape[0], y0 + side)
+            pad[sy0 - y0: sy1 - y0, sx0 - x0: sx1 - x0] = img[sy0:sy1, sx0:sx1]
+            t = cv2.resize(pad, (192, 192), interpolation=cv2.INTER_AREA if side > 192 else cv2.INTER_CUBIC)
+            cv2.putText(t, f"{i} {track.strength[i]:.1f}",(4, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
+            return t
+        tiles_o.append(cut(frames[i]))
+        tiles_c.append(cut(result[i]))
+    for s in range(0, n, 16):
+        o = np.concatenate(tiles_o[s:s + 16] + [np.zeros((192, 192, 3), np.uint8)] * (16 - len(tiles_o[s:s + 16])), axis=1)
+        c = np.concatenate(tiles_c[s:s + 16] + [np.zeros((192, 192, 3), np.uint8)] * (16 - len(tiles_c[s:s + 16])), axis=1)
+        cv2.imwrite(os.path.join(d, f"pairs_{s:04d}.jpg"), cv2.cvtColor(np.concatenate([o, c], axis=0), cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 88])
+    for i in range(0, n, max(1, n // 6)):
+        cv2.imwrite(os.path.join(d, f"aligned_{i:04d}.jpg"), cv2.cvtColor(np.concatenate([crops[i], out_crops[i]], axis=1), cv2.COLOR_RGB2BGR))
 
 
 def ft_cos(a: np.ndarray, b: np.ndarray) -> float:
@@ -334,10 +429,9 @@ class Corrector:
         return was
 
     # -- one correction
-    def correct(self, video: str, audio: str, out_path: str, *, audio_offset: float = 0.0, reference: str | None = None, hint: ft.Box | None = None, steps: int = DEFAULTS["steps"], guidance: float = DEFAULTS["guidance"], seed: int = DEFAULTS["seed"], feather: float = DEFAULTS["feather"], erode: float = DEFAULTS["erode"], crf: int = DEFAULTS["crf"], workdir: str = "/tmp", debug_dir: str | None = None) -> dict[str, Any]:
+    def correct(self, video: str, audio: str, out_path: str, *, audio_offset: float = 0.0, reference: str | None = None, others: Sequence[str] = (), hint: ft.Box | None = None, steps: int = DEFAULTS["steps"], guidance: float = DEFAULTS["guidance"], seed: int = DEFAULTS["seed"], feather: float = DEFAULTS["feather"], erode: float = DEFAULTS["erode"], crf: int = DEFAULTS["crf"], workdir: str = "/tmp", debug_dir: str | None = None) -> dict[str, Any]:
         import cv2  # type: ignore
         import torch  # type: ignore
-        from einops import rearrange  # type: ignore
 
         t0 = time.time()
         info = probe(video)
@@ -352,29 +446,16 @@ class Corrector:
 
         tracker = FaceTracker()
         try:
-            ref_vec = tracker.reference(reference) if reference else None
-            track = track_speaker(tracker, frames, ref_vec, hint)
+            ref_vec, other_vecs = references(tracker, reference, others)
+            track = track_speaker(tracker, frames, ref_vec, hint, other_vecs)
         finally:
             tracker.close()
         t_track = time.time()
 
+        affines, crops, (face_w, face_h) = align_crops(frames, track)
         if LATENTSYNC_DIR not in sys.path:
             sys.path.insert(0, LATENTSYNC_DIR)
-        from latentsync.utils.affine_transform import AlignRestore  # type: ignore
         from latentsync.utils.image_processor import ImageProcessor, load_fixed_mask  # type: ignore
-
-        restorer = AlignRestore(resolution=RESOLUTION, device="cpu", dtype=torch.float32)
-        face_w, face_h = restorer.face_size  # (width, height) of the aligned crop before the 512² resize
-        template = restorer.face_template
-        affines: list[np.ndarray] = []
-        crops = np.zeros((n, RESOLUTION, RESOLUTION, 3), dtype=np.uint8)
-        p_bias = None
-        for i in range(n):
-            m, p_bias = restorer.transformation_from_points(track.points3[i], template, True, p_bias)
-            m = np.asarray(m, dtype=np.float64)
-            affines.append(m)
-            crop = cv2.warpAffine(frames[i], m, (face_w, face_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(127, 127, 127))
-            crops[i] = cv2.resize(crop, (RESOLUTION, RESOLUTION), interpolation=cv2.INTER_LANCZOS4)
 
         with self.lock:
             self.load()
@@ -432,19 +513,17 @@ class Corrector:
         inside: list[float] = []
         edited = 0
         for i in range(n):
-            if not track.edit[i]:
+            s = float(track.strength[i])
+            if s <= 0.0:
                 continue
             gen = cv2.resize(out_crops[i], (face_w, face_h), interpolation=cv2.INTER_CUBIC)
-            result[i], wt = ft.composite(frames[i], gen, weight, affines[i])
+            result[i], wt = ft.composite(frames[i], gen, weight * s, affines[i])
             edited += 1
             if i % 6 == 0:
                 inside.append(float(ft.masked_stats(frames[i], result[i], wt)["inside_mad"]))
         track.report.edited = edited
         if debug_dir:
-            os.makedirs(debug_dir, exist_ok=True)
-            for i in range(0, n, max(1, n // 12)):
-                cv2.imwrite(os.path.join(debug_dir, f"crop_{i:04d}_in.png"), cv2.cvtColor(crops[i], cv2.COLOR_RGB2BGR))
-                cv2.imwrite(os.path.join(debug_dir, f"crop_{i:04d}_out.png"), cv2.cvtColor(out_crops[i], cv2.COLOR_RGB2BGR))
+            write_debug(debug_dir, frames, result, crops, out_crops, track, fps)
         write_video(result, info["fps_str"] or f"{fps}", out_path, video if info["has_audio"] else None, crf)
         t_end = time.time()
         return {

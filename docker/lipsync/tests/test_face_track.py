@@ -71,6 +71,37 @@ def test_choose_face_by_identity_never_takes_another_character():
     assert ft.choose_face([b, c], prev=(2, 2, 98, 98)) == 1
 
 
+def test_choose_face_refuses_a_listener_who_resembles_the_speaker():
+    # measured on a stylised two-shot: the listener scored 0.3+ against the speaker's picture while the speaker was in
+    # profile (not detected). With the listener's own picture as a rival he is refused.
+    listener = ft.Detection(box=(500, 50, 640, 200), score=0.9, identity=0.34, rival=0.86)
+    assert ft.choose_face([listener], prev=None) is None
+    speaker = ft.Detection(box=(100, 50, 220, 200), score=0.9, identity=0.48, rival=0.30)
+    assert ft.choose_face([listener, speaker], prev=None) == 1
+    # without rivals the listener would have been taken: the case the rival rule exists for
+    assert ft.choose_face([ft.Detection(box=listener.box, score=0.9, identity=0.34)], prev=None) == 0
+
+
+def test_frontalness_and_edit_strength():
+    m = np.zeros((478, 2))
+    m[4] = (100, 100)
+    m[234], m[454] = (60, 100), (140, 100)
+    assert abs(ft.frontalness(m) - 1.0) < 1e-9
+    m[454] = (110, 100)  # turned: the far cheek is hidden behind the nose
+    assert ft.frontalness(m) < 0.3
+    edit = [True] * 20
+    frontal = [0.9] * 8 + [0.1] * 4 + [0.9] * 8
+    s = ft.edit_strength(edit, frontal, ramp=4)
+    assert s[0] == 1.0 and s[19] == 1.0
+    assert np.all(s[8:12] == 0.0)  # the profile frames are not edited
+    assert 0 < s[6] < 1 and 0 < s[13] < 1 and s[6] > s[7]  # fades out and back in
+    assert np.all(np.abs(np.diff(s)) <= 1 / 5 + 1e-9)  # never pops
+    s2 = ft.edit_strength([True, False, True], [0.9, None, 0.9], ramp=0)
+    assert list(s2) == [1.0, 0.0, 1.0]
+    s3 = ft.edit_strength([True, True, True], [0.9, None, 0.9], ramp=0)  # a bridged frame inherits its neighbours
+    assert list(s3) == [1.0, 1.0, 1.0]
+
+
 def test_choose_face_without_identity_continuity_hint_largest():
     small = ft.Detection(box=(0, 0, 50, 50), score=0.9)
     big = ft.Detection(box=(200, 200, 400, 400), score=0.9)
@@ -142,6 +173,25 @@ def test_face_weight_is_inside_the_regenerated_region():
     assert w[:55].max() < 0.05  # nothing bleeds into the kept upper face
     assert w[90, 50] > 0.99
     assert 0.0 <= w.min() and w.max() <= 1.0
+
+
+def test_similarity_maps_points_onto_the_template():
+    tpl, size = ft.template(512)
+    assert size == (420, 560)
+    # the template itself, rotated 10°, scaled 0.4 and shifted: the matrix must undo exactly that
+    a = np.deg2rad(10)
+    rot = np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]])
+    pts = (tpl @ rot.T) * 0.4 + np.array([300.0, 120.0])
+    m, bias = ft.similarity_from_points(pts, tpl, smooth=False)
+    mapped = pts @ m[:, :2].T + m[:, 2]
+    assert np.allclose(mapped, tpl, atol=1e-6)
+    assert bias is None
+    # with smoothing (upstream's quirk) the translation moves by the normalised nose difference: a pixel or two at most
+    m2, b2 = ft.similarity_from_points(pts, tpl, smooth=True)
+    assert np.allclose(m2[:, :2], m[:, :2]) and np.allclose(m2[:, 2] - m[:, 2], b2) and np.all(np.abs(b2) < 3)
+    # the next frame blends the bias 0.2 old / 0.8 new
+    m3, b3 = ft.similarity_from_points(pts, tpl, smooth=True, p_bias=np.zeros(2))
+    assert np.allclose(b3, 0.8 * b2)
 
 
 def test_track_report_summary():

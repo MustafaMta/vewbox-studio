@@ -3,7 +3,8 @@
 GET  /health   weights present, loaded or not, GPU memory, the detector, the licences
 POST /lipsync  multipart: video (the take), audio (the authoritative audio the mouth must follow), audio_offset (s: where
                that audio starts in the clip; default 0), reference (optional image: the speaker's canonical picture,
-               chooses the face by SFace identity), hint_box (optional JSON [x0,y0,x1,y1] in video pixels: the speaker's
+               chooses the face by SFace identity), others (optional, repeated: the other characters' pictures — a
+               face is taken for the speaker only if it resembles the speaker more than them), hint_box (optional JSON [x0,y0,x1,y1] in video pixels: the speaker's
                face track from /qa/mouth), steps, guidance, seed, feather, erode
                -> the corrected MP4 (same frame count, rate and size; the take's own audio copied), with the report as
                base64url JSON in the `X-Lipsync-Report` header
@@ -83,6 +84,7 @@ async def _save(up: UploadFile, d: str, name: str) -> str:
 @app.post("/lipsync")
 async def lipsync(
     video: UploadFile = File(...), audio: UploadFile = File(...), reference: UploadFile | None = File(None),
+    others: list[UploadFile] | None = File(None),
     audio_offset: float = Form(0.0), hint_box: str | None = Form(None), steps: int = Form(cr.DEFAULTS["steps"]),
     guidance: float = Form(cr.DEFAULTS["guidance"]), seed: int = Form(cr.DEFAULTS["seed"]),
     feather: float = Form(cr.DEFAULTS["feather"]), erode: float = Form(cr.DEFAULTS["erode"]),
@@ -107,9 +109,10 @@ async def lipsync(
         vp = await _save(video, d, "video")
         ap = await _save(audio, d, "audio")
         rp = await _save(reference, d, "reference") if reference is not None and reference.filename else None
+        ops = [await _save(o, d, f"other{k}") for k, o in enumerate(others or []) if o.filename]
         out = os.path.join(d, "corrected.mp4")
         try:
-            report = await run_in_threadpool(C.correct, vp, ap, out, audio_offset=audio_offset, reference=rp, hint=hint, steps=steps, guidance=guidance, seed=seed, feather=feather, erode=erode, workdir=d)
+            report = await run_in_threadpool(C.correct, vp, ap, out, audio_offset=audio_offset, reference=rp, others=ops, hint=hint, steps=steps, guidance=guidance, seed=seed, feather=feather, erode=erode, workdir=d)
         except cr.InputError as e:
             raise HTTPException(422, str(e)) from e
         except cr.Unavailable as e:

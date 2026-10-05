@@ -86,6 +86,45 @@ class LaplacianSmooth:
         return out
 
 
+# LatentSync's alignment template (latentsync/utils/affine_transform.py AlignRestore, align_points=3): the two eyebrow
+# centres and the nose centre in a 75×100 face box, scaled by resolution/256·2.8; the aligned crop is face_size
+# (75·r × 100·r, width × height) and is then resized to resolution².
+def template(resolution: int = 512) -> tuple[np.ndarray, tuple[int, int]]:
+    ratio = resolution / 256 * 2.8
+    tpl = np.array([[19 - 2, 30 - 10], [56 + 2, 30 - 10], [37.5, 45 - 5]], dtype=np.float64) * ratio
+    return tpl, (int(75 * ratio), int(100 * ratio))
+
+
+def similarity_from_points(points: np.ndarray, tpl: np.ndarray, smooth: bool = True, p_bias: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray | None]:
+    """numpy port of AlignRestore.transformation_from_points (LatentSync 1.6, Apache-2.0), same arithmetic: Procrustes
+    similarity (unbiased std normalisation, SVD, reflection fix) from the 3 points to the template, plus upstream's
+    temporal 'bias' smoothing of the nose term (0.2 old + 0.8 new, added to the translation as upstream does).
+    Returns (2×3 matrix frame → aligned crop, p_bias)."""
+    p1 = np.asarray(points, dtype=np.float64)
+    p2 = np.asarray(tpl, dtype=np.float64)
+    c1, c2 = p1.mean(0), p2.mean(0)
+    p1c, p2c = p1 - c1, p2 - c2
+    s1, s2 = np.std(p1c, ddof=1), np.std(p2c, ddof=1)
+    p1n, p2n = p1c / s1, p2c / s2
+    cov = p1n.T @ p2n
+    u, _s, vh = np.linalg.svd(cov)
+    v = vh.T
+    r = v @ u.T
+    if np.linalg.det(r) < 0:
+        v[:, -1] = -v[:, -1]
+        r = v @ u.T
+    sr = (s2 / s1) * r
+    t = c2.reshape(2, 1) - (s2 / s1) * (r @ c1.reshape(2, 1))
+    m = np.concatenate([sr, t], axis=1)
+    if smooth:
+        bias = p2n[2] - p1n[2]
+        if p_bias is not None:
+            bias = p_bias * 0.2 + bias * 0.8
+        p_bias = bias
+        m[:, 2] = m[:, 2] + bias
+    return m, p_bias
+
+
 def iou(a: Box, b: Box) -> float:
     ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
     iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
@@ -98,27 +137,35 @@ def area(b: Box) -> float:
     return max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
 
 
+RIVAL_MARGIN = 0.05  # a face is the speaker only if it resembles the speaker this much more than any other character
+FRONTAL_LO, FRONTAL_HI = 0.35, 0.55  # frontalness below LO: not edited (a profile); above HI: full strength (START)
+STRENGTH_RAMP = 4  # frames over which the edit fades in / out around profile frames and lost runs
+
+
 @dataclass
 class Detection:
     box: Box
     score: float
-    identity: float | None = None  # SFace cosine against the reference, when one was given
+    identity: float | None = None  # SFace cosine against the speaker's reference, when one was given
+    rival: float | None = None  # the best SFace cosine against the OTHER characters' references (when given)
 
 
-def choose_face(dets: Sequence[Detection], prev: Box | None, hint: Box | None = None, identity_min: float = IDENTITY_MIN, iou_min: float = TRACK_IOU_MIN) -> int | None:
+def choose_face(dets: Sequence[Detection], prev: Box | None, hint: Box | None = None, identity_min: float = IDENTITY_MIN, iou_min: float = TRACK_IOU_MIN, rival_margin: float = RIVAL_MARGIN) -> int | None:
     """Which detection is the face to correct in this frame.
 
-    1. With identities (a reference was given): the best-matching face at or above `identity_min`; ties and near-ties
-       (within 0.05) go to the one that continues the previous box.
+    1. With identities (a reference was given): the best-matching face at or above `identity_min` that also resembles
+       the speaker more than any other character of the shot (by `rival_margin`, when their references were given);
+       ties and near-ties (within 0.05) go to the one that continues the previous box.
     2. Else the face that continues the previous box (IoU ≥ `iou_min`).
     3. Else (first frame, or the track was lost) the face overlapping the hint box most, else the largest face.
-    None when there is no detection, or when identities were measured and none reaches `identity_min` (the speaker is
-    not in this frame: another character must not be corrected in their place)."""
+    None when there is no detection, or when identities were measured and no face qualifies (the speaker is not in
+    this frame — e.g. turned to a profile the detector misses: another character must not be corrected in their place;
+    measured 2026-10-06 on a stylised two-shot, where SFace gave the listener 0.3+ against the speaker's picture)."""
     if not dets:
         return None
     cont = [iou(prev, d.box) if prev is not None else 0.0 for d in dets]
     if any(d.identity is not None for d in dets):
-        ok = [i for i, d in enumerate(dets) if d.identity is not None and d.identity >= identity_min]
+        ok = [i for i, d in enumerate(dets) if d.identity is not None and d.identity >= identity_min and (d.rival is None or d.identity >= d.rival + rival_margin)]
         if not ok:
             return None
         best = max(d.identity for i, d in enumerate(dets) if i in ok)  # type: ignore[type-var]
@@ -134,6 +181,46 @@ def choose_face(dets: Sequence[Detection], prev: Box | None, hint: Box | None = 
         if ov[i] > 0:
             return i
     return int(np.argmax([area(d.box) for d in dets]))
+
+
+def frontalness(xy478: np.ndarray) -> float:
+    """How frontal the face is, from the 2-D mesh: the nose tip's distance to the nearer cheek contour over its distance
+    to the farther one (MediaPipe 4 = nose tip, 234 / 454 = the left / right face edge). 1 for a frontal face, → 0 as
+    it turns to a profile. LatentSync is trained on near-frontal talking heads and its 3-point alignment degenerates in
+    profile (both eyebrow centres collapse together)."""
+    xy = np.asarray(xy478, dtype=np.float64)[:, :2]
+    dl = float(np.linalg.norm(xy[4] - xy[234]))
+    dr = float(np.linalg.norm(xy[4] - xy[454]))
+    hi = max(dl, dr)
+    return min(dl, dr) / hi if hi > 1e-6 else 0.0
+
+
+def edit_strength(edit: Sequence[bool], frontal: Sequence[float | None], lo: float = FRONTAL_LO, hi: float = FRONTAL_HI, ramp: int = STRENGTH_RAMP) -> np.ndarray:
+    """Per frame, how much of the regenerated mouth is blended in (0..1): 0 where the frame is not edited or the face is
+    in profile (frontalness ≤ lo), 1 when frontal (≥ hi), linear between; then eroded and ramped over `ramp` frames so
+    the edit fades in and out instead of popping when the head turns or the face is lost."""
+    n = len(edit)
+    s = np.zeros(n, dtype=np.float64)
+    for i in range(n):
+        f = frontal[i]
+        if edit[i] and f is not None:
+            s[i] = float(np.clip((f - lo) / max(1e-6, hi - lo), 0.0, 1.0))
+        elif edit[i]:
+            s[i] = 1.0  # bridged frame: inherits the neighbours below
+    # bridged frames take the lower of their neighbours' strengths
+    for i in range(n):
+        if edit[i] and frontal[i] is None:
+            left = next((s[j] for j in range(i - 1, -1, -1) if frontal[j] is not None), 0.0)
+            right = next((s[j] for j in range(i + 1, n) if frontal[j] is not None), 0.0)
+            s[i] = min(left, right)
+    if ramp > 0 and n:
+        # each frame is limited by its distance (in frames) to the nearest weaker frame: a linear ramp of `ramp` frames
+        out = s.copy()
+        for i in range(n):
+            for j in range(max(0, i - ramp), min(n, i + ramp + 1)):
+                out[i] = min(out[i], s[j] + abs(i - j) / (ramp + 1))
+        s = out
+    return np.clip(s, 0.0, 1.0)
 
 
 def fill_gaps(points: Sequence[np.ndarray | None], max_gap: int = MAX_GAP_FRAMES) -> tuple[list[np.ndarray | None], list[bool]]:
@@ -253,12 +340,16 @@ class TrackReport:
     face_height_px: list[float] = field(default_factory=list)
     identity: list[float] = field(default_factory=list)
     lost_runs: list[tuple[int, int]] = field(default_factory=list)
+    profile: int = 0
+    strength_mean: float = 0.0
+    full_strength: int = 0
 
     def summary(self) -> dict[str, object]:
         hs = np.asarray(self.face_height_px, dtype=float)
         ids = np.asarray(self.identity, dtype=float)
         return {
             "frames": self.frames, "frames_with_face": self.found, "frames_bridged": self.bridged, "frames_edited": self.edited,
+            "frames_profile": self.profile, "strength_mean": self.strength_mean, "frames_full_strength": self.full_strength,
             "face_height_px": {"median": round(float(np.median(hs)), 1), "min": round(float(hs.min()), 1)} if hs.size else None,
             "identity_to_reference": {"median": round(float(np.median(ids)), 4), "min": round(float(ids.min()), 4)} if ids.size else None,
             "lost_runs": [list(r) for r in self.lost_runs],
