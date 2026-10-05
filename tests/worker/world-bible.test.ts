@@ -241,4 +241,23 @@ describe('World Bible + audio timeline on the test database', () => {
     expect(e1).toMatchObject({ action: 'REPINNED', view: { revision: { bible: { audio: { dialogue: 'RECORDED_VOICE' } } } } });
     expect((await m.world.worldOfProduction(s, prod(s, ids.e1))).revision.id).toBe(r.id);
   });
+
+  it('finishing episode 1 appends its facts and open storylines to the show’s bible once; episode 2 follows them (a safe re-pin); finishing it again writes nothing', async () => {
+    let s = await read();
+    const facts = { events: ['Ada left the parcel on the counter.'], unresolved: ['Who sent the parcel?'], relationships: ['Bo owes Ada a favour.'] };
+    const first = await m.world.recordEpisode(prod(s, ids.e1), facts);
+    expect(first).toMatchObject({ tag: 'S1E1', bibleChanged: true, created: true });
+    s = await read();
+    expect(s.shows.find((x) => x.id === ids.show)!.bible).toMatchObject({ timeline: ['S1E1: Ada left the parcel on the counter.'], unresolved: ['Who sent the parcel?'], relationships: ['Ada is Bo’s aunt.', 'Bo owes Ada a favour.'], worldRules: ['Nobody pays at the pharmacy.'] });
+    expect(first.revision.bible.openStorylines).toEqual(['Who sent the parcel?']);
+    expect(first.revision.bible.timeline.find((e) => e.source === 'SHOW_BIBLE')).toMatchObject({ text: 'S1E1: Ada left the parcel on the counter.' });
+    // episode 2 (pinned at its story's approval) follows: timeline facts and storylines change nothing it filmed
+    const e2 = await m.world.ensurePin(s, prod(s, ids.e2), { by: 'test' });
+    expect(e2).toMatchObject({ action: 'REPINNED', view: { revision: { id: first.revision.id } } });
+    expect(m.domain.worldForStory(e2.view.revision.bible)).toMatchObject({ openStorylines: ['Who sent the parcel?'], timeline: expect.arrayContaining(['S1E1: Ada left the parcel on the counter.']) });
+    // the same finish again: the bible is unchanged and no revision is written
+    const again = await m.world.recordEpisode(prod(s, ids.e1), facts);
+    expect(again).toMatchObject({ bibleChanged: false, created: false, revision: { id: first.revision.id } });
+    expect((await m.world.ensurePin(await read(), prod(s, ids.e2), { by: 'test' })).action).toBe('KEPT');
+  });
 });

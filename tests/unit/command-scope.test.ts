@@ -41,6 +41,7 @@ function corpus(): Command[] {
     c('addShow', { title: 'Paper Lanterns', logline: 'l', genre: 'drama', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9' }),
     c('updateShow', 'last-sip', { logline: 'a new logline' }), c('updateShow', 'nope', { logline: 'x' }),
     c('updateShowBible', 'last-sip', { timeline: { add: ['Ep 1: they meet'] }, unresolved: { add: ['the letter'] } }),
+    c('finishEpisode', 's1e1', { events: ['Layla opened early'], unresolved: ['the stranger'] }), c('finishEpisode', 'night-tray', {}), // a short has no show: INVALID
     c('addSeason', 'paper-kites', 'Season 2'), c('updateSeason', 'last-sip-s2', { arc: 'the arc' }),
     // productions
     c('addProduction', { kind: 'SHORT', title: 'Quick one', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 30, brief: { mode: 'MANUAL', text: 'x' }, castIds: ['hana'], locationIds: [] }),

@@ -13,7 +13,7 @@ export const COMMANDS = {
   addSeason: A.addSeason, updateSeason: A.updateSeason, deleteSeason: A.deleteSeason,
   addProduction: A.addProduction, updateProduction: A.updateProduction, deleteProduction: A.deleteProduction, duplicateProduction: A.duplicateProduction,
   setStage: A.setStage, markStepDone: A.markStepDone, recordExport: A.recordExport, setCut: A.setCut,
-  addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, fillProductionFields: A.fillProductionFields,
+  addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, finishEpisode: A.finishEpisode, fillProductionFields: A.fillProductionFields,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
   selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
@@ -176,7 +176,7 @@ export const SYSTEM_COMMANDS = [
   'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
   'setCanonicalImage', 'addLocationRefs', 'addAsset', 'updateAsset',
   // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
-  'addCastMember', 'addLocationMember', 'updateShowBible', 'fillProductionFields',
+  'addCastMember', 'addLocationMember', 'updateShowBible', 'finishEpisode', 'fillProductionFields',
 ] as const satisfies readonly CommandName[];
 export type SystemCommandName = (typeof SYSTEM_COMMANDS)[number];
 export type ClientCommandName = Exclude<CommandName, SystemCommandName>;

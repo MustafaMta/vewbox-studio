@@ -7,7 +7,9 @@ import { deriveWorld, diffWorld, establishCandidates, isEstablished, overlayWorl
 import { latestApproval } from '../org/gates';
 import { adoptFile, assetFile, assetFromStored } from '../media';
 import { frameAt, tmpDir } from '../media/ffmpeg';
-import { command } from '../studio/engine';
+import { command, readState } from '../studio/engine';
+import { episodeTag, type EpisodeFacts } from '@/domain/actions';
+import { canonical } from '@/domain/hash';
 import { appendPin, appendRevision, currentPin, latestRevision, revisionById } from './store';
 
 export { insertWorldRead, recordWorldRead, saveAudioTimeline, worldReads, latestRevision, pinHistory, currentPin } from './store';
@@ -115,6 +117,23 @@ export async function establishFromApprovedCut(state: StudioState, p: Production
   const fresh = { ...state, assets: [...state.assets, ...added] };
   const { revision } = await appendRevision(scope, (latest) => withEstablished(deriveWorld(fresh, scope, latest?.bible, now), frames, now), { author: AGENT, reason: `established frames from the approved cut of “${p.title}”`, jobId: opts.jobId });
   return { added: frames.length, revision, reason: `${frames.length} frame(s) established` };
+}
+
+/** FINISHING AN EPISODE (episodes and seasons): its facts (the Continuity Writer's, else its scenes' exit states) are
+ *  appended to its show's bible by the idempotent `finishEpisode` command, and the show's World Bible takes them as a
+ *  new revision — the next episode or season pins it at its story approval (an episode pinned already follows it on
+ *  its next pin check: timeline facts and open storylines change nothing it filmed). Run twice with the same facts it
+ *  writes nothing: the command returns the same studio and the revision's hash is unchanged. */
+export async function recordEpisode(p: Production, facts: EpisodeFacts = {}, opts: { jobId?: string } = {}): Promise<{ tag: string; bibleChanged: boolean; revision: WorldRevision; created: boolean }> {
+  const before = (await readState()).state;
+  const prod = before.productions.find((x) => x.id === p.id) ?? p;
+  const tag = episodeTag(before, prod);
+  const was = canonical(before.shows.find((x) => x.id === prod.showId)?.bible ?? {});
+  await command('finishEpisode', [prod.id, facts], 'worker');
+  const after = (await readState()).state;
+  const bibleChanged = canonical(after.shows.find((x) => x.id === prod.showId)?.bible ?? {}) !== was;
+  const synced = await syncWorld(after, after.productions.find((x) => x.id === prod.id) ?? prod, { reason: `episode ${tag} finished`, jobId: opts.jobId });
+  return { tag, bibleChanged, ...synced };
 }
 
 /** "ESTABLISH HERE" (the Location Bible): a take filmed in a place that had no plate, by the scene's own declaration
