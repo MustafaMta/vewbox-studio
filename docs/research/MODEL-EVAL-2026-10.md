@@ -1,5 +1,29 @@
 # Model evaluation, October 2026: running log
 
+## Decisions (2026-10-05)
+
+| Capability | Chosen | Key numbers (this card) | Change in the app |
+|---|---|---|---|
+| Canonical character from text | Qwen-Image-2512 quality (keep) | 6/6 + 9/9 stress first-attempt; 42 s; 29.8 GB | none |
+| Reference identity (upload → canonical) | FLUX.2 klein 4B (keep) | 10/10 whole + medium; 4 s; 20.1 GB (Edit-2511 rollback 7/10, 102 s) | none |
+| Placing a character in a plate, frames | Qwen-Image-Edit-2511 (keep; only Apache option) | E1 8/12 (Lightning 5/6, quality 3/6); 30 GB | none |
+| Location plates / views | 2512 plates (keep); views **unsupported** | plates 6/6; views 0/6 (Qwen-2.1 1/3) | none — do not advertise new camera angles from a master |
+| Posters | 2512 key art (keep), Arabic typeset | 4/4 cast; English title 2/2 | none |
+| Qwen-Image-2.1 (eval, NC licence) | not switched | E1 6/6 and 7 s, but photo→cartoon medium 0/2, title 0/2 | eval-only manifest group |
+| Local LLM (story, planning) | **gemma4:31b-it-qat** (was qwen3:14b) | Iraqi dialogue and shot plans clearly better; 2.5–3× slower; card 21.4 GB; 11/12 valid (one truncation) | default model (code, compose, `.env.example`); lease per model 21500/12000; test `tests/unit/llm-local-model.test.ts` |
+| Arabic ASR | whisper-large-v3-arabic-dialectal-v2 (converted, routed) | PASS 54 vs 44, mean CER 0.096 vs 0.102 on 107 synthetic lines | `asr-convert` fixed; `ASR_MODEL_DIR_AR=` reverts |
+| Iraqi TTS / English TTS | Habibi IRQ / IndexTTS 2.5 (keep) | 90/107 intelligible; English 18/20 | harness `language` fix |
+| Video | MiniMax H3 local Ref2VA turbo (keep) | 3/3 first-attempt clips, lines verbatim, join passes; 31.9 GB, 40.8 GiB RAM | none |
+
+**Open items:** (1) native Baghdadi listening review of `docs/evidence/iraqi-eval/2026-10-run1/review.html` — nothing
+Iraqi is verified until it is merged; (2) `MINIMAX_API_KEY` (hosted H3, 2K, H3-Max) — external; (3) `.wslconfig`
+`memory=80GB` + `wsl --shutdown` — H3 alone reaches 40.8 of 46.8 GiB; (4) the live `.env` sets
+`OPENAI_COMPATIBLE_MODEL` itself: change it to `gemma4:31b-it-qat` (or remove the line) for the switch to take effect;
+(5) Gemma's Arabic shot plan can exceed the 9000-token output budget (1/2) — measure a larger budget / 32K context
+before relying on it; (6) `engine.ts` `CharacterDesignSchema` strict enums cost a repair on every local design;
+(7) IndexTTS appends a garbled syllable to one-word lines (2/2); (8) `IMAGE_VRAM_MB` / VIDEO lease estimates
+under-report the measured peaks; (9) real Iraqi clips for the §5.9 ASR gate; Gemma as VLM (§5.6 L3) untested.
+
 AI Research Director, 2026-10-05. The controlled tests of `MODEL-STACK-2026-10.md` §5, run on the RTX 5090 (32 GB)
 with the studio's own graph builders, straight against the services (ComfyUI :8188, Ollama :11434, TTS :8020/:8021,
 ASR :8030). Job intake stayed paused the whole time (`studio_meta.paused_at` 2026-10-03 11:39, "Redesign phase");
