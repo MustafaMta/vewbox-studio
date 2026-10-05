@@ -353,6 +353,18 @@ describe('GENERATE_TAKE by relation', () => {
     expect(t).toMatchObject({ status: 'READY', params: { drift: { location: { meanDiff: 60, matches: false } } } });
     expect((t.qa as { ok: boolean; checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'location-matches-plate')).toMatchObject({ ok: false, detail: expect.stringMatching(/differs from the plate plate-dusk by 60\.00 luma levels after exposure .*over the provisional 36.*review, not rejected/) });
     expect(fake.qa.find((r) => (r.checks as Array<{ name: string }>).some((c) => c.name === 'location-matches-plate'))).toMatchObject({ decision: 'REVIEW', failureClass: 'ENVIRONMENT_INCONSISTENCY' });
+    // QA Q6: a flagged take is REVIEW, carries its flags, and is never chosen by the studio on its own
+    expect(t.params).toMatchObject({ verdict: { decision: 'REVIEW', autoChoose: false, flags: ['location-matches-plate'] } });
+    expect(t).not.toHaveProperty('select');
+    expect((t.qa as { ok: boolean }).ok).toBe(true); // report.ok keeps its meaning: the gate passed
+  });
+
+  it('QA Q6: a clean take is ACCEPT and chosen when the shot has no choice yet (IF_UNCHOSEN)', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, framing: 'WIDE' as const } : s)) }); fake.state = state;
+    await generateTake(ctx(p.id, 's12'));
+    const t = addTake();
+    expect(t.params).toMatchObject({ verdict: { decision: 'ACCEPT', autoChoose: true, flags: [] } });
+    expect(t.select).toBe('IF_UNCHOSEN');
   });
 
   it('a closer framing is NOT compared with the wide plate: recorded as not comparable, never as a drift (acceptance item 6)', async () => {
