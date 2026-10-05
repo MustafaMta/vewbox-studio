@@ -209,7 +209,7 @@ services:
   # the service drops the other before loading (docker/asr/app.py). Until the ct2 folder exists, `ar` uses large-v3.
   asr:
     logging: *logging
-    build: { context: ., dockerfile: docker/asr/Dockerfile }
+    build: { context: ., dockerfile: docker/asr/Dockerfile, secrets: [extra_ca] }
     image: vewbox/asr:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
@@ -318,7 +318,7 @@ services:
   # arguments instead: `docker compose --profile models run --rm models --manifest manifest.json --root /models --groups stack-2026-10`
   models:
     logging: *logging
-    build: { context: ., dockerfile: docker/models/Dockerfile }
+    build: { context: ., dockerfile: docker/models/Dockerfile, secrets: [extra_ca] }
     dns: *dns
     image: vewbox/models:${CODE_VERSION:-dev}
     profiles: ["models"]
@@ -329,6 +329,13 @@ services:
     volumes:
       - models:/models
     command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design,images-flux2-klein}"]
+
+# An extra public root certificate the asr and models builds trust, for a network that inspects TLS (an antivirus's
+# HTTPS scanning re-signs pypi.org and huggingface.co with its own root). EXTRA_CA_FILE in .env points at it (kept
+# outside Git, e.g. var/certs/extra-ca.pem); unset, an empty file is passed and the builds change nothing.
+secrets:
+  extra_ca:
+    file: ${EXTRA_CA_FILE:-./docker/certs/none.pem}
 
 volumes:
   pgdata:

@@ -36,6 +36,10 @@ const run = (cmd, argv, opts = {}) => {
 };
 const compose = (...a) => ['compose', '-p', PROJECT, ...a];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** One ASR capability as words: `true`, or per language for alignment (`en true / ar true`). */
+const capability = (v) => (v && typeof v === 'object' && !('available' in v)
+  ? Object.entries(v).map(([lang, c]) => `${lang} ${c?.available ?? c}`).join(' / ')
+  : String(v?.available ?? v));
 async function http(url, timeoutMs = 10_000) { const c = new AbortController(); const t = setTimeout(() => c.abort(), timeoutMs); try { const r = await fetch(url, { signal: c.signal }); return { ok: r.ok, status: r.status, body: await r.text() }; } catch (e) { return { ok: false, status: 0, body: String(e.message ?? e) }; } finally { clearTimeout(t); } }
 async function waitHealthy(service, tries = 60) {
   for (let i = 0; i < tries; i++) {
@@ -120,7 +124,7 @@ const STEPS = [
       for (const s of ['asr', 'tts', 'tts-habibi', 'tts-design']) { const h = await waitHealthy(s, 90); out.push(h.detail); if (!h.ok) return { ok: false, detail: out.join('; ') }; }
       const asr = await http('http://127.0.0.1:8030/health');
       let caps = '';
-      try { const j = JSON.parse(asr.body); caps = j.capabilities ? `; asr capabilities: ${Object.entries(j.capabilities).map(([k, v]) => `${k}=${v?.available ?? v}`).join(', ')}` : ''; } catch { /* older service */ }
+      try { const j = JSON.parse(asr.body); caps = j.capabilities ? `; asr capabilities: ${Object.entries(j.capabilities).map(([k, v]) => `${k}=${capability(v)}`).join(', ')}` : ''; } catch { /* older service */ }
       return { ok: true, detail: out.join('; ') + caps };
     } },
   { id: 'app', name: 'The studio answers (web /api/health, the worker)', cmd: START_APP ? 'pnpm dev (detached) + pnpm worker (detached), then GET /api/health' : 'GET /api/health (start `pnpm dev` and `pnpm worker` yourself, or pass --start-app)',

@@ -45,6 +45,14 @@ missing. **NOT READY** — what is still missing is named.
   theatre subtitle test (`theatre.spec.ts:213`) must pass on the workstation also because the subtitle-track rule
   changed (C7 item 4).
 
+### On the workstation (2026-10-06, after the merge into main)
+
+The bundle was imported with its hashes intact (head `1ee270c`, tree `cba5caf`) and merged into `main` with no
+conflicts. Results: `tsc` clean; `pnpm test` 160 files, 1474 passed (the two lead-in WAV cases run here, since the
+recordings are on disk); `pnpm test:worker` 83 passed, 1 skipped (the hosted-MiniMax key test, unused); `pnpm test:e2e`
+(Playwright's bundled Chromium, H.264/AAC available) **161 passed, 0 failed**. All 13 media tests listed above pass, so
+the cloud failures came from the cloud container's browser, not from Vewbox.
+
 ## What the automated lip-sync signals are, and are not
 
 Forced alignment, word timing, mouth-activity analysis, lag estimation and face-identity QA (C11, C12) are automated
