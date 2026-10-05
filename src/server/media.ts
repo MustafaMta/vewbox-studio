@@ -54,7 +54,9 @@ export function libraryPathFor(assetId: string, kind: AssetKind, ext: string, ta
  *  stream; the paths the server mints — `{kind}/{yyyy}/{mm}/{id}.{ext}` — never have one). */
 function inside(root: string, rel: string, what: string): string {
   if (typeof rel !== 'string' || rel.length === 0 || rel.includes('\0') || rel.replace(/^[a-zA-Z]:[\\/]/, '').includes(':')) throw new StudioError('INVALID', `Malformed path in the ${what}.`);
-  const abs = path.resolve(root, rel);
+  // a backslash is a separator on every platform (a path stored on the Windows workstation is read by Linux containers
+  // and cloud sessions too): `..\\x` must escape on Linux exactly as it does on Windows
+  const abs = path.resolve(root, rel.replace(/\\/g, '/'));
   if (!abs.startsWith(root + path.sep)) throw new StudioError('INVALID', `Path escapes the ${what}.`);
   return abs;
 }
