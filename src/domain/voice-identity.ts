@@ -122,11 +122,18 @@ export function pickReference(c: Character, assets: Asset[], opts: ReferenceOpti
   return null;
 }
 
-/** A line's stored recording is current when its file exists and the voice that spoke it is the one pinned now. */
-export function lineRecordingCurrent(d: { audioAssetId?: string; voiceRevision?: number }, c: Pick<Character, 'voice'>, assets: Asset[]): boolean {
+/** A line's stored recording is current when its file exists, the voice that spoke it is the one pinned now, and it
+ *  says the line as it is written now: a recording whose provenance names other words (the producer rewrote the line)
+ *  is stale and the line is recorded again. Before this check an edited line kept its old recording as the take's guide
+ *  and its authoritative audio (acceptance 2026-10-05, shot 1.3: "…Thank you." recorded, "…Thank you so much, it
+ *  really is the best tea in Baghdad." written). A recording without a stored text is judged by the voice alone. */
+export function lineRecordingCurrent(d: { audioAssetId?: string; voiceRevision?: number; text?: string; textAr?: string }, c: Pick<Character, 'voice'>, assets: Asset[]): boolean {
   if (!d.audioAssetId) return false;
   const a = assets.find((x) => x.id === d.audioAssetId);
   if (!a || a.kind !== 'AUDIO' || a.unavailable) return false;
+  const said = (a.provenance as { text?: unknown } | undefined)?.text;
+  const norm = (t: string) => t.replace(/\s+/g, ' ').trim();
+  if (typeof said === 'string' && (d.text !== undefined || d.textAr !== undefined) && ![d.text, d.textAr].some((t) => typeof t === 'string' && norm(t) === norm(said))) return false;
   const rev = c.voice.identity?.revision;
   return rev === undefined ? true : d.voiceRevision === rev;
 }

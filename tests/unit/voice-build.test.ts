@@ -373,6 +373,11 @@ describe('DIALOGUE_AUDIO reuse', () => {
     expect(lineRecordingCurrent({ audioAssetId: 'gen-old', voiceRevision: rev }, ch('nour'), fake.state.assets)).toBe(true);
     expect(lineRecordingCurrent({ audioAssetId: 'gen-old', voiceRevision: rev - 1 }, ch('nour'), fake.state.assets)).toBe(false);
     expect(lineRecordingCurrent({ audioAssetId: 'missing', voiceRevision: rev }, ch('nour'), fake.state.assets)).toBe(false);
+    // acceptance 2026-10-05: a recording that says other words than the line as written now is stale
+    const said = [...fake.state.assets, { id: 'gen-said', kind: 'AUDIO', src: '/api/media/gen-said', label: 'said', tags: [], sample: false, origin: 'GENERATED', durationSeconds: 2.8, createdAt: 'x', provenance: { path: 'audio/gen-said.wav', text: 'Oh, that is wonderful. Thank you!' } }] as typeof fake.state.assets;
+    expect(lineRecordingCurrent({ audioAssetId: 'gen-said', voiceRevision: rev, text: 'Oh, that is wonderful.  Thank you!' }, ch('nour'), said)).toBe(true);
+    expect(lineRecordingCurrent({ audioAssetId: 'gen-said', voiceRevision: rev, text: 'Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.' }, ch('nour'), said)).toBe(false);
+    expect(lineRecordingCurrent({ audioAssetId: 'gen-said', voiceRevision: rev, text: 'English words', textAr: 'Oh, that is wonderful. Thank you!' }, ch('nour'), said)).toBe(true);
     fake.synth = []; fake.asrHears = null;
     const r = await dialogueAudio(ctxFor({ payload: { productionId: p.id }, type: 'DIALOGUE_AUDIO' }));
     expect(r).toMatchObject({ lines: 2, flagged: 0, unverified: 0 });
