@@ -1,0 +1,23 @@
+{
+  "V1": {
+    "question": "the shot as the take handler sends it: Ref2VA, canonical image + plate + drawn opening frame bound, the frame anchored at 0, 4-step turbo, simple; 5 s; the English line",
+    "error": "The \"path\" argument must be of type string. Received undefined",
+    "wallMs": 4,
+    "vramPeakMiB": null,
+    "at": "2026-10-05T12:21:57.761Z"
+  },
+  "V4": {
+    "question": "the next shot as a CONTINUATION of V1: V1’s last 22 frames AND their sound in one AddGuide at 0 (the continuity code’s assumption: the head re-renders the tail), the canonical images and the plate re-applied; 5 s of new picture",
+    "error": "The file could not be read as media: Command failed: ffprobe -v error -print_format json -show_format -show_streams D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\h3\\V1.mp4",
+    "wallMs": 81,
+    "vramPeakMiB": 770,
+    "at": "2026-10-05T12:21:57.843Z"
+  },
+  "V2": {
+    "question": "V1 with an Iraqi Arabic <d>[Arabic] …</d> line (the eval set’s Baghdadi rendering of the same line): does the local H3 speak the dialect (listening item) and the words (dialect ASR)?",
+    "error": "The \"path\" argument must be of type string. Received undefined",
+    "wallMs": 1,
+    "vramPeakMiB": null,
+    "at": "2026-10-05T12:21:57.845Z"
+  }
+}
