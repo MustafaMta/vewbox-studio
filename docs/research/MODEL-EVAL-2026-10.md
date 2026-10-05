@@ -81,3 +81,56 @@ hands plausible by eye (the tea glass held by two correct hands in C1/C2/C3), si
 4/4 keep both characters by the canonical checklist (patchwork waistcoat, grey dishdasha, sandals, red string; yellow
 jacket, strap, red sneakers); P1 leaves the top ≈ 25 % as sky (2/2). **P2 rendered "THE KITE MAKER" exactly in 2/2
 seeds** (English only; Arabic titles stay typeset). 31–32 s at 896×1344, peak 29.3 GB.
+
+### 2.5 E1: a canonical character placed in its direction's plate (image 1 plate, image 2 canonical, 2 seeds × 3)
+
+Pass 2 was cut by a machine restart after 11 of 12 (the 12th had not returned a picture; it ran after the restart as
+its first attempt).
+
+| Arm | Usable first attempt | Failures and cause | Engine | Peak |
+|---|---|---|---|---|
+| Edit-2511 Lightning (edit-d) | 5/6 | C2 s1: no kite in her hand (prop dropped) | 7 s (30 s cold) | 30.0 GB |
+| Edit-2511 quality (edit-q) | 3/6 | C1 s2 and C2 s2: the plate is **replaced** by a new street (C1 adds passers-by); C3 s1: **the person is missing**, only the kite is drawn | 81–102 s | 30.0 GB |
+| Qwen-Image-2.1 (qi21e, eval) | 6/6 | (C1 s2 holds two kites, a minor invented duplicate) | 7–10 s | 22.3 GB |
+
+Identity by checklist kept wherever the person is present (all arms); Qwen-2.1 draws the person smaller in frame.
+
+### 2.6 Reference-based character (the Image Reference read + redraw; 5 uploads × 2 seeds)
+
+Uploads from the A/B sets (`var/flux-vs-qwen/{confirmation/,}fixtures`, generated stand-ins, no real person). Note:
+the id `ir2-bust` is the file `upload-photo-headshot.png` (a head shot), mislabelled in the harness; the picture is
+what the table says. Reads (MediaPipe + Qwen3.5-4B, once per upload): 1 face each, 15–22 s.
+
+| Arm | Whole figure (framing check, confirmed by eye) | Medium right | Likeness (eye) | Engine | Peak |
+|---|---|---|---|---|---|
+| **klein 4B** (shipping) | **10/10** | 10/10 | high on all five (face, glasses, cap, hoops, pigtails kept) | **4 s** (15 s cold) | **20.1 GB** |
+| Edit-2511 (rollback) | 7/10 — s970008 came back waist-up or a head close-up on ir2, ix1, ix2 | 10/10 | good; ic4 s1 a rounder new face | 101–120 s | 30.4 GB |
+| Qwen-Image-2.1 (eval) | 10/10 | **8/10 — the photo → cartoon redraw (ix2) stayed a photograph 2/2** | high | 11–14 s | 22.4 GB |
+
+### 2.7 Qwen-Image-2.1 on the rest of the set (evaluation only)
+
+- **T2I** 6/6 whole, sides right 6/6; **anime the cleanest of any arm** (modern TV anime), realistic the closest to
+  the stated age; **cartoon flatter and muted** (desaturated patchwork, less feature-animation finish than 2512q).
+  7 s (17 s cold), peak 17.5 GB — 6× faster and 12 GB lighter than 2512 quality.
+- **Stress** 9/9 limbs plausible by eye; framing check 8/9 (C3 running: the toe touches the bottom edge).
+- **Plates** 3/3 usable composition, but the cartoon plate reads semi-real and carries a gibberish shop sign
+  ("IMEOARO"); 5 s, 17.0 GB.
+- **Views** 1/3: the stall view moves the camera to a stall (the only real view change in the whole test); the
+  reverse angle and dusk keep the master, washed out.
+- **Posters** P1 2/2 cast right, the kite actually released; **P2 0/2 — no title rendered**.
+
+### 2.8 Verdicts (images)
+
+| Capability | Verdict | Evidence |
+|---|---|---|
+| Canonical character from text | **keep Qwen-Image-2512 quality** | 6/6 + 9/9 stress first-attempt, all gates; 42 s, 29.8 GB |
+| Draft pictures | keep 2512 Lightning for plates and drafts, never for a Cartoon canonical | cartoon medium 0/2 in draft |
+| Reference identity (upload → canonical) | **keep FLUX.2 klein 4B**; Edit-2511 stays the rollback only | 10/10 whole + medium vs 7/10; 25× faster |
+| Location plates | keep 2512 | 6/6 usable |
+| Location views (another camera angle) | **unsupported by every installed model** — do not advertise reverse angles or time-of-day re-lights from the master | Edit-2511 0/6, Qwen-2.1 1/3 |
+| Shot frames / placing a character in a plate | keep Edit-2511 (only Apache-licensed option); record that Lightning beat quality here (5/6 vs 3/6, one seed pair — not enough to switch the frame mode) | §2.5 |
+| Posters | keep 2512 key art; English title in-model allowed on evidence 2/2 (≥ 3/4 asked by §5.4 — needs two more seeds before it is a default); Arabic typeset | §2.4 |
+| Qwen-Image-2.1 | **no switch** — it fails two gates the shipping models pass (medium on a photo → cartoon redraw 0/2, P2 title 0/2; cartoon finish below 2512) and is non-commercial. It is the strongest **editor** measured (E1 6/6, the only view change); worth a licence enquiry if placement/edit quality becomes the bottleneck | §2.5–2.7 |
+
+First-attempt success, shipping arms: T2I canonical 6/6, stress 9/9, plates 6/6, posters 4/4 (P2 title 2/2),
+reference klein 10/10, E1 placement 8/12, views 0/6.
