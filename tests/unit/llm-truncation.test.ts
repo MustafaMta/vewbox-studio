@@ -94,6 +94,16 @@ describe('json(): a cut answer', () => {
     await expect(llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 1000 })).rejects.toMatchObject({ details: { truncated: true } });
   });
 
+  it('a repair round (the earlier answer in its history) is given only the room the context still has', async () => {
+    const { llm } = await withLocalGemma();
+    const long = 'x'.repeat(30_000); // ≈ 10,000 estimated tokens of a wrong answer
+    const sent = ollama((_r, n) => ({ content: n === 1 ? `{"shots":"${long}"}` : '{"shots":[{"purpose":"a"}]}' }));
+    await llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 12_000 });
+    expect(sent[0].max_tokens).toBe(12_000);
+    expect(sent[1].max_tokens).toBe(llm.outputRoom(sent[1].messages as never));
+    expect(sent[1].max_tokens).toBeLessThan(12_000);
+  });
+
   it('a closed answer at the limit is complete and is validated as usual', async () => {
     const { llm } = await withLocalGemma();
     ollama(() => ({ content: '{"shots":[{"purpose":"a"}]}', finish: 'length', completion: 9000 }));

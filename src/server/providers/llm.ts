@@ -185,7 +185,9 @@ export async function json<T>(schema: z.ZodType<T>, messages: LlmMessage[], opts
   let maxTokens = opts.maxTokens;
   let widened = false;
   for (let attempt = 1; attempt <= repairs + 1; attempt++) {
-    last = await chat(history, { ...opts, maxTokens, temperature: attempt === 1 ? opts.temperature : Math.max(0.2, (opts.temperature ?? 0.7) - 0.2) });
+    // a repair round carries the earlier answer in its history: its budget is what the context still has room for
+    const budget = history.length > messages.length ? Math.min(maxTokens ?? 8000, outputRoom(history, { provider: opts.provider })) : maxTokens;
+    last = await chat(history, { ...opts, maxTokens: budget, temperature: attempt === 1 ? opts.temperature : Math.max(0.2, (opts.temperature ?? 0.7) - 0.2) });
     // cut off: JSON left open, or the engine stopped at the limit before any JSON (a closed object is complete)
     if (isUnterminatedJson(last.text) || (last.truncated && !/[{[]/.test(last.text))) {
       const cutAt = last.maxTokens ?? maxTokens ?? 8000;
