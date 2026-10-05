@@ -372,7 +372,9 @@ export const generateTake: Handler = async (ctx) => {
   // A RECOVERED RUN (acceptance 2026-10-05, open item 3: a recovered take said "made in 8 s"): when an earlier
   // attempt's engine run was adopted, the wall clock here measured only the wait after adoption. The take then carries
   // the engine's own execution time (ComfyUI's history), or no time at all — never the adoption wait.
-  const resumedRun = Boolean(result.resumed || request.resumeTaskId);
+  // `resumed` is the provider's own answer: a recorded task id that the engine no longer knew (ComfyUI restarted) or
+  // whose output was rejected was submitted again — that run is not "adopted" and its wall clock is its real time
+  const resumedRun = Boolean(result.resumed);
   const waitedMs = Date.now() - t0;
   const genMs = takeGenerationMs({ resumed: resumedRun, engineMs: result.engineMs, waitedMs });
   if (genMs !== undefined) await recordMetric('take.generation_ms', genMs, 'ms', { backend, seconds, ...(resumedRun ? { resumed: true } : {}) }, ctx.job.id);
