@@ -150,6 +150,9 @@ export interface H3Binding {
   /** characters in the shot with no picture (no canonical image, or beyond the budget): declared from their
    *  description as weak_reference subjects after the pictured ones, so nobody silently vanishes or appears unbound */
   described?: Array<{ characterId: string }>;
+  /** a close crop of a pictured character's face, derived from their canonical image (src/domain/face-reference.ts):
+   *  the same subject, never a subject of its own */
+  faceRefs?: Array<{ characterId: string; picture: number }>;
 }
 
 export type ShotRelationKind = 'CONTINUATION' | 'CUT' | 'STORY_TRANSITION';
@@ -271,6 +274,12 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     if (b.location) defs.push(`<Subject ${placeNo}> is the ${kind} environment in ${pictureLabel(b, b.location.picture)}${identity.line ? `, featuring ${identity.line}` : ''} (place identity v${identity.version}).`);
     else defs.push(`<Subject ${placeNo}> is the ${kind} environment${identity.line ? `: ${identity.line}` : ''} (place identity v${identity.version}); no reference picture: this shot establishes the place, exactly as described, the same architecture in every frame.`);
   }
+  // a derived face crop is the SAME subject seen close (never a new person): its picture is defined, the subject is not
+  const faceRefs = (b.faceRefs ?? []).filter((f) => b.subjects.some((s) => s.characterId === f.characterId));
+  for (const f of faceRefs) {
+    const s = b.subjects.find((x) => x.characterId === f.characterId)!;
+    defs.push(`${pictureLabel(b, f.picture)} is a close-up of the face of <Subject ${subjectNo.get(f.characterId)}>, cut from ${pictureLabel(b, s.picture)}: the same person, not another one.`);
+  }
   // a character without a picture is declared from the description alone (never silently dropped, never unbound)
   for (const x of described) {
     const c = cast.find((k) => k.id === x.characterId)!;
@@ -303,6 +312,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   // retention_analysis (every subject appears in every shot of the take)
   const ret: string[] = [];
   for (const [i, s] of b.subjects.entries()) ret.push(s.characterId === pov ? `<Subject ${i + 1}> (appears in ${shotTags}): weak_reference - the camera is their own eyes; they are never seen in frame.` : `<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly.`);
+  for (const f of faceRefs) ret.push(`${pictureLabel(b, f.picture)} (the face of <Subject ${subjectNo.get(f.characterId)}>): fully_preserved - the facial features, skin tone, eyes and hair of <Subject ${subjectNo.get(f.characterId)}> are kept exactly as in ${pictureLabel(b, f.picture)}; the expression follows the action.`);
   if (b.location && placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): partially_preserved - the architecture, layout, materials and fixed props of ${pictureLabel(b, b.location.picture)} are kept; the camera position and framing may differ.`);
   else if (placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): weak_reference - described, no picture; the same architecture, layout and fixed features in every frame of the take.`);
   for (const x of described) ret.push(`<Subject ${subjectNo.get(x.characterId)}> (appears in ${shotTags}): weak_reference - ${x.characterId === pov ? 'the camera is their own eyes; they are never seen in frame' : 'described, no picture; the same face, hair and clothes in every frame of the take'}.`);

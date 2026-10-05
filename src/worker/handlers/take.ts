@@ -10,7 +10,7 @@ import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
 import { referenceFilesReadiness, referenceNeeds } from '@/server/production/readiness';
-import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
+import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, padAudio, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
 import { jobOutputs, stableSeed } from '@/server/jobs/outputs';
@@ -29,6 +29,8 @@ import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
 import { contextRecord } from '@/domain/production-context';
 import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
+import { takeVerdict } from '@/domain/take-checks';
+import { withFaceReferences } from './face-reference';
 import { alignScript, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
 import { shotPerformers } from '@/domain/music-performance';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
@@ -83,7 +85,9 @@ export const generateTake: Handler = async (ctx) => {
     await ctx.event(w.read.conflicts.length || w.outcome.blocking.length ? 'warn' : 'info', `World Bible revision ${w.read.revisionNumber}${w.read.pinned ? ' (pinned)' : ' (not pinned)'}: ${w.outcome.message}; ${w.read.location ? `the place: ${w.read.location.why}` : 'no place'}${w.read.conflicts.length ? `; ${w.read.conflicts.join('; ')}` : ''}`, { read: w.read, action: w.outcome.action, blocking: w.outcome.blocking });
     return w;
   });
-  const state = world.state;
+  // a close shot of a character whose full-body canonical image leaves too few face pixels gets a derived face crop
+  // (src/worker/handlers/face-reference.ts; the studio's `generation.faceReference`, OFF by default)
+  const state = await withFaceReferences(ctx, world.state, p, sh, { backend, out });
   const cast = castOf(state, p); const places = worldOf(state, p);
   const loc = places.find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
@@ -121,6 +125,10 @@ export const generateTake: Handler = async (ctx) => {
   let soundtrack: Take['soundtrack'] | undefined;
   let soundtrackFile: string | undefined;
   let dialogueLineAssets: string[] | undefined;
+  /** each recorded line's place in the joined soundtrack (seconds) and its recording; with the guide frame the
+   *  soundtrack is anchored at, where the cut plays the authoritative line (soundtrack.lines[].anchoredFrom) */
+  let joinedLines: Array<{ lineId: string; from: number; audioAssetId: string }> | undefined;
+  let soundtrackGuideFrame: number | undefined;
   /** the checks of the lines recorded by THIS take (reused lines were checked when they were recorded) */
   const spokenChecks: Array<LineCheck | null> = [];
   /** each line's aligned words (seconds into its own recording), when the aligner answered */
@@ -205,6 +213,7 @@ export const generateTake: Handler = async (ctx) => {
       const lineAssets = spoken.map((s) => s.assetId);
       const prior = sh.takes.map((t) => t.soundtrack).find((st) => { if (!st || st.kind !== 'DIALOGUE' || !st.assetId) return false; const a = byId(st.assetId); const was = a?.provenance?.lineAssets as string[] | undefined; return Boolean(a && !a.unavailable && was && was.length === lineAssets.length && was.every((x, i) => x === lineAssets[i])); });
       soundtrack = { kind: 'DIALOGUE', assetId: prior?.assetId, lines: spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, to: joined.windows[i].to })) };
+      joinedLines = spoken.map((s, i) => ({ lineId: s.lineId, from: joined.windows[i].from, audioAssetId: s.assetId }));
       dialogueLineAssets = lineAssets;
       await ctx.event('info', `dialogue ${spoken.every((s) => s.reused) ? 'reused' : spoken.some((s) => s.reused) ? 'partly reused' : 'recorded'} as the shot's soundtrack${prior ? ' (joined track reused too)' : ''}`, { seconds: joined.durationSeconds, lines: spoken.map((s) => ({ lineId: s.lineId, assetId: s.assetId, reused: s.reused, durationSeconds: s.durationSeconds, coverage: s.check?.coverage, wer: s.check?.wer, heard: s.check?.heard })) });
     }
@@ -275,12 +284,26 @@ export const generateTake: Handler = async (ctx) => {
     continuesTakeId = pack.opening.takeId;
     references.push({ kind: 'FIRST_FRAME', assetId: prevAsset.id, binding: 'first_frame', note: 'hosted continuation: the previous take’s last frame' });
   }
-  if (soundtrackFile) guides.push({ frameIdx: trimStartFrames, audioFile: soundtrackFile });
   if (songReference) references.push({ ...songReference, binding: `guide@${trimStartFrames}` });
   // the clip: the new content plus the guide frames (the length the node keeps), snapped up to the engine's grid and
   // held in its trained range
   const clip = clipSecondsFor({ trimStartFrames }, seconds);
   if (clip.truncated) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} needs ${Math.round(seconds * H3_FPS)} frames; the engine makes at most ${clip.newFrames} after a ${trimStartFrames}-frame guide.`), { failureClass: 'WRONG_PARAMETERS' });
+  // THE SILENCE AFTER THE LAST LINE IS AUTHORITATIVE TOO (root cause of "Thank you. Thank you.", acceptance 2026-10-05
+  // shot 1.3): local H3 never makes fewer than 124 frames, so a short line's soundtrack ended seconds before the clip
+  // did, and H3 filled the unguided rest with more speech. The dialogue guide now runs to the clip's last frame, the
+  // frames after the lines anchored to silence (H3 follows the anchored sound word by word: acceptance 2026-10-06).
+  let guideSilence: { padSeconds: number; guideSeconds: number } | undefined;
+  if (soundtrackFile) {
+    let guideAudio = soundtrackFile;
+    if (soundtrack?.kind === 'DIALOGUE') {
+      const guideSeconds = (clip.frames - trimStartFrames) / H3_FPS;
+      const have = (await ffprobe(soundtrackFile)).durationSeconds ?? 0;
+      if (guideSeconds - have > 0.05) { guideAudio = await padAudio(soundtrackFile, path.join(work, 'dialogue-guide.wav'), guideSeconds); guideSilence = { padSeconds: Number((guideSeconds - have).toFixed(3)), guideSeconds: Number(guideSeconds.toFixed(3)) }; }
+    }
+    guides.push({ frameIdx: trimStartFrames, audioFile: guideAudio }); soundtrackGuideFrame = trimStartFrames;
+    if (guideSilence) await ctx.event('info', `the dialogue guide runs to the clip's end: ${guideSilence.padSeconds} s of silence after the last line are anchored (nobody speaks there)`, guideSilence);
+  }
 
   // IDENTITY HAND-OFF (the Character Continuity Agent's step) — the primary image of each character in the shot (the
   // canonical front full-body image, else a legacy portrait), every character the picture budget holds, in the shot's
@@ -307,6 +330,7 @@ export const generateTake: Handler = async (ctx) => {
         referenceImages.push(file(pic.assetId));
         if (pic.role === 'SUBJECT') references.push({ kind: 'CHARACTER', assetId: pic.assetId, characterId: pic.characterId, binding: pic.binding, note: identity.find((s) => s.characterId === pic.characterId)?.source === 'PORTRAIT' ? 'legacy portrait' : `canonical image${identity.find((s) => s.characterId === pic.characterId)?.approved ? '' : ' (draft)'}` });
         else if (pic.role === 'LOCATION') references.push({ kind: 'LOCATION', assetId: pic.assetId, locationId: pic.locationId, binding: pic.binding, note: world.read.location?.assetId === pic.assetId ? `${world.read.location.why} (World Bible revision ${world.read.revisionNumber})` : `${pack.location?.role === 'STATE' ? `plate for ${scene?.timeOfDay?.toLowerCase().replace('_', ' ') ?? 'the time of day'}` : 'master plate'}` });
+        else if (pic.role === 'FACE_REFERENCE') references.push({ kind: 'CHARACTER', assetId: pic.assetId, characterId: pic.characterId, binding: pic.binding, note: `derived face reference (a crop of the canonical image; ${pack.faceReferences.find((f) => f.characterId === pic.characterId)?.reason ?? ''})` });
         else references.push({ kind: 'FIRST_FRAME', assetId: pic.assetId, binding: pic.binding, note: 'the drawn opening frame, bound as a picture (a production asset, not an identity)' });
       }
     }
@@ -563,6 +587,10 @@ export const generateTake: Handler = async (ctx) => {
   }
   driftChecks.push(judgeContainer(probe, { fps: backend === 'local' ? H3_FPS : (probe.fps ?? H3_FPS), expectAudio: true }));
   report.checks.push(...driftChecks);
+  // THE TAKE'S VERDICT (src/domain/take-checks.ts takeVerdict; QA Q6): a take that passed its gate but carries a failed
+  // or flagged check is REVIEW — kept READY and choosable, recorded with its flags, and never chosen by the studio on
+  // its own; `report.ok` keeps its meaning (the gate)
+  const verdict = takeVerdict(report, { unverified: takeUnverified });
   const unverifiedLines = spokenChecks.filter((c) => c === null).length;
   const flaggedLines = spokenChecks.filter((c) => c && !c.ok).length;
   // the joined dialogue track is stored once per set of recordings: a take that joined the same stored lines as an
@@ -579,6 +607,8 @@ export const generateTake: Handler = async (ctx) => {
     }
     soundtrack = { ...soundtrack!, assetId: soundtrack!.assetId ?? soundtrackId };
   }
+  // where each recording was anchored on the take's clock (the cut plays it there: src/domain/timeline.ts)
+  if (soundtrack?.kind === 'DIALOGUE' && joinedLines && soundtrackGuideFrame !== undefined) soundtrack = { ...soundtrack, lines: soundtrack.lines.map((l) => { const j = joinedLines!.find((x) => x.lineId === l.lineId); return j ? { ...l, anchoredFrom: Number((soundtrackGuideFrame! / H3_FPS + j.from).toFixed(4)), audioAssetId: j.audioAssetId } : l; }) };
   await ctx.progress('POSTPROCESSING', { phase: 'postprocessing', message: 'Making it playable and drawing the poster frame' });
   const dir = await tmpDir('take');
   const playable = path.join(dir, 'take.mp4');
@@ -624,7 +654,7 @@ export const generateTake: Handler = async (ctx) => {
   const quality = takeQuality(payload.quality);
   if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
   const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
-  const params = { ...(result.params ?? {}), ...quality, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
+  const params = { ...(result.params ?? {}), ...quality, verdict, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(guideSilence ? { dialogueGuide: guideSilence } : {}), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };
   // QA REPORTS — the inspectors' verdicts on this take, recorded apart from the take itself (in the same commit): the
   // picture checks (Visual Quality Inspector) and, for a speaking take, the script heard back (Audio Synchronization
@@ -646,7 +676,7 @@ export const generateTake: Handler = async (ctx) => {
   );
   const take = await commitTake({
     jobId: ctx.job.id, productionId: p.id, shotId: sh.id, assets: newAssets, qa: qaReports,
-    take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation, continuesTakeId, ...(report.ok && !takeUnverified ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
+    take: { assetId: videoId, label, status: report.ok ? 'READY' : 'REJECTED', rejectionReason: report.ok ? undefined : `Automatic checks failed: ${report.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')}`, provider: 'MINIMAX', model: result.model, requestId: result.requestId, prompt, params, seed, references, width: probe.width, height: probe.height, durationSeconds: probe.durationSeconds, fps: probe.fps, generationMs: genMs, costUsd: result.costUsd, qa: report, jobId: ctx.job.id, codeVersion: env().CODE_VERSION, workflowVersion: result.workflowVersion, thumbnailAssetId: posterId, trimStartFrames: trimStartFrames || undefined, soundtrack, relation, continuesTakeId, ...(report.ok && !takeUnverified && (payload.select || verdict.autoChoose) ? { select: payload.select ? 'ALWAYS' as const : 'IF_UNCHOSEN' as const } : {}) },
     // the take's World Bible read, kept apart too (queryable by take: which revision, which plate, which images)
     worldRead: { productionId: p.id, read: world.read, jobId: ctx.job.id, jobType: 'GENERATE_TAKE', shotId: sh.id },
     // a place established by this take: its new master plate, in the same commit
@@ -679,9 +709,9 @@ export const generateTake: Handler = async (ctx) => {
       await recordHandoff({ id: out.id('handoff:video', 'handoff'), productionId: p.id, stage: 'VIDEO', producerDepartment: 'VIDEO', receiverDepartment: 'QA', artifactIds: chosen.map((t) => t!.assetId), outputVersions: { shots: after.shots.length }, validation: { ok: failing === 0, checks: [{ name: 'every-shot-has-chosen-take', ok: true, detail: `${after.shots.length} shots` }, { name: 'chosen-takes-passed-inspection', ok: failing === 0, detail: failing ? `${failing} chosen take(s) failed a check` : undefined }] }, jobId: ctx.job.id });
     }
   }
-  await ctx.activity(report.ok ? (takeUnverified ? 'TAKE_REVIEW' : 'TAKE_ACCEPTED') : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? (takeUnverified ? 'made, not verified (transcription unavailable)' : 'accepted') : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok, unverified: takeUnverified });
+  await ctx.activity(report.ok ? (verdict.decision === 'REVIEW' ? 'TAKE_REVIEW' : 'TAKE_ACCEPTED') : 'TAKE_REJECTED', `Shot ${scene?.number ?? '?'}.${sh.number} of “${p.title}”: ${label} ${report.ok ? (takeUnverified ? 'made, not verified (transcription unavailable)' : verdict.decision === 'REVIEW' ? `made, to review (${verdict.flags.join(', ')}); not chosen automatically` : 'accepted') : 'rejected'} (${seconds} s, ${backend}${scriptCheck?.coverage !== undefined ? `, script ${Math.round(scriptCheck.coverage * 100)} % heard` : ''})`, { takeId: r.take.id, shotId: sh.id, seconds, backend, generationMs: genMs, qaOk: report.ok, unverified: takeUnverified });
   // a take or a line that could not be heard back (transcription away) waits for a human ear: never passed silently
-  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, takeUnverified, awaitingReview: unverifiedLines > 0 || takeUnverified, libraryRoot: libraryRoot() };
+  return { takeId: r.take.id, assetId: videoId, qaOk: report.ok, backend: result.backend, model: result.model, requestId: result.requestId, generationMs: genMs, costUsd: result.costUsd, unverifiedLines, takeUnverified, verdict: verdict.decision, flags: verdict.flags, awaitingReview: unverifiedLines > 0 || takeUnverified || verdict.decision === 'REVIEW', libraryRoot: libraryRoot() };
 };
 
 /** The generation time a take records: the wall clock of this attempt, or — when the engine run was adopted from an

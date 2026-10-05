@@ -132,6 +132,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // the production context's gaps (src/domain/production-context.ts): named, never invented
   for (const gap of pack.context.gaps) warnings.push({ name: 'context-gap', detail: gap });
   if (pack.context.anchoring.reanchor) warnings.push({ name: 're-anchor', detail: pack.context.anchoring.why ?? 're-anchoring' });
+  // THE 180° LINE, SCREEN DIRECTION, DIRECTION OF TRAVEL (src/domain/blocking.ts): staging that contradicts an earlier
+  // shot of the scene is named before the generation — a warning, since a director may cross the line on purpose
+  // (and then marks the shot `crossesLine`)
+  for (const v of pack.context.blocking.violations) warnings.push({ name: 'screen-direction', detail: `${v.characterIds.map((id) => cast.find((c) => c.id === id)?.name ?? id).join(' and ')}: ${v.detail}`, characterIds: v.characterIds });
   // audio before video: a speaking shot (film, local engine) needs a voice for every speaker, judged as the worker
   // judges it (take.ts): every line of the speaker already has a current stored recording (reused), or there is a
   // reference to speak from (pickReference: a design seed, or a consented recording that is present). A speaker with

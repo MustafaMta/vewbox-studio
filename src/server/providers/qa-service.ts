@@ -173,6 +173,15 @@ export async function faceIdentity(video: string, refs: Array<{ characterId: str
   return call<IdentityResult>('/qa/identity', fd, opts.timeoutMs ?? 10 * 60_000);
 }
 
+/** Face boxes on one still picture, in its own pixels, largest first (YuNet; `POST /qa/faces`). */
+export interface FacesResult { width: number; height: number; faces: Array<{ box: [number, number, number, number]; score: number }>; detector: string; ms?: number }
+export async function detectFaces(image: string, opts: { timeoutMs?: number } = {}): Promise<QaAnswer<FacesResult>> {
+  const fd = new FormData();
+  const [b, name] = await blob(image, 'detectFaces');
+  fd.set('image', b, name);
+  return call<FacesResult>('/qa/faces', fd, opts.timeoutMs ?? 60_000);
+}
+
 // ------------------------------------------------------------------------------------------------ judges
 
 const RANK: Record<QaVerdict, number> = { PASS: 0, NOT_MEASURED: 1, REVIEW: 2, FAIL: 3 };
