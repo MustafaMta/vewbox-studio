@@ -216,6 +216,92 @@ puts the lights down`: `locator.click: Timeout 30000ms`). In `debug-ix.mjs` the 
 
 ---
 
+## Re-verification 2026-10-05
+
+**Scope (as instructed, nothing else):** the pages behind M1–M7 and the minors — Home, Shorts, Short, Music videos
+(fixture), Music video, Characters, Character EN, characters/new ×3, locations/new, Location, Workspace, Shot, Screening
+Room (film and lobby), Production, Studio — plus the never-verified Files and Kit, at **1440 and 390**; plus
+`--interactions` (44 steps, including the phone bar and the Screening Room Play). Branch merged with main at `5ef00cc`
+(includes 4d875e1); script from main (the touch-emulation fix after full-page captures), plus two timeout changes of mine
+in the interactions runner (route compile time; `waitForURL` after Enter in the palette).
+Evidence: `docs/evidence/design-qa-integrated/re-2026-10-05/` (`report-1440.json`, `report-390.json`,
+`interactions.json`, captures as before).
+
+**Server note.** The dev server's `.next` cache broke three times under load (`UNKNOWN: open …\chunks\app\layout.js`,
+health 500). The first nine 1440 pages and the first three 390 pages were measured on the **dev** server; the rest on a
+**production build of the same commit** (`next build --webpack`, `next start -p 4261`, same copy database). Loading times
+in the reports are therefore not comparable with 2026-10-04 (production pages load in 3–7 s instead of 40–60 s), but every
+CLS, skeleton-sequence, size and contrast number is. M3 is confirmed fixed on the dev server too (below).
+
+### Before → after
+
+| Item | Page · width | Before (2026-10-04) | After (2026-10-05) | Status |
+|---|---|---|---|---|
+| **M1** generic skeleton, CLS | characters/new auto · 1440 | generic shell skeleton, CLS **0.1637** | own skeleton (`generic=false`), sequence `page›content`, CLS **0** | **fixed** |
+| | characters/new picture · 1440 | generic, CLS **0.1566** | own skeleton, CLS **0** | fixed |
+| | characters/new manual, locations/new · 1440 | generic, CLS 0 | own skeleton, CLS 0 | fixed |
+| **M2** workspace skeleton | workspace · 1440 | tile-grid skeleton, CLS **0.0627** | `page›content`, CLS **0.0008**; skeleton shape matches the map | **fixed** |
+| **M3** three to five loading pictures | Home · 390 | `shell›page›shell›content` | `page›content` (dev server, CLS 0.0002) | **fixed** |
+| | Shorts · 390 / Short · 390 | `shell›page›shell›content` / five pictures | `page›content` both (dev) | fixed |
+| | all 19 other re-run pages, both widths | — | `page›content` on every one except Kit | fixed |
+| **M4** phone: Shorts / Music Videos unreachable | /shows · 390 | no segmented control | Productions → `/shows` with **Shows · Shorts · Music Videos**; More sheet also lists them (item height 44) | **fixed** |
+| **M5** labels over faces | Character EN · 1440 | "Shot 1.3 · The Static Sky" over the still | name and meta under each 16:9 still (`re-2026-10-05/character-en-1440.png`) | **fixed** |
+| **M6** card sizes per page | 1440 | poster 184 / 208 / 264; figure 168 / 208; 16:9 288 / 357 | poster **184** (Home, Shorts, Screening); figure **168** (Home, Characters); 16:9 **288** (Home, Locations) | **fixed** (Shows grid not measurable live: no shows) |
+| **M7** phone targets < 44 | Home · 390 | 9 (buttons 40, Review 32, "All" 35×32, …) | **0** | **fixed** for buttons, chips, section links, back links, bars, transport (seek 80×**44**) |
+| | residual controls · 390 | — | still under 44: characters/new "Change" **47×20**; workspace pipeline links ("Story: the approved script", "2 scenes", …) **×32**, final-cut strip shot links **34–39×64**, "Screen" **46×20**, studio-line "Resume in the Studio Company" **49×18** (also on Shot); Shot "Mark in"/"Mark out" **40×44**, a **13×13** checkbox; Screening note timecode "Jump to 0:00" **41×20**; Production/Files `cp-link` "Najm" **35×46** | **still open** (text links and inline controls) |
+| m1 empty-page explainers | Shows / Music videos live | step cards | not in the re-run scope | not verified |
+| m2 phone hero 4:3 | Home · 390 | 358×269 (4:3) | **358×448 (4:5)**, head intact | fixed |
+| m3 "Checking whether…" beside "Done" | workspace · 1440 | present | "Intake is paused; new work waits." | fixed |
+| m4 unequal row | Location · 1440 | Landmarks/Props **329/339** | equal (no unequal row) | fixed |
+| m5 contrast text-3 on s3 | Screening "· current"; Studio "Idle" | **4.42:1** each | no AA miss on either page | fixed |
+| m6 truncation | Home tool cards | "9 departments · 35 ag…" | no truncation on Home (1440, 390) | fixed (Department page not in scope) |
+| m7 late chips | Production · 1440 | CLS **0.0164** | CLS **0** | fixed |
+| m8 disabled "Saved" button | Character EN · 1440, 390 | disabled `.btn` "Saved", no reason | unchanged | **still open** |
+| m9 search under six items | Characters · 1440 | search shown for 5 | search still shown for 5 (interactions) | **still open** |
+| p1 titles off the column lines | Music video · 1440; Character EN | heads at x 688 / 733 | 688 / 1035 / 288; 733 | still open (polish) |
+| p2 empty band under Story | workspace · 1440 | ~130 px empty | holds "You approved the story · Request changes" | fixed |
+| p3 "Ending frame" disabled, no reason | Shot · 1440 | no reason | no reason | still open (polish) |
+| p4 featured thumbs reflow | Home · 390 | CLS 0.0036 | CLS 0.0002 | fixed |
+| p5 seek hit area | Short · 390 | 80×24 | 80×**44** | fixed |
+| p6 Screening Play | interactions | one timeout | Play → lights down, Pause → restored; 44/44 steps pass | fixed (not reproduced) |
+| **N1 (new, blocker)** | **locations/new · 390** | never measured at 390 | the form is laid out in a **~26 px column**: one letter per line, textarea **30×120**, name field **26×44**, the actions cut off (`re-2026-10-05/location-new-390.png`). Cause: `cast.css:144` `.pc-create-body[data-plate] { grid-template-columns: minmax(0, 720px) 300px }` outranks the phone rule `cast.css:173` `.pc-create-body { grid-template-columns: minmax(0, 1fr) }`, so the 300 px track for the hidden preview stays. | **new** |
+| N2 (new, polish) | Kit · 1440, 390 | never measured | generic shell skeleton (`shell›content`), not registered in `route-skeletons.tsx`; Kit is the internal specimen page | new |
+
+Script artefacts, not defects: "names on the frame edge" on Workspace and Production (the decision cards' 16 px body
+padding, by design §5.7), "one start edge" on Workspace and Shot (the cutting room's own outline column, x 80), and Studio's
+"equal heights" (`co-grid` holds the company diagram and the orchestrator panel, not a row of like cards).
+
+**Fix for N1:** add `.pc-create-body[data-plate]` to the `@media (max-width: 1023px)` rule at `cast.css:173`
+(`.pc-create-body, .pc-create-body[data-plate] { grid-template-columns: minmax(0, 1fr); }`).
+**Fix for the M7 residue:** give `.link-quiet`, `.ws-textlink`, `.ws-studioline-link`, `.theatre-note-tc`, `.cp-link`
+and the workspace pipeline/strip links `min-block-size: 44px; min-inline-size: 44px` under `(pointer: coarse)` with
+transparent padding; `.btn-quiet` icon buttons in the shot transport to 44 wide; the shot's checkbox inside a 44 px label.
+
+### Final verdict per page (re-verified pages only)
+
+| Page | 1440 | 390 | Verdict |
+|---|---|---|---|
+| Home | all checks ✓ | all checks ✓ | **pass** |
+| Shorts, Short | ✓ | ✓ | **pass** |
+| Music videos (fixture) | ✓ | ✓ | **pass** |
+| Music video | title off the column line (p1) | ✓ | pass with notes |
+| Characters | ✓ | ✓ | pass with notes (m9) |
+| Character EN | ✓ | ✓ | pass with notes (m8, p1) |
+| characters/new manual | ✓ | ✓ | **pass** |
+| characters/new auto, from a picture | ✓ | "Change" 47×20 | pass with notes |
+| **locations/new** | ✓ | **N1: form 26 px wide** | **fail** |
+| Location | ✓ | ✓ | **pass** |
+| Workspace | ✓ (CLS 0.0008) | 12 controls < 44 | pass with notes |
+| Shot | ✓ | 4 controls < 44; p3 | pass with notes |
+| Screening Room (film) | ✓ | note timecode 41×20 | pass with notes |
+| Screening Room lobby | ✓ | ✓ | **pass** |
+| Production | ✓ | "Najm" link 35 wide | pass with notes |
+| Studio | ✓ | ✓ | **pass** |
+| Files (first verification) | ✓ | "Najm" link 39 wide | pass with notes |
+| Kit (first verification) | generic skeleton (N2) | generic skeleton (N2) | pass with notes |
+
+---
+
 ## 3. The ten things that most keep the site from Krea's level, in order
 
 1. The loading experience: three different skeleton pictures on a slow load (M3), a generic grid where a form arrives
