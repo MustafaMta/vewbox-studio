@@ -6,19 +6,19 @@
  *
  *    pnpm exec tsx --env-file=.env --env-file=.env.local scripts/gpu-hold.ts IMAGE 30400 -- node bench/images.mjs --case 3
  *
- *  Family: IMAGE | VIDEO | TTS | ASR | MUSIC | LLM. Estimate: the measured peak in MB (docs/research/GPU-STAGING-2026-10.md).
+ *  Family: IMAGE | VIDEO | TTS | ASR | MUSIC | LLM | LIPSYNC. Estimate: the measured peak in MB (docs/research/GPU-STAGING-2026-10.md).
  *  Hold the card for one bounded batch at a time (minutes, not hours): the acceptance run's jobs wait while it is held.
  *  The command inherits stdio; its exit code is this script's. */
 import { spawn } from 'node:child_process';
-import { gpuLease, type GpuFamily } from '../src/server/gpu/lease';
+import { GPU_FAMILIES, gpuLease, type GpuFamily } from '../src/server/gpu/lease';
 
-const FAMILIES: GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM'];
+const FAMILIES: readonly GpuFamily[] = GPU_FAMILIES;
 const argv = process.argv.slice(2);
 const [family, estimate] = argv;
 // `--` before the command is optional (pnpm exec consumes it)
 const cmd = argv[2] === '--' ? argv.slice(3) : argv.slice(2);
 if (!FAMILIES.includes(family as GpuFamily) || !Number.isFinite(Number(estimate)) || cmd.length === 0) {
-  console.error('usage: gpu-hold.ts <IMAGE|VIDEO|TTS|ASR|MUSIC|LLM> <estimateMb> -- <command> [args…]');
+  console.error(`usage: gpu-hold.ts <${FAMILIES.join('|')}> <estimateMb> -- <command> [args…]`);
   process.exit(2);
 }
 

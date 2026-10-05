@@ -23,7 +23,10 @@ import { recordMetric } from '../jobs/queue';
  *    removed by the next admission, so a crash never blocks the card.
  *  Rollback: GPU_LEASE=memory restores the in-process lease of each process. */
 
-export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM';
+/** LIPSYNC: the lip-sync corrector (docker/lipsync, LatentSync 1.6) — its own family so that taking the card for it
+ *  unloads ComfyUI (H3 may still be resident after a VIDEO job; a VIDEO→VIDEO hand-over unloads nothing). */
+export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM' | 'LIPSYNC';
+export const GPU_FAMILIES: readonly GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM', 'LIPSYNC'];
 
 export interface GpuLeaseOptions { jobId?: string; signal?: AbortSignal }
 export interface GpuLease { <T>(family: GpuFamily, estimateMb: number, fn: () => Promise<T>, opts?: GpuLeaseOptions): Promise<T> }

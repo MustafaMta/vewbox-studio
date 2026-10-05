@@ -36,6 +36,7 @@ x-app-env: &app-env
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
   TTS_DESIGN_URL: ${TTS_DESIGN_URL:-http://tts-design:8022}
   ASR_URL: ${ASR_URL:-http://asr:8030}
+  LIPSYNC_URL: ${LIPSYNC_URL:-http://lipsync:8040}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_PRETTY: ${LOG_PRETTY:-0}
@@ -218,6 +219,28 @@ services:
     ports: [ "127.0.0.1:${ASR_PORT:-8030}:8030" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8030/health"], interval: 20s, timeout: 10s, start_period: 60s, retries: 10 }
+
+  # Lip-sync corrector (docker/lipsync): LatentSync 1.6 with a YuNet + MediaPipe face tracker (no InsightFace). Redraws
+  # the mouth of an EXISTING take, only for a take flagged and confirmed for correction; never generates video. Weights:
+  # manifest groups lipsync-latentsync-1.6 + qa-identity, and the Face Landmarker the asr service keeps under /models/qa.
+  # GPU family LIPSYNC (src/server/gpu/lease.ts): ComfyUI and the other engines unload before it loads (≈ 18 GB per the
+  # upstream README; measured figure in docs/MODELS.md). LIPSYNC_KEEP_LOADED=0 drops the weights after every request.
+  lipsync:
+    logging: *logging
+    build: { context: ., dockerfile: docker/lipsync/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/lipsync:${CODE_VERSION:-dev}
+    # opt-in: `docker compose --profile lipsync up -d lipsync` (a plain `up` neither builds nor starts it). Idle it holds
+    # no VRAM: torch and the weights load on the first request.
+    profiles: ["lipsync"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, LIPSYNC_KEEP_LOADED: "${LIPSYNC_KEEP_LOADED:-0}" }
+    volumes: [ "models:/models:ro", "nvjit:/cache/nv-jit", "./docker/lipsync/app.py:/app/app.py:ro", "./docker/lipsync/corrector.py:/app/corrector.py:ro", "./docker/lipsync/face_track.py:/app/face_track.py:ro", "./docker/lipsync/cli.py:/app/cli.py:ro" ]
+    ports: [ "127.0.0.1:${LIPSYNC_PORT:-8040}:8040" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    shm_size: "4gb"
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8040/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
+    stop_grace_period: 30s
 
   # One-shot: convert the transformers-format Iraqi Whisper (manifest group stack-2026-10, fetched first) to CTranslate2
   # fp16 for the asr service. `docker compose --profile models run --rm asr-convert`. CPU only (no GPU reservation):
