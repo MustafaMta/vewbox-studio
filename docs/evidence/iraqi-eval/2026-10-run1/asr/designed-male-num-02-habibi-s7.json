@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.752,
+  "segments": [
+    {
+      "start": 0.14,
+      "end": 2.64,
+      "text": "الساعة سبعة ونص، والباص يجي بثمانية.",
+      "avg_logprob": -0.139,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.14,
+          "end": 0.82,
+          "word": " الساعة",
+          "probability": 0.667
+        },
+        {
+          "start": 0.82,
+          "end": 1.04,
+          "word": " سبعة",
+          "probability": 0.926
+        },
+        {
+          "start": 1.04,
+          "end": 1.42,
+          "word": " ونص،",
+          "probability": 0.958
+        },
+        {
+          "start": 1.42,
+          "end": 1.92,
+          "word": " والباص",
+          "probability": 0.996
+        },
+        {
+          "start": 1.92,
+          "end": 2.2,
+          "word": " يجي",
+          "probability": 1
+        },
+        {
+          "start": 2.2,
+          "end": 2.64,
+          "word": " بثمانية.",
+          "probability": 0.989
+        }
+      ]
+    }
+  ],
+  "text": "الساعة سبعة ونص، والباص يجي بثمانية.",
+  "ms": 404,
+  "model": "large-v3-arabic-dialectal-v2"
+}

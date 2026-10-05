@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.411,
+  "segments": [
+    {
+      "start": 0.3,
+      "end": 2.2,
+      "text": "يلاه شلون طلعت جو حلو اليوم؟",
+      "avg_logprob": -0.212,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.3,
+          "end": 0.9,
+          "word": " يلاه",
+          "probability": 0.466
+        },
+        {
+          "start": 0.9,
+          "end": 1.16,
+          "word": " شلون",
+          "probability": 0.923
+        },
+        {
+          "start": 1.16,
+          "end": 1.4,
+          "word": " طلعت",
+          "probability": 0.884
+        },
+        {
+          "start": 1.4,
+          "end": 1.6,
+          "word": " جو",
+          "probability": 0.998
+        },
+        {
+          "start": 1.6,
+          "end": 1.82,
+          "word": " حلو",
+          "probability": 1
+        },
+        {
+          "start": 1.82,
+          "end": 2.2,
+          "word": " اليوم؟",
+          "probability": 0.996
+        }
+      ]
+    }
+  ],
+  "text": "يلاه شلون طلعت جو حلو اليوم؟",
+  "ms": 332,
+  "model": "large-v3-arabic-dialectal-v2"
+}

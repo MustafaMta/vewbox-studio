@@ -1,0 +1,129 @@
+{
+  "task": "ar-script",
+  "run": 1,
+  "model": "qwen3:14b",
+  "ms": 17453,
+  "attempts": 2,
+  "firstAttemptValid": false,
+  "attemptsDetail": [
+    {
+      "ms": 11317,
+      "status": 200,
+      "promptTokens": 2090,
+      "completionTokens": 1122,
+      "head": "{\n  \"scenes\": [\n    {\n      \"sceneId\": \"scene-941b9d0b95\",\n      \"beats\": [\n        {\n          \"action\": \"Najm pushes open the creaking workshop door, holding ",
+      "requestChars": 9360,
+      "numCtx": 16384,
+      "keepAlive": "2m",
+      "think": false
+    },
+    {
+      "ms": 6034,
+      "status": 200,
+      "promptTokens": 156,
+      "completionTokens": 669,
+      "head": "{\"lines\": [{\"n\":0,\"english\":\"How's it going?\"},{\"n\":1,\"english\":\"This boy died 40 years ago.\"},{\"n\":2,\"english\":\"No echo...\"},{\"n\":3,\"english\":\"Silence sometime",
+      "requestChars": 683,
+      "numCtx": 16384,
+      "keepAlive": "2m",
+      "think": false
+    }
+  ],
+  "vramBeforeMiB": 11475,
+  "vramPeakMiB": 11475,
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "qwen3:14b",
+        "model": "qwen3:14b",
+        "size": 10569195191,
+        "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "qwen3",
+          "families": [
+            "qwen3"
+          ],
+          "parameter_size": "14.8B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-10-05T11:47:18.879248692Z",
+        "size_vram": 10569195191,
+        "context_length": 16384
+      }
+    ]
+  },
+  "llmContainer": "vewbox-llm-1 2.999GiB / 46.79GiB",
+  "at": "2026-10-05T11:45:20.436Z",
+  "request": [
+    {
+      "role": "system",
+      "content": "You translate Iraqi — Baghdadi film dialogue into natural spoken English for subtitles. Keep each line short and faithful; English words only. Answer with ONE JSON object only."
+    },
+    {
+      "role": "user",
+      "content": "Translate every line. Return JSON: { lines: [{ n, english }] } with the same n values.\n[{\"n\":0,\"textAr\":\"خوش؟\"},{\"n\":1,\"textAr\":\"هذا الولد مات قبل 40 عام.\"},{\"n\":2,\"textAr\":\"ماكو تردد...\"},{\"n\":3,\"textAr\":\"الصمت أحيانًا يصرخ أقوى.\"},{\"n\":4,\"textAr\":\"هواية... شنو تقول؟\"}]"
+    }
+  ],
+  "answer": {
+    "scenes": [
+      {
+        "sceneId": "scene-941b9d0b95",
+        "beats": [
+          {
+            "action": "Najm pushes open the creaking workshop door, holding the cracked valve radio with both hands. The dim green lamp flickers as a meteor streaks across the window, casting a brief orange glow on his face.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "How's it going?",
+                "textAr": "خوش؟",
+                "delivery": "mumbling, voice strained from the cold"
+              },
+              {
+                "characterName": "Elias Moore",
+                "text": "This boy died 40 years ago.",
+                "textAr": "هذا الولد مات قبل 40 عام.",
+                "delivery": "gruff, eyes narrowing at the radio"
+              }
+            ]
+          },
+          {
+            "action": "Elias lifts the radio, his fingers brushing the 1987 label. He sets it on the workbench, pulling out a screwdriver and a jar of screws. Najm watches, adjusting his glasses as he leans against the workbench.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "No echo...",
+                "textAr": "ماكو تردد...",
+                "delivery": "softly, tracing the radio's crack"
+              },
+              {
+                "characterName": "Elias Moore",
+                "text": "Silence sometimes screams louder.",
+                "textAr": "الصمت أحيانًا يصرخ أقوى.",
+                "delivery": "quietly, tightening a screw"
+              }
+            ]
+          },
+          {
+            "action": "A meteor explodes in the sky. Elias and Najm freeze, staring at the window. The radio emits a faint static buzz. Elias's hand trembles slightly as he reaches for the soldering iron.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Hobby... what do you say?",
+                "textAr": "هواية... شنو تقول؟",
+                "delivery": "whispering, eyes wide at the static"
+              },
+              {
+                "characterName": "Elias Moore",
+                "text": "1987...",
+                "textAr": "1987...",
+                "delivery": "hoarse, voice cracking"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

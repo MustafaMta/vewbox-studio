@@ -18,6 +18,22 @@ export interface LlmMessage { role: 'system' | 'user' | 'assistant'; content: st
 export interface LlmOptions { maxTokens?: number; temperature?: number; provider?: LlmProvider; timeoutMs?: number; jobId?: string }
 export interface LlmResult { text: string; provider: LlmProvider; model: string; inputTokens?: number; outputTokens?: number; ms: number }
 
+/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Gemma 4 31B (QAT Q4_0, Ollama), chosen over qwen3:14b
+ *  by the controlled test of docs/research/MODEL-EVAL-2026-10.md §3 (Iraqi dialogue and staged shot plans; 2.5–3× the
+ *  latency). qwen3:14b stays selectable with OPENAI_COMPATIBLE_MODEL=qwen3:14b. */
+export const DEFAULT_LOCAL_LLM = 'gemma4:31b-it-qat';
+
+/** What a local model holds on the card while it answers, in MB — the LLM family's GPU lease estimate. Measured on the
+ *  RTX 5090 with num_ctx 16384 and a q8_0 KV cache (MODEL-EVAL-2026-10 §3, nvidia-smi peak incl. ≈ 0.8 GB of idle
+ *  contexts): gemma4:31b-it-qat 21,405 MiB (Ollama: 19.1 GB, 100 % GPU), qwen3:14b 11,489 MiB (10.57 GB). A model
+ *  that was never measured keeps the earlier 12000 and should be measured before it is relied on. */
+export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['gemma4:31b', 21500], ['qwen3:14b', 12000]];
+export const UNMEASURED_LLM_VRAM_MB = 12000;
+export function llmLeaseMb(model: string): number {
+  const m = model.trim().toLowerCase();
+  return LOCAL_LLM_VRAM_MB.find(([prefix]) => m.startsWith(prefix))?.[1] ?? UNMEASURED_LLM_VRAM_MB;
+}
+
 export function resolveProvider(preferred?: string): { provider: LlmProvider; model: string; baseUrl: string; apiKey: string } {
   const e = env();
   const pick = (p: string | undefined): LlmProvider | null => {
@@ -30,7 +46,7 @@ export function resolveProvider(preferred?: string): { provider: LlmProvider; mo
   if (!chosen) throw new StudioError('NOT_CONFIGURED', 'No story engine is configured: set MINIMAX_API_KEY, ANTHROPIC_API_KEY or OPENAI_COMPATIBLE_BASE_URL.');
   if (chosen === 'minimax') return { provider: chosen, model: e.MINIMAX_TEXT_MODEL, baseUrl: `${e.MINIMAX_BASE_URL.replace(/\/$/, '')}/anthropic`, apiKey: e.MINIMAX_API_KEY };
   if (chosen === 'anthropic') return { provider: chosen, model: e.ANTHROPIC_MODEL, baseUrl: 'https://api.anthropic.com', apiKey: e.ANTHROPIC_API_KEY };
-  return { provider: chosen, model: e.OPENAI_COMPATIBLE_MODEL || 'default', baseUrl: e.OPENAI_COMPATIBLE_BASE_URL.replace(/\/$/, ''), apiKey: e.OPENAI_COMPATIBLE_API_KEY || 'none' };
+  return { provider: chosen, model: e.OPENAI_COMPATIBLE_MODEL || DEFAULT_LOCAL_LLM, baseUrl: e.OPENAI_COMPATIBLE_BASE_URL.replace(/\/$/, ''), apiKey: e.OPENAI_COMPATIBLE_API_KEY || 'none' };
 }
 
 async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
@@ -47,7 +63,7 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
   const cfg = resolveProvider(opts.provider);
   if (cfg.provider === 'openai-compatible' && /:11434(\/|$)/.test(cfg.baseUrl)) {
     const { gpuLease } = await import('../gpu/lease');
-    return gpuLease('LLM', 12000, () => chatWith(cfg, messages, opts), { jobId: opts.jobId });
+    return gpuLease('LLM', llmLeaseMb(cfg.model), () => chatWith(cfg, messages, opts), { jobId: opts.jobId });
   }
   return chatWith(cfg, messages, opts);
 }

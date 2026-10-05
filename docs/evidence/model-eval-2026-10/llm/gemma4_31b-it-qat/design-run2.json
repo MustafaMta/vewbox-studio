@@ -1,0 +1,100 @@
+{
+  "task": "design",
+  "run": 2,
+  "model": "gemma4:31b-it-qat",
+  "ms": 44306,
+  "attempts": 2,
+  "firstAttemptValid": false,
+  "attemptsDetail": [
+    {
+      "ms": 23919,
+      "status": 200,
+      "promptTokens": 843,
+      "completionTokens": 1191,
+      "head": "{\n  \"name\": \"Abu Layth\",\n  \"nameAr\": \"أبو ليث\",\n  \"role\": \"Baghdadi kite-maker and wind-whisperer\",\n  \"sex\": \"Male\",\n  \"ageYears\": 70,\n  \"build\": \"Wiry and lean",
+      "requestChars": 4140,
+      "numCtx": 16384,
+      "keepAlive": "2m",
+      "think": false
+    },
+    {
+      "ms": 20327,
+      "status": 200,
+      "promptTokens": 1331,
+      "completionTokens": 970,
+      "head": "{\n  \"name\": \"Abu Layth\",\n  \"nameAr\": \"أبو ليث\",\n  \"role\": \"Baghdadi kite-maker and wind-whisperer\",\n  \"sex\": \"MALE\",\n  \"ageYears\": 70,\n  \"build\": \"Wiry and lean",
+      "requestChars": 6041,
+      "numCtx": 16384,
+      "keepAlive": "2m",
+      "think": false
+    }
+  ],
+  "vramBeforeMiB": 21405,
+  "vramPeakMiB": 21405,
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "gemma4:31b-it-qat",
+        "model": "gemma4:31b-it-qat",
+        "size": 19099004435,
+        "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "gemma4",
+          "families": [
+            "gemma4"
+          ],
+          "parameter_size": "30.7B",
+          "quantization_level": "Q4_0"
+        },
+        "expires_at": "2026-10-05T12:10:48.532103966Z",
+        "size_vram": 19099004435,
+        "context_length": 16384
+      }
+    ]
+  },
+  "llmContainer": "vewbox-llm-1 10.43GiB / 46.79GiB",
+  "at": "2026-10-05T12:08:49.690Z",
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion."
+    },
+    {
+      "role": "user",
+      "content": "Design ONE new original character for cartoon production in Arabic (Iraqi — Baghdadi).\nBrief: \"\"\"A Baghdadi kite-maker of about seventy who sells paper kites on the Tigris corniche and talks to the wind; gentle, stubborn, funny\"\"\"\nExisting characters (do not duplicate a look or a name): [{\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\"},{\"name\":\"Salam\",\"role\":\"A young, curious explorer navigating a whimsical, interconnected world of floating islands and hidden societies\",\"look\":\"\"},{\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"look\":\"\"}]\nReturn JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot. State facial hair exactly (\"a grey moustache only, clean-shaven chin\", \"a full beard\", \"clean-shaven\") and give a culturally specific garment its cut and length (\"an ankle-length grey dishdasha\")."
+    },
+    {
+      "role": "assistant",
+      "content": "{\n  \"name\": \"Abu Layth\",\n  \"nameAr\": \"أبو ليث\",\n  \"role\": \"Baghdadi kite-maker and wind-whisperer\",\n  \"sex\": \"Male\",\n  \"ageYears\": 70,\n  \"build\": \"Wiry and lean, with a slight forward bend in his posture like a crane\",\n  \"face\": \"Heart-shaped with high, rounded cheeks and deep, radiating smile lines; a nose that is slightly bulbous at the tip\",\n  \"hair\": \"Wispy, cloud-like white hair that escapes from under his cap in small, stray curls\",\n  \"skin\": \"Golden-brown, weathered by decades of sun on the Tigris riverbank\",\n  \"eyes\": \"Small, twinkling dark amber eyes that crinkle completely when he laughs\",\n  \"distinguishing\": [\n    \"Round, gold-rimmed glasses that constantly slip to the tip of his nose\"\n  ],\n  \"facialHair\": \"A thick, fluffy white moustache that curls slightly at the ends; clean-shaven chin\",\n  \"wardrobe\": \"An ankle-length cream-colored cotton dishdasha; a dark grey traditional Iraqi sidara cap; a faded blue canvas apron with many small pockets holding colorful rolls of silk paper and bamboo sticks\",\n  \"personality\": \"A whimsical dreamer who treats the wind as a temperamental friend; stubborn about the 'correct' angle of a kite string; possesses a dry, playful Baghdadi wit\",\n  \"voice\": {\n    \"pitch\": \"Medium-low\",\n    \"pace\": \"Slow and rhythmic\",\n    \"timbre\": \"Sandy and warm\",\n    \"notes\": \"Strong Baghdadi lilt with melodic pauses and a soft, whistling quality to his 's' sounds\"\n  }\n}"
+    },
+    {
+      "role": "user",
+      "content": "The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nsex: Invalid option: expected one of \"FEMALE\"|\"MALE\"\nvoice.pitch: Invalid option: expected one of \"LOW\"|\"MID\"|\"HIGH\"\nvoice.pace: Invalid option: expected one of \"SLOW\"|\"MEASURED\"|\"QUICK\""
+    }
+  ],
+  "answer": {
+    "name": "Abu Layth",
+    "nameAr": "أبو ليث",
+    "role": "Baghdadi kite-maker and wind-whisperer",
+    "sex": "MALE",
+    "ageYears": 70,
+    "build": "Wiry and lean, with a slight forward bend in his posture like a crane",
+    "face": "Heart-shaped with high, rounded cheeks and deep, radiating smile lines; a nose that is slightly bulbous at the tip",
+    "hair": "Wispy, cloud-like white hair that escapes from under his cap in small, stray curls",
+    "skin": "Golden-brown, weathered by decades of sun on the Tigris riverbank",
+    "eyes": "Small, twinkling dark amber eyes that crinkle completely when he laughs",
+    "distinguishing": [
+      "Round, gold-rimmed glasses that constantly slip to the tip of his nose"
+    ],
+    "wardrobe": "An ankle-length cream-colored cotton dishdasha; a dark grey traditional Iraqi sidara cap; a faded blue canvas apron with many small pockets holding colorful rolls of silk paper and bamboo sticks",
+    "personality": "A whimsical dreamer who treats the wind as a temperamental friend; stubborn about the 'correct' angle of a kite string; possesses a dry, playful Baghdadi wit",
+    "voice": {
+      "pitch": "MID",
+      "pace": "SLOW",
+      "timbre": "Sandy and warm",
+      "notes": "Strong Baghdadi lilt with melodic pauses and a soft, whistling quality to his 's' sounds"
+    }
+  }
+}

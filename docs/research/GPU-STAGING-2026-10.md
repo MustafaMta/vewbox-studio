@@ -33,7 +33,7 @@ and recorded in the repo, **[V]** verified from a primary source, **[E]** an est
 | `tts-habibi` | TTS | Habibi-TTS IRQ (F5-TTS DiT + Vocos) | ≈ 1 GB above baseline after one line **[R]** | within `TTS_VRAM` |
 | `tts-design` | TTS | VoxCPM2 2B bf16 (`voice-design`); ECAPA on the CPU | ≈ 7 GB; ≈ 0.6 GB of CUDA context stays after `/unload` until a restart **[R]** | `DESIGN_VRAM = 7000` |
 | `asr` | ASR | faster-whisper large-v3 CT2 fp16 (`asr-whisper`, 3.1 GB on disk); **new:** whisper-large-v3-arabic-dialectal-v2 CT2 fp16 (`stack-2026-10` → `asr-convert`, ≈ 3.1 GB on disk **[E]**), `language=ar` only; Demucs htdemucs | large-v3 ≈ 3.7 GB; Demucs ≈ 2.3 GB **[R]**; the dialect model ≈ 3.7 GB **[E]** (same architecture); **one Whisper at a time** (the service drops one before loading the other) | `ASR_VRAM = 4000` |
-| `llm` | LLM | `qwen3:14b` Q4 10 GB **[R]** (default); **new:** `gemma4:31b-it-qat` Q4_0 19 GB **[V]** in the `ollama` volume | qwen3:14b 10 GB **[R]**; Gemma 19 GB + q8_0 KV cache at 16K ≈ 22–23 GB **[E]**; Ollama offloads layers to the CPU beyond the card | 12000 (`providers/llm.ts`): **must become ≈ 23000 when `OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat`** (model phase) |
+| `llm` | LLM | **`gemma4:31b-it-qat`** Q4_0 (default since 2026-10-05) or `qwen3:14b` Q4_K_M, in the `ollama` volume | **measured 2026-10-05 (§6):** Gemma 19.1 GB loaded at 16K q8_0, 100 % GPU, card peak 21.4 GB; qwen3:14b 10.6 GB, card 11.5 GB | **`llmLeaseMb(model)`** (`providers/llm.ts`): 21500 for Gemma, 12000 for qwen3:14b and any unmeasured model |
 
 `GPU_VRAM_BUDGET_MB=30000` leaves ≈ 2 GB for the display, the CUDA contexts of idle services (≈ 0.6 GB each after an
 unload) and `COMFY_RESERVE_VRAM=1.0`.
@@ -63,13 +63,13 @@ same sequence without batching.
 
 | # | Step | Lease | Unloads first | Loads | Time |
 |---|---|---|---|---|---|
-| 1 | Plan the shot (beats, `<d>` line, references) | LLM (12000 today; 23000 with Gemma) | ComfyUI `/free`, `tts*`/`asr` `/unload` (no-ops when nothing is loaded) | Ollama loads the model from the page cache: qwen3:14b ≈ 10 GB; Gemma ≈ 19 GB + cache | qwen3:14b 17 s median per structured answer **[R]**; Gemma 10–20 s load + the answer **[E]** |
+| 1 | Plan the shot (beats, `<d>` line, references) | LLM (21500 with Gemma, 12000 with qwen3:14b) | ComfyUI `/free`, `tts*`/`asr` `/unload` (no-ops when nothing is loaded) | Ollama: Gemma 19.1 GB (card 21.4) or qwen3:14b 10.6 GB (card 11.5) **[R]** | one scene's shot plan: Gemma 102–125 s, qwen3:14b 37–76 s; Gemma cold develop 134 s vs 32 s warm **[R]** (§6) |
 | 2 | The shot's frame (first frame from the canonical character + location plate) | IMAGE (24000) | Ollama `keep_alive: 0` (≈ immediate; `OLLAMA_KEEP_ALIVE=2m` would otherwise keep it) | ComfyUI: Edit-2511 fp8mixed + TE + VAE ≈ 30 GB | ≈ 19 s load when the TE is resident, 75 s cold; Lightning edit 12–22 s, quality 60–80 s **[R]** |
 | 3 | The line, Iraqi (Habibi) or English (IndexTTS) | TTS (8000) | ComfyUI `/free` (the whole image set leaves the card) | `tts` or `tts-habibi` (≈ 6 GB or ≈ 1–2 GB), 15–33 s first use **[R]** | ≈ 1–5 s per line warm **[E]** |
 | 4 | The line check (transcribe back, WER against the script) | ASR (4000) | `tts*` `/unload` (host RAM trimmed) | `asr`: Whisper large-v3 for `en`; the dialect model for `ar` (the other Whisper is dropped first) | load ≈ 8 s cold; 6 s of speech in 1.2 s warm **[R]** |
 | 5 | The clip (Ref2VA with the frame, the canonical image, the plate and the line's audio as references) | VIDEO (28000) | `asr` `/unload`; ComfyUI `/free` if an image checkpoint is still resident | ComfyUI: Ref2VA int8 DiT 21 GB resident, the nvfp4 TE 15.7 GB encodes then moves to RAM, VAEs, LoRA: card 22–32 GB | cold 50–80 s above warm; 69–76 s for a 5 s clip at 4 steps warm; 124–186 s with a load or 12 steps **[R]** |
 | 6 | Take gate: transcribe the clip's own audio, compare with the line | ASR (4000) | ComfyUI `/free` (**this evicts the 21 GB DiT**: the next clip pays the 50–80 s cold load again) | `asr` Whisper | 1–2 s warm |
-| 7 | Vision QA of the frame or the clip's frames (Gemma, image input) | LLM (23000) | ComfyUI `/free`; `asr` `/unload` | Ollama: Gemma | per image **[E]**, to measure (§5.6 L3 of MODEL-STACK) |
+| 7 | Vision QA of the frame or the clip's frames (Gemma, image input) | LLM (21500) | ComfyUI `/free`; `asr` `/unload` | Ollama: Gemma | per image **[E]**, to measure (§5.6 L3 of MODEL-STACK) |
 
 **Where the plan changes the order.** Steps 6 and 7 are why MODEL-STACK §4 rules 2 and 3 exist: inside a video batch,
 the take gate should run on the **CPU** (`asr` with a CPU int8 Whisper, to be added and measured: target ≤ 0.5× real
@@ -111,3 +111,32 @@ per shot (≈ 2–3 min of a ≈ 5–6 min shot).
   large-v3 on the §5.9 clips.
 - Music: the card total for ACE-Step and Music 3 (never recorded).
 - The two extra ComfyUI cold loads per shot (§3 steps 6–7) before and after the CPU take gate exists.
+
+## 6. Measured on 2026-10-05 (docs/research/MODEL-EVAL-2026-10.md; nvidia-smi peaks at 250–500 ms, card total)
+
+Idle: ComfyUI alone 0.50 GB of the card (CUDA context), 0.77 GB with the other idle services; ComfyUI 0.9–2.8 GB of
+host RAM idle. Every speech service and Ollama load lazily: up and idle they hold no VRAM.
+
+| Family / engine | Card peak (measured) | Host RAM (container) | Lease estimate in code | Fits the estimate? |
+|---|---|---|---|---|
+| IMAGE — Qwen-Image-2512 quality / Lightning | **29.8 GB** | ≤ 2.8 GB | `IMAGE_VRAM_MB` 24000 | **under-reports by ≈ 6 GB** |
+| IMAGE — Qwen-Image-Edit-2511 (edit, Image Reference rollback) | **30.0–30.4 GB** | — | 24000 | under-reports |
+| IMAGE — FLUX.2 klein 4B (+ Qwen3-4B TE) | **20.1 GB** | — | 24000 | yes |
+| IMAGE — Qwen-Image-2.1 int8 (evaluation only) | 17.0–22.4 GB | — | — | — |
+| VIDEO — MiniMax H3 Ref2VA int8, 4-step turbo, 5 s at 1344×768 | **28.4–31.9 GB** | **40.2–40.8 GiB of 46.8** | 28000 | under-reports by ≈ 4 GB |
+| LLM — gemma4:31b-it-qat, 16K q8_0 | **21.4 GB** (19.1 GB model) | ≤ 11.9 GB | 21500 (new) | yes |
+| LLM — qwen3:14b, 16K q8_0 | **11.5 GB** (10.6 GB model) | ≤ 5.9 GB | 12000 | yes |
+| TTS + ASR — IndexTTS + Habibi IRQ + Whisper (dialect or large-v3), all loaded | **13.5 GB** together | tts 2.5, habibi 2.5, asr 1.0 GB | 8000 / 4000 | — |
+
+**Which engines can co-reside (card ≤ 32.6 GB, measured sums):**
+
+- **Voice + ASR: yes** (13.5 GB together, measured) — the TTS → ASR → TTS lease switch can stay one family.
+- **qwen3:14b + voice/ASR: would fit** (11.5 + ≈ 12.7 = ≈ 24 GB) — not used: the default is now Gemma.
+- **Gemma + voice/ASR: no** (21.4 + 12.7 ≈ 34 GB). **Gemma + any image engine: no.** **klein + voice: no** (≈ 32.8 GB).
+- **H3: alone** — 31.9 GB of the card and 40.8 GiB of the VM's 46.8 GiB host RAM: with the speech services merely idle
+  (≈ 6 GB RAM loaded) the VM is at its limit; `.wslconfig` (`memory=80GB`) is still the producer action.
+
+**What the code should follow (not changed here; only the LLM estimate was in scope):** `IMAGE_VRAM_MB` 24000 and the
+VIDEO 28000 both under-report the measured peaks (30.4 / 31.9 GB); with `GPU_VRAM_BUDGET_MB=30000` the budget warning
+would fire on every Qwen and H3 job if they were raised to the measured values — the budget, not only the estimates,
+needs a decision.

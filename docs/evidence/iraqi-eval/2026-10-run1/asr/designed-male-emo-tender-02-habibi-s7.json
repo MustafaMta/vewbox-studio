@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.952,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.7,
+      "text": "عيوني، نام هسه وباسر نحتي.",
+      "avg_logprob": -0.17,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.54,
+          "word": " عيوني،",
+          "probability": 0.789
+        },
+        {
+          "start": 0.54,
+          "end": 0.82,
+          "word": " نام",
+          "probability": 0.997
+        },
+        {
+          "start": 0.82,
+          "end": 1.08,
+          "word": " هسه",
+          "probability": 0.954
+        },
+        {
+          "start": 1.08,
+          "end": 1.46,
+          "word": " وباسر",
+          "probability": 0.791
+        },
+        {
+          "start": 1.46,
+          "end": 1.7,
+          "word": " نحتي.",
+          "probability": 0.995
+        }
+      ]
+    }
+  ],
+  "text": "عيوني، نام هسه وباسر نحتي.",
+  "ms": 317,
+  "model": "large-v3-arabic-dialectal-v2"
+}

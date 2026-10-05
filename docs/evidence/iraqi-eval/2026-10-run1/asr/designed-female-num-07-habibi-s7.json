@@ -1,0 +1,43 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.653,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.38,
+      "text": "باشر أربعة ع الشباكر.",
+      "avg_logprob": -0.413,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.52,
+          "word": " باشر",
+          "probability": 0.166
+        },
+        {
+          "start": 0.52,
+          "end": 0.74,
+          "word": " أربعة",
+          "probability": 0.639
+        },
+        {
+          "start": 0.74,
+          "end": 0.88,
+          "word": " ع",
+          "probability": 0.726
+        },
+        {
+          "start": 0.88,
+          "end": 1.38,
+          "word": " الشباكر.",
+          "probability": 0.932
+        }
+      ]
+    }
+  ],
+  "text": "باشر أربعة ع الشباكر.",
+  "ms": 256,
+  "model": "large-v3-arabic-dialectal-v2"
+}

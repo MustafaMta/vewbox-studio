@@ -1,0 +1,136 @@
+{
+  "img1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "vb-6f38069812517a75.png"
+    }
+  },
+  "img1s": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "img1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 16
+    }
+  },
+  "unet": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Qwen-Image-2.1 (evaluation)"
+    }
+  },
+  "cache": {
+    "class_type": "QwenImage21Cache",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "device": "auto",
+      "dtype": "default"
+    }
+  },
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "vae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+    }
+  },
+  "enc": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "prompt": "cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Real locations: believable architecture and clutter, motivated light sources (windows, lamps, neon), weather and haze, surfaces with age and dirt, period-correct details. exterior. Al-Mutanabbi Street book market in Baghdad: a long pedestrian street of book stalls under the arcades of old brick buildings, stacks of books on wooden tables, early morning, empty of people. landmarks: arcades of old brick buildings with wooden balconies; book stalls with stacked books; a café entrance on the corner. props present: stacks of books, wooden stall tables, hanging signboards. time of day: morning. a second camera angle of the same place (close view of one book stall), same architecture and props. An unoccupied, deserted place: pure environment and props, the scene before anyone arrives. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects. Image 1 is the exact place: keep its architecture, arcades, signage and props.",
+      "negative_prompt": "text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, people, person",
+      "resolution": 1024,
+      "vae": [
+        "vae",
+        0
+      ],
+      "images.image_1": [
+        "img1s",
+        0
+      ]
+    }
+  },
+  "latent": {
+    "class_type": "LatentFromBatch",
+    "inputs": {
+      "samples": [
+        "enc",
+        2
+      ],
+      "batch_index": 0,
+      "length": 1
+    }
+  },
+  "sample": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "cache",
+        0
+      ],
+      "positive": [
+        "enc",
+        0
+      ],
+      "negative": [
+        "enc",
+        1
+      ],
+      "latent_image": [
+        "latent",
+        0
+      ],
+      "seed": 970007,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "sample",
+        0
+      ],
+      "vae": [
+        "vae",
+        0
+      ]
+    }
+  },
+  "save_canonical": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "decode",
+        0
+      ],
+      "filename_prefix": "vewbox/eval/qi21-view"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 0.608,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.58,
+      "text": "منو ماتش؟",
+      "avg_logprob": -0.429,
+      "no_speech_prob": 0.001,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.3,
+          "word": " منو",
+          "probability": 0.135
+        },
+        {
+          "start": 0.3,
+          "end": 0.58,
+          "word": " ماتش؟",
+          "probability": 0.83
+        }
+      ]
+    }
+  ],
+  "text": "منو ماتش؟",
+  "ms": 207,
+  "model": "large-v3-arabic-dialectal-v2"
+}

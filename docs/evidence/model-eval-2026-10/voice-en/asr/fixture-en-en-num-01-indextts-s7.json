@@ -1,0 +1,79 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 4.342,
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.86,
+      "text": "The price is 250,000 dinars, not a dinar more.",
+      "avg_logprob": -0.129,
+      "no_speech_prob": 0.001,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": " The",
+          "probability": 0.895
+        },
+        {
+          "start": 0.1,
+          "end": 0.36,
+          "word": " price",
+          "probability": 0.965
+        },
+        {
+          "start": 0.36,
+          "end": 0.56,
+          "word": " is",
+          "probability": 0.998
+        },
+        {
+          "start": 0.56,
+          "end": 1,
+          "word": " 250",
+          "probability": 0.954
+        },
+        {
+          "start": 1,
+          "end": 2.06,
+          "word": ",000",
+          "probability": 0.934
+        },
+        {
+          "start": 2.06,
+          "end": 2.5,
+          "word": " dinars,",
+          "probability": 0.672
+        },
+        {
+          "start": 2.58,
+          "end": 3.22,
+          "word": " not",
+          "probability": 0.996
+        },
+        {
+          "start": 3.22,
+          "end": 3.36,
+          "word": " a",
+          "probability": 0.997
+        },
+        {
+          "start": 3.36,
+          "end": 3.72,
+          "word": " dinar",
+          "probability": 0.996
+        },
+        {
+          "start": 3.72,
+          "end": 3.86,
+          "word": " more.",
+          "probability": 0.999
+        }
+      ]
+    }
+  ],
+  "text": "The price is 250,000 dinars, not a dinar more.",
+  "ms": 339,
+  "model": "large-v3"
+}

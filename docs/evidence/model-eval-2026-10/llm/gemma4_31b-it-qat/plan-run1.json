@@ -1,0 +1,470 @@
+{
+  "task": "plan",
+  "run": 1,
+  "model": "gemma4:31b-it-qat",
+  "ms": 101789,
+  "attempts": 1,
+  "firstAttemptValid": true,
+  "attemptsDetail": [
+    {
+      "ms": 101653,
+      "status": 200,
+      "promptTokens": 3500,
+      "completionTokens": 5124,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the atmosphere and Najm's arrival\",\n      \"action\": \"Najm enters the workshop, clutching the radio, while meteo",
+      "requestChars": 15339,
+      "numCtx": 16384,
+      "keepAlive": "2m",
+      "think": false
+    }
+  ],
+  "vramBeforeMiB": 21399,
+  "vramPeakMiB": 21399,
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "gemma4:31b-it-qat",
+        "model": "gemma4:31b-it-qat",
+        "size": 19099004435,
+        "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "gemma4",
+          "families": [
+            "gemma4"
+          ],
+          "parameter_size": "30.7B",
+          "quantization_level": "Q4_0"
+        },
+        "expires_at": "2026-10-05T11:57:19.633981343Z",
+        "size_vram": 19099004435,
+        "context_length": 16384
+      }
+    ]
+  },
+  "llmContainer": "vewbox-llm-1 5.519GiB / 46.79GiB",
+  "at": "2026-10-05T11:55:20.909Z",
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\n\nLanguage: English. Write natural spoken English in \"text\"; leave \"textAr\" empty.\n\nTIMELINES: each existing character's age is their age now and \"bornAbout\" is the year they were born. Every year in a character's own life — a marriage, a loss, work, a journey — falls after they were about 16 and not after this year. A year before a character was born appears only as history they read or heard about, never as something they or their spouse lived.\n\nFIXED DEVELOPMENT INTENT (developed, reviewed and accepted by the producer — build within it; do not change the hook, the tone or the ending):\n- Audience: Adults aged 25–45 in urban areas of North America and Europe who watch character-driven dramas, sci-fi, and nostalgic retro-themed content on platforms like YouTube and streaming services.…\n- Tone: Nostalgic, mysterious, warm\n- Hook (the first 3–5 seconds): A meteor streaks across the night sky as Najm struggles through the workshop door with a cracked valve radio bearing a faded '1987' label, its static filling Elias’s dim workshop.\n- Ending: The signal fades into silence. Najm and Elias exchange a long look; the camera settles on the photo of Elias’s wife, dated 1987, and fades to black — the loss they share unspoken but understood.\n- Strategy: short focused"
+    },
+    {
+      "role": "user",
+      "content": "Plan the shots for Scene 1 \"The Broken Signal\" of \"The Static Sky\". Aspect WIDE_16_9. The scene should run about 30 seconds in 5–8 shots of 3–10 seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).\nLocation: {\"id\":\"loc-cde19129ca\",\"name\":\"Elias’s Workshop\",\"kind\":\"INTERIOR\",\"description\":\"A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.\",\"landmarks\":[\"A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp\",\"A large multi-pane window on the back wall, facing the sea\",\"Shelves of old radios stacked floor to ceiling on the left wall\",\"One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart\",\"The wooden door on the right, at the front\"],\"props\":[\"The cracked valve radio with a faded 1987 label\",\"A glass jar of screws on the workbench\",\"A screwdriver and a small wrench\",\"A soldering iron on its stand\"],\"lighting\":[\"NIGHT\"]}\nTime of day: NIGHT. Purpose: Najm enters Elias’s workshop on the night of a meteor shower, clutching a cracked valve radio with a faded '1987' label. Elias examines it, muttering about obsolete parts, and they begin the repair together while meteors streak past the window.. Emotional objective: . Entry state: . Exit state: .\nCharacters present (exact names; include their look so prompts can describe them): [{\"id\":\"char-56c47abc59\",\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"sex\":\"MALE\",\"ageYears\":72,\"bornAbout\":1954,\"species\":\"Human\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\",\"wardrobe\":\"Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)\",\"distinguishing\":[\"A faded navy wool cap with a single red button on his own left side\",\"A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves\"],\"personality\":\"Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm and resonant, with a faint wheeze from old age\",\"hasAppearance\":true},{\"id\":\"char-e71e80cde4\",\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"sex\":\"MALE\",\"ageYears\":65,\"bornAbout\":1961,\"look\":\"\",\"wardrobe\":\"\",\"distinguishing\":[],\"personality\":\"Wise but absent-minded, with a quiet enthusiasm for forgotten knowledge. Speaks in measured, deliberate phrases, often pausing to adjust his glasses or scratch his beard when lost in thought. Kind but socially awkward, preferring books to people.\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":true}]\nBeats and lines of the scene, in order: [{\"beat\":1,\"action\":\"Najm stumbles into the workshop, clutching the cracked valve radio. His glasses glint as he adjusts them, casting a shadow over his face. The meteor shower’s light flickers through the window, illuminating dust motes in the air.\",\"lines\":[]},{\"beat\":2,\"action\":\"Elias lifts the radio, squinting at its cracked face. He mutters to himself, tracing a finger over the '1987' label. A drawer creaks open as he pulls out a screwdriver.\",\"lines\":[\"Elias Moore: Obsolescence. Always obsolescence.\"]},{\"beat\":3,\"action\":\"Najm leans over the workbench, fiddling with a loose wire. The radio emits a low hum, vibrating slightly on the table. A meteor streaks across the window, briefly lighting Elias’s face.\",\"lines\":[\"Najm: It’s still… functional, isn’t it?\"]},{\"beat\":4,\"action\":\"Elias nods, tightening a bolt. The radio crackles, static flooding the room. Najm jumps, knocking over a jar of screws that clatter to the floor.\",\"lines\":[\"Elias Moore: Static’s just a story waiting to be told.\"]}]\nDialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): [{\"index\":0,\"who\":\"Elias Moore\",\"line\":\"Obsolescence. Always obsolescence.\"},{\"index\":1,\"who\":\"Najm\",\"line\":\"It’s still… functional, isn’t it?\"},{\"index\":2,\"who\":\"Elias Moore\",\"line\":\"Static’s just a story waiting to be told.\"}]\nThis is the first shot of the production.\n\nCamera rules for this direction: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\nFor each shot write \"prompt\": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look (\"high-end 3D animated feature film still, stylized CG characters with appealing s…\" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. If the shot has dialogue, do not write the spoken words or any <d> tag: say who speaks (by appearance) and how they deliver it; the studio appends the exact script lines. Do not describe what to avoid.\nContinuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.\nTHE BOUNDARY of each shot (\"boundary\"), how it joins the shot before it — decide it deliberately, it decides how the shot is filmed: \"continuous\" = the same action carries straight on without a cut (the previous shot's last moment is handed to this one; the camera may keep moving but nothing jumps); \"cut\" = an editorial cut on the same moment — same people, same place, same story state, an intentional new camera setup (a reverse, a closer size, an insert); \"transition\" = a new place or a new time (the story moves on; the first shot of a scene is always a transition). Use \"continuous\" only when the action truly flows and the previous shot is in this scene; prefer \"cut\" for a change of angle; never hide a jump in time or place behind \"continuous\".\nTHE STAGING inside each shot: \"beats\" — 2 to 6 observable actions in order, each with \"seconds\" timed by how long the action really takes (a glance about 1 s, opening a door 3–4 s, crossing a room 5 s or more, a spoken line about 3 words a second), uneven, never equal slices; \"actions\" — every discrete visible action the shot covers (a comma list is several); \"pace\" — DWELL (one moment expanded, no cuts), NORMAL, or MONTAGE (a run of distinct actions); a beat may carry \"cut\": {\"camera\": \"…\", \"location\": \"…\"} when the story needs a new angle or a new place INSIDE the shot — at most two, never in the first or last 3 seconds, never to hide a jump; \"pov\": the character whose eyes the camera is (only when a barrier justifies it — a peephole, a door crack; they are not seen); \"extras\": unnamed people present, as groups described in words ({\"description\": \"four tired shoppers in winter coats\", \"count\": 4}) — never invent a named character and never make a group look like a cast member. Stage the events, never the telling: shoot the listener, not the talker; show a place in use. Everyone who acts in a beat is in characterNames. A shot with no dialogue line names no speech at all: no \"says\", no \"whispers\", no quoted words, not even as a trailing scrap. With a character on screen the framing is MEDIUM, MEDIUM_CLOSE_UP or CLOSE_UP (or TWO_SHOT / OVER_THE_SHOULDER for two) — never WIDE for a speaking face; nobody looks at the camera.\nReturn JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, beats:[{seconds,action,cut?}], actions[], pace, pov?, extras:[{description,count}], continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?}, prompt }] }.\nExample of ONE complete shot (shape only; write your own content): {\"purpose\":\"Establish the yard and her hesitation\",\"action\":\"She stops at the gate, hand on the latch, then pushes it open.\",\"framing\":\"WIDE\",\"cameraMove\":\"STATIC\",\"durationSeconds\":5,\"characterNames\":[\"Layla\"],\"dialogueLineIndexes\":[0],\"transition\":\"CUT\",\"boundary\":\"transition\",\"beats\":[{\"seconds\":1.5,\"action\":\"She stops at the gate, hand on the latch.\"},{\"seconds\":3.5,\"action\":\"She pushes the gate open and steps through.\"}],\"actions\":[\"stops at the gate\",\"pushes the gate open\",\"steps through\"],\"pace\":\"NORMAL\",\"extras\":[],\"continuity\":{\"characters\":[{\"characterName\":\"Layla\",\"wardrobe\":\"green coat, red scarf\",\"pose\":\"standing, hand on latch\",\"position\":\"left third, facing right\",\"screenDirection\":\"RIGHT\",\"eyeline\":\"at the gate\",\"emotion\":\"hesitant\",\"holding\":[\"canvas bag\"]}],\"props\":[{\"name\":\"canvas bag\",\"ownerCharacterName\":\"Layla\",\"state\":\"full\",\"position\":\"on her shoulder\"}],\"environment\":{\"timeOfDay\":\"GOLDEN_HOUR\",\"weather\":\"clear\",\"lighting\":\"low warm sun from the right, long shadows\",\"state\":\"gate closed, leaves on the path\"},\"camera\":{\"lensIntent\":\"35mm, eye level\",\"angle\":\"slightly low\"},\"relationToPrevious\":\"CUT\",\"notes\":\"Her scarf stays over the left shoulder in every shot.\"},\"prompt\":\"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light.\"}\nEvery continuity.characters entry must use the key \"characterName\" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.\nframing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem)."
+    }
+  ],
+  "answer": {
+    "shots": [
+      {
+        "purpose": "Establish the atmosphere and Najm's arrival",
+        "action": "Najm enters the workshop, clutching the radio, while meteors streak outside.",
+        "framing": "WIDE",
+        "cameraMove": "TRUCK_RIGHT",
+        "durationSeconds": 6,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "beige cardigan, brown trousers, round glasses",
+              "pose": "stumbling, then standing",
+              "position": "right third, moving toward center",
+              "screenDirection": "LEFT",
+              "eyeline": "looking around the room",
+              "emotion": "breathless, hopeful",
+              "holding": [
+                "cracked valve radio"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "cracked valve radio",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "cracked, dusty",
+              "position": "held in arms"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-cde19129ca",
+            "timeOfDay": "NIGHT",
+            "weather": "clear",
+            "lighting": "dim interior, flickering blue-white light from meteors through the window",
+            "state": "dusty, cluttered"
+          },
+          "camera": {
+            "framing": "WIDE",
+            "move": "TRUCK_RIGHT",
+            "lensIntent": "wide angle, deep focus",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "STORY_TRANSITION"
+        },
+        "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing proportions. A cluttered, dimly lit seaside repair workshop filled with old radios and nautical maps. A slender 65-year-old man with a salt-and-pepper beard, round glasses, and a soft beige cardigan stumbles through the wooden door on the right, clutching a cracked valve radio. Through the large multi-pane window in the background, a meteor shower streaks across the dark night sky over the sea, casting flickering light and illuminating dust motes in the air. The camera trucks right, following his entrance. Warm, saturated local colors with deep shadows.",
+        "boundary": "transition",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm stumbles through the wooden door on the right, clutching the radio to his chest."
+            },
+            {
+              "at": 3,
+              "action": "He stops and adjusts his glasses; in the background, meteors streak across the dark sea through the window."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "enters through door",
+            "clutches radio",
+            "adjusts glasses"
+          ]
+        }
+      },
+      {
+        "purpose": "Introduce Elias and the mystery of the radio",
+        "action": "Elias takes the radio and notices the date.",
+        "framing": "MEDIUM_CLOSE_UP",
+        "cameraMove": "PUSH_IN",
+        "durationSeconds": 7,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [
+          {
+            "id": "line-2e2e6225ef",
+            "characterId": "char-56c47abc59",
+            "text": "Obsolescence. Always obsolescence."
+          }
+        ],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "navy-and-white wool sweater, yellow raincoat (open)",
+              "pose": "bending slightly over the radio",
+              "position": "center",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "focused on the radio",
+              "emotion": "curious, skeptical",
+              "holding": [
+                "cracked valve radio"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "cracked valve radio",
+              "ownerCharacterId": "char-56c47abc59",
+              "state": "cracked, held up for inspection",
+              "position": "in Elias's hands"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-cde19129ca",
+            "timeOfDay": "NIGHT",
+            "weather": "clear",
+            "lighting": "warm yellow light from a green-shaded lamp above",
+            "state": "cluttered"
+          },
+          "camera": {
+            "framing": "MEDIUM_CLOSE_UP",
+            "move": "PUSH_IN",
+            "lensIntent": "tight, shallow depth of field",
+            "angle": "slightly high"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "high-end 3D animated feature film still, stylized CG characters. Close-up of a portly 72-year-old man with silver-gray hair, a weathered face with deep lines, and a navy-and-white wool sweater. He is holding a cracked valve radio, squinting intensely at a faded '1987' label on the chassis. His thick, tanned fingers carefully trace the numbers. The lighting is warm and focused from a green-shaded lamp above, creating soft shadows on his face. The camera slowly pushes in on his expression of nostalgic skepticism. Soft, tactile materials.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Elias lifts the radio from Najm's arms, squinting."
+            },
+            {
+              "at": 3,
+              "action": "He traces a finger over the faded '1987' label and speaks with a dry, nostalgic tone."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "lifts radio",
+            "squints",
+            "traces label",
+            "speaks"
+          ]
+        },
+        "notes": [
+          "added to the cast from the actions: Najm"
+        ]
+      },
+      {
+        "purpose": "Establish the dynamic between the two men",
+        "action": "Najm asks about the radio's functionality.",
+        "framing": "TWO_SHOT",
+        "cameraMove": "STATIC",
+        "durationSeconds": 6,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [
+          {
+            "id": "line-45066aa8a4",
+            "characterId": "char-e71e80cde4",
+            "text": "It’s still… functional, isn’t it?"
+          }
+        ],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "navy-and-white wool sweater, yellow raincoat",
+              "pose": "standing by workbench",
+              "position": "left third, facing right",
+              "screenDirection": "RIGHT",
+              "eyeline": "at the radio",
+              "emotion": "neutral",
+              "holding": []
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "beige cardigan, round glasses",
+              "pose": "leaning over workbench",
+              "position": "right third, facing left",
+              "screenDirection": "LEFT",
+              "eyeline": "at the radio",
+              "emotion": "hopeful",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "cracked valve radio",
+              "ownerCharacterId": "char-56c47abc59",
+              "state": "sitting on workbench",
+              "position": "center of workbench"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-cde19129ca",
+            "timeOfDay": "NIGHT",
+            "weather": "clear",
+            "lighting": "warm bounce light from the workbench lamp",
+            "state": "cluttered"
+          },
+          "camera": {
+            "framing": "TWO_SHOT",
+            "move": "STATIC",
+            "lensIntent": "medium lens, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "high-end 3D animated feature film still, stylized CG characters. A two-shot of the portly silver-haired man in a navy sweater and the slender man with a beard and beige cardigan. They are both leaning over a long wooden workbench covered in radio parts and tools. The slender man has a wide-eyed, hopeful expression as he speaks. The lighting is warm and cozy, with a strong glow from the lamp illuminating their faces against the dim, cluttered background of the workshop. Clear staging on a horizontal line of action.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Elias sets the radio on the wooden workbench."
+            },
+            {
+              "at": 3,
+              "action": "Najm leans in closer, his eyes wide with hope, and speaks."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "sets radio on bench",
+            "leans in",
+            "speaks"
+          ]
+        }
+      },
+      {
+        "purpose": "Visual gag and environmental connection",
+        "action": "Najm fiddles with the radio as a meteor flashes.",
+        "framing": "MEDIUM",
+        "cameraMove": "PAN_LEFT",
+        "durationSeconds": 7,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "beige cardigan, round glasses",
+              "pose": "hunched over radio",
+              "position": "right third, facing left",
+              "screenDirection": "LEFT",
+              "eyeline": "focused on the wire",
+              "emotion": "concentrated",
+              "holding": [
+                "loose wire"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "cracked valve radio",
+              "ownerCharacterId": "char-56c47abc59",
+              "state": "vibrating, humming",
+              "position": "on workbench"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-cde19129ca",
+            "timeOfDay": "NIGHT",
+            "weather": "clear",
+            "lighting": "warm lamp light, interrupted by a sharp white flash from outside",
+            "state": "cluttered"
+          },
+          "camera": {
+            "framing": "MEDIUM",
+            "move": "PAN_LEFT",
+            "lensIntent": "35mm, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "high-end 3D animated feature film still, stylized CG characters. Medium shot of the slender man in the beige cardigan, his face a mask of deep concentration as he fiddles with a loose copper wire inside the open radio. The radio is visibly vibrating on the wooden table. The camera pans left to the large multi-pane window, where a brilliant, white-hot meteor streaks across the dark blue night sky, momentarily flooding the workshop with a sharp, bright light. Saturated colors, cinematic lighting.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm's hand carefully adjusts a loose wire; the radio begins to vibrate and hum."
+            },
+            {
+              "at": 4,
+              "action": "The camera pans left to the window as a bright meteor streaks across, lighting up the room."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "adjusts wire",
+            "radio vibrates",
+            "pans to window",
+            "meteor flashes"
+          ]
+        }
+      },
+      {
+        "purpose": "The payoff and emotional beat",
+        "action": "The radio crackles, Najm jumps, and Elias delivers the final line.",
+        "framing": "MEDIUM",
+        "cameraMove": "HANDHELD",
+        "durationSeconds": 7,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [
+          {
+            "id": "line-bc1475218a",
+            "characterId": "char-56c47abc59",
+            "text": "Static’s just a story waiting to be told."
+          }
+        ],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "navy-and-white wool sweater, yellow raincoat",
+              "pose": "standing, holding screwdriver",
+              "position": "left third, facing right",
+              "screenDirection": "RIGHT",
+              "eyeline": "looking at Najm",
+              "emotion": "amused, calm",
+              "holding": [
+                "screwdriver"
+              ]
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "beige cardigan, round glasses",
+              "pose": "startled, leaning back",
+              "position": "right third, facing left",
+              "screenDirection": "LEFT",
+              "eyeline": "looking at Elias",
+              "emotion": "surprised",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "glass jar of screws",
+              "ownerCharacterId": "char-56c47abc59",
+              "state": "tipped over, screws scattering",
+              "position": "on the workbench/floor"
+            },
+            {
+              "name": "cracked valve radio",
+              "ownerCharacterId": "char-56c47abc59",
+              "state": "emitting static",
+              "position": "on workbench"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-cde19129ca",
+            "timeOfDay": "NIGHT",
+            "weather": "clear",
+            "lighting": "warm, nostalgic lamp light",
+            "state": "screws scattered on floor"
+          },
+          "camera": {
+            "framing": "MEDIUM",
+            "move": "HANDHELD",
+            "lensIntent": "medium lens",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "high-end 3D animated feature film still, stylized CG characters. Medium shot of both men. The portly man in the navy sweater tightens a bolt; suddenly, the radio emits a loud, jagged burst of static. The slender man in the beige cardigan jumps back with a comical, exaggerated expression of surprise, his arm knocking over a glass jar of screws that scatter across the workbench and floor. The portly man looks at him with a warm, knowing smile, speaking calmly. Handheld camera with a slight shake to emphasize the jump. Warm, golden lighting.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Elias tightens a bolt with a screwdriver; a loud burst of static erupts."
+            },
+            {
+              "at": 2,
+              "action": "Najm jumps back in surprise, knocking over a glass jar of screws."
+            },
+            {
+              "at": 4,
+              "action": "Elias looks at Najm with a small, knowing smile and speaks."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "tightens bolt",
+            "radio crackles",
+            "jumps back",
+            "knocks over jar",
+            "speaks"
+          ]
+        }
+      }
+    ],
+    "budget": 30,
+    "maxShot": 10
+  }
+}

@@ -59,6 +59,15 @@
       ]
     },
     {
+      "name": "eval-qwen-image-2.1",
+      "purpose": "EVALUATION ONLY (docs/research/MODEL-STACK-2026-10.md §3.11): Qwen-Image-2.1 int8 DiT + Qwen3-VL-8B int8 text encoder + its VAE, 17.3 GB, under the Qwen Research Licence (research or evaluation purposes only; a commercial use needs a separate licence from Alibaba). Never in the default MODEL_GROUPS and never a studio default: the A/B of docs/research/MODEL-EVAL-2026-10.md compares it against Qwen-Image-2512 so the producer can decide whether to request a licence. Fetch on its own: --groups eval-qwen-image-2.1.",
+      "files": [
+        { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "vae/qwen_image_2.1_vae_bf16.safetensors", "folder": "vae", "bytes": 675509688, "sha256": "bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9", "license": "Qwen Research Licence (non-commercial)" },
+        { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 7256783064, "sha256": "cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d", "license": "Qwen Research Licence (non-commercial)" },
+        { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9350798360, "sha256": "8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f", "license": "Qwen Research Licence (non-commercial)" }
+      ]
+    },
+    {
       "name": "stack-2026-10",
       "purpose": "Model stack of October 2026 (docs/research/MODEL-STACK-2026-10.md §7): whisper-large-v3-arabic-dialectal-v2 (oddadmix, Apache-2.0, a large-v3 fine-tune on 13 Arabic dialects; Iraqi WER 0.254 / CER 0.068 on its held-out set) in transformers format, 6.17 GB, pinned to one revision. The asr service does not read this folder: a one-off conversion (`docker compose --profile models run --rm asr-convert`) writes the CTranslate2 fp16 copy into asr/whisper-large-v3-arabic-dialectal-v2-ct2, which ASR_MODEL_DIR_AR points at. Gemma 4 31B-it is NOT here: Ollama pulls it into the ollama volume (compose service llm-pull). Not in the default MODEL_GROUPS: MODEL_GROUPS=stack-2026-10.",
       "files": [

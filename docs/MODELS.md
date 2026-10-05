@@ -153,7 +153,7 @@ Measured on every generated file (20 WAVs + 2 line-engine renderings; ASR = fast
 |---|---|---|
 | MiniMax (Anthropic-compatible endpoint) | `MiniMax-M3` | `LLM_PROVIDER=minimax` or `auto` with a MiniMax key |
 | Anthropic | `claude-sonnet-5-5` | `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` |
-| OpenAI-compatible (bundled `llm` service, `ollama/ollama:0.35.1`) | `qwen3:14b` on the 5090 (default); `gemma4:31b-it-qat` (19 GB, text + image, Apache-2.0) pulled beside it by `docker compose --profile models run --rm llm-pull` for the model phase's tests (`OPENAI_COMPATIBLE_MODEL` chooses) | `auto` with no hosted key; works offline. Flash attention, q8_0 KV cache, `OLLAMA_CONTEXT_LENGTH=16384` (docs/research/MODEL-STACK-2026-10.md §7.1) |
+| OpenAI-compatible (bundled `llm` service, `ollama/ollama:0.35.1`) | **`gemma4:31b-it-qat`** on the 5090 (default since 2026-10-05: Iraqi dialogue and staged shot plans clearly better than qwen3:14b in the controlled test, docs/research/MODEL-EVAL-2026-10.md §3); `qwen3:14b` kept selectable (`OPENAI_COMPATIBLE_MODEL=qwen3:14b`: 2.5–3× faster, half the card, MSA-leaning Arabic) | `auto` with no hosted key; works offline. Flash attention, q8_0 KV cache, `OLLAMA_CONTEXT_LENGTH=16384` (docs/research/MODEL-STACK-2026-10.md §7.1) |
 
 All three return JSON validated against strict schemas with tolerant parsing (`src/server/story/lenient.ts`) and a
 repair round; Arabic productions are written in dialect (Iraqi Baghdadi by default) with an English gloss.
@@ -173,7 +173,8 @@ repair round; Arabic productions are written in dialect (Iraqi Baghdadi by defau
 | faster-whisper large-v3 fp16 | ~3.7 GB; 6 s of speech in 1.2 s warm, 8.9 s with the first load | 1 |
 | Demucs htdemucs | ~2.3 GB; 1.5 s clip in ~1 s warm, 27 s with the first download + load | 1 |
 | ACE-Step 1.5 XL turbo | 34 s of engine time for a 90 s song (8 steps); plus ~30 s of Demucs for the stems | 1 |
-| qwen3:14b (Ollama, Q4) | 10 GB, 100% GPU even beside ComfyUI's staged H3; ~17 s median per structured answer; unloads after 2 min idle | 1 |
+| gemma4:31b-it-qat (Ollama, Q4_0 QAT, 16K q8_0) | 19.1 GB loaded, 100 % GPU; card peak 21.4 GB; `llm` container ≤ 11.9 GB RAM; script 42–52 s, one scene's shot plan 102–125 s, develop 32 s warm / 134 s cold (MODEL-EVAL-2026-10 §3); lease estimate 21500 | 1 |
+| qwen3:14b (Ollama, Q4_K_M) | 10.6 GB loaded, card peak 11.5 GB; script 11–17 s, shot plan 37–76 s (MODEL-EVAL-2026-10 §3); unloads after 2 min idle; lease estimate 12000 | 1 |
 
 `GPU_VRAM_BUDGET_MB` (default 30000) is the worker's ceiling; the GPU lease serialises families and records waits.
 

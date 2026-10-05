@@ -1,0 +1,55 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.76,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.58,
+      "text": "يا كرار، گوم شوف منو بالباب.",
+      "avg_logprob": -0.192,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": " يا",
+          "probability": 0
+        },
+        {
+          "start": 0.28,
+          "end": 0.62,
+          "word": " كرار،",
+          "probability": 0.868
+        },
+        {
+          "start": 0.62,
+          "end": 0.84,
+          "word": " گوم",
+          "probability": 0.514
+        },
+        {
+          "start": 0.84,
+          "end": 1.06,
+          "word": " شوف",
+          "probability": 0.976
+        },
+        {
+          "start": 1.06,
+          "end": 1.26,
+          "word": " منو",
+          "probability": 0.901
+        },
+        {
+          "start": 1.26,
+          "end": 1.58,
+          "word": " بالباب.",
+          "probability": 0.97
+        }
+      ]
+    }
+  ],
+  "text": "يا كرار، گوم شوف منو بالباب.",
+  "ms": 282,
+  "model": "large-v3-arabic-dialectal-v2"
+}

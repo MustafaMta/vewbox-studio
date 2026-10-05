@@ -1,0 +1,31 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 0.651,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.5,
+      "text": "لا والله.",
+      "avg_logprob": -0.5,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.22,
+          "word": "لا",
+          "probability": 0.979
+        },
+        {
+          "start": 0.22,
+          "end": 0.5,
+          "word": " والله.",
+          "probability": 0.989
+        }
+      ]
+    }
+  ],
+  "text": "لا والله.",
+  "ms": 171,
+  "model": "large-v3-arabic-dialectal-v2"
+}

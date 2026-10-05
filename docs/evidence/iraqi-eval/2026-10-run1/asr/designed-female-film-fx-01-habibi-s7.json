@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.653,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.54,
+      "text": "تقدر تنامي ببيتك مثل الناس.",
+      "avg_logprob": -0.255,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.4,
+          "word": "تقدر",
+          "probability": 0.876
+        },
+        {
+          "start": 0.4,
+          "end": 0.66,
+          "word": " تنامي",
+          "probability": 0.784
+        },
+        {
+          "start": 0.66,
+          "end": 0.98,
+          "word": " ببيتك",
+          "probability": 0.962
+        },
+        {
+          "start": 0.98,
+          "end": 1.26,
+          "word": " مثل",
+          "probability": 0.919
+        },
+        {
+          "start": 1.26,
+          "end": 1.54,
+          "word": " الناس.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "تقدر تنامي ببيتك مثل الناس.",
+  "ms": 319,
+  "model": "large-v3-arabic-dialectal-v2"
+}

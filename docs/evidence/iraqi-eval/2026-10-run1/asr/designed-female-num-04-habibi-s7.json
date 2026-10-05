@@ -1,0 +1,91 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 4.405,
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.28,
+      "text": "الموعد الساعة سبعة ونص، يوم خمسطعش من الشهر، والسعر ميتين وخمسين ألف.",
+      "avg_logprob": -0.148,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.52,
+          "word": " الموعد",
+          "probability": 0.666
+        },
+        {
+          "start": 0.52,
+          "end": 0.82,
+          "word": " الساعة",
+          "probability": 0.998
+        },
+        {
+          "start": 0.82,
+          "end": 1.08,
+          "word": " سبعة",
+          "probability": 0.752
+        },
+        {
+          "start": 1.08,
+          "end": 1.46,
+          "word": " ونص،",
+          "probability": 0.983
+        },
+        {
+          "start": 1.46,
+          "end": 1.82,
+          "word": " يوم",
+          "probability": 1
+        },
+        {
+          "start": 1.82,
+          "end": 2.32,
+          "word": " خمسطعش",
+          "probability": 0.913
+        },
+        {
+          "start": 2.32,
+          "end": 2.44,
+          "word": " من",
+          "probability": 1
+        },
+        {
+          "start": 2.44,
+          "end": 2.88,
+          "word": " الشهر،",
+          "probability": 0.906
+        },
+        {
+          "start": 2.88,
+          "end": 3.3,
+          "word": " والسعر",
+          "probability": 1
+        },
+        {
+          "start": 3.3,
+          "end": 3.56,
+          "word": " ميتين",
+          "probability": 0.757
+        },
+        {
+          "start": 3.56,
+          "end": 4.08,
+          "word": " وخمسين",
+          "probability": 0.996
+        },
+        {
+          "start": 4.08,
+          "end": 4.28,
+          "word": " ألف.",
+          "probability": 0.967
+        }
+      ]
+    }
+  ],
+  "text": "الموعد الساعة سبعة ونص، يوم خمسطعش من الشهر، والسعر ميتين وخمسين ألف.",
+  "ms": 568,
+  "model": "large-v3-arabic-dialectal-v2"
+}

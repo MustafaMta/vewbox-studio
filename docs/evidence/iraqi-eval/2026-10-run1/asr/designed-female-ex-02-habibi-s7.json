@@ -1,0 +1,31 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.301,
+  "segments": [
+    {
+      "start": 0,
+      "end": 0.88,
+      "text": "عافيه عليك.",
+      "avg_logprob": -0.427,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.54,
+          "word": " عافيه",
+          "probability": 0.469
+        },
+        {
+          "start": 0.54,
+          "end": 0.88,
+          "word": " عليك.",
+          "probability": 0.981
+        }
+      ]
+    }
+  ],
+  "text": "عافيه عليك.",
+  "ms": 202,
+  "model": "large-v3-arabic-dialectal-v2"
+}

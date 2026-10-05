@@ -26,7 +26,8 @@ x-app-env: &app-env
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm:11434/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-ollama}
-  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3:14b}
+  # the local story model: Gemma 4 31B since the controlled test (docs/research/MODEL-EVAL-2026-10.md §3); qwen3:14b stays selectable
+  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-gemma4:31b-it-qat}
   # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
   OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -240,16 +241,24 @@ services:
         if [ -f "$$ASR_CT2_DIR/model.bin" ]; then echo "already converted: $$ASR_CT2_DIR"; exit 0; fi
         test -f "$$ASR_HF_DIR/model.safetensors" || { echo "fetch group stack-2026-10 first (no $$ASR_HF_DIR/model.safetensors)"; exit 2; }
         pip install --no-cache-dir "transformers==4.57.1"
-        ct2-transformers-converter --model "$$ASR_HF_DIR" --output_dir "$$ASR_CT2_DIR.partial" --quantization float16 --copy_files tokenizer.json --force
+        # the fine-tune's tokenizer_config.json was written by transformers 5.x (extra_special_tokens as a LIST), which
+        # 4.x refuses ("'list' object has no attribute 'keys'", 2026-10-05): convert from a temporary copy whose config
+        # drops that key (tokenizer.json already carries the tokens); the weights are linked, not copied
+        TMP=/tmp/asr-hf; rm -rf "$$TMP"; mkdir -p "$$TMP"
+        for f in config.json generation_config.json tokenizer.json processor_config.json; do cp "$$ASR_HF_DIR/$$f" "$$TMP/"; done
+        ln -s "$$ASR_HF_DIR/model.safetensors" "$$TMP/model.safetensors"
+        python3 -c "import json; t=json.load(open('$$ASR_HF_DIR/tokenizer_config.json')); t.pop('extra_special_tokens', None); json.dump(t, open('$$TMP/tokenizer_config.json','w'))"
+        ct2-transformers-converter --model "$$TMP" --output_dir "$$ASR_CT2_DIR.partial" --quantization float16 --copy_files tokenizer.json --force
         cp "$$ASR_BASE_DIR/preprocessor_config.json" "$$ASR_CT2_DIR.partial/"
         rm -rf "$$ASR_CT2_DIR" && mv "$$ASR_CT2_DIR.partial" "$$ASR_CT2_DIR"
         ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"
 
   # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume
-  # (llm-pull). Models available: qwen3:14b (10 GB, the current default) and gemma4:31b-it-qat (19 GB, text + image;
-  # docs/research/MODEL-STACK-2026-10.md §7.1); OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache
-  # halves the cache; OLLAMA_CONTEXT_LENGTH is the server default and what the app sends as num_ctx. Ollama offloads
-  # layers to the CPU when a model and its cache exceed the card: Gemma QAT at 16K fits (≈ 22–23 GB, estimate to measure).
+  # (llm-pull). Models available: gemma4:31b-it-qat (the default since 2026-10-05; 19.1 GB loaded at 16K, card peak
+  # 21.4 GB, 100 % GPU — measured, docs/research/MODEL-EVAL-2026-10.md §3) and qwen3:14b (10.6 GB loaded, card 11.5 GB);
+  # OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache halves the cache; OLLAMA_CONTEXT_LENGTH is the
+  # server default and what the app sends as num_ctx. Ollama offloads layers to the CPU when a model and its cache
+  # exceed the card.
   llm:
     logging: *logging
     image: ollama/ollama:0.35.1

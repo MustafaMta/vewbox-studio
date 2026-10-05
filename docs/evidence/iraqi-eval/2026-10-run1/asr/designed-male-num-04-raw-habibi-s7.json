@@ -1,0 +1,97 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 3.467,
+  "segments": [
+    {
+      "start": 0.27,
+      "end": 3.43,
+      "text": "في موعد الساعة سنة الثني مشان فش من الشهر والسعر سنة مسفتي ألف.",
+      "avg_logprob": -0.38,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.27,
+          "end": 0.67,
+          "word": " في",
+          "probability": 0.001
+        },
+        {
+          "start": 0.67,
+          "end": 0.89,
+          "word": " موعد",
+          "probability": 0.975
+        },
+        {
+          "start": 0.89,
+          "end": 1.19,
+          "word": " الساعة",
+          "probability": 0.991
+        },
+        {
+          "start": 1.19,
+          "end": 1.47,
+          "word": " سنة",
+          "probability": 0.731
+        },
+        {
+          "start": 1.47,
+          "end": 1.67,
+          "word": " الثني",
+          "probability": 0.642
+        },
+        {
+          "start": 1.67,
+          "end": 1.89,
+          "word": " مشان",
+          "probability": 0.287
+        },
+        {
+          "start": 1.89,
+          "end": 2.03,
+          "word": " فش",
+          "probability": 0.7
+        },
+        {
+          "start": 2.03,
+          "end": 2.13,
+          "word": " من",
+          "probability": 0.933
+        },
+        {
+          "start": 2.13,
+          "end": 2.41,
+          "word": " الشهر",
+          "probability": 0.996
+        },
+        {
+          "start": 2.41,
+          "end": 2.73,
+          "word": " والسعر",
+          "probability": 0.993
+        },
+        {
+          "start": 2.73,
+          "end": 2.91,
+          "word": " سنة",
+          "probability": 0.676
+        },
+        {
+          "start": 2.91,
+          "end": 3.23,
+          "word": " مسفتي",
+          "probability": 0.85
+        },
+        {
+          "start": 3.23,
+          "end": 3.43,
+          "word": " ألف.",
+          "probability": 0.924
+        }
+      ]
+    }
+  ],
+  "text": "في موعد الساعة سنة الثني مشان فش من الشهر والسعر سنة مسفتي ألف.",
+  "ms": 473,
+  "model": "large-v3-arabic-dialectal-v2"
+}

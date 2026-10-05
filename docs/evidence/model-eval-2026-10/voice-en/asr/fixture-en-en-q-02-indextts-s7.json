@@ -1,0 +1,61 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 2.229,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.96,
+      "text": "You knew about the signal, didn't you?",
+      "avg_logprob": -0.101,
+      "no_speech_prob": 0.002,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": " You",
+          "probability": 0.864
+        },
+        {
+          "start": 0.12,
+          "end": 0.24,
+          "word": " knew",
+          "probability": 0.994
+        },
+        {
+          "start": 0.24,
+          "end": 0.46,
+          "word": " about",
+          "probability": 0.999
+        },
+        {
+          "start": 0.46,
+          "end": 0.66,
+          "word": " the",
+          "probability": 0.995
+        },
+        {
+          "start": 0.66,
+          "end": 1.04,
+          "word": " signal,",
+          "probability": 0.996
+        },
+        {
+          "start": 1.2,
+          "end": 1.9,
+          "word": " didn't",
+          "probability": 0.995
+        },
+        {
+          "start": 1.9,
+          "end": 1.96,
+          "word": " you?",
+          "probability": 0.999
+        }
+      ]
+    }
+  ],
+  "text": "You knew about the signal, didn't you?",
+  "ms": 271,
+  "model": "large-v3"
+}

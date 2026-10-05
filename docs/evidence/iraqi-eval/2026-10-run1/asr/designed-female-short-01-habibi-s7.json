@@ -1,0 +1,25 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.056,
+  "segments": [
+    {
+      "start": 0.05,
+      "end": 0.71,
+      "text": "ماكو.",
+      "avg_logprob": -0.209,
+      "no_speech_prob": 0.001,
+      "words": [
+        {
+          "start": 0.05,
+          "end": 0.71,
+          "word": " ماكو.",
+          "probability": 0.661
+        }
+      ]
+    }
+  ],
+  "text": "ماكو.",
+  "ms": 174,
+  "model": "large-v3-arabic-dialectal-v2"
+}

@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.016,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.98,
+      "text": "ساهر وشيماء ونبا راحو للكرادة.",
+      "avg_logprob": -0.194,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.34,
+          "word": " ساهر",
+          "probability": 0.529
+        },
+        {
+          "start": 0.34,
+          "end": 0.84,
+          "word": " وشيماء",
+          "probability": 0.96
+        },
+        {
+          "start": 0.84,
+          "end": 1.18,
+          "word": " ونبا",
+          "probability": 0.855
+        },
+        {
+          "start": 1.18,
+          "end": 1.42,
+          "word": " راحو",
+          "probability": 0.829
+        },
+        {
+          "start": 1.42,
+          "end": 1.98,
+          "word": " للكرادة.",
+          "probability": 0.915
+        }
+      ]
+    }
+  ],
+  "text": "ساهر وشيماء ونبا راحو للكرادة.",
+  "ms": 336,
+  "model": "large-v3-arabic-dialectal-v2"
+}

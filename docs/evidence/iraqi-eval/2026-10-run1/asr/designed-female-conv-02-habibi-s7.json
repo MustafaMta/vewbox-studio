@@ -1,0 +1,73 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.795,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.76,
+      "text": "هلا والله، تفضل عاد. شنو تشرب هاي لو قهوة؟",
+      "avg_logprob": -0.17,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.44,
+          "word": "هلا",
+          "probability": 0.998
+        },
+        {
+          "start": 0.44,
+          "end": 0.74,
+          "word": " والله،",
+          "probability": 0.93
+        },
+        {
+          "start": 0.74,
+          "end": 1.14,
+          "word": " تفضل",
+          "probability": 1
+        },
+        {
+          "start": 1.14,
+          "end": 1.36,
+          "word": " عاد.",
+          "probability": 0.858
+        },
+        {
+          "start": 1.44,
+          "end": 1.74,
+          "word": " شنو",
+          "probability": 0.999
+        },
+        {
+          "start": 1.74,
+          "end": 2.08,
+          "word": " تشرب",
+          "probability": 1
+        },
+        {
+          "start": 2.08,
+          "end": 2.28,
+          "word": " هاي",
+          "probability": 0.992
+        },
+        {
+          "start": 2.28,
+          "end": 2.36,
+          "word": " لو",
+          "probability": 0.992
+        },
+        {
+          "start": 2.36,
+          "end": 2.76,
+          "word": " قهوة؟",
+          "probability": 0.989
+        }
+      ]
+    }
+  ],
+  "text": "هلا والله، تفضل عاد. شنو تشرب هاي لو قهوة؟",
+  "ms": 407,
+  "model": "large-v3-arabic-dialectal-v2"
+}

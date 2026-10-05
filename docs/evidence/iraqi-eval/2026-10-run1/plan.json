@@ -1,0 +1,943 @@
+{
+  "runId": "2026-10-run1",
+  "at": "2026-10-05T12:14:33.021Z",
+  "services": {
+    "base": "http://127.0.0.1:8021",
+    "asr": "http://127.0.0.1:8030",
+    "indextts": "http://127.0.0.1:8020"
+  },
+  "set": "tests\\fixtures\\voice\\iraqi-eval-set.json",
+  "params": {
+    "seed": 7,
+    "nfe_step": 32,
+    "cfg_strength": 2,
+    "sway_sampling_coef": -1,
+    "speed": 1
+  },
+  "prepareMode": "both",
+  "studioMetrics": true,
+  "textPreparation": true,
+  "voices": [
+    {
+      "id": "designed-male",
+      "sex": "M",
+      "file": "docs\\evidence\\voice-design\\iraqi-ab\\seeds\\iraqi-male-c1-s5002-24k.wav",
+      "text": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "label": "designed seed (VoxCPM2, Iraqi wording, male 40) — the best-measuring seed of the A/B",
+      "origin": "DESIGNED",
+      "durationSeconds": 6.88,
+      "sampleRate": 24000,
+      "sha256": "dcc5dd55e622b5594072fad6edccf0592cb74273027cb76385ae680ee4520b38",
+      "engineOutput": "vewbox-tts voxcpm2 (libsndfile-1.2.2) · synthetic speech; engine=voxcpm2; designId=irqab-iraqi-male-r0; candidate=2; seed=5002; designed voice, not a recording; not a voice reference",
+      "synthetic": true
+    },
+    {
+      "id": "designed-female",
+      "sex": "F",
+      "file": "docs\\evidence\\voice-design\\iraqi-ab\\seeds\\iraqi-female-c1-s4001-24k.wav",
+      "text": "شلونك؟ اليوم الجو حار هواية، خلي نروح للسوگ باچر الصبح ونشتري خضرة، وبعدين نرجع للبيت.",
+      "label": "designed seed (VoxCPM2, Iraqi wording, female 35)",
+      "origin": "DESIGNED",
+      "durationSeconds": 5.76,
+      "sampleRate": 24000,
+      "sha256": "957506010729d60a44ee82fb9e62e18b7f482dfc78cd0bdd8e5bde1a942fa26a",
+      "engineOutput": "vewbox-tts voxcpm2 (libsndfile-1.2.2) · synthetic speech; engine=voxcpm2; designId=irqab-iraqi-female-r0; candidate=1; seed=4001; designed voice, not a recording; not a voice reference",
+      "synthetic": true
+    }
+  ],
+  "lines": [
+    {
+      "id": "conv-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شلونك؟ شخبارك؟ شكو ماكو؟",
+      "changes": []
+    },
+    {
+      "id": "conv-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شلونك؟ شخبارك؟ شكو ماكو؟",
+      "changes": []
+    },
+    {
+      "id": "conv-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هلا والله، تفضل اگعد. شنو تشرب، چاي لو گهوة؟",
+      "changes": []
+    },
+    {
+      "id": "conv-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هلا والله، تفضل اگعد. شنو تشرب، چاي لو گهوة؟",
+      "changes": []
+    },
+    {
+      "id": "conv-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "تعال نگعد بالگهوة شوية، ما عدنا شغل اليوم.",
+      "changes": []
+    },
+    {
+      "id": "conv-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "تعال نگعد بالگهوة شوية، ما عدنا شغل اليوم.",
+      "changes": []
+    },
+    {
+      "id": "conv-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هاي الحچاية طويلة، خليها لباچر.",
+      "changes": []
+    },
+    {
+      "id": "conv-04",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هاي الحچاية طويلة، خليها لباچر.",
+      "changes": []
+    },
+    {
+      "id": "conv-05",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عندي شغلة بسيطة، تگدر تجي ويّاي للسوگ؟",
+      "changes": []
+    },
+    {
+      "id": "conv-05",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عندي شغلة بسيطة، تگدر تجي ويّاي للسوگ؟",
+      "changes": []
+    },
+    {
+      "id": "conv-06",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اكو واحد يسأل عليك بالباب، اگله يفوت؟",
+      "changes": []
+    },
+    {
+      "id": "conv-06",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اكو واحد يسأل عليك بالباب، اگله يفوت؟",
+      "changes": []
+    },
+    {
+      "id": "conv-07",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يمعود خلصنا، ما ظل شي نسويه.",
+      "changes": []
+    },
+    {
+      "id": "conv-07",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يمعود خلصنا، ما ظل شي نسويه.",
+      "changes": []
+    },
+    {
+      "id": "q-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "وين رايح هالوقت؟",
+      "changes": []
+    },
+    {
+      "id": "q-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "وين رايح هالوقت؟",
+      "changes": []
+    },
+    {
+      "id": "q-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ليش ما گلتلي من البداية؟",
+      "changes": []
+    },
+    {
+      "id": "q-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ليش ما گلتلي من البداية؟",
+      "changes": []
+    },
+    {
+      "id": "q-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شنو اسمك؟ واني شلون اعرفك؟",
+      "changes": []
+    },
+    {
+      "id": "q-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شنو اسمك؟ واني شلون اعرفك؟",
+      "changes": []
+    },
+    {
+      "id": "q-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "منو هذا اللي وياك؟",
+      "changes": []
+    },
+    {
+      "id": "q-04",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "منو هذا اللي وياك؟",
+      "changes": []
+    },
+    {
+      "id": "q-05",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لعد شسوي هسه؟ انطيني فكرة.",
+      "changes": []
+    },
+    {
+      "id": "q-05",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لعد شسوي هسه؟ انطيني فكرة.",
+      "changes": []
+    },
+    {
+      "id": "q-06",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "صدگ؟ ما اصدگ!",
+      "changes": []
+    },
+    {
+      "id": "q-06",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "صدگ؟ ما اصدگ!",
+      "changes": []
+    },
+    {
+      "id": "q-07",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "انت تدري بالسالفة، مو؟",
+      "changes": []
+    },
+    {
+      "id": "q-07",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "انت تدري بالسالفة، مو؟",
+      "changes": []
+    },
+    {
+      "id": "q-08",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شوكت ترجع؟ اني انتظرك عالباب.",
+      "changes": []
+    },
+    {
+      "id": "q-08",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شوكت ترجع؟ اني انتظرك عالباب.",
+      "changes": []
+    },
+    {
+      "id": "ex-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا الله! شلون طلع الجو حلو اليوم!",
+      "changes": []
+    },
+    {
+      "id": "ex-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا الله! شلون طلع الجو حلو اليوم!",
+      "changes": []
+    },
+    {
+      "id": "ex-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عفية عليك! هيچ اريدك!",
+      "changes": []
+    },
+    {
+      "id": "ex-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عفية عليك! هيچ اريدك!",
+      "changes": []
+    },
+    {
+      "id": "ex-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا ويلي، نسيت المفتاح بالبيت!",
+      "changes": []
+    },
+    {
+      "id": "ex-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا ويلي، نسيت المفتاح بالبيت!",
+      "changes": []
+    },
+    {
+      "id": "num-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عمري اثنعش سنة، واخوي خمسطعش.",
+      "changes": []
+    },
+    {
+      "id": "num-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عمري اثنعش سنة، واخوي خمسطعش.",
+      "changes": []
+    },
+    {
+      "id": "num-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "الساعة سبعة ونص، والباص يجي بثمانية.",
+      "changes": []
+    },
+    {
+      "id": "num-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "الساعة سبعة ونص، والباص يجي بثمانية.",
+      "changes": []
+    },
+    {
+      "id": "num-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "السعر ميتين وخمسين الف دينار، مو اكثر.",
+      "changes": []
+    },
+    {
+      "id": "num-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "السعر ميتين وخمسين الف دينار، مو اكثر.",
+      "changes": []
+    },
+    {
+      "id": "num-04",
+      "voice": "designed-male",
+      "variant": "raw",
+      "engine": "habibi",
+      "spoken": "الموعد الساعة 7:30 يوم 15 من الشهر، والسعر 250 ألف.",
+      "changes": []
+    },
+    {
+      "id": "num-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "الموعد الساعة سبعة ونص يوم خمسطعش من الشهر، والسعر ميتين وخمسين ألف.",
+      "changes": [
+        "numbers spelled in Iraqi words"
+      ]
+    },
+    {
+      "id": "num-04",
+      "voice": "designed-female",
+      "variant": "raw",
+      "engine": "habibi",
+      "spoken": "الموعد الساعة 7:30 يوم 15 من الشهر، والسعر 250 ألف.",
+      "changes": []
+    },
+    {
+      "id": "num-04",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "الموعد الساعة سبعة ونص يوم خمسطعش من الشهر، والسعر ميتين وخمسين ألف.",
+      "changes": [
+        "numbers spelled in Iraqi words"
+      ]
+    },
+    {
+      "id": "num-05",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ثلاث سنين وما شفتك، تگول ثلاثين.",
+      "changes": []
+    },
+    {
+      "id": "num-05",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ثلاث سنين وما شفتك، تگول ثلاثين.",
+      "changes": []
+    },
+    {
+      "id": "num-06",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "انولدت بسنة الف وتسعمية وسبعة وثمانين، ببغداد.",
+      "changes": []
+    },
+    {
+      "id": "num-06",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "انولدت بسنة الف وتسعمية وسبعة وثمانين، ببغداد.",
+      "changes": []
+    },
+    {
+      "id": "num-07",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "باچر اربعطعش شباط، تتذكر؟",
+      "changes": []
+    },
+    {
+      "id": "num-07",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "باچر اربعطعش شباط، تتذكر؟",
+      "changes": []
+    },
+    {
+      "id": "name-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ابو سلام گال راح يجي بعد العصر.",
+      "changes": []
+    },
+    {
+      "id": "name-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ابو سلام گال راح يجي بعد العصر.",
+      "changes": []
+    },
+    {
+      "id": "name-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "حجي محمود وام حسين ينتظروك بالاعظمية.",
+      "changes": []
+    },
+    {
+      "id": "name-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "حجي محمود وام حسين ينتظروك بالاعظمية.",
+      "changes": []
+    },
+    {
+      "id": "name-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ساهر وشيماء ونبأ راحوا للكرادة.",
+      "changes": []
+    },
+    {
+      "id": "name-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ساهر وشيماء ونبأ راحوا للكرادة.",
+      "changes": []
+    },
+    {
+      "id": "name-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا كرار، گوم شوف منو بالباب.",
+      "changes": []
+    },
+    {
+      "id": "name-04",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا كرار، گوم شوف منو بالباب.",
+      "changes": []
+    },
+    {
+      "id": "name-05",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "زينب وفاطمة جايات من المنصور بالتكسي.",
+      "changes": []
+    },
+    {
+      "id": "name-05",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "زينب وفاطمة جايات من المنصور بالتكسي.",
+      "changes": []
+    },
+    {
+      "id": "emo-anger-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "گلتلك ميت مرة لا تلعب بالخيط! هسه انگطع.",
+      "changes": []
+    },
+    {
+      "id": "emo-anger-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "گلتلك ميت مرة لا تلعب بالخيط! هسه انگطع.",
+      "changes": []
+    },
+    {
+      "id": "emo-anger-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لا تحچي وياي هيچ! اني مو ولدك.",
+      "changes": []
+    },
+    {
+      "id": "emo-anger-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لا تحچي وياي هيچ! اني مو ولدك.",
+      "changes": []
+    },
+    {
+      "id": "emo-tender-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لا تخاف حبيبي، اني هنا، ما اروح.",
+      "changes": []
+    },
+    {
+      "id": "emo-tender-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عيوني، نام هسه وباچر نحچي.",
+      "changes": []
+    },
+    {
+      "id": "emo-tender-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عيوني، نام هسه وباچر نحچي.",
+      "changes": []
+    },
+    {
+      "id": "emo-tender-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا بويه، دير بالك على روحك، البرد چا قوي.",
+      "changes": []
+    },
+    {
+      "id": "emo-tender-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "يا بويه، دير بالك على روحك، البرد چا قوي.",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "البيت ما بي چاي؟ لعد شلون عايشين احنا!",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "البيت ما بي چاي؟ لعد شلون عايشين احنا!",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "گلتله روح للطبيب، گال الطبيب هو اللي محتاجني.",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "گلتله روح للطبيب، گال الطبيب هو اللي محتاجني.",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شگد تاكل؟ مثل القطار، ما يوگف!",
+      "changes": []
+    },
+    {
+      "id": "emo-humour-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شگد تاكل؟ مثل القطار، ما يوگف!",
+      "changes": []
+    },
+    {
+      "id": "emo-sad-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ما ظل احد يسأل عني من راحت امي.",
+      "changes": []
+    },
+    {
+      "id": "emo-sad-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ما ظل احد يسأل عني من راحت امي.",
+      "changes": []
+    },
+    {
+      "id": "emo-sad-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "تعبت... تعبت هواية، وما عندي احد احچي وياه.",
+      "changes": []
+    },
+    {
+      "id": "emo-sad-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "تعبت... تعبت هواية، وما عندي احد احچي وياه.",
+      "changes": []
+    },
+    {
+      "id": "emo-fear-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اسمع... اكو شي يتحرك ورة الباب، لا تفتحه.",
+      "changes": []
+    },
+    {
+      "id": "emo-fear-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اسمع... اكو شي يتحرك ورة الباب، لا تفتحه.",
+      "changes": []
+    },
+    {
+      "id": "emo-tired-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "والله ماكو شي، بس تعبان شوية.",
+      "changes": []
+    },
+    {
+      "id": "emo-tired-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "والله ماكو شي، بس تعبان شوية.",
+      "changes": []
+    },
+    {
+      "id": "long-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لمن چنت صغير، جدي علمني شلون اصلّح الطيارة بخيط واحد وشوية صبر، وگللي الهوا ما يسمعك اذا تصرخ عليه، بس يسمعك اذا تمشي وياه.",
+      "changes": []
+    },
+    {
+      "id": "long-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لمن چنت صغير، جدي علمني شلون اصلّح الطيارة بخيط واحد وشوية صبر، وگللي الهوا ما يسمعك اذا تصرخ عليه، بس يسمعك اذا تمشي وياه.",
+      "changes": []
+    },
+    {
+      "id": "long-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اليوم الصبح طلعت من البيت بدري، والشارع كله هادي، بس صوت الباعة وريحة الخبز من الفرن، وحسيت كأن بغداد گاعدة تتنفس وياي.",
+      "changes": []
+    },
+    {
+      "id": "long-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "اليوم الصبح طلعت من البيت بدري، والشارع كله هادي، بس صوت الباعة وريحة الخبز من الفرن، وحسيت كأن بغداد گاعدة تتنفس وياي.",
+      "changes": []
+    },
+    {
+      "id": "short-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ماكو.",
+      "changes": []
+    },
+    {
+      "id": "short-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "ماكو.",
+      "changes": []
+    },
+    {
+      "id": "short-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هسه؟",
+      "changes": []
+    },
+    {
+      "id": "short-02",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هسه؟",
+      "changes": []
+    },
+    {
+      "id": "short-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لا والله!",
+      "changes": []
+    },
+    {
+      "id": "short-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "لا والله!",
+      "changes": []
+    },
+    {
+      "id": "mix-01",
+      "voice": "designed-male",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "شغّل الـ wifi وافتح الـ app، الـ battery خلصت.",
+      "changes": []
+    },
+    {
+      "id": "mix-01",
+      "voice": "designed-female",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "شغّل الـ wifi وافتح الـ app، الـ battery خلصت.",
+      "changes": []
+    },
+    {
+      "id": "mix-02",
+      "voice": "designed-male",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "OK ابو سلام، هسه نسوي test للراديو، ready؟",
+      "changes": []
+    },
+    {
+      "id": "mix-02",
+      "voice": "designed-female",
+      "variant": "raw",
+      "engine": "indextts",
+      "spoken": "OK ابو سلام، هسه نسوي test للراديو، ready؟",
+      "changes": []
+    },
+    {
+      "id": "mix-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شغّل الواي فاي وافتح التطبيق، البطارية خلصت.",
+      "changes": []
+    },
+    {
+      "id": "mix-03",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شغّل الواي فاي وافتح التطبيق، البطارية خلصت.",
+      "changes": []
+    },
+    {
+      "id": "film-ss-01",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "عتيگ. كلشي يصير عتيگ.",
+      "changes": []
+    },
+    {
+      "id": "film-ss-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "بعده... يشتغل، مو؟",
+      "changes": []
+    },
+    {
+      "id": "film-ss-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "الوشوشة هاي بس حچاية تنتظر منو يحچيها.",
+      "changes": []
+    },
+    {
+      "id": "film-ss-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هذا... ما يصير.",
+      "changes": []
+    },
+    {
+      "id": "film-ss-05",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "المارينر... ضاعت بسنة سبعة وثمانين.",
+      "changes": []
+    },
+    {
+      "id": "film-ss-06",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "هي عمرها ما راحت.",
+      "changes": []
+    },
+    {
+      "id": "film-fx-01",
+      "voice": "designed-female",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "تكدر تنام ببيتك مثل الناس.",
+      "changes": []
+    },
+    {
+      "id": "film-fx-02",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "البيت ما بي چاي.",
+      "changes": []
+    },
+    {
+      "id": "film-fx-03",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "منو مات؟",
+      "changes": []
+    },
+    {
+      "id": "film-fx-04",
+      "voice": "designed-male",
+      "variant": "prepared",
+      "engine": "habibi",
+      "spoken": "شيل هذا. هنا ما نسوي هيچ.",
+      "changes": []
+    }
+  ],
+  "skipped": []
+}

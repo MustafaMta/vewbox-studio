@@ -1,0 +1,61 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.475,
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.32,
+      "text": "عندي شغلة بسيطة تقدر تجي ويباي للسوطة.",
+      "avg_logprob": -0.129,
+      "no_speech_prob": 0.001,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.38,
+          "word": "عندي",
+          "probability": 0.999
+        },
+        {
+          "start": 0.38,
+          "end": 0.7,
+          "word": " شغلة",
+          "probability": 0.953
+        },
+        {
+          "start": 0.7,
+          "end": 1.06,
+          "word": " بسيطة",
+          "probability": 1
+        },
+        {
+          "start": 1.06,
+          "end": 1.44,
+          "word": " تقدر",
+          "probability": 0.95
+        },
+        {
+          "start": 1.44,
+          "end": 1.66,
+          "word": " تجي",
+          "probability": 0.998
+        },
+        {
+          "start": 1.66,
+          "end": 1.92,
+          "word": " ويباي",
+          "probability": 0.899
+        },
+        {
+          "start": 1.92,
+          "end": 2.32,
+          "word": " للسوطة.",
+          "probability": 0.931
+        }
+      ]
+    }
+  ],
+  "text": "عندي شغلة بسيطة تقدر تجي ويباي للسوطة.",
+  "ms": 421,
+  "model": "large-v3-arabic-dialectal-v2"
+}

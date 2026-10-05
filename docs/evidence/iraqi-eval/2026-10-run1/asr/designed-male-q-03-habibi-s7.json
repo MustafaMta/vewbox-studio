@@ -1,0 +1,49 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 1.995,
+  "segments": [
+    {
+      "start": 0.21,
+      "end": 1.93,
+      "text": "شنو اسمك واني؟ شلون أعرفك؟",
+      "avg_logprob": -0.221,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.21,
+          "end": 0.77,
+          "word": " شنو",
+          "probability": 0.654
+        },
+        {
+          "start": 0.77,
+          "end": 1.09,
+          "word": " اسمك",
+          "probability": 0.83
+        },
+        {
+          "start": 1.09,
+          "end": 1.33,
+          "word": " واني؟",
+          "probability": 0.413
+        },
+        {
+          "start": 1.33,
+          "end": 1.53,
+          "word": " شلون",
+          "probability": 0.999
+        },
+        {
+          "start": 1.53,
+          "end": 1.93,
+          "word": " أعرفك؟",
+          "probability": 0.997
+        }
+      ]
+    }
+  ],
+  "text": "شنو اسمك واني؟ شلون أعرفك؟",
+  "ms": 336,
+  "model": "large-v3-arabic-dialectal-v2"
+}

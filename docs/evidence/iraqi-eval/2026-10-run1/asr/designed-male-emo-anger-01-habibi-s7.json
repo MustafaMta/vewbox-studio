@@ -1,0 +1,67 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 2.965,
+  "segments": [
+    {
+      "start": 0.27,
+      "end": 2.71,
+      "text": "قلتلك مية مرة لا تلعب الخيط، هسه انقطع.",
+      "avg_logprob": -0.217,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0.27,
+          "end": 0.91,
+          "word": "قلتلك",
+          "probability": 0.954
+        },
+        {
+          "start": 0.91,
+          "end": 1.07,
+          "word": " مية",
+          "probability": 0.813
+        },
+        {
+          "start": 1.07,
+          "end": 1.31,
+          "word": " مرة",
+          "probability": 0.994
+        },
+        {
+          "start": 1.31,
+          "end": 1.37,
+          "word": " لا",
+          "probability": 0.993
+        },
+        {
+          "start": 1.37,
+          "end": 1.65,
+          "word": " تلعب",
+          "probability": 0.996
+        },
+        {
+          "start": 1.65,
+          "end": 2.03,
+          "word": " الخيط،",
+          "probability": 0.935
+        },
+        {
+          "start": 2.03,
+          "end": 2.29,
+          "word": " هسه",
+          "probability": 0.873
+        },
+        {
+          "start": 2.29,
+          "end": 2.71,
+          "word": " انقطع.",
+          "probability": 0.713
+        }
+      ]
+    }
+  ],
+  "text": "قلتلك مية مرة لا تلعب الخيط، هسه انقطع.",
+  "ms": 401,
+  "model": "large-v3-arabic-dialectal-v2"
+}

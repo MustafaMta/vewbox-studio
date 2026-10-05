@@ -1,0 +1,73 @@
+{
+  "language": "ar",
+  "language_probability": 1,
+  "duration": 4.064,
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.62,
+      "text": "شغل الواي فاي وافتح ال ال اب، الباتر خلصت.",
+      "avg_logprob": -0.201,
+      "no_speech_prob": 0,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.22,
+          "word": " شغل",
+          "probability": 0.659
+        },
+        {
+          "start": 0.22,
+          "end": 0.52,
+          "word": " الواي",
+          "probability": 0.812
+        },
+        {
+          "start": 0.52,
+          "end": 0.74,
+          "word": " فاي",
+          "probability": 0.909
+        },
+        {
+          "start": 0.74,
+          "end": 1.6,
+          "word": " وافتح",
+          "probability": 0.889
+        },
+        {
+          "start": 1.6,
+          "end": 1.7,
+          "word": " ال",
+          "probability": 0.995
+        },
+        {
+          "start": 1.7,
+          "end": 2.1,
+          "word": " ال",
+          "probability": 0.761
+        },
+        {
+          "start": 2.1,
+          "end": 2.62,
+          "word": " اب،",
+          "probability": 0.658
+        },
+        {
+          "start": 2.62,
+          "end": 3.32,
+          "word": " الباتر",
+          "probability": 0.919
+        },
+        {
+          "start": 3.32,
+          "end": 3.62,
+          "word": " خلصت.",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "text": "شغل الواي فاي وافتح ال ال اب، الباتر خلصت.",
+  "ms": 426,
+  "model": "large-v3-arabic-dialectal-v2"
+}

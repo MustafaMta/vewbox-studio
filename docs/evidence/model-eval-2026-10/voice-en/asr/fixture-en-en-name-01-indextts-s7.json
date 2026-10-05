@@ -1,0 +1,121 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 5.91,
+  "segments": [
+    {
+      "start": 0,
+      "end": 5.14,
+      "text": "Abu Salim said he would come after the afternoon prayer, and Umm Hussein is waiting in Adamiya.",
+      "avg_logprob": -0.191,
+      "no_speech_prob": 0.001,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.24,
+          "word": " Abu",
+          "probability": 0.956
+        },
+        {
+          "start": 0.24,
+          "end": 0.68,
+          "word": " Salim",
+          "probability": 0.864
+        },
+        {
+          "start": 0.68,
+          "end": 0.88,
+          "word": " said",
+          "probability": 0.999
+        },
+        {
+          "start": 0.88,
+          "end": 1.06,
+          "word": " he",
+          "probability": 0.998
+        },
+        {
+          "start": 1.06,
+          "end": 1.22,
+          "word": " would",
+          "probability": 0.998
+        },
+        {
+          "start": 1.22,
+          "end": 1.42,
+          "word": " come",
+          "probability": 0.999
+        },
+        {
+          "start": 1.42,
+          "end": 1.74,
+          "word": " after",
+          "probability": 0.992
+        },
+        {
+          "start": 1.74,
+          "end": 1.92,
+          "word": " the",
+          "probability": 0.999
+        },
+        {
+          "start": 1.92,
+          "end": 2.24,
+          "word": " afternoon",
+          "probability": 0.994
+        },
+        {
+          "start": 2.24,
+          "end": 2.72,
+          "word": " prayer,",
+          "probability": 0.999
+        },
+        {
+          "start": 2.96,
+          "end": 3.36,
+          "word": " and",
+          "probability": 0.998
+        },
+        {
+          "start": 3.36,
+          "end": 3.54,
+          "word": " Umm",
+          "probability": 0.874
+        },
+        {
+          "start": 3.54,
+          "end": 4,
+          "word": " Hussein",
+          "probability": 0.654
+        },
+        {
+          "start": 4,
+          "end": 4.12,
+          "word": " is",
+          "probability": 0.999
+        },
+        {
+          "start": 4.12,
+          "end": 4.34,
+          "word": " waiting",
+          "probability": 0.999
+        },
+        {
+          "start": 4.34,
+          "end": 4.64,
+          "word": " in",
+          "probability": 0.999
+        },
+        {
+          "start": 4.64,
+          "end": 5.14,
+          "word": " Adamiya.",
+          "probability": 0.589
+        }
+      ]
+    }
+  ],
+  "text": "Abu Salim said he would come after the afternoon prayer, and Umm Hussein is waiting in Adamiya.",
+  "ms": 428,
+  "model": "large-v3"
+}

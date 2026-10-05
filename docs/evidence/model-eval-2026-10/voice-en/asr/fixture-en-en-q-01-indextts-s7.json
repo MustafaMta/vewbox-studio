@@ -1,0 +1,61 @@
+{
+  "language": "en",
+  "language_probability": 1,
+  "duration": 2.473,
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.48,
+      "text": "Where were you at half past seven?",
+      "avg_logprob": -0.287,
+      "no_speech_prob": 0.016,
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": " Where",
+          "probability": 0.668
+        },
+        {
+          "start": 0.1,
+          "end": 0.26,
+          "word": " were",
+          "probability": 0.994
+        },
+        {
+          "start": 0.26,
+          "end": 0.42,
+          "word": " you",
+          "probability": 0.999
+        },
+        {
+          "start": 0.42,
+          "end": 0.58,
+          "word": " at",
+          "probability": 0.998
+        },
+        {
+          "start": 0.58,
+          "end": 0.78,
+          "word": " half",
+          "probability": 0.705
+        },
+        {
+          "start": 0.78,
+          "end": 1.06,
+          "word": " past",
+          "probability": 0.879
+        },
+        {
+          "start": 1.06,
+          "end": 1.48,
+          "word": " seven?",
+          "probability": 0.765
+        }
+      ]
+    }
+  ],
+  "text": "Where were you at half past seven?",
+  "ms": 278,
+  "model": "large-v3"
+}
