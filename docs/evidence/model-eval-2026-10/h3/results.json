@@ -1,26 +1,26 @@
 {
   "V1": {
     "question": "the shot as the take handler sends it: Ref2VA, canonical image + plate + drawn opening frame bound, the frame anchored at 0, 4-step turbo, simple; 5 s; the English line",
-    "error": "The \"path\" argument must be of type string. Received undefined",
+    "submitted": false,
+    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\library\\image\\2026\\10\\gen-4b28ba8fe5.png'",
     "wallMs": 4,
     "vramPeakMiB": null,
-    "at": "2026-10-05T12:21:57.761Z",
-    "submitted": false
+    "at": "2026-10-05T12:27:26.943Z"
   },
   "V4": {
     "question": "the next shot as a CONTINUATION of V1: V1’s last 22 frames AND their sound in one AddGuide at 0 (the continuity code’s assumption: the head re-renders the tail), the canonical images and the plate re-applied; 5 s of new picture",
+    "submitted": false,
     "error": "The file could not be read as media: Command failed: ffprobe -v error -print_format json -show_format -show_streams D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\h3\\V1.mp4",
-    "wallMs": 81,
+    "wallMs": 27,
     "vramPeakMiB": 770,
-    "at": "2026-10-05T12:21:57.843Z",
-    "submitted": false
+    "at": "2026-10-05T12:27:26.971Z"
   },
   "V2": {
     "question": "V1 with an Iraqi Arabic <d>[Arabic] …</d> line (the eval set’s Baghdadi rendering of the same line): does the local H3 speak the dialect (listening item) and the words (dialect ASR)?",
-    "error": "The \"path\" argument must be of type string. Received undefined",
+    "submitted": false,
+    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\library\\image\\2026\\10\\gen-4b28ba8fe5.png'",
     "wallMs": 1,
     "vramPeakMiB": null,
-    "at": "2026-10-05T12:21:57.845Z",
-    "submitted": false
+    "at": "2026-10-05T12:27:26.973Z"
   }
 }
