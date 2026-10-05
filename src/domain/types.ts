@@ -186,6 +186,9 @@ export type TakeRating = 'GOOD' | 'REJECTED';
 export interface TakeStale { since: string; because: 'PREDECESSOR_RESELECTED' | 'UPSTREAM_STALE'; previousShotId: string; expectedTakeId?: string; detail: string }
 
 export type ScreenDirection = 'LEFT' | 'RIGHT' | 'TOWARD' | 'AWAY' | 'NEUTRAL';
+/** Where a person stands in the frame (third of the picture): the BLOCKING the 180° line keeps across cuts
+ *  (src/domain/blocking.ts). Absent: read from the `position` words when they say it, else unknown. */
+export type FrameSide = 'LEFT' | 'CENTER' | 'RIGHT';
 
 /** The continuity state of a shot: what must match the shot before and carry into the shot after. Versioned on
  *  the server; the current version travels with the shot. */
@@ -194,10 +197,12 @@ export interface ContinuityState {
   /** each person's state in the shot. Beyond where they are and what they hold (the older fields): their physical
    *  condition (wet, injured, out of breath — what must persist), who they are interacting with, the pose they start
    *  and end the shot in (a continuous next shot starts from `endPose`), and the direction they move on screen */
-  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[]; condition?: string; interactingWith?: string[]; startPose?: string; endPose?: string; motion?: ShotMotion }>;
+  characters: Array<{ characterId: string; wardrobe?: string; pose?: string; position?: string; frameSide?: FrameSide; screenDirection?: ScreenDirection; eyeline?: string; emotion?: string; holding?: string[]; condition?: string; interactingWith?: string[]; startPose?: string; endPose?: string; motion?: ShotMotion }>;
   props: Array<{ name: string; ownerCharacterId?: string; state?: string; position?: string }>;
   environment: { locationId?: string; timeOfDay?: TimeOfDay; weather?: string; lighting?: string; state?: string };
-  camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string };
+  /** `crossesLine`: the camera deliberately crosses the 180° line in this shot (or the shot re-stages the people), so
+   *  the scene's left/right order and screen directions may flip here — and the new order holds from this shot on */
+  camera: { framing?: Framing; move?: CameraMove; lensIntent?: string; angle?: string; crossesLine?: boolean };
   previousShotId?: string;
   nextShotId?: string;
   /** Continuation: the same action continues from the previous shot. Cut: a new framing of the same moment.
