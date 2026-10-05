@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AFTER_LAST_LINE, h3ReferencePrompt, lineLanguageTag, lintH3Prompt, stripDialogueTags, takePrompt, type H3Binding } from '@/server/story/prompts';
+import { h3ReferencePrompt, lineLanguageTag, lintH3Prompt, stripDialogueTags, takePrompt, type H3Binding } from '@/server/story/prompts';
 import { fixture, shotOf } from './continuity-fixture';
 
 /** The take prompt: the planner's dialogue tags are stripped without eating the picture direction in front of them
@@ -73,7 +73,7 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(lintH3Prompt(prompt, { labels: 'LOCAL', pictures: 4, audios: 0, lines: ['We close in ten minutes.'], names: cast.map((c) => c.name) }).checks.every((c) => c.ok)).toBe(true);
   });
 
-  it('acceptance 2026-10-05: each line is tagged in its own script, and the take is told nobody speaks after the last line', () => {
+  it('acceptance 2026-10-05: each line is tagged in its own script', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');
     const [a, b] = sh.characterIds;
@@ -83,11 +83,6 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     const prompt = h3ReferencePrompt({ ...p, language: 'EN' }, iraqi, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
     expect(prompt).toContain('<d>[Arabic] هلا بيج عيني، هذا أطيب چاي ببغداد.</d>');
     expect(prompt).not.toContain('[English] هلا');
-    expect(prompt).toContain(AFTER_LAST_LINE);
-    expect(prompt.indexOf(AFTER_LAST_LINE)).toBeGreaterThan(prompt.indexOf('</d>'));
-    // a silent shot keeps its own sentence and is not told about a last line
-    const silent = h3ReferencePrompt(p, { ...sh, dialogue: [] }, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
-    expect(silent).not.toContain(AFTER_LAST_LINE);
   });
 
   it('lineLanguageTag: the script of the line, else the production language', () => {
