@@ -85,6 +85,57 @@ export function resolveProvider(preferred?: string): { provider: LlmProvider; mo
   return { provider: chosen, model: e.OPENAI_COMPATIBLE_MODEL || DEFAULT_LOCAL_LLM, baseUrl: e.OPENAI_COMPATIBLE_BASE_URL.replace(/\/$/, ''), apiKey: e.OPENAI_COMPATIBLE_API_KEY || 'none' };
 }
 
+/** A local answer may take this long, at most: 5 minutes plus a quarter second per token it may write (a floor of 4
+ *  tokens/s — a large model with experts offloaded to the CPU writes 10–20/s); a stalled engine is caught sooner by
+ *  LOCAL_STALL_MS. */
+export const localDeadlineMs = (maxTokens: number) => 300_000 + Math.max(0, maxTokens) * 250;
+/** The longest silence a local stream may keep before it is given up (the first token waits for the whole prompt to
+ *  be read, which a partly offloaded model does at a few hundred tokens a second). */
+export const LOCAL_STALL_MS = 240_000;
+
+/** What the local model is asked besides the chat itself: thinking off (the studio asks for JSON, not reasoning). */
+export function localModelRequest(_model: string): Record<string, unknown> {
+  return { think: false };
+}
+
+type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
+
+/** Read an OpenAI-compatible server-sent-event stream into the shape of a whole answer: the content deltas joined, the
+ *  last finish_reason, the usage chunk (`stream_options.include_usage`). A silence longer than `stallMs` aborts. */
+export async function readChatStream(res: Response, ctrl: AbortController, stallMs: number): Promise<ChatAnswer> {
+  const reader = res.body?.getReader();
+  if (!reader) return {};
+  const decoder = new TextDecoder();
+  let buffer = ''; let content = ''; let reasoning = ''; let finish: string | undefined; let usage: ChatAnswer['usage']; let error: ChatAnswer['error'];
+  let stall: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => { if (stall) clearTimeout(stall); stall = setTimeout(() => ctrl.abort(new StudioError('PROVIDER', `the local model sent nothing for ${Math.round(stallMs / 1000)} s`)), stallMs); };
+  const take = (line: string) => {
+    const data = line.replace(/^data:\s?/, '').trim();
+    if (!data || data === '[DONE]') return;
+    let j: { choices?: Array<{ delta?: { content?: string; reasoning?: string }; finish_reason?: string | null }>; usage?: ChatAnswer['usage']; error?: ChatAnswer['error'] };
+    try { j = JSON.parse(data); } catch { return; }
+    if (j.error) error = j.error;
+    const c = j.choices?.[0];
+    if (c?.delta?.content) content += c.delta.content;
+    if (c?.delta?.reasoning) reasoning += c.delta.reasoning;
+    if (c?.finish_reason) finish = c.finish_reason;
+    if (j.usage) usage = j.usage;
+  };
+  try {
+    arm();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      arm();
+      buffer += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buffer.indexOf('\n')) >= 0) { const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1); if (line.startsWith('data:')) take(line); }
+    }
+    if (buffer.startsWith('data:')) take(buffer);
+  } finally { if (stall) clearTimeout(stall); }
+  return { choices: [{ message: { content, ...(reasoning ? { reasoning } : {}) }, finish_reason: finish }], usage, error };
+}
+
 async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   let t: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, rej) => { t = setTimeout(() => rej(new StudioError('PROVIDER', `${what} timed out after ${Math.round(ms / 1000)} s`)), ms); });
@@ -106,7 +157,7 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
 
 async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMessage[], opts: LlmOptions): Promise<LlmResult> {
   const t0 = Date.now();
-  const timeoutMs = opts.timeoutMs ?? 300_000;
+  const timeoutMs = opts.timeoutMs ?? (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl) ? localDeadlineMs(opts.maxTokens ?? 8000) : 300_000);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   // a stopped job (cancel, deadline, lost lease) aborts the request with its own reason (src/server/jobs/context.ts)
@@ -123,10 +174,14 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
       const text = (json.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
       return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.input_tokens, outputTokens: json.usage?.output_tokens, ms: Date.now() - t0, finishReason: json.stop_reason, truncated: json.stop_reason === 'max_tokens', maxTokens: body.max_tokens as number };
     }
-    // OpenAI-compatible
+    // OpenAI-compatible. The local Ollama answers as a STREAM: a long answer from a large (partly CPU-offloaded) model
+    // can take longer than Node's fetch waits for response headers (300 s), and a stream shows a stalled engine early
     const maxTokens = opts.maxTokens ?? 8000;
-    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, stream: false, ...(isLocalOllama(cfg.baseUrl) ? { options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, think: false } : {}) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
-    const json = await res.json().catch(() => ({})) as { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
+    const local = isLocalOllama(cfg.baseUrl);
+    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    const json = /text\/event-stream/i.test(res.headers.get('content-type') ?? '') && res.ok
+      ? await withTimeout(readChatStream(res, ctrl, LOCAL_STALL_MS), timeoutMs, `${cfg.provider} ${cfg.model}`)
+      : await res.json().catch(() => ({})) as ChatAnswer;
     if (!res.ok || json.error) throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${json.error?.message ?? `HTTP ${res.status}`}`, { status: res.status });
     const text = json.choices?.[0]?.message?.content ?? '';
     const finishReason = json.choices?.[0]?.finish_reason;
