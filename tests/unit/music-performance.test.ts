@@ -58,3 +58,16 @@ describe('one copy of the music', () => {
     expect(judgeSongCopies(envelope(mix, rate), envelope(master, rate)).ok).toBe(true);
   });
 });
+
+describe('lip-sync repair by the sound', () => {
+  it('a recorded line shifts by a measured lag of 2–6 frames; in sync or too far is left alone', async () => {
+    const { lipSyncShiftSamples, SAMPLES_PER_FRAME } = await import('@/domain/timeline');
+    const t = (lagFrames: number, against = 'RECORDED') => ({ params: { lipSync: { lagFrames, against } } });
+    expect(lipSyncShiftSamples(t(1))).toBe(0);
+    expect(lipSyncShiftSamples(t(3))).toBe(3 * SAMPLES_PER_FRAME);
+    expect(lipSyncShiftSamples(t(-4))).toBe(-4 * SAMPLES_PER_FRAME);
+    expect(lipSyncShiftSamples(t(9))).toBe(0);
+    expect(lipSyncShiftSamples(t(3, 'TAKE_AUDIO'))).toBe(0);
+    expect(lipSyncShiftSamples({ params: {} })).toBe(0);
+  });
+});

@@ -334,6 +334,8 @@
   .ws-slot-frame .frame, .ws-slot-frame .title-card { border-radius: 0; }
   .ws-slot-x { position: absolute; inset-block-start: 6px; inset-inline-end: 6px; }
   .ws-slot-warn { color: var(--warn); margin-block-start: 6px; }
+  .ws-context { display: grid; gap: 16px; }
+  .ws-context-person { display: grid; gap: 8px; }
   .ws-exclusion { margin: 0; }
 
   .ws-dlg { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }

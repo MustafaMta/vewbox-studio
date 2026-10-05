@@ -350,3 +350,28 @@ test('phone: the outline folds into a shot switcher @mobile', async ({ page }) =
   await expect(page).toHaveURL(/shot-24bf719d21$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
+
+test('people and story state: a person’s condition and end pose saved as continuity, the context the next take is made from', async ({ page }) => {
+  await open(page, `/shorts/${FILM}/shots/${SHOT}`);
+  await page.locator('.ws-disc-sum', { hasText: 'People and story state' }).click();
+  const person = page.locator('.ws-context-person').first();
+  await expect(person).toBeVisible();
+  await person.getByLabel('Condition').fill('soaked from the rain');
+  await person.getByLabel('Ends').fill('sitting at the counter');
+  await person.getByRole('combobox').first().selectOption('LEFT_TO_RIGHT');
+  await page.getByRole('button', { name: 'Save the people’s state' }).click();
+  await expect.poll(() => commands.filter((c) => c.name === 'setShotContinuity').length).toBe(1);
+  const sent = commands.find((c) => c.name === 'setShotContinuity')!.args[2] as { characters: Array<{ condition?: string; endPose?: string; motion?: { direction?: string } }> };
+  expect(sent.characters).toContainEqual(expect.objectContaining({ condition: 'soaked from the rain', endPose: 'sitting at the counter', motion: { direction: 'LEFT_TO_RIGHT' } }));
+  await expect(page.locator('.ws-context')).toContainText('What the next take is made from');
+});
+
+test('what a scene changes: a persistent change and what someone learns, saved on the scene (routed)', async ({ page }) => {
+  await open(page, `${MAP}?tab=story`);
+  await page.waitForSelector('.ws-scene-card', { timeout: 90_000 });
+  const card = page.locator('.ws-scene-card').first();
+  await card.getByRole('button', { name: 'Add a change' }).click();
+  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => JSON.stringify(c.args[2]))).toContainEqual(expect.stringContaining('"changes"'));
+  await card.getByRole('button', { name: 'Add an event' }).click();
+  await expect.poll(() => commands.filter((c) => c.name === 'updateScene').map((c) => JSON.stringify(c.args[2]))).toContainEqual(expect.stringContaining('"events"'));
+});

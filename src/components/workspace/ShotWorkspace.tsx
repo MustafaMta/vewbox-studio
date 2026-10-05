@@ -30,6 +30,7 @@ import { RunningRow } from './Running';
 import { ShotFailure } from './Failed';
 import { ShotLocationRefusal, StaleNotice } from './Continuity';
 import { WorkspaceShell } from './WorkspaceShell';
+import { ShotContext } from './ShotContext';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
 import { BOUNDARY_WORDS, boundaryOf, driftOf, sceneStateOfTake, activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
 
@@ -226,6 +227,11 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
             <Dialogue p={p} shot={shot} draft={draft} patch={patch} toHear={toHear} gate={gate} />
             <Staging shot={shot} />
           </div>
+        </details>
+
+        <details className="ws-disc">
+          <summary className="ws-disc-sum">People and story state</summary>
+          <div className="ws-disc-body"><ShotContext key={`${shot.id}:${shot.continuity?.version ?? 0}`} p={p} shot={shot} /></div>
         </details>
 
         <details className="ws-disc">

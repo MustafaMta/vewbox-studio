@@ -1,6 +1,9 @@
 import { defineConfig, devices, type Project } from '@playwright/test';
 import { TEST_PORT } from './src/server/test-guard';
 
+/** E2E_CHROMIUM: a Chromium executable to use instead of Playwright's own download (a cloud container ships one
+ *  pinned to another Playwright revision); unset on the workstation. */
+const CHROMIUM = process.env.E2E_CHROMIUM ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM } } : {};
 const BASE = process.env.STUDIO_URL || `http://127.0.0.1:${TEST_PORT}`;
 process.env.STUDIO_URL = BASE; // the helpers and specs read it
 
@@ -47,7 +50,7 @@ export default defineConfig({
   use: { baseURL: BASE, trace: 'retain-on-failure', screenshot: 'only-on-failure', locale: 'en-GB' },
   projects: [
     // the regression suite: one desktop browser; a spec that needs a phone sets its own viewport
-    { name: 'v5', testDir: 'tests/e2e/v5', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'v5', testDir: 'tests/e2e/v5', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, ...CHROMIUM } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, grepInvert: /@mobile/, testIgnore: /(journeys|v5)[\\/]/ },
     { name: 'mobile', use: { ...devices['Pixel 7'] }, grep: /@mobile/, testIgnore: /(journeys|v5)[\\/]/ },
     ...(process.env.QA_JOURNEYS === '1' ? [journeys] : []),
