@@ -237,7 +237,8 @@ const shotFields = { sceneId: id, purpose: line(8000), action: line(8000), frami
 /** A shot's takes and its chosen take have their own commands (the worker's addTake, selectTake, removeTake…). */
 const shotOwned = owned('id', 'number', 'takes', 'selectedTakeId');
 const ShotInput = z.object(shotFields).partial().required({ sceneId: true }).extend(shotOwned).passthrough();
-const ShotPatch = z.object(shotFields).partial().extend(shotOwned).passthrough();
+// a frame is removed with null: JSON drops `undefined`, so a removal sent as undefined never reached the server
+const ShotPatch = z.object(shotFields).partial().extend(shotOwned).extend({ openingFrameAssetId: id.nullable().optional(), endingFrameAssetId: id.nullable().optional() }).passthrough();
 
 /** The one take a page may add: the producer's own upload (ShotEditor). Generated takes, with their provenance, QA
  *  and cost, are the worker's (addTake in-process). */

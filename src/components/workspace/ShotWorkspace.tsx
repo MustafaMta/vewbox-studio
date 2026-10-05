@@ -58,7 +58,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
 
   const { draft, patch, dirty, reset } = useDraft<Draft>({ boundary: shot.boundary, purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, transition: shot.transition, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, notes: shot.notes });
   useUnsavedGuard(dirty, 'This shot has unsaved changes. Leave anyway?');
-  const save = () => { act('updateShot', p.id, shot.id, draft); toast.ok('Shot saved.'); };
+  // a removed frame is sent as null: the command travels as JSON, which drops undefined
+  const save = () => { act('updateShot', p.id, shot.id, { ...draft, openingFrameAssetId: draft.openingFrameAssetId ?? null, endingFrameAssetId: draft.endingFrameAssetId ?? null }); toast.ok('Shot saved.'); };
 
   const newestFirst = useMemo(() => [...shot.takes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [shot.takes]);
   const [shownId, setShownId] = useState<string | null>(shot.selectedTakeId ?? newestFirst[0]?.id ?? null);

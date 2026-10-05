@@ -347,7 +347,13 @@ export function replaceSceneShots(s: S, productionId: string, sceneId: string, s
   });
 }
 
-export function updateShot(s: S, productionId: string, shotId: string, patch: Partial<Omit<Shot, 'id' | 'number'>>): S {
+/** A shot edit. A frame is REMOVED with `null` (JSON, the command transport, drops `undefined`: a removal sent as
+ *  undefined never reached the server — acceptance 2026-10-05, "Remove the ending frame" on shot 1.3 did nothing). */
+export type ShotPatchInput = Partial<Omit<Shot, 'id' | 'number' | 'openingFrameAssetId' | 'endingFrameAssetId'>> & { openingFrameAssetId?: string | null; endingFrameAssetId?: string | null };
+
+export function updateShot(s: S, productionId: string, shotId: string, input: ShotPatchInput): S {
+  const { openingFrameAssetId: o, endingFrameAssetId: e, ...rest } = input;
+  const patch: Partial<Omit<Shot, 'id' | 'number'>> = { ...rest, ...(o !== undefined ? { openingFrameAssetId: o ?? undefined } : {}), ...(e !== undefined ? { endingFrameAssetId: e ?? undefined } : {}) };
   return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? { ...sh, ...patch, ...plannedDirectionAfter(sh, patch) } : sh))) }; });
 }
 
@@ -516,7 +522,7 @@ export function keepLineRecordings(s: S, productionId: string, lines: Array<{ sh
 }
 
 /** The studio drew (or redrew) a shot's frames. */
-export function setShotFrames(s: S, productionId: string, shotId: string, frames: { openingFrameAssetId?: string; endingFrameAssetId?: string }): S {
+export function setShotFrames(s: S, productionId: string, shotId: string, frames: { openingFrameAssetId?: string | null; endingFrameAssetId?: string | null }): S {
   return updateShot(s, productionId, shotId, frames);
 }
 

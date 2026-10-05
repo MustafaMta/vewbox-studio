@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { plannedDirectionAfter, updateShot } from '@/domain/actions';
+import { validateClientCommand } from '@/domain/commands';
 import { fixture, shotOf } from './continuity-fixture';
 
 /** Acceptance 2026-10-05 (defect A9): the producer's rewritten "What happens" must reach the take. The planner's prompt
@@ -27,5 +28,21 @@ describe('updateShot: the producer\'s action replaces the planned direction', ()
     expect(after.action).toBe('She speaks first, then drinks.');
     expect(after.prompt).toBeUndefined();
     expect(after.staging).toEqual({ pace: 'DWELL', beats: [] });
+  });
+});
+
+/** Acceptance 2026-10-05 (defect A13): "Remove the ending frame" sent `undefined`, which JSON drops, so the frame stayed. */
+describe('updateShot: a frame is removed with null, through the JSON transport', () => {
+  it('null removes the frame; undefined (absent) keeps it; the client schema accepts null', () => {
+    const { state, p } = fixture();
+    const sh = shotOf(p, 's12');
+    const s1 = updateShot(state, p.id, sh.id, { openingFrameAssetId: 'gen-open', endingFrameAssetId: 'gen-end' });
+    const patch = JSON.parse(JSON.stringify({ endingFrameAssetId: null, openingFrameAssetId: undefined })) as { endingFrameAssetId: null };
+    expect(patch).toEqual({ endingFrameAssetId: null });
+    expect(() => validateClientCommand('updateShot', [p.id, sh.id, patch])).not.toThrow();
+    const s2 = updateShot(s1, p.id, sh.id, patch);
+    const after = s2.productions.find((x) => x.id === p.id)!.shots.find((x) => x.id === sh.id)!;
+    expect(after.endingFrameAssetId).toBeUndefined();
+    expect(after.openingFrameAssetId).toBe('gen-open');
   });
 });

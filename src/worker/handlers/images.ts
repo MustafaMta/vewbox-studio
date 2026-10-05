@@ -598,7 +598,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // an ending frame is optional and a take is guided towards it: a wrong one is left out rather than filmed towards
   if (wrong && opts.ending) {
     await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ending frame still holds ${counted} people where the shot has ${expected} (${kept!.id}); the shot keeps no ending frame`, { shotId: sh.id, assetId: kept!.id, expected, counted });
-    await command('setShotFrames', [p.id, sh.id, { endingFrameAssetId: undefined }], 'worker');
+    await command('setShotFrames', [p.id, sh.id, { endingFrameAssetId: null }], 'worker');
     return undefined;
   }
   if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
