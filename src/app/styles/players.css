@@ -111,6 +111,9 @@
   .iplayer[data-theatre] > .ptransport { background: var(--black); }
   .iplayer video::cue { font-family: var(--font-ui); font-size: 15px; line-height: 22px; background: var(--chip-on-art); color: var(--text-1); }
   .ptransport { display: flex; flex: none; align-items: center; gap: 8px; block-size: 52px; padding: 0 12px; background: var(--surface-1); }
+  /* coarse pointers: the 44 px buttons keep 8 px above and below, so a focus ring (2 px at 2 px) and its black band
+     never land on the player's edge (the DS-1 focus gate at 390); pages that size the dock read --transport */
+  @media (pointer: coarse) { .ptransport { block-size: 60px; } }
   .ptransport .pt-time { flex: none; color: var(--text-2); }
   .ptransport .pt-seek { flex: 1; min-inline-size: 80px; }
   @media (max-width: 479px) { .ptransport .pvol-track { display: none; } }

@@ -370,6 +370,7 @@
   .ws-skeleton .ws-sk-player { padding: 12px; }
   .ws-skeleton .ws-sk-player .sk-media { border-radius: 0; }
   .ws-skeleton .ws-sk-transport { block-size: 52px; background: var(--surface-1); }
+  @media (pointer: coarse) { .ws-skeleton .ws-sk-transport { block-size: 60px; } }
   .ws-skeleton .ws-status-idle { min-block-size: 42px; }
   .ws-skeleton .ws-cutline > li { flex: 1 1 0; }
   .ws-skeleton .ws-sk-camera { min-block-size: 850px; }

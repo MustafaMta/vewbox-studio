@@ -60,7 +60,11 @@
   /* a box that clips its content (rounded cards, a player in a card) still shows the ring of a control flush with its
      edge: while something inside has focus it clips with an 8 px margin instead (overflow: clip keeps the content
      clipped, the margin lets the ring and its black band through) */
-  :is(.overflow-hidden, .card, .poster-card, [data-clips]):has(:focus-visible) { overflow: clip !important; overflow-clip-margin: 8px !important; }
+  :is(.overflow-hidden, .card, .poster-card, .iplayer, [data-clips]):has(:focus-visible) { overflow: clip !important; overflow-clip-margin: 8px !important; }
+  /* a split button's two parts touch: a ring outside the focused part would run under its neighbour's fill (1.4:1 on
+     a primary), so each part draws its ring just inside its own edge — an ink ring 4 px in on the primary fill */
+  .btn-split > .btn:focus-visible:not([tabindex='-1']), .btn-split > :is(.menu-wrap, .popover-wrap) > .btn:focus-visible:not([tabindex='-1']) { outline-offset: -2px !important; }
+  .btn-split > .btn-primary:focus-visible, .btn-split:has(> .btn-primary:first-child) > :is(.menu-wrap, .popover-wrap) > .btn:focus-visible { outline-color: var(--on-primary) !important; outline-offset: -4px !important; }
   /* a field: the paper ring around the whole search pill or field row while its input has focus (§5.10) */
   :is(.search, [data-focus-within]):focus-within { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
   :is(.search, [data-focus-within]) :is(input, textarea):focus-visible { outline-color: transparent !important; }
