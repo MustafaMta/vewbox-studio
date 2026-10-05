@@ -24,7 +24,7 @@ let productionId = ''; let shotId = ''; let takeId = '';
 beforeAll(async () => {
   const [prod] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Lip-sync correction test', style: 'CARTOON', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'x' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = prod.production.id;
-  const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'DAY' }]);
+  const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'MIDDAY' }]);
   shotId = (await command('addShot', [productionId, { sceneId: scene.id, purpose: '', action: '', framing: 'MEDIUM', cameraMove: 'STATIC', durationSeconds: 5, characterIds: [], dialogue: [], transition: 'CUT' }])).shot.id;
   const clip = path.join(tmp, 'take.mp4');
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=24', '-t', '1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', clip]);
