@@ -27,6 +27,18 @@
         "containerGiB": 6.26,
         "vmUsedGiB": 12.18
       }
+    },
+    "ep-plan": {
+      "n": 4,
+      "medianMs": 168849,
+      "firstAttemptValid": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 21770,
+      "ramPeak": {
+        "containerGiB": 26.55,
+        "vmUsedGiB": 16.65
+      }
     }
   },
   "calls": [
@@ -200,6 +212,390 @@
           "Ruth Moore"
         ],
         "actionWords": 23
+      }
+    },
+    {
+      "task": "ep-plan-s01",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 169930,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 8481,
+      "tokPerS": 50,
+      "attemptsDetail": [
+        {
+          "ms": 86993,
+          "status": 200,
+          "maxTokens": 11177,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the location and the struggle against the elements\",\n      \"action\": \"Elias and Najm walk up the wharf toward t",
+          "tail": "ing the subtle squash-and-stretch of his facial muscles as he speaks. Clear, expressive lighting highlighting the deep lines around his hazel eyes.\"\n    }\n  ]\n}",
+          "requestChars": 15110,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3405,
+          "completionTokens": 4328,
+          "tokPerS": 49.8
+        },
+        {
+          "ms": 82542,
+          "status": 200,
+          "maxTokens": 11012,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the pair approaching the office\",\n      \"action\": \"Elias and Najm walk side-by-side across the wharf toward the offi",
+          "tail": "d green with oxidation. The grain of the wood is deep and tactile. Cold, clear morning light reveals tiny salt crystals on the surface of the wood.\"\n    }\n  ]\n}",
+          "requestChars": 15685,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3523,
+          "completionTokens": 4153,
+          "tokPerS": 50.3
+        }
+      ],
+      "vramBeforeMiB": 1133,
+      "vramPeakMiB": 21762,
+      "ram": {
+        "containerGiB": 20.15,
+        "vmUsedGiB": 9.58
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:50:05.389131227Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:48:05.759Z",
+      "checks": {
+        "shots": 8,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 2,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 78,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s02",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 178783,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 9413,
+      "tokPerS": 52.8,
+      "attemptsDetail": [
+        {
+          "ms": 107102,
+          "status": 200,
+          "maxTokens": 10626,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the atmosphere of rigid order through a singular action\",\n      \"action\": \"A mechanical date-stamper slams down",
+          "tail": "rigid expression and speaks with a brisk, no-nonsense delivery. The lighting is bright morning light, emphasizing the wind-burn on her pale cheeks.\"\n    }\n  ]\n}",
+          "requestChars": 16865,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3785,
+          "completionTokens": 5707,
+          "tokPerS": 53.3
+        },
+        {
+          "ms": 71309,
+          "status": 200,
+          "maxTokens": 10531,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show Elias's emotional plea and desire\",\n      \"action\": \"Elias steps forward with a pleading expression, speaking with a",
+          "tail": "lighting is crisp, highlighting the wind-burn on her pale cheeks and the severity of her silver-grey bun. Static shot, eye level, holding the gaze.\"\n    }\n  ]\n}",
+          "requestChars": 17191,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3862,
+          "completionTokens": 3706,
+          "tokPerS": 52
+        }
+      ],
+      "vramBeforeMiB": 21762,
+      "vramPeakMiB": 21768,
+      "ram": {
+        "containerGiB": 23.26,
+        "vmUsedGiB": 12.79
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:53:04.214613264Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:51:04.550Z",
+      "checks": {
+        "shots": 8,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 3,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 1,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 68,
+        "promptsOutside60to160": 2,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s03",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 168849,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 8948,
+      "tokPerS": 53.2,
+      "attemptsDetail": [
+        {
+          "ms": 94609,
+          "status": 200,
+          "maxTokens": 10459,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the tension and the spatial dynamic of the room\",\n      \"action\": \"Elias paces the office agitatedly while Ingr",
+          "tail": "era pushes in slowly. Warm bounce light hits his face, highlighting the tactile texture of his tweed jacket and the weathered skin around his eyes.\"\n    }\n  ]\n}",
+          "requestChars": 17409,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3910,
+          "completionTokens": 4904,
+          "tokPerS": 51.8
+        },
+        {
+          "ms": 73662,
+          "status": 200,
+          "maxTokens": 10525,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show Ingrid's professional interest being piqued\",\n      \"action\": \"Ingrid reacts to Najm's mention of vellum; her rigid ",
+          "tail": "framing, showing the massive scarred oak desk between them with a leather logbook on top. Warm bounce light, dust motes dancing in the morning air.\"\n    }\n  ]\n}",
+          "requestChars": 17208,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3860,
+          "completionTokens": 4044,
+          "tokPerS": 54.9
+        }
+      ],
+      "vramBeforeMiB": 21768,
+      "vramPeakMiB": 21768,
+      "ram": {
+        "containerGiB": 26.42,
+        "vmUsedGiB": 15.75
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:55:53.056241768Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:53:53.409Z",
+      "checks": {
+        "shots": 8,
+        "budget": 47,
+        "totalSeconds": 47,
+        "scriptLines": 4,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 1,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 82,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s04",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 168006,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 8857,
+      "tokPerS": 52.8,
+      "attemptsDetail": [
+        {
+          "ms": 78888,
+          "status": 200,
+          "maxTokens": 10429,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Transition from the emotional shift to the action of accessing the safe\",\n      \"action\": \"Ingrid sighs, turns away from ",
+          "tail": "focus is on the metallic textures and the precision of the movement. Warm, directional morning light creating deep shadows in the lock's mechanism.\"\n    }\n  ]\n}",
+          "requestChars": 17534,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3926,
+          "completionTokens": 4330,
+          "tokPerS": 54.9
+        },
+        {
+          "ms": 88748,
+          "status": 200,
+          "maxTokens": 10613,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"The payoff of the lock turning: the safe opens.\",\n      \"action\": \"The heavy safe door swings open, releasing a puff of d",
+          "tail": "w raincoat watches with intense, wide-eyed focus. The texture of the aged leather and the rough stone of the safe are highly detailed. Static shot.\"\n    }\n  ]\n}",
+          "requestChars": 16950,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3777,
+          "completionTokens": 4527,
+          "tokPerS": 51
+        }
+      ],
+      "vramBeforeMiB": 21768,
+      "vramPeakMiB": 21770,
+      "ram": {
+        "containerGiB": 26.55,
+        "vmUsedGiB": 16.65
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T22:58:41.071725389Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T22:56:41.429Z",
+      "checks": {
+        "shots": 8,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 1,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 1,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 86,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
       }
     }
   ]

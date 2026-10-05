@@ -89,7 +89,7 @@ class RamMeter {
   stop() { this.on = false; }
 }
 
-interface Attempt { ms: number; status: number; promptTokens?: number; completionTokens?: number; finishReason?: string; maxTokens?: number; tokPerS?: number; head: string; tail: string; requestChars: number; numCtx?: number; think?: unknown }
+interface Attempt { kind: 'first' | 'repair' | 're-ask'; requestKey: string; ms: number; status: number; promptTokens?: number; completionTokens?: number; finishReason?: string; maxTokens?: number; tokPerS?: number; head: string; tail: string; requestChars: number; numCtx?: number; think?: unknown }
 let attempts: Attempt[] = [];
 let lastRequest: unknown = null;
 const realFetch = globalThis.fetch;
@@ -110,7 +110,12 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   try { parsed = JSON.parse(body); } catch { /* not json */ }
   lastRequest = parsed.messages;
   const res = await realFetch(input, init);
-  const rec: Attempt = { ms: 0, status: res.status, maxTokens: parsed.max_tokens, head: '', tail: '', requestChars: body.length, numCtx: parsed.options?.num_ctx, think: parsed.think };
+  // a REPAIR carries the earlier answer in its history (an assistant turn); a RE-ASK repeats the previous request with
+  // a wider budget (a cut answer); anything else is a first call (of a task, or of one part of a scene planned in parts)
+  const msgs = (parsed.messages ?? []) as Array<{ role: string; content: string }>;
+  const prev = attempts.at(-1);
+  const kind: Attempt['kind'] = msgs.some((m) => m.role === 'assistant') ? 'repair' : prev && prev.requestKey === JSON.stringify(msgs).length + ':' + msgs.at(-1)?.content.slice(0, 200) ? 're-ask' : 'first';
+  const rec: Attempt = { kind, requestKey: JSON.stringify(msgs).length + ':' + msgs.at(-1)?.content.slice(0, 200), ms: 0, status: res.status, maxTokens: parsed.max_tokens, head: '', tail: '', requestChars: body.length, numCtx: parsed.options?.num_ctx, think: parsed.think };
   attempts.push(rec);
   // the clone is read alongside the engine's own read; the record completes when the stream ends
   void readAnswer(res.clone()).then((a) => { rec.ms = Date.now() - t0; rec.head = a.content.slice(0, 160); rec.tail = a.content.slice(-160); rec.finishReason = a.finish; rec.promptTokens = a.usage?.prompt_tokens; rec.completionTokens = a.usage?.completion_tokens; rec.tokPerS = a.usage?.completion_tokens ? Number((a.usage.completion_tokens / (rec.ms / 1000)).toFixed(1)) : undefined; }, () => {});
@@ -290,7 +295,7 @@ async function main() {
     const ms = Date.now() - t0;
     const ps = await ollamaPs();
     const outTok = attempts.reduce((a, x) => a + (x.completionTokens ?? 0), 0);
-    const rec: Record<string, unknown> = { task, run: runNo, model: MODEL, ms, attempts: attempts.length, firstAttemptValid: !error && attempts.length === 1, truncatedAttempts: attempts.filter((a) => a.finishReason === 'length').length, answerTokens: outTok, tokPerS: ms ? Number((outTok / (attempts.reduce((a, x) => a + x.ms, 0) / 1000)).toFixed(1)) : undefined, attemptsDetail: attempts, error, vramBeforeMiB: before, vramPeakMiB: vram.peak(t0), ram: ram.peak(t0), ollamaPs: ps, at: new Date().toISOString() };
+    const rec: Record<string, unknown> = { task, run: runNo, model: MODEL, ms, attempts: attempts.length, firstAttemptValid: !error && attempts.length === 1, firstCalls: attempts.filter((a) => a.kind === 'first').length, repairs: attempts.filter((a) => a.kind === 'repair').length, reasks: attempts.filter((a) => a.kind === 're-ask').length, everyFirstCallValid: !error && attempts.every((a) => a.kind === 'first') && !attempts.some((a) => a.finishReason === 'length'), truncatedAttempts: attempts.filter((a) => a.finishReason === 'length').length, answerTokens: outTok, tokPerS: ms ? Number((outTok / (attempts.reduce((a, x) => a + x.ms, 0) / 1000)).toFixed(1)) : undefined, attemptsDetail: attempts, error, vramBeforeMiB: before, vramPeakMiB: vram.peak(t0), ram: ram.peak(t0), ollamaPs: ps, at: new Date().toISOString() };
     if (data !== undefined && checks) { try { rec.checks = checks(data); } catch (e) { rec.checks = { error: String(e) }; } }
     calls.push(rec); summary.calls = calls; await save();
     await fs.writeFile(path.join(EVID, `${task}-run${runNo}.json`), JSON.stringify({ ...rec, request: lastRequest, answer: data }, null, 2));
@@ -389,7 +394,7 @@ async function main() {
   for (const t of new Set(calls.map((c) => String(c.task).replace(/-s\d\d$/, '')))) {
     const cs = calls.filter((c) => String(c.task).replace(/-s\d\d$/, '') === t);
     const ms = cs.map((c) => Number(c.ms)).sort((a, b2) => a - b2);
-    byTask[t] = { n: cs.length, medianMs: ms[Math.floor((ms.length - 1) / 2)], firstAttemptValid: cs.filter((c) => c.firstAttemptValid).length, truncatedAttempts: cs.reduce((a, c) => a + Number(c.truncatedAttempts ?? 0), 0), errors: cs.filter((c) => c.error).length, peakMiB: Math.max(...cs.map((c) => Number(c.vramPeakMiB) || 0)), ramPeak: { containerGiB: Math.max(...cs.map((c) => Number((c.ram as { containerGiB?: number })?.containerGiB) || 0)), vmUsedGiB: Math.max(...cs.map((c) => Number((c.ram as { vmUsedGiB?: number })?.vmUsedGiB) || 0)) } };
+    byTask[t] = { n: cs.length, medianMs: ms[Math.floor((ms.length - 1) / 2)], firstAttemptValid: cs.filter((c) => c.firstAttemptValid).length, everyFirstCallValid: cs.filter((c) => c.everyFirstCallValid).length, repairs: cs.reduce((a, c) => a + Number(c.repairs ?? 0), 0), truncatedAttempts: cs.reduce((a, c) => a + Number(c.truncatedAttempts ?? 0), 0), errors: cs.filter((c) => c.error).length, peakMiB: Math.max(...cs.map((c) => Number(c.vramPeakMiB) || 0)), ramPeak: { containerGiB: Math.max(...cs.map((c) => Number((c.ram as { containerGiB?: number })?.containerGiB) || 0)), vmUsedGiB: Math.max(...cs.map((c) => Number((c.ram as { vmUsedGiB?: number })?.vmUsedGiB) || 0)) } };
   }
   summary.byTask = byTask; await save();
   console.log(JSON.stringify(byTask, null, 2));
