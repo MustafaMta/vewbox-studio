@@ -12,11 +12,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-cartoon-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.459Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-edit-d-s970007.png",
+    "proxy": "edit\\E1-C1-kite-maker-edit-d-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 29591,
+    "wallMs": 30131,
+    "vramBeforeMiB": null,
+    "vramPeakMiB": 29778,
+    "coldLoad": true,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:25:43.650Z"
   },
   "edit/E1-C1-kite-maker-edit-d-s970008": {
     "id": "edit/E1-C1-kite-maker-edit-d-s970008",
@@ -31,11 +37,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-cartoon-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.461Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-edit-d-s970008.png",
+    "proxy": "edit\\E1-C1-kite-maker-edit-d-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 7183,
+    "wallMs": 7521,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29682,
+    "coldLoad": false,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:25:51.173Z"
   },
   "edit/E1-C1-kite-maker-edit-q-s970007": {
     "id": "edit/E1-C1-kite-maker-edit-q-s970007",
@@ -50,11 +62,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-cartoon-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.461Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-edit-q-s970007.png",
+    "proxy": "edit\\E1-C1-kite-maker-edit-q-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 80998,
+    "wallMs": 81560,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29970,
+    "coldLoad": false,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T03:27:12.735Z"
   },
   "edit/E1-C1-kite-maker-edit-q-s970008": {
     "id": "edit/E1-C1-kite-maker-edit-q-s970008",
@@ -69,11 +87,17 @@
       "image1": "plate L1-cartoon-2512d-s970007",
       "image2": "t2i C1-kite-maker-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-cartoon-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.462Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C1-kite-maker-edit-q-s970008.png",
+    "proxy": "edit\\E1-C1-kite-maker-edit-q-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 81134,
+    "wallMs": 81703,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29938,
+    "coldLoad": false,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T03:28:34.440Z"
   },
   "edit/E1-C2-courier-girl-edit-d-s970007": {
     "id": "edit/E1-C2-courier-girl-edit-d-s970007",
@@ -88,11 +112,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-anime-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.462Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-edit-d-s970007.png",
+    "proxy": "edit\\E1-C2-courier-girl-edit-d-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 9974,
+    "wallMs": 10591,
+    "vramBeforeMiB": 28466,
+    "vramPeakMiB": 30034,
+    "coldLoad": false,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:28:45.033Z"
   },
   "edit/E1-C2-courier-girl-edit-d-s970008": {
     "id": "edit/E1-C2-courier-girl-edit-d-s970008",
@@ -107,11 +137,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-anime-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.463Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-edit-d-s970008.png",
+    "proxy": "edit\\E1-C2-courier-girl-edit-d-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 7307,
+    "wallMs": 7624,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29970,
+    "coldLoad": false,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:28:52.660Z"
   },
   "edit/E1-C2-courier-girl-edit-q-s970007": {
     "id": "edit/E1-C2-courier-girl-edit-q-s970007",
@@ -126,11 +162,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-anime-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.463Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-edit-q-s970007.png",
+    "proxy": "edit\\E1-C2-courier-girl-edit-q-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 82178,
+    "wallMs": 82823,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29938,
+    "coldLoad": false,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T03:30:15.485Z"
   },
   "edit/E1-C2-courier-girl-edit-q-s970008": {
     "id": "edit/E1-C2-courier-girl-edit-q-s970008",
@@ -145,11 +187,17 @@
       "image1": "plate L1-anime-2512d-s970007",
       "image2": "t2i C2-courier-girl-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-anime-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.464Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C2-courier-girl-edit-q-s970008.png",
+    "proxy": "edit\\E1-C2-courier-girl-edit-q-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 82088,
+    "wallMs": 82650,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29970,
+    "coldLoad": false,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T03:31:38.137Z"
   },
   "edit/E1-C3-pharmacist-edit-d-s970007": {
     "id": "edit/E1-C3-pharmacist-edit-d-s970007",
@@ -164,11 +212,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-realistic-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.464Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-edit-d-s970007.png",
+    "proxy": "edit\\E1-C3-pharmacist-edit-d-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 9381,
+    "wallMs": 10023,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29842,
+    "coldLoad": false,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:31:48.162Z"
   },
   "edit/E1-C3-pharmacist-edit-d-s970008": {
     "id": "edit/E1-C3-pharmacist-edit-d-s970008",
@@ -183,11 +237,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-realistic-2512d-s970007.png'",
-    "wallMs": 1,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.465Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-edit-d-s970008.png",
+    "proxy": "edit\\E1-C3-pharmacist-edit-d-s970008.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 7409,
+    "wallMs": 7732,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29970,
+    "coldLoad": false,
+    "workflowVersion": "f58e17599d885cb4",
+    "at": "2026-10-05T03:31:55.896Z"
   },
   "edit/E1-C3-pharmacist-edit-q-s970007": {
     "id": "edit/E1-C3-pharmacist-edit-q-s970007",
@@ -202,11 +262,17 @@
       "image1": "plate L1-realistic-2512d-s970007",
       "image2": "t2i C3-pharmacist-2512q-s970007"
     },
-    "error": "ENOENT: no such file or directory, open 'D:\\volexar-studio\\volexar-studio\\.claude\\worktrees\\agent-a5b9e5777f35c96be\\var\\model-eval\\images\\plate\\L1-realistic-2512d-s970007.png'",
-    "wallMs": 0,
-    "vramPeakMiB": null,
-    "at": "2026-10-04T22:49:16.465Z",
-    "submitted": false
+    "file": "var\\model-eval\\images\\edit\\E1-C3-pharmacist-edit-q-s970007.png",
+    "proxy": "edit\\E1-C3-pharmacist-edit-q-s970007.jpg",
+    "width": 1344,
+    "height": 768,
+    "engineMs": 82379,
+    "wallMs": 82966,
+    "vramBeforeMiB": 28498,
+    "vramPeakMiB": 29970,
+    "coldLoad": false,
+    "workflowVersion": "b784e01b1d99355b",
+    "at": "2026-10-05T03:33:18.865Z"
   },
   "edit/E1-C3-pharmacist-edit-q-s970008": {
     "id": "edit/E1-C3-pharmacist-edit-q-s970008",
