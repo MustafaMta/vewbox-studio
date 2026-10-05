@@ -1,4 +1,5 @@
-import type { Asset, Production, Shot, Take } from '@/domain/types';
+import type { Asset, Location, Production, Shot, ShotBoundary, Take } from '@/domain/types';
+import { relationOf, type SceneState } from '@/domain/scene-state';
 import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
 import type { Stage } from '@/domain/vocabulary';
@@ -92,7 +93,7 @@ export const activeShotJob = (p: Pick<Production, 'id'>, shotId: string, jobs: r
 /** A shot's state, in the outline's marks (§5.19): a selected take ● · running ◐ · takes but none chosen · a drawn
  *  opening frame · planned ○ · failed (the newest attempt failed after the newest take). `sample`: the chosen take is
  *  only a bundled sample clip. */
-export type ShotStateKind = 'selected' | 'sample' | 'running' | 'choose' | 'framed' | 'planned' | 'failed';
+export type ShotStateKind = 'selected' | 'sample' | 'running' | 'choose' | 'framed' | 'planned' | 'failed' | 'stale';
 export interface ShotState { kind: ShotStateKind; words: string; tone: 'done' | 'running' | 'waiting' | 'idle' | 'failed' }
 
 export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Job[]): ShotState {
@@ -103,6 +104,7 @@ export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Jo
   if (lastAttempt?.status === 'FAILED' && (!newestTake || lastAttempt.createdAt > newestTake.createdAt)) return { kind: 'failed', words: 'The last take failed', tone: 'failed' };
   if ('shots' in p && failedShotsOf(p as Production, jobs).some((f) => f.shotId === sh.id)) return { kind: 'failed', words: 'Failed in the production pass', tone: 'failed' };
   const chosen = sh.takes.find((t) => t.id === sh.selectedTakeId);
+  if (chosen?.stale) return { kind: 'stale', words: chosen.stale.because === 'UPSTREAM_STALE' ? 'Waits for the shot before it' : 'Out of step with the shot before', tone: 'waiting' };
   if (chosen) {
     const n = sh.takes.indexOf(chosen) + 1;
     if (chosen.provider === 'SAMPLE') return { kind: 'sample', words: 'Sample clip · needs a real take', tone: 'waiting' };
@@ -285,6 +287,74 @@ export function failedShotsOf(p: Production, jobs: readonly Job[]): FailedShot[]
     const at = f.job?.finishedAt ?? f.job?.updatedAt ?? pass?.finishedAt ?? '';
     return !sh.takes.some((t) => t.createdAt > at);
   });
+}
+
+// ------------------------------------------------------------------------------------------------ continuity
+
+/** The shots whose chosen take is a stale continuation (its predecessor's chosen take changed), in film order, with
+ *  the shot before it and, when known, the take it should now continue. */
+export interface StaleShot { shot: Shot; take: Take; previous?: Shot; expected?: Take; because: 'PREDECESSOR_RESELECTED' | 'UPSTREAM_STALE' }
+export function staleShotsOf(p: Production): StaleShot[] {
+  return orderedShots(p).flatMap((sh) => {
+    const take = sh.takes.find((t) => t.id === sh.selectedTakeId);
+    if (!take?.stale) return [];
+    const previous = p.shots.find((s) => s.id === take.stale!.previousShotId);
+    const expected = previous?.takes.find((t) => t.id === take.stale!.expectedTakeId);
+    return [{ shot: sh, take, previous, expected, because: take.stale.because }];
+  });
+}
+
+/** How a shot joins the one before it, in the producer's words (the planner's `boundary`). */
+export const BOUNDARY_WORDS: Record<ShotBoundary, { label: string; line: string }> = {
+  continuous: { label: 'Continuous', line: 'The action carries on without a cut: the take starts from the end of the shot before it.' },
+  cut: { label: 'Cut', line: 'A cut on the same moment: same people, same place, a new camera; nothing of the shot before is carried over.' },
+  transition: { label: 'Transition', line: 'A new place or time: the shot starts fresh from the destination’s references.' },
+};
+
+/** The boundary a shot has (its own, else the one its continuity implies, else what the scene order implies). */
+export const boundaryOf = (p: Production, sh: Shot): ShotBoundary => relationOf(p, sh).boundary;
+
+/** A shot refused because its place has no plate yet (the Location Bible's UnestablishedLocationError, recorded as
+ *  MISSING_REFERENCE with `details.rule = 'location-identity'`). */
+export interface LocationRefusal { locationId?: string; name?: string; sceneId?: string; predicted: boolean }
+export function refusalOf(j: Pick<Job, 'error'> | undefined): { locationId?: string; name?: string } | null {
+  const d = j?.error?.details as { rule?: string; locationId?: string; locationName?: string; checks?: Array<{ name?: string; ok?: boolean }> } | undefined;
+  if (!d) return null;
+  if (d.rule === 'location-identity' || d.checks?.some((c) => c.name === 'location-plate' && c.ok === false)) return { locationId: d.locationId, name: d.locationName };
+  return null;
+}
+
+/** Whether a shot is (or would be) refused for an unestablished place: the newest attempt for it failed with the
+ *  location rule; or, before anyone tries, its scene's place has no usable plate and the scene does not establish it. */
+export function locationRefusalOf(p: Production, sh: Shot, jobs: readonly Job[], places: readonly Location[], assets: readonly Asset[]): LocationRefusal | null {
+  const scene = p.scenes.find((s) => s.id === sh.sceneId);
+  const loc = scene?.locationId ? places.find((l) => l.id === scene.locationId) : undefined;
+  const newest = jobsOf(p, jobs).find((j) => (j.type === 'GENERATE_TAKE' || j.type === 'SHOT_FRAMES') && j.shotId === sh.id);
+  if (newest?.status === 'FAILED') { const r = refusalOf(newest); if (r && !scene?.establishLocation) return { locationId: r.locationId ?? loc?.id, name: r.name ?? loc?.name, sceneId: scene?.id, predicted: false }; }
+  if (!loc || !scene || scene.establishLocation) return null;
+  const usable = (id?: string) => { const a = id ? assets.find((x) => x.id === id) : undefined; return Boolean(a && !a.unavailable); };
+  if (usable(loc.masterAssetId) || loc.refs.some((r) => usable(r.assetId))) return null;
+  return { locationId: loc.id, name: loc.name, sceneId: scene.id, predicted: true };
+}
+
+/** A take's drift checks (the World Continuity step): the place against its plate (a measured difference against a
+ *  threshold) and the identities applied (applied of present), with `review` when a check did not pass. */
+export interface DriftReport { place?: { ok: boolean; value?: number; threshold?: number; detail?: string; measured: boolean }; identity?: { ok: boolean; applied?: number; of?: number; detail?: string }; review: boolean }
+export function driftOf(t: Take): DriftReport | null {
+  const checks = t.qa?.checks ?? [];
+  const placeC = checks.find((c) => c.name === 'location-matches-plate');
+  const idC = checks.find((c) => c.name === 'identity-references-applied');
+  if (!placeC && !idC) return null;
+  const num = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v)) ? Number(v) : undefined);
+  const place = placeC ? { ok: placeC.ok, value: num(placeC.value), threshold: num(placeC.threshold), detail: placeC.detail, measured: num(placeC.value) !== undefined } : undefined;
+  const identity = idC ? { ok: idC.ok, applied: num(idC.value), of: num(idC.threshold), detail: idC.detail } : undefined;
+  return { place, identity, review: Boolean((place && !place.ok) || (identity && !identity.ok)) };
+}
+
+/** The scene state a take was filmed with (`params.sceneState`), when it recorded one. */
+export function sceneStateOfTake(t: Take): SceneState | null {
+  const s = (t.params as { sceneState?: SceneState } | undefined)?.sceneState;
+  return s && typeof s === 'object' && Array.isArray(s.present) ? s : null;
 }
 
 /** A real fraction when the worker reports one (a percent, or step of total); otherwise null (indeterminate). */

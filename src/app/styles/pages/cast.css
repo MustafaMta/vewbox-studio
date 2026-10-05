@@ -154,6 +154,11 @@
   .loc-hero-acts { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 8px; }
   .loc-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-block-start: 12px; }
   .loc-switch .seg-wrap { flex-direction: row; align-items: center; gap: 12px; }
+  /* the place's identity (the Location Bible): its version and the line every prompt carries */
+  .loc-identity { display: flex; flex-direction: column; gap: 8px; margin-block-start: 16px; padding: 20px; max-inline-size: 80ch; }
+  .loc-identity p { margin: 0; }
+  .loc-identity-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .loc-identity-head h3 { margin: 0; }
   .loc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; } /* §8.4: one height per row */
   .loc-cols > .char-card { margin: 0; }
   .loc-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }

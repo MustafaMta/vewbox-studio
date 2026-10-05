@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { Job } from '@/domain/jobs';
-import type { Production, Shot, ShotDialogue, Take } from '@/domain/types';
+import type { Production, Shot, ShotBoundary, ShotDialogue, Take } from '@/domain/types';
 import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
 import { nid } from '@/domain/actions';
 import { useStudio } from '@/studio/store';
@@ -27,9 +27,10 @@ import { IconChevronLeft, IconChevronRight, IconClose, IconCompare, IconDelete, 
 import { GenButton, useStudioGate } from './gate';
 import { RunningRow } from './Running';
 import { ShotFailure } from './Failed';
+import { ShotLocationRefusal, StaleNotice } from './Continuity';
 import { WorkspaceShell } from './WorkspaceShell';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
-import { activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
+import { BOUNDARY_WORDS, boundaryOf, driftOf, sceneStateOfTake, activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
 
 /** THE SHOT WORKSPACE (docs/DESIGN-SYSTEM-V5.md §8.11) — the shot is the session. The canvas holds one dominant
  *  picture: the take being judged at its native ratio, or the opening frame (the ending frame on request), or, with
@@ -40,7 +41,7 @@ import { activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, line
  *  settings, notes and details. Never a node editor, never engine internals. `[` and `]` move between shots. */
 
 type View = 'take' | 'opening' | 'ending';
-type Draft = Pick<Shot, 'purpose' | 'action' | 'framing' | 'cameraMove' | 'durationSeconds' | 'characterIds' | 'dialogue' | 'transition' | 'openingFrameAssetId' | 'endingFrameAssetId' | 'notes'>;
+type Draft = Pick<Shot, 'purpose' | 'action' | 'framing' | 'cameraMove' | 'durationSeconds' | 'characterIds' | 'dialogue' | 'transition' | 'openingFrameAssetId' | 'endingFrameAssetId' | 'notes' | 'boundary'>;
 const LENGTHS = [4, 5, 6, 7, 8, 10];
 
 export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
@@ -55,7 +56,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
   const running = activeShotJob(p, shot.id, jobs);
   const toHear = linesToHear(p, decisions.items, shot.id);
 
-  const { draft, patch, dirty, reset } = useDraft<Draft>({ purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, transition: shot.transition, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, notes: shot.notes });
+  const { draft, patch, dirty, reset } = useDraft<Draft>({ boundary: shot.boundary, purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, transition: shot.transition, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, notes: shot.notes });
   useUnsavedGuard(dirty, 'This shot has unsaved changes. Leave anyway?');
   const save = () => { act('updateShot', p.id, shot.id, draft); toast.ok('Shot saved.'); };
 
@@ -138,6 +139,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </div>
 
         <ShotFailure p={p} shotId={shot.id} gate={gate} />
+        <ShotLocationRefusal p={p} shot={shot} />
+        <StaleNotice p={p} shot={shot} gate={gate} />
         <StatusRow p={p} shot={shot} running={running} />
 
         <section className="ws-takes" aria-labelledby="ws-takes-h">
@@ -167,6 +170,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
                     <span className="ws-take-name">Take {takeNo(t)}{t.provider === 'UPLOAD' ? ' · your clip' : t.provider === 'SAMPLE' ? ' · sample' : ''}</span>
                     <StateWord tone={verdict.tone}>{verdict.words}</StateWord>
                     {t.generationMs ? <span className="t-meta">made in {spokenDuration(t.generationMs)}</span> : <span className="t-meta">{shortWhen(t.createdAt)}</span>}
+                    <DriftLine take={t} />
                     <span className="ws-take-acts">
                       {!on && canUseTake(t) && <Button size="sm" onClick={() => use(t)}>Use this take</Button>}
                       {canUseTake(t) && t.status !== 'REJECTED' && (t.rating === 'GOOD'
@@ -200,7 +204,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
             <Field label="Framing"><Picks<Framing> label="Framing" value={draft.framing} options={FRAMINGS.map((v) => ({ value: v, label: vocab(v) }))} onChange={(v) => patch({ framing: v })} draw={(v) => <FramingDraw f={v} />} /></Field>
             <Field label="Camera"><Picks<CameraMove> label="Camera move" value={draft.cameraMove} options={CAMERA_MOVES.map((v) => ({ value: v, label: vocab(v) }))} onChange={(v) => patch({ cameraMove: v })} draw={(v) => <MoveDraw m={v} />} /></Field>
             <Field label="Length"><Segmented<string> label="Length in seconds" size="sm" value={String(draft.durationSeconds)} onChange={(v) => patch({ durationSeconds: Number(v) })} options={[...new Set([...LENGTHS, draft.durationSeconds])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: `${n} s` }))} /></Field>
-            <Field label="Into the shot" help="How it joins the shot before it."><Segmented<Transition> label="Into the shot" size="sm" value={draft.transition} onChange={(v) => patch({ transition: v })} options={TRANSITIONS.map((t) => ({ value: t, label: t === 'EXTEND' ? 'Continues' : vocab(t) }))} /></Field>
+            <Boundary p={p} shot={shot} value={draft.boundary} onChange={(b) => patch({ boundary: b })} />
+            <Field label="Editorial transition" help="What the viewer sees at the join."><Segmented<Transition> label="Editorial transition" size="sm" value={draft.transition} onChange={(v) => patch({ transition: v })} options={TRANSITIONS.map((t) => ({ value: t, label: t === 'EXTEND' ? 'Continues' : vocab(t) }))} /></Field>
           </div>
         </details>
 
@@ -217,6 +222,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
             <Field label="What the shot is for"><Input value={draft.purpose} onChange={(e) => patch({ purpose: e.target.value })} dir="auto" placeholder="One line: why this shot exists" /></Field>
             <Field label="What happens"><Textarea value={draft.action} onChange={(e) => patch({ action: e.target.value })} rows={3} dir="auto" /></Field>
             <Dialogue p={p} shot={shot} draft={draft} patch={patch} toHear={toHear} gate={gate} />
+            <Staging shot={shot} />
           </div>
         </details>
 
@@ -478,6 +484,8 @@ function Provenance({ take, shot }: { take?: Take; shot: Shot }) {
     <div className="ws-prov">
       <dl className="ws-dl">{rows.map(([k, v]) => <div key={k}><dt className="t-label">{k}</dt><dd>{v}</dd></div>)}</dl>
       {failed.length > 0 && <ul className="ws-prov-checks" role="list">{failed.map((c) => <li key={c.name} className="t-meta">{c.name}{c.detail ? `: ${c.detail}` : ''}</li>)}</ul>}
+      <DriftChecks take={take} />
+      <TakeSceneState take={take} />
       {(take.rejectionReason || take.ratingReason) && <p className="t-meta" dir="auto">{take.ratingReason ?? take.rejectionReason}</p>}
       {(take.prompt || shot.prompt) && (
         <details className="ws-disc ws-disc-inner">
@@ -485,6 +493,96 @@ function Provenance({ take, shot }: { take?: Take; shot: Shot }) {
           <p className="ws-prompt" dir="auto">{take.prompt ?? shot.prompt}</p>
         </details>
       )}
+    </div>
+  );
+}
+
+/** How the shot joins the one before it (the planner's `boundary`), editable, with one line for each choice. A shot
+ *  without its own boundary shows what it falls back to (its continuity, else the scene order). */
+function Boundary({ p, shot, value, onChange }: { p: Production; shot: Shot; value?: ShotBoundary; onChange: (b: ShotBoundary) => void }) {
+  const shown = value ?? boundaryOf(p, shot);
+  return (
+    <Field label="Join with the shot before" help={<>{BOUNDARY_WORDS[shown].line}{value ? '' : ' (planned from the scene order; choose to set it)'}</>}>
+      <Segmented<ShotBoundary> label="Join with the shot before" size="sm" value={shown} onChange={onChange}
+        options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label }))} />
+    </Field>
+  );
+}
+
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const PACE: Record<string, string> = { DWELL: 'Dwell: one moment, no cuts', NORMAL: 'Normal', MONTAGE: 'Montage: a run of distinct actions' };
+
+/** The staging inside the shot, as the planner wrote it (read only): timed beats (an in-take cut named with its camera),
+ *  the pace, whose eyes the camera is, and the unnamed people in it. */
+function Staging({ shot }: { shot: Shot }) {
+  const { state } = useStudio();
+  const st = shot.staging;
+  if (!st || (!st.beats?.length && !st.pace && !st.pov && !st.extras?.length)) return null;
+  const pov = st.pov ? state.characters.find((c) => c.id === st.pov)?.name ?? st.pov : null;
+  return (
+    <div className="ws-staging" aria-labelledby={`ws-staging-${shot.id}`}>
+      <span id={`ws-staging-${shot.id}`} className="t-label">Staging</span>
+      {st.beats && st.beats.length > 0 && (
+        <ol className="ws-beats-ro" role="list">
+          {st.beats.map((b, i) => (
+            <li key={i}><span className="ws-ro ws-beat-at">{clock(b.at)}</span><span className="ws-beat-action" dir="auto">{b.action}{b.cut ? <span className="t-meta"> · cut to {b.cut.camera.toLowerCase()}</span> : null}</span></li>
+          ))}
+        </ol>
+      )}
+      <dl className="ws-dl">
+        <div><dt className="t-label">Framing</dt><dd>{vocab(shot.framing)} · {vocab(shot.cameraMove).toLowerCase()}</dd></div>
+        {st.pace && <div><dt className="t-label">Pace</dt><dd>{PACE[st.pace] ?? vocab(st.pace)}</dd></div>}
+        {pov && <div><dt className="t-label">Point of view</dt><dd><bdi>{pov}</bdi>’s eyes</dd></div>}
+        {st.extras && st.extras.length > 0 && <div><dt className="t-label">Others in the shot</dt><dd dir="auto">{st.extras.map((x) => `${x.count ? `${x.count} ` : ''}${x.description}`).join('; ')}</dd></div>}
+      </dl>
+    </div>
+  );
+}
+
+/** One line on the take card: its drift checks, with "Review" when one did not pass. The line holds its place on a
+ *  take without checks, so the cards in a row keep one height. */
+function DriftLine({ take }: { take: Take }) {
+  const d = driftOf(take);
+  if (!d) return <span className="ws-drift-line" aria-hidden />;
+  const parts = [
+    d.place ? (d.place.measured ? `place ${d.place.value!.toFixed(2)} of ${d.place.threshold?.toFixed(2) ?? '—'}` : 'place not measured') : null,
+    d.identity && d.identity.of !== undefined ? `faces ${d.identity.applied ?? 0} of ${d.identity.of}` : null,
+  ].filter(Boolean).join(' · ');
+  return <span className="ws-drift-line t-meta">{d.review && <span className="badge badge-wait">Review</span>}<span>{parts}</span></span>;
+}
+
+/** The take's drift checks in full (the Details section). */
+function DriftChecks({ take }: { take: Take }) {
+  const d = driftOf(take);
+  if (!d) return null;
+  return (
+    <div className="ws-drift">
+      <span className="t-label">Continuity checks{d.review ? <span className="badge badge-wait ws-badge-gap">Review</span> : null}</span>
+      <ul className="ws-files" role="list">
+        {d.place && <li><span className="ws-file-words"><span className="ws-file-name">The place against its plate</span><span className="t-meta">{d.place.measured ? `difference ${d.place.value!.toFixed(3)}, limit ${d.place.threshold?.toFixed(3) ?? '—'}` : d.place.detail ?? 'not measured'}</span></span><StateWord tone={d.place.ok ? 'done' : 'waiting'}>{d.place.ok ? 'Matches' : 'Drifted'}</StateWord></li>}
+        {d.identity && <li><span className="ws-file-words"><span className="ws-file-name">Character references applied</span><span className="t-meta">{d.identity.of !== undefined ? `${d.identity.applied ?? 0} of ${d.identity.of}` : d.identity.detail ?? ''}</span></span><StateWord tone={d.identity.ok ? 'done' : 'waiting'}>{d.identity.ok ? 'Applied' : 'Missing'}</StateWord></li>}
+      </ul>
+    </div>
+  );
+}
+
+/** The scene state the take was filmed with: who was present (and in what), the props, the time, weather and light. */
+function TakeSceneState({ take }: { take: Take }) {
+  const { state } = useStudio();
+  const s = sceneStateOfTake(take);
+  if (!s) return null;
+  const who = (id: string) => state.characters.find((c) => c.id === id)?.name ?? id;
+  return (
+    <div className="ws-drift">
+      <span className="t-label">Scene state when it was filmed</span>
+      <dl className="ws-dl">
+        <div><dt className="t-label">Present</dt><dd dir="auto">{s.present.length ? s.present.map((x) => `${who(x.characterId)}${x.wardrobe ? ` (${x.wardrobe})` : ''}`).join('; ') : 'Nobody'}</dd></div>
+        <div><dt className="t-label">Props</dt><dd dir="auto">{s.props.length ? s.props.map((x) => `${x.name}${x.state ? ` (${x.state})` : ''}`).join('; ') : 'None'}</dd></div>
+        <div><dt className="t-label">Time</dt><dd>{s.timeOfDay ? vocab(s.timeOfDay) : 'Not set'}</dd></div>
+        <div><dt className="t-label">Weather</dt><dd dir="auto">{s.weather || 'Not set'}</dd></div>
+        <div><dt className="t-label">Light</dt><dd dir="auto">{s.lighting || 'Not set'}</dd></div>
+        {s.placeState && <div><dt className="t-label">The place</dt><dd dir="auto">{s.placeState}</dd></div>}
+      </dl>
     </div>
   );
 }
