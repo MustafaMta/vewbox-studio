@@ -235,7 +235,7 @@ services:
     restart: unless-stopped
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all, LIPSYNC_KEEP_LOADED: "${LIPSYNC_KEEP_LOADED:-0}" }
-    volumes: [ "models:/models:ro", "nvjit:/cache/nv-jit", "./docker/lipsync/app.py:/app/app.py:ro", "./docker/lipsync/corrector.py:/app/corrector.py:ro", "./docker/lipsync/face_track.py:/app/face_track.py:ro", "./docker/lipsync/cli.py:/app/cli.py:ro" ]
+    volumes: [ "models:/models:ro", "nvjit:/cache/nv-jit", "./docker/lipsync/app.py:/app/app.py:ro", "./docker/lipsync/corrector.py:/app/corrector.py:ro", "./docker/lipsync/face_track.py:/app/face_track.py:ro", "./docker/lipsync/cli.py:/app/cli.py:ro", "./docker/lipsync/eval_batch.py:/app/eval_batch.py:ro" ]
     ports: [ "127.0.0.1:${LIPSYNC_PORT:-8040}:8040" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     shm_size: "4gb"
