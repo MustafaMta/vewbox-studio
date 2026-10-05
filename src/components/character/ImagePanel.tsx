@@ -6,6 +6,7 @@ import { useJobsFor, useStudio } from '@/studio/store';
 import { api } from '@/studio/api';
 import { assetById } from '@/studio/selectors';
 import { redrawsFromEarlierPicture } from '@/domain/identity';
+import { derivedFaceReference, faceReferenceProvenance } from '@/domain/face-reference';
 import { useToast } from '@/components/ui/toast';
 import { Button, Dialog, Dropzone, Field, StateWord, Textarea } from '@/components/ui/kit';
 import { ImagePreview } from '@/components/ui/preview';
@@ -22,7 +23,7 @@ import { checkImageDims, checkImageFile, measureImage, refusalReasons } from './
  *  after them. A drawing in progress shows its phase in the figure; a failed one says why, with Draw again. Approving a
  *  draft whose automatic check failed asks for the reason (the override), inline. */
 export function IdentityBlock({ c, s, extra }: { c: Character; s: IdentityStatus; extra?: ReactNode }) {
-  const { act } = useStudio();
+  const { act, state } = useStudio();
   const toast = useToast();
   const copyOf = useErrorCopy();
   const { start, busy } = useStartJob();
@@ -37,6 +38,7 @@ export function IdentityBlock({ c, s, extra }: { c: Character; s: IdentityStatus
   };
   const draw = () => void start('CHARACTER_APPEARANCE', { characterId: c.id }, { quiet: true });
   const filmed = s.videos === 1 ? 'Filmed in 1 video' : `Filmed in ${s.videos} videos`;
+  const derived = c.canonicalImage ? derivedFaceReference(state.assets, c.canonicalImage.assetId) : undefined;
 
   return (
     <div className="char-identity">
@@ -52,6 +54,9 @@ export function IdentityBlock({ c, s, extra }: { c: Character; s: IdentityStatus
       {s.kind === 'DRAFT' && <p className="t-body char-note" data-tone="wait">Check the face, the clothes and the whole figure. Once approved, this image is the character in every shot.</p>}
       {s.kind === 'NONE' && !running && <p className="t-body char-note">{s.legacyPortrait ? 'This character has an older close-up portrait. Draw the full-length figure to give them a canonical identity.' : 'One full-length figure from the front becomes the character’s identity everywhere.'}</p>}
       {s.checkFailed && <p className="t-body char-note" dir="auto">The automatic check flagged this image{s.checkNotes.length ? `: ${s.checkNotes.join(' · ')}` : '.'}</p>}
+      {/* a production-only reference derived from this image (a face crop for close shots, FINAL §12): traceable to it,
+          never an identity, never in the character's references — said here once, not shown as a second picture */}
+      {derived && <p className="t-meta char-derived">Derived · production only: a close-up of the face cut from version {faceReferenceProvenance(derived)?.canonicalVersion ?? s.version} for close shots. <a className="link-quiet" href={`/assets?asset=${encodeURIComponent(derived.id)}`}>See it</a></p>}
 
       {failed && canRedraw(s) && <div className="char-voice"><FailureNotice copy={copyOf(failed.error)} jobId={failed.id} action={<Button size="sm" variant="secondary" icon={<IconGenerate />} loading={busy} onClick={draw}>Draw again</Button>} /></div>}
 

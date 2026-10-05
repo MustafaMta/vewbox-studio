@@ -77,6 +77,11 @@ export function SettingsPage() {
           <SettingRow label="Sound of the guide" hint="Whether a continuous take hears the end of the shot before. Automatic leaves it out when the shot before speaks and the new one has no lines.">
             {() => <Segmented label="Sound of the guide" value={cont.guideAudio ?? 'AUTO'} onChange={(v) => setCont({ guideAudio: v === 'AUTO' ? undefined : v })} options={[{ value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }, { value: 'OFF', label: 'Never' }]} />}
           </SettingRow>
+          {/* the derived face reference (src/domain/face-reference.ts): a crop of the canonical image's face sent beside it on
+              close framings; OFF until the A/B on real takes decides (research G13) */}
+          <SettingRow label={<>Face close-up reference <StateWord tone="waiting" className="st-src">Under evaluation</StateWord></>} hint="On close framings the studio can also send a close crop of each character’s face, cut from their canonical image and stored as a production-only reference (never a new identity). Automatic: only when the canonical image holds too few face pixels for the framing. Off until the comparison on real takes is done.">
+            {() => <Segmented label="Face close-up reference" value={gen.faceReference ?? 'OFF'} onChange={(v) => setGen({ faceReference: v as 'OFF' | 'AUTO' | 'ON' })} options={[{ value: 'OFF', label: 'Off' }, { value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }]} />}
+          </SettingRow>
           <SettingRow label="Re-anchor after" hint="After this many continuous shots in a row, the next one leans on the characters’ canonical images (the shortest guide) so faces do not drift along the chain.">
             {(id) => <Select id={id} value={String(cont.reanchorAfter ?? REANCHOR.after)} onChange={(e) => setCont({ reanchorAfter: Number(e.target.value) === REANCHOR.after ? undefined : Number(e.target.value) })} options={[2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: String(n), label: `${n} shots${n === REANCHOR.after ? ' (default)' : ''}` }))} />}
           </SettingRow>

@@ -6,7 +6,7 @@ import { HeadSkeleton, SectionHeadSkeleton } from '@/components/studio/parts';
 /** Settings while the studio opens (§5.22): the head and the panels of rows at their real sizes (engines, continuity,
  *  voices, research, motion, new work, licences, elsewhere). A small module of its own, so the shell can draw it
  *  synchronously on the server and the client alike. */
-export const SETTINGS_PANEL_ROWS = [4, 3, 1, 8, 1, 4, 2] as const;
+export const SETTINGS_PANEL_ROWS = [3, 4, 1, 8, 1, 4, 1] as const;
 export function SettingsSkeleton() {
   return (
     <SkeletonRegion label="Opening Settings…" className="cp settings">

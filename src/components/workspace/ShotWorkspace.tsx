@@ -32,7 +32,7 @@ import { ShotLocationRefusal, StaleNotice } from './Continuity';
 import { WorkspaceShell } from './WorkspaceShell';
 import { ShotContext } from './ShotContext';
 import { Readiness } from './Readiness';
-import { lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf, type TakeCheck } from './checks';
+import { lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf, takeVerdictOf, type TakeCheck } from './checks';
 import { lineRecordingCurrent } from '@/domain/voice-identity';
 import { MINIMAX_H3_LOCAL, type ContinuationChoice, type GuideAudioMode } from '@/domain/video-capability';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
@@ -594,7 +594,8 @@ function DriftLine({ take }: { take: Take }) {
     d.place ? (d.place.measured ? `place ${d.place.value!.toFixed(2)} of ${d.place.threshold?.toFixed(2) ?? '—'}` : 'place not measured') : null,
     d.identity && d.identity.of !== undefined ? `faces ${d.identity.applied ?? 0} of ${d.identity.of}` : null,
   ].filter(Boolean).join(' · ');
-  return <span className="ws-drift-line t-meta">{d.review && <span className="badge badge-wait">Review</span>}<span>{parts}</span></span>;
+  // the Review badge is the verdict's, on the checks line above (one badge per card)
+  return <span className="ws-drift-line t-meta"><span>{parts}</span></span>;
 }
 
 /** One line on the take card under its verdict: what its checks found (a failure named, every flag to review named,
@@ -602,7 +603,14 @@ function DriftLine({ take }: { take: Take }) {
 function ChecksLine({ take }: { take: Take }) {
   const ch = takeChecksOf(take);
   if (!ch) return <span className="ws-checks-line t-meta">Not checked</span>;
-  return <span className="ws-checks-line t-meta" data-tone={ch.tone} title={ch.summary}>{ch.summary}</span>;
+  // the take's verdict (src/domain/take-checks.ts, the worker's own rule): a REVIEW take is never chosen by itself —
+  // the badge says why it waits for the producer's eye (QA Q6)
+  const v = takeVerdictOf(take);
+  return (
+    <span className="ws-checks-line t-meta" data-tone={ch.tone} title={ch.summary}>
+      {v.decision === 'REVIEW' && <span className="badge badge-wait ws-badge-lead" title="A flag to look at: this take is not chosen by itself.">Review</span>}{ch.summary}
+    </span>
+  );
 }
 
 const OUTCOME: Record<TakeCheck['outcome'], { word: string; tone: 'done' | 'waiting' | 'failed' | 'idle' }> = {

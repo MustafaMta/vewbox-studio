@@ -253,6 +253,7 @@
   /* music: lyrics, performers, plates */
   .ws-song { margin-block-start: 16px; }
   .ws-badge-gap { margin-inline-start: 8px; vertical-align: middle; }
+  .ws-badge-lead { margin-inline-end: 6px; vertical-align: middle; }
   .ws-lyrics { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .ws-lyric-btn { display: block; inline-size: 100%; padding: 14px 56px 14px 16px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
   .ws-lyric-btn:focus-visible { outline-offset: -2px; }
