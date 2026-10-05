@@ -214,6 +214,8 @@ export interface ContinuityState {
   notes?: string;
   /** explicit continuity constraints the take must honour ("the cup stays in her right hand", "rain on the window") */
   constraints?: string[];
+  /** continuity-log flags the producer accepted as intended for this shot, by key (src/domain/continuity-log.ts) */
+  acknowledged?: string[];
 }
 
 /** How a person (or the camera's subject) moves across the frame: the screen direction of travel and, in words, the
