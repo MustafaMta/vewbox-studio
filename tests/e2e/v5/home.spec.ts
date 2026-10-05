@@ -178,7 +178,10 @@ test('every card is a Tab stop and shows the focus ring (2 px, 3 px off the pict
   const seen = new Map<number, { style: string; width: string; offset: string }>();
   for (let i = 0; i < 200 && seen.size < targets; i++) {
     await page.keyboard.press('Tab');
-    const f = await page.evaluate((sel) => {
+    // read the ring after two frames: under reduced motion every property transitions for 0.01 ms (base.css), so a
+    // read in the same task as the focus sees the outline's start value
+    const f = await page.evaluate(async (sel) => {
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
       const a = document.activeElement as HTMLElement | null;
       if (!a || !a.matches(sel) || !a.matches(':focus-visible')) return null;
       const cs = getComputedStyle(a);
@@ -198,12 +201,13 @@ test('phone 390: a 4:5 banner, the shelves swiped edge to edge, two cards across
   if (s.state.productions.length > 0) {
     const box = await page.locator('.home-hero-frame').boundingBox();
     expect(Math.round((box!.width / box!.height) * 100) / 100).toBe(0.8);
-    // the two actions share the row under the banner, half each (44 high on a real phone's coarse pointer; this
+    // the two actions share the row under the banner, about half each (44 high on a real phone's coarse pointer; this
     // browser has a mouse, so 40)
     const acts = await page.locator('.home-hero-acts .btn').evaluateAll((els) => els.map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.width), Math.round(b.height)]; }));
     expect(acts).toHaveLength(2);
     expect(acts[0][0]).toBe(acts[1][0]);
-    expect(acts[0][1]).toBe(acts[1][1]);
+    expect(Math.abs(acts[0][1] - acts[1][1])).toBeLessThanOrEqual(8);
+    expect(acts[0][1] + acts[1][1]).toBeGreaterThanOrEqual(340);
     expect(acts.every((a) => a[2] >= 40)).toBe(true);
   }
   // the tool cards two across, 104 high

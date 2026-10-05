@@ -116,7 +116,13 @@
   @media (pointer: coarse) { .ptransport { block-size: 60px; } }
   .ptransport .pt-time { flex: none; color: var(--text-2); }
   .ptransport .pt-seek { flex: 1; min-inline-size: 80px; }
-  @media (max-width: 479px) { .ptransport .pvol-track { display: none; } }
+  /* a phone: the transport fits the column with four 44 px buttons and the time — tighter gaps, the seek bar may
+     narrow to 48 (it flexes to the room left) */
+  @media (max-width: 479px) {
+    .ptransport .pvol-track { display: none; }
+    .ptransport { gap: 4px; padding-inline: 8px; }
+    .ptransport .pt-seek { min-inline-size: 48px; }
+  }
   /* the cutting room's transport: the same dock, more controls; the timecode in mono text-1; below 768 the seek track
      takes its own row */
   .pt-group { display: inline-flex; flex: none; align-items: center; gap: 4px; }

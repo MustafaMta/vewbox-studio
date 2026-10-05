@@ -123,13 +123,18 @@
     .film-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* the strip scrolls on a phone: as the kit's strips (base.css F3), 8 px of padding on every side given back on the
        inline axis, and an 8 px scroll padding, so a shot's focus ring is never clipped by the scroller */
-    .film-strip { overflow-x: auto; scrollbar-width: none; padding: 8px; margin-inline: -8px; scroll-padding-inline: 8px; }
+    .film-strip { overflow-x: auto; scrollbar-width: none; padding: 8px 12px; margin-inline: -12px; scroll-padding-inline: 12px; }
+    /* the scene's name never widens its scene (it ellipsises inside the shots' width) */
+    .film-strip-label { contain: inline-size; }
     .film-strip::-webkit-scrollbar { display: none; }
     /* each scene takes its shots' own width (72 px each) and the strip scrolls: a share of the column (flex-basis 0)
        made the scenes overlap on a phone, one scene's shots painted over the next's */
     .film-strip-scene { flex: none; }
     .film-strip-shots > * { flex: none; inline-size: 72px; }
+    /* focus scrolling brings a shot in with room for its ring (it does not honour the scroller's scroll-padding) */
+    .film-strip-shot { scroll-margin-inline: 8px; }
     .film-transport { gap: 4px; padding-inline: 8px; }
+    .film-stage .ptransport { padding-inline: 8px; }
     .film-files { grid-template-columns: minmax(0, 1fr); }
     .film-cast { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); scroll-padding-inline: var(--pad); }
     .film-credits { grid-template-columns: minmax(0, 1fr); gap: 24px; }

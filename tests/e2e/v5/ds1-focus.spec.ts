@@ -152,14 +152,14 @@ async function measure(page: Page, n: number): Promise<Stop | null> {
  *     padding on every side, given back as margin (kit.css .shelf-track);
  *   - short 1440: the credits' one-line names clipped their link's ring → `data-clips` (base.css: overflow clip with an
  *     8 px margin while focused); short 390: the strip's scroller and the player's box clipped the shots' and the
- *     Fullscreen button's rings → the strip pads 8 px like the kit's strips, `.iplayer` joins the clip-margin rule;
+ *     Fullscreen button's rings → the strip pads like the kit's strips and its shots carry a scroll margin (focus
+ *     scrolling ignores scroll-padding), the docked transport fits a phone's column (4 px gaps, the seek bar may
+ *     narrow to 48) and is 60 high on a coarse pointer, `.iplayer` joins the clip-margin rule;
  *   - characters 1440 and 390: the split button's parts hid the ring's edge between them (1.39:1 against the
  *     neighbour's fill) → a split part draws its ring just inside its edge (an ink ring 4 px in on the primary fill).
  *  (The profile at 390 — the "Notes for the writers" textarea under nav.bottom-nav, WCAG 2.4.11 — was on this list
  *  until main's QA page fixes of 2026-10-05 moved it clear; the unexpected pass removed the entry.) */
-const KNOWN: Record<string, string> = {
-  'short-390': 'the docked transport is wider than the phone column (the Fullscreen button past the player’s clip) and the strip’s last shot stops 9 px short of the scroller’s end',
-};
+const KNOWN: Record<string, string> = {};
 
 for (const width of WIDTHS) {
   for (const [name, url] of PAGES) {
