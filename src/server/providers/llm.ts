@@ -16,7 +16,43 @@ export type LlmProvider = 'minimax' | 'anthropic' | 'openai-compatible';
 
 export interface LlmMessage { role: 'system' | 'user' | 'assistant'; content: string }
 export interface LlmOptions { maxTokens?: number; temperature?: number; provider?: LlmProvider; timeoutMs?: number; jobId?: string }
-export interface LlmResult { text: string; provider: LlmProvider; model: string; inputTokens?: number; outputTokens?: number; ms: number }
+/** `truncated`: the answer stopped at the output limit (OpenAI/Ollama `finish_reason: "length"`, Anthropic/MiniMax
+ *  `stop_reason: "max_tokens"`) — on the local Ollama also when the prompt and the answer filled num_ctx. */
+export interface LlmResult { text: string; provider: LlmProvider; model: string; inputTokens?: number; outputTokens?: number; ms: number; finishReason?: string; truncated?: boolean; maxTokens?: number }
+
+/** An answer cut off at the output limit (or JSON left unterminated), with no room left to ask for a longer one. It is
+ *  never sent back for a repair — a repair has less room than the call it repairs (the cut answer joins the history)
+ *  — and never accepted partially: the caller makes the task smaller (the shot planner splits the scene) or fails. */
+export class TruncatedAnswerError extends StudioError {
+  readonly truncated = true;
+  constructor(message: string, details: Record<string, unknown>) { super('PROVIDER', message, { ...details, truncated: true, failureClass: 'LLM_TRUNCATED' }); }
+}
+export const isTruncatedAnswer = (e: unknown): e is TruncatedAnswerError => e instanceof TruncatedAnswerError || Boolean((e as { details?: { truncated?: unknown } } | null)?.details?.truncated);
+
+/** The output budget a hosted engine is given at most (their windows are far larger than any answer the studio asks). */
+export const HOSTED_OUTPUT_CAP = 16000;
+/** Tokens kept free inside the local context for the chat template and the end of the answer. */
+export const CONTEXT_MARGIN_TOKENS = 384;
+/** A conservative token count for a prompt before it is sent: ≈ 3 characters per token. Measured 4.26 for the Arabic
+ *  shot-plan prompt on Gemma 4 (17,356 characters → 4,076 tokens, MODEL-EVAL-2026-10 §3), so this over-counts, and the
+ *  room it leaves is never more than the context really has. */
+export function estimateTokens(messages: LlmMessage[]): number {
+  return messages.reduce((a, m) => a + Math.ceil(m.content.length / 3) + 8, 0);
+}
+
+/** How many tokens an answer to these messages may take, at most, on the engine that will answer them. On the local
+ *  Ollama the prompt and the answer share num_ctx (OLLAMA_CONTEXT_LENGTH, measured at 16384 for Gemma's 21.4 GB card
+ *  total): the room is the context minus the prompt (its known size when given, else the estimate) minus a margin. A
+ *  hosted engine gets HOSTED_OUTPUT_CAP; another OpenAI-compatible server (unknown window) the old 8000. */
+export function outputRoom(messages: LlmMessage[], opts: { provider?: LlmProvider; promptTokens?: number } = {}): number {
+  let cfg: ReturnType<typeof resolveProvider>;
+  try { cfg = resolveProvider(opts.provider); } catch { return 8000; } // nothing configured: the call itself says so
+  if (cfg.provider !== 'openai-compatible') return HOSTED_OUTPUT_CAP;
+  if (!isLocalOllama(cfg.baseUrl)) return 8000;
+  const prompt = opts.promptTokens ?? estimateTokens(messages);
+  return Math.max(512, env().OLLAMA_CONTEXT_LENGTH - prompt - CONTEXT_MARGIN_TOKENS);
+}
+const isLocalOllama = (baseUrl: string) => /:11434(\/|$)/.test(baseUrl);
 
 /** The local story model when OPENAI_COMPATIBLE_MODEL names none: Gemma 4 31B (QAT Q4_0, Ollama), chosen over qwen3:14b
  *  by the controlled test of docs/research/MODEL-EVAL-2026-10.md §3 (Iraqi dialogue and staged shot plans; 2.5–3× the
@@ -61,7 +97,7 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
  *  model needs no card. */
 export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promise<LlmResult> {
   const cfg = resolveProvider(opts.provider);
-  if (cfg.provider === 'openai-compatible' && /:11434(\/|$)/.test(cfg.baseUrl)) {
+  if (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl)) {
     const { gpuLease } = await import('../gpu/lease');
     return gpuLease('LLM', llmLeaseMb(cfg.model), () => chatWith(cfg, messages, opts), { jobId: opts.jobId });
   }
@@ -82,17 +118,19 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
       const body: Record<string, unknown> = { model: cfg.model, max_tokens: opts.maxTokens ?? 8000, temperature: opts.temperature ?? 0.7, messages: rest, ...(system ? { system } : {}) };
       if (cfg.provider === 'minimax') body.thinking = { type: 'disabled' };
       const res = await fetch(`${cfg.baseUrl}/v1/messages`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', 'x-api-key': cfg.apiKey, authorization: `Bearer ${cfg.apiKey}`, 'anthropic-version': '2023-06-01' }, body: JSON.stringify(body) });
-      const json = await res.json().catch(() => ({})) as { content?: Array<{ type: string; text?: string }>; usage?: { input_tokens?: number; output_tokens?: number }; error?: { message?: string; type?: string }; base_resp?: { status_code?: number; status_msg?: string } };
+      const json = await res.json().catch(() => ({})) as { content?: Array<{ type: string; text?: string }>; stop_reason?: string; usage?: { input_tokens?: number; output_tokens?: number }; error?: { message?: string; type?: string }; base_resp?: { status_code?: number; status_msg?: string } };
       if (!res.ok || json.error) throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${json.error?.message ?? json.base_resp?.status_msg ?? `HTTP ${res.status}`}`, { status: res.status, type: json.error?.type });
       const text = (json.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
-      return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.input_tokens, outputTokens: json.usage?.output_tokens, ms: Date.now() - t0 };
+      return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.input_tokens, outputTokens: json.usage?.output_tokens, ms: Date.now() - t0, finishReason: json.stop_reason, truncated: json.stop_reason === 'max_tokens', maxTokens: body.max_tokens as number };
     }
     // OpenAI-compatible
-    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: opts.maxTokens ?? 8000, stream: false, ...(cfg.baseUrl.includes('11434') ? { options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, think: false } : {}) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
-    const json = await res.json().catch(() => ({})) as { choices?: Array<{ message?: { content?: string; reasoning?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
+    const maxTokens = opts.maxTokens ?? 8000;
+    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, stream: false, ...(isLocalOllama(cfg.baseUrl) ? { options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, think: false } : {}) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    const json = await res.json().catch(() => ({})) as { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
     if (!res.ok || json.error) throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${json.error?.message ?? `HTTP ${res.status}`}`, { status: res.status });
     const text = json.choices?.[0]?.message?.content ?? '';
-    return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0 };
+    const finishReason = json.choices?.[0]?.finish_reason;
+    return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0, finishReason, truncated: finishReason === 'length', maxTokens };
   } catch (e) {
     if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     if ((e as Error).name === 'AbortError') throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model} timed out after ${Math.round(timeoutMs / 1000)} s`);
@@ -119,13 +157,45 @@ export function extractJson(text: string): string {
   return t.slice(start);
 }
 
-/** Ask for JSON matching a schema; on a validation failure, show the model its mistake once and retry. */
+/** True when the answer opens a JSON object or array and never closes it (the walk of `extractJson` ends inside it):
+ *  the shape a cut-off answer has, whatever the engine reported as its stop reason. */
+export function isUnterminatedJson(text: string): boolean {
+  let t = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(t);
+  if (fence) t = fence[1].trim(); else t = t.replace(/^```(?:json)?\s*/i, '');
+  const start = Math.min(...['{', '['].map((c) => t.indexOf(c)).filter((i) => i >= 0));
+  if (!Number.isFinite(start)) return false;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < t.length; i++) {
+    const c = t[i];
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true; else if (c === '{' || c === '[') depth++; else if (c === '}' || c === ']') { depth--; if (depth === 0) return false; }
+  }
+  return true;
+}
+
+/** Ask for JSON matching a schema; on a validation failure, show the model its mistake once and retry.
+ *  A CUT-OFF ANSWER (stop reason "length"/"max_tokens", or JSON left unterminated) is not a validation failure: it is
+ *  asked again, unchanged, with the whole room the context has left when that is larger than the budget it was cut
+ *  at (`outputRoom`); otherwise TruncatedAnswerError is thrown. A partial answer is never parsed or accepted. */
 export async function json<T>(schema: z.ZodType<T>, messages: LlmMessage[], opts: LlmOptions & { repairs?: number } = {}): Promise<{ data: T; result: LlmResult; attempts: number }> {
   const repairs = opts.repairs ?? 2;
   const history: LlmMessage[] = [...messages];
   let last: LlmResult | null = null;
+  let maxTokens = opts.maxTokens;
+  let widened = false;
   for (let attempt = 1; attempt <= repairs + 1; attempt++) {
-    last = await chat(history, { ...opts, temperature: attempt === 1 ? opts.temperature : Math.max(0.2, (opts.temperature ?? 0.7) - 0.2) });
+    // a repair round carries the earlier answer in its history: its budget is what the context still has room for
+    const budget = history.length > messages.length ? Math.min(maxTokens ?? 8000, outputRoom(history, { provider: opts.provider })) : maxTokens;
+    last = await chat(history, { ...opts, maxTokens: budget, temperature: attempt === 1 ? opts.temperature : Math.max(0.2, (opts.temperature ?? 0.7) - 0.2) });
+    // cut off: JSON left open, or the engine stopped at the limit before any JSON (a closed object is complete)
+    if (isUnterminatedJson(last.text) || (last.truncated && !/[{[]/.test(last.text))) {
+      const cutAt = last.maxTokens ?? maxTokens ?? 8000;
+      const room = outputRoom(history, { provider: opts.provider, promptTokens: last.inputTokens });
+      log.warn({ attempt, provider: last.provider, finishReason: last.finishReason, outputTokens: last.outputTokens, cutAt, room }, 'llm answer was cut off');
+      if (!widened && room >= cutAt + 1024) { widened = true; maxTokens = room; attempt--; continue; }
+      throw new TruncatedAnswerError(`The story engine (${last.provider}) ran out of room: the answer was cut off at ${last.outputTokens ?? cutAt} tokens${last.inputTokens ? ` after a ${last.inputTokens}-token prompt` : ''}.`, { provider: last.provider, model: last.model, inputTokens: last.inputTokens, outputTokens: last.outputTokens, maxTokens: cutAt, finishReason: last.finishReason });
+    }
     let parsed: unknown;
     try { parsed = JSON.parse(extractJson(last.text)); } catch (e) {
       log.warn({ attempt, provider: last.provider, err: (e as Error).message, head: last.text.slice(0, 200) }, 'llm answer was not json');
@@ -133,7 +203,7 @@ export async function json<T>(schema: z.ZodType<T>, messages: LlmMessage[], opts
       continue;
     }
     const v = schema.safeParse(dropNulls(parsed));
-    if (v.success) return { data: v.data, result: last, attempts: attempt };
+    if (v.success) return { data: v.data, result: last, attempts: attempt + (widened ? 1 : 0) };
     const issues = v.error.issues.slice(0, 12).map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('\n');
     log.warn({ attempt, provider: last.provider, issues }, 'llm json failed validation');
     history.push({ role: 'assistant', content: last.text }, { role: 'user', content: `The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\n${issues}` });

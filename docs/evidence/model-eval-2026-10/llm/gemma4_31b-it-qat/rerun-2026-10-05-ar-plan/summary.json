@@ -1,0 +1,320 @@
+{
+  "model": "gemma4:31b-it-qat",
+  "numCtx": "16384 (default)",
+  "keepAlive": "2m (default)",
+  "calls": [
+    {
+      "task": "ar-plan",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 258000,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 120790,
+          "status": 200,
+          "promptTokens": 3785,
+          "completionTokens": 5274,
+          "finishReason": "stop",
+          "maxTokens": 10776,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the supernatural event and the arrival\",\n      \"action\": \"A meteor streaks across the sky, then Najm pushes ope",
+          "tail": "s with a tone of disbelief, his face illuminated by the warm, golden glow of the workbench lamp, creating deep, expressive shadows in his wrinkles.\"\n    }\n  ]\n}",
+          "requestChars": 16306,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 137099,
+          "status": 200,
+          "promptTokens": 3955,
+          "completionTokens": 6580,
+          "finishReason": "stop",
+          "maxTokens": 10554,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical struggle with the radio\",\n      \"action\": \"Elias's hand grips the tuning knob and tries to turn it, but",
+          "tail": "houettes merging into a single unified shape under the bright, warm green glow of the hanging lamp. The atmosphere is one of quiet, shared purpose.\"\n    }\n  ]\n}",
+          "requestChars": 17068,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 0,
+      "vramPeakMiB": 20638,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T15:56:50.174576395Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 3.748GiB / 46.79GiB",
+      "at": "2026-10-05T15:54:51.408Z",
+      "checks": {
+        "shots": 14,
+        "budget": 60,
+        "totalSeconds": 63,
+        "calls": 2,
+        "finishReasons": [
+          "stop",
+          "stop"
+        ],
+        "maxTokens": [
+          10776,
+          10554
+        ],
+        "scriptLines": 6,
+        "everyLineOnce": true,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ar-plan",
+      "run": 2,
+      "model": "gemma4:31b-it-qat",
+      "ms": 309587,
+      "attempts": 3,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 114578,
+          "status": 200,
+          "promptTokens": 3785,
+          "completionTokens": 6474,
+          "finishReason": "stop",
+          "maxTokens": 10776,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the cosmic event and the arrival\",\n      \"action\": \"A meteor streaks across the sky, then Najm struggles with t",
+          "tail": " intense curiosity, and his eyebrows lift in surprise. The lighting is warm and focused, emphasizing the deep lines and weathered skin of his face.\"\n    }\n  ]\n}",
+          "requestChars": 16306,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 87852,
+          "status": 200,
+          "promptTokens": 7742,
+          "completionTokens": 4196,
+          "finishReason": "stop",
+          "maxTokens": 10776,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the cosmic event and the arrival\",\n      \"action\": \"A meteor streaks across the sky, then Najm struggles with t",
+          "tail": " intense curiosity, and his eyebrows lift in surprise. The lighting is warm and focused, emphasizing the deep lines and weathered skin of his face.\"\n    }\n  ]\n}",
+          "requestChars": 32873,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 107077,
+          "status": 200,
+          "promptTokens": 3944,
+          "completionTokens": 5553,
+          "finishReason": "stop",
+          "maxTokens": 10572,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical struggle with the broken radio\",\n      \"action\": \"Elias's hand grips the tuning knob and strains to tur",
+          "tail": "hanging lamp. They are focused and collaborative, their heads nearly touching as they work. The rest of the workshop fades into soft, dark shadows.\"\n    }\n  ]\n}",
+          "requestChars": 17014,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 20638,
+      "vramPeakMiB": 20638,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T16:02:00.964954799Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 8.873GiB / 46.79GiB",
+      "at": "2026-10-05T16:00:02.159Z",
+      "checks": {
+        "shots": 13,
+        "budget": 60,
+        "totalSeconds": 65,
+        "calls": 3,
+        "finishReasons": [
+          "stop",
+          "stop",
+          "stop"
+        ],
+        "maxTokens": [
+          10776,
+          10776,
+          10572
+        ],
+        "scriptLines": 6,
+        "everyLineOnce": true,
+        "boundaries": [
+          "transition",
+          "continuous",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ar-plan",
+      "run": 3,
+      "model": "gemma4:31b-it-qat",
+      "ms": 220829,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "attemptsDetail": [
+        {
+          "ms": 115039,
+          "status": 200,
+          "promptTokens": 3785,
+          "completionTokens": 6151,
+          "finishReason": "stop",
+          "maxTokens": 10776,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the cosmic event and the arrival of the visitor\",\n      \"action\": \"A meteor streaks across the sky, then Najm s",
+          "tail": "lief and sudden intensity. The lighting is warm and sharp, making the texture of the old paper and the cracks in the radio's casing highly visible.\"\n    }\n  ]\n}",
+          "requestChars": 16306,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        },
+        {
+          "ms": 105663,
+          "status": 200,
+          "promptTokens": 3953,
+          "completionTokens": 5273,
+          "finishReason": "stop",
+          "maxTokens": 10565,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical struggle and the comedic tension of the stuck knob\",\n      \"action\": \"Elias grips the tuning knob and p",
+          "tail": "one unified shape against the dim, cluttered background of the workshop. The portly man is speaking. The atmosphere is warm, focused, and intimate.\"\n    }\n  ]\n}",
+          "requestChars": 17037,
+          "numCtx": 16384,
+          "keepAlive": "2m",
+          "think": false
+        }
+      ],
+      "vramBeforeMiB": 20638,
+      "vramPeakMiB": 20638,
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T16:05:42.9611066Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "llmContainer": "vewbox-llm-1 8.819GiB / 46.79GiB",
+      "at": "2026-10-05T16:03:44.865Z",
+      "checks": {
+        "shots": 12,
+        "budget": 60,
+        "totalSeconds": 62,
+        "calls": 2,
+        "finishReasons": [
+          "stop",
+          "stop"
+        ],
+        "maxTokens": [
+          10776,
+          10565
+        ],
+        "scriptLines": 6,
+        "everyLineOnce": true,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    }
+  ],
+  "byTask": {
+    "ar-plan": {
+      "n": 3,
+      "medianMs": 258000,
+      "firstAttemptValid": 0,
+      "errors": 0,
+      "peakMiB": 20638
+    }
+  }
+}

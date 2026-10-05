@@ -22,6 +22,7 @@ import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenc
 import { h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
+import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
 import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
@@ -334,8 +335,9 @@ export const generateTake: Handler = async (ctx) => {
   const t0 = Date.now();
   let lastStatus = '';
   // the local engine runs under the GPU lease (one model family on the card at a time; other services unload
-  // first); the hosted API needs no card and runs in the hosted lane's concurrency
-  const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', 28000, fn, { jobId: ctx.job.id }) : fn());
+  // first); the hosted API needs no card and runs in the hosted lane's concurrency. The estimate is H3's measured peak;
+  // it also needs ≈ 40.8 GiB of the Docker VM's host RAM while staging (gpu/estimates.ts VIDEO_H3_HOST_RAM_MB)
+  const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', VIDEO_H3_VRAM_MB, fn, { jobId: ctx.job.id }) : fn());
   // the request as the contract sees it (the callbacks below are the job's own plumbing)
   const request = {
     prompt, seconds: clip.seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,

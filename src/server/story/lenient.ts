@@ -30,6 +30,33 @@ export function looseEnum<const T extends readonly [string, ...string[]]>(values
   return z.preprocess(map, z.enum(values));
 }
 
+/** An enum read from a model's own WORDS: the exact value in any case, else the one value whose words appear in the
+ *  answer ("male" → MALE, "Medium-low" → LOW, "rhythmic with theatrical pauses" → MEASURED). Words are matched whole
+ *  (tokens of the slug), never as substrings, so "female" is never MALE and a stray letter matches nothing. On a scale
+ *  (`middle` given) a qualified middle goes to its qualifier ("mid-high" → HIGH, "slow and rhythmic" → SLOW). Values
+ *  that name no category, or two that contradict ("low to high", "male or female"), are left as they are and fail
+ *  validation — a genuine mistake still goes back to the model. */
+export function wordEnum<const T extends readonly [string, ...string[]]>(values: T, words: Partial<Record<T[number], readonly string[]>>, opts: { middle?: T[number] } = {}) {
+  const map = (v: unknown): unknown => {
+    if (typeof v !== 'string') return v;
+    const s = slug(v);
+    if ((values as readonly string[]).includes(s)) return s;
+    const tokens = s.split('_');
+    const hits = values.filter((x) => tokens.includes(x) || (words[x as T[number]] ?? []).some((w) => tokens.includes(w)));
+    if (hits.length === 1) return hits[0];
+    if (opts.middle && hits.length === 2 && hits.includes(opts.middle)) return hits.find((x) => x !== opts.middle);
+    return v;
+  };
+  return z.preprocess(map, z.enum(values));
+}
+
+/** The words a model uses for a character's sex and a voice's pitch and pace (MODEL-EVAL-2026-10 §3: "male", "Male",
+ *  "mid-high", "Medium-low", "low and gravelly", "rhythmic with theatrical pauses", "Slow and rhythmic", "measured,
+ *  with pauses for effect" — every local design cost a repair round on these before). */
+export const SEX_WORDS = { FEMALE: ['F', 'WOMAN', 'WOMEN', 'GIRL', 'LADY', 'SHE', 'HER', 'FEMININE'], MALE: ['M', 'MAN', 'MEN', 'BOY', 'GENTLEMAN', 'HE', 'HIM', 'MASCULINE'] } as const;
+export const PITCH_WORDS = { LOW: ['LOWER', 'LOWISH', 'DEEP', 'DEEPER', 'BASS', 'BARITONE'], MID: ['MEDIUM', 'MIDDLE', 'MIDRANGE', 'MODERATE', 'AVERAGE', 'NORMAL', 'NEUTRAL'], HIGH: ['HIGHER', 'HIGHISH', 'SHRILL', 'SQUEAKY', 'PIPING', 'SOPRANO', 'FALSETTO'] } as const;
+export const PACE_WORDS = { SLOW: ['SLOWLY', 'SLOWER', 'UNHURRIED', 'LEISURELY', 'DRAWLING', 'LANGUID', 'PLODDING'], MEASURED: ['MODERATE', 'STEADY', 'EVEN', 'NORMAL', 'MEDIUM', 'DELIBERATE', 'RHYTHMIC', 'AVERAGE', 'CALM'], QUICK: ['FAST', 'FASTER', 'QUICKLY', 'RAPID', 'RAPIDLY', 'BRISK', 'BRISKLY', 'HURRIED', 'RUSHED', 'SNAPPY'] } as const;
+
 /** Rename near-miss keys on an object (first alias that exists wins; an existing canonical key is kept). */
 export const aliases = (table: Record<string, string[]>) => (v: unknown): unknown => {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return v;

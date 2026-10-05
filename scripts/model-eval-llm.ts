@@ -4,6 +4,9 @@
  * own request settings (num_ctx = OLLAMA_CONTEXT_LENGTH, keep_alive, think: false), once per candidate model.
  *
  *   pnpm exec tsx --env-file=../../.env --env-file=../../.env.local scripts/model-eval-llm.ts --model qwen3:14b [--runs 2] [--tasks develop,script,plan,ar-script,ar-plan,design]
+ *     [--out <subfolder>]  write the evidence under llm/<model>/<subfolder>/ (a re-run never overwrites the first run)
+ *     [--ar-scene-from <ar-script-runN.json>]  the Arabic scene for ar-plan from a recorded ar-script answer (re-runs the
+ *       same input as the original evaluation) instead of writing it again
  *
  * The engine's local path runs under the shared GPU lease, which WRITES resource_leases: this script therefore points
  * DATABASE_URL at the copy `vewbox_modeleval` (a dump of the live studio), never the live database, and reads the
@@ -32,7 +35,8 @@ process.env.OPENAI_COMPATIBLE_MODEL = MODEL;
 process.env.MINIMAX_API_KEY = ''; process.env.ANTHROPIC_API_KEY = '';
 
 const ROOT = process.cwd();
-const EVID = path.join(ROOT, 'docs/evidence/model-eval-2026-10/llm', MODEL.replace(/[^a-z0-9.-]+/gi, '_'));
+const EVID = path.join(ROOT, 'docs/evidence/model-eval-2026-10/llm', MODEL.replace(/[^a-z0-9.-]+/gi, '_'), opt('out', ''));
+const AR_SCENE_FROM = opt('ar-scene-from', '');
 
 // ------------------------------------------------------------------------------------------ measurement
 class VramMeter {
@@ -42,7 +46,7 @@ class VramMeter {
   now() { return this.samples.length ? this.samples[this.samples.length - 1][1] : NaN; }
   stop() { this.proc?.kill(); }
 }
-interface Attempt { ms: number; status: number; promptTokens?: number; completionTokens?: number; head: string; requestChars: number; numCtx?: number; keepAlive?: unknown; think?: unknown }
+interface Attempt { ms: number; status: number; promptTokens?: number; completionTokens?: number; finishReason?: string; maxTokens?: number; head: string; tail: string; requestChars: number; numCtx?: number; keepAlive?: unknown; think?: unknown }
 let attempts: Attempt[] = [];
 let lastRequest: unknown = null;
 const realFetch = globalThis.fetch;
@@ -52,14 +56,14 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (!/\/chat\/completions$/.test(url)) return realFetch(input, init);
   const t0 = Date.now();
   const body = typeof init?.body === 'string' ? init.body : '';
-  let parsed: { options?: { num_ctx?: number }; keep_alive?: unknown; think?: unknown; messages?: unknown } = {};
+  let parsed: { options?: { num_ctx?: number }; keep_alive?: unknown; think?: unknown; messages?: unknown; max_tokens?: number } = {};
   try { parsed = JSON.parse(body); } catch { /* not json */ }
   lastRequest = parsed.messages;
   const res = await realFetch(input, init);
   const clone = res.clone();
-  let head = ''; let usage: { prompt_tokens?: number; completion_tokens?: number } = {};
-  try { const j = await clone.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: typeof usage }; head = (j.choices?.[0]?.message?.content ?? '').slice(0, 160); usage = j.usage ?? {}; } catch { /* not json */ }
-  attempts.push({ ms: Date.now() - t0, status: res.status, promptTokens: usage.prompt_tokens, completionTokens: usage.completion_tokens, head, requestChars: body.length, numCtx: parsed.options?.num_ctx, keepAlive: parsed.keep_alive, think: parsed.think });
+  let head = ''; let tail = ''; let finishReason: string | undefined; let usage: { prompt_tokens?: number; completion_tokens?: number } = {};
+  try { const j = await clone.json() as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; usage?: typeof usage }; const content = j.choices?.[0]?.message?.content ?? ''; head = content.slice(0, 160); tail = content.slice(-160); finishReason = j.choices?.[0]?.finish_reason; usage = j.usage ?? {}; } catch { /* not json */ }
+  attempts.push({ ms: Date.now() - t0, status: res.status, promptTokens: usage.prompt_tokens, completionTokens: usage.completion_tokens, finishReason, maxTokens: parsed.max_tokens, head, tail, requestChars: body.length, numCtx: parsed.options?.num_ctx, keepAlive: parsed.keep_alive, think: parsed.think });
   return res;
 }) as typeof fetch;
 
@@ -86,6 +90,15 @@ async function main() {
   const pAr = { ...p, id: `${p.id}-ar`, language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const, title: 'السماء الساكنة', titleAr: 'السماء الساكنة' };
   const castAr = cast.map((c) => ({ ...c, language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const }));
   let arScene: typeof p.scenes[number] | undefined;
+  type ScriptAnswer = Awaited<ReturnType<typeof engine.writeScript>>;
+  const arSceneOf = (r: ScriptAnswer) => {
+    const scene0 = { ...p.scenes[0], beats: [] };
+    const sc = r.scenes[0];
+    const byName = (n: string) => castAr.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim())?.id ?? castAr[0].id;
+    return { ...scene0, beats: sc.beats.map((b, i) => ({ id: `beat-${i}`, action: b.action, lines: b.lines.map((l, k) => ({ id: `line-${i}-${k}`, characterId: byName(l.characterName), text: l.text, textAr: l.textAr, delivery: l.delivery })) })) } as typeof p.scenes[number];
+  };
+  // a re-run plans the SAME Arabic scene as the recorded ar-script answer (MODEL-EVAL-2026-10 §3)
+  if (AR_SCENE_FROM) { arScene = arSceneOf((JSON.parse(await fs.readFile(AR_SCENE_FROM, 'utf8')) as { answer: ScriptAnswer }).answer); console.log(`Arabic scene from ${AR_SCENE_FROM}: ${arScene.beats.length} beats, ${arScene.beats.flatMap((b) => b.lines).length} lines`); }
 
   async function measure<T>(task: string, run: number, fn: () => Promise<T>): Promise<T | undefined> {
     attempts = []; lastRequest = null;
@@ -123,13 +136,19 @@ async function main() {
     if (TASKS.includes('ar-script')) {
       const scene0 = { ...p.scenes[0], beats: [] };
       const r = await measure('ar-script', run, () => engine.writeScript(state, { ...pAr, scenes: [scene0] }, [scene0], castAr, world));
-      if (r && run === 1) {
-        const sc = r.scenes[0];
-        const byName = (n: string) => castAr.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim())?.id ?? castAr[0].id;
-        arScene = { ...scene0, beats: sc.beats.map((b, i) => ({ id: `beat-${i}`, action: b.action, lines: b.lines.map((l, k) => ({ id: `line-${i}-${k}`, characterId: byName(l.characterName), text: l.text, textAr: l.textAr, delivery: l.delivery })) })) } as typeof scene0;
+      if (r && run === 1 && !arScene) arScene = arSceneOf(r);
+    }
+    if (TASKS.includes('ar-plan') && arScene) {
+      const draft = await measure('ar-plan', run, () => engine.planShotsDraft(state, { ...pAr, scenes: [arScene!] }, arScene!, castAr, world, {}));
+      if (draft) {
+        const lineIds = arScene.beats.flatMap((b) => b.lines.map((l) => l.id));
+        const assigned = draft.shots.flatMap((s) => s.dialogue.map((d) => d.id));
+        const checks = { shots: draft.shots.length, budget: draft.budget, totalSeconds: draft.shots.reduce((a, s) => a + s.durationSeconds, 0), calls: attempts.length, finishReasons: attempts.map((a) => a.finishReason), maxTokens: attempts.map((a) => a.maxTokens), scriptLines: lineIds.length, everyLineOnce: assigned.length === lineIds.length && lineIds.every((id) => assigned.includes(id)), boundaries: draft.shots.map((s) => s.boundary) };
+        calls[calls.length - 1].checks = checks;
+        await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+        console.log(`  ar-plan checks ${JSON.stringify(checks)}`);
       }
     }
-    if (TASKS.includes('ar-plan') && arScene) await measure('ar-plan', run, () => engine.planShotsDraft(state, { ...pAr, scenes: [arScene!] }, arScene!, castAr, world, {}));
     if (TASKS.includes('design')) await measure('design', run, () => engine.designCharacter(state, { brief: 'A Baghdadi kite-maker of about seventy who sells paper kites on the Tigris corniche and talks to the wind; gentle, stubborn, funny', style: 'CARTOON', language: 'AR', dialect: 'IRAQI_BAGHDADI' }));
   }
   // the model leaves the card (the lease would ask for it on the next family switch; here we are done)

@@ -1,0 +1,1508 @@
+{
+  "at": "2026-10-05T16:16:13.717Z",
+  "engine": "indextts (IndexTTS 2.5)",
+  "reference": "tests/fixtures/speech-en.wav",
+  "takes": [
+    {
+      "word": "Nothing.",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Nothing.",
+      "file": "raw/nothing-alone-s7.wav",
+      "seconds": 1.428,
+      "heard": "Nothing. Thang.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.3,
+          "word": "Nothing."
+        },
+        {
+          "start": 0.68,
+          "end": 1.28,
+          "word": "Thang."
+        }
+      ]
+    },
+    {
+      "word": "Nothing.",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Nothing.",
+      "file": "raw/nothing-prepared-s7.wav",
+      "seconds": 2.345,
+      "heard": "That is all I have to say. Nothing.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": "That"
+        },
+        {
+          "start": 0.1,
+          "end": 0.24,
+          "word": "is"
+        },
+        {
+          "start": 0.24,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.78,
+          "word": "have"
+        },
+        {
+          "start": 0.78,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.22,
+          "word": "say."
+        },
+        {
+          "start": 1.66,
+          "end": 2.02,
+          "word": "Nothing."
+        }
+      ],
+      "cut": {
+        "from": 1.644,
+        "file": "cut/nothing-s7.wav",
+        "seconds": 0.701,
+        "heard": "Nothing.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.48,
+            "word": "Nothing."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Nothing.",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Nothing.",
+      "file": "raw/nothing-alone-s11.wav",
+      "seconds": 1.428,
+      "heard": "Nothing. Thing.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.26,
+          "word": "Nothing."
+        },
+        {
+          "start": 0.66,
+          "end": 1.08,
+          "word": "Thing."
+        }
+      ]
+    },
+    {
+      "word": "Nothing.",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Nothing.",
+      "file": "raw/nothing-prepared-s11.wav",
+      "seconds": 2.554,
+      "heard": "That is all I have to say, nothing.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.48,
+          "word": "all"
+        },
+        {
+          "start": 0.48,
+          "end": 0.68,
+          "word": "I"
+        },
+        {
+          "start": 0.68,
+          "end": 0.84,
+          "word": "have"
+        },
+        {
+          "start": 0.84,
+          "end": 1.06,
+          "word": "to"
+        },
+        {
+          "start": 1.06,
+          "end": 1.32,
+          "word": "say,"
+        },
+        {
+          "start": 1.5,
+          "end": 2.1,
+          "word": "nothing."
+        }
+      ],
+      "cut": {
+        "from": 1.484,
+        "file": "cut/nothing-s11.wav",
+        "seconds": 1.07,
+        "heard": "Nothing.",
+        "words": [
+          {
+            "start": 0.11,
+            "end": 0.73,
+            "word": "Nothing."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Nothing.",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Nothing.",
+      "file": "raw/nothing-alone-s23.wav",
+      "seconds": 1.474,
+      "heard": "Nothing. Sound.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.26,
+          "word": "Nothing."
+        },
+        {
+          "start": 0.68,
+          "end": 1.2,
+          "word": "Sound."
+        }
+      ]
+    },
+    {
+      "word": "Nothing.",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Nothing.",
+      "file": "raw/nothing-prepared-s23.wav",
+      "seconds": 2.473,
+      "heard": "That is all I have to say, nothing.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.46,
+          "word": "all"
+        },
+        {
+          "start": 0.46,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.82,
+          "word": "have"
+        },
+        {
+          "start": 0.82,
+          "end": 1.06,
+          "word": "to"
+        },
+        {
+          "start": 1.06,
+          "end": 1.3,
+          "word": "say,"
+        },
+        {
+          "start": 1.46,
+          "end": 2.06,
+          "word": "nothing."
+        }
+      ],
+      "cut": {
+        "from": 1.444,
+        "file": "cut/nothing-s23.wav",
+        "seconds": 1.028,
+        "heard": "Nothing.",
+        "words": [
+          {
+            "start": 0.11,
+            "end": 0.73,
+            "word": "Nothing."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Now?",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Now?",
+      "file": "raw/now-alone-s7.wav",
+      "seconds": 1.393,
+      "heard": "Now, de-sip.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.3,
+          "word": "Now,"
+        },
+        {
+          "start": 0.34,
+          "end": 0.92,
+          "word": "de"
+        },
+        {
+          "start": 0.92,
+          "end": 1.26,
+          "word": "-sip."
+        }
+      ]
+    },
+    {
+      "word": "Now?",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Now?",
+      "file": "raw/now-prepared-s7.wav",
+      "seconds": 2.345,
+      "heard": "That is all I have to say, now.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 1.04,
+          "word": "to"
+        },
+        {
+          "start": 1.04,
+          "end": 1.26,
+          "word": "say,"
+        },
+        {
+          "start": 1.46,
+          "end": 1.88,
+          "word": "now."
+        }
+      ],
+      "cut": {
+        "from": 1.444,
+        "file": "cut/now-s7.wav",
+        "seconds": 0.901,
+        "heard": "Now",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.54,
+            "word": "Now"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Now?",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Now?",
+      "file": "raw/now-alone-s11.wav",
+      "seconds": 1.753,
+      "heard": "Now, MC.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.26,
+          "word": "Now,"
+        },
+        {
+          "start": 0.39,
+          "end": 1.41,
+          "word": "MC."
+        }
+      ]
+    },
+    {
+      "word": "Now?",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Now?",
+      "file": "raw/now-prepared-s11.wav",
+      "seconds": 2.426,
+      "heard": "That is all I have to say, now.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.48,
+          "word": "all"
+        },
+        {
+          "start": 0.48,
+          "end": 0.68,
+          "word": "I"
+        },
+        {
+          "start": 0.68,
+          "end": 0.84,
+          "word": "have"
+        },
+        {
+          "start": 0.84,
+          "end": 1.04,
+          "word": "to"
+        },
+        {
+          "start": 1.04,
+          "end": 1.32,
+          "word": "say,"
+        },
+        {
+          "start": 1.48,
+          "end": 1.92,
+          "word": "now."
+        }
+      ],
+      "cut": {
+        "from": 1.464,
+        "file": "cut/now-s11.wav",
+        "seconds": 0.962,
+        "heard": "Now.",
+        "words": [
+          {
+            "start": 0.02,
+            "end": 0.5,
+            "word": "Now."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Now?",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Now?",
+      "file": "raw/now-alone-s23.wav",
+      "seconds": 0.789,
+      "heard": "Now.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "Now."
+        }
+      ]
+    },
+    {
+      "word": "Now?",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Now?",
+      "file": "raw/now-prepared-s23.wav",
+      "seconds": 2.392,
+      "heard": "That is all I have to say, now.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.78,
+          "word": "have"
+        },
+        {
+          "start": 0.78,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.22,
+          "word": "say,"
+        },
+        {
+          "start": 1.38,
+          "end": 1.88,
+          "word": "now."
+        }
+      ],
+      "cut": {
+        "from": 1.364,
+        "file": "cut/now-s23.wav",
+        "seconds": 1.027,
+        "heard": "Now.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.54,
+            "word": "Now."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Yes.",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Yes.",
+      "file": "raw/yes-alone-s7.wav",
+      "seconds": 0.871,
+      "heard": "Yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.32,
+          "word": "Yes."
+        }
+      ]
+    },
+    {
+      "word": "Yes.",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Yes.",
+      "file": "raw/yes-prepared-s7.wav",
+      "seconds": 2.473,
+      "heard": "That is all I have to say, yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.48,
+          "word": "all"
+        },
+        {
+          "start": 0.48,
+          "end": 0.68,
+          "word": "I"
+        },
+        {
+          "start": 0.68,
+          "end": 0.84,
+          "word": "have"
+        },
+        {
+          "start": 0.84,
+          "end": 1.04,
+          "word": "to"
+        },
+        {
+          "start": 1.04,
+          "end": 1.3,
+          "word": "say,"
+        },
+        {
+          "start": 1.48,
+          "end": 1.94,
+          "word": "yes."
+        }
+      ],
+      "cut": {
+        "from": 1.464,
+        "file": "cut/yes-s7.wav",
+        "seconds": 1.008,
+        "heard": "Yes.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.48,
+            "word": "Yes."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Yes.",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Yes.",
+      "file": "raw/yes-alone-s11.wav",
+      "seconds": 1.474,
+      "heard": "Yes. Yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.32,
+          "word": "Yes."
+        },
+        {
+          "start": 0.54,
+          "end": 1,
+          "word": "Yes."
+        }
+      ]
+    },
+    {
+      "word": "Yes.",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Yes.",
+      "file": "raw/yes-prepared-s11.wav",
+      "seconds": 2.589,
+      "heard": "That is all I have to say. Yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.48,
+          "word": "all"
+        },
+        {
+          "start": 0.48,
+          "end": 0.68,
+          "word": "I"
+        },
+        {
+          "start": 0.68,
+          "end": 0.84,
+          "word": "have"
+        },
+        {
+          "start": 0.84,
+          "end": 1.02,
+          "word": "to"
+        },
+        {
+          "start": 1.02,
+          "end": 1.28,
+          "word": "say."
+        },
+        {
+          "start": 1.84,
+          "end": 2.22,
+          "word": "Yes."
+        }
+      ],
+      "cut": {
+        "from": 1.824,
+        "file": "cut/yes-s11.wav",
+        "seconds": 0.765,
+        "heard": "Yes",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.52,
+            "word": "Yes"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Yes.",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Yes.",
+      "file": "raw/yes-alone-s23.wav",
+      "seconds": 1.428,
+      "heard": "Yes, yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.34,
+          "word": "Yes,"
+        },
+        {
+          "start": 0.44,
+          "end": 0.98,
+          "word": "yes."
+        }
+      ]
+    },
+    {
+      "word": "Yes.",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Yes.",
+      "file": "raw/yes-prepared-s23.wav",
+      "seconds": 2.752,
+      "heard": "That is all I have to say. Yes.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.46,
+          "word": "all"
+        },
+        {
+          "start": 0.46,
+          "end": 0.66,
+          "word": "I"
+        },
+        {
+          "start": 0.66,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.24,
+          "word": "say."
+        },
+        {
+          "start": 2.01,
+          "end": 2.37,
+          "word": "Yes."
+        }
+      ],
+      "cut": {
+        "from": 1.993,
+        "file": "cut/yes-s23.wav",
+        "seconds": 0.758,
+        "heard": "Yes",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.52,
+            "word": "Yes"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Run!",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Run!",
+      "file": "raw/run-alone-s7.wav",
+      "seconds": 0.836,
+      "heard": "Run.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "Run."
+        }
+      ]
+    },
+    {
+      "word": "Run!",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Run!",
+      "file": "raw/run-prepared-s7.wav",
+      "seconds": 2.194,
+      "heard": "That is all I have to say. Run.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.24,
+          "word": "say."
+        },
+        {
+          "start": 1.5,
+          "end": 1.9,
+          "word": "Run."
+        }
+      ],
+      "cut": {
+        "from": 1.484,
+        "file": "cut/run-s7.wav",
+        "seconds": 0.71,
+        "heard": "Run.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.48,
+            "word": "Run."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Run!",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Run!",
+      "file": "raw/run-alone-s11.wav",
+      "seconds": 0.917,
+      "heard": "Run.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.24,
+          "word": "Run."
+        }
+      ]
+    },
+    {
+      "word": "Run!",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Run!",
+      "file": "raw/run-prepared-s11.wav",
+      "seconds": 2.276,
+      "heard": "That is all I have to say. Run.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": "That"
+        },
+        {
+          "start": 0.1,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.6,
+          "word": "I"
+        },
+        {
+          "start": 0.6,
+          "end": 0.76,
+          "word": "have"
+        },
+        {
+          "start": 0.76,
+          "end": 0.96,
+          "word": "to"
+        },
+        {
+          "start": 0.96,
+          "end": 1.18,
+          "word": "say."
+        },
+        {
+          "start": 1.48,
+          "end": 1.82,
+          "word": "Run."
+        }
+      ],
+      "cut": {
+        "from": 1.464,
+        "file": "cut/run-s11.wav",
+        "seconds": 0.811,
+        "heard": "Run.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.4,
+            "word": "Run."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Run!",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Run!",
+      "file": "raw/run-alone-s23.wav",
+      "seconds": 1.312,
+      "heard": "Run. Sean.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.26,
+          "word": "Run."
+        },
+        {
+          "start": 0.7,
+          "end": 1.02,
+          "word": "Sean."
+        }
+      ]
+    },
+    {
+      "word": "Run!",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Run!",
+      "file": "raw/run-prepared-s23.wav",
+      "seconds": 2.392,
+      "heard": "That is all I have to say. Run.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": "That"
+        },
+        {
+          "start": 0.1,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.26,
+          "word": "say."
+        },
+        {
+          "start": 1.7,
+          "end": 2.08,
+          "word": "Run."
+        }
+      ],
+      "cut": {
+        "from": 1.684,
+        "file": "cut/run-s23.wav",
+        "seconds": 0.708,
+        "heard": "Run",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.44,
+            "word": "Run"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Why?",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Why?",
+      "file": "raw/why-alone-s7.wav",
+      "seconds": 0.871,
+      "heard": "Why?",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.2,
+          "word": "Why?"
+        }
+      ]
+    },
+    {
+      "word": "Why?",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Why?",
+      "file": "raw/why-prepared-s7.wav",
+      "seconds": 2.229,
+      "heard": "That is all I have to say. Why?",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.24,
+          "word": "is"
+        },
+        {
+          "start": 0.24,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.78,
+          "word": "have"
+        },
+        {
+          "start": 0.78,
+          "end": 0.96,
+          "word": "to"
+        },
+        {
+          "start": 0.96,
+          "end": 1.22,
+          "word": "say."
+        },
+        {
+          "start": 1.64,
+          "end": 1.96,
+          "word": "Why?"
+        }
+      ],
+      "cut": {
+        "from": 1.624,
+        "file": "cut/why-s7.wav",
+        "seconds": 0.605,
+        "heard": "Why?",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.38,
+            "word": "Why?"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Why?",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Why?",
+      "file": "raw/why-alone-s11.wav",
+      "seconds": 1.591,
+      "heard": "Y. Singer.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "Y."
+        },
+        {
+          "start": 0.68,
+          "end": 1.14,
+          "word": "Singer."
+        }
+      ]
+    },
+    {
+      "word": "Why?",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Why?",
+      "file": "raw/why-prepared-s11.wav",
+      "seconds": 2.229,
+      "heard": "That is all I have to say. Why?",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.24,
+          "word": "is"
+        },
+        {
+          "start": 0.24,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 0.98,
+          "word": "to"
+        },
+        {
+          "start": 0.98,
+          "end": 1.22,
+          "word": "say."
+        },
+        {
+          "start": 1.56,
+          "end": 1.92,
+          "word": "Why?"
+        }
+      ],
+      "cut": {
+        "from": 1.544,
+        "file": "cut/why-s11.wav",
+        "seconds": 0.685,
+        "heard": "Why?",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.42,
+            "word": "Why?"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Why?",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Why?",
+      "file": "raw/why-alone-s23.wav",
+      "seconds": 1.509,
+      "heard": "Why? Jerk.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.14,
+          "word": "Why?"
+        },
+        {
+          "start": 1.1,
+          "end": 1.42,
+          "word": "Jerk."
+        }
+      ]
+    },
+    {
+      "word": "Why?",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Why?",
+      "file": "raw/why-prepared-s23.wav",
+      "seconds": 2.392,
+      "heard": "That is all I have to say. Why?",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.8,
+          "word": "have"
+        },
+        {
+          "start": 0.8,
+          "end": 1.02,
+          "word": "to"
+        },
+        {
+          "start": 1.02,
+          "end": 1.26,
+          "word": "say."
+        },
+        {
+          "start": 1.62,
+          "end": 1.96,
+          "word": "Why?"
+        }
+      ],
+      "cut": {
+        "from": 1.604,
+        "file": "cut/why-s23.wav",
+        "seconds": 0.788,
+        "heard": "Why?",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.42,
+            "word": "Why?"
+          }
+        ]
+      }
+    },
+    {
+      "word": "Okay.",
+      "seed": 7,
+      "variant": "alone",
+      "spoken": "Okay.",
+      "file": "raw/okay-alone-s7.wav",
+      "seconds": 0.917,
+      "heard": "Okay.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "Okay."
+        }
+      ]
+    },
+    {
+      "word": "Okay.",
+      "seed": 7,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Okay.",
+      "file": "raw/okay-prepared-s7.wav",
+      "seconds": 2.31,
+      "heard": "That is all I have to say. Okay.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": "That"
+        },
+        {
+          "start": 0.1,
+          "end": 0.24,
+          "word": "is"
+        },
+        {
+          "start": 0.24,
+          "end": 0.42,
+          "word": "all"
+        },
+        {
+          "start": 0.42,
+          "end": 0.6,
+          "word": "I"
+        },
+        {
+          "start": 0.6,
+          "end": 0.76,
+          "word": "have"
+        },
+        {
+          "start": 0.76,
+          "end": 1,
+          "word": "to"
+        },
+        {
+          "start": 1,
+          "end": 1.2,
+          "word": "say."
+        },
+        {
+          "start": 1.56,
+          "end": 1.92,
+          "word": "Okay."
+        }
+      ],
+      "cut": {
+        "from": 1.544,
+        "file": "cut/okay-s7.wav",
+        "seconds": 0.766,
+        "heard": "Okay.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.46,
+            "word": "Okay."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Okay.",
+      "seed": 11,
+      "variant": "alone",
+      "spoken": "Okay.",
+      "file": "raw/okay-alone-s11.wav",
+      "seconds": 0.952,
+      "heard": "Okay.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "Okay."
+        }
+      ]
+    },
+    {
+      "word": "Okay.",
+      "seed": 11,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Okay.",
+      "file": "raw/okay-prepared-s11.wav",
+      "seconds": 2.473,
+      "heard": "That is all I have to say, okay?",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.12,
+          "word": "That"
+        },
+        {
+          "start": 0.12,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.46,
+          "word": "all"
+        },
+        {
+          "start": 0.46,
+          "end": 0.68,
+          "word": "I"
+        },
+        {
+          "start": 0.68,
+          "end": 0.84,
+          "word": "have"
+        },
+        {
+          "start": 0.84,
+          "end": 1.04,
+          "word": "to"
+        },
+        {
+          "start": 1.04,
+          "end": 1.3,
+          "word": "say,"
+        },
+        {
+          "start": 1.46,
+          "end": 1.94,
+          "word": "okay?"
+        }
+      ],
+      "cut": {
+        "from": 1.444,
+        "file": "cut/okay-s11.wav",
+        "seconds": 1.028,
+        "heard": "Okay.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.52,
+            "word": "Okay."
+          }
+        ]
+      }
+    },
+    {
+      "word": "Okay.",
+      "seed": 23,
+      "variant": "alone",
+      "spoken": "Okay.",
+      "file": "raw/okay-alone-s23.wav",
+      "seconds": 0.917,
+      "heard": "Okay.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.28,
+          "word": "Okay."
+        }
+      ]
+    },
+    {
+      "word": "Okay.",
+      "seed": 23,
+      "variant": "prepared",
+      "spoken": "That is all I have to say. Okay.",
+      "file": "raw/okay-prepared-s23.wav",
+      "seconds": 2.345,
+      "heard": "That is all I have to say. Okay.",
+      "words": [
+        {
+          "start": 0,
+          "end": 0.1,
+          "word": "That"
+        },
+        {
+          "start": 0.1,
+          "end": 0.26,
+          "word": "is"
+        },
+        {
+          "start": 0.26,
+          "end": 0.44,
+          "word": "all"
+        },
+        {
+          "start": 0.44,
+          "end": 0.64,
+          "word": "I"
+        },
+        {
+          "start": 0.64,
+          "end": 0.78,
+          "word": "have"
+        },
+        {
+          "start": 0.78,
+          "end": 0.98,
+          "word": "to"
+        },
+        {
+          "start": 0.98,
+          "end": 1.22,
+          "word": "say."
+        },
+        {
+          "start": 1.68,
+          "end": 2.04,
+          "word": "Okay."
+        }
+      ],
+      "cut": {
+        "from": 1.664,
+        "file": "cut/okay-s23.wav",
+        "seconds": 0.681,
+        "heard": "Okay.",
+        "words": [
+          {
+            "start": 0,
+            "end": 0.42,
+            "word": "Okay."
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "before_aloneClean": "8/18",
+    "after_located": "18/18",
+    "after_cutClean": "18/18",
+    "rule": "clean = the transcript, folded (case, punctuation), is exactly the word"
+  }
+}

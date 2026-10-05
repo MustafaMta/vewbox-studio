@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CAMERA_MOVES, FRAMINGS, TIMES_OF_DAY, TRANSITIONS } from '@/domain/vocabulary';
-import { DIRECTION_SYNONYMS, FRAMING_SYNONYMS, KIND_SYNONYMS, MODE_SYNONYMS, MOVE_SYNONYMS, RELATION_SYNONYMS, SEX_SYNONYMS, TIME_SYNONYMS, TRANSITION_SYNONYMS, aliases, looseArray, looseEnum, looseNumber, looseString } from './lenient';
+import { DIRECTION_SYNONYMS, FRAMING_SYNONYMS, KIND_SYNONYMS, MODE_SYNONYMS, MOVE_SYNONYMS, PACE_WORDS, PITCH_WORDS, RELATION_SYNONYMS, SEX_SYNONYMS, SEX_WORDS, TIME_SYNONYMS, TRANSITION_SYNONYMS, aliases, looseArray, looseEnum, looseNumber, looseString, wordEnum } from './lenient';
 
 /** WHAT THE STORY ENGINE MUST RETURN — strict shapes the language model fills in. The shapes are strict about meaning
  *  and tolerant about spelling (see lenient.ts): nulls, case, synonyms and near-miss keys are normalised before
@@ -22,6 +22,11 @@ const boundary = looseEnum(['CONTINUOUS', 'CUT', 'TRANSITION'], BOUNDARY_SYNONYM
 const screenDirection = looseEnum(['LEFT', 'RIGHT', 'TOWARD', 'AWAY', 'NEUTRAL'], DIRECTION_SYNONYMS);
 const placeKind = looseEnum(['INTERIOR', 'EXTERIOR'], KIND_SYNONYMS);
 const sex = looseEnum(['FEMALE', 'MALE'], SEX_SYNONYMS);
+/** A designed character's sex and voice, read from the model's words (lenient.ts wordEnum): the case and the synonyms
+ *  every local model writes are mapped, a value naming no category or two contradicting ones still fails. */
+export const designSex = wordEnum(['FEMALE', 'MALE'], SEX_WORDS);
+export const voicePitch = wordEnum(['LOW', 'MID', 'HIGH'], PITCH_WORDS, { middle: 'MID' });
+export const voicePace = wordEnum(['SLOW', 'MEASURED', 'QUICK'], PACE_WORDS, { middle: 'MEASURED' });
 
 const lineAliases = aliases({ characterName: ['name', 'character', 'characterId', 'speaker', 'who', 'id'], text: ['line', 'dialogue', 'textEn', 'english'], textAr: ['arabic', 'ar', 'lineAr', 'dialogueAr'] });
 const lines = looseArray(z.preprocess(lineAliases, z.object({ characterName: str(80), text: str(600), textAr: str(600).optional(), delivery: str(120).optional() })), { max: 16 });
@@ -133,7 +138,7 @@ export const isReferenceLookBrief = (brief: string | undefined): boolean => Bool
  *  personality and the voice description — no look field and no visible mark. */
 export const CharacterDesignFromReferenceSchema = z.object({
   name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(120),
-  sex: z.enum(['FEMALE', 'MALE']), ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
+  sex: designSex, ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
   personality: z.string().min(2).max(400),
-  voice: z.object({ pitch: z.enum(['LOW', 'MID', 'HIGH']), pace: z.enum(['SLOW', 'MEASURED', 'QUICK']), timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
+  voice: z.object({ pitch: voicePitch, pace: voicePace, timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
 });
