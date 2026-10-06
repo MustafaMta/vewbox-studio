@@ -12,11 +12,17 @@
  *        (--fix --web: restarted only when /api/health does not answer and nothing listens on the port)
  *    pnpm exec tsx scripts/docker-watchdog.ts --start-docker   start Docker Desktop outside the job (only if not running)
  *
- *  It never kills Docker Desktop, never restarts a container, never resets anything. Exit code 0 = healthy, 1 = a
- *  warning was reported. Run the watcher itself outside the app's job too (e.g. `--start-self`), or it dies with the
+ *  The model store (D:\models\vewbox-models.vhdx, docs/MODELS-STORAGE.md) comes first: with --fix it is attached
+ *  (`wsl --mount --vhd … --name models`, idempotent, no admin) before Docker is started, and studio containers that
+ *  could not start because it was missing are started once its marker is visible (--no-models-store: not watched).
+ *
+ *  It never kills Docker Desktop, never restarts a running container, never resets anything. Exit code 0 = healthy,
+ *  1 = a warning was reported. Run the watcher itself outside the app's job too (e.g. `--start-self`), or it dies with the
  *  app like everything else. */
 import path from 'node:path';
-import { dockerDesktopExe, planWatchdog, probeDb, probeEngine, probePortListening, probeProcesses, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { attachModelStore, dockerDesktopExe, modelStoreConfig, planWatchdog, probeDb, probeEngine, probeModelStore, probePortListening, probeProcesses, probeStranded, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
 
 const argv = process.argv.slice(2);
 const has = (f: string) => argv.includes(f);
@@ -28,6 +34,9 @@ const webWanted = has('--web');
 const webPort = Number(val('--web-port') ?? 4200);
 const watchS = Number(val('--watch') ?? 0);
 const say = (m: string) => console.log(`[watchdog ${new Date().toISOString()}] ${m}`);
+// the model store (docs/MODELS-STORAGE.md): attached first, before Docker; --no-models-store leaves it unwatched
+const store = has('--no-models-store') ? undefined : modelStoreConfig(repo);
+if (store?.problems.length) say(`WARN model store settings: ${store.problems.join('; ')}`);
 
 let downSince: number | undefined;
 const starts: number[] = [];
@@ -45,13 +54,25 @@ async function pass(): Promise<boolean> {
     secretsSocketExists: secretsSocketExists(), dbHealthy: engineOk ? await probeDb() : false,
     workerRunning: procs.worker > 0, workerAliveAgeMs: workerAliveAgeMs(), workerWanted,
     containment: procs.containment, web: { port: webPort, healthy: await probeWebHealth(webPort), listening: await probePortListening(webPort), wanted: webWanted }, recentDockerStarts: starts.filter((t) => Date.now() - t < 3600_000).length,
+    modelStore: store ? { attached: await probeModelStore(store, engineOk), stranded: engineOk ? await probeStranded(store) : [] } : undefined,
   };
   const actions = planWatchdog(state, { fix });
   let healthy = true;
   for (const a of actions as WatchdogAction[]) {
     if (a.kind === 'ok') say(a.detail);
     else if (a.kind === 'warn') { healthy = false; say(`WARN ${a.code}: ${a.detail}`); }
-    else if (a.kind === 'rename-stale-socket') { const to = await renameStaleSocketFolder(); say(to ? `stale secrets-engine socket folder moved aside: ${to}` : 'no stale socket folder to move'); }
+    else if (a.kind === 'attach-models' && store) {
+      const r = await attachModelStore(store);
+      if (r.state === 'attached') say(`model store attached: ${store.vhdx} → ${store.root}`);
+      else if (!r.ok) { healthy = false; say(`WARN MODELS_DETACHED: could not attach ${store.vhdx}: ${r.detail}`); }
+    } else if (a.kind === 'start-stranded' && store) {
+      // only once the engine sees the marker: starting them on a missing store would fail again
+      if (await probeModelStore(store, true)) {
+        for (const c of a.containers) {
+          try { await promisify(execFile)('docker', ['start', c], { timeout: 120_000, windowsHide: true }); say(`started ${c} (it could not start while the model store was detached)`); } catch (e) { healthy = false; say(`WARN could not start ${c}: ${(e as Error).message.split('\n')[0]}`); }
+        }
+      } else { healthy = false; say(`WARN MODELS_STRANDED: ${a.containers.join(', ')} wait for the model store (its marker is not visible to the engine)`); }
+    } else if (a.kind === 'rename-stale-socket') { const to = await renameStaleSocketFolder(); say(to ? `stale secrets-engine socket folder moved aside: ${to}` : 'no stale socket folder to move'); }
     else if (a.kind === 'start-docker') await startDocker();
     else if (a.kind === 'wait-engine') {
       const t0 = Date.now();
@@ -71,6 +92,8 @@ if (has('--start-web')) {
 if (has('--start-docker')) {
   if ((await probeProcesses()).docker > 0) { say('Docker Desktop is already running: not started (quit it gracefully first to relaunch it outside the job)'); process.exit(1); }
   if (secretsSocketExists()) say(`stale socket folder moved aside: ${await renameStaleSocketFolder()}`);
+  // the model store before Docker: its containers mount it as they start
+  if (store) { const r = await attachModelStore(store); say(r.ok ? `model store: ${r.detail}` : `WARN model store not attached: ${r.detail}`); }
   await startDocker(); process.exit(0);
 }
 if (has('--start-self')) {

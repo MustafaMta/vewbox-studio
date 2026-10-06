@@ -10,7 +10,8 @@
     2. stop the host worker and the :4200 web server (no job is running, so nothing is lost)
     3. quit Docker Desktop GRACEFULLY (`docker desktop stop`) and wait until its processes are gone - never killed;
        if it does not quit within 3 min the script stops and asks for Quit from the tray
-    4. docker-watchdog --start-docker (moves a stale secrets-engine socket folder aside, starts Docker via WMI)
+    4. docker-watchdog --start-docker (moves a stale secrets-engine socket folder aside, attaches the model store
+       D:\models\vewbox-models.vhdx - docs/MODELS-STORAGE.md - then starts Docker via WMI)
     5. wait for the engine and vewbox-db-1 healthy
     6. --start-worker, --start-web, wait for http://127.0.0.1:4200/api/health
     7. --start-self --fix --worker --web --watch 60 (the watchdog itself, outside the job)

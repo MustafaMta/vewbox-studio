@@ -1,8 +1,11 @@
 # Models
 
 Every model the studio uses, where it runs, why it was chosen, and what it costs on the RTX 5090 (32 GB). Weights are
-pinned by repository, file name and SHA-256 in `docker/models/manifest.json` and fetched into the `models` volume by
-the `models` service; the voice services fetch their own weights on first boot into the same volume.
+pinned by repository, file name and SHA-256 in `docker/models/manifest.json` and fetched into the model store by
+the `models` service; the voice services fetch their own weights on first boot into the same store. **Where the weights
+live:** one ext4 VHDX on D: (`D:\models\vewbox-models.vhdx`, mounted in every container at `/models`), described in
+[MODELS-STORAGE.md](MODELS-STORAGE.md). Paths below are logical (`diffusion_models/…`, as the manifest names them);
+inside the store ComfyUI's typed folders sit under `comfyui/` and the caches under `cache/` (`docker/models/layout.json`).
 
 **Video is MiniMax only.** The only video generator in this system is MiniMax H3, either the hosted API or the open
 weights running in ComfyUI. No LTX, Wan, Hunyuan, CogVideo, Mochi, Kling or Seedance model, weight or workflow exists
@@ -77,7 +80,7 @@ then listed the MediaPipe file and `/object_info/LoadMediaPipeFaceLandmarker` of
 
 Fetched on 2026-10-03 for an identity-similarity check across views; with one canonical image there is nothing to
 compare, so they are **not used**, no Node dependency (onnxruntime-node) was added, and their manifest group was
-removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /models/identity` if the space is needed.
+removed. (The YuNet and SFace files are used again since 2026-10-05: see below. Do not delete the folder.)
 
 | File (volume path) | Bytes | sha256 | Licence |
 |---|---|---|---|
@@ -86,8 +89,8 @@ removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /mo
 | `identity/dinov2-small/model.onnx` (Xenova/dinov2-small) | 88 459 888 | `83141175ec78b4ff9a2bb58a4c7c264ba0054d1c2e122e5a8114b79a8d4179ea` | Apache-2.0 |
 | `identity/ccip/model_feat.onnx`, `model_metrics.onnx`, `metrics.json` (deepghs/ccip_onnx, caformer-24-randaug-pruned) | 150 248 245 + 1 649 + 147 | `4ea118d1…ac5f`, `7e4646fd…25c1`, `b5535577…52d4` | **OpenRAIL** — use restrictions travel with the model (no unlawful, discriminatory, defamatory or privacy-violating use, among others); any future use must pass them on |
 | `loras/Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors` (lightx2v, rev `d74eba14`) | 849 608 296 | `a9e81a58a78f260f67b337a6f615e8fa4cd3bc79847c77b7d61a581b789b1ba8` | Apache-2.0 (a "balanced" mode for the old sheet; unused) |
-| `diffusion_models/flux-2-klein-base-4b.safetensors` (Comfy-Org/flux2-klein-4B) | 7 751 105 712 | `9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92` | Apache-2.0 (klein Base, evaluated and not chosen: 20× slower, worse likeness; out of the manifest since the klein group became `images-flux2-klein`; `rm /models/diffusion_models/flux-2-klein-base-4b.safetensors` frees 7.75 GB) |
-| `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
+| `diffusion_models/flux-2-klein-base-4b.safetensors` (Comfy-Org/flux2-klein-4B) | 7 751 105 712 | `9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92` | Apache-2.0 (klein Base, evaluated and not chosen: 20× slower, worse likeness; out of the manifest since the klein group became `images-flux2-klein`; `rm /models/comfyui/diffusion_models/flux-2-klein-base-4b.safetensors` in the store frees 7.75 GB) |
+| `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/comfyui/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
 
 Since 2026-10-05 the YuNet and SFace files above are used again, by the face-identity QA of the `asr` service
 (manifest group `qa-identity`, same folder and sha256; see "Alignment and picture QA" below). Do not delete them.
@@ -107,14 +110,12 @@ Since 2026-10-05 the YuNet and SFace files above are used again, by the face-ide
 #### Fetching the voice-design weights (group `voice-design`)
 
 The group is in the compose `MODEL_GROUPS` default, so a fresh `docker compose --profile models run --rm models` fetches
-it. On a machine whose fetcher image predates the group, run the fetcher image with the repository's manifest mounted
-(no rebuild; resumable; every file is sha256-verified and recorded in `/models/.manifest-state.json`):
+it. The `models` service mounts the repository's fetch.py, manifest.json and layout.json, so no image rebuild is needed
+after a manifest change (resumable; every file is sha256-verified and recorded in `/models/.manifest-state.json`; the
+fetcher refuses a root without the store's `.vewbox-models` marker):
 
 ```powershell
-docker run -d --name vewbox-models-fetch-voice --dns 1.1.1.1 -e HF_HUB_DISABLE_XET=1 -v vewbox_models:/models `
-  --mount "type=bind,source=$PWD\docker\models\manifest.json,target=/app/manifest.json,readonly" `
-  --mount "type=bind,source=$PWD\docker\models\fetch.py,target=/app/fetch.py,readonly" `
-  vewbox/models:dev --manifest manifest.json --root /models --groups voice-design
+docker compose -p vewbox --profile models run -d --name vewbox-models-fetch-voice models --manifest manifest.json --root /models --groups voice-design
 docker logs -f vewbox-models-fetch-voice
 ```
 

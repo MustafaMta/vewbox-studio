@@ -4,6 +4,9 @@ Each manifest entry names a Hugging Face repo, a file inside it, the folder it b
 its expected size and sha256 (when published), and a priority group. Files are downloaded with huggingface_hub (xet
 chunks resume on their own), then hashed and compared; a mismatch is deleted and retried. A `.manifest-state.json`
 beside the root records what is verified, so the application can tell which capabilities are ready.
+
+The root is the model store (VEWBOX_MODELS_ROOT, docs/MODELS-STORAGE.md). layout.json places a logical folder in it:
+ComfyUI's typed folders under comfyui/, the caches under cache/; state keys stay `<logical folder>/<name>`.
 """
 from __future__ import annotations
 
@@ -61,8 +64,33 @@ def free_bytes(path: Path) -> int:
     return shutil.disk_usage(path).free
 
 
+def load_layout(path: Path) -> dict:
+    """layout.json beside this script (docs/MODELS-STORAGE.md); none = the flat layout (folder = path)."""
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return {}
+
+
+LAYOUT = load_layout(Path(__file__).with_name("layout.json"))
+
+
+def physical(folder: str, layout: dict | None = None) -> str:
+    """The folder's place inside the store: ComfyUI's typed folders under comfyui/, the renamed caches, the rest as is.
+    The manifest and the state file keep the logical folder."""
+    layout = LAYOUT if layout is None else layout
+    top, _, rest = folder.partition("/")
+    comfy = layout.get("comfyui") or {}
+    if top in comfy.get("folders", []):
+        return f"{comfy.get('dir', 'comfyui')}/{folder}"
+    renamed = (layout.get("renamed") or {}).get(top)
+    if renamed:
+        return f"{renamed}/{rest}" if rest else renamed
+    return folder
+
+
 def fetch(entry: dict, root: Path, state: dict, api: HfApi, token: str | None) -> bool:
-    dest_dir = root / entry["folder"]
+    dest_dir = root / physical(entry["folder"])
     dest_dir.mkdir(parents=True, exist_ok=True)
     name = entry.get("as") or Path(entry["file"]).name
     dest = dest_dir / name
@@ -131,6 +159,11 @@ def main() -> int:
     ap.add_argument("--list", action="store_true")
     args = ap.parse_args()
     root = Path(args.root)
+    # the model store carries a marker (docs/MODELS-STORAGE.md): without it the root is not the store (a detached VHDX,
+    # a wrong path) and nothing is written there
+    if os.environ.get("MODELS_REQUIRE_MARKER") == "1" and not (root / ".vewbox-models").exists():
+        log("not the model store: no .vewbox-models marker; attach it first (wsl --mount --vhd <VEWBOX_MODELS_VHDX> --name models)", root=str(root))
+        return 2
     root.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(Path(args.manifest).read_text())
     groups = [g for g in args.groups.split(",") if g] or [g["name"] for g in manifest["groups"]]
@@ -146,7 +179,7 @@ def main() -> int:
         for entry in g["files"]:
             total += int(entry.get("bytes", 0) or 0)
             if args.list:
-                log("file", folder=entry["folder"], file=entry["file"], bytes=entry.get("bytes"), license=entry.get("license"))
+                log("file", folder=entry["folder"], path=physical(entry["folder"]), file=entry["file"], bytes=entry.get("bytes"), license=entry.get("license"))
                 continue
             if not fetch(entry, root, state, api, token):
                 ok_all = False
