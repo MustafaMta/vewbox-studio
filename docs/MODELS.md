@@ -11,6 +11,16 @@ inside the store ComfyUI's typed folders sit under `comfyui/` and the caches und
 weights running in ComfyUI. No LTX, Wan, Hunyuan, CogVideo, Mochi, Kling or Seedance model, weight or workflow exists
 in the tree or the manifest; adding one is out of policy.
 
+**Model-size and promotion policy (producer, 2026-10-06).** General-purpose production models (planning, story,
+screenplay, agents, World Bible and continuity reasoning, multimodal reasoning, image generation/editing) target the
+27B–30B class; no 122B-class models. 7–14B general models stay development, preview or emergency fallbacks only.
+Specialists (ASR, alignment, lip-sync, face detection/embeddings, VAEs, audio encoders, upscalers, QA models) are exempt:
+the strongest proven one regardless of size. Licences: commercial-safe only ([LICENSES.md](LICENSES.md) §0). Promotion:
+candidate → controlled benchmark → real UI test → compare → promote; keep the working model until the replacement is
+proven, and remove an obsolete model only after that. The promotion record is
+[research/MODEL-EVAL-2026-10.md](research/MODEL-EVAL-2026-10.md); the frozen stack is
+[directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md](directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md).
+
 ## Video
 
 | Engine | Where | Model / files | Licence | Notes |
@@ -261,7 +271,7 @@ and SFace), `out/v1/<take>.mp4|.json|<take>/` (corrected takes, reports, frame s
 |---|---|---|
 | MiniMax (Anthropic-compatible endpoint) | `MiniMax-M3` | `LLM_PROVIDER=minimax` or `auto` with a MiniMax key |
 | Anthropic | `claude-sonnet-5-5` | `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` |
-| OpenAI-compatible (bundled `llm` service, `ollama/ollama:0.35.1`) | **`gemma4:31b-it-qat`** on the 5090 (default since 2026-10-05: Iraqi dialogue and staged shot plans clearly better than qwen3:14b in the controlled test, docs/research/MODEL-EVAL-2026-10.md §3); `qwen3:14b` kept selectable (`OPENAI_COMPATIBLE_MODEL=qwen3:14b`: 2.5–3× faster, half the card, MSA-leaning Arabic) | `auto` with no hosted key; works offline. Flash attention, q8_0 KV cache, `OLLAMA_CONTEXT_LENGTH=16384` (docs/research/MODEL-STACK-2026-10.md §7.1) |
+| OpenAI-compatible (bundled `llm` service, `ollama/ollama:0.35.1`) | **`qwen3.6:27b-q8_0`** on the 5090 (Qwen3.6-27B dense Q8_0, Apache-2.0; the production planner since 2026-10-06, docs/research/MODEL-EVAL-2026-10.md §9; ≈ 31.5 GB of the card at 16K context; the next phase moves the planner to Qwen3.8-27B-FP8 on vLLM). `gemma4:31b-it-qat` is the emergency fallback (default 2026-10-05 → 10-06, MODEL-EVAL §3); `qwen3:14b` kept selectable (`OPENAI_COMPATIBLE_MODEL=qwen3:14b`: 2.5–3× faster, half the card, MSA-leaning Arabic) | `auto` with no hosted key; works offline. Flash attention, q8_0 KV cache, `OLLAMA_CONTEXT_LENGTH=16384` (docs/research/MODEL-STACK-2026-10.md §7.1) |
 
 All three return JSON validated against strict schemas with tolerant parsing (`src/server/story/lenient.ts`) and a
 repair round; Arabic productions are written in dialect (Iraqi Baghdadi by default) with an English gloss.

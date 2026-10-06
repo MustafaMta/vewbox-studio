@@ -5,6 +5,15 @@ data in `src/domain/licences.ts` (Settings › Licences and terms, the film cred
 `src/domain/terms.ts` (page `/terms`). Where a licence text was not read directly by this checkout's authors the row says
 so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*, the image engineer's findings).
 
+## 0. Policy: commercial-safe models only (producer, 2026-10-06)
+
+Vewbox must be usable commercially. Non-commercial weights (FLUX.2 [dev], FLUX.2 klein 9B under the FLUX
+Non-Commercial licence, the Fish Audio research licence, CC-BY-NC, InsightFace packs, …) never enter the runtime, the
+production configuration or a required workflow. A non-commercial model may be recorded as a research reference, or
+compared in a clearly labelled evaluation, but is never promoted. For every candidate verify the exact model/version,
+parameter count, licence and commercial-use terms before it is evaluated through the UI. If a commercial BFL licence is
+bought later, FLUX is re-evaluated separately without redesigning the image pipeline.
+
 ## 1. Engines and their licences
 
 | Engine | Used for | Licence | Status | What it asks of the studio | Passes restrictions to users |

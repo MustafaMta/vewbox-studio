@@ -16,11 +16,17 @@ web (Next.js 16 server) ──────────────── Postgre
    • snapshot + change feed (LISTEN/NOTIFY)    usage records, continuity         • ComfyUI (images, local MiniMax H3, music)
    • library on a volume, ffprobe on upload    versions, metrics, proposals      • voice + transcription services · ffmpeg
                                                                                  • GPU lease: one model family at a time
-local GPU services (RTX 5090, Docker, NVIDIA runtime)          hosted (MiniMax, when MINIMAX_API_KEY is set)
-   comfyui  : Qwen-Image / Qwen-Image-Edit, MiniMax H3 (open weights), ACE-Step, MiniMax Music 3
-   tts      : IndexTTS 2.5          tts-habibi : Habibi-TTS IRQ         asr : faster-whisper large-v3
-   llm      : Ollama (qwen3:14b) as the OpenAI-compatible story engine when no hosted key exists
+local GPU services (RTX 5090, Docker, NVIDIA runtime; weights in the D:\models store)
+   comfyui  : Qwen-Image-2512 / Qwen-Image-Edit-2511, MiniMax H3 (open weights), ACE-Step 1.5, MiniMax Music 3
+   tts-moss : MOSS-TTS v1.5 (English)    tts : IndexTTS 2.5    tts-habibi : Habibi-TTS IRQ    tts-design : VoxCPM2
+   asr      : faster-whisper large-v3 + wav2vec2 CTC alignment      lipsync : LatentSync 1.6 (opt-in, profile)
+   sfx-moss : MOSS-SoundEffect (profile)
+   llm      : Ollama (qwen3.6:27b-q8_0) as the OpenAI-compatible story engine
 ```
+
+The frozen production stack (2026-10-06) and what comes next are in
+[directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md](directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md); every model,
+file, licence and VRAM figure is in [MODELS.md](MODELS.md).
 
 ## The one rule of state
 
@@ -61,8 +67,10 @@ stored on the job as soon as MiniMax returns it, so a restart resumes polling in
 shown only when the engine reports real progress.
 
 Lanes: HOSTED (MiniMax, several at once), LLM (a few), CPU (ffmpeg), GPU (one at a time). The GPU lease
-(`src/worker/gpu.ts`) keeps one model family resident on the 32 GB card and asks the other services to unload before a
-switch; waits and holds are recorded as metrics.
+(`src/worker/gpu.ts`, `src/server/gpu/*`) keeps one model family resident on the 32 GB card and asks the other services
+to unload before a switch; waits and holds are recorded as metrics. GPU work outside the worker takes the same lease
+through `scripts/gpu-hold.ts`; `scripts/docker-watchdog.ts` keeps the model store and Docker up (docs/OPERATIONS.md,
+docs/MODELS-STORAGE.md).
 
 ## Video: MiniMax, two ways
 
@@ -70,7 +78,8 @@ switch; waits and holds are recorded as metrics.
 first/last frame or up to nine reference images and three reference audio clips, native stereo audio with dialogue in
 Arabic and English) and the open-weights MiniMax H3 running in ComfyUI on the local GPU (same prompt grammar,
 first/last frame or references, native audio). `VIDEO_BACKEND=auto` picks the API when a key exists. There is no third
-model and no fallback to another family.
+model and no fallback to another family. Production uses the local open weights only (frozen stack, 2026-10-06); the
+hosted path stays in the code behind `MINIMAX_API_KEY`.
 
 Take pipeline (`src/worker/handlers/take.ts`): gather references (opening frame drawn by Qwen-Image-Edit from the
 location plate and the character sheets; or portraits and plate as subject references; the character's chosen voice
@@ -83,17 +92,20 @@ shot is pre-selected.
 ## Story
 
 `src/server/story/engine.ts` turns briefs into productions through one LLM interface with three providers (MiniMax
-M3, Anthropic, any OpenAI-compatible server) and strict JSON schemas with repair. Three production directions
+M3, Anthropic, any OpenAI-compatible server) and strict JSON schemas with repair. The production planner is the local
+Qwen3.6-27B (Ollama, Q8_0); the next phase moves it to Qwen3.8-27B-FP8 on vLLM. Three production directions
 (`style.ts`) shape writing, design, camera and the visual language of every prompt. Arabic productions are written in
 the dialect (Iraqi Baghdadi by default) with an English gloss for review.
 
 ## Sound
 
-Voices: one persistent identity per character (engine, reference recording, revision). IndexTTS 2.5 for English and
-Arabic, Habibi-TTS IRQ for Iraqi Arabic, MiniMax speech when chosen and a key exists. Every generated line is
-transcribed back (faster-whisper large-v3) and compared with the script; a drifting line is regenerated once and
-flagged. Music: MiniMax Music API when the account has it, ACE-Step 1.5 XL (local) otherwise, MiniMax Music 3 open
-weights as the second local engine. Assembly mixes the takes' own audio, the recorded lines where a take is silent,
+Voices: one persistent identity per character (engine, reference recording, revision; a pinned voice keeps its
+engine). New English voices use MOSS-TTS v1.5 (`VOICE_ENGINE_EN`, `src/server/providers/voice-engines.ts`); IndexTTS 2.5
+and Habibi-TTS IRQ serve Arabic and Iraqi Arabic until the dedicated Iraqi phase. Dialogue is audio-first: one
+authoritative recording per line, forced alignment (Whisper large-v3 + wav2vec2 CTC), then the shot; LatentSync 1.6
+repairs only a realistic speaking shot that fails visual review. Every generated line is transcribed back and compared
+with the script; a drifting line is regenerated once and flagged. Music: ACE-Step 1.5 (local) is the song engine,
+MiniMax Music 3 open weights the second local engine. Assembly mixes the takes' own audio, the recorded lines where a take is silent,
 the song, and normalises to EBU R128.
 
 ## Where things live
