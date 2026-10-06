@@ -102,6 +102,20 @@ def test_frontalness_and_edit_strength():
     assert list(s3) == [1.0, 1.0, 1.0]
 
 
+def test_yaw_gate():
+    def rot_y(deg):
+        a = np.radians(deg)
+        m = np.eye(4)
+        m[0, 0], m[0, 2], m[2, 0], m[2, 2] = np.cos(a), np.sin(a), -np.sin(a), np.cos(a)
+        return m
+    assert abs(ft.yaw_degrees(rot_y(25)) - 25) < 1e-6 and abs(ft.yaw_degrees(rot_y(-60)) + 60) < 1e-6
+    frontal = [ft.frontal_from_yaw(y) for y in (0, 25, 36, 50, -70)]
+    s = ft.edit_strength([True] * 5, frontal, ramp=0)
+    assert s[0] == 1.0 and s[1] == 1.0 and 0 < s[2] < 1 and s[3] == 0.0 and s[4] == 0.0
+    # without a yaw the 2-D measure never gives full strength
+    assert ft.frontal_from_yaw(None, 0.9) < ft.FRONTAL_HI and ft.frontal_from_yaw(None, 0.1) == 0.0 and ft.frontal_from_yaw(None) is None
+
+
 def test_choose_face_without_identity_continuity_hint_largest():
     small = ft.Detection(box=(0, 0, 50, 50), score=0.9)
     big = ft.Detection(box=(200, 200, 400, 400), score=0.9)

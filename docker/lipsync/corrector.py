@@ -141,10 +141,11 @@ class FaceTracker:
         self.cv2 = cv2
         self.det = cv2.FaceDetectorYN.create(YUNET_PATH, "", (320, 320), YUNET_SCORE_MIN, 0.3, 5000)
         self.rec = cv2.FaceRecognizerSF.create(SFACE_PATH, "") if os.path.isfile(SFACE_PATH) else None
-        opts = vision.FaceLandmarkerOptions(base_options=base_options.BaseOptions(model_asset_path=LANDMARKER_PATH), running_mode=vision.RunningMode.IMAGE, num_faces=2, min_face_detection_confidence=0.3, min_face_presence_confidence=0.3)
+        opts = vision.FaceLandmarkerOptions(base_options=base_options.BaseOptions(model_asset_path=LANDMARKER_PATH), running_mode=vision.RunningMode.IMAGE, num_faces=2, min_face_detection_confidence=0.3, min_face_presence_confidence=0.3, output_facial_transformation_matrixes=True)
         self.lm = vision.FaceLandmarker.create_from_options(opts)
         self.vision = vision
         self.hands = None
+        self.last_yaw: float | None = None
         if os.path.isfile(HAND_LANDMARKER_PATH):
             hopts = vision.HandLandmarkerOptions(base_options=base_options.BaseOptions(model_asset_path=HAND_LANDMARKER_PATH), running_mode=vision.RunningMode.IMAGE, num_hands=2, min_hand_detection_confidence=0.4, min_hand_presence_confidence=0.4)
             self.hands = vision.HandLandmarker.create_from_options(hopts)
@@ -205,8 +206,11 @@ class FaceTracker:
         return v
 
     def mesh(self, rgb: np.ndarray, box: ft.Box) -> np.ndarray | None:
-        """The 478-point mesh of the face in `box`, in frame pixels (None when the landmarker finds no face)."""
+        """The 478-point mesh of the face in `box`, in frame pixels (None when the landmarker finds no face); the head
+        yaw is left in `last_yaw`."""
         import mediapipe as mp  # type: ignore
+
+        self.last_yaw = None
 
         h, w = rgb.shape[:2]
         x0, y0, side = ft.crop_square(box, MESH_CROP_SCALE, w, h)
@@ -219,10 +223,14 @@ class FaceTracker:
         small = self.cv2.resize(crop, (MESH_CROP_PX, MESH_CROP_PX), interpolation=self.cv2.INTER_AREA if scale < 1 else self.cv2.INTER_CUBIC)
         res = self.lm.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(small)))
         meshes = [np.asarray([(p.x * MESH_CROP_PX, p.y * MESH_CROP_PX) for p in f], dtype=np.float64) for f in (res.face_landmarks or [])]
+        self.last_yaw = None
         if not meshes:
             return None
         i = ft.pick_mesh_near([tuple(m.mean(0)) for m in meshes], (MESH_CROP_PX / 2, MESH_CROP_PX / 2))
         m = meshes[i]  # type: ignore[index]
+        mats = getattr(res, "facial_transformation_matrixes", None) or []
+        if i is not None and i < len(mats):
+            self.last_yaw = ft.yaw_degrees(np.asarray(mats[i]))
         return m / scale + np.asarray([x0, y0], dtype=np.float64)
 
 
@@ -235,6 +243,7 @@ class Track:
     frontal: list[float | None]
     strength: np.ndarray
     hands: list[list[np.ndarray] | None]  # per frame (None: no hand detector, or no face found)
+    yaw: list[float | None]  # head yaw in degrees from the Face Landmarker's transformation matrix (None: not found)
 
 
 def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray | None, hint: ft.Box | None, others: Sequence[np.ndarray] = ()) -> Track:
@@ -251,6 +260,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
     boxes: list[ft.Box | None] = []
     frontal: list[float | None] = []
     hands: list[list[np.ndarray] | None] = []
+    yaws: list[float | None] = []
     for rgb in frames:
         bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
         faces = tracker.detect(bgr)
@@ -271,6 +281,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
             boxes.append(None)
             frontal.append(None)
             hands.append(None)
+            yaws.append(None)
             lost += 1
             if lost > ft.MAX_GAP_FRAMES:
                 smoother.reset()
@@ -281,7 +292,8 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
         lm68 = smoother.smooth(ft.lm68_from_mp478(m))
         pts.append(ft.align_points3(lm68))
         boxes.append(dets[i].box)
-        frontal.append(round(ft.frontalness(m), 3))
+        yaws.append(tracker.last_yaw)
+        frontal.append(round(ft.frontal_from_yaw(tracker.last_yaw, ft.frontalness(m)), 3))
         hands.append(tracker.hand_points(rgb, dets[i].box))
         rep.face_height_px.append(dets[i].box[3] - dets[i].box[1])
         if dets[i].identity is not None:
@@ -297,7 +309,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
     rep.full_strength = int((strength >= 0.999).sum())
     if rep.found == 0:
         raise InputError("the speaker's face was not found in any frame")
-    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep, frontal=frontal, strength=strength, hands=hands)  # type: ignore[misc]
+    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep, frontal=frontal, strength=strength, hands=hands, yaw=yaws)  # type: ignore[misc]
 
 
 def align_crops(frames: np.ndarray, track: Track) -> tuple[list[np.ndarray], np.ndarray, tuple[int, int]]:
@@ -362,7 +374,7 @@ def write_debug(d: str, frames: np.ndarray, result: np.ndarray, crops: np.ndarra
     os.makedirs(d, exist_ok=True)
     n = len(frames)
     with open(os.path.join(d, "track.json"), "w") as f:
-        json.dump({"fps": fps, "edit": track.edit, "frontal": track.frontal, "strength": [round(float(s), 3) for s in track.strength], "boxes": [None if b is None else [round(v, 1) for v in b] for b in track.boxes], "points3": [p.round(2).tolist() for p in track.points3]}, f)
+        json.dump({"fps": fps, "edit": track.edit, "frontal": track.frontal, "yaw": [None if y is None else round(y, 1) for y in track.yaw], "strength": [round(float(s), 3) for s in track.strength], "boxes": [None if b is None else [round(v, 1) for v in b] for b in track.boxes], "points3": [p.round(2).tolist() for p in track.points3]}, f)
     known = [b for b in track.boxes if b is not None]
     last = known[0] if known else (0.0, 0.0, float(frames.shape[2]), float(frames.shape[1]))
     tiles_o, tiles_c = [], []

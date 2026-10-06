@@ -204,7 +204,8 @@ no stated licence).
 - native frame rate (H3: 24 fps; upstream re-encodes to 25), same frame count, the take's own audio copied;
 - only the regenerated region (mask.png's lower face, eroded and feathered) is blended into the ORIGINAL frame:
   eyes, brows, hair, the other characters and the background are bit-identical before encoding;
-- profile frames (frontalness < 0.12; a 3/4 view measures 0.15–0.38 and aligns well) are not edited; the edit fades in/out over 4 frames.
+- profile frames are not edited: head yaw from the Face Landmarker's transformation matrix, full strength up to 30°, none from 42° (frontal shots measured −23…+8°, 3/4 views 20–35°, near-profiles 30–70° — corrected near-profiles lost their smile); the edit fades in/out over 4 frames;
+- occlusion gate: frames where a hand (MediaPipe Hand Landmarker; a held cup sits inside its outline) covers ≥ 4 % of the regenerated region, or the original lower face / the model's change is an outlier against the clip's own median, are left uncorrected (±2 frames, faded) — calibrated on the acceptance takes' tea sips.
 
 Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
 outside Git).

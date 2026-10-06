@@ -138,7 +138,12 @@ def area(b: Box) -> float:
 
 
 RIVAL_MARGIN = 0.05  # a face is the speaker only if it resembles the speaker this much more than any other character
-FRONTAL_LO, FRONTAL_HI = 0.12, 0.22  # frontalness below LO: not edited (a profile); above HI: full strength. START, from the acceptance takes: a 3/4 view measures 0.15-0.38 and aligns well (2026-10-06)
+# How frontal the face is, 1 − |yaw|/90 (yaw from the Face Landmarker's transformation matrix): full strength up to
+# 30° of yaw, nothing from 42° (a profile), linear between. START, measured 2026-10-06 on the acceptance takes: frontal
+# shots −23…+8°, 3/4 views 20–35° (they align and correct well), near-profiles 30–70° (the mouth flattens and the
+# smile is lost: never corrected). The 2-D mesh measure (`frontalness`) is NOT used for this: on stylised faces the mesh
+# stays frontal-looking in profile.
+FRONTAL_LO, FRONTAL_HI = 1 - 42 / 90, 1 - 30 / 90
 STRENGTH_RAMP = 4  # frames over which the edit fades in / out around profile frames and lost runs
 
 
@@ -193,6 +198,22 @@ def frontalness(xy478: np.ndarray) -> float:
     dr = float(np.linalg.norm(xy[4] - xy[454]))
     hi = max(dl, dr)
     return min(dl, dr) / hi if hi > 1e-6 else 0.0
+
+
+def yaw_degrees(matrix: np.ndarray) -> float:
+    """Head yaw (rotation about the vertical axis, degrees; 0 = facing the camera) from the Face Landmarker's 4×4
+    facial transformation matrix."""
+    r = np.asarray(matrix, dtype=np.float64)[:3, :3]
+    return float(np.degrees(np.arctan2(r[0, 2], r[2, 2])))
+
+
+def frontal_from_yaw(yaw: float | None, mesh_frontalness: float | None = None) -> float | None:
+    """1 − |yaw|/90; without a yaw, a conservative stand-in from the 2-D measure (never full strength)."""
+    if yaw is not None:
+        return max(0.0, 1.0 - abs(yaw) / 90.0)
+    if mesh_frontalness is None:
+        return None
+    return (FRONTAL_LO + FRONTAL_HI) / 2 if mesh_frontalness >= 0.22 else 0.0
 
 
 def edit_strength(edit: Sequence[bool], frontal: Sequence[float | None], lo: float = FRONTAL_LO, hi: float = FRONTAL_HI, ramp: int = STRENGTH_RAMP) -> np.ndarray:
