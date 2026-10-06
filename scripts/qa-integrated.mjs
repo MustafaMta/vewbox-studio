@@ -104,6 +104,8 @@ export const PAGES = [
   { name: 'tea-location', path: '/locations/loc-75cdbdb376' },
   { name: 'clara', path: '/characters/char-0556d14a04' },
   { name: 'abu-haidar', path: '/characters/char-3a54ed1937' },
+  // product step 2 (main ab00eca): the terms gate and the licences
+  { name: 'terms', path: '/terms' },
 ];
 
 const SIZE = { 1440: { w: 1440, h: 900, touch: false }, 1920: { w: 1920, h: 1080, touch: false }, 390: { w: 390, h: 844, touch: true } };
