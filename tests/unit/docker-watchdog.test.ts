@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { HUNG_AFTER_MS, MAX_DOCKER_STARTS_PER_HOUR, planWatchdog, renameStaleSocketFolder, wmiCreateScript, workerCommandLine, type WatchdogState } from '@/server/ops/docker-watchdog';
+import net from 'node:net';
+import { HUNG_AFTER_MS, MAX_DOCKER_STARTS_PER_HOUR, planWatchdog, probePortListening, probeWebHealth, renameStaleSocketFolder, webCommandLine, wmiCreateScript, workerCommandLine, type WatchdogState } from '@/server/ops/docker-watchdog';
 
 /** The Docker/worker watchdog's decisions (pure) and its two file/command builders. */
 
@@ -12,7 +13,7 @@ const kinds = (a: ReturnType<typeof planWatchdog>) => a.map((x) => (x.kind === '
 
 describe('docker watchdog plan', () => {
   it('healthy: nothing to do', () => {
-    expect(kinds(planWatchdog(up, { fix: true }))).toEqual(['ok']);
+    expect(kinds(planWatchdog(up, { fix: true }))).toEqual(['ok', 'ok']);
   });
   it('after a crash (no Docker process, stale socket): report only without --fix; with --fix rename the folder, start Docker outside the job, wait — never the worker before the engine', () => {
     expect(kinds(planWatchdog(crashed, { fix: false }))).toEqual(['warn:HUNG']);
@@ -31,17 +32,53 @@ describe('docker watchdog plan', () => {
   it('the worker is started only when the engine and the database answer, with --fix and --worker', () => {
     const noWorker = { ...up, workerRunning: false };
     expect(kinds(planWatchdog({ ...noWorker, dbHealthy: false }, { fix: true }))).toEqual(['warn:DB_UNHEALTHY']);
-    expect(kinds(planWatchdog(noWorker, { fix: true }))).toEqual(['start-worker']);
-    expect(kinds(planWatchdog(noWorker, { fix: false }))).toEqual(['ok']);
-    expect(kinds(planWatchdog({ ...noWorker, workerWanted: false }, { fix: true }))).toEqual(['ok']);
+    expect(kinds(planWatchdog(noWorker, { fix: true }))).toEqual(['ok', 'start-worker']);
+    expect(kinds(planWatchdog(noWorker, { fix: false }))).toEqual(['ok', 'ok']);
+    expect(kinds(planWatchdog({ ...noWorker, workerWanted: false }, { fix: true }))).toEqual(['ok', 'ok']);
   });
   it('a worker that stopped ticking is reported, not restarted', () => {
-    expect(kinds(planWatchdog({ ...up, workerAliveAgeMs: 6 * 60_000 }, { fix: true }))).toEqual(['warn:WORKER_STALE']);
+    expect(kinds(planWatchdog({ ...up, workerAliveAgeMs: 6 * 60_000 }, { fix: true }))).toEqual(['ok', 'warn:WORKER_STALE']);
   });
   it('Docker or the worker inside the Claude app job: warned (they die at the next app update), nothing restarted', () => {
     const a = planWatchdog({ ...up, containment: { dockerInAppJob: 5, workerInAppJob: 1 } }, { fix: true });
-    expect(kinds(a)).toEqual(['warn:CONTAINED', 'ok']);
-    expect(kinds(planWatchdog({ ...up, containment: { dockerInAppJob: 0, workerInAppJob: 0 } }, { fix: true }))).toEqual(['ok']);
+    expect(kinds(a)).toEqual(['ok', 'warn:CONTAINED', 'ok']);
+    expect(kinds(planWatchdog({ ...up, containment: { dockerInAppJob: 0, workerInAppJob: 0, webInAppJob: 2 } }, { fix: true }))).toEqual(['ok', 'warn:CONTAINED', 'ok']);
+    expect(kinds(planWatchdog({ ...up, containment: { dockerInAppJob: 0, workerInAppJob: 0, webInAppJob: 0 } }, { fix: true }))).toEqual(['ok', 'ok']);
+  });
+});
+
+describe('docker watchdog: the studio web server (:4200)', () => {
+  const web = (w: Partial<NonNullable<WatchdogState['web']>>) => ({ ...up, web: { port: 4200, healthy: true, listening: true, wanted: true, ...w } });
+  it('healthy: nothing to do', () => {
+    expect(kinds(planWatchdog(web({}), { fix: true }))).toEqual(['ok', 'ok', 'ok']);
+  });
+  it('down (no health, nothing listening): started with --fix --web; reported otherwise', () => {
+    expect(kinds(planWatchdog(web({ healthy: false, listening: false }), { fix: true }))).toEqual(['ok', 'ok', 'start-web']);
+    expect(kinds(planWatchdog(web({ healthy: false, listening: false }), { fix: false }))).toEqual(['ok', 'ok', 'warn:WEB_DOWN']);
+    expect(kinds(planWatchdog(web({ healthy: false, listening: false, wanted: false }), { fix: true }))).toEqual(['ok', 'ok', 'warn:WEB_DOWN']);
+  });
+  it('something holds the port but /api/health does not answer (compiling, stuck): reported, never killed or doubled', () => {
+    expect(kinds(planWatchdog(web({ healthy: false, listening: true }), { fix: true }))).toEqual(['ok', 'ok', 'warn:WEB_UNHEALTHY']);
+  });
+  it('never started before the engine and the database answer (its bootstrap needs the database)', () => {
+    expect(kinds(planWatchdog({ ...web({ healthy: false, listening: false }), dbHealthy: false }, { fix: true }))).toEqual(['warn:DB_UNHEALTHY']);
+    expect(kinds(planWatchdog({ ...crashed, web: { port: 4200, healthy: false, listening: false, wanted: true } }, { fix: true }))).toEqual(['rename-stale-socket', 'start-docker', 'wait-engine']);
+  });
+  it('the command line runs `pnpm dev` (scripts/serve.ts dev) on the port, logging to var/web-detached.log', () => {
+    const cl = webCommandLine('D:\\volexar-studio\\volexar-studio', 'D:\\tools\\node\\node.exe', 4200);
+    expect(cl).toContain("Set-Location -LiteralPath 'D:\\volexar-studio\\volexar-studio'; $env:WEB_PORT='4200'; & 'D:\\tools\\node\\node.exe' 'D:\\volexar-studio\\volexar-studio\\node_modules\\tsx\\dist\\cli.mjs' scripts/serve.ts dev *>> var/web-detached.log");
+  });
+  it('probes: a port with a listener answers; /api/health is judged by its status', async () => {
+    const http = await import('node:http');
+    const srv = http.createServer((req, res) => { res.writeHead(req.url === '/api/health' ? 200 : 404); res.end(); });
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', () => r()));
+    const port = (srv.address() as net.AddressInfo).port;
+    try {
+      expect(await probePortListening(port)).toBe(true);
+      expect(await probeWebHealth(port)).toBe(true);
+    } finally { await new Promise((r) => srv.close(r)); }
+    expect(await probePortListening(port)).toBe(false);
+    expect(await probeWebHealth(port, 2000)).toBe(false);
   });
 });
 
