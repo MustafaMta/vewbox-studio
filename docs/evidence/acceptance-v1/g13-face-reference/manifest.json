@@ -1,0 +1,36 @@
+{
+ "production": {
+  "id": "short-cdd6fc3cd0",
+  "title": "G13 face reference - Clara",
+  "kind": "SHORT",
+  "language": "EN",
+  "stage": "STORY"
+ },
+ "generatedBy": "docs/evidence/acceptance-v1/driver/bundle.mjs",
+ "updatedAt": "2026-10-06T14:21:58.116Z",
+ "lastStage": "G13 A/B complete (FINAL tier; shots 1-2 on the pre-03f732ba prompt, shot 3 on 4fd3f1d2 worker; shot 3 arm A attempt 3 after a WORKER_LOST and a ComfyUI store switch; first H3 render from the D: store)",
+ "files": {
+  "production.json": "story, scenes and the shot plan (prompts, staging, boundaries) as stored",
+  "characters.json": "cast with canonical image records, file sha256 and proxies",
+  "voices.json": "voice identities: engine, reference clip, settings, proof",
+  "locations.json": "location plates with revision and sha256",
+  "takes.json": "every take: MiniMax prompt, guides, references, seed, length, model, checks",
+  "jobs.json": "every job with attempts, errors and events",
+  "cut.json": "cuts and exports with the authoritative audio timeline, joins, subtitles, loudness",
+  "models.json": "models and workflows from the registry",
+  "attempts.jsonl": "append-only first-attempt/retry record",
+  "stages.jsonl": "one line per bundle update",
+  "images/": "JPEG proxies of canonical images and plates",
+  "qa.md": "QA findings and corrections (hand-written)",
+  "gpu.md": "GPU/RAM measurements (hand-written)"
+ },
+ "counts": {
+  "characters": 2,
+  "locations": 1,
+  "shots": 3,
+  "takes": 6,
+  "jobs": 15,
+  "cuts": 0,
+  "exports": 0
+ }
+}

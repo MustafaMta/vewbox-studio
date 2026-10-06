@@ -27,7 +27,8 @@ import { env } from '@/server/env';
 import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
-import { bindingOf, clipSecondsFor, resolveShotPack } from '@/server/production/shot-pack';
+import { bindingOf, clipSecondsFor, needsOpeningFrame, resolveShotPack } from '@/server/production/shot-pack';
+import { drawShotFrame } from './images';
 import { contextRecord } from '@/domain/production-context';
 import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
 import { takeVerdict } from '@/domain/take-checks';
@@ -62,7 +63,7 @@ export function takeQuality(requested: 'draft' | 'final' | undefined, backend: '
 
 export const generateTake: Handler = async (ctx) => {
   const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean; quality?: 'draft' | 'final' };
-  const { state: studio } = await readState();
+  let { state: studio } = await readState();
   // AN EARLIER ATTEMPT ALREADY COMMITTED THIS TAKE (it crashed after its commit, before the job was completed): the
   // take is returned, never generated a second time (audit C2, step 6)
   const done = committedTake(studio, ctx.job.id);
@@ -73,10 +74,21 @@ export const generateTake: Handler = async (ctx) => {
     return { takeId: done.take.id, assetId: done.take.assetId, qaOk, model: done.take.model, requestId: done.take.requestId, generationMs: done.take.generationMs, costUsd: done.take.costUsd, resumedFromCommit: true, takeUnverified, awaitingReview: takeUnverified, libraryRoot: libraryRoot() };
   }
   const out = jobOutputs(ctx.job);
-  const p = studio.productions.find((x) => x.id === payload.productionId);
+  let p = studio.productions.find((x) => x.id === payload.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
-  const sh = p.shots.find((x) => x.id === payload.shotId);
+  let sh = p.shots.find((x) => x.id === payload.shotId);
   if (!sh) throw new StudioError('NOT_FOUND', 'Shot not found');
+  // THE OPENING FRAME OF A CLOSE SHOT (acceptance 2026-10-06, G13): drawn before anything else when the shot has none
+  // (src/server/production/shot-pack.ts needsOpeningFrame) — without it H3 opens on the plate's wide view and pushes in
+  // (only for a request the preflight below would let through: a refused shot draws nothing)
+  if (needsOpeningFrame(resolveShotPack(studio, p, sh, { backend: chooseBackend() }), sh, studio.settings, { customPrompt: Boolean(payload.prompt) }) && preflightTake(studio, p, sh, { backend: chooseBackend(), customPrompt: Boolean(payload.prompt) }).ok) {
+    await ctx.progress('PREPARING', { phase: 'drawing', message: `Drawing the opening frame of shot ${sh.number}: a ${sh.framing.toLowerCase().replace(/_/g, ' ')} starts at its own framing` });
+    const frameId = await drawShotFrame(ctx, studio, p, sh);
+    await ctx.event('info', `opening frame drawn before the take (${frameId}): a ${sh.framing.toLowerCase().replace(/_/g, ' ')} with no frame would open on the plate's wide view`, { shotId: sh.id, assetId: frameId, setting: 'settings.generation.autoOpeningFrame' });
+    ({ state: studio } = await readState());
+    p = studio.productions.find((x) => x.id === payload.productionId)!;
+    sh = p.shots.find((x) => x.id === payload.shotId)!;
+  }
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const backend = chooseBackend();
 

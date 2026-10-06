@@ -8,7 +8,9 @@
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\models-store-retire.ps1                 # dry run
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\models-store-retire.ps1 -Execute        # delete folders
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\models-store-retire.ps1 -Execute -DropVolumes
-        # when nothing references the old volumes any more: remove vewbox_models and vewbox_ollama entirely
+        # when nothing references the old volumes any more: remove vewbox_models and vewbox_ollama entirely and put a
+        # TOMBSTONE in their place (a bind of <store>/.retired-volume-DO-NOT-USE, a path that never exists), so a stale
+        # compose file fails loudly instead of starting a service on old or empty storage
 
   Before ANY deletion, per folder:
     1. every file of the folder is in the store at its place (docker/models/layout.json) with the same size, and its
@@ -97,17 +99,36 @@ $ol = @(docker ps -a --filter volume=vewbox_ollama --format '{{.Names}} ({{.Stat
 if ($ol.Count) { Say "SKIP vewbox_ollama: still referenced by $($ol -join ', ')" }
 elseif ($DropVolumes) { Say 'vewbox_ollama: no container references it' }
 
+$Tomb = "$Root/.retired-volume-DO-NOT-USE"
+function IsTombstone($v) { (docker volume inspect $v --format '{{.Options.device}}' 2>$null) -eq $Tomb }
+function MakeTombstone($v) {
+  # the retired name becomes a bind of a path that never exists: a stale compose file that still binds it fails to
+  # create its container ("no such file or directory") instead of starting on old or empty storage
+  docker volume create --driver local --opt type=none --opt o=bind --opt "device=$Tomb" --label vewbox.retired=1 $v | Out-Null
+  if ($LASTEXITCODE -eq 0) { Say "tombstone $v -> $Tomb" } else { Say "tombstone $v NOT created" }
+}
 if ($DropVolumes) {
   foreach ($v in 'vewbox_models', 'vewbox_ollama') {
+    $exists = [bool](docker volume ls -q --filter "name=^${v}$")
+    if ($exists -and (IsTombstone $v)) { Say "$v is already a tombstone"; continue }
+    if (-not $exists) { if ($Execute) { MakeTombstone $v } else { Say "would create tombstone $v -> $Tomb" }; continue }
     $refs = @(docker ps -a --filter volume=$v --format '{{.Names}} ({{.Status}})')
     if ($refs.Count) { Say "KEEP volume $v : referenced by $($refs -join ', ') (remove or recreate those containers first)"; continue }
     $size = docker run --rm -v "${v}:/v:ro" alpine du -sh /v
-    if ($Execute) { docker volume rm $v | Out-Null; if ($LASTEXITCODE -eq 0) { Say "volume $v removed ($size)" } else { Say "volume $v NOT removed" } }
-    else { Say "would remove volume $v ($size)" }
+    if ($Execute) {
+      docker volume rm $v | Out-Null
+      if ($LASTEXITCODE -eq 0) { Say "volume $v removed ($size)"; MakeTombstone $v } else { Say "volume $v NOT removed" }
+    } else { Say "would remove volume $v ($size), then create its tombstone -> $Tomb" }
   }
 }
 if ($Execute) {
   # tell the virtual disk which blocks are free (no downtime); the file on C: shrinks only at compaction
-  docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -- fstrim -v /mnt/docker-desktop-disk | ForEach-Object { Say "fstrim: $_" }
+  $trim = @(docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -- fstrim -v /mnt/docker-desktop-disk)
+  $trim | ForEach-Object { Say "fstrim: $_" }
+  # the record scripts/compact-docker-disk.ps1 requires before it compacts
+  $logDir = Join-Path $repo 'var\models-store'; New-Item -ItemType Directory -Force $logDir | Out-Null
+  $rec = @{ at = (Get-Date).ToString('o'); freedBytes = $freed; dropVolumes = [bool]$DropVolumes; oldVolumesLeft = @(docker volume ls -q | Where-Object { $_ -in 'vewbox_models', 'vewbox_ollama' }); fstrim = ($trim -join ' '); cFreeGB = (CFreeGB) } | ConvertTo-Json -Compress
+  [IO.File]::AppendAllText((Join-Path $logDir 'retire.log'), $rec + "`n", (New-Object System.Text.UTF8Encoding $false))
+  Say "recorded in var\models-store\retire.log"
 }
 Say ("done; {0:N1} GB of folders deleted; C: free now {1} GB (docker_data.vhdx keeps its size until compacted)" -f ($freed / 1GB), (CFreeGB))

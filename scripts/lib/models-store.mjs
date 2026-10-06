@@ -120,14 +120,19 @@ export function judgeModelMounts(containers, volumes, root) {
       const dest = m.Destination ?? '';
       if (!(dest === '/models' || dest.startsWith('/models/') || dest === '/root/.ollama' || dest.startsWith('/root/.ollama/'))) continue;
       let where; let ok;
+      const tomb = tombstoneDevice(root);
       if (m.Type === 'volume') {
         const v = vol.get(m.Name);
         const device = v?.Options?.device;
         const isBind = v?.Options?.o?.split(',').includes('bind');
-        ok = Boolean(isBind && inStore(device, root));
-        where = ok ? device : LEGACY_VOLUMES.includes(m.Name) ? `legacy volume ${m.Name} (Docker's disk image on C:)` : `volume ${m.Name}${device ? ` → ${device}` : ' (Docker\'s disk image on C:)'}`;
+        // only the store's own volumes, bound inside the store (and never the tombstone a retired name points at)
+        ok = Boolean(STORE_VOLUMES.includes(m.Name) && isBind && inStore(device, root) && device !== tomb && !String(device).startsWith(`${tomb}/`));
+        where = ok ? device
+          : device === tomb ? `retired volume ${m.Name} (tombstone: a stale compose file)`
+          : LEGACY_VOLUMES.includes(m.Name) ? `legacy volume ${m.Name} (Docker's disk image on C:)`
+          : `volume ${m.Name}${device ? ` → ${device}` : ' (Docker\'s disk image on C:)'}`;
       } else if (m.Type === 'bind') {
-        ok = inStore(m.Source, root);
+        ok = inStore(m.Source, root) && !String(m.Source).startsWith(tomb);
         where = m.Source;
       } else { ok = false; where = `${m.Type} mount`; }
       rows.push({ container: name, destination: dest, rw: Boolean(m.RW), source: where, ok });
@@ -136,6 +141,34 @@ export function judgeModelMounts(containers, volumes, root) {
   }
   return { ok: problems.length === 0, rows, problems };
 }
+
+/** The retired volume names as TOMBSTONES: local bind volumes whose device is a path that never exists. Compose never
+ *  recreates an existing volume, so a stale compose file that still binds `vewbox_models` / `vewbox_ollama` fails
+ *  container creation ("no such file or directory") instead of starting on old or empty storage. */
+export const TOMBSTONE_NAME = '.retired-volume-DO-NOT-USE';
+export const tombstoneDevice = (root) => `${root}/${TOMBSTONE_NAME}`;
+/** `docker volume create` arguments for one tombstone. */
+export const tombstoneCreateArgs = (name, root) => ['volume', 'create', '--driver', 'local', '--opt', 'type=none', '--opt', 'o=bind', '--opt', `device=${tombstoneDevice(root)}`, '--label', 'vewbox.retired=1', name];
+
+/** The old names (vewbox_models, vewbox_ollama) against `docker volume inspect` output: each must be a tombstone.
+ *  Still a real volume = not retired yet (warning: retire it); absent = the tombstone is missing (warning: create it);
+ *  a bind elsewhere = failure. */
+export function judgeTombstones(volumes, root, names = ['vewbox_models', 'vewbox_ollama']) {
+  const by = new Map((volumes ?? []).map((v) => [v.Name, v]));
+  const problems = []; const warnings = []; const rows = [];
+  for (const n of names) {
+    const v = by.get(n);
+    const device = v?.Options?.device;
+    if (!v) { warnings.push(`${n}: no tombstone (docker ${tombstoneCreateArgs(n, root).join(' ')})`); rows.push({ name: n, state: 'absent' }); }
+    else if (device === tombstoneDevice(root)) rows.push({ name: n, state: 'tombstone' });
+    else if (!device) { warnings.push(`${n}: still the old volume (inside Docker's disk image on C:): retire it (scripts/models-store-retire.ps1)`); rows.push({ name: n, state: 'old-volume' }); }
+    else { problems.push(`${n}: binds ${device}, not the tombstone ${tombstoneDevice(root)}`); rows.push({ name: n, state: 'wrong' }); }
+  }
+  return { ok: problems.length === 0, problems, warnings, rows };
+}
+
+/** The store's own compose volumes (compose.yaml `name:`): the only named volumes a model mount may use. */
+export const STORE_VOLUMES = ['vewbox_models_store', 'vewbox_ollama_store'];
 
 /** The env of a container (`docker inspect` Config.Env) → cache variables that would land outside the store. */
 export function judgeCacheEnv(container) {
