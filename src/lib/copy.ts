@@ -232,7 +232,6 @@ const COPY = {
   // ---- the specimen sections of the dev-only /kit page (components/media/Specimens.tsx) ------------------------
 
   // ---- production menu (ProductionTile) --------------------------------------------------------------------------
-  'media.delete.title': 'Delete “{title}”?',
   // ---- shell ---------------------------------------------------------------------------------------------------------
   // navigation
   'nav.shorts': 'Shorts',
@@ -347,9 +346,6 @@ const COPY = {
   // final cut
 
   // shot editor
-  'gate.approved': 'Approved',
-  'gate.by': 'by',
-  'gate.changesRequested': 'Changes were requested',
   // ---- music ---------------------------------------------------------------------------------------------------------
   // songs
   'song.title': 'Song',
@@ -433,8 +429,6 @@ const COPY = {
   'jobs.queued': 'Queued',
   'jobs.inProgress': 'In progress',
   // counted phrases: `one|other` (T.p); {n} is the count
-  'studio.approve': 'Approve',
-  'studio.requestChanges': 'Request changes',
   'pipeline.STORY': 'Story',
   'pipeline.CAST_WORLD': 'Cast & world',
   'pipeline.SCRIPT': 'Script',
