@@ -110,3 +110,29 @@ describe('shapeShotPlan: an Iraqi Arabic story', () => {
     expect(withCut[0].staging!.beats![1].cut).toEqual({ camera: 'wide', locationId: 'loc-x' });
   });
 });
+
+describe('shapeShotPlan: the shot list’s discipline (continuity gaps 2026-10-06 item 1)', () => {
+  it('side of frame, start and end pose, travel, condition, partners, constraints and a crossed line are kept as data, in any spelling', () => {
+    const { cast, a, b, scene, lines } = setup();
+    const data = ShotPlanSchema.parse({ shots: [shot({ characterNames: [a.name, b.name], continuity: {
+      characters: [
+        { name: a.name, side: 'screen left', beginningPose: 'standing at the door', endingPose: 'leaning on the counter', movement: 'left to right', condition: 'soaked from the rain', with: [b.name, 'Nobody'] },
+        { characterName: b.name, frameSide: 'RIGHT', motion: { direction: 'still' } },
+      ],
+      props: [], environment: {}, camera: { crossesLine: 'yes' }, relationToPrevious: 'CUT', mustHold: ['the umbrella drips by the door'],
+    } })] });
+    const [s] = shapeShotPlan(data, { cast, scene, lines, maxShot: 10 });
+    const ca = s.continuity.characters.find((x) => x.characterId === a.id)!;
+    expect(ca).toMatchObject({ frameSide: 'LEFT', startPose: 'standing at the door', endPose: 'leaning on the counter', motion: { direction: 'LEFT_TO_RIGHT' }, condition: 'soaked from the rain', interactingWith: [b.id] });
+    expect(s.continuity.characters.find((x) => x.characterId === b.id)).toMatchObject({ frameSide: 'RIGHT', motion: { direction: 'STILL' } });
+    expect(s.continuity.camera.crossesLine).toBe(true);
+    expect(s.continuity.constraints).toEqual(['the umbrella drips by the door']);
+  });
+  it('an older plan without them still parses (nothing is invented)', () => {
+    const { cast, a, scene, lines } = setup();
+    const [s] = shapeShotPlan(ShotPlanSchema.parse({ shots: [shot({ characterNames: [a.name], continuity: { characters: [{ characterName: a.name, position: 'left' }], props: [], environment: {}, camera: {}, relationToPrevious: 'CUT' } })] }), { cast, scene, lines, maxShot: 10 });
+    expect(s.continuity.characters[0]).not.toHaveProperty('startPose');
+    expect(s.continuity).not.toHaveProperty('constraints');
+    expect(s.continuity.camera).not.toHaveProperty('crossesLine');
+  });
+});

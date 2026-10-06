@@ -4,7 +4,7 @@ import { StudioError } from '@/domain/errors';
 import type { Dialect, Language } from '@/domain/vocabulary';
 import { env } from '../env';
 import { log } from '../log';
-import { followJobSignal, stopReasonOf } from '../jobs/context';
+import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
@@ -31,21 +31,65 @@ export interface SynthesizeResult {
 const tts = (engine: Exclude<TtsEngine, 'auto'>) => (engine === 'habibi' ? env().TTS_HABIBI_URL : env().TTS_URL).replace(/\/$/, '');
 const asr = () => env().ASR_URL.replace(/\/$/, '');
 
-async function post(url: string, fd: FormData, timeoutMs: number): Promise<Response> {
+/** POST and read the WHOLE answer under the same timeout and job signal. The body is read inside: a service that
+ *  restarts or dies while sending it (the connection reset mid-body: "terminated") is UNAVAILABLE — a retryable
+ *  infrastructure failure — never an unclassified error, and a stalled body cannot hang the job past its timeout. */
+async function post(url: string, fd: FormData, timeoutMs: number): Promise<{ res: Response; body: Buffer }> {
+  // A RESTARTING CONTAINER refuses connections for a while: the request never reached it, so it is sent again every
+  // 3 s for up to SPEECH_START_WAIT_MS (default 90 s) before the attempt fails — a docker restart of tts/asr does not
+  // cost an attempt. Anything else (a reset mid-answer, a timeout) is not resent here: the job's retry decides.
+  // (inside a job only: a page asking a service that is simply not started gets its answer at once)
+  const waitMs = jobSignal() ? Number(process.env.SPEECH_START_WAIT_MS ?? 90_000) : 0;
+  const t0 = Date.now();
+  for (;;) {
+    try { return await postOnce(url, fd, timeoutMs); } catch (e) {
+      const refused = e instanceof StudioError && e.details?.refused === true;
+      if (!refused || Date.now() - t0 >= waitMs) throw e;
+      log.warn({ url: url.replace(/^https?:\/\/[^/]+/, ''), waitedMs: Date.now() - t0 }, 'speech service refuses connections (restarting?); sending again shortly');
+      await new Promise<void>((r) => { const s = jobSignal(); const tm = setTimeout(r, 3000); s?.addEventListener('abort', () => { clearTimeout(tm); r(); }, { once: true }); });
+      const s = jobSignal(); if (s?.aborted) throw s.reason;
+    }
+  }
+}
+
+async function postOnce(url: string, fd: FormData, timeoutMs: number): Promise<{ res: Response; body: Buffer }> {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
   const unlink = followJobSignal(ctrl); // a stopped job aborts the request (src/server/jobs/context.ts)
   try {
     const res = await fetch(url, { method: 'POST', body: fd, signal: ctrl.signal });
     if (!res.ok) { const text = await res.text().catch(() => ''); let detail = text; try { detail = (JSON.parse(text) as { detail?: string }).detail ?? text; } catch { /* plain */ } throw new StudioError(res.status === 503 ? 'NOT_CONFIGURED' : 'PROVIDER', `${url.replace(/^https?:\/\/[^/]+/, '')}: ${detail.slice(0, 400)}`, { status: res.status }); }
-    return res;
+    const body = Buffer.from(await res.arrayBuffer());
+    return { res, body };
   } catch (e) {
     if (e instanceof StudioError) throw e;
     if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
     const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
     const why = cause?.code ?? cause?.message ?? (e as Error).message;
     const timedOut = (e as Error).name === 'AbortError' || /TIMEOUT/i.test(why);
-    throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`);
+    throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`, { refused: cause?.code === 'ECONNREFUSED' });
   } finally { clearTimeout(t); unlink(); }
+}
+
+/** Why a WAV a service returned cannot be used, or null. Pure (tested): empty, not RIFF/WAVE, no fmt or data chunk, a
+ *  data chunk cut short (a truncated transfer or a service that died mid-write), or no audio at all. A streaming
+ *  header's unknown size (0 or 0xFFFFFFFF) is accepted when audio follows. */
+export function wavProblem(buf: Buffer): string | null {
+  if (!buf.length) return 'empty (0 bytes)';
+  if (buf.length < 44 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return `not a WAV file (${buf.length} bytes)`;
+  let off = 12; let fmt = false;
+  while (off + 8 <= buf.length) {
+    const id = buf.toString('ascii', off, off + 4); const size = buf.readUInt32LE(off + 4);
+    if (id === 'fmt ') fmt = true;
+    if (id === 'data') {
+      if (!fmt) return 'the data chunk comes before its format';
+      const have = buf.length - off - 8;
+      if (size === 0 || size === 0xffffffff) return have > 0 ? null : 'no audio samples';
+      if (have < size) return `truncated: ${have} of ${size} audio bytes`;
+      return size > 0 ? null : 'no audio samples';
+    }
+    off += 8 + size + (size % 2);
+  }
+  return 'no audio data chunk';
 }
 
 /** Which engine speaks this character: Iraqi Arabic → Habibi (IRQ model); everything else → IndexTTS 2.5. */
@@ -107,10 +151,13 @@ export async function synthesize(i: SynthesizeInput, outDir: string): Promise<Sy
   if (i.cfgStrength !== undefined) fd.set('cfg_strength', String(i.cfgStrength));
   if (i.swaySamplingCoef !== undefined) fd.set('sway_sampling_coef', String(i.swaySamplingCoef));
   const t0 = Date.now();
-  const res = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
-  const buf = Buffer.from(await res.arrayBuffer());
+  const { res, body: buf } = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
   const file = path.join(outDir, `line-${Date.now().toString(36)}.wav`);
   await fsp.writeFile(file, buf);
+  // A CORRUPT ANSWER (zero bytes, a truncated or malformed WAV) is the service's failure, named as such
+  // (OUTPUT_CORRUPTION) — not left for a later step to misreport; the bytes stay in the work folder as evidence
+  const bad = wavProblem(buf);
+  if (bad) throw Object.assign(new StudioError('PROVIDER', `The ${engine} voice service returned an unusable recording: ${bad}.`, { engine, bytes: buf.length, file }), { failureClass: 'OUTPUT_CORRUPTION' });
   const meta = parseSynthesisHeaders(res.headers, engine);
   log.info({ engine: meta.engine, version: meta.engineVersion, seed: meta.seed, ms: Date.now() - t0, chars: i.text.length, seconds: meta.durationSeconds, truePeak: meta.truePeakDbtp }, 'tts line');
   return { file, ...meta, ms: Date.now() - t0 };
@@ -138,8 +185,9 @@ export async function transcribe(file: string, opts: { language?: 'ar' | 'en' | 
   fd.set('language', opts.language ?? 'auto');
   if (opts.prompt) fd.set('prompt', opts.prompt);
   fd.set('words', '1');
-  const res = await post(`${asr()}/transcribe`, fd, 10 * 60_000);
-  const j = await res.json() as { language: string; language_probability: number; duration: number; text: string; segments: Transcript['segments']; ms: number; model: string };
+  const { body } = await post(`${asr()}/transcribe`, fd, 10 * 60_000);
+  let j: { language: string; language_probability: number; duration: number; text: string; segments: Transcript['segments']; ms: number; model: string };
+  try { j = JSON.parse(body.toString('utf8')); } catch { throw Object.assign(new StudioError('PROVIDER', `The transcription service returned a malformed answer (${body.length} bytes).`), { failureClass: 'OUTPUT_CORRUPTION' }); }
   return { language: j.language, languageProbability: j.language_probability, duration: j.duration, text: j.text, segments: j.segments, ms: j.ms, model: j.model };
 }
 
@@ -149,8 +197,7 @@ export async function separateStems(file: string, outDir: string, opts: { four?:
   const fd = new FormData();
   fd.set('file', new Blob([await fsp.readFile(file)]), path.basename(file));
   fd.set('stems', opts.four ? 'four' : 'two');
-  const res = await post(`${asr()}/separate`, fd, 20 * 60_000);
-  const zip = Buffer.from(await res.arrayBuffer());
+  const { res, body: zip } = await post(`${asr()}/separate`, fd, 20 * 60_000);
   const files = await unzipTo(zip, outDir);
   return { files, ms: Number(res.headers.get('x-separation-ms') ?? 0), model: res.headers.get('x-demucs-model') ?? 'htdemucs' };
 }

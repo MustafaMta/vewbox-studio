@@ -16,7 +16,8 @@ $rows = @(); $t = $null; $last = -1
 foreach ($l in $m) { if ($l.Line -match 'pts_time:([\d\.]+)') { $t = [double]$Matches[1] } elseif ($l.Line -match 'M=(-?[\d\.inf]+)' -and $t -ne $null -and [Math]::Floor($t * 2) -gt $last) { $last = [Math]::Floor($t * 2); $rows += ('{0:N1}s:{1}' -f $t, $Matches[1]) } }
 $rows -join '  '
 if ($joins) {
-  foreach ($j in $joins.Split(',')) {
+  # joins as "144,264" (or space/semicolon separated: gpu-hold's shell re-splits a comma list)
+  foreach ($j in ($joins -split '[,; ]+' | Where-Object { $_ })) {
     $j = [int]$j; $a = $j - 6; $b = $j + 5
     ffmpeg -loglevel error -y -i $f -vf "select='between(n\,$a\,$b)',scale=400:-2,tile=6x2:padding=2" -fps_mode passthrough -frames:v 1 (Join-Path $out "$name-join$j-frames$a-$b.jpg")
     # PSNR of consecutive frames around the join (frame k vs k+1): the join pair is ($j-1,$j)

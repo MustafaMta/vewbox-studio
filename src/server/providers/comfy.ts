@@ -63,6 +63,20 @@ export async function health(): Promise<{ ok: boolean; version?: string; vramTot
   } catch { return { ok: false }; }
 }
 
+/** Health, waiting up to `maxMs` for an engine that is (re)starting — a container restart takes tens of seconds; an
+ *  attempt that starts during it should not fail at once. Ends early (rejecting) when the job's signal aborts. */
+export async function healthWithin(maxMs = 180_000, everyMs = 3_000): Promise<Awaited<ReturnType<typeof health>>> {
+  const t0 = Date.now();
+  const signal = jobSignal();
+  for (;;) {
+    const h = await health();
+    if (h.ok || Date.now() - t0 >= maxMs) return h;
+    if (signal?.aborted) throw signal.reason;
+    log.warn({ waitedMs: Date.now() - t0 }, 'ComfyUI is not answering; waiting for it to start');
+    await new Promise<void>((r) => { const t = setTimeout(r, everyMs); signal?.addEventListener('abort', () => { clearTimeout(t); r(); }, { once: true }); });
+  }
+}
+
 export async function objectInfo(nodeClass?: string): Promise<Record<string, unknown>> {
   return http<Record<string, unknown>>(nodeClass ? `/object_info/${encodeURIComponent(nodeClass)}` : '/object_info', { timeoutMs: 60_000 });
 }
@@ -291,6 +305,10 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** consecutive polls with the prompt absent everywhere before it is declared lost (default 3) */
   lostAfterPolls?: number;
+  /** prompt ids whose output was rejected (corrupt): never adopted, the key walks past them like a failed one */
+  rejectPromptIds?: string[];
+  /** how long ComfyUI may be unreachable mid-wait (a container restart) before the attempt fails (default 180 s) */
+  unreachableGraceMs?: number;
 }
 
 /** Submit a graph (or adopt the one a previous attempt submitted) and wait for it. */
@@ -313,12 +331,13 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
   if (promptKey) {
     for (let n = 0; n < 20 && !promptId; n++) {
       const id = promptIdFromKey(promptKey, graph, n);
+      if (opts.rejectPromptIds?.includes(id)) continue; // its output was rejected: generate again under the next id
       const st = await promptState(id);
       if (st === 'failed' || st === 'cancelled') continue; // that attempt is over: the next id in the sequence
       promptId = id; resumed = st !== 'unknown';
     }
     if (!promptId) throw new ComfyError('EXECUTION', `ComfyUI: 20 earlier attempts of ${promptKey} failed; giving up.`);
-  } else if (opts.resumePromptId) {
+  } else if (opts.resumePromptId && !opts.rejectPromptIds?.includes(opts.resumePromptId)) {
     const st = await promptState(opts.resumePromptId).catch(() => 'unknown' as PromptState);
     if (st === 'pending' || st === 'running' || st === 'completed') { promptId = opts.resumePromptId; resumed = true; }
     else if (st === 'unknown') promptId = opts.resumePromptId; // never reached ComfyUI, or ComfyUI restarted: same id, recorded already
@@ -369,13 +388,26 @@ export async function run(graph: Record<string, unknown>, opts: RunOptions = {})
     const lostAfter = Math.max(1, opts.lostAfterPolls ?? 3);
     let absent = 0;
     let lastQueueReport = 0;
+    // A RESTARTING CONTAINER (directive §26): ComfyUI unreachable for a while (docker restart, a crash and its restart
+    // policy) is waited for — up to `unreachableGraceMs` — instead of failing the attempt on the first refused poll.
+    // Once it answers again it no longer knows the prompt, which is then reported LOST (retryable) after a few polls.
+    const unreachableGrace = opts.unreachableGraceMs ?? 180_000;
+    let unreachableSince: number | undefined;
     for (;;) {
       if (await opts.shouldStop?.()) { await cancelPrompt(id).catch(() => false); throw new StudioError('CONFLICT', 'cancelled', { promptId: id }); }
       // the job was cancelled, passed its deadline or lost its lease: interrupt OUR prompt (pending: dequeued;
       // running: interrupted — the GPU is freed for the next job) and stop with the job's reason (audit H5)
       if (signal?.aborted) { await cancelPrompt(id).catch(() => false); log.info({ promptId: id }, 'ComfyUI prompt cancelled: the job was stopped'); throw signal.reason; }
       let st: PromptState;
-      try { st = await promptState(id); } catch (e) { if (signal?.aborted) continue; throw e; }
+      try { st = await promptState(id); unreachableSince = undefined; } catch (e) {
+        if (signal?.aborted) continue;
+        if (!(e instanceof StudioError && e.code === 'UNAVAILABLE')) throw e;
+        unreachableSince ??= Date.now();
+        if (Date.now() - unreachableSince > unreachableGrace) throw new ComfyError('LOST', `ComfyUI stopped answering for ${Math.round(unreachableGrace / 1000)} s while prompt ${id} was in flight (${e.message.slice(0, 200)}); the attempt can be retried.`, { promptId: id });
+        log.warn({ promptId: id, downMs: Date.now() - unreachableSince }, 'ComfyUI is not answering; waiting for it to come back');
+        await new Promise<void>((r) => { const t = setTimeout(r, pollMs); signal?.addEventListener('abort', () => { clearTimeout(t); r(); }, { once: true }); });
+        continue;
+      }
       if (st === 'completed' || st === 'failed' || st === 'cancelled') {
         const hist = await http<Record<string, { outputs?: ComfyRunResult['outputs']; status?: { status_str?: string; messages?: unknown[] } }>>(`/history/${id}`);
         const h = hist[id];

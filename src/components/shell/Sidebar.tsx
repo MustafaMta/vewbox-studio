@@ -118,6 +118,11 @@ export function Sidebar() {
           <span className="nav-icon" aria-hidden><IconHelp aria-hidden /></span>
           <span className="nav-label">Help &amp; shortcuts</span>
         </button>
+        {/* the MiniMax H3 Community License §IV.2: "MiniMax H3" shown prominently in the interface; the credit opens the
+            engines and their licences */}
+        <Link href="/settings#licences" className="nav-credit" data-tip="Video by MiniMax H3 · licences" aria-label="Video by MiniMax H3. The engines and their licences">
+          <span className="nav-credit-short" aria-hidden>H3</span><span className="nav-credit-long" aria-hidden>Video by <strong>MiniMax H3</strong></span> {/* v4-lint: allow engine — the MiniMax H3 Community License §IV.2 asks for the name in the interface */}
+        </Link>
       </div>
       {tip && <div className="rail-tip" role="presentation" style={{ insetBlockStart: tip.y, insetInlineStart: tip.x }} onMouseEnter={cancel} onMouseLeave={() => setTip(null)}>{tip.text}</div>}
     </nav>

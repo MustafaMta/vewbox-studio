@@ -12,6 +12,7 @@ import { ffmpeg, measureLoudness, tmpDir } from './ffmpeg';
 import { mixPlanOf, trackFilter, type MixPlan } from './mix';
 import { measureJoins, type JoinMetric } from './assembly-joins';
 import { log } from '../log';
+import { disclosureMetadataArgs, type Disclosure } from './disclosure';
 
 export type { AudioTrack, AudioTrackKind, MixPlan } from './mix';
 export type { JoinMetric } from './assembly-joins';
@@ -52,7 +53,7 @@ export function buildMixPlan(p: Production, timeline: Timeline, opts: { targetLu
   return mixPlanOf(p, timeline.audio, opts);
 }
 
-export interface AssembleOptions { width: number; height: number; fps?: number; /** the typed, sample-placed tracks (see buildMixPlan) */ mix: MixPlan; /** file of every source the mix names */ files: Record<string, string>; subtitles?: { srt?: string; burn?: 'ar' | 'en' | 'both' | 'none' }; crf?: number; codec?: 'h264' | 'h265' | 'prores'; outFile: string; onProgress?: (msg: string) => Promise<void> | void; /** measure every join (default true) */ joins?: boolean }
+export interface AssembleOptions { /** the AI disclosure written into the container metadata (src/server/media/disclosure.ts) */ disclosure?: Disclosure; /** the container's title tag */ title?: string; /** an end-credit card appended after the film */ credits?: { lines: string[]; seconds: number }; width: number; height: number; fps?: number; /** the typed, sample-placed tracks (see buildMixPlan) */ mix: MixPlan; /** file of every source the mix names */ files: Record<string, string>; subtitles?: { srt?: string; burn?: 'ar' | 'en' | 'both' | 'none' }; crf?: number; codec?: 'h264' | 'h265' | 'prores'; outFile: string; onProgress?: (msg: string) => Promise<void> | void; /** measure every join (default true) */ joins?: boolean }
 
 /** The ffmpeg video filter that conforms one shot's take to its window: the take's frames from `trimStartFrames`,
  *  the last frame held for `holdFrames`, one size (letterboxed), one rate. Pure, so its shape is tested. */
@@ -62,8 +63,9 @@ export function conformFilter(it: Pick<TimelineItem, 'trimStartFrames' | 'holdFr
 
 /** Concatenate the takes' pictures with a uniform conform, lay the mix plan's tracks at their sample offsets, measure
  *  the joins, bring the loudness to target, encode. Returns the output path, the measured loudness and the joins. */
-export async function assemble(p: Production, timeline: Timeline, opts: AssembleOptions): Promise<{ file: string; loudness: { integrated: number; truePeak: number } | null; durationSeconds: number; joins: JoinMetric[] }> {
+export async function assemble(p: Production, timeline: Timeline, opts: AssembleOptions): Promise<{ file: string; loudness: { integrated: number; truePeak: number } | null; durationSeconds: number; joins: JoinMetric[]; /** the burn filter ran (subtitles asked for and an SRT given) */ subtitlesBurned: boolean }> {
   const dir = await tmpDir('cut');
+  try {
   const fps = opts.fps ?? CUT_FPS;
   const { width, height } = opts;
   // 1) conform each take's PICTURE to its window: same size (letterboxed), same fps, exactly its frame count, head
@@ -118,29 +120,69 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
   const loudArgs = stats ? `loudnorm=I=${target}:LRA=11:TP=-1:measured_I=${stats.integrated}:measured_LRA=${stats.range}:measured_TP=${stats.truePeak}:measured_thresh=${stats.threshold}:linear=true:print_format=summary` : `loudnorm=I=${target}:LRA=11:TP=-1`;
   const normalised = path.join(dir, 'normalised.mp4');
   await ffmpeg(['-i', mixed, '-af', loudArgs, '-ar', '48000', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', normalised], { timeoutMs: 30 * 60_000 });
-  // 5) final encode (burn-in subtitles when asked), faststart
+  // 5) final encode (burn-in subtitles when asked; the end-credit card when asked; the AI disclosure in the container
+  //    metadata), faststart
   await opts.onProgress?.('encoding the cut');
   const codec = opts.codec ?? 'h264';
   const vcodec = codec === 'h265' ? ['-c:v', 'libx265', '-preset', 'medium', '-crf', String(opts.crf ?? 20), '-tag:v', 'hvc1', '-pix_fmt', 'yuv420p'] : codec === 'prores' ? ['-c:v', 'prores_ks', '-profile:v', '3', '-pix_fmt', 'yuv422p10le'] : ['-c:v', 'libx264', '-preset', 'medium', '-crf', String(opts.crf ?? 18), '-pix_fmt', 'yuv420p'];
   const burn = opts.subtitles?.burn && opts.subtitles.burn !== 'none' && opts.subtitles.srt;
-  const vf = burn ? ['-vf', `subtitles='${opts.subtitles!.srt!.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")}':force_style='FontName=Noto Naskh Arabic,FontSize=22,Outline=1,Shadow=0,MarginV=36,Alignment=2'`] : [];
-  await ffmpeg(['-i', normalised, ...vf, ...vcodec, '-c:a', codec === 'prores' ? 'pcm_s16le' : 'copy', '-movflags', '+faststart', opts.outFile], { timeoutMs: 60 * 60_000 });
+  const subsFilter = (srt: string, style: string) => `subtitles='${srt.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")}':force_style='${style}'`;
+  const burnFilter = burn ? subsFilter(opts.subtitles!.srt!, 'FontName=Noto Naskh Arabic,FontSize=22,Outline=1,Shadow=0,MarginV=36,Alignment=2') : undefined;
+  const meta = opts.disclosure ? disclosureMetadataArgs(opts.disclosure, opts.title) : [];
+  const acodec = codec === 'prores' ? ['-c:a', 'pcm_s16le'] : ['-c:a', 'aac', '-b:a', '256k', '-ar', '48000'];
+  if (opts.credits?.lines.length) {
+    // THE END-CREDIT CARD: a dark (not black: the black-segment check stays meaningful) card of `seconds`, its lines
+    // rendered by the same subtitle renderer as burned-in subtitles, joined after the film with silence under it
+    const secs = Math.max(1, opts.credits.seconds);
+    const cardSrt = path.join(dir, 'credits.srt');
+    await fsp.writeFile(cardSrt, `1\n00:00:00,000 --> ${new Date(secs * 1000).toISOString().slice(11, 23).replace('.', ',')}\n${opts.credits.lines.map((l) => l || ' ').join('\n')}\n`, 'utf8');
+    const filter = [
+      `[0:v]${burnFilter ? `${burnFilter},` : ''}setsar=1[mv]`,
+      `[1:v]${subsFilter(cardSrt, 'FontName=Noto Sans,FontSize=18,Outline=0,Shadow=0,Alignment=5')},setsar=1,format=${codec === 'prores' ? 'yuv422p10le' : 'yuv420p'}[cv]`,
+      '[mv][0:a][cv][2:a]concat=n=2:v=1:a=1[v][a]',
+    ].join(';');
+    await ffmpeg(['-i', normalised, '-f', 'lavfi', '-i', `color=c=0x262626:s=${width}x${height}:r=${fps}:d=${secs}`, '-f', 'lavfi', '-t', String(secs), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000', '-filter_complex', filter, '-map', '[v]', '-map', '[a]', ...vcodec, ...acodec, ...meta, '-movflags', '+faststart', opts.outFile], { timeoutMs: 60 * 60_000 });
+  } else {
+    await ffmpeg(['-i', normalised, ...(burnFilter ? ['-vf', burnFilter] : []), ...vcodec, ...(codec === 'prores' ? ['-c:a', 'pcm_s16le'] : ['-c:a', 'copy']), ...meta, '-movflags', '+faststart', opts.outFile], { timeoutMs: 60 * 60_000 });
+  }
   const probe = await ffprobe(opts.outFile);
   const loud = await measureLoudness(opts.outFile);
-  await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   log.info({ production: p.id, duration: probe.durationSeconds, loud, joins: joins.filter((j) => j.judged).map((j) => ({ to: j.toShotId, ok: j.ok })) }, 'cut assembled');
-  return { file: opts.outFile, loudness: loud ? { integrated: loud.integrated, truePeak: loud.truePeak } : null, durationSeconds: probe.durationSeconds ?? timeline.total, joins };
+  return { file: opts.outFile, loudness: loud ? { integrated: loud.integrated, truePeak: loud.truePeak } : null, durationSeconds: probe.durationSeconds ?? timeline.total, joins, subtitlesBurned: Boolean(burnFilter) };
+  } finally {
+    // the work files (conformed parts, mixes: gigabytes for a long film) go whether the render finished, failed or
+    // was stopped — before, a failed or cancelled render left them behind
+    await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 /** EXPORT VALIDATION — the finished file is inspected, not trusted: picture and sound the same length to within a
  *  frame, the expected frame rate and size, timestamps starting at zero, no black stretch longer than a cut should
  *  have, and the mix plan's total matching the picture. A failed check fails the export. */
 export interface ExportValidation { ok: boolean; checks: Array<{ name: string; ok: boolean; value?: string | number; detail?: string }> }
-export async function validateExport(file: string, expect: { width: number; height: number; fps: number; durationSeconds: number; subtitlesBurned: boolean }): Promise<ExportValidation> {
+export async function validateExport(file: string, expect: { width: number; height: number; fps: number; durationSeconds: number; subtitlesBurned: boolean; /** what the render burned: the cue count, whether every cue is in the requested script, whether the burn filter ran */ subtitles?: { requested: 'ar' | 'en' | 'both'; cues: number; languageOk: boolean; burned: boolean }; codec?: 'h264' | 'h265' | 'prores'; disclosure?: string }): Promise<ExportValidation> {
   const checks: ExportValidation['checks'] = [];
   const p = await ffprobe(file);
   const push = (name: string, ok: boolean, value?: string | number, detail?: string) => checks.push({ name, ok, value, detail });
   push('decodable', Boolean(p.hasVideo), `${p.videoCodec ?? '?'} ${p.width}x${p.height}`);
+  // CODEC AND CONTAINER: what was asked for is what was written
+  if (expect.codec) {
+    const want = expect.codec === 'h265' ? 'hevc' : expect.codec;
+    push('codec', p.videoCodec === want, p.videoCodec ?? 'none', `expected ${want}`);
+    const container = expect.codec === 'prores' ? 'mov' : 'mp4';
+    push('container', (p.container ?? '').split(',').includes(container), p.container ?? 'unknown', `expected ${container}`);
+  }
+  // ONE picture and ONE sound: a second audio stream is duplicated audio in every player that mixes or switches them
+  try {
+    const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type:format_tags=comment', '-of', 'json', file]);
+    const j = JSON.parse(stdout) as { streams: Array<{ codec_type: string }>; format?: { tags?: Record<string, string> } };
+    const v = j.streams.filter((s) => s.codec_type === 'video').length; const a = j.streams.filter((s) => s.codec_type === 'audio').length;
+    push('stream-count', v === 1 && a === 1, `${v} video, ${a} audio`, 'exactly one picture and one sound stream');
+    if (expect.disclosure !== undefined) {
+      const comment = Object.entries(j.format?.tags ?? {}).find(([k]) => k.toLowerCase() === 'comment')?.[1] ?? '';
+      push('ai-disclosure', comment === expect.disclosure, comment || 'missing', 'container comment discloses AI generation (MiniMax H3 AUP)');
+    }
+  } catch (e) { push('stream-count', false, undefined, (e as Error).message); }
   push('size', p.width === expect.width && p.height === expect.height, `${p.width}x${p.height}`, `expected ${expect.width}x${expect.height}`);
   push('frame-rate', Math.abs((p.fps ?? 0) - expect.fps) < 0.01, p.fps, `expected ${expect.fps}`);
   push('audio-present', Boolean(p.hasAudio), p.audioCodec ?? 'none');
@@ -161,7 +203,17 @@ export async function validateExport(file: string, expect: { width: number; heig
     const found = [...stderr.matchAll(/black_start:([\d.]+) black_end:([\d.]+)/g)].map((m) => `${m[1]}–${m[2]}`);
     push('no-black-segments', found.length === 0, found.length, found.slice(0, 5).join(', '));
   } catch (e) { push('no-black-segments', false, undefined, (e as Error).message); }
-  if (expect.subtitlesBurned) push('subtitles', true, 'burned', 'checked visually in the review');
+  // BURNED SUBTITLES (QA Q4): the check is real — cues were written for the language asked for, every cue is in that
+  // language's script, and the render ran the burn filter. Nothing to burn, a wrong-language track or a render without
+  // the filter fails the export (their placement on screen is still looked at in the review)
+  if (expect.subtitlesBurned) {
+    const s = expect.subtitles;
+    if (!s) push('subtitles', false, 'unverified', 'subtitles were asked for but nothing reported what was burned');
+    else {
+      const problems = [s.cues === 0 ? 'no cue to burn' : '', !s.languageOk ? `cues not all in the ${s.requested} script` : '', !s.burned ? 'the burn filter did not run' : ''].filter(Boolean);
+      push('subtitles', problems.length === 0, `${s.cues} cue(s) burned (${s.requested})`, problems.length ? problems.join('; ') : 'cues written, language matches, burn filter ran');
+    }
+  }
   return { ok: checks.every((c) => c.ok), checks };
 }
 
@@ -180,6 +232,17 @@ export function cueTextIn(lang: 'ar' | 'en', d: { text?: string; textAr?: string
   const candidates = lang === 'ar' ? [d.textAr, d.text] : [d.text, d.textAr];
   const fits = (t?: string) => Boolean(t?.trim()) && (lang === 'ar' ? ARABIC_SCRIPT.test(t!) : LATIN_LETTER.test(t!) && !ARABIC_SCRIPT.test(t!));
   return candidates.find(fits)?.trim();
+}
+
+/** Whether a subtitle track is in the language it is labelled with: 'ar' — every cue in Arabic script; 'en' — every
+ *  cue Latin with no Arabic; 'both' — every cue in one of them and both present. False for an empty track. Pure. */
+export function cuesInLanguage(cues: Array<Pick<Cue, 'text'>>, lang: 'ar' | 'en' | 'both'): boolean {
+  if (!cues.length) return false;
+  const ar = (t: string) => ARABIC_SCRIPT.test(t);
+  const en = (t: string) => t.split('\n').some((line) => LATIN_LETTER.test(line) && !ARABIC_SCRIPT.test(line));
+  if (lang === 'ar') return cues.every((c) => ar(c.text));
+  if (lang === 'en') return cues.every((c) => LATIN_LETTER.test(c.text) && !ar(c.text));
+  return cues.every((c) => ar(c.text) || en(c.text)) && cues.some((c) => ar(c.text)) && cues.some((c) => en(c.text));
 }
 
 /** Subtitle cues from the shots' dialogue: where the audio timeline plays a recorded line, exactly there; else where

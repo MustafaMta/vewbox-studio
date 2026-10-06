@@ -19,8 +19,8 @@ interface GpuStatus { resource: string; mode: 'db' | 'memory'; loaded: { family:
 interface CommandEntry { id: number; at: string; sender: string; jobId: string | null; ok: boolean; studioVersion: number; commands: Array<{ name: string; touches: string[] }>; refused?: { failedAt: number; code: string; message: string }; replayed?: boolean }
 interface Metrics { hours: number; jobs: Array<{ type: string; completed: number; failed: number; cancelled: number; running: number; meanAttempts: number; p50Ms: number | null }> }
 
-const ENGINES: Array<{ key: keyof Omit<EngineStatus, 'gpu' | 'minimaxConfigured'>; name: string; does: string }> = [
-  { key: 'video', name: 'Video', does: 'Films each take' },
+const ENGINES: Array<{ key: keyof Omit<EngineStatus, 'gpu' | 'minimaxConfigured' | 'checks'>; name: string; does: string }> = [
+  { key: 'video', name: 'Video · MiniMax H3', does: 'Films each take, picture and sound' },
   { key: 'images', name: 'Pictures', does: 'Draws characters, plates and frames' },
   { key: 'story', name: 'Story', does: 'Writes ideas, stories and scripts' },
   { key: 'voice', name: 'Voices', does: 'Speaks the dialogue' },
@@ -53,6 +53,17 @@ export function EngineRoom({ health }: { health: Health | null }) {
           {ENGINES.map((e) => <li key={e.key}><EngineCard name={e.name} does={e.does} row={engines ? engines[e.key] : undefined} loading={!engines} /></li>)}
         </ul>
       )}
+      {/* the helpers the checks and the voices need: an offline one is named with its service's own reason, and the work
+          that needs it says "not measured" (a check) or waits (a voice) — never a pass */}
+      {engines?.checks && (
+        <>
+          <p className="t-label ctl-sub">Checks and voice helpers</p>
+          <ul className="ctl-engines ctl-helpers" role="list" aria-label={`${Object.values(engines.checks).filter((c) => c.ok).length} of ${Object.keys(engines.checks).length} helpers ready`}>
+            {Object.entries(engines.checks).map(([k, c]) => <li key={k}><EngineCard name={c.name} does={c.does} row={{ ok: c.ok, detail: c.detail, where: 'local' }} loading={false} /></li>)}
+          </ul>
+        </>
+      )}
+      <p className="t-meta ctl-span">Video by MiniMax H3, on this machine: the studio’s only video engine. <a className="link-quiet" href="/settings#licences">Licences</a></p>
       <GpuPanel engines={engines} gpu={gpu} />
 
       <TabBar ariaLabel="The engine record" idBase="er" current={tab} onSelect={setTab} className="ctl-er-tabs"

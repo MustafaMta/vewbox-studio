@@ -9,11 +9,14 @@ import { env } from '@/server/env';
 import { log as baseLog } from '@/server/log';
 import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
-import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, laneOf, reapStale, setProgress, suspend, type Lane } from '@/server/jobs/queue';
+import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, heartbeatIntervalMs, laneOf, reapStale, releaseForRestart, setProgress, suspend, type Lane } from '@/server/jobs/queue';
+import { releaseProcessGpuLeases } from '@/server/gpu/lease';
+import { tmpRoot } from '@/server/media/ffmpeg';
 import { waitRequestOf } from './handlers/wait';
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
+import { workDeadlineMs } from '@/server/jobs/work-deadline';
 import { isFencedWrite } from '@/server/jobs/fence';
 import { sweepJobFiles } from '@/server/jobs/outputs';
 import { settleDialogueReviews } from '@/server/jobs/reviews';
@@ -48,6 +51,10 @@ const LANES: Record<Lane, { limit: number; types: JobType[] }> = {
 };
 const running: Record<Lane, Set<string>> = { HOSTED: new Set(), LLM: new Set(), CPU: new Set(), GPU: new Set(), ORCHESTRATION: new Set() };
 let stopping = false;
+/** the lease of every running attempt, so a stopping worker can hand them back */
+const leases = new Map<string, { workerId: string; attempt: number }>();
+/** jobs a stopping worker handed back to the queue: never aborted, frozen at their next checkpoint */
+const handedBack = new Set<string>();
 
 /** How long a stopped handler that ignores its signal is waited for before the lane slot is freed anyway. */
 const ABORT_GRACE_MS = 5_000;
@@ -60,12 +67,17 @@ async function run(job: Job, lane: Lane) {
   // the lease this attempt holds: every write of the job's progress and outcome is fenced on it, so a worker that
   // lost the job (its lease went stale and another worker reclaimed it) can no longer overwrite the new attempt
   const lease = { workerId, attempt: job.attempts };
+  leases.set(job.id, lease);
   let leaseLost = false;
   // THE ATTEMPT'S SIGNAL (audit H5): aborted on cancel, at the deadline, or when the lease is lost; it kills ffmpeg
   // children, aborts provider requests and cancels ComfyUI prompts (src/server/jobs/context.ts)
   const jobCtrl = new AbortController();
-  const stop = (reason: unknown) => { if (!jobCtrl.signal.aborted) jobCtrl.abort(reason); };
-  const deadline = jobDeadline(job.type);
+  // a job handed back by a stopping worker (releaseForRestart) is never aborted: the abort would cancel the provider
+  // task (a ComfyUI prompt) the next attempt is meant to adopt; the attempt freezes at its next checkpoint instead
+  const stop = (reason: unknown) => { if (handedBack.has(job.id)) return; if (!jobCtrl.signal.aborted) jobCtrl.abort(reason); };
+  const frozen = () => new Promise<never>(() => {});
+  // the flat deadline, or longer when the job's own work asks for it (PLAN_SHOTS: its scenes at the model's speed)
+  const deadline = jobDeadline(job.type, process.env, await workDeadlineMs(job));
   const deadlineTimer = deadline.mode === 'off' ? undefined : setTimeout(() => {
     jl.warn({ deadlineMs: deadline.ms, mode: deadline.mode }, 'job passed its deadline');
     void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms }).catch(() => undefined);
@@ -73,7 +85,7 @@ async function run(job: Job, lane: Lane) {
   }, deadline.ms);
   // a lost lease (CONFLICT) stops the attempt; a transient database error is retried, never a cancellation (audit H6)
   const stopHeartbeat = startHeartbeat({
-    beat: () => heartbeat(job.id, workerId), intervalMs: 20_000,
+    beat: () => heartbeat(job.id, workerId, job.attempts), intervalMs: heartbeatIntervalMs(),
     onCancel: () => { cancelRequested = true; stop(new JobCancelled()); },
     onLost: () => { jl.warn('heartbeat: another worker owns this job now; stopping this attempt'); leaseLost = true; cancelRequested = true; stop(new LeaseLost()); },
     onError: (e, failures) => jl.warn({ err: (e as Error).message, failures }, 'heartbeat failed; retrying (the job keeps running)'),
@@ -88,7 +100,8 @@ async function run(job: Job, lane: Lane) {
   await record('start run', async () => { runId = job.wakes ? await resumeRun(job, agent.id) : await startRun(job, agent.id); });
   // THE ATTEMPT'S ROW (step 15): one row per attempt in job_attempts — who, when, how it ended, why it failed
   await record('start attempt', () => startAttempt(job, workerId, runId));
-  const attemptEnded = (outcome: Parameters<typeof finishAttempt>[2]['outcome'], extra: { failureClass?: FailureClass; failureMessage?: string } = {}) => record('finish attempt', () => finishAttempt(job.id, job.attempts, { outcome, ms: Date.now() - t0, ...extra }));
+  // a handed-back attempt was closed as INTERRUPTED by releaseForRestart; nothing it does afterwards rewrites that
+  const attemptEnded = (outcome: Parameters<typeof finishAttempt>[2]['outcome'], extra: { failureClass?: FailureClass; failureMessage?: string } = {}) => (handedBack.has(job.id) ? Promise.resolve() : record('finish attempt', () => finishAttempt(job.id, job.attempts, { outcome, ms: Date.now() - t0, ...extra })));
   const label = JOB_LABELS[job.type] ?? job.type;
   // THE RUN'S PHASES (B9): startRun recorded QUEUED and PREPARING; every later progress report that moves the job
   // to another phase (GENERATING, CHECKING, FINISHING) is appended to the run as a timed event and announced, so
@@ -108,8 +121,8 @@ async function run(job: Job, lane: Lane) {
     // without a parent run (recording failed) the step still runs, unrecorded, rather than failing the job
     delegate: runId ? makeDelegator(job, runId, jl) : (_agentId, _purpose, fn) => fn((_id, f) => f()),
     activity: (kind, message, data, opts) => studioEvent({ departmentId: opts?.departmentId ?? agent.department, agentId: opts?.agentId ?? agent.id, productionId: opts?.productionId ?? job.productionId, kind, message, data, jobId: job.id }),
-    checkpoint: async () => { if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); },
-    progress: async (status, progress, extra) => { if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; stop(new LeaseLost()); throw new LeaseLost(); } await phaseChanged(status, progress); },
+    checkpoint: async () => { if (handedBack.has(job.id)) return frozen(); if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); },
+    progress: async (status, progress, extra) => { if (handedBack.has(job.id)) return frozen(); if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; stop(new LeaseLost()); throw new LeaseLost(); } await phaseChanged(status, progress); },
     event: (level, message, data) => addEvent(job.id, level, message, data),
     gpu: gpuLease,
     signal: jobCtrl.signal,
@@ -203,7 +216,22 @@ async function run(job: Job, lane: Lane) {
     // later attempt's files are never touched
     await record('sweep this attempt', async () => { await sweepJobFiles(job.id, { attempts: (a) => a !== undefined && a <= job.attempts, reason: `attempt ${job.attempts} ended` }); });
     running[lane].delete(job.id);
+    leases.delete(job.id);
   }
+}
+
+/** Remove entries of the work folder untouched for `maxAgeMs` (default 12 h). */
+async function sweepStaleTmp(maxAgeMs = 12 * 3600_000): Promise<void> {
+  const root = tmpRoot();
+  const entries = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
+  let removed = 0;
+  for (const e of entries) {
+    const abs = path.join(root, e.name);
+    const st = await fsp.stat(abs).catch(() => null);
+    if (!st || Date.now() - st.mtimeMs < maxAgeMs) continue;
+    await fsp.rm(abs, { recursive: true, force: true }).then(() => { removed++; }, () => undefined);
+  }
+  if (removed) log.info({ root, removed }, 'removed old work folders (left by stopped or killed workers)');
 }
 
 let lastReap = 0;
@@ -230,21 +258,40 @@ async function main() {
   // bootstrap() migrates, seeds an empty database and syncs the organisation (once: audit B5 measured a second sync
   // here, 106–211 ms per start)
   await bootstrap();
+  // work folders a killed worker left behind (an export's conformed parts, a take's downloads: gigabytes) are removed
+  // once they are older than any job may run (the longest deadline is 3 h; an orchestrator's work folders are small)
+  void sweepStaleTmp().catch((e: Error) => log.warn({ err: e.message }, 'could not sweep old work folders'));
   syncRegistry().catch((e) => log.warn({ err: (e as Error).message }, 'registry sync failed'));
   const loop = setInterval(() => { void tick(); }, 1500);
   void tick();
+  // A STOPPING WORKER (audit M7): no new claims; the running jobs get a short grace to finish; whatever still runs
+  // is handed back to the queue at once (releaseForRestart: QUEUED, the attempt not counted, closed as INTERRUPTED,
+  // provider tasks left running for the next attempt to adopt) and this process's GPU lease rows are released — the
+  // next worker continues immediately instead of waiting out a 90 s lease and burning an attempt.
   const shutdown = async (sig: string) => {
     if (stopping) return;
     stopping = true;
-    log.info({ sig }, 'worker stopping; waiting for running jobs');
+    const graceMs = Number(process.env.WORKER_SHUTDOWN_GRACE_MS ?? 10_000);
+    log.info({ sig, graceMs }, 'worker stopping; waiting briefly for running jobs, then handing the rest back');
     clearInterval(loop);
-    const deadline = Date.now() + 25_000;
-    while (Object.values(running).some((s) => s.size > 0) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 500));
+    const deadline = Date.now() + (Number.isFinite(graceMs) ? graceMs : 10_000);
+    while (Object.values(running).some((s) => s.size > 0) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 250));
+    // a crash is not a restart: after an uncaught exception the running jobs are NOT handed back (one of them may be
+    // what crashed the worker — handing it back for free would retry it forever); their leases go stale and the
+    // reclaim counts the attempt, as for a killed worker
+    for (const [jobId, lease] of sig === 'uncaughtException' ? [] : leases) {
+      handedBack.add(jobId);
+      try { await releaseForRestart(jobId, lease, `worker ${workerId} stopped (${sig})`); log.warn({ jobId, attempt: lease.attempt }, 'running job handed back to the queue'); }
+      catch (e) { log.error({ jobId, err: (e as Error).message }, 'could not hand a running job back; its lease will expire'); }
+    }
+    await releaseProcessGpuLeases(env().WORKER_ID || `${os.hostname()}-${process.pid}`).catch((e: Error) => log.warn({ err: e.message }, 'could not release the GPU lease rows; they expire on their own'));
     await closeDb();
     process.exit(0);
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
+  // a supervisor that cannot send signals (Windows: a child process is terminated, never signalled) asks over IPC
+  process.on('message', (m) => { if (m === 'shutdown') void shutdown('IPC'); });
   // a stray rejection (a heartbeat after a reset, a provider stream closing late) is logged, not fatal
   process.on('unhandledRejection', (e) => log.error({ err: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack?.split('\n').slice(0, 5).join(' | ') : undefined }, 'unhandled rejection'));
   process.on('uncaughtException', (e) => { log.fatal({ err: e.message, stack: e.stack?.split('\n').slice(0, 5).join(' | ') }, 'uncaught exception; stopping'); void shutdown('uncaughtException'); });

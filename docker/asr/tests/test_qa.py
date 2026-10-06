@@ -270,3 +270,48 @@ def test_scaled_size_keeps_even_dimensions():
     assert Q.scaled_size(1920, 1080, 960) == (960, 540)
     assert Q.scaled_size(1280, 736, 960) == (960, 552)
     assert Q.scaled_size(640, 360, 960) == (640, 360)
+
+
+def test_faces_in_image_reports_boxes_in_the_pictures_own_pixels(monkeypatch):
+    """A 928x1664 canonical image is detected on a copy scaled to 1600 px; the boxes come back in its own pixels,
+    largest face first (the derived face reference is cut from them)."""
+    class FakeCv2:
+        IMREAD_COLOR = 1
+        INTER_AREA = 3
+
+        @staticmethod
+        def imread(path, flag):
+            return np.zeros((1664, 928, 3), dtype=np.uint8)
+
+        @staticmethod
+        def resize(img, size, interpolation=None):
+            w, h = size
+            return np.zeros((h, w, 3), dtype=np.uint8)
+
+    class FakeTools:
+        cv2 = FakeCv2
+
+        def faces(self, img):
+            assert img.shape[0] == 1600  # detected on the scaled copy
+            row = lambda x, y, w, h, sc: [x, y, w, h] + [0] * 10 + [sc]
+            return np.asarray([row(10, 10, 20, 20, 0.7), row(400, 150, 90, 120, 0.95)], dtype=np.float32)
+
+    monkeypatch.setattr(Q, "identity_tools", lambda: FakeTools())
+    out = Q.faces_in_image("canonical.png")
+    s = 1600 / 1664
+    assert out["width"] == 928 and out["height"] == 1664 and out["available"] is True
+    assert out["faces"][0]["box"] == [round(400 / s, 1), round(150 / s, 1), round(90 / s, 1), round(120 / s, 1)]
+    assert out["faces"][0]["score"] == 0.95 and len(out["faces"]) == 2
+
+
+def test_faces_in_image_refuses_an_undecodable_picture(monkeypatch):
+    class FakeCv2:
+        IMREAD_COLOR = 1
+
+        @staticmethod
+        def imread(path, flag):
+            return None
+
+    monkeypatch.setattr(Q, "identity_tools", lambda: type("T", (), {"cv2": FakeCv2})())
+    with pytest.raises(Q.QaInputError):
+        Q.faces_in_image("broken.png")

@@ -20,6 +20,7 @@ vi.mock('@/server/providers/minimax', () => ({
 }));
 vi.mock('@/server/providers/comfy', () => ({
   health: async () => ({ ok: true }),
+  healthWithin: async () => ({ ok: true }),
   uploadInput: async (file: string) => `up-${path.basename(file)}`,
   run: async (graph: Record<string, { class_type: string; inputs: Record<string, unknown> }>) => { fake.graphs.push(graph); return { promptId: 'p1', outputs: { '16': { video: [{ filename: 'h3.mp4', subfolder: 'vewbox', type: 'output' }] } }, ms: 10, engineMs: 9, workflowVersion: 'wv' }; },
   firstOutput: (outputs: Record<string, { video?: unknown[] }>, kind: string) => (kind === 'video' ? outputs['16']?.video?.[0] : undefined),
@@ -31,6 +32,9 @@ vi.mock('@/server/providers/comfy', () => ({
   listModels: async () => { const { MODELS } = await import('@/server/workflows/index'); return Object.values(MODELS).filter((m) => !fake.missingModels.includes(m)); },
 }));
 vi.mock('@/server/media/ffmpeg', () => ({ tmpDir: async (prefix: string) => fs.mkdtemp(path.join(os.tmpdir(), `vb-${prefix}-`)) }));
+// the engines' bytes here are placeholders: the output inspection (corrupt clips) is tested on real files in
+// tests/worker/engine-faults.test.ts
+vi.mock('@/server/jobs/evidence', () => ({ videoProblem: async () => null, rejectedTaskIds: async () => [], preserveFailedOutput: async () => undefined, rejectTaskOutput: async () => {} }));
 
 import { generateVideo, hostedVideoProblem } from '@/server/providers/video';
 
