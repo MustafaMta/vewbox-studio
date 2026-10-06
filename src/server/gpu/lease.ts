@@ -27,8 +27,10 @@ import { JOB_RESOURCE, JOB_TYPES } from '@/domain/jobs';
 
 /** LIPSYNC: the lip-sync corrector (docker/lipsync, LatentSync 1.6) — its own family so that taking the card for it
  *  unloads ComfyUI (H3 may still be resident after a VIDEO job; a VIDEO→VIDEO hand-over unloads nothing). */
-export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM' | 'LIPSYNC';
-export const GPU_FAMILIES: readonly GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM', 'LIPSYNC'];
+/** SFX: MOSS-SoundEffect (the sfx-moss service), ≈ 20 GB loaded — its own family so a sound effect never shares the card
+ *  with a voice engine of the TTS family. */
+export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM' | 'LIPSYNC' | 'SFX';
+export const GPU_FAMILIES: readonly GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM', 'LIPSYNC', 'SFX'];
 
 /** 'normal': the studio's own work (worker jobs, the web). 'background': benchmarks and evaluations through
  *  scripts/gpu-hold.ts — admitted only when no normal request waits (the films first), never preempting a holder,

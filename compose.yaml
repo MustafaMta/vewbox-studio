@@ -58,6 +58,7 @@ x-app-env: &app-env
   TTS_MOSS_URL: ${TTS_MOSS_URL:-http://tts-moss:8023}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   LIPSYNC_URL: ${LIPSYNC_URL:-http://lipsync:8040}
+  SFX_URL: ${SFX_URL:-http://sfx-moss:8024}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_PRETTY: ${LOG_PRETTY:-0}
@@ -276,6 +277,25 @@ services:
     ports: [ "127.0.0.1:${TTS_MOSS_PORT:-8023}:8023" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8023/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+    stop_grace_period: 30s
+
+  # MOSS-SoundEffect (OpenMOSS, 8 B, Apache-2.0): ambience, crowds, footsteps, doors and cinematic effects OUTSIDE the
+  # song (PRODUCTION-STACK-DIRECTIVE 2026-10-06 §2–3). The tts-moss image (same architecture and audio tokenizer) with
+  # BENCH_ENGINE=sfx: POST /sfx { prompt, duration, seed } -> WAV. Weights: group sfx-moss-soundeffect (15.6 GB) + the
+  # MOSS audio tokenizer of eval-voice-moss. GPU family SFX (src/server/gpu/lease.ts): ≈ 20 GB loaded like MOSS-TTS;
+  # idle it holds nothing (lazy load), /unload drops it. Profile `sfx`.
+  sfx-moss:
+    logging: *logging
+    image: vewbox/tts-moss:${CODE_VERSION:-dev}
+    profiles: ["sfx"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, BENCH_ENGINE: sfx }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
+    command: ["python", "-m", "uvicorn", "vewbox_bench_app:app", "--host", "0.0.0.0", "--port", "8024", "--workers", "1"]
+    ports: [ "127.0.0.1:${SFX_PORT:-8024}:8024" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8024/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
   # the bench's MOSS arm: the same image (built by tts-moss) on the bench port

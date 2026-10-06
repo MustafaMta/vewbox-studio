@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ACE_KEYS, aceLanguage, aceStepSong, bpmFromCaption, keyFromCaption } from '@/server/workflows/music';
+import { ACE_KEYS, ACE_VARIANTS, aceLanguage, aceStepSong, bpmFromCaption, keyFromCaption } from '@/server/workflows/music';
+import { MODELS } from '@/server/workflows';
 import { chooseAceVariant } from '@/worker/handlers/music';
 
 describe('ACE-Step workflow inputs', () => {
@@ -43,6 +44,10 @@ describe('ACE-Step workflow inputs', () => {
 });
 
 describe('chooseAceVariant', () => {
+  it('the variant table names the same files as MODELS', () => {
+    expect(ACE_VARIANTS['xl-sft']).toMatchObject({ dit: MODELS.aceDitSft, lm: MODELS.aceLm4b });
+    expect(ACE_VARIANTS['xl-turbo']).toMatchObject({ dit: MODELS.aceDit, lm: MODELS.aceClip });
+  });
   const dms = ['acestep_v1.5_xl_turbo_bf16.safetensors', 'acestep_v1.5_xl_sft_bf16.safetensors'];
   const tes = ['qwen_0.6b_ace15.safetensors', 'qwen_1.7b_ace15.safetensors', 'qwen_4b_ace15.safetensors'];
   it('XL-SFT when its DiT and the 4B LM are installed', () => {

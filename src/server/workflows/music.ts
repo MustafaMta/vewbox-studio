@@ -8,9 +8,11 @@ import { MODELS, seed32, type Graph } from './index';
  *  a draft or a fallback while the SFT weights are missing (with the 1.7B LM). Settings are the official ComfyUI templates'
  *  (Comfy-Org/workflow_templates audio_ace_step1_5_xl_sft / audio_ace_step_1_5_split, read 2026-10-06). */
 export type AceVariant = 'xl-sft' | 'xl-turbo';
+// file names written out (not read from MODELS): workflows/index.ts re-exports this module, so MODELS is not yet
+// initialised while this module evaluates; a test keeps the two in step
 export const ACE_VARIANTS: Record<AceVariant, { dit: string; lm: string; steps: number; cfg: number; shift: number; lmCfg: number; temperature: number; topP: number; label: string }> = {
-  'xl-sft': { dit: MODELS.aceDitSft, lm: MODELS.aceLm4b, steps: 50, cfg: 7, shift: 3, lmCfg: 2, temperature: 0.85, topP: 1.0, label: 'ACE-Step 1.5 XL-SFT + 5Hz LM 4B' },
-  'xl-turbo': { dit: MODELS.aceDit, lm: MODELS.aceClip, steps: 8, cfg: 1, shift: 3, lmCfg: 2, temperature: 0.85, topP: 0.9, label: 'ACE-Step 1.5 XL turbo + 5Hz LM 1.7B' },
+  'xl-sft': { dit: 'acestep_v1.5_xl_sft_bf16.safetensors', lm: 'qwen_4b_ace15.safetensors', steps: 50, cfg: 7, shift: 3, lmCfg: 2, temperature: 0.85, topP: 1.0, label: 'ACE-Step 1.5 XL-SFT + 5Hz LM 4B' },
+  'xl-turbo': { dit: 'acestep_v1.5_xl_turbo_bf16.safetensors', lm: 'qwen_1.7b_ace15.safetensors', steps: 8, cfg: 1, shift: 3, lmCfg: 2, temperature: 0.85, topP: 0.9, label: 'ACE-Step 1.5 XL turbo + 5Hz LM 1.7B' },
 };
 
 export interface SongInput { caption: string; lyrics: string; seconds: number; seed?: number; language?: string; bpm?: number; instrumental?: boolean; filenamePrefix?: string; variant?: AceVariant }
