@@ -156,7 +156,13 @@ async function run(job: Job, lane: Lane) {
       return;
     }
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
-    await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
+    // the heartbeat stops BEFORE the result is written: a beat landing just after the job became COMPLETED found it no
+    // longer running and flagged the lease lost, so a completed attempt was recorded LEASE_LOST (found by the full
+    // worker suite under load). The outcome is the fenced write's own answer.
+    stopHeartbeat();
+    let written = false;
+    await record('complete', async () => { written = await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease); });
+    leaseLost = !written;
     await attemptEnded(leaseLost ? 'LEASE_LOST' : outcome);
     if (leaseLost) {
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before completion: another worker reclaimed the job; this attempt’s result was discarded', ms }));

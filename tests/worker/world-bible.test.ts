@@ -93,9 +93,11 @@ describe('World Bible + audio timeline on the test database', () => {
         shot(id('e1s2'), id('e1-sc1'), 2, { characterIds: [ids.c1, ids.c2], takes: [takeOf(id('t12'), A.v12, 158 / 24, { trimStartFrames: 22, relation: 'CONTINUATION', continuesTakeId: id('t11'), params: { timeline: { newFrames: 100 } } })], selectedTakeId: id('t12'), continuity: { version: 1, characters: [], props: [], environment: { timeOfDay: 'MORNING' }, camera: {}, relationToPrevious: 'CONTINUATION' } }),
         shot(id('e1s3'), id('e1-sc2'), 1, { takes: [takeOf(id('t13'), A.v13, 5)], selectedTakeId: id('t13'), continuity: { version: 1, characters: [], props: [], environment: { timeOfDay: 'NIGHT' }, camera: {}, relationToPrevious: 'STORY_TRANSITION' } }),
       ] };
-    const e2: Production = { ...e1, id: ids.e2, episodeNumber: 2, title: 'Episode Two', stage: 'STORY', castIds: [ids.c1], locationIds: [ids.L],
-      scenes: [{ id: id('e2-sc1'), number: 1, title: 'Back', locationId: ids.L, timeOfDay: 'MORNING', characterIds: [ids.c1], beats: [] }, { id: id('e2-sc2'), number: 2, title: 'Late', locationId: ids.L, timeOfDay: 'NIGHT', characterIds: [ids.c1], beats: [] }],
-      shots: [shot(id('e2s1'), id('e2-sc1'), 1, {}), shot(id('e2s2'), id('e2-sc2'), 1, {})] };
+    // e2's morning shot is Ada alone; its night shot has Ada and Bo, as the frame episode 1 establishes (a5a8ff14: an
+    // established frame is the place's reference only for a shot that shows everyone in it)
+    const e2: Production = { ...e1, id: ids.e2, episodeNumber: 2, title: 'Episode Two', stage: 'STORY', castIds: [ids.c1, ids.c2], locationIds: [ids.L],
+      scenes: [{ id: id('e2-sc1'), number: 1, title: 'Back', locationId: ids.L, timeOfDay: 'MORNING', characterIds: [ids.c1], beats: [] }, { id: id('e2-sc2'), number: 2, title: 'Late', locationId: ids.L, timeOfDay: 'NIGHT', characterIds: [ids.c1, ids.c2], beats: [] }],
+      shots: [shot(id('e2s1'), id('e2-sc1'), 1, {}), shot(id('e2s2'), id('e2-sc2'), 1, { characterIds: [ids.c1, ids.c2] })] };
     const s0 = await read();
     await write({ ...s0,
       shows: [...s0.shows, { ...base.shows[0], id: ids.show, title: `World Test ${TAG}`, titleAr: undefined, coverAssetId: undefined, posterAssetId: undefined, castIds: [ids.c1, ids.c2], locationIds: [ids.L, ids.street], bible: { worldRules: ['Nobody pays at the pharmacy.'], relationships: ['Ada is Bo’s aunt.'] }, createdAt: NOW, updatedAt: NOW }],
@@ -221,12 +223,13 @@ describe('World Bible + audio timeline on the test database', () => {
     const pin = await m.world.ensurePin(s, prod(s, ids.e2), { by: 'test' });
     expect(pin).toMatchObject({ action: 'PINNED', view: { pinned: true } });
     const established = pin.view.revision.bible.locations.find((l) => l.locationId === ids.L)!.plates.find((x) => x.role === 'ESTABLISHED')!;
-    // morning: the established frame of the morning; night (no night plate): the established frame, the light set by the prompt
-    for (const shotId of [id('e2s1'), id('e2s2')]) {
+    // night, Ada and Bo (no night plate): the established frame (it shows both), the light set by the prompt; morning,
+    // Ada alone: not the frame that shows Bo too (he would be drawn again) — the drawn master plate
+    for (const [shotId, expected] of [[id('e2s2'), { assetId: established.assetId, role: 'ESTABLISHED' }], [id('e2s1'), { role: 'MASTER' }]] as const) {
       const sh = prod(s, ids.e2).shots.find((x) => x.id === shotId)!;
       const w = await m.world.worldForShot(s, prod(s, ids.e2), sh, { by: 'test' });
-      expect(w.read.location).toMatchObject({ locationId: ids.L, assetId: established.assetId, role: 'ESTABLISHED' });
-      expect(m.pack.resolveShotPack(w.state, prod(s, ids.e2), sh, { backend: 'local' }).location?.assetId).toBe(established.assetId);
+      expect(w.read.location).toMatchObject({ locationId: ids.L, ...expected });
+      expect(m.pack.resolveShotPack(w.state, prod(s, ids.e2), sh, { backend: 'local' }).location?.assetId).toBe(w.read.location!.assetId);
       await m.store.recordWorldRead({ productionId: ids.e2, read: w.read, jobType: 'GENERATE_TAKE', shotId, takeId: `take-of-${shotId}` });
     }
     const reads = await m.store.worldReads({ takeId: `take-of-${id('e2s2')}` });

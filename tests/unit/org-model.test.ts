@@ -101,12 +101,13 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 13)', () => {
+describe('the studio organisation (ORG_VERSION 14)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
     // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first
     //     take) and the drift-check step (the take's place measured against its plate)
-    expect(ORG_VERSION).toBe(13);
+    // 14: the Lip-Sync Corrector (Video): CORRECT_LIPSYNC with the video.lipsync_correct tool (directive 2026-10-06 §16)
+    expect(ORG_VERSION).toBe(14);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -115,7 +116,8 @@ describe('the studio organisation (ORG_VERSION 13)', () => {
     for (const d of DEPARTMENTS) expect(AGENTS.find((a) => a.id === d.directorId)!.department, `${d.id} director`).toBe(d.id);
     // 35: World Continuity staffed (the World Bible: sync, pin, per-take read, established frames) and v8's five
     // research-driven Auto Idea development agents in Story Development
-    expect(AGENTS).toHaveLength(35);
+    // 36: the Lip-Sync Corrector (v14)
+    expect(AGENTS).toHaveLength(36);
     expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations', 'establish-here', 'drift-check']);
   });
 

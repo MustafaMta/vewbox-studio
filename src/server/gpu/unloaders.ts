@@ -3,6 +3,7 @@ import { log } from '../log';
 import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
 import { unloadDesign } from '../providers/voice-design';
+import { unloadLipsync } from '../providers/lipsync';
 import type { GpuFamily } from './lease';
 
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
@@ -20,12 +21,21 @@ export const localOllamaBase = (): string | undefined => {
   return url && /:11434(\/|$)/.test(url) ? url.replace(/\/v1\/?$/, '').replace(/\/$/, '') : undefined;
 };
 
-/** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. */
+/** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. EVERY loaded model is unloaded (Ollama's
+ *  /api/ps), not only the studio's configured one: a benchmark or a second model left resident kept ~20–30 GB of
+ *  VRAM and host RAM under the next family (2026-10-06: a Qwen-Image frame job choked ComfyUI after an LLM batch). */
 export async function unloadOllama(): Promise<void> {
   const base = localOllamaBase();
-  const model = env().OPENAI_COMPATIBLE_MODEL;
-  if (!base || !model) return;
-  try { await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ }
+  if (!base) return;
+  let loaded: string[] = [];
+  try {
+    const r = await fetch(`${base}/api/ps`, { signal: AbortSignal.timeout(5_000) });
+    if (r.ok) loaded = ((await r.json()) as { models?: Array<{ name?: string; model?: string }> }).models?.map((m) => m.name ?? m.model ?? '').filter(Boolean) ?? [];
+  } catch { /* not running, or an older Ollama: fall back to the configured model */ }
+  const models = new Set([...loaded, env().OPENAI_COMPATIBLE_MODEL].filter((m): m is string => Boolean(m)));
+  for (const model of models) {
+    try { await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ }
+  }
 }
 
 const extra: Engine[] = [];
@@ -33,11 +43,14 @@ const extra: Engine[] = [];
 /** The engines the lease unloads, in order. */
 export function engines(): Engine[] {
   return [
-    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: () => comfy.free() },
+    // ComfyUI's queue drains first: a prompt nobody holds the lease for must not run beside the next family's model
+    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: async () => { const w = await comfy.waitIdle(Number(process.env.GPU_COMFY_DRAIN_MS ?? 20 * 60_000)); if (w.promptIds.length) await (await import('../jobs/queue')).recordMetric('gpu.comfy_drain_ms', w.waitedMs, 'ms', { idle: w.idle, prompts: w.promptIds.length }).catch(() => undefined); await comfy.free(); } },
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
     { name: 'ollama', serves: ['LLM'], unload: unloadOllama },
+    // the lip-sync corrector (docker/lipsync); it also drops its weights after every request (LIPSYNC_KEEP_LOADED=0)
+    { name: 'lipsync', serves: ['LIPSYNC'], unload: unloadLipsync },
     ...extra,
   ];
 }

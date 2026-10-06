@@ -164,6 +164,23 @@
         { "repo": "opencv/face_detection_yunet", "file": "face_detection_yunet_2023mar.onnx", "folder": "identity", "bytes": 232589, "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4", "license": "MIT" },
         { "repo": "opencv/face_recognition_sface", "file": "face_recognition_sface_2021dec.onnx", "folder": "identity", "bytes": 38696353, "sha256": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79", "license": "Apache-2.0" }
       ]
+    },
+    {
+      "name": "lipsync-latentsync-1.6",
+      "purpose": "The lip-sync corrector (docker/lipsync, compose profile `lipsync`; docs/MODELS.md): LatentSync 1.6 U-Net (ByteDance, CreativeML Open RAIL++-M per the model card, read 2026-10-06: commercial use allowed, the Attachment A use restrictions must pass downstream into any terms of use), Whisper tiny (OpenAI, MIT; the file in the LatentSync repo is byte-identical to OpenAI's tiny.pt, whose URL carries this sha256) and the SD VAE ft-MSE (Stability AI, MIT per the card, read 2026-10-06). Code: github bytedance/LatentSync @ a229c39 (Apache-2.0), fetched by the image build. NOT fetched: the repo's auxiliary/ files (sfd_face.pth, syncnet_v2.model, vgg16, i3d, koniq, vit_g: unstated or third-party licences) and no InsightFace pack (non-commercial). Needs qa-identity (YuNet, SFace) and the Face Landmarker (service_fetched below). Revisions, bytes and sha256 from the Hugging Face API (LFS oids) on 2026-10-06. Not in the default MODEL_GROUPS: MODEL_GROUPS=lipsync-latentsync-1.6.",
+      "files": [
+        { "repo": "ByteDance/LatentSync-1.6", "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353", "file": "latentsync_unet.pt", "folder": "lipsync/latentsync-1.6", "bytes": 5072222488, "sha256": "0a478e89eb660f82da4c35dbdde8a5adfb27f99d1b4e50edd03729e1e98316d3", "license": "CreativeML Open RAIL++-M (card: openrail++)" },
+        { "repo": "ByteDance/LatentSync-1.6", "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353", "file": "whisper/tiny.pt", "folder": "lipsync/latentsync-1.6/whisper", "bytes": 75572083, "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9", "license": "MIT (OpenAI Whisper tiny, byte-identical to openai's release)" },
+        { "repo": "stabilityai/sd-vae-ft-mse", "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493", "file": "config.json", "folder": "lipsync/sd-vae-ft-mse", "bytes": 547, "sha256": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e", "license": "MIT" },
+        { "repo": "stabilityai/sd-vae-ft-mse", "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493", "file": "diffusion_pytorch_model.safetensors", "folder": "lipsync/sd-vae-ft-mse", "bytes": 334643276, "sha256": "a1d993488569e928462932c8c38a0760b874d166399b14414135bd9c42df5815", "license": "MIT" }
+      ]
+    },
+    {
+      "name": "lipsync-eval-syncnet",
+      "purpose": "EVALUATION ONLY: LatentSync 1.6's StableSyncNet (CreativeML Open RAIL++-M, same card as the corrector), a sync-confidence scorer for before/after comparisons of corrected takes. Not used by the studio's pipeline. 1.6 GB; fetch only when an evaluation uses it: MODEL_GROUPS=lipsync-eval-syncnet.",
+      "files": [
+        { "repo": "ByteDance/LatentSync-1.6", "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353", "file": "stable_syncnet.pt", "folder": "lipsync/latentsync-1.6", "bytes": 1605328746, "sha256": "77678d13861a02d6e83d0b169962175b6266be773f1f6f85fda2b0182e225118", "license": "CreativeML Open RAIL++-M (card: openrail++)" }
+      ]
     }
   ],
   "service_fetched": {

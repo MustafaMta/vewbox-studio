@@ -34,7 +34,7 @@ export async function gpuStatus(opts: { resource?: string; unloads?: number } = 
     resource,
     mode: process.env.GPU_LEASE === 'memory' ? 'memory' : 'db',
     loaded: { family: state[0]?.loadedFamily ?? null, since: state[0]?.updatedAt ?? null },
-    holders: liveRows.filter((r) => r.state === 'HOLDING').map((r) => ({ holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, grantedAt: r.grantedAt, expiresAt: r.expiresAt })),
+    holders: liveRows.filter((r) => r.state === 'HOLDING' || r.state === 'SWITCHING').map((r) => ({ switching: r.state === 'SWITCHING', holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, grantedAt: r.grantedAt, expiresAt: r.expiresAt })),
     waiting: liveRows.filter((r) => r.state === 'WAITING').map((r, i) => ({ holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, expiresAt: r.expiresAt, position: i + 1 })),
     unloads: unloads.map((m) => { const l = (m.labels ?? {}) as Record<string, unknown>; return { at: m.at, engine: String(l.engine ?? '?'), from: String(l.from ?? 'unknown'), to: String(l.to ?? '?'), ms: m.value, ok: l.ok !== false, jobId: m.jobId }; }),
     at: now,

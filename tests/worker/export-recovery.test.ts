@@ -30,7 +30,7 @@ let productionId = '';
 interface Worker { child: ChildProcess; exited: Promise<number | null> }
 function startWorker(name: string, env: Record<string, string> = {}): Worker {
   const out = fs.openSync(path.join(logDir, `${name}.log`), 'a');
-  const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], { cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true, env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: work, FIXTURE_TAKE: '0', ...env } });
+  const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], { cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true, env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: work, FIXTURE_TAKE: '0', WORKER_ONLY_PRODUCTIONS: productionId, ...env } });
   children.push(child);
   return { child, exited: new Promise((r) => child.once('exit', (c) => r(c))) };
 }
@@ -57,7 +57,7 @@ async function filesOf(jobId: string) {
 }
 
 beforeAll(async () => {
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: new Date().toISOString(), lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
+  // the workers this file starts serve ONLY its production (WORKER_ONLY_PRODUCTIONS)
   const [prod] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Export harness', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 24, brief: { mode: 'MANUAL', text: 'fixture' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = prod.production.id;
   const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
