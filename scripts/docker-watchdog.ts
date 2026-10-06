@@ -22,7 +22,7 @@
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { attachModelStore, dockerDesktopExe, modelStoreConfig, planWatchdog, probeDb, probeEngine, probeModelStore, probePortListening, probeProcesses, probeStranded, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
+import { attachModelStore, dockerDesktopExe, modelStoreConfig, planWatchdog, probeDb, probeEngine, probeModelMounts, probeModelStore, probePortListening, probeProcesses, probeStranded, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
 
 const argv = process.argv.slice(2);
 const has = (f: string) => argv.includes(f);
@@ -54,7 +54,7 @@ async function pass(): Promise<boolean> {
     secretsSocketExists: secretsSocketExists(), dbHealthy: engineOk ? await probeDb() : false,
     workerRunning: procs.worker > 0, workerAliveAgeMs: workerAliveAgeMs(), workerWanted,
     containment: procs.containment, web: { port: webPort, healthy: await probeWebHealth(webPort), listening: await probePortListening(webPort), wanted: webWanted }, recentDockerStarts: starts.filter((t) => Date.now() - t < 3600_000).length,
-    modelStore: store ? { attached: await probeModelStore(store, engineOk), stranded: engineOk ? await probeStranded(store) : [] } : undefined,
+    modelStore: store ? { attached: await probeModelStore(store, engineOk), stranded: engineOk ? await probeStranded(store) : [], mountProblems: engineOk ? await probeModelMounts(store) : [] } : undefined,
   };
   const actions = planWatchdog(state, { fix });
   let healthy = true;

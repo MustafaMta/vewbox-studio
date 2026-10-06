@@ -125,6 +125,36 @@ folder `X` is `comfyui/X`, `hf-home` is `cache/hf`, `demucs` is `cache/torch`, a
   - Docker Desktop's "Clean / Purge data" (it wipes the volumes);
   - making the VHDX sparse (WSL documents sparse VHDs as experimental; the disk also holds pgdata).
 
+## Guards against old storage
+
+**Tombstones (model-paths: allow).**
+- After retirement, the old names `vewbox_models` and `vewbox_ollama` are re-created as local bind volumes. Their
+  device is `<store>/.retired-volume-DO-NOT-USE`, a path that never exists; `models-store-retire.ps1 -Execute
+  -DropVolumes` creates them.
+- Compose never recreates an existing volume. A stale compose file that still binds those names therefore fails to
+  start its container ("no such file or directory") instead of starting a service on old or empty storage. This was
+  tested on 2026-10-06.
+- Never create that path.
+
+**resume-local and the watchdog** fail, or warn `MODEL_MOUNTS`, when:
+- any container, running or stopped, of any project or an ad-hoc `docker run`, takes `/models` or `/root/.ollama`
+  from a tombstone, from a named volume other than `vewbox_models_store` / `vewbox_ollama_store`, or from a path
+  outside the store;
+- a tombstone is wrong, or its path exists.
+
+**`node scripts/check-model-paths.mjs`** scans this checkout and every worktree under `.claude/worktrees`:
+- **what it checks:** compose files, `.env*`, scripts, `docker/`, tools and src;
+- **what it flags:**
+  - retired volume names;
+  - stale `models`/`ollama` compose volumes;
+  - the old in-container layout (`/models/hf-home`, `/models/demucs`, ComfyUI's flat `/models/<type>/`, `base_path: /models`);
+  - model or cache paths on C:;
+  - `/mnt/wsl` bind sources;
+  - cache variables outside the store;
+- **how it fails:** exit 1 on a hit in this checkout, with file and line. Worktree hits are listed for their owners
+  (`--strict` fails on them too).
+- **intentional mentions:** a line that names the old storage on purpose carries the marker `model-paths: allow`.
+
 ## Migration record (2026-10-06)
 
 See the inventory table below: the old path, the new path, the size, the checksum status, the service using the model

@@ -2,7 +2,7 @@
 run with a given faster-whisper model (language=ar, beam 5, as the asr service), so the dialect fine-tune the service
 now uses for `language=ar` can be compared with large-v3 on the same audio. Runs inside the asr image:
 
-  docker run --rm --gpus all -v vewbox_models:/models -v <repo>:/repo --entrypoint python vewbox/asr:dev \
+  docker run --rm --gpus all -v vewbox_models_store:/models -v <repo>:/repo --entrypoint python vewbox/asr:dev \
       /repo/scripts/asr-ab-iraqi.py /models/asr/faster-whisper-large-v3 /repo/docs/evidence/iraqi-eval/2026-10-run1 large-v3
 
 Writes <run>/asr-ab/<label>.json: {wav file: text}. Synthetic speech only: this compares the two models on the
