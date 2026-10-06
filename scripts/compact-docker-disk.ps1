@@ -39,7 +39,7 @@ if ($engine) {
   if ("$running".Trim() -notmatch '^\d+$') { Fail 'could not read the job table (is vewbox-db-1 up?)' }
   if ([int]"$running".Trim() -gt 0 -and $DryRun) { Say "a real run would STOP here: $("$running".Trim()) studio job(s) are running" }
   elseif ([int]"$running".Trim() -gt 0) { Fail"$("$running".Trim()) studio job(s) are running: wait for an idle window (pause intake: scripts/studio-intake.ts pause)" }
-  Say 'no studio job is running'
+  else { Say 'no studio job is running' }
 } else { Say 'the Docker engine is not answering: Docker is treated as already stopped' }
 $before = SizeGB $full
 $cBefore = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
