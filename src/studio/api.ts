@@ -10,7 +10,8 @@ import type { VoiceReferenceResult } from '@/components/character/contract';
 export interface Capabilities { minimax: boolean; llm: string | null; anthropic: boolean; openaiCompatible: boolean; comfyui: string; tts: string; asr: string; videoModel: string; videoResolution: string }
 /** Live engine health from GET /api/status: whether each engine is reachable right now, and where it runs. */
 export interface EngineHealth { ok: boolean; detail: string; where: 'hosted' | 'local' | null; backend?: string; model?: string }
-export interface EngineStatus { video: EngineHealth; story: EngineHealth; images: EngineHealth; voice: EngineHealth; transcription: EngineHealth; music: EngineHealth; gpu: { device?: string; vramTotal?: number; vramFree?: number } | null; minimaxConfigured: boolean }
+export interface EngineStatus { video: EngineHealth; story: EngineHealth; images: EngineHealth; voice: EngineHealth; transcription: EngineHealth; music: EngineHealth; gpu: { device?: string; vramTotal?: number; vramFree?: number } | null; minimaxConfigured: boolean; /** the local helpers the checks and voices need (word timing, lip-sync and face checks, voice design, Iraqi voices) */ checks?: Record<string, EngineCheck> }
+export interface EngineCheck { name: string; does: string; ok: boolean; detail: string }
 /** contract §1.2 — the validation `POST /api/assets` returns for `purpose: 'character-reference'`. */
 export interface ImageReferenceValidation { ok: boolean; width: number; height: number; sharpness?: number; faces?: number; faceBoxHeight?: number; reasons: string[] }
 /** `notes`: the Screening Room notes (docs/CONTRACTS-REDESIGN-BACKEND.md B2), beside the state, never in its hash. */

@@ -277,8 +277,8 @@ test('Settings: each change goes through the updateSettings command (answered he
   const sent: string[] = [];
   await open(page, '/settings', '.settings:not(.sk-region) #generation');
   await page.route('**/api/commands', async (route) => { sent.push(route.request().postData() ?? ''); await route.fulfill({ json: { ok: true, version: 1, hash: 'e2e', results: [] } }); });
-  await page.locator('#continuity').getByRole('radio', { name: '39 frames' }).click();
-  await expect(page.locator('#continuity').getByRole('radio', { name: '39 frames' })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#continuity').getByRole('radio', { name: '39', exact: true }).click();
+  await expect(page.locator('#continuity').getByRole('radio', { name: '39', exact: true })).toHaveAttribute('aria-checked', 'true');
   await page.locator('#motion').getByRole('switch').click({ force: true });
   await expect.poll(() => sent.join('\n')).toContain('updateSettings');
   expect(sent.join('\n')).toContain('"guideFrames":39');

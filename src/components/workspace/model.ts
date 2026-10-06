@@ -307,8 +307,8 @@ export function staleShotsOf(p: Production): StaleShot[] {
 
 /** How a shot joins the one before it, in the producer's words (the planner's `boundary`). */
 export const BOUNDARY_WORDS: Record<ShotBoundary, { label: string; line: string }> = {
-  continuous: { label: 'Continuous', line: 'The action carries on without a cut: the take starts from the end of the shot before it.' },
-  cut: { label: 'Cut', line: 'A cut on the same moment: same people, same place, a new camera; nothing of the shot before is carried over.' },
+  continuous: { label: 'Continuous', line: 'The action carries on without a cut: the take is anchored on the last moment of the shot before and picks up the same movement.' },
+  cut: { label: 'Cut', line: 'A cut on the same moment: a new camera on the same people, place and action — positions, wardrobe, props, light and story state carry over; only the previous picture is not reused.' },
   transition: { label: 'Transition', line: 'A new place or time: the shot starts fresh from the destination’s references.' },
 };
 
@@ -364,6 +364,22 @@ export function fractionOf(j: Pick<Job, 'progress'>): { value: number; words: st
   if (pr?.step && pr.total) return { value: Math.min(1, pr.step / pr.total), words: `${pr.step} of ${pr.total}` };
   if (typeof pr?.percent === 'number' && pr.percent > 0) return { value: Math.min(1, pr.percent / 100), words: `${Math.round(pr.percent)}%` };
   return null;
+}
+
+/** THE SUBTITLE TRACKS A FILM HAS TEXT FOR (QA Q4): the export offers only these (the worker refuses a language with
+ *  no text — src/worker/handlers/assemble.ts). The same rule as the cues (src/server/media/assembly.ts cueTextIn): a
+ *  line or a lyric has Arabic text in Arabic script, English text in Latin letters with no Arabic; a film's lines are
+ *  those of its shots, a music video's its song's sections. */
+const ARABIC_SCRIPT = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+const LATIN_LETTER = /[A-Za-zÀ-ɏ]/;
+const hasIn = (lang: 'ar' | 'en', d: { text?: string; textAr?: string }) => [d.text, d.textAr].some((t) => Boolean(t?.trim()) && (lang === 'ar' ? ARABIC_SCRIPT.test(t!) : LATIN_LETTER.test(t!) && !ARABIC_SCRIPT.test(t!)));
+export type SubtitleChoice = 'none' | 'ar' | 'en' | 'both';
+export function subtitleChoicesOf(p: Pick<Production, 'kind' | 'song' | 'shots' | 'language'>): { choices: SubtitleChoice[]; preferred: SubtitleChoice } {
+  const texts: Array<{ text?: string; textAr?: string }> = p.kind === 'MUSIC_VIDEO' ? (p.song?.sections ?? []) : p.shots.flatMap((sh) => sh.dialogue);
+  const ar = texts.some((d) => hasIn('ar', d)); const en = texts.some((d) => hasIn('en', d));
+  const choices: SubtitleChoice[] = ['none', ...(en ? ['en' as const] : []), ...(ar ? ['ar' as const] : []), ...(ar && en ? ['both' as const] : [])];
+  const preferred: SubtitleChoice = p.language === 'AR' ? (ar && en ? 'both' : ar ? 'ar' : en ? 'en' : 'none') : en ? 'en' : ar ? 'ar' : 'none';
+  return { choices, preferred };
 }
 
 /** The production's frame ratio for the media kit. */
