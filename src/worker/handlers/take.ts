@@ -9,6 +9,7 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
+import { referenceFilesReadiness, referenceNeeds } from '@/server/production/readiness';
 import { ffmpeg, frameAt, joinSpeech, lastFrame as closingFrame, padAudio, qaTake, speechAudioArgs, tailClip, thumbnail, tmpDir, trimAudio, webReady } from '@/server/media/ffmpeg';
 import { CLOCK_FPS, songWindowFrames, windowEndSourceFrame } from '@/domain/timeline';
 import { worldForShot } from '@/server/world';
@@ -146,6 +147,14 @@ export const generateTake: Handler = async (ctx) => {
   const reused = new Set<string>();
   const lineText = (d: ShotDialogue) => (p.language === 'AR' ? d.textAr || d.text : d.text).trim();
   const storedLine = (d: ShotDialogue): Asset | undefined => { const c = cast.find((x) => x.id === d.characterId); return c && lineRecordingCurrent(d, c, state.assets) ? byId(d.audioAssetId) : undefined; };
+  // THE REFERENCE FILES ARE ON DISK (src/server/production/readiness.ts): every picture, opening/ending frame or tail
+  // and reused recording the request will send — before any voice or video inference runs
+  await step(ctx, 'executive-producer', `take-preflight: reference files of shot ${sh.number}`, async () => {
+    const needs = referenceNeeds(pack, sh.dialogue.filter((d) => lineText(d) && storedLine(d)));
+    const r = await referenceFilesReadiness(needs, (id) => { const a = byId(id); return a ? assetFile(a) : undefined; });
+    await ctx.event(r.ok ? 'info' : 'error', `reference files: ${r.detail}`, { missing: r.missing });
+    if (!r.ok) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} cannot be filmed: ${r.detail}. Restore the files (docs/OPERATIONS-BACKUP.md) or choose other references.`, { missing: r.missing }), { failureClass: 'MISSING_REFERENCE', retryable: false });
+  });
   for (const cid of speakers) {
     const c = cast.find((x) => x.id === cid);
     if (!c) continue;
@@ -237,6 +246,12 @@ export const generateTake: Handler = async (ctx) => {
     const ps = p.shots.find((x) => x.id === opening.shotId); const pt = ps?.takes.find((x) => x.id === opening.takeId);
     const a = byId(opening.assetId);
     return ps && pt ? { endFrame: windowEndSourceFrame(p, ps, pt, a), totalFrames: Math.round((pt.durationSeconds ?? a?.durationSeconds ?? 0) * CLOCK_FPS) } : undefined;
+  };
+  // the colour join (src/server/media/continuity-qa.ts colourJoin): against the end of the chosen take of the shot before,
+  // in the same scene, on a continuation or a cut (a transition is meant to change the light)
+  const colourAgainst = (prev: { shotId: string; takeId?: string; assetId?: string; sameScene: boolean } | undefined, rel: typeof relation) => {
+    const a = prev?.sameScene && prev.takeId && prev.assetId && rel !== 'STORY_TRANSITION' ? byId(prev.assetId) : undefined;
+    return a && a.kind === 'VIDEO' && !a.unavailable && !a.sample ? { previousFile: assetFile(a), previousEndFrame: prevEnd({ shotId: prev!.shotId, takeId: prev!.takeId!, assetId: a.id })?.endFrame, relation: rel === 'CONTINUATION' ? 'CONTINUATION' as const : 'CUT' as const } : undefined;
   };
   if (pack.opening.kind === 'TAIL') {
     const prevAsset = byId(pack.opening.assetId)!;
@@ -569,7 +584,7 @@ export const generateTake: Handler = async (ctx) => {
     const headSeconds = trimStartFrames / H3_FPS;
     const plannedCuts = (sh.staging?.beats ?? []).filter((b) => b.cut && b.at > 0).map((b) => headSeconds + b.at);
     try {
-      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard }));
+      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard, colour: colourAgainst(pack.context.shot.previous, relation) }));
       driftChecks.push(...measured);
     } catch (e) {
       driftChecks.push({ name: 'continuity-measured', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });

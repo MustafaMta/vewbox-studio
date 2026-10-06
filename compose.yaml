@@ -272,6 +272,10 @@ services:
       OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
       NVIDIA_VISIBLE_DEVICES: all
+      # Ollama (Go) trusts the system bundle plus every PEM file in these directories: the extra root (EXTRA_CA_FILE,
+      # secret extra_ca, empty by default) lets `ollama pull` through an antivirus that re-signs HTTPS; empty = no-op
+      SSL_CERT_DIR: /etc/ssl/certs:/run/secrets
+    secrets: [extra_ca]
     volumes:
       - ollama:/root/.ollama
     ports:
@@ -301,6 +305,8 @@ services:
     environment:
       OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3:14b,gemma4:31b-it-qat}
       OLLAMA_HOST: 127.0.0.1:11435
+      SSL_CERT_DIR: /etc/ssl/certs:/run/secrets # the extra root, as for `llm`
+    secrets: [extra_ca]
     volumes:
       - ollama:/root/.ollama
     entrypoint: ["/bin/sh", "-c"]
@@ -330,9 +336,10 @@ services:
       - models:/models
     command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design,images-flux2-klein}"]
 
-# An extra public root certificate the asr and models builds trust, for a network that inspects TLS (an antivirus's
-# HTTPS scanning re-signs pypi.org and huggingface.co with its own root). EXTRA_CA_FILE in .env points at it (kept
-# outside Git, e.g. var/certs/extra-ca.pem); unset, an empty file is passed and the builds change nothing.
+# An extra public root certificate the asr and models builds (and the llm / llm-pull containers, at run time) trust,
+# for a network that inspects TLS (an antivirus's HTTPS scanning re-signs pypi.org, huggingface.co and the Ollama
+# registry with its own root). EXTRA_CA_FILE in .env points at it (kept outside Git, e.g. var/certs/extra-ca.pem);
+# unset, an empty file is passed and nothing changes.
 secrets:
   extra_ca:
     file: ${EXTRA_CA_FILE:-./docker/certs/none.pem}

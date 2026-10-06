@@ -214,6 +214,8 @@ export interface ContinuityState {
   notes?: string;
   /** explicit continuity constraints the take must honour ("the cup stays in her right hand", "rain on the window") */
   constraints?: string[];
+  /** continuity-log flags the producer accepted as intended for this shot, by key (src/domain/continuity-log.ts) */
+  acknowledged?: string[];
 }
 
 /** How a person (or the camera's subject) moves across the frame: the screen direction of travel and, in words, the
@@ -793,6 +795,13 @@ export interface LocationRef { id: string; role: LocationRefRole; assetId: strin
  *  identity. Derived by the reducers on every change; a row without one is identity version 1 of what it holds. */
 export interface LocationIdentity { version: number; hash: string; line: string; updatedAt: string }
 
+/** THE PLACE'S LIGHTING RULES (the Location Bible; final directive §11 "lighting rules"; continuity gaps 2026-10-06
+ *  item 6): the light design that makes a return to the place look like the same place — where the key light comes
+ *  from, the practical lights in the set, the colour palette — and, per time of day, the light the place has then. Part
+ *  of the place's canon (its identity version moves when they change); a scene that states its own light wins for that
+ *  scene, the rule fills in when nothing is stated. */
+export interface LocationLight { key?: string; practicals?: string[]; palette?: string[]; byTime?: Partial<Record<TimeOfDay, string>> }
+
 export interface Location {
   id: string;
   name: string;
@@ -805,7 +814,7 @@ export interface Location {
   props: string[];
   refs: LocationRef[];
   masterAssetId?: string;
-  layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string };
+  layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string; light?: LocationLight };
   /** the canonical identity and its version (see `LocationIdentity`) */
   identity?: LocationIdentity;
   createdAt: string;

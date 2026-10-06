@@ -26,12 +26,15 @@ if (process.env.FIXTURE_TAKE === '1') {
   const { jobOutputs } = await import('@/server/jobs/outputs');
   const { assetFromStored } = await import('@/server/media');
   const { tmpDir } = await import('@/server/media/ffmpeg');
+  const { StudioError } = await import('@/domain/errors');
   const dir = process.env.FIXTURE_DIR!;
   const renderMs = Number(process.env.FIXTURE_RENDER_MS ?? 3000);
   HANDLERS.GENERATE_TAKE = async (ctx) => {
     const { productionId, shotId } = ctx.job.payload as { productionId: string; shotId: string };
     const done = committedTake((await readState()).state, ctx.job.id);
     if (done) { await ctx.event('info', 'FIXTURE: the take was already committed by an earlier attempt'); return { takeId: done.take.id, resumedFromCommit: true }; }
+    // a shot this fixture provider always fails (a failed shot inside a production): not retried
+    if ((process.env.FIXTURE_FAIL_SHOTS ?? '').split(',').includes(shotId)) throw Object.assign(new StudioError('PROVIDER', `FIXTURE provider: the clip of shot ${shotId} is unusable`), { failureClass: 'OUTPUT_CORRUPTION' });
     // the provider task: its id is recorded on the job BEFORE submission; a later attempt adopts it
     const taskId = ctx.job.providerTaskId ?? `fixture-task-${ctx.job.id}`;
     const clock = path.join(dir, `${taskId}.started`);

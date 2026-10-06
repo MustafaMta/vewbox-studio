@@ -12,6 +12,7 @@ import { assetFile, assetFromStored } from '@/server/media';
 import { jobOutputs, outputId } from '@/server/jobs/outputs';
 import { thumbnail, tmpDir as makeTmpDir } from '@/server/media/ffmpeg';
 import { creditLines, disclosureOf } from '@/server/media/disclosure';
+import { referenceFilesReadiness } from '@/server/production/readiness';
 
 /** How long an export's end-credit card stays on screen. */
 const CREDIT_SECONDS = 4;
@@ -106,6 +107,15 @@ async function renderInto(ctx: Parameters<Handler>[0], opts: RenderOpts, dirs: s
     await ctx.event('info', 'mix plan', { clock: tl.audio.clock, policy: tl.audio.policy, world: { revision: world.revision.number, pinned: world.pinned }, tracks: mix.tracks.map((t) => ({ kind: t.kind, source: t.sourceAssetId, startSample: t.startSample, durationSamples: t.durationSamples, gain: t.gain, muted: t.muted ?? false, ducked: t.automation?.spans.length ?? 0, policy: t.policy })), targetLufs: mix.targetLufs, notes: mix.notes });
     return { mix, files };
   });
+  // EVERY SOURCE FILE IS ON DISK before anything is rendered: a chosen take or a recorded line whose file is gone is
+  // refused at once, naming the shots (MISSING_REFERENCE, not retried) — it used to fail deep inside ffmpeg as a
+  // PROVIDER error and be retried unchanged
+  {
+    const all = [...tl.items.map((it) => ({ assetId: it.take.id, what: `the chosen take of shot ${it.sceneNumber}.${it.shot.number}`, file: assetFile(it.take) })), ...mix.tracks.filter((t) => !t.muted).map((t) => ({ assetId: t.sourceAssetId, what: `${t.kind.toLowerCase().replace(/_/g, ' ')} source`, file: files[t.sourceAssetId] }))];
+    const needs = all.filter((n, i) => all.findIndex((m) => m.assetId === n.assetId) === i); // a take's own sound is the same file
+    const r = await referenceFilesReadiness(needs, (id) => needs.find((n) => n.assetId === id)?.file);
+    if (!r.ok) throw Object.assign(new StudioError('INVALID', `“${p.title}” cannot be ${opts.kind === 'cut' ? 'assembled' : 'exported'}: ${r.detail}. Restore the files or choose other takes.`, { missing: r.missing }), { failureClass: 'MISSING_REFERENCE', retryable: false });
+  }
   // SUBTITLE CUES (the Subtitle Specialist's step)
   const dir = await tmpDir('subs');
   const srtPath = path.join(dir, 'subs.srt');

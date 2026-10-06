@@ -311,7 +311,19 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}${pace}${hardCuts}`.trim();
   // retention_analysis (every subject appears in every shot of the take)
   const ret: string[] = [];
-  for (const [i, s] of b.subjects.entries()) ret.push(s.characterId === pov ? `<Subject ${i + 1}> (appears in ${shotTags}): weak_reference - the camera is their own eyes; they are never seen in frame.` : `<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly.`);
+  // THE STORY'S CHANGES TO A PERSON (src/domain/production-context.ts): a wardrobe change the story made is not the
+  // canonical image's clothes (the face and body still are); a lasting condition shows on top of the likeness
+  const stateOf = (id: string) => opts.context?.characters.find((x) => x.characterId === id);
+  for (const [i, s] of b.subjects.entries()) {
+    if (s.characterId === pov) { ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): weak_reference - the camera is their own eyes; they are never seen in frame.`); continue; }
+    const st = stateOf(s.characterId);
+    const condition = (st?.condition ?? []).map((k) => k.text?.replace(/\.$/, '')).filter(Boolean);
+    const now = condition.length ? `; as the story has them now: ${condition.join(' and ')}` : '';
+    if (st?.wardrobeChange?.text) {
+      ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone and build of ${pictureLabel(b, s.picture)} are kept exactly${now}.`);
+      ret.push(`<Subject ${i + 1}>'s clothes: attribute_transfer - not the clothes of ${pictureLabel(b, s.picture)}: ${st.wardrobeChange.text.replace(/\.$/, '')}.`);
+    } else ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly${now}.`);
+  }
   for (const f of faceRefs) ret.push(`${pictureLabel(b, f.picture)} (the face of <Subject ${subjectNo.get(f.characterId)}>): fully_preserved - the facial features, skin tone, eyes and hair of <Subject ${subjectNo.get(f.characterId)}> are kept exactly as in ${pictureLabel(b, f.picture)}; the expression follows the action.`);
   if (b.location && placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): partially_preserved - the architecture, layout, materials and fixed props of ${pictureLabel(b, b.location.picture)} are kept; the camera position and framing may differ.`);
   else if (placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): weak_reference - described, no picture; the same architecture, layout and fixed features in every frame of the take.`);

@@ -41,6 +41,7 @@ const INFO: Record<string, { label: string; kind: CheckKind }> = {
   'dialogue-timing': { label: 'Each line on time', kind: 'REVIEW' },
   'container-valid': { label: 'File the cut can use', kind: 'REVIEW' },
   'continuity-measured': { label: 'Continuity measurements', kind: 'REVIEW' },
+  'colour-continuity': { label: 'Light and colour against the shot before', kind: 'REVIEW' },
 };
 
 /** The producer's name for a check and whether it gates the take (an unknown check gates: a new check is never hidden). */
@@ -77,7 +78,7 @@ const PROBLEM: Record<string, string> = {
   decodable: 'the clip does not play', duration: 'wrong length', resolution: 'resolution too low', frame_rate: 'frame rate too low', audio_stream: 'no sound track', black_frames: 'black frames', frozen_video: 'frozen picture', flicker: 'flicker', audio_silence: 'silent', audio_peak: 'sound clips', signal_analysis: 'could not be analysed',
   'script-spoken': 'the lines were not spoken as written', 'people-on-screen': 'someone extra on screen',
   'identity-references-applied': 'a character reference missing', 'location-matches-plate': 'the place drifted from its plate', 'identity-similarity': 'a face drifted from its canonical image', 'lip-sync': 'lip-sync', 'singing-sync': 'singing sync',
-  'no-accidental-fade': 'a fade or black dip', 'no-duplicate-frames': 'repeated frames', 'no-unplanned-cut': 'an unplanned cut', 'no-repeated-speech': 'speech repeated beyond the script', 'dialogue-timing': 'line timing', 'container-valid': 'the file format',
+  'no-accidental-fade': 'a fade or black dip', 'no-duplicate-frames': 'repeated frames', 'no-unplanned-cut': 'an unplanned cut', 'no-repeated-speech': 'speech repeated beyond the script', 'dialogue-timing': 'line timing', 'container-valid': 'the file format', 'colour-continuity': 'the light or colour shifts at the join',
 };
 const short = (c: { name: string; label: string }) => PROBLEM[c.name] ?? c.label.charAt(0).toLowerCase() + c.label.slice(1);
 

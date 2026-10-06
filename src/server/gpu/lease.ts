@@ -5,6 +5,7 @@ import { env } from '../env';
 import { log } from '../log';
 import { jobScope } from '../jobs/context';
 import { leaseSeconds, recordMetric } from '../jobs/queue';
+import { JOB_RESOURCE, JOB_TYPES } from '@/domain/jobs';
 
 /** THE GPU LEASE, SHARED BY EVERY PROCESS (docs/BACKEND-AUDIT-2026-10.md H7, step 8). One RTX 5090: local models
  *  (images, video, music in ComfyUI; voices; transcription; the local story model) each hold their weights while
@@ -25,7 +26,17 @@ import { leaseSeconds, recordMetric } from '../jobs/queue';
 
 export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM';
 
-export interface GpuLeaseOptions { jobId?: string; signal?: AbortSignal }
+/** 'normal': the studio's own work (worker jobs, the web). 'background': benchmarks and evaluations through
+ *  scripts/gpu-hold.ts — admitted only when no normal request waits (the films first), never preempting a holder,
+ *  and admitted at the next free slot once it has waited BACKGROUND_STARVATION_MS (45 min). */
+export type GpuPriority = 'normal' | 'background';
+export interface GpuLeaseOptions { jobId?: string; signal?: AbortSignal; priority?: GpuPriority }
+
+/** A background request's holder key starts with this (no migration: the priority rides on the key). */
+export const BACKGROUND_PREFIX = 'bg:';
+/** A background request waiting this long is served like a normal one (the starvation guard). */
+export const BACKGROUND_STARVATION_MS = 45 * 60_000;
+export const isBackground = (holder: string): boolean => holder.startsWith(BACKGROUND_PREFIX);
 export interface GpuLease { <T>(family: GpuFamily, estimateMb: number, fn: () => Promise<T>, opts?: GpuLeaseOptions): Promise<T> }
 
 export interface LeaseConfig {
@@ -40,14 +51,38 @@ export interface LeaseConfig {
 
 type Row = typeof schema.resourceLeases.$inferSelect;
 
-/** The admission rule, pure (tested): may `me` take the resource now? `rows` are the live rows of the resource. */
-export function admits(rows: Pick<Row, 'holder' | 'ticket' | 'family' | 'state' | 'jobId'>[], me: Pick<Row, 'holder' | 'family' | 'jobId'>): boolean {
+/** The admission rule, pure (tested): may `me` take the resource now? `rows` are the live rows of the resource.
+ *  THE QUEUE ORDER: normal requests first, FIFO by ticket among themselves; then background requests, FIFO by ticket.
+ *  A background request that has waited BACKGROUND_STARVATION_MS (by `requestedAt`, against `now`) counts as normal —
+ *  with its old ticket it is next at the following free slot. Only the head of that order is admitted, and only when
+ *  the card is free or held by its family. A holder is never preempted (nothing here takes a card back). */
+export function admits(rows: Array<Pick<Row, 'holder' | 'ticket' | 'family' | 'state' | 'jobId'> & { requestedAt?: string }>, me: Pick<Row, 'holder' | 'family' | 'jobId'>, now = Date.now(), ctx: { gpuJobsWaiting?: boolean } = {}): boolean {
   const holders = rows.filter((r) => r.state === 'HOLDING' && r.holder !== me.holder);
-  const waiters = rows.filter((r) => r.state === 'WAITING').sort((a, b) => a.ticket - b.ticket);
   const sameFamily = holders.every((h) => h.family === me.family);
   // nested: this job already holds the card — granted when the card is this job's alone, or held by this family
   if (me.jobId && holders.some((h) => h.jobId === me.jobId)) return sameFamily || holders.every((h) => h.jobId === me.jobId);
-  return waiters[0]?.holder === me.holder && sameFamily;
+  const background = (r: { holder: string; requestedAt?: string }) => isBackground(r.holder) && !(r.requestedAt && now - Date.parse(r.requestedAt) >= BACKGROUND_STARVATION_MS);
+  const waiters = rows.filter((r) => r.state === 'WAITING').sort((a, b) => Number(background(a)) - Number(background(b)) || a.ticket - b.ticket);
+  const head = waiters[0];
+  if (head?.holder !== me.holder || !sameFamily) return false;
+  // THE FILMS FIRST between their GPU steps too: a worker GPU job queued (or claimed and preparing, about to ask for
+  // the card) keeps a background request out, unless it is starving
+  if (background(head) && ctx.gpuJobsWaiting) return false;
+  return true;
+}
+
+/** The worker's GPU-lane jobs (JOB_RESOURCE GPU) that want the card soon: QUEUED and runnable while intake is open, or
+ *  running without a lease row (claimed, preparing its request). */
+// takes and songs run in the HOSTED lane but on this card when there is no hosted key (local MiniMax H3, ACE-Step)
+const gpuJobTypes = () => JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'GPU' || (!env().MINIMAX_API_KEY && (t === 'GENERATE_TAKE' || t === 'GENERATE_SONG')));
+async function workerGpuJobsWaiting(tx: { execute: ReturnType<typeof db>['execute'] }, nowIso: string): Promise<boolean> {
+  const types = dsql.join(gpuJobTypes().map((t) => dsql`${t}`), dsql`, `);
+  const rows = await tx.execute<{ waiting: boolean }>(dsql`select exists (
+    select 1 from jobs j where j.type in (${types}) and j.cancel_requested = false and (
+      (j.status = 'QUEUED' and (j.run_after is null or j.run_after <= ${nowIso}) and not exists (select 1 from studio_meta m where m.id = 'studio' and m.intake_paused_at is not null))
+      or (j.status in ('PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and not exists (select 1 from resource_leases l where l.job_id = j.id))
+    )) as waiting`);
+  return Boolean(rows[0]?.waiting);
 }
 
 export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
@@ -72,7 +107,8 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
     const rows = await tx.select().from(schema.resourceLeases).where(eq(schema.resourceLeases.resource, resource)).orderBy(asc(schema.resourceLeases.ticket));
     const me = rows.find((r) => r.holder === holder);
     if (!me) return { state: 'LOST' as const };
-    if (!admits(rows, { holder, family, jobId: jobId ?? null })) {
+    const gpuJobsWaiting = isBackground(holder) ? await workerGpuJobsWaiting(tx, now) : false;
+    if (!admits(rows, { holder, family, jobId: jobId ?? null }, Date.parse(now), { gpuJobsWaiting })) {
       await tx.update(schema.resourceLeases).set({ expiresAt: expiry() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
       return { state: 'WAITING' as const, ahead: rows.filter((r) => r.ticket < me.ticket && r.state === 'WAITING').length, holders: rows.filter((r) => r.state === 'HOLDING').map((r) => r.family) };
     }
@@ -97,7 +133,7 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
     if (estimateMb > budget) log.warn({ family, estimateMb, budget }, 'estimated VRAM exceeds the budget; the service must offload');
     const jobId = opts.jobId ?? (jobScope()?.jobId || undefined);
     const signal = opts.signal ?? jobScope()?.signal;
-    const holder = `${cfg.process}:${life}:${++seq}`;
+    const holder = `${opts.priority === 'background' ? BACKGROUND_PREFIX : ''}${cfg.process}:${life}:${++seq}`;
     const t0 = Date.now();
     await enter(holder, family, jobId);
     let granted: { from: GpuFamily | null } | undefined;
