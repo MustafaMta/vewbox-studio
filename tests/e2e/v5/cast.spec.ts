@@ -196,6 +196,35 @@ test.describe('creating a character', () => {
     await expect.poll(() => writes.filter((w) => w.url.endsWith('/api/jobs')).map((w) => w.body as { payload: { mode: string; draw: boolean; style: string } }).map((b) => `${b.payload.mode}:${b.payload.draw}:${b.payload.style}`)).toContain('MANUAL:false:ANIME');
   });
 
+  test('a finished creation is not brought back in the same tab: "Start a new character" is offered, the stored run is cleared', async ({ page, request }) => {
+    const snap = (await (await request.get('/api/studio')).json()) as { state: { characters: Array<{ id: string; name: string; canonicalImage?: { assetId?: string }; portraitAssetId?: string }> } };
+    const c = snap.state.characters.find((x) => x.canonicalImage?.assetId || x.portraitAssetId); test.skip(!c, 'no character with a figure');
+    const now = new Date().toISOString();
+    await open(page, '/characters');
+    // registered after the capture helper's catch-all, so it answers first
+    await page.route('**/api/jobs/job-finished', (route) => route.fulfill({ json: { job: { id: 'job-finished', type: 'CREATE_CHARACTER', status: 'COMPLETED', priority: 0, payload: { mode: 'AUTO', brief: 'A night-shift radio operator' }, attempts: 1, maxAttempts: 1, cancelRequested: false, characterId: c!.id, result: { characterId: c!.id, steps: [{ step: 'design', status: 'done' }, { step: 'appearance', status: 'done' }, { step: 'voice', status: 'skipped', reason: 'No voice was asked for.' }] }, createdAt: now, updatedAt: now }, events: [] } }));
+    // the tab remembers a creation that has since finished (as it did before the fix: the brief and the job)
+    await page.evaluate(() => sessionStorage.setItem('vewbox.newCharacter', JSON.stringify({ start: 'describe', describe: { name: '', brief: 'A night-shift radio operator', voiceMode: 'NONE' }, jobId: 'job-finished' })));
+    await page.goto('/characters/new', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('main h1', { timeout: 90_000 });
+    const ready = page.locator('.pc-ready');
+    await expect(ready).toBeVisible();
+    await expect(ready.getByRole('button', { name: 'Start a new character' })).toBeVisible();
+    // once finished, the stored draft no longer holds the run nor the brief
+    await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('vewbox.newCharacter') ?? '{}') as Record<string, unknown>)).not.toHaveProperty('jobId');
+    expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('vewbox.newCharacter') ?? '{}') as Record<string, unknown>)).not.toHaveProperty('describe');
+    // "Start a new character" gives the empty form
+    await ready.getByRole('button', { name: 'Start a new character' }).click();
+    await expect(page.locator('.pc-ready')).toHaveCount(0);
+    await expect(page.getByLabel('Who are they?')).toHaveValue('');
+    await expect(page.getByRole('button', { name: 'Draft the character' })).toBeEnabled();
+    // and a reload in the same tab is a new character too, never the finished one
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('main h1', { timeout: 90_000 });
+    await expect(page.getByRole('button', { name: 'Draft the character' })).toBeVisible();
+    await expect(page.locator('.pc-ready')).toHaveCount(0);
+  });
+
   test('From a picture: the picture is required, said next to the drop target; the live preview follows the name', async ({ page }) => {
     await open(page, '/characters/new?start=picture');
     await page.getByRole('button', { name: 'Draw from the picture' }).click();
