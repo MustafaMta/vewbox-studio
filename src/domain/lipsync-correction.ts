@@ -36,6 +36,9 @@ export interface LipsyncCapability {
     canonicalDropMax: number;
     /** the mouth must follow the audio better: the Tier-1 correlation (MAR vs speech envelope) must not fall */
     corrMustNotFall: boolean;
+    /** the performance must not be flattened: mouth activity INSIDE the speech may fall by at most this share (the
+     *  evaluation measured −17…−35 % on cartoon faces — LatentSync draws smaller, more realistic mouths) */
+    performanceDropMax: number;
     /** the output keeps the frame count exactly */
     sameFrameCount: true;
   };
@@ -50,7 +53,7 @@ export const LIPSYNC_LATENTSYNC_16: LipsyncCapability = {
   minFacePx: 128,
   maxSeconds: 30,
   minFullStrengthShare: 0.6,
-  accept: { selfIdentityDropMax: 0.05, canonicalDropMax: 0.05, corrMustNotFall: true, sameFrameCount: true },
+  accept: { selfIdentityDropMax: 0.05, canonicalDropMax: 0.05, corrMustNotFall: true, performanceDropMax: 0.2, sameFrameCount: true },
   vramMb: 20000,
 };
 
@@ -117,6 +120,8 @@ export interface CorrectionMeasures {
   frames: { original: number; corrected: number };
   /** Tier-1 mouth check (MAR vs speech envelope, best lag) of the speaker before and after */
   corr: { before: number | null; after: number | null };
+  /** Tier-1 mouth activity inside the speech (|dMAR/dt|), before and after: how lively the mouth performance is */
+  activityInside?: { before: number | null; after: number | null };
   /** SFace to the canonical image, median, before and after */
   canonical: { before: number | null; after: number | null };
   /** SFace (median) of the original take's and of the corrected take's faces against one frame of the original */
@@ -147,5 +152,11 @@ export function judgeCorrection(m: CorrectionMeasures, cap: LipsyncCapability = 
   if (m.corr.before === null || m.corr.after === null) problems.push('the mouth check could not be measured before and after');
   else if (cap.accept.corrMustNotFall && m.corr.after < m.corr.before) problems.push(`the mouth follows the audio less after the correction (r ${f(m.corr.before)} → ${f(m.corr.after)})`);
   else notes.push(`mouth vs audio r ${f(m.corr.before)} → ${f(m.corr.after)}`);
+  const ai = m.activityInside;
+  if (ai && ai.before !== null && ai.after !== null && ai.before > 0) {
+    const drop = (ai.before - ai.after) / ai.before;
+    if (drop > cap.accept.performanceDropMax) problems.push(`the mouth performance is flattened: activity while speaking ${f(ai.before)} → ${f(ai.after)} (−${Math.round(drop * 100)} %)`);
+    else notes.push(`mouth activity while speaking ${f(ai.before)} → ${f(ai.after)}`);
+  }
   return { accepted: problems.length === 0, problems, notes };
 }

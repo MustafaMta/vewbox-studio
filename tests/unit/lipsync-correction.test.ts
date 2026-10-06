@@ -68,4 +68,8 @@ describe('judgeCorrection', () => {
     expect(judgeCorrection({ ...good, corr: { before: null, after: 0.3 } }, realistic).accepted).toBe(false);
     expect(judgeCorrection({ ...good, selfIdentity: { before: null, after: null } }, realistic).accepted).toBe(false);
   });
+  it('a flattened mouth performance is a problem (measured on cartoon faces: −17…−35 % activity while speaking)', () => {
+    expect(judgeCorrection({ ...good, activityInside: { before: 1.87, after: 1.38 } }, realistic).problems.join(' ')).toMatch(/flattened.*−26 %/);
+    expect(judgeCorrection({ ...good, activityInside: { before: 0.74, after: 0.66 } }, realistic).accepted).toBe(true);
+  });
 });
