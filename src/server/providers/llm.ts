@@ -74,7 +74,7 @@ export const localContextLength = (): number => env().LLM_CONTEXT_LENGTH ?? env(
 /** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.8-27B-FP8 — the official fine-grained FP8
  *  checkpoint Qwen/Qwen3.8-27B-FP8 (Apache-2.0, revision 017b9c7a, manifest group llm-qwen3.8-27b-fp8) served by vLLM
  *  (compose service llm-vllm) under this id (`--served-model-name`); the producer's Phase 1 planner, 2026-10-06
- *  (promotion record docs/research/MODEL-EVAL-2026-10.md §10). Gemma 4 31B on Ollama (`gemma4:31b-it-qat`) is the
+ *  (promotion record docs/research/MODEL-EVAL-2026-10.md §12). Gemma 4 31B on Ollama (`gemma4:31b-it-qat`) is the
  *  emergency fallback only: OPENAI_COMPATIBLE_BASE_URL=http://…:11434/v1 + OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat. */
 export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-FP8';
 /** The emergency fallback when the production model cannot run (an explicit switch of base URL and model). */

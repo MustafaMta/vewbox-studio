@@ -4,7 +4,7 @@ import { log } from '../log';
 import { StudioError } from '@/domain/errors';
 import { llmRuntime } from './llm';
 
-/** THE vLLM PLANNER SERVER (compose service llm-vllm; docs/research/MODEL-EVAL-2026-10.md §10) and how it lets go of
+/** THE vLLM PLANNER SERVER (compose service llm-vllm; docs/research/MODEL-EVAL-2026-10.md §12) and how it lets go of
  *  the card. Qwen3.8-27B-FP8 holds ≈ 31 GB; MiniMax H3 needs the whole card, so on a family switch the GPU lease puts
  *  vLLM to SLEEP LEVEL 2 (weights and KV cache dropped from VRAM, nothing parked in host RAM — H3 needs that too), and
  *  the next LLM call WAKES it inside its own lease: the weights are reloaded from the store (`reload_weights`), then

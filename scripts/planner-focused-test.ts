@@ -1,4 +1,4 @@
-/* PLANNER FOCUSED TEST (producer Phase 1; docs/research/MODEL-EVAL-2026-10.md §10): the production planner
+/* PLANNER FOCUSED TEST (producer Phase 1; docs/research/MODEL-EVAL-2026-10.md §12): the production planner
  * (Qwen3.8-27B-FP8 on vLLM, compose service llm-vllm) through the studio's OWN planning code paths
  * (src/server/story/engine.ts → src/server/providers/llm.ts: the app's request, schemas, repairs, truncation handling,
  * the GPU lease), on real Vewbox tasks, in one chain so continuity can be read across the outputs:

@@ -706,7 +706,7 @@ purpose, dialogue), World Bible fidelity (the planted facts), shot-plan craft (t
 name-free prompts, the prefix not repeated), continuity across scenes (names, wardrobe, props, 180°, time of day),
 Arabic (dialect, spelling) — plus the mechanical counts the report prints.
 
-## 10. Qwen3.8-27B-FP8 as the production planner (Phase 1, 2026-10-06) — WIP, integration moved to a new session
+## 12. Qwen3.8-27B-FP8 as the production planner (Phase 1, 2026-10-06) — WIP, integration moved to a new session
 
 **Status when this session stopped (producer order):** the pinned weights were downloading; no image pulled, no server
 started, no GPU used, nothing measured. Everything below is code and configuration, unit-tested, not yet run against a

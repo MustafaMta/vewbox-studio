@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { llmDisplayName, PLANNER_MODEL } from '@/domain/llm-names';
 
-/** THE PRODUCTION PLANNER ON vLLM (docs/research/MODEL-EVAL-2026-10.md §10): Qwen3.8-27B-FP8 served by vLLM (compose
+/** THE PRODUCTION PLANNER ON vLLM (docs/research/MODEL-EVAL-2026-10.md §12): Qwen3.8-27B-FP8 served by vLLM (compose
  *  service llm-vllm). The request carries the model card's thinking switch (chat_template_kwargs.enable_thinking,
  *  off unless a stage asks) and its sampling, never Ollama's fields; max_tokens never passes the context's room (vLLM
  *  refuses that request); the GPU lease puts vLLM to sleep (level 2) and the next call wakes it (weights reloaded from
