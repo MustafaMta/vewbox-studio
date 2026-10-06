@@ -175,7 +175,7 @@ performance is the default; the corrector runs only for ONE take the producer co
 (job `CORRECT_LIPSYNC`, `src/worker/handlers/lipsync.ts`; rules and thresholds as data in
 `src/domain/lipsync-correction.ts`). It redraws the mouth region of the existing take to the authoritative audio and
 records the result as a NEW take (`derivedFrom`) beside the original, accepted or rejected with before/after numbers.
-It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (port 8040, no VRAM while idle,
+It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (host port 8045, container 8040, no VRAM while idle,
 weights dropped after every request unless `LIPSYNC_KEEP_LOADED=1`). GPU family `LIPSYNC`: ComfyUI (H3) and every other
 engine unload before it loads.
 
@@ -229,7 +229,22 @@ and SFace), `out/v1/<take>.mp4|.json|<take>/` (corrected takes, reports, frame s
   a sip DURING the line (07d2, "lip-sync over a sip") remains — a staging defect the corrector cannot fix.
 - **Verdict CARTOON: no-go** (the producer's rule: no change of expression). The capability keeps `styles: ['REALISTIC']`
   only, and the acceptance check `performance-kept` (activity while speaking may drop ≤ 20 %) rejects a flattened
-  correction on any style. Anime and realistic: see below as they are measured.
+  correction on any style.
+- **ANIME (v2, yaw gate; 4 older H3 anime faces 203–357 px, driven with a recorded English line): no-go.** Identity
+  held (self-identity 0.78–0.87 → 0.77–0.87) but the regenerated mouth is drawn as a soft, shaded "real" mouth: the
+  ink line-art of the lips is lost, an open inked mouth becomes pale flat lips, and one frame shows a dark red blob
+  mouth (`look/v2/anime-06cfa1-zoom.jpg` f37, f78; `anime-2ac9b4-zoom.jpg`). The Tier-1 mouth check also loses most
+  anime mouths, so the acceptance cannot even measure them reliably.
+- **SINGING (v2): no-go.** Shot-2 Abu Haidar (frontal, 254 px) driven by 9.5 s of a Demucs lead-vocal stem
+  (`sing-vocals-10s.wav`, from a backup song): sustained sung vowels produce small, barely changing mouths (Tier-1
+  correlation with the vocal 0.28 → 0.21, activity ratio 1.36 → 1.12); LatentSync's Whisper-tiny audio features are
+  speech-trained. Music videos keep native H3 performance + the measured offset trim + the extra-singer check; the
+  capability keeps `singing: false`. (The corrector never touches a face other than the assigned one, so it cannot make
+  a background character stop singing either.)
+- Load proof from the D: model store (`out/v2/_load-proof.json`): `/models` = the store's ext4 bind (`/dev/sdd /models
+  ext4 ro`), unet / whisper / VAE / YuNet / SFace / both landmarkers read from `/models/lipsync`, `/identity`, `/qa`;
+  load 42 s.
+- REALISTIC: pending the acceptance engineer's realistic speaking takes.
 
 ## Music
 

@@ -261,7 +261,8 @@ services:
     # for layer reuse); the service is offline and the store read-only here
     environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, LIPSYNC_KEEP_LOADED: "${LIPSYNC_KEEP_LOADED:-0}" }
     volumes: [ "models:/models:ro", "nvjit:/cache/nv-jit", "./docker/lipsync/app.py:/app/app.py:ro", "./docker/lipsync/corrector.py:/app/corrector.py:ro", "./docker/lipsync/face_track.py:/app/face_track.py:ro", "./docker/lipsync/cli.py:/app/cli.py:ro", "./docker/lipsync/eval_batch.py:/app/eval_batch.py:ro" ]
-    ports: [ "127.0.0.1:${LIPSYNC_PORT:-8040}:8040" ]
+    # host port 8045: 8040–8042 are the voice benchmark services' (tts-bench-*)
+    ports: [ "127.0.0.1:${LIPSYNC_PORT:-8045}:8040" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     shm_size: "4gb"
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8040/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
