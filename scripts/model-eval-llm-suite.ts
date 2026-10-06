@@ -89,17 +89,17 @@ class RamMeter {
   stop() { this.on = false; }
 }
 
-interface Attempt { kind: 'first' | 'repair' | 're-ask'; requestKey: string; ms: number; status: number; promptTokens?: number; completionTokens?: number; finishReason?: string; maxTokens?: number; tokPerS?: number; head: string; tail: string; requestChars: number; numCtx?: number; think?: unknown }
+interface Attempt { kind: 'first' | 'repair' | 're-ask'; requestKey: string; ms: number; status: number; promptTokens?: number; completionTokens?: number; finishReason?: string; maxTokens?: number; tokPerS?: number; reasoningChars?: number; head: string; tail: string; requestChars: number; numCtx?: number; think?: unknown }
 let attempts: Attempt[] = [];
 let lastRequest: unknown = null;
 const realFetch = globalThis.fetch;
 /** an OpenAI-compatible answer, whole or streamed (server-sent events), read from a clone of the response */
-async function readAnswer(res: Response): Promise<{ content: string; finish?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } }> {
+async function readAnswer(res: Response): Promise<{ content: string; finish?: string; usage?: { prompt_tokens?: number; completion_tokens?: number }; reasoningChars?: number }> {
   const text = await res.text();
   if (!/text\/event-stream/i.test(res.headers.get('content-type') ?? '')) { try { const j = JSON.parse(text) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }; return { content: j.choices?.[0]?.message?.content ?? '', finish: j.choices?.[0]?.finish_reason, usage: j.usage }; } catch { return { content: '' }; } }
-  let content = ''; let finish: string | undefined; let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
-  for (const line of text.split('\n')) { const d = line.replace(/^data:\s?/, '').trim(); if (!line.startsWith('data:') || !d || d === '[DONE]') continue; try { const j = JSON.parse(d) as { choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }>; usage?: typeof usage }; content += j.choices?.[0]?.delta?.content ?? ''; if (j.choices?.[0]?.finish_reason) finish = j.choices[0].finish_reason ?? undefined; if (j.usage) usage = j.usage; } catch { /* partial */ } }
-  return { content, finish, usage };
+  let content = ''; let reasoning = 0; let finish: string | undefined; let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
+  for (const line of text.split('\n')) { const d = line.replace(/^data:\s?/, '').trim(); if (!line.startsWith('data:') || !d || d === '[DONE]') continue; try { const j = JSON.parse(d) as { choices?: Array<{ delta?: { content?: string; reasoning?: string }; finish_reason?: string | null }>; usage?: typeof usage }; content += j.choices?.[0]?.delta?.content ?? ''; reasoning += (j.choices?.[0]?.delta?.reasoning ?? '').length; if (j.choices?.[0]?.finish_reason) finish = j.choices[0].finish_reason ?? undefined; if (j.usage) usage = j.usage; } catch { /* partial */ } }
+  return { content, finish, usage, reasoningChars: reasoning };
 }
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
@@ -118,7 +118,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const rec: Attempt = { kind, requestKey: JSON.stringify(msgs).length + ':' + msgs.at(-1)?.content.slice(0, 200), ms: 0, status: res.status, maxTokens: parsed.max_tokens, head: '', tail: '', requestChars: body.length, numCtx: parsed.options?.num_ctx, think: parsed.think };
   attempts.push(rec);
   // the clone is read alongside the engine's own read; the record completes when the stream ends
-  void readAnswer(res.clone()).then((a) => { rec.ms = Date.now() - t0; rec.head = a.content.slice(0, 160); rec.tail = a.content.slice(-160); rec.finishReason = a.finish; rec.promptTokens = a.usage?.prompt_tokens; rec.completionTokens = a.usage?.completion_tokens; rec.tokPerS = a.usage?.completion_tokens ? Number((a.usage.completion_tokens / (rec.ms / 1000)).toFixed(1)) : undefined; }, () => {});
+  void readAnswer(res.clone()).then((a) => { rec.ms = Date.now() - t0; rec.head = a.content.slice(0, 160); rec.tail = a.content.slice(-160); rec.finishReason = a.finish; rec.reasoningChars = a.reasoningChars; rec.promptTokens = a.usage?.prompt_tokens; rec.completionTokens = a.usage?.completion_tokens; rec.tokPerS = a.usage?.completion_tokens ? Number((a.usage.completion_tokens / (rec.ms / 1000)).toFixed(1)) : undefined; }, () => {});
   return res;
 }) as typeof fetch;
 

@@ -85,6 +85,7 @@ export function titleParts({ pathname, search, state, org }: TitleInput): string
     // ?p= the production, ?cut= the version number of its cut
     case 'screening': { const p = prod(search?.get('p') ?? undefined); const v = search?.get('cut'); return p ? [...(v && /^\d+$/.test(v) ? [`Cut ${v}`] : []), prodName(p), 'Screening Room'] : ['Screening Room']; }
     case 'settings': return ['Settings'];
+    case 'terms': return ['Terms of use'];
     case 'assets': return ['Files'];
     case 'library': return ['Library'];
     case 'projects': return ['Projects'];

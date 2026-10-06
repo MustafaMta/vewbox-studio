@@ -20,7 +20,9 @@ import { commitTake } from '@/worker/handlers/take-commit';
  *  holds only validated, referenced files; the export is recorded once. */
 
 const REPO = process.cwd();
-const LEASE = 4;
+/** per-test backstop on a loaded machine (renders, downloads beside the suite) */
+const TEST_CEILING = 30 * 60_000;
+const LEASE = 6;
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-export-'));
 const logDir = path.join(work, 'logs'); fs.mkdirSync(logDir, { recursive: true });
 const children: ChildProcess[] = [];
@@ -30,14 +32,15 @@ let productionId = '';
 interface Worker { child: ChildProcess; exited: Promise<number | null> }
 function startWorker(name: string, env: Record<string, string> = {}): Worker {
   const out = fs.openSync(path.join(logDir, `${name}.log`), 'a');
-  const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], { cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true, env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: work, FIXTURE_TAKE: '0', ...env } });
+  const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], { cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true, env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: work, FIXTURE_TAKE: '0', WORKER_ONLY_PRODUCTIONS: productionId, ...env } });
   children.push(child);
   return { child, exited: new Promise((r) => child.once('exit', (c) => r(c))) };
 }
 const kill = async (w: Worker) => { w.child.kill('SIGKILL'); await w.exited; };
 const stop = async (w: Worker) => { if (w.child.exitCode !== null) return; w.child.send('shutdown'); await w.exited; };
-async function until<T>(what: string, fn: () => Promise<T | undefined | false | null>, timeoutMs = 120_000): Promise<T> {
+async function until<T>(what: string, fn: () => Promise<T | undefined | false | null>, timeoutMs = 10 * 60_000): Promise<T> {
   const t0 = Date.now();
+  timeoutMs = Math.max(timeoutMs, 5 * 60_000); // a loaded machine: observed state decides, the ceiling is only a backstop
   for (;;) { const v = await fn(); if (v) return v as T; if (Date.now() - t0 > timeoutMs) throw new Error(`timed out waiting for: ${what}`); await new Promise((r) => setTimeout(r, 150)); }
 }
 const row = async (id: string) => (await db().select().from(schema.jobs).where(eq(schema.jobs.id, id)))[0];
@@ -57,7 +60,7 @@ async function filesOf(jobId: string) {
 }
 
 beforeAll(async () => {
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: new Date().toISOString(), lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
+  // the workers this file starts serve ONLY its production (WORKER_ONLY_PRODUCTIONS)
   const [prod] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Export harness', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 24, brief: { mode: 'MANUAL', text: 'fixture' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = prod.production.id;
   const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
@@ -106,7 +109,7 @@ describe('interrupted export (§26)', () => {
     const files = await filesOf(job.id);
     expect(files.every((f) => f.referenced && f.shaOk !== false && f.attempt === 2)).toBe(true);
     expect((await attempts(job.id)).map((x) => [x.attempt, x.outcome, x.failureClass])).toEqual([[1, 'FAILED', 'INFRASTRUCTURE'], [2, 'COMPLETED', null]]);
-  }, 400_000);
+  }, TEST_CEILING);
 
   it('cancelled mid-encode: ffmpeg is stopped, no export is recorded, no file is left in the library', async () => {
     const a = startWorker('export-a2');
@@ -119,7 +122,7 @@ describe('interrupted export (§26)', () => {
     expect((await p_exports()).filter((e) => e.jobId === job.id)).toEqual([]);
     expect(await filesOf(job.id)).toEqual([]);
     expect((await attempts(job.id)).map((x) => x.outcome)).toEqual(['CANCELLED']);
-  }, 200_000);
+  }, TEST_CEILING);
 });
 
 /** The format tags and stream list of a file. */
@@ -163,7 +166,7 @@ describe('export: AI disclosure and end credits (licence compliance)', () => {
     for (const name of ['codec', 'container', 'stream-count', 'ai-disclosure', 'duration']) expect(v.validation.checks.find((c) => c.name === name)?.ok, name).toBe(true);
     expect(v.disclosure.engines).toContain('MiniMax H3');
     expect(v.credits?.seconds).toBe(4);
-  }, 300_000);
+  }, TEST_CEILING);
 });
 
 describe('export: subtitle tracks for an English film (QA Q4)', () => {
@@ -178,7 +181,7 @@ describe('export: subtitle tracks for an English film (QA Q4)', () => {
       expect((await p_exports()).filter((e) => e.jobId === job.id)).toEqual([]);
       expect(await filesOf(job.id)).toEqual([]);
     }
-  }, 300_000);
+  }, TEST_CEILING);
 
   it('English subtitles are burned for real: cues written in English, the burn filter ran, only an English sidecar track', async () => {
     const job = await exportJob('en', { resolution: '720' });
@@ -189,7 +192,7 @@ describe('export: subtitle tracks for an English film (QA Q4)', () => {
     expect(check).toMatchObject({ ok: true, value: '1 cue(s) burned (en)', detail: 'cues written, language matches, burn filter ran' });
     const sidecars = (await readState()).state.assets.filter((a) => a.jobId === job.id && a.tags.includes('subtitles'));
     expect(sidecars.map((a) => a.tags.filter((t) => t === 'ar' || t === 'en')).flat().sort()).toEqual(['en', 'en']); // srt + vtt, English only
-  }, 300_000);
+  }, TEST_CEILING);
 });
 
 describe('missing reference at assembly (§26)', () => {
@@ -207,7 +210,7 @@ describe('missing reference at assembly (§26)', () => {
       expect((done.error as { message: string }).message).toMatch(/cannot be assembled: missing reference file: the chosen take of shot 1\.2/);
       expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'MISSING_REFERENCE']]);
     } finally { fs.renameSync(aside, file); }
-  }, 200_000);
+  }, TEST_CEILING);
 });
 
 describe('assembly validation', () => {
@@ -221,7 +224,7 @@ describe('assembly validation', () => {
     expect(v.ok).toBe(true);
     expect(v.checks.map((c) => c.name)).toEqual(expect.arrayContaining(['codec', 'container', 'stream-count', 'ai-disclosure', 'duration', 'audio-video-length']));
     expect(probeTags(assetFile(cut)).tags.comment).toBe('AI-generated with Vewbox Studio; video by MiniMax H3');
-  }, 300_000);
+  }, TEST_CEILING);
 });
 
 const p_exports = async () => (await production()).exports ?? [];

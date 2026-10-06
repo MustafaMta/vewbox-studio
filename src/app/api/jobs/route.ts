@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { JOB_TYPES, type JobType } from '@/domain/jobs';
+import { JOB_PAYLOADS, JOB_TYPES, type JobType } from '@/domain/jobs';
 import { StudioError } from '@/domain/errors';
 import { enqueue, listJobs } from '@/server/jobs/queue';
 import { requeueKeyFor, voiceBuildKey } from '@/server/jobs/keys';
 import { readState } from '@/server/studio/engine';
 import { preflightCharacter, type PreflightWarning } from '@/server/org/preflight';
 import { json, readJson, route } from '@/server/http';
+import { assertTermsAccepted } from '@/server/terms';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,11 @@ async function prepareCharacterJob(type: JobType, payload: unknown, key: string 
 export const POST = route(async (req) => {
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) throw new StudioError('INVALID', parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
+  // a malformed request is said as such first (400 with the field named); then the terms of use (src/server/terms.ts):
+  // nothing that generates is queued before they are accepted (403)
+  const shape = (JOB_PAYLOADS[parsed.data.type] as z.ZodTypeAny).safeParse(parsed.data.payload);
+  if (!shape.success) throw new StudioError('INVALID', `Invalid payload for ${parsed.data.type}: ${shape.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
+  await assertTermsAccepted(parsed.data.type);
   const { key, warnings } = await prepareCharacterJob(parsed.data.type, parsed.data.payload, parsed.data.idempotencyKey);
   // a submission identical to an active job (double click, two tabs, a resent request) gets that job back
   let r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: key, priority: parsed.data.priority, dedupeActive: true });

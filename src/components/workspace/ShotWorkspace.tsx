@@ -83,12 +83,17 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (e.ctrlKey || e.metaKey || e.altKey || t?.closest('input, textarea, select, [contenteditable="true"]')) return;
-      if (e.key === '[' && prev) { e.preventDefault(); void leave(shotHref(p, prev.id)); }
-      if (e.key === ']' && next) { e.preventDefault(); void leave(shotHref(p, next.id)); }
+      const go = (to: Shot) => {
+        // with unsaved edits the move waits for the producer's answer, and says why in one line (QA polish a)
+        if (dirty || contextDirty) toast.push({ tone: 'info', text: `Shot ${shotLabel(p, shot)} has unsaved changes: save or discard them, or confirm to leave without them.` });
+        void leave(shotHref(p, to.id));
+      };
+      if (e.key === '[' && prev) { e.preventDefault(); go(prev); }
+      if (e.key === ']' && next) { e.preventDefault(); go(next); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [p, prev, next, leave]);
+  }, [p, shot, prev, next, leave, dirty, contextDirty, toast]);
 
   const takeNo = (t: Take) => shot.takes.indexOf(t) + 1;
   const use = (t: Take) => { try { act('selectTake', p.id, shot.id, t.id); toast.ok(`Take ${takeNo(t)} is in the cut.`); } catch (e) { toast.bad((e as Error).message); } };
@@ -538,7 +543,7 @@ function Boundary({ p, shot, value, onChange, continuation, onContinuation }: { 
     <>
       <Field label="Join with the shot before" help={<>{BOUNDARY_WORDS[shown].line}{value ? '' : ' (planned from the scene order; choose to set it)'}</>}>
         <Segmented<ShotBoundary> label="Join with the shot before" size="sm" value={shown} onChange={onChange}
-          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label, disabled: first && b !== 'transition', reason: first && b !== 'transition' ? firstWhy : undefined }))} />
+          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label, disabled: first && b !== 'transition', reason: first && b === 'continuous' ? firstWhy : undefined }))} />
       </Field>
       {shown === 'continuous' && !first && (
         <>

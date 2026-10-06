@@ -1,4 +1,5 @@
 import { env } from '../env';
+import { engineGuardProblem } from './lease-db';
 import { log } from '../log';
 import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
@@ -18,7 +19,10 @@ export interface Engine { name: string; serves: readonly GpuFamily[]; unload: ()
 /** The OpenAI-compatible server is the local Ollama (it holds the story model on the GPU) when it answers on 11434. */
 export const localOllamaBase = (): string | undefined => {
   const url = env().OPENAI_COMPATIBLE_BASE_URL;
-  return url && /:11434(\/|$)/.test(url) ? url.replace(/\/v1\/?$/, '').replace(/\/$/, '') : undefined;
+  if (!url || !/:11434(\/|$)/.test(url)) return undefined;
+  const base = url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+  // a process outside the live lease never touches the real Ollama (gpu/lease-db.ts): nothing to unload from here
+  return engineGuardProblem(base) ? undefined : base;
 };
 
 /** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. EVERY loaded model is unloaded (Ollama's
@@ -43,7 +47,8 @@ const extra: Engine[] = [];
 /** The engines the lease unloads, in order. */
 export function engines(): Engine[] {
   return [
-    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: () => comfy.free() },
+    // ComfyUI's queue drains first: a prompt nobody holds the lease for must not run beside the next family's model
+    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: async () => { const w = await comfy.waitIdle(Number(process.env.GPU_COMFY_DRAIN_MS ?? 20 * 60_000)); if (w.promptIds.length) await (await import('../jobs/queue')).recordMetric('gpu.comfy_drain_ms', w.waitedMs, 'ms', { idle: w.idle, prompts: w.promptIds.length }).catch(() => undefined); await comfy.free(); } },
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },

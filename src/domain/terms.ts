@@ -35,3 +35,12 @@ export const termsAccepted = (s: Pick<Settings, 'terms'> | undefined): boolean =
 
 /** The words a page shows when making new work waits for the terms. */
 export const TERMS_NEEDED = 'Accept the studio’s terms of use before making new work (Settings › Licences and terms).';
+/** The server's refusal: names the page where the terms are accepted. */
+export const TERMS_REFUSAL = 'The studio’s terms of use are not accepted for this version: accept them at /terms before making new work.';
+
+/** Job types that make nothing (no engine output, no new media, no written story) and so run without the terms: the
+ *  check of an uploaded file. Every other type generates, writes or assembles — refused until the terms are accepted. */
+export const TERMS_EXEMPT_JOBS: readonly string[] = ['MEDIA_PROBE'];
+
+/** Why a job of this type may not be queued or run now, or null. */
+export const termsRefusalFor = (s: Pick<Settings, 'terms'> | undefined, type: string): string | null => (TERMS_EXEMPT_JOBS.includes(type) || termsAccepted(s) ? null : TERMS_REFUSAL);

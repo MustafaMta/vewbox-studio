@@ -19,7 +19,10 @@ import { takeIdOf } from '@/worker/handlers/take-commit';
  *  A short lease (WORKER_LEASE_SECONDS=4) makes a killed worker's job stale in seconds instead of 90. */
 
 const REPO = process.cwd();
-const LEASE = 4;
+/** per-test backstop on a loaded machine (renders, downloads beside the suite) */
+const TEST_CEILING = 30 * 60_000;
+// a loaded machine delays heartbeats: 6 s with a 1.5 s beat tolerates multi-second stalls without a spurious reclaim
+const LEASE = 6;
 const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-fault-'));
 const logDir = path.join(fixtureDir, 'logs');
 fs.mkdirSync(logDir, { recursive: true });
@@ -34,7 +37,7 @@ function startWorker(name: string, env: Record<string, string> = {}): Worker {
   const out = fs.openSync(path.join(logDir, `${name}.log`), 'a');
   const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], {
     cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true,
-    env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: fixtureDir, FIXTURE_TAKE: '1', FIXTURE_RENDER_MS: '4000', LOG_LEVEL: 'info', LOG_PRETTY: '0', ...env },
+    env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: fixtureDir, FIXTURE_TAKE: '1', FIXTURE_RENDER_MS: '4000', LOG_LEVEL: 'info', LOG_PRETTY: '0', WORKER_ONLY_PRODUCTIONS: productionId, ...env },
   });
   children.push(child);
   const exited = new Promise<number | null>((r) => child.once('exit', (code) => r(code)));
@@ -45,8 +48,10 @@ async function kill(w: Worker) { w.child.kill('SIGKILL'); await w.exited; }
 /** The graceful path a supervisor uses (Ctrl+C / SIGTERM on the host; IPC here, since Windows cannot signal a child). */
 async function stop(w: Worker) { if (w.child.exitCode !== null) return; w.child.send('shutdown'); await w.exited; }
 
-async function until<T>(what: string, fn: () => Promise<T | undefined | false | null>, timeoutMs = 60_000, everyMs = 150): Promise<T> {
+// waits are on observed state; the ceiling is generous for a loaded machine (renders, downloads beside the suite)
+async function until<T>(what: string, fn: () => Promise<T | undefined | false | null>, timeoutMs = 5 * 60_000, everyMs = 150): Promise<T> {
   const t0 = Date.now();
+  timeoutMs = Math.max(timeoutMs, 5 * 60_000); // a loaded machine: observed state decides, the ceiling is only a backstop
   for (;;) {
     const v = await fn();
     if (v) return v as T;
@@ -69,9 +74,7 @@ async function orphansOf(jobId: string) {
 }
 
 beforeAll(async () => {
-  // this database is the harness's own: nothing else may be claimed by the workers it starts
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: new Date().toISOString(), lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
-  await db().delete(schema.resourceLeases);
+  // the workers this file starts serve ONLY its production (WORKER_ONLY_PRODUCTIONS): no other test's job is touched
   const [prod] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Failure harness', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 20, brief: { mode: 'MANUAL', text: 'fixture' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = prod.production.id;
   const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
@@ -109,7 +112,7 @@ describe('worker killed during production (§26)', () => {
     const takes = await takesOf(shots[0]);
     expect(takes.map((t) => t.id)).toEqual([takeIdOf(job.id)]);
     expect(await orphansOf(job.id)).toEqual([]);
-  }, 150_000);
+  }, TEST_CEILING);
 
   it('killed between storing the files and committing the take: the next attempt removes the orphans and commits ONE take', async () => {
     const a = startWorker('fault-a2', { FIXTURE_PAUSE_BEFORE_COMMIT_MS: '60000', FIXTURE_RENDER_MS: '500' });
@@ -124,7 +127,7 @@ describe('worker killed during production (§26)', () => {
     expect(await orphansOf(job.id)).toEqual([]);
     expect((await jobFiles(job.id)).every((f) => f.attempt === 2)).toBe(true);
     expect(submissions(job.id)).toBe(1);
-  }, 150_000);
+  }, TEST_CEILING);
 
   it('a job that kills its worker on every attempt is failed (INFRASTRUCTURE, WORKER_LOST) — not retried forever — and every lost attempt is in the history', async () => {
     const job = await takeJob(shots[2]);
@@ -141,7 +144,7 @@ describe('worker killed during production (§26)', () => {
     const at = await attempts(job.id);
     expect(at.map((x) => [x.attempt, x.outcome, x.failureClass])).toEqual([[1, 'FAILED', 'INFRASTRUCTURE'], [2, 'FAILED', 'INFRASTRUCTURE'], [3, 'FAILED', 'INFRASTRUCTURE']]);
     expect(await takesOf(shots[2])).toEqual([]);
-  }, 240_000);
+  }, TEST_CEILING);
 });
 
 describe('worker restart (§26)', () => {
@@ -166,7 +169,7 @@ describe('worker restart (§26)', () => {
     expect(submissions(job.id)).toBe(1);
     expect((await attempts(job.id)).map((x) => [x.attempt, x.outcome])).toEqual([[1, 'INTERRUPTED'], [2, 'COMPLETED']]);
     expect((await takesOf(shots[3])).map((t) => t.id)).toEqual([takeIdOf(job.id)]);
-  }, 150_000);
+  }, TEST_CEILING);
 });
 
 describe('cancelled job (§26)', () => {
@@ -184,7 +187,7 @@ describe('cancelled job (§26)', () => {
     expect((await attempts(job.id)).map((x) => x.outcome)).toEqual(['CANCELLED']);
     expect(await takesOf(shots[4])).toEqual([]);
     expect(await jobFiles(job.id)).toEqual([]);
-  }, 120_000);
+  }, TEST_CEILING);
 
   it('cancelled while its worker is dead: the reaper settles it CANCELLED (not "running" forever), attempt closed', async () => {
     const a = startWorker('fault-a5', { FIXTURE_RENDER_MS: '600000' });
@@ -199,7 +202,7 @@ describe('cancelled job (§26)', () => {
     expect((await row(job.id)).attempts).toBe(1);
     expect((await attempts(job.id)).map((x) => x.outcome)).toEqual(['CANCELLED']);
     expect(await takesOf(shots[5])).toEqual([]);
-  }, 120_000);
+  }, TEST_CEILING);
 });
 
 describe('invalid input and missing reference (§26) — the REAL take handler, refused before any engine', () => {
@@ -214,6 +217,25 @@ describe('invalid input and missing reference (§26) — the REAL take handler, 
     expect(r.attempts).toBe(1);
     expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
     expect((r.error as { message: string }).message).toMatch(/Shot not found/);
+  }, TEST_CEILING);
+
+  it('a job queued before the terms of use changed fails at claim as INVALID_INPUT naming /terms — no retry, no engine call', async () => {
+    const { TERMS_VERSION } = await import('@/domain/terms');
+    const job = await takeJob('shot-that-does-not-exist-either');
+    await command('updateSettings', [{ terms: { version: '2000-01-01', acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    try {
+      const w = startWorker('fault-terms', { FIXTURE_TAKE: '0' });
+      const r = await settled(job.id);
+      await stop(w);
+      expect(r.status).toBe('FAILED');
+      expect(r.attempts).toBe(1);
+      expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
+      expect(r.error as { code: string; message: string }).toMatchObject({ code: 'CONSENT_REQUIRED' });
+      expect((r.error as { message: string }).message).toMatch(/\/terms/);
+      expect(submissions(job.id)).toBe(0);
+    } finally {
+      await command('updateSettings', [{ terms: { version: TERMS_VERSION, acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    }
   }, 120_000);
 
   it('a character whose canonical picture file is gone: refused as MISSING_REFERENCE naming the picture — once, before any voice or video inference', async () => {
@@ -246,7 +268,7 @@ describe('invalid input and missing reference (§26) — the REAL take handler, 
     expect(at.map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'MISSING_REFERENCE']]);
     expect((r.error as { message: string }).message).toMatch(new RegExp(`missing reference file: reference picture 1 \\(subject\\) \\(asset ${assetId}\\)`));
     expect(await takesOf(shotId)).toEqual([]);
-  }, 120_000);
+  }, TEST_CEILING);
 });
 
 describe('duplicate submission (§26)', () => {

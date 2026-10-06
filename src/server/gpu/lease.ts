@@ -1,6 +1,7 @@
 import os from 'node:os';
-import { and, asc, eq, lt, sql as dsql } from 'drizzle-orm';
-import { db, schema } from '../db/client';
+import { and, asc, eq, isNull, lt, sql as dsql } from 'drizzle-orm';
+import { schema } from '../db/client';
+import { leaseDb } from './lease-db';
 import { env } from '../env';
 import { log } from '../log';
 import { jobScope } from '../jobs/context';
@@ -40,6 +41,13 @@ export const BACKGROUND_PREFIX = 'bg:';
 /** A background request waiting this long is served like a normal one (the starvation guard). */
 export const BACKGROUND_STARVATION_MS = 45 * 60_000;
 export const isBackground = (holder: string): boolean => holder.startsWith(BACKGROUND_PREFIX);
+/** A holder whose family switch (the other engines unloading) is still in progress. It is a HOLDING row with no
+ *  granted_at yet — NOT a state of its own: a process running older lease code (a gpu-hold started before this version)
+ *  counts only HOLDING rows as holders, and a new state was invisible to it — at 13:05:12Z an old-code background TTS hold
+ *  was admitted beside a worker's ASR grant that was still SWITCHING. The legacy 'SWITCHING' state (one build wrote it)
+ *  is still read as switching. */
+export const SWITCHING = 'SWITCHING';
+export const isSwitching = (r: { state: string; grantedAt?: string | null }): boolean => r.state === SWITCHING || (r.state === 'HOLDING' && r.grantedAt === null);
 export interface GpuLease { <T>(family: GpuFamily, estimateMb: number, fn: () => Promise<T>, opts?: GpuLeaseOptions): Promise<T> }
 
 export interface LeaseConfig {
@@ -50,6 +58,8 @@ export interface LeaseConfig {
   pollMs?: number;
   /** make the card free for `to` (default: the engine unloaders) */
   unload?: (from: GpuFamily | null, to: GpuFamily) => Promise<unknown>;
+  /** whether worker GPU jobs are about to ask for the card (keeps background requests out); default: the jobs table */
+  gpuJobsWaiting?: (tx: { execute: ReturnType<typeof leaseDb>['execute'] }, nowIso: string) => Promise<boolean>;
 }
 
 type Row = typeof schema.resourceLeases.$inferSelect;
@@ -59,8 +69,12 @@ type Row = typeof schema.resourceLeases.$inferSelect;
  *  A background request that has waited BACKGROUND_STARVATION_MS (by `requestedAt`, against `now`) counts as normal —
  *  with its old ticket it is next at the following free slot. Only the head of that order is admitted, and only when
  *  the card is free or held by its family. A holder is never preempted (nothing here takes a card back). */
-export function admits(rows: Array<Pick<Row, 'holder' | 'ticket' | 'family' | 'state' | 'jobId'> & { requestedAt?: string }>, me: Pick<Row, 'holder' | 'family' | 'jobId'>, now = Date.now(), ctx: { gpuJobsWaiting?: boolean } = {}): boolean {
-  const holders = rows.filter((r) => r.state === 'HOLDING' && r.holder !== me.holder);
+export function admits(rows: Array<Pick<Row, 'holder' | 'ticket' | 'family' | 'state' | 'jobId'> & { requestedAt?: string; grantedAt?: string | null }>, me: Pick<Row, 'holder' | 'family' | 'jobId'>, now = Date.now(), ctx: { gpuJobsWaiting?: boolean } = {}): boolean {
+  // SWITCHING: a holder granted across a family change whose engines are still unloading. It holds the card like a
+  // holder, and nobody else — not even its own family — is admitted until the unload is done (2026-10-06 12:42Z: a
+  // second IMAGE request shared the card while the first was still unloading Ollama, and Qwen-Image loaded beside it)
+  const holders = rows.filter((r) => (r.state === 'HOLDING' || r.state === SWITCHING) && r.holder !== me.holder);
+  if (holders.some((h) => isSwitching(h))) return false;
   const sameFamily = holders.every((h) => h.family === me.family);
   // nested: this job already holds the card — granted when the card is this job's alone, or held by this family
   if (me.jobId && holders.some((h) => h.jobId === me.jobId)) return sameFamily || holders.every((h) => h.jobId === me.jobId);
@@ -78,10 +92,11 @@ export function admits(rows: Array<Pick<Row, 'holder' | 'ticket' | 'family' | 's
  *  running without a lease row (claimed, preparing its request). */
 // takes and songs run in the HOSTED lane but on this card when there is no hosted key (local MiniMax H3, ACE-Step)
 const gpuJobTypes = () => JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'GPU' || (!env().MINIMAX_API_KEY && (t === 'GENERATE_TAKE' || t === 'GENERATE_SONG')));
-async function workerGpuJobsWaiting(tx: { execute: ReturnType<typeof db>['execute'] }, nowIso: string): Promise<boolean> {
+export async function workerGpuJobsWaiting(tx: { execute: ReturnType<typeof leaseDb>['execute'] }, nowIso: string, opts: { productionId?: string } = {}): Promise<boolean> {
   const types = dsql.join(gpuJobTypes().map((t) => dsql`${t}`), dsql`, `);
+  const scope = opts.productionId ? dsql`and j.production_id = ${opts.productionId}` : dsql``;
   const rows = await tx.execute<{ waiting: boolean }>(dsql`select exists (
-    select 1 from jobs j where j.type in (${types}) and j.cancel_requested = false and (
+    select 1 from jobs j where j.type in (${types}) and j.cancel_requested = false ${scope} and (
       (j.status = 'QUEUED' and (j.run_after is null or j.run_after <= ${nowIso}) and not exists (select 1 from studio_meta m where m.id = 'studio' and m.intake_paused_at is not null))
       or (j.status in ('PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and not exists (select 1 from resource_leases l where l.job_id = j.id))
     )) as waiting`);
@@ -99,34 +114,55 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
   const life = Math.random().toString(36).slice(2, 8);
   const wakers = new Set<() => void>();
   const wakeAll = () => { for (const w of [...wakers]) w(); };
-  const expiry = () => new Date(Date.now() + ttlMs).toISOString();
+  /** an expiry on the database clock (see the round) */
+  const expirySql = () => dsql`now() + make_interval(secs => ${ttlMs / 1000})`;
 
   /** One admission round, under the resource's lock: expired rows go, then this row is granted or stays waiting. */
-  const round = (holder: string, family: GpuFamily, jobId: string | undefined) => db().transaction(async (tx) => {
+  const round = (holder: string, family: GpuFamily, jobId: string | undefined) => leaseDb().transaction(async (tx) => {
     await tx.execute(dsql`select pg_advisory_xact_lock(hashtext(${`resource:${resource}`}))`);
-    const now = new Date().toISOString();
+    // DATABASE TIME, never this process's clock: expiry, requests and the starvation guard are compared on one clock (a
+    // process in a container or after a sleep may run minutes off, and would expire or starve others' rows)
+    const nowMs = Number((await tx.execute<{ ms: string }>(dsql`select (extract(epoch from now()) * 1000)::bigint::text as ms`))[0].ms);
+    const now = new Date(nowMs).toISOString();
+    const expiryAt = () => new Date(nowMs + ttlMs).toISOString();
     const expired = await tx.delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), lt(schema.resourceLeases.expiresAt, now))).returning({ holder: schema.resourceLeases.holder, process: schema.resourceLeases.process, state: schema.resourceLeases.state });
     if (expired.length) log.warn({ resource, expired }, 'gpu lease: rows of a process that stopped renewing them were removed');
     const rows = await tx.select().from(schema.resourceLeases).where(eq(schema.resourceLeases.resource, resource)).orderBy(asc(schema.resourceLeases.ticket));
     const me = rows.find((r) => r.holder === holder);
     if (!me) return { state: 'LOST' as const };
-    const gpuJobsWaiting = isBackground(holder) ? await workerGpuJobsWaiting(tx, now) : false;
+    const gpuJobsWaiting = isBackground(holder) ? await (cfg.gpuJobsWaiting ?? workerGpuJobsWaiting)(tx, now) : false;
     if (!admits(rows, { holder, family, jobId: jobId ?? null }, Date.parse(now), { gpuJobsWaiting })) {
-      await tx.update(schema.resourceLeases).set({ expiresAt: expiry() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
-      return { state: 'WAITING' as const, ahead: rows.filter((r) => r.ticket < me.ticket && r.state === 'WAITING').length, holders: rows.filter((r) => r.state === 'HOLDING').map((r) => r.family) };
+      await tx.update(schema.resourceLeases).set({ expiresAt: expiryAt() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
+      return { state: 'WAITING' as const, ahead: rows.filter((r) => r.ticket < me.ticket && r.state === 'WAITING').length, holders: rows.filter((r) => r.state === 'HOLDING' || r.state === SWITCHING).map((r) => r.family) };
     }
-    await tx.update(schema.resourceLeases).set({ state: 'HOLDING', grantedAt: now, expiresAt: expiry() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
     const prev = await tx.select().from(schema.resourceState).where(eq(schema.resourceState.resource, resource));
     const loaded = (prev[0]?.loadedFamily ?? null) as GpuFamily | null;
+    // a grant across a family change is SWITCHING until its unloads are done (then HOLDING: markHolding below)
+    await tx.update(schema.resourceLeases).set({ state: 'HOLDING', grantedAt: loaded === family ? now : null, expiresAt: expiryAt() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
     if (loaded !== family) await tx.insert(schema.resourceState).values({ resource, loadedFamily: family, updatedAt: now }).onConflictDoUpdate({ target: schema.resourceState.resource, set: { loadedFamily: family, updatedAt: now } });
     return { state: 'GRANTED' as const, from: loaded };
   });
 
   const enter = async (holder: string, family: GpuFamily, jobId: string | undefined) => {
-    await db().insert(schema.resourceLeases).values({ resource, holder, family, state: 'WAITING', jobId: jobId ?? null, process: cfg.process, requestedAt: new Date().toISOString(), expiresAt: expiry() });
+    await leaseDb().insert(schema.resourceLeases).values({ resource, holder, family, state: 'WAITING', jobId: jobId ?? null, process: cfg.process, requestedAt: dsql`now()`, expiresAt: expirySql() });
+  };
+  const markHolding = async (holder: string) => {
+    await leaseDb().update(schema.resourceLeases).set({ state: 'HOLDING', grantedAt: dsql`now()` }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder), isNull(schema.resourceLeases.grantedAt))).catch((e: Error) => log.warn({ holder, err: e.message }, 'gpu lease: could not mark the switch done (the row expires on its own)'));
+    wakeAll();
+  };
+  /** The job still holds the card for another family (the outer request): unload this family, record the outer one. */
+  const restoreOuter = async (holder: string, family: GpuFamily, jobId: string) => {
+    const outer = (await leaseDb().select().from(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.jobId, jobId))))
+      .filter((r) => r.holder !== holder && (r.state === 'HOLDING' || r.state === SWITCHING) && r.family !== family);
+    if (!outer.length) return;
+    const back = outer[0].family as GpuFamily;
+    await leaseDb().update(schema.resourceLeases).set({ grantedAt: null }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
+    await leaseDb().insert(schema.resourceState).values({ resource, loadedFamily: back, updatedAt: new Date().toISOString() }).onConflictDoUpdate({ target: schema.resourceState.resource, set: { loadedFamily: back, updatedAt: new Date().toISOString() } });
+    await unload(family, back);
+    log.info({ from: family, to: back, jobId }, 'gpu family switched back to the outer request of the job');
   };
   const leave = async (holder: string) => {
-    try { await db().delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder))); }
+    try { await leaseDb().delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder))); }
     catch (e) { log.error({ resource, holder, err: (e as Error).message }, 'gpu lease: could not release (the row expires on its own)'); }
     wakeAll();
   };
@@ -157,14 +193,15 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
     } catch (e) { await leave(holder); throw e; }
     // renewed while held; a lost row (this process stalled past the TTL) is logged — the work in flight is not stopped
     const renew = setInterval(() => {
-      void db().update(schema.resourceLeases).set({ expiresAt: expiry() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder))).returning({ holder: schema.resourceLeases.holder })
+      void leaseDb().update(schema.resourceLeases).set({ expiresAt: expirySql() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder))).returning({ holder: schema.resourceLeases.holder })
         .then((rows) => { if (!rows.length) log.error({ holder, family }, 'gpu lease: the held row expired (this process stalled); another family may take the card'); })
         .catch((e: Error) => log.warn({ holder, err: e.message }, 'gpu lease: renewal failed; retrying'));
     }, Math.max(1000, Math.floor(ttlMs / 3)));
     try {
       if (granted.from !== family) {
         const tu = Date.now();
-        await unload(granted.from, family);
+        try { await unload(granted.from, family); }
+        finally { await markHolding(holder); }
         log.info({ from: granted.from, to: family, ms: Date.now() - tu }, 'gpu family switched');
       }
       const waited = Date.now() - t0;
@@ -174,6 +211,10 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
       await recordMetric('gpu.hold_ms', Date.now() - tr, 'ms', { family }, jobId).catch(() => undefined);
       return out;
     } finally {
+      // A NESTED REQUEST OF ANOTHER FAMILY gives the card back to the family its job still holds: that family's
+      // engines are what the job uses next, so the nested family's engines unload and the card is recorded as the outer
+      // family again (before, the outer job went on with its model beside the nested family's weights)
+      if (jobId) await restoreOuter(holder, family, jobId).catch((e: Error) => log.warn({ holder, err: e.message }, 'gpu lease: could not switch back to the outer family'));
       clearInterval(renew);
       await leave(holder);
     }
@@ -207,7 +248,7 @@ export function createMemoryGpuLease(cfg: { unload?: (from: GpuFamily | null, to
 /** A stopping process gives the card back at once (rows it holds or waits with), instead of leaving them to expire
  *  after the TTL — the next worker would otherwise wait 90 s for a card nobody uses. Returns the rows removed. */
 export async function releaseProcessGpuLeases(processName: string, resource = 'gpu0'): Promise<number> {
-  const rows = await db().delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.process, processName))).returning({ holder: schema.resourceLeases.holder });
+  const rows = await leaseDb().delete(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.process, processName))).returning({ holder: schema.resourceLeases.holder });
   if (rows.length) log.info({ resource, process: processName, rows: rows.length }, 'gpu lease: released the rows of a stopping process');
   return rows.length;
 }
