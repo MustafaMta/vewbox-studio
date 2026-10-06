@@ -138,7 +138,7 @@ def area(b: Box) -> float:
 
 
 RIVAL_MARGIN = 0.05  # a face is the speaker only if it resembles the speaker this much more than any other character
-FRONTAL_LO, FRONTAL_HI = 0.35, 0.55  # frontalness below LO: not edited (a profile); above HI: full strength (START)
+FRONTAL_LO, FRONTAL_HI = 0.12, 0.22  # frontalness below LO: not edited (a profile); above HI: full strength. START, from the acceptance takes: a 3/4 view measures 0.15-0.38 and aligns well (2026-10-06)
 STRENGTH_RAMP = 4  # frames over which the edit fades in / out around profile frames and lost runs
 
 

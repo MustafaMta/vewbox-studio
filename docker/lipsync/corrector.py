@@ -323,7 +323,7 @@ def write_debug(d: str, frames: np.ndarray, result: np.ndarray, crops: np.ndarra
     os.makedirs(d, exist_ok=True)
     n = len(frames)
     with open(os.path.join(d, "track.json"), "w") as f:
-        json.dump({"fps": fps, "edit": track.edit, "boxes": [None if b is None else [round(v, 1) for v in b] for b in track.boxes], "points3": [p.round(2).tolist() for p in track.points3]}, f)
+        json.dump({"fps": fps, "edit": track.edit, "frontal": track.frontal, "strength": [round(float(s), 3) for s in track.strength], "boxes": [None if b is None else [round(v, 1) for v in b] for b in track.boxes], "points3": [p.round(2).tolist() for p in track.points3]}, f)
     known = [b for b in track.boxes if b is not None]
     last = known[0] if known else (0.0, 0.0, float(frames.shape[2]), float(frames.shape[1]))
     tiles_o, tiles_c = [], []

@@ -204,7 +204,7 @@ no stated licence).
 - native frame rate (H3: 24 fps; upstream re-encodes to 25), same frame count, the take's own audio copied;
 - only the regenerated region (mask.png's lower face, eroded and feathered) is blended into the ORIGINAL frame:
   eyes, brows, hair, the other characters and the background are bit-identical before encoding;
-- profile frames (frontalness < 0.35) are not edited; the edit fades in/out over 4 frames.
+- profile frames (frontalness < 0.12; a 3/4 view measures 0.15–0.38 and aligns well) are not edited; the edit fades in/out over 4 frames.
 
 Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
 outside Git).
