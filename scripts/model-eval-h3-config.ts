@@ -24,6 +24,10 @@ const live = process.env.DATABASE_URL ?? '';
 if (!/\/vewbox(\?|$)/.test(live)) { console.error('DATABASE_URL does not name the vewbox database'); process.exit(2); }
 process.env.DATABASE_URL = live.replace(/\/vewbox(\?|$)/, `/${process.env.EVAL_DB ?? 'vewbox_modeleval'}$1`);
 
+// the library is the MAIN checkout's (LIBRARY_ROOT in .env.local is relative to it, not to this worktree): read only
+const MAIN_ROOT = process.env.EVAL_MAIN_ROOT ?? 'D:/volexar-studio/volexar-studio';
+process.env.LIBRARY_ROOT = path.resolve(MAIN_ROOT, process.env.LIBRARY_ROOT ?? 'var/library');
+
 const run = promisify(execFile);
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'var/model-eval/h3-config');
@@ -168,7 +172,7 @@ async function main() {
       const lint = lintH3Prompt(prompt, { labels: 'LOCAL', pictures: pack.pictures.length, audios: 0, lines: sh.dialogue.map((d) => d.text), names: cast.map((c) => c.name) });
       if (!lint.ok) throw new Error(`lint: ${JSON.stringify(lint.checks.filter((c) => !c.ok))}`);
       const seconds = 5;
-      if (dry) { console.log(`dry: ${pack.pictures.length} picture(s) [${pack.pictures.map((x) => x.role).join(', ')}], opening ${pack.opening.kind}, relation ${pack.relation}`); continue; }
+      if (dry) { for (const pic of pack.pictures) await fs.access(fileOf(pic.assetId)); console.log(`dry: ${pack.pictures.length} picture(s) [${pack.pictures.map((x) => x.role).join(', ')}], opening ${pack.opening.kind}, relation ${pack.relation}`); continue; }
       const refs = await Promise.all(pack.pictures.map((pic) => comfy.uploadInput(fileOf(pic.assetId))));
       const firstFrame = pack.opening.kind === 'FRAME' ? await comfy.uploadInput(fileOf(pack.opening.assetId)) : undefined;
       const graph = minimaxH3Video({ prompt, width: info.width, height: info.height, seconds, seed: SEED, referenceImages: refs, firstFrame, filenamePrefix: `vewbox/eval/h3cfg-${id}`, ...a.cfg });
