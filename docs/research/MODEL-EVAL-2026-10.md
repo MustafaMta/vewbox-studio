@@ -603,7 +603,8 @@ Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; C
 | Why it holds the role | the strongest commercially usable open editor on the arena (1021; HunyuanImage 3.0 Instruct and Qwen-2.1 above it are territory-limited or NC); replaces FLUX.2 [klein] 4B for the character from a picture by the producer's directive (one engine family for generation and editing; FLUX no longer a production dependency). Promotion proof owed: one real-UI "from a picture" character (acceptance engineer) |
 
 The close-shot opening-frame proof (`scripts/frame-close-eval.ts`, results `docs/evidence/model-eval-2026-10/frame-close/results.json`):
-script removed 2026-10-06; recoverable from git history at `df74b50c`.
+script removed 2026-10-06; recoverable from git history at `df74b50c`. The `CANONICAL_REFERENCE_ENGINE=klein` route
+(FLUX.2 [klein] 4B) was removed from the code the same day; Edit-2511 is the only engine for the character from a picture.
 
 ### 10.3 Qwen-Image-2512 bf16 — candidate final image tier
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, KLEIN_MEDIUM, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
-  kleinReferenceCanonical, kleinReferencePrompt,
+  CANONICAL_FRAME, CANONICAL_OUTPUT, DESCRIBE_PROMPT, EXPECTED_MEDIUM, FACE_CHECK_OUTPUTS, MODELS, REFERENCE_DESCRIBE_KEY, STYLE_MEDIUM, canonicalIdentityLine, canonicalPrompt,
   faceCropRect, facialHairStatement, firstJsonObject, garmentCut, hasNonLatinLetters, identityLineFromDescription, lookPiece, negativeFor, parseCharacterDescription, parseFaceBoxes, parseStyleJudgement,
   qwenCanonicalImage, qwenReferenceCanonical, qwenVlmText, referenceCanonicalPrompt, referenceReadGraph, sentences, vlmOutput, whoPhrase, workflowVersion, type Graph,
 } from '@/server/workflows';
@@ -96,47 +95,6 @@ describe('D13: facial hair and a garment’s cut are stated so they cannot be re
     const d = parseCharacterDescription('{"sex": "male", "ageRange": "55-65", "facialHair": "thick grey mustache", "clothing": []}');
     expect(identityLineFromDescription(d).line).toContain('facial hair: thick grey mustache only; the chin, jaw and cheeks are shaved smooth');
     expect(identityLineFromDescription(parseCharacterDescription('{"facialHair": "full grey beard and mustache"}')).line).toContain('; full grey beard and mustache');
-  });
-});
-
-describe('Image Reference on FLUX.2 [klein] 4B (docs/research/FLUX-VS-QWEN.md §6)', () => {
-  it('the graph: klein distilled, 4 steps, cfg 1, zeroed negative, the canonical frame, the upload then its face chained as reference latents', () => {
-    const g = kleinReferenceCanonical({ upload: 'up.png', faceRect: { x: 300, y: 200, width: 400, height: 400 }, prompt: 'P', seed: 7 });
-    linked(g);
-    expect(g.unet.inputs).toMatchObject({ unet_name: MODELS.kleinDit });
-    expect(g.clip.inputs).toMatchObject({ clip_name: MODELS.kleinTe, type: 'flux2' });
-    expect(g.vae.inputs).toMatchObject({ vae_name: MODELS.kleinVae });
-    expect(g.neg.class_type).toBe('ConditioningZeroOut');
-    expect(Object.values(g).filter((n) => n.class_type === 'CLIPTextEncode').map((n) => n.inputs.text)).toEqual(['P']); // no negative text
-    expect(g.sigmas.inputs).toEqual({ steps: 4, width: CANONICAL_FRAME.width, height: CANONICAL_FRAME.height });
-    expect(g.latent.inputs).toMatchObject({ width: 928, height: 1664 });
-    expect(g.guider.inputs).toMatchObject({ cfg: 1, positive: ['ref2', 0], negative: ['neg', 0] });
-    expect(g.ref1.inputs).toMatchObject({ conditioning: ['pos', 0], latent: ['img1e', 0] });
-    expect(g.ref2.inputs).toMatchObject({ conditioning: ['ref1', 0], latent: ['img2e', 0] });
-    expect(g.facecrop.inputs).toMatchObject({ image: ['img1', 0], x: 300, y: 200, width: 400, height: 400 });
-    expect(g.noise.inputs.noise_seed).toBe(7);
-    expect(g[CANONICAL_OUTPUT].class_type).toBe('SaveImage');
-    // without the face crop (the retry) the upload alone conditions it
-    const plain = kleinReferenceCanonical({ upload: 'up.png', prompt: 'P', seed: 8 });
-    linked(plain);
-    expect(plain.ref2).toBeUndefined();
-    expect(plain.guider.inputs.positive).toEqual(['ref1', 0]);
-    expect(classes(plain)).not.toContain('KSampler');
-  });
-  it('the prompt names only what the person has: medium first, no negations, no generic glasses/facial-hair list', () => {
-    for (const style of ['CARTOON', 'ANIME', 'REALISTIC'] as const) {
-      const p = kleinReferencePrompt({ style, identityLine: 'Identity: a woman aged about 35-45; long black hair; wearing green cardigan.', faceImage: true });
-      const face = style === 'REALISTIC' ? 'with the face exactly as in image 2' : 'with the face as in image 2';
-      expect(p.startsWith(`Redraw the person in image 1, ${face}, as ${KLEIN_MEDIUM[style]}:`)).toBe(true);
-      // D18: a stylized redraw asks for a new rendering; only a realistic one asks for the picture exactly
-      if (style === 'REALISTIC') expect(p).toContain('exactly as in the picture');
-      else { expect(p).toContain('Change the rendering completely into this style'); expect(p).not.toContain('exactly'); }
-      expect(p).not.toMatch(/glasses|facial hair/i); // the A/B: the shipping list made klein draw glasses on 8/8
-      expect(p).not.toMatch(/\bnot a\b|\bno props\b|\bno text\b/);
-      expect(p).toContain('the whole figure from the top of the head to the soles of the feet');
-    }
-    expect(kleinReferencePrompt({ style: 'REALISTIC', identityLine: 'Identity: a man aged about 60-70; glasses (thin metal frame).' })).toContain('glasses (thin metal frame)');
-    expect(kleinReferencePrompt({ style: 'CARTOON', identityLine: '' })).not.toContain('image 2');
   });
 });
 

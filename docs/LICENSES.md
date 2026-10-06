@@ -11,7 +11,6 @@ so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*,
 |---|---|---|---|---|---|
 | MiniMax H3 (local open weights, ComfyUI) | every take, picture and sound | MiniMax H3 Community License | in use | display "MiniMax H3" prominently in the UI (§IV.2); commercial use below US$20M a year; users bound by its Acceptable Use Policy (§V.2, Exhibit A); outputs not displayed in the US, EU, UK or South Korea without MiniMax's territory licence | yes |
 | Qwen-Image-2512, Qwen-Image-Edit-2511 | canonical images, plates, frames | Apache-2.0 | in use | keep the licence and notices | no |
-| FLUX.2 [klein] 4B | optional fallback for a canonical image from a picture (`CANONICAL_REFERENCE_ENGINE=klein`); not used by default since 2026-10-06 | Apache-2.0 | evaluating | keep the licence and notices | no |
 | Qwen3.5-4B | reading the reference picture | Apache-2.0 | in use | keep the licence and notices | no |
 | MediaPipe (face detector, Face Landmarker, Hand Landmarker) | face box, mouth activity, the lip-sync corrector's face alignment and occlusion gate | Apache-2.0 ✔ — code (google-ai-edge/mediapipe LICENSE) and the model cards, each stating "LICENSED UNDER Apache License, Version 2.0": Face Mesh V2, Blendshape V2, BlazeFace short-range, Hand Tracking Lite/Full (Oct 2021) — read 2026-10-06 from storage.googleapis.com/mediapipe-assets | in use | keep the licence and notices | no |
 | IndexTTS 2.5 | the characters' lines | bilibili IndexTTS model licence (code Apache-2.0) ◐ | in use | its use restrictions bind users of its outputs (§3.4) | yes |

@@ -14,11 +14,6 @@ export const MODELS = {
   qwenLightning: 'Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors',
   qwenClip: 'qwen_2.5_vl_7b_fp8_scaled.safetensors',
   qwenVae: 'qwen_image_vae.safetensors',
-  /** FLUX.2 [klein] 4B distilled (Comfy-Org/flux2-klein-4B, Apache-2.0): the canonical image from the producer's picture
-   *  (docs/research/FLUX-VS-QWEN.md), with its Qwen3-4B text encoder and the FLUX.2 VAE */
-  kleinDit: 'flux-2-klein-4b.safetensors',
-  kleinTe: 'qwen_3_4b.safetensors',
-  kleinVae: 'flux2-vae.safetensors',
   /** MediaPipe BlazeFace + landmarker weights (Comfy-Org/mediapipe, models/detection), 5.4 MB */
   mediapipeFace: 'mediapipe_face_fp32.safetensors',
   /** Qwen3.5-4B (Comfy-Org/Qwen3.5, Apache-2.0, 9.3 GB) — a vision-language model run by core `TextGenerate`; used

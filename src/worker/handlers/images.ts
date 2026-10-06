@@ -21,7 +21,7 @@ import * as comfy from '@/server/providers/comfy';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
-  kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
+  negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
@@ -45,7 +45,7 @@ import { IMAGE_VRAM_MB } from '@/server/gpu/estimates';
  *  drawn by CHARACTER_APPEARANCE — from the English identity line (style first; Qwen-Image-2512 in quality mode), or
  *  from the producer's uploaded picture, which is read first (MediaPipe face box, a Qwen3.5-4B description that writes
  *  the identity line) and redrawn into the production's style (Qwen-Image-Edit-2511 since the stack directive of
- *  2026-10-06; FLUX.2 [klein] 4B only with `CANONICAL_REFERENCE_ENGINE=klein`, `referenceEngine`). A picture whose figure is not
+ *  2026-10-06; the FLUX.2 [klein] 4B route was removed 2026-10-06). A picture whose figure is not
  *  whole in the frame is redrawn once (the first becomes RAW), then left for the producer with the reason. The image is
  *  a DRAFT until the producer approves it; it is the primary image everywhere, including the reference of every shot.
  *  CHARACTER_REFS draws optional SECONDARY material on request, one pass from that image. Evidence and the A/B behind
@@ -258,23 +258,11 @@ async function readReference(ctx: HandlerContext, c: Character, pending: Asset):
   return { upload: read.upload, faceRect, faces: read.boxes.length, description: read.description, notes, describedBy: read.describedBy };
 }
 
-const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REFERENCE_KLEIN: 'FLUX.2 [klein] 4B (4 steps, cfg 1)', REFERENCE_QWEN: 'Qwen-Image-Edit-2511 (24 steps, cfg 4)' } as const;
+/** The engines of the canonical image: from the written look (Qwen-Image-2512), or from the producer's picture
+ *  (Qwen-Image-Edit-2511 — the production editor by the producer's stack directive,
+ *  docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md; FLUX is no longer a production dependency). */
+const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REFERENCE_QWEN: 'Qwen-Image-Edit-2511 (24 steps, cfg 4)' } as const;
 const FRAMING_OK = 'full body in frame: head and feet inside the picture with margin';
-const KLEIN_NODES = ['ReferenceLatent', 'Flux2Scheduler', 'EmptyFlux2LatentImage', 'CFGGuider', 'SamplerCustomAdvanced', 'ConditioningZeroOut'];
-
-/** Which engine redraws the producer's picture. Qwen-Image-Edit-2511 — the production editor since the producer's
- *  stack directive (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md: "takes over the 'character from a picture'
- *  role from FLUX.2 klein"; FLUX is no longer a production dependency) — unless `CANONICAL_REFERENCE_ENGINE=klein` asks
- *  for FLUX.2 [klein] 4B explicitly (kept until the Qwen route is proven in the UI, then removed) and klein's weights
- *  and nodes are in ComfyUI; otherwise Qwen with the reason. */
-export async function referenceEngine(): Promise<{ engine: 'KLEIN' | 'QWEN'; note?: string }> {
-  if ((process.env.CANONICAL_REFERENCE_ENGINE ?? '').toLowerCase() !== 'klein') return { engine: 'QWEN' };
-  const [dit, te, vae] = await Promise.all(['diffusion_models', 'text_encoders', 'vae'].map((f) => comfy.listModels(f).catch(() => [] as string[])));
-  const missing = [...(dit.includes(MODELS.kleinDit) ? [] : [MODELS.kleinDit]), ...(te.includes(MODELS.kleinTe) ? [] : [MODELS.kleinTe]), ...(vae.includes(MODELS.kleinVae) ? [] : [MODELS.kleinVae])];
-  const nodes = missing.length ? [] : (await comfy.hasNodes(KLEIN_NODES).catch(() => ({ missing: KLEIN_NODES }))).missing;
-  if (missing.length || nodes.length) return { engine: 'QWEN', note: `CANONICAL_REFERENCE_ENGINE=klein, but FLUX.2 [klein] 4B is not available in ComfyUI (missing ${[...missing, ...nodes].join(', ')}): the picture is redrawn by Qwen-Image-Edit-2511` };
-  return { engine: 'KLEIN', note: 'CANONICAL_REFERENCE_ENGINE=klein: the picture is redrawn by FLUX.2 [klein] 4B (non-default, evaluation only)' };
-}
 
 /** The framing check of a drawn picture: the whole figure, head to feet, with margin (src/server/media/figure-check.ts;
  *  in the A/B it passed all 36 canonical pictures and failed all 12 deliberately cropped ones). */
@@ -313,12 +301,10 @@ export const characterAppearance: Handler = async (ctx) => {
   const keptLine = !read && !lookWritten(c) && c.canonicalImage?.referenceAssetId && c.canonicalImage.identityLine ? c.canonicalImage.identityLine : undefined;
   const look = read ? referenceLook(c, read.description) : { ...(keptLine ? { line: keptLine, nonLatin: [] as string[] } : textLook(c)), from: 'DESCRIPTION' as const, lowConfidence: [] as string[], notVisible: [] as string[] };
   if (!read && look.nonLatin.length && !/;/.test(look.line)) throw new StudioError('INVALID', `${c.name}: the look is written only in a script the image model does not read (${look.nonLatin.slice(0, 3).join('; ')}); write the appearance in English, or describe the character so it is designed.`, { characterId: c.id, nonLatin: look.nonLatin, failureClass: 'INVALID_INPUT' });
-  const redraw = read ? await referenceEngine() : undefined;
-  const klein = redraw?.engine === 'KLEIN';
-  const notes = [...(earlier && pending === earlier ? [`drawn again from the earlier reference picture (${earlier.id})`] : []), ...(keptLine ? ['the earlier reference picture is no longer in the library: drawn from the line the current image was drawn from'] : []), ...(read?.notes ?? []), ...(redraw?.note ? [redraw.note] : []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
+  const notes = [...(earlier && pending === earlier ? [`drawn again from the earlier reference picture (${earlier.id})`] : []), ...(keptLine ? ['the earlier reference picture is no longer in the library: drawn from the line the current image was drawn from'] : []), ...(read?.notes ?? []), ...(look.nonLatin.length ? [`left out of the prompt (not in English): ${look.nonLatin.slice(0, 4).join('; ')}`] : []), ...(look.lowConfidence.length ? [`not used (the description was unsure): ${look.lowConfidence.join(', ')}`] : [])];
   if (notes.length) await ctx.event('warn', `${c.name}: ${notes.join(' — ')}`, { characterId: c.id, notes });
-  const engine = !read ? CANONICAL_ENGINE.DESCRIPTION : klein ? CANONICAL_ENGINE.REFERENCE_KLEIN : CANONICAL_ENGINE.REFERENCE_QWEN;
-  const model = !read ? 'Qwen-Image-2512' : klein ? 'FLUX.2-klein-4B' : 'Qwen-Image-Edit-2511';
+  const engine = !read ? CANONICAL_ENGINE.DESCRIPTION : CANONICAL_ENGINE.REFERENCE_QWEN;
+  const model = !read ? 'Qwen-Image-2512' : 'Qwen-Image-Edit-2511';
   const references = pending ? [pending.id] : [];
 
   // draw; a picture whose figure is not whole in the frame is redrawn once (it stays in the library as RAW). From a
@@ -330,10 +316,8 @@ export const characterAppearance: Handler = async (ctx) => {
     usedSeed = (seed + attempt) % 2 ** 31;
     const faceRect = attempt === 0 ? read?.faceRect : undefined;
     const prompt = !read ? canonicalPrompt({ style, identityLine: look.line, character: d.character, visual: d.visual, avoid: d.avoid })
-      : klein ? kleinReferencePrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual })
       : referenceCanonicalPrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual });
     const graph = !read ? qwenCanonicalImage({ prompt, negative, seed: usedSeed })
-      : klein ? kleinReferenceCanonical({ upload: read.upload, faceRect, prompt, seed: usedSeed })
       : qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed });
     await ctx.progress('GENERATING', { phase: 'drawing', message: attempt ? `Drawing ${c.name} again (the first picture was not whole in the frame)` : `Drawing ${c.name}`, percent: null });
     // a picture an earlier attempt of this job already drew for this step is judged again, never drawn again
@@ -352,7 +336,7 @@ export const characterAppearance: Handler = async (ctx) => {
     try {
       framing = await framingOf(tmp.file);
       const keep = framing.ok || attempt === 1;
-      const a = await adoptFetched(ctx, tmp.file, run, { key, label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative: klein ? undefined : negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
+      const a = await adoptFetched(ctx, tmp.file, run, { key, label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
       await recordMetric('image.generation_ms', a.ms, 'ms', { model, refs: references.length, canonical: 1 }, ctx.job.id);
       if (keep) drawn = a;
       else {
