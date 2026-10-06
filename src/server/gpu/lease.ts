@@ -47,6 +47,8 @@ export interface LeaseConfig {
   pollMs?: number;
   /** make the card free for `to` (default: the engine unloaders) */
   unload?: (from: GpuFamily | null, to: GpuFamily) => Promise<unknown>;
+  /** whether worker GPU jobs are about to ask for the card (keeps background requests out); default: the jobs table */
+  gpuJobsWaiting?: (tx: { execute: ReturnType<typeof db>['execute'] }, nowIso: string) => Promise<boolean>;
 }
 
 type Row = typeof schema.resourceLeases.$inferSelect;
@@ -75,10 +77,11 @@ export function admits(rows: Array<Pick<Row, 'holder' | 'ticket' | 'family' | 's
  *  running without a lease row (claimed, preparing its request). */
 // takes and songs run in the HOSTED lane but on this card when there is no hosted key (local MiniMax H3, ACE-Step)
 const gpuJobTypes = () => JOB_TYPES.filter((t) => JOB_RESOURCE[t] === 'GPU' || (!env().MINIMAX_API_KEY && (t === 'GENERATE_TAKE' || t === 'GENERATE_SONG')));
-async function workerGpuJobsWaiting(tx: { execute: ReturnType<typeof db>['execute'] }, nowIso: string): Promise<boolean> {
+export async function workerGpuJobsWaiting(tx: { execute: ReturnType<typeof db>['execute'] }, nowIso: string, opts: { productionId?: string } = {}): Promise<boolean> {
   const types = dsql.join(gpuJobTypes().map((t) => dsql`${t}`), dsql`, `);
+  const scope = opts.productionId ? dsql`and j.production_id = ${opts.productionId}` : dsql``;
   const rows = await tx.execute<{ waiting: boolean }>(dsql`select exists (
-    select 1 from jobs j where j.type in (${types}) and j.cancel_requested = false and (
+    select 1 from jobs j where j.type in (${types}) and j.cancel_requested = false ${scope} and (
       (j.status = 'QUEUED' and (j.run_after is null or j.run_after <= ${nowIso}) and not exists (select 1 from studio_meta m where m.id = 'studio' and m.intake_paused_at is not null))
       or (j.status in ('PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING') and not exists (select 1 from resource_leases l where l.job_id = j.id))
     )) as waiting`);
@@ -107,7 +110,7 @@ export function createDbGpuLease(cfg: LeaseConfig): GpuLease {
     const rows = await tx.select().from(schema.resourceLeases).where(eq(schema.resourceLeases.resource, resource)).orderBy(asc(schema.resourceLeases.ticket));
     const me = rows.find((r) => r.holder === holder);
     if (!me) return { state: 'LOST' as const };
-    const gpuJobsWaiting = isBackground(holder) ? await workerGpuJobsWaiting(tx, now) : false;
+    const gpuJobsWaiting = isBackground(holder) ? await (cfg.gpuJobsWaiting ?? workerGpuJobsWaiting)(tx, now) : false;
     if (!admits(rows, { holder, family, jobId: jobId ?? null }, Date.parse(now), { gpuJobsWaiting })) {
       await tx.update(schema.resourceLeases).set({ expiresAt: expiry() }).where(and(eq(schema.resourceLeases.resource, resource), eq(schema.resourceLeases.holder, holder)));
       return { state: 'WAITING' as const, ahead: rows.filter((r) => r.ticket < me.ticket && r.state === 'WAITING').length, holders: rows.filter((r) => r.state === 'HOLDING').map((r) => r.family) };
