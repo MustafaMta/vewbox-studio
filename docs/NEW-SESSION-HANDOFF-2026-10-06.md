@@ -83,6 +83,14 @@ vLLM image (≈ 20 GB on Docker's C: disk was approved), fit it on the card (sin
 `--max-model-len` ~16k, FP8 KV), run `scripts/planner-focused-test.ts` (concept → outline → scene → 3-shot plan,
 JSON validity, continuity, one image+text input), measure load time, VRAM, RAM, tok/s, first-token latency; then one
 real-UI planning run with intake resumed only for that run. Promote, remove Qwen3.6 from routing (files kept), merge.
+Before the first start: pin the vLLM image by digest in compose and create the store folder `cache/vllm` (compose
+mounts it as a subfolder). Open risk: 28.8 GiB of weights on ~31.4 GiB usable VRAM leaves ~2.5 GiB for KV cache and
+activations — if 16k context does not fit, try text-only mode or a shorter context, and report before any 4-bit
+variant. Measure wake-from-sleep time and the VRAM a sleeping vLLM keeps; if H3 cannot run beside it, stop/start the
+container instead of sleeping it. The branch's lease estimate (31,500 MB) and speed (25 tok/s) are placeholders. The
+focused test's image+text step uses Najm's canonical image, now at
+`D:\vewbox-data\library\image\2026\10\gen-f90820998a.png` (the script still names `var/library/...`).
+Download record: 79/79 files sha256-verified, 30,890,048,027 bytes, revision `017b9c7af6b5689d5dd426a76e0bc077eb5ca20a`.
 Resume/verify the download if ever needed: `docker compose -p vewbox --profile models run --rm models --manifest
 manifest.json --root /models --groups llm-qwen3.8-27b-fp8`.
 
