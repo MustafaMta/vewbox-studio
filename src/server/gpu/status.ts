@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import { db, schema } from '../db/client';
 import { UNLOAD_METRIC } from './unloaders';
+import { leaseDb } from './lease-db';
+import { isSwitching } from './lease';
 
 /** WHAT THE GPU IS DOING, READ ONLY (the engine room: GET /api/studio/gpu). The shared lease's rows
  *  (src/server/gpu/lease.ts): who holds the card and who waits, in admission order; what was loaded last; and the last
@@ -23,8 +25,8 @@ export interface GpuStatus {
 export async function gpuStatus(opts: { resource?: string; unloads?: number } = {}): Promise<GpuStatus> {
   const resource = opts.resource ?? 'gpu0';
   const [rows, state, unloads] = await Promise.all([
-    db().select().from(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), gt(schema.resourceLeases.expiresAt, new Date().toISOString()))).orderBy(asc(schema.resourceLeases.ticket)),
-    db().select().from(schema.resourceState).where(eq(schema.resourceState.resource, resource)),
+    leaseDb().select().from(schema.resourceLeases).where(and(eq(schema.resourceLeases.resource, resource), gt(schema.resourceLeases.expiresAt, new Date().toISOString()))).orderBy(asc(schema.resourceLeases.ticket)),
+    leaseDb().select().from(schema.resourceState).where(eq(schema.resourceState.resource, resource)),
     db().select().from(schema.metrics).where(eq(schema.metrics.name, UNLOAD_METRIC)).orderBy(desc(schema.metrics.at)).limit(Math.min(100, Math.max(1, opts.unloads ?? 20))),
   ]);
   const now = new Date().toISOString();
@@ -34,7 +36,7 @@ export async function gpuStatus(opts: { resource?: string; unloads?: number } = 
     resource,
     mode: process.env.GPU_LEASE === 'memory' ? 'memory' : 'db',
     loaded: { family: state[0]?.loadedFamily ?? null, since: state[0]?.updatedAt ?? null },
-    holders: liveRows.filter((r) => r.state === 'HOLDING' || r.state === 'SWITCHING').map((r) => ({ switching: r.state === 'SWITCHING', holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, grantedAt: r.grantedAt, expiresAt: r.expiresAt })),
+    holders: liveRows.filter((r) => r.state === 'HOLDING' || r.state === 'SWITCHING').map((r) => ({ switching: isSwitching(r), holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, grantedAt: r.grantedAt, expiresAt: r.expiresAt })),
     waiting: liveRows.filter((r) => r.state === 'WAITING').map((r, i) => ({ holder: r.holder, family: r.family, jobId: r.jobId, process: r.process, requestedAt: r.requestedAt, expiresAt: r.expiresAt, position: i + 1 })),
     unloads: unloads.map((m) => { const l = (m.labels ?? {}) as Record<string, unknown>; return { at: m.at, engine: String(l.engine ?? '?'), from: String(l.from ?? 'unknown'), to: String(l.to ?? '?'), ms: m.value, ok: l.ok !== false, jobId: m.jobId }; }),
     at: now,

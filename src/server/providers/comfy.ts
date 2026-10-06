@@ -4,6 +4,7 @@ import { workflowVersion as structuralWorkflowVersion, type Graph } from '../wor
 import { StudioError, type StudioErrorCode } from '@/domain/errors';
 import type { FailureClass } from '@/server/org/model';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobScope, jobSignal, stopReasonOf } from '../jobs/context';
 
@@ -26,7 +27,8 @@ export interface ComfyOutputFile { filename: string; subfolder: string; type: 'o
 export interface ComfyRunResult { promptId: string; outputs: Record<string, { images?: ComfyOutputFile[]; audio?: ComfyOutputFile[]; video?: ComfyOutputFile[]; gifs?: ComfyOutputFile[]; text?: string[] }>; ms: number; /** ComfyUI's own execution time (queue wait excluded), when it reported it */ engineMs?: number; workflowVersion: string; /** true when an earlier attempt's prompt was adopted instead of submitting again */ resumed?: boolean }
 export interface ComfyProgress { node?: string; value?: number; max?: number; queue?: number }
 
-const baseUrl = () => env().COMFYUI_URL.replace(/\/$/, '');
+// one card, one lease: a process outside the live lease may not use the real engine (src/server/gpu/lease-db.ts)
+const baseUrl = () => guardedEngineUrl(env().COMFYUI_URL.replace(/\/$/, ''), 'ComfyUI');
 
 /** A stopped job (cancel, deadline, lost lease) aborts its ComfyUI calls with the job's reason; that reason is what
  *  surfaces, not "not reachable". */

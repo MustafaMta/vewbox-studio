@@ -3,6 +3,7 @@ import path from 'node:path';
 import { StudioError } from '@/domain/errors';
 import type { Dialect, Language } from '@/domain/vocabulary';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
 
@@ -28,8 +29,9 @@ export interface SynthesizeResult {
   truePeakDbtp?: number; gainReductionDb?: number;
 }
 
-const tts = (engine: Exclude<TtsEngine, 'auto'>) => (engine === 'habibi' ? env().TTS_HABIBI_URL : env().TTS_URL).replace(/\/$/, '');
-const asr = () => env().ASR_URL.replace(/\/$/, '');
+// one card, one lease: a process outside the live lease may not use the real engines (src/server/gpu/lease-db.ts)
+const tts = (engine: Exclude<TtsEngine, 'auto'>) => guardedEngineUrl((engine === 'habibi' ? env().TTS_HABIBI_URL : env().TTS_URL).replace(/\/$/, ''), 'the voice service');
+const asr = () => guardedEngineUrl(env().ASR_URL.replace(/\/$/, ''), 'the transcription service');
 
 /** POST and read the WHOLE answer under the same timeout and job signal. The body is read inside: a service that
  *  restarts or dies while sending it (the connection reset mid-body: "terminated") is UNAVAILABLE — a retryable

@@ -25,6 +25,9 @@ console.log(`[test-server] database ${describeDb(url)} (${made}), library ${libr
 const env: NodeJS.ProcessEnv = {
   ...process.env,
   DATABASE_URL: url,
+  // its GPU lease is its own database (src/server/gpu/lease-db.ts) - real engines are refused - except for the GPU
+  // journeys (QA_GPU=1), which queue on the live studio's lease like every process that uses the card
+  ...(process.env.QA_GPU === '1' ? {} : { GPU_LEASE_DATABASE_URL: url }),
   LIBRARY_ROOT: library,
   VEWBOX_ALLOW_RESET: '1',
   STUDIO_SAMPLE_FIXTURE: '1',

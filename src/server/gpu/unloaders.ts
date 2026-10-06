@@ -1,4 +1,5 @@
 import { env } from '../env';
+import { engineGuardProblem } from './lease-db';
 import { log } from '../log';
 import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
@@ -18,7 +19,10 @@ export interface Engine { name: string; serves: readonly GpuFamily[]; unload: ()
 /** The OpenAI-compatible server is the local Ollama (it holds the story model on the GPU) when it answers on 11434. */
 export const localOllamaBase = (): string | undefined => {
   const url = env().OPENAI_COMPATIBLE_BASE_URL;
-  return url && /:11434(\/|$)/.test(url) ? url.replace(/\/v1\/?$/, '').replace(/\/$/, '') : undefined;
+  if (!url || !/:11434(\/|$)/.test(url)) return undefined;
+  const base = url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+  // a process outside the live lease never touches the real Ollama (gpu/lease-db.ts): nothing to unload from here
+  return engineGuardProblem(base) ? undefined : base;
 };
 
 /** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. EVERY loaded model is unloaded (Ollama's
