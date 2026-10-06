@@ -168,7 +168,7 @@ export const LipsyncCorrectOutput = z.union([
 
 /** Local engines (IndexTTS 2.5, Habibi-TTS IRQ) speak from a reference recording; the hosted path from a voice id. */
 export const SynthesizeInput = z.union([
-  z.looseObject({ text: z.string().min(1), language: z.enum(['EN', 'AR']), referenceWav: file, engine: z.enum(['indextts', 'habibi', 'auto']).optional(), referenceText: z.string().optional(), seed: z.number().optional(), speed: z.number().positive().optional(), emotionAlpha: z.number().optional() }),
+  z.looseObject({ text: z.string().min(1), language: z.enum(['EN', 'AR']), referenceWav: file, engine: z.enum(['indextts', 'habibi', 'voxcpm2', 'dots', 'moss', 'auto']).optional(), referenceText: z.string().optional(), seed: z.number().optional(), speed: z.number().positive().optional(), emotionAlpha: z.number().optional() }),
   z.looseObject({ text: z.string().min(1), voiceId: z.string().min(1), languageBoost: z.string().optional(), emotion: z.string().optional() }),
 ]);
 export const SynthesizeOutput = z.union([
