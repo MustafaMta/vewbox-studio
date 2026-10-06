@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useUrlPanel } from '@/components/shell/useUrlPanel';
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Asset } from '@/domain/types';
 import { useStudio } from '@/studio/store';
@@ -36,9 +36,6 @@ const OWNER_SECTIONS: Array<{ kind: OwnerKind; title: string; description: strin
 export function FilesPage() {
   const { state, jobs, addFile, ready } = useStudio();
   const toast = useToast();
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<KindFilter>('ALL');
   const [owner, setOwner] = useState<OwnerFilter>('all');
@@ -47,9 +44,9 @@ export function FilesPage() {
   const grouped = useMemo(() => groupFiles(state, own, { q, kind, owner }), [state, own, q, kind, owner]);
   const counts = useMemo(() => kindCounts(state), [state]);
   const ownerCounts = useMemo(() => { const c: Record<OwnerKind, number> = { character: 0, location: 0, production: 0, other: 0 }; for (const a of listed(state.assets)) c[(own.get(a.id)?.kind ?? 'other')] += 1; return c; }, [state, own]);
-  const openId = sp.get('asset');
+  // the viewer opens from the page's state at once; the address is mirrored (src/components/shell/useUrlPanel.ts)
+  const [openId, setOpen] = useUrlPanel('asset');
   const open = openId ? state.assets.find((a) => a.id === openId) ?? null : null;
-  const setOpen = (id: string | null) => router.replace(id ? `${pathname}?asset=${encodeURIComponent(id)}` : pathname, { scroll: false });
   if (!ready) return <FilesSkeleton />;
   const addFiles = async (files: FileList) => {
     setUploading(true);
