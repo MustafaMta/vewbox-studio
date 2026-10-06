@@ -67,7 +67,7 @@ const STEPS = [
       const merged = run('git', ['merge-base', '--is-ancestor', 'origin/cloud-session', 'HEAD']);
       const problems = [];
       if (st.out) problems.push('the working tree has uncommitted changes');
-      if (!merged.ok) problems.push(`origin/cloud-session is not merged into ${br.out} (docs/OPERATIONS-CLOUD.md "Back on the workstation" step 1)`);
+      if (!merged.ok) problems.push(`origin/cloud-session is not merged into ${br.out} (docs/OPERATIONS.md, repository section)`);
       return { ok: problems.length === 0, detail: problems.join('; ') || `${br.out}, cloud work merged` };
     } },
   { id: 'env', name: '.env and .env.local present (secrets stay on the workstation)', cmd: 'test -f .env && test -f .env.local',

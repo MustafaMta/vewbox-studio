@@ -90,7 +90,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     console.log(found.length ? `${found.length} findings (baseline)` : 'clean');
   } else {
     for (const f of found) console.log(`${f.file}:${f.line}  ${f.rule}  ${f.text}`);
-    console.log(found.length ? `\n${found.length} finding(s) — docs/DESIGN-SYSTEM-V4.md §1.5, §8.4` : 'v4-lint: clean');
+    console.log(found.length ? `\n${found.length} finding(s) — DESIGN-SYSTEM-V4.md §1.5, §8.4 (archived: D:/vewbox-data/archive/repo-docs-2026-10-06, or git history)` : 'v4-lint: clean');
     process.exitCode = found.length ? 1 : 0;
   }
 }
