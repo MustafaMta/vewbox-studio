@@ -1,4 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const llm = vi.hoisted(() => ({ answer: {} as Record<string, unknown> }));
+vi.mock('@/server/providers/llm', () => ({ json: async () => ({ data: llm.answer, result: { model: 'fake' } }) }));
+vi.mock('@/server/studio/engine', () => ({ readState: async () => { throw new Error('unused'); }, command: async () => { throw new Error('unused'); } }));
+vi.mock('@/server/providers/comfy', () => ({}));
+vi.mock('@/server/jobs/queue', () => ({ enqueue: async () => { throw new Error('unused'); }, recordMetric: async () => {} }));
+vi.mock('@/server/org/runs', () => ({ recordHandoff: async () => 'h' }));
+
+import { seed } from '@/domain/sample';
+import { designCharacter } from '@/server/story/engine';
 import { featurePhrase, keepBriefLook, LOOK_FEATURES } from '@/server/story/brief-look';
 
 /** Acceptance run 2026-10-05 (REPORT, extra item 11): Abu Haidar's Auto design dropped the brief's "grey moustache".
@@ -37,5 +47,14 @@ describe('the brief’s look survives the design (item 11: the grey moustache)',
   it('every feature has a phrase in a brief that names it', () => {
     for (const f of LOOK_FEATURES) expect(f.words.source.length).toBeGreaterThan(0);
     expect(featurePhrase(BRIEF, LOOK_FEATURES.find((f) => f.id === 'moustache')!)).toBe('a grey moustache');
+  });
+});
+
+describe('designCharacter keeps the brief’s look (regression: Abu Haidar, job-906e3e6440)', () => {
+  it('the model’s design without the moustache comes back with it, first among the distinguishing details', async () => {
+    llm.answer = { name: 'Abu Haidar', role: 'Tea Seller', sex: 'MALE', ageYears: 58, ...DESIGN, personality: 'Warm, teasing and unhurried', voice: { pitch: 'LOW', pace: 'SLOW', timbre: 'raspy and warm' } };
+    const d = await designCharacter(seed(), { brief: BRIEF, name: 'Abu Haidar', style: 'CARTOON', language: 'AR', dialect: 'IRAQI_BAGHDADI' });
+    expect(d.distinguishing[0]).toBe('a grey moustache');
+    expect(d.distinguishing).toContain(DESIGN.distinguishing[0]);
   });
 });

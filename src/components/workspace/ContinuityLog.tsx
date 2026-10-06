@@ -35,7 +35,7 @@ export function ContinuityLogPanel({ p }: { p: Production }) {
     if (!sh) return;
     const base = sh.continuity ?? { version: 0, characters: [], props: [], environment: {}, camera: {} };
     const { version: _v, ...rest } = base;
-    try { act('updateShot', p.id, sh.id, { continuity: { ...rest, acknowledged: [...new Set([...(base.acknowledged ?? []), f.key])] } }); toast.ok('Accepted as intended. It stays in the log, marked.'); }
+    try { act('setShotContinuity', p.id, sh.id, { ...rest, acknowledged: [...new Set([...(base.acknowledged ?? []), f.key])] }); toast.ok('Accepted as intended. It stays in the log, marked.'); }
     catch (err) { toast.bad((err as Error).message); }
   };
   const entries = show === 'open' ? log.entries.filter((e) => e.flags.some((f) => !f.acknowledged)) : log.entries;

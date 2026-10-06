@@ -79,7 +79,7 @@ export function WorldBiblePanel({ p }: { p: Production }) {
             {b.characters.map((c) => (
               <li key={c.characterId}>
                 <span className="ws-file-words"><Link className="ws-file-name name" href={`/characters/${encodeURIComponent(c.characterId)}`}><bdi>{c.name}</bdi></Link>
-                  <span className="t-meta" dir="auto">{[c.canonical ? `image v${c.canonical.version} ${c.canonical.status === 'APPROVED' ? 'approved' : 'draft'}` : 'no canonical image', c.voice ? `voice revision ${c.voice.revision}${c.voice.status !== 'ACTIVE' ? ` (${c.voice.status.toLowerCase()})` : ''}` : 'no voice', c.wardrobe.length ? `wears: ${c.wardrobe.map((w) => w.label).join('; ')}` : null].filter(Boolean).join(' · ')}</span></span>
+                  <span className="t-meta" dir="auto">{[c.canonical ? `image v${c.canonical.version} ${c.canonical.status === 'APPROVED' ? 'approved' : 'draft'}` : 'no canonical image', c.voice ? `voice revision ${c.voice.revision}${c.voice.status !== 'ACTIVE' ? ` (${c.voice.status.toLowerCase()})` : ''}` : 'no voice', c.wardrobe?.length ? `wears: ${c.wardrobe.map((w) => w.label).join('; ')}` : null].filter(Boolean).join(' · ')}</span></span>
                 <StateWord tone={c.canonical?.status === 'APPROVED' ? 'done' : 'waiting'}>{c.canonical?.status === 'APPROVED' ? 'Approved' : 'Not approved'}</StateWord>
               </li>
             ))}
@@ -93,11 +93,11 @@ export function WorldBiblePanel({ p }: { p: Production }) {
           <div key={l.locationId} className="card ws-world-place">
             <div className="ws-world-place-head">
               <Link className="t-card name" href={`/locations/${encodeURIComponent(l.locationId)}`}><bdi>{l.name}</bdi></Link>
-              <span className="t-meta">{vocab(l.kind)} · identity v{l.identity.version} · {l.plates.length} {l.plates.length === 1 ? 'plate' : 'plates'}</span>
+              <span className="t-meta">{vocab(l.kind)} · {l.identity ? `identity v${l.identity.version}` : 'identity not recorded'} · {(l.plates ?? []).length} {(l.plates ?? []).length === 1 ? 'plate' : 'plates'}</span>
               {l.locked ? <StateWord tone="done">Locked: used in an approved cut</StateWord> : <StateWord tone="idle">Not locked yet</StateWord>}
             </div>
-            {l.canon.fixedFeatures.length > 0 && <p className="t-meta" dir="auto">Fixed: {l.canon.fixedFeatures.join('; ')}</p>}
-            {l.plates.length > 0 && (
+            {(l.canon?.fixedFeatures?.length ?? 0) > 0 && <p className="t-meta" dir="auto">Fixed: {l.canon.fixedFeatures.join('; ')}</p>}
+            {(l.plates ?? []).length > 0 && (
               <ul className="ws-world-plates" role="list">
                 {l.plates.map((pl) => { const a = assetById(state, pl.assetId); return (
                   <li key={pl.assetId}>

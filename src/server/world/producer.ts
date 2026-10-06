@@ -30,7 +30,12 @@ export async function worldView(state: StudioState, p: Production): Promise<Worl
   const pinned = pin && pin.scopeKey === key ? await revisionById(pin.revisionId) : undefined;
   const reading = pinned ?? latest;
   const bible = reading?.bible ?? deriveWorld(state, scope, undefined, new Date().toISOString());
-  const changes = pinned && latest && pinned.id !== latest.id ? diffWorld(pinned.bible, latest.bible) : [];
+  // a revision written before a field existed (an older bible without place identities) cannot be compared field by
+  // field: it is said as one change instead of failing the view
+  let changes: WorldChange[] = [];
+  if (pinned && latest && pinned.id !== latest.id) {
+    try { changes = diffWorld(pinned.bible, latest.bible); } catch { changes = [{ op: 'UPDATE', path: 'bible', detail: `revision ${latest.number} (revision ${pinned.number} is in an older shape and cannot be compared field by field)` }]; }
+  }
   const { blocking } = repinSafety(changes, usageOf(p));
   return {
     scopeKey: key,

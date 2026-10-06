@@ -218,6 +218,40 @@
   .ws-fact-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; grid-column: 1 / -1; }
   .ws-fact-foot .ws-fact-x { margin-inline-start: auto; }
   .ws-fact-note { grid-column: 1 / -1; }
+
+  /* the continuity log (ContinuityLog.tsx): one card per shot — head, flags, changes, what is established */
+  .ws-clog-list { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+  .ws-clog-entry { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+  .ws-clog-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; min-inline-size: 0; }
+  .ws-clog-acts { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; }
+  .ws-clog-changes { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
+  .ws-clog-entry .ws-files > li[data-acknowledged] .ws-file-name { color: var(--text-2); }
+  .ws-clog-hash { margin-block-start: 12px; }
+
+  /* the World Bible (WorldBible.tsx): two columns of lists, the places as cards with their plates */
+  .ws-world { display: flex; flex-direction: column; gap: 24px; }
+  .ws-world > .shead { margin-block-end: 0; }
+  .ws-world-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .ws-world-block { display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; }
+  .ws-world-block > h3 { margin: 0; }
+  .ws-world-add { display: flex; gap: 8px; align-items: center; }
+  .ws-world-add > .input, .ws-world-add > input { flex: 1; min-inline-size: 0; }
+  .ws-world-pending { display: flex; flex-direction: column; gap: 6px; padding: 16px; }
+  .ws-world-pending p { margin: 0; }
+  .ws-world-changes { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
+  .ws-world-changes > li[data-blocking] { color: var(--text-1); }
+  .ws-world-place { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+  .ws-world-place + .ws-world-place { margin-block-start: 12px; }
+  .ws-world-place-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+  .ws-world-place-head > .state-word { margin-inline-start: auto; }
+  .ws-world-plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .ws-world-plates > li { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+  .ws-world-plates .frame, .ws-world-plates .title-card { border-radius: var(--r-sm); overflow: hidden; }
+  .ws-world-audio { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .ws-world-audio .ws-fieldset { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-inline-size: 0; }
+  .ws-world-audio p { margin: 0; }
+  @media (max-width: 1023px) { .ws-world-grid, .ws-world-audio { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 639px) { .ws-world-add { flex-direction: column; align-items: stretch; } .ws-world-add > .input, .ws-world-add > input { flex: none; } .ws-world-plates { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .ws-line-texts { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .ws-line-ar { text-align: right; font-size: 15px; }
   .ws-beat-foot { padding-inline-start: 48px; }
