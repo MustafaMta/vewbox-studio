@@ -39,6 +39,16 @@ describe('duplicated frames', () => {
     expect(c.detail).toMatch(/longest run 4 at 0\.88 s/);
     expect(judgeDuplicates(frameSeries(moving(48), 24)).ok).toBe(true);
   });
+  it('a locked-off camera on a still subject is not a run of duplicates; a true repeat inside it still is', () => {
+    // each frame differs from the one before by about 0.2 luma (10 % of the pixels move by ±2)
+    const base = flat(120, 20, 7);
+    const still = Array.from({ length: 48 }, (_, k) => { const a = new Uint8Array(base); for (let i = k % 10; i < W; i += 10) a[i] = Math.max(0, Math.min(255, a[i] + (k % 2 ? 2 : -2))); return a; });
+    const c = judgeDuplicates(frameSeries(still, 24));
+    expect(c.ok).toBe(true);
+    expect(c.value).toBe(0);
+    const withRepeat = [...still.slice(0, 20), still[20], still[20], still[20], still[20], still[20], ...still.slice(21)];
+    expect(judgeDuplicates(frameSeries(withRepeat, 24))).toMatchObject({ ok: false, value: 4 });
+  });
 });
 
 describe('cuts inside the take', () => {
