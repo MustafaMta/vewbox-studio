@@ -53,12 +53,19 @@ describe('a drawn one-person frame cut to its framing around the face', () => {
     expect(c.x).toBeGreaterThanOrEqual(0); expect(c.y).toBeGreaterThanOrEqual(0);
     expect(c.x + c.width).toBeLessThanOrEqual(1344); expect(c.y + c.height).toBeLessThanOrEqual(768);
   });
-  it('kept as drawn: no face extent for the framing, already as close, or below the quality floor', () => {
+  it('kept as drawn only with no face extent for the framing or when already as close', () => {
     expect(framingCropFromFace('WIDE', { x: 600, y: 100, width: 60, height: 80 }, frame)).toBeUndefined();
     expect(framingCropFromFace('MEDIUM_CLOSE_UP', { x: 500, y: 60, width: 200, height: 260 }, frame)).toBeUndefined(); // already an MCU (3 × 260 px ≥ the frame)
-    const tiny = { x: 650, y: 200, width: 40, height: 50 }; // a small figure: the MCU crop would be 180 px tall
-    expect(framingCropFromFace('MEDIUM_CLOSE_UP', tiny, frame)).toBeUndefined();
-    expect(50 * 3.0 * (1344 / 768)).toBeLessThan(1344 * FRAMING_CROP_FLOOR);
+  });
+  it('a figure too small for the full framing is cut as close as the floor allows, never left whole ("The Last Ferry": a MEDIUM drawn as a full figure)', () => {
+    const tiny = { x: 650, y: 200, width: 40, height: 50 }; // a full figure: the MEDIUM crop would be 230 px tall
+    expect(50 * 4.6 * (1344 / 768)).toBeLessThan(1344 * FRAMING_CROP_FLOOR);
+    const c = framingCropFromFace('MEDIUM', tiny, frame)!;
+    expect(c.clamped).toBe(true);
+    expect(c.width).toBe(Math.round(1344 * FRAMING_CROP_FLOOR));
+    expect(c.width / c.height).toBeCloseTo(1344 / 768, 1);
+    expect(c.x).toBeLessThanOrEqual(tiny.x); expect(c.x + c.width).toBeGreaterThanOrEqual(tiny.x + tiny.width); // the face stays in the crop
+    expect(c.y).toBeLessThanOrEqual(tiny.y); expect(c.x + c.width).toBeLessThanOrEqual(1344); expect(c.y + c.height).toBeLessThanOrEqual(768);
   });
   it('a face near the edge keeps the crop inside the picture', () => {
     const c = framingCropFromFace('MEDIUM_CLOSE_UP', { x: 1250, y: 20, width: 80, height: 180 }, frame)!;

@@ -638,7 +638,8 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
 
 /** Cut a drawn one-person frame to the shot's framing around its face (MediaPipe face box, `framingCropFromFace`) and
  *  scale it (lanczos) to the take size, as a DERIVED asset that records the crop; the drawn frame is returned unchanged
- *  when no face is found, when the frame is already as close, or when the crop would fall below the quality floor. */
+ *  when no face is found or when the frame is already as close. A crop the framing wants below the quality floor is cut
+ *  as close as the floor allows (recorded as clamped), never left at the drawn composition. */
 async function framedToShot(ctx: HandlerContext, drawn: Drawn, sh: Shot, size: { width: number; height: number }, key: string, label: string): Promise<Drawn> {
   const reused = await reuseDrawn(ctx, key);
   if (reused) return reused;
@@ -649,7 +650,7 @@ async function framedToShot(ctx: HandlerContext, drawn: Drawn, sh: Shot, size: {
   const face = faces[0];
   const crop = face ? framingCropFromFace(sh.framing, face, { width: a.width, height: a.height }) : undefined;
   if (!crop) {
-    await ctx.event('info', `${label}: kept as drawn (${!face ? 'no face found' : 'the frame is already at its framing, or the crop would be below the quality floor'})`, { assetId: drawn.id, face, framing: sh.framing });
+    await ctx.event('info', `${label}: kept as drawn (${!face ? 'no face found' : 'the frame is already at its framing'})`, { assetId: drawn.id, face, framing: sh.framing });
     return drawn;
   }
   const dir = await tmpDir('frame');
@@ -658,7 +659,7 @@ async function framedToShot(ctx: HandlerContext, drawn: Drawn, sh: Shot, size: {
     await ffmpeg(['-y', '-v', 'error', '-i', assetFile(a), '-vf', `crop=${crop.width}:${crop.height}:${crop.x}:${crop.y},scale=${size.width}:${size.height}:flags=lanczos`, '-frames:v', '1', out]);
     const { id, stored } = await jobOutputs(ctx.job).adopt(`image:${key}`, out, { expectKind: 'IMAGE' });
     await command('addAsset', [assetFromStored(id, stored, { label: `${a.label} (cut to ${sh.framing.toLowerCase().replace(/_/g, ' ')})`, tags: [...(a.tags ?? []), 'framed'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { ...(a.provenance ?? {}), from: drawn.id, framingCrop: { framing: sh.framing, crop, face, drawnSize: { width: a.width, height: a.height }, scaledTo: size, filter: 'lanczos' } } })], 'worker');
-    await ctx.event('info', `${label}: cut to the planned ${sh.framing.toLowerCase().replace(/_/g, ' ')} around the face (${crop.width}×${crop.height} of ${a.width}×${a.height}), scaled to ${size.width}×${size.height}`, { assetId: id, from: drawn.id, crop });
+    await ctx.event(crop.clamped ? 'warn' : 'info', `${label}: cut to the planned ${sh.framing.toLowerCase().replace(/_/g, ' ')} around the face (${crop.width}×${crop.height} of ${a.width}×${a.height}${crop.clamped ? '; as close as the picture allows — the drawn figure was too small for the full framing' : ''}), scaled to ${size.width}×${size.height}`, { assetId: id, from: drawn.id, crop });
     return { ...drawn, id, file: stored.absPath, width: stored.probe?.width, height: stored.probe?.height };
   } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
 }
