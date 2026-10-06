@@ -64,9 +64,11 @@ for (const it of set.items) {
   let selfIdentity = null;
   const origJson = path.join(outDir, 'original', `${it.name}.json`);
   const origId = variant === 'original' ? identity : (fs.existsSync(origJson) ? JSON.parse(fs.readFileSync(origJson, 'utf8')).raw?.identity : null);
-  if (it.speaker && origId?.characters?.[it.speaker]?.series?.length) {
+  // without a canonical image (older takes): the original's frame at 1.0 s
+  const series = it.speaker ? origId?.characters?.[it.speaker]?.series : [{ t: 1.0, cosine: 1 }];
+  if (series?.length) {
     const ref = path.join(dir, `${it.name}-origframe.png`);
-    const s = origId.characters[it.speaker].series.find((x) => x.cosine !== null);
+    const s = series.find((x) => x.cosine !== null);
     if (s) {
       execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(s.t), '-i', it.video, '-frames:v', '1', ref]);
       selfIdentity = await post('/qa/identity', [['video', { file: video }], ['references', { file: ref }], ['characters', JSON.stringify(['original-frame'])], ['sample_fps', 4]]);
