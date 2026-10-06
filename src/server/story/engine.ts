@@ -219,7 +219,7 @@ Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, 
   // the look the brief names is kept (acceptance 2026-10-05, item 11: the "grey moustache" was dropped): a feature no
   // look field mentions is carried over in the producer's own words, first among the distinguishing details
   const kept = keepBriefLook(req.brief, r.data);
-  if (kept.carried.length) log.info({ carried: kept.carried, name: kept.design.name }, 'character design: look features of the brief carried over');
+  if (kept.carried.length || kept.moved.length) log.info({ carried: kept.carried, movedOutOfWardrobe: kept.moved, name: kept.design.name }, 'character design: look features kept in the look fields');
   return kept.design;
 }
 
