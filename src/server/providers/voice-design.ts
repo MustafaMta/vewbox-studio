@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { StudioError } from '@/domain/errors';
 import type { Language } from '@/domain/vocabulary';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
 
@@ -138,7 +139,7 @@ export interface DesignResult {
 const base = (): string => {
   const u = (env().TTS_DESIGN_URL ?? '').trim();
   if (!u) throw new StudioError('NOT_CONFIGURED', 'Automatic voice creation needs the voice-design engine: set TTS_DESIGN_URL and start the tts-design service.');
-  return u.replace(/\/$/, '');
+  return guardedEngineUrl(u.replace(/\/$/, ''), 'the voice-design service'); // one card, one lease (gpu/lease-db.ts)
 };
 
 const route = (url: string) => url.replace(/^https?:\/\/[^/]+/, '');

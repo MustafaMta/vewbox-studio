@@ -1,0 +1,716 @@
+{
+  "task": "ep-plan-s05",
+  "run": 1,
+  "model": "gemma4:31b-it-qat",
+  "ms": 286825,
+  "attempts": 3,
+  "firstAttemptValid": false,
+  "firstCalls": 2,
+  "repairs": 1,
+  "reasks": 0,
+  "everyFirstCallValid": false,
+  "truncatedAttempts": 0,
+  "answerTokens": 13458,
+  "tokPerS": 47,
+  "attemptsDetail": [
+    {
+      "kind": "first",
+      "requestKey": "16240:Plan the shots for Scene 5 \"The Truth in Ink\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where beat",
+      "ms": 107868,
+      "status": 200,
+      "maxTokens": 10779,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the beginning of the investigation and the physical weight of the book.\",\n      \"action\": \"Najm lowers the logb",
+      "tail": "ession solemn. The background is the blurred, warm interior of the harbour office with the soft glow of morning light hitting the side of his face.\"\n    }\n  ]\n}",
+      "requestChars": 16432,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 3702,
+      "completionTokens": 5282,
+      "tokPerS": 49
+    },
+    {
+      "kind": "repair",
+      "requestKey": "28869:The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nshots.2.continuity.characters.0.screenDirection: Invalid option: expected one o",
+      "ms": 66341,
+      "status": 200,
+      "maxTokens": 6944,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the beginning of the investigation and the physical weight of the book.\",\n      \"action\": \"Najm lowers the logb",
+      "tail": "ession solemn. The background is the blurred, warm interior of the harbour office with the soft glow of morning light hitting the side of his face.\"\n    }\n  ]\n}",
+      "requestChars": 29076,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 6730,
+      "completionTokens": 3229,
+      "tokPerS": 48.7
+    },
+    {
+      "kind": "first",
+      "requestKey": "15802:Plan the shots for Scene 5 \"The Truth in Ink\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previ",
+      "ms": 111873,
+      "status": 200,
+      "maxTokens": 10910,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Reveal the shocking text in the logbook\",\n      \"action\": \"The camera pans across the shaky ink text on the yellowed page",
+      "tail": "ning light creates a warm, glowing atmosphere around the text. High-end 3D animated feature film still, simplified geometry, saturated local color.\"\n    }\n  ]\n}",
+      "requestChars": 15994,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 3606,
+      "completionTokens": 4947,
+      "tokPerS": 44.2
+    }
+  ],
+  "vramBeforeMiB": 1850,
+  "vramPeakMiB": 22481,
+  "ram": {
+    "containerGiB": 24.56,
+    "vmUsedGiB": 14.96
+  },
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "gemma4:31b-it-qat",
+        "model": "gemma4:31b-it-qat",
+        "size": 19099004435,
+        "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "gemma4",
+          "families": [
+            "gemma4"
+          ],
+          "parameter_size": "30.7B",
+          "quantization_level": "Q4_0"
+        },
+        "expires_at": "2026-10-05T23:42:15.85927575Z",
+        "size_vram": 19099004435,
+        "context_length": 16384
+      }
+    ]
+  },
+  "at": "2026-10-05T23:40:16.502Z",
+  "checks": {
+    "shots": 9,
+    "budget": 47,
+    "totalSeconds": 46,
+    "scriptLines": 2,
+    "everyLineOnce": true,
+    "linesForgottenByPlanner": 0,
+    "castAddedFromActions": 0,
+    "speechScrubbed": 0,
+    "framingChanged": 0,
+    "cutsDropped": 0,
+    "promptsWithCastName": 0,
+    "promptWordsMedian": 69,
+    "promptsOutside60to160": 0,
+    "boundaries": [
+      "transition",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut"
+    ]
+  },
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\n\nLanguage: English. Write natural spoken English in \"text\"; leave \"textAr\" empty.\n\nTIMELINES: each existing character's age is their age now and \"bornAbout\" is the year they were born. Every year in a character's own life — a marriage, a loss, work, a journey — falls after they were about 16 and not after this year. A year before a character was born appears only as history they read or heard about, never as something they or their spouse lived."
+    },
+    {
+      "role": "user",
+      "content": "Plan the shots for Scene 5 \"The Truth in Ink\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previous shot below, ending the scene). Aspect WIDE_16_9. This part should run about 23 seconds in 4–6 shots of 3–10 seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).\nLocation: {\"id\":\"loc-bench-1\",\"name\":\"Kerran Point Harbour Office\",\"kind\":\"INTERIOR\",\"description\":\"A small, salt-worn stone building perched on the edge of the harbour. The interior is a dense archive of nautical history, smelling of old paper, brine, and cold tea.\",\"landmarks\":[\"A massive, scarred oak desk that dominates the center of the room\",\"A wall of antique brass clocks showing different time zones\",\"A heavy iron safe embedded in the back stone wall\",\"Floor-to-ceiling wooden shelving filled with grey archival boxes\"],\"props\":[\"A heavy leather-bound logbook with '1987' embossed in gold\",\"A mechanical date-stamper\",\"A steaming ceramic tea pot\",\"A brass magnifying glass\"],\"lighting\":[\"MORNING\"],\"layout\":{\"architecture\":\"Thick stone walls, low timber ceilings\",\"materials\":[\"Rough-hewn stone\",\"Dark oak\",\"Brass\"],\"entrances\":[\"A heavy wooden door leading to the wharf\"]}}\nTime of day: MORNING. Purpose: Reveal the discrepancy in the Mariner's last movements.. Emotional objective: Shock and revelation.. Entry state: (mid-scene: as the previous shot ends). Exit state: Close-up on the handwritten entry: 'Turning back toward the point'..\nCharacters present (exact names; include their look so prompts can describe them): [{\"id\":\"char-56c47abc59\",\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"sex\":\"MALE\",\"ageYears\":72,\"bornAbout\":1954,\"species\":\"Human\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\",\"wardrobe\":\"Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)\",\"distinguishing\":[\"A faded navy wool cap with a single red button on his own left side\",\"A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves\"],\"personality\":\"Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm and resonant, with a faint wheeze from old age\",\"hasAppearance\":true},{\"id\":\"char-e71e80cde4\",\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"sex\":\"MALE\",\"ageYears\":65,\"bornAbout\":1961,\"look\":\"\",\"wardrobe\":\"\",\"distinguishing\":[],\"personality\":\"Wise but absent-minded, with a quiet enthusiasm for forgotten knowledge. Speaks in measured, deliberate phrases, often pausing to adjust his glasses or scratch his beard when lost in thought. Kind but socially awkward, preferring books to people.\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":true}]\nBeats and lines of the part, in order: [{\"beat\":3,\"action\":\"Extreme close-up: The handwritten ink is shaky. We see the words: '11:42 PM - Radio Officer Moore reports engine failure. Turning back toward the point.'\",\"lines\":[]},{\"beat\":4,\"action\":\"Elias's face enters the frame, his hazel eyes widening. He reads the line, his breath hitching in his chest.\",\"lines\":[\"Elias Moore: Turning back... they were coming home.\"]}]\nDialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): [{\"index\":0,\"who\":\"Elias Moore\",\"line\":\"Turning back... they were coming home.\"}]\nThe previous shot (from the preceding scene or earlier in this scene) ended like this; keep continuity or mark a clear transition: {\"action\":\"Najm looks up and speaks.\",\"continuity\":{\"characters\":[{\"characterId\":\"char-e71e80cde4\",\"wardrobe\":\"charcoal grey wool blazer, wire-rimmed glasses\",\"pose\":\"looking up from desk\",\"position\":\"center frame\",\"screenDirection\":\"RIGHT\",\"eyeline\":\"at Elias (off-screen)\",\"emotion\":\"revelation\",\"holding\":[]}],\"props\":[],\"environment\":{\"locationId\":\"loc-bench-1\",\"timeOfDay\":\"MORNING\",\"weather\":\"windy\",\"lighting\":\"warm morning light, side-lit\",\"state\":\"interior\"},\"camera\":{\"framing\":\"MEDIUM_CLOSE_UP\",\"move\":\"STATIC\",\"lensIntent\":\"50mm, eye level\",\"angle\":\"straight on\"},\"relationToPrevious\":\"CUT\"}}\nWorld rules: Kerran Point is a small cold fishing town on a northern cliff coast; the story stays grounded — no ghosts are ever shown, only what a radio, a logbook or a person can carry. The old valve radio only receives the Mariner's frequency while meteors are falling; on a clear night without meteors it hears nothing but static. Elias has not set foot on a boat since the storm of 1987 and will not go out on the water.\nRETURNING LOCATION (World Bible): Kerran Point Harbour Office was already shown in 4 earlier scenes (its plates are reused by id). Same architecture, layout and fixed features; do not redesign it (Thick stone walls, low timber ceilings; fixed features: A massive, scarred oak desk that dominates the center of the room, A wall of antique brass clocks showing different time zones, A heavy iron safe embedded in the back stone wall, Floor-to-ceiling wooden shelving filled with grey archival boxes). Left at the end of an earlier scene: {\"props\":[]}. Only light, weather, time of day and movable things may differ now, and the shots should say how.\nProps last seen with the people in this scene: jar of screws (Upturned, screws scattering); wrench (Oiled, rusted edges); cracked valve radio (Cracked casing, faded '1987' label).\nLast worn (keep unless the story changes the day): Elias Moore: Striped navy sweater, yellow raincoat with red scarf, aged leather gloves; Najm: Tweed jacket with frayed sleeves, wire-rimmed glasses, worn leather gloves.\nCamera rules for this direction: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\nFor each shot write \"prompt\": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look (\"high-end 3D animated feature film still, stylized CG characters with appealing s…\" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. If the shot has dialogue, do not write the spoken words or any <d> tag: say who speaks (by appearance) and how they deliver it; the studio appends the exact script lines. Do not describe what to avoid.\nContinuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.\nTHE BOUNDARY of each shot (\"boundary\"), how it joins the shot before it — decide it deliberately, it decides how the shot is filmed: \"continuous\" = the same action carries straight on without a cut (the previous shot's last moment is handed to this one; the camera may keep moving but nothing jumps); \"cut\" = an editorial cut on the same moment — same people, same place, same story state, an intentional new camera setup (a reverse, a closer size, an insert); \"transition\" = a new place or a new time (the story moves on; the first shot of a scene is always a transition). Use \"continuous\" only when the action truly flows and the previous shot is in this scene; prefer \"cut\" for a change of angle; never hide a jump in time or place behind \"continuous\".\nTHE STAGING inside each shot: \"beats\" — 2 to 6 observable actions in order, each with \"seconds\" timed by how long the action really takes (a glance about 1 s, opening a door 3–4 s, crossing a room 5 s or more, a spoken line about 3 words a second), uneven, never equal slices; \"actions\" — every discrete visible action the shot covers (a comma list is several); \"pace\" — DWELL (one moment expanded, no cuts), NORMAL, or MONTAGE (a run of distinct actions); a beat may carry \"cut\": {\"camera\": \"…\", \"location\": \"…\"} when the story needs a new angle or a new place INSIDE the shot — at most two, never in the first or last 3 seconds, never to hide a jump; \"pov\": the character whose eyes the camera is (only when a barrier justifies it — a peephole, a door crack; they are not seen); \"extras\": unnamed people present, as groups described in words ({\"description\": \"four tired shoppers in winter coats\", \"count\": 4}) — never invent a named character and never make a group look like a cast member. Stage the events, never the telling: shoot the listener, not the talker; show a place in use. Everyone who acts in a beat is in characterNames. A shot with no dialogue line names no speech at all: no \"says\", no \"whispers\", no quoted words, not even as a trailing scrap. With a character on screen the framing is MEDIUM, MEDIUM_CLOSE_UP or CLOSE_UP (or TWO_SHOT / OVER_THE_SHOULDER for two) — never WIDE for a speaking face; nobody looks at the camera.\nReturn JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, beats:[{seconds,action,cut?}], actions[], pace, pov?, extras:[{description,count}], continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?}, prompt }] }.\nExample of ONE complete shot (shape only; write your own content): {\"purpose\":\"Establish the yard and her hesitation\",\"action\":\"She stops at the gate, hand on the latch, then pushes it open.\",\"framing\":\"WIDE\",\"cameraMove\":\"STATIC\",\"durationSeconds\":5,\"characterNames\":[\"Layla\"],\"dialogueLineIndexes\":[0],\"transition\":\"CUT\",\"boundary\":\"transition\",\"beats\":[{\"seconds\":1.5,\"action\":\"She stops at the gate, hand on the latch.\"},{\"seconds\":3.5,\"action\":\"She pushes the gate open and steps through.\"}],\"actions\":[\"stops at the gate\",\"pushes the gate open\",\"steps through\"],\"pace\":\"NORMAL\",\"extras\":[],\"continuity\":{\"characters\":[{\"characterName\":\"Layla\",\"wardrobe\":\"green coat, red scarf\",\"pose\":\"standing, hand on latch\",\"position\":\"left third, facing right\",\"screenDirection\":\"RIGHT\",\"eyeline\":\"at the gate\",\"emotion\":\"hesitant\",\"holding\":[\"canvas bag\"]}],\"props\":[{\"name\":\"canvas bag\",\"ownerCharacterName\":\"Layla\",\"state\":\"full\",\"position\":\"on her shoulder\"}],\"environment\":{\"timeOfDay\":\"GOLDEN_HOUR\",\"weather\":\"clear\",\"lighting\":\"low warm sun from the right, long shadows\",\"state\":\"gate closed, leaves on the path\"},\"camera\":{\"lensIntent\":\"35mm, eye level\",\"angle\":\"slightly low\"},\"relationToPrevious\":\"CUT\",\"notes\":\"Her scarf stays over the left shoulder in every shot.\"},\"prompt\":\"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light.\"}\nEvery continuity.characters entry must use the key \"characterName\" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.\nframing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem)."
+    }
+  ],
+  "answer": {
+    "shots": [
+      {
+        "purpose": "Establish the beginning of the investigation and the physical weight of the book.",
+        "action": "Najm lowers the logbook onto the desk with great care.",
+        "framing": "MEDIUM",
+        "cameraMove": "PUSH_IN",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-e71e80cde4",
+          "char-56c47abc59"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "charcoal grey wool blazer, wire-rimmed glasses",
+              "pose": "leaning forward",
+              "position": "left frame",
+              "screenDirection": "RIGHT",
+              "eyeline": "at the book",
+              "emotion": "reverent",
+              "holding": [
+                "leather-bound logbook '1987'"
+              ]
+            },
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, silver-gray hair",
+              "pose": "leaning in",
+              "position": "right frame",
+              "screenDirection": "LEFT",
+              "eyeline": "at the book",
+              "emotion": "anticipation",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook '1987'",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "being placed on desk",
+              "position": "center frame"
+            },
+            {
+              "name": "scarred oak desk",
+              "state": "stationary",
+              "position": "foreground"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, golden glint on the book's leather",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM",
+            "move": "PUSH_IN",
+            "lensIntent": "35mm, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "STORY_TRANSITION"
+        },
+        "prompt": "In the salt-worn stone interior of the harbour office, a 65-year-old man with wire-rimmed glasses and a charcoal grey wool blazer carefully lowers a heavy, leather-bound logbook onto a massive, scarred oak desk. Beside him, a portly 72-year-old man with silver-gray hair in a bright yellow raincoat leans in with an expression of intense anticipation. The camera pushes in slowly as the book settles on the wood. Warm morning light fills the room, illuminating floating dust motes around the characters.",
+        "boundary": "transition",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm carefully lowers the heavy logbook toward the desk surface."
+            },
+            {
+              "at": 2,
+              "action": "The book settles on the scarred oak with a soft, heavy thud."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "lowers logbook",
+            "settles book on desk"
+          ]
+        }
+      },
+      {
+        "purpose": "Visual payoff of opening the archive.",
+        "action": "The logbook is opened to the final pages.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "charcoal grey wool blazer",
+              "pose": "hands gripping book",
+              "position": "neutral",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "at the pages",
+              "emotion": "focused",
+              "holding": [
+                "leather-bound logbook '1987'"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook '1987'",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "open",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, highlighting the yellowed paper",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "macro, top-down",
+            "angle": "high angle"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A close-up shot of a pair of aged hands opening the heavy leather cover of the 1987 logbook. The pages are thick, yellowed, and stained with salt, fluttering open with a crisp sound. The background is the dark, textured grain of the scarred oak desk. Warm, golden morning light catches the edges of the paper and the floating dust in the air.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm's hands open the heavy cover."
+            },
+            {
+              "at": 2,
+              "action": "The yellowed, brine-stained pages flutter open to the end of the book."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "opens cover",
+            "pages flutter"
+          ]
+        }
+      },
+      {
+        "purpose": "Build tension as the information is searched.",
+        "action": "Najm's finger scans the log entries.",
+        "framing": "INSERT",
+        "cameraMove": "FOLLOW",
+        "durationSeconds": 6,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "charcoal grey wool blazer",
+              "pose": "finger tracing page",
+              "position": "neutral",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "at the text",
+              "emotion": "searching",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook '1987'",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "open",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "INSERT",
+            "move": "FOLLOW",
+            "lensIntent": "macro, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "An extreme close-up insert of a weathered finger with faint blue veins sliding rapidly down a column of handwritten dates and nautical weather reports in a yellowed logbook. The camera follows the finger's downward movement in a smooth tracking shot. The ink is faded black, and the paper has a tactile, rough texture. Warm morning light creates a soft glow across the page.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "A finger slides rapidly down the left column of dates."
+            },
+            {
+              "at": 3,
+              "action": "The finger continues sliding down through weather reports toward the bottom."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "finger slides down dates",
+            "finger slides through reports"
+          ]
+        }
+      },
+      {
+        "purpose": "The moment of discovery.",
+        "action": "The finger stops abruptly on the final entry.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "charcoal grey wool blazer",
+              "pose": "finger pressing page",
+              "position": "neutral",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "at the text",
+              "emotion": "shocked",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook '1987'",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "open",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "macro, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A close-up of the logbook page. The weathered finger slides one last inch and then stops abruptly, pressing firmly into the final handwritten entry of the book. The paper creases slightly under the pressure. The surrounding text is a blur of nautical jargon, but the point of contact is sharp and clear. The lighting is a high-contrast warm morning glow.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The finger continues its slide for a fraction of a second."
+            },
+            {
+              "at": 1,
+              "action": "The finger stops abruptly, pressing firmly into the paper on the final line."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "finger slides",
+            "finger stops abruptly"
+          ]
+        }
+      },
+      {
+        "purpose": "Deliver the revelation to the other character.",
+        "action": "Najm looks up and speaks.",
+        "framing": "MEDIUM_CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 5,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [
+          {
+            "id": "line-5-1-0",
+            "characterId": "char-e71e80cde4",
+            "text": "Here. The final transmission log."
+          }
+        ],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "charcoal grey wool blazer, wire-rimmed glasses",
+              "pose": "looking up from desk",
+              "position": "center frame",
+              "screenDirection": "RIGHT",
+              "eyeline": "at Elias (off-screen)",
+              "emotion": "revelation",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM_CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "50mm, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A medium close-up of the 65-year-old man with wire-rimmed glasses and a charcoal grey wool blazer. He lifts his head from the desk, his eyes widening with a mixture of shock and discovery. He delivers the line with a measured, gravelly voice, his expression solemn. The background is the blurred, warm interior of the harbour office with the soft glow of morning light hitting the side of his face.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm lifts his head, eyes widening behind his wire-rimmed glasses."
+            },
+            {
+              "at": 2,
+              "action": "He speaks the line with a measured, gravelly tone of revelation."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "lifts head",
+            "speaks"
+          ]
+        }
+      },
+      {
+        "purpose": "Reveal the shocking text in the logbook",
+        "action": "The camera pans across the shaky ink text on the yellowed page of the logbook.",
+        "framing": "INSERT",
+        "cameraMove": "PAN_RIGHT",
+        "durationSeconds": 5,
+        "characterIds": [],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "open to 1987 entries",
+              "position": "center frame on the oak desk"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "INSERT",
+            "move": "PAN_RIGHT",
+            "lensIntent": "macro lens, top-down",
+            "angle": "straight down"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "An extreme close-up of a weathered, yellowed page in a heavy leather-bound logbook. The camera pans slowly across shaky, dark ink handwriting that reads: '11:42 PM - Radio Officer Moore reports engine failure. Turning back toward the point.' The paper has salt stains and tactile grain. Warm, golden morning light rakes across the surface, creating soft shadows in the indentations of the ink. High-end 3D animated feature film style, soft tactile materials, saturated local color.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The camera pans slowly across the shaky handwritten ink on the yellowed page."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "camera pans across text"
+          ]
+        }
+      },
+      {
+        "purpose": "Show Elias's immediate shock",
+        "action": "Elias leans into the frame, his expression shifting from curiosity to total shock.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "PUSH_IN",
+        "durationSeconds": 6,
+        "characterIds": [
+          "char-56c47abc59"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, navy-and-white striped sweater",
+              "pose": "leaning forward",
+              "position": "entering from left",
+              "screenDirection": "RIGHT",
+              "eyeline": "at the logbook (off-screen)",
+              "emotion": "shock",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "PUSH_IN",
+            "lensIntent": "50mm, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A close-up of a portly elderly man with weathered skin, deep lines around his eyes, and short silver-gray hair. He leans into the frame from the left, his warm hazel eyes widening in a sudden, heart-stopping revelation. His chest hitches with a sharp intake of breath. He wears a yellow raincoat with a fur collar. The background is the soft-focus interior of a nautical office with warm morning light. High-end 3D animated feature film still, appealing stylized proportions, expressive facial structure.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The man's face enters the frame from the left, leaning in."
+            },
+            {
+              "at": 3,
+              "action": "His hazel eyes widen and his chest hitches in a sharp intake of breath."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "enters frame",
+            "eyes widen",
+            "breath hitches"
+          ]
+        }
+      },
+      {
+        "purpose": "Deliver the emotional realization",
+        "action": "Elias speaks the realization, his voice trembling with emotion.",
+        "framing": "MEDIUM_CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 7,
+        "characterIds": [
+          "char-56c47abc59"
+        ],
+        "dialogue": [
+          {
+            "id": "line-5-3-0",
+            "characterId": "char-56c47abc59",
+            "text": "Turning back... they were coming home."
+          }
+        ],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, navy-and-white striped sweater",
+              "pose": "standing, slightly stooped",
+              "position": "center frame",
+              "screenDirection": "RIGHT",
+              "eyeline": "at the logbook (off-screen)",
+              "emotion": "grief and hope",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM_CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "35mm, eye level",
+            "angle": "straight on"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A medium close-up of the portly elderly man in a navy-and-white striped wool sweater and a yellow raincoat. He is staged on a clear line of action, facing right toward the desk. His expression is a poignant mix of grief and sudden hope, eyes glistening. He speaks with a low, resonant voice, his shoulders slightly slumped. The lighting is warm and side-lit, emphasizing the tactile texture of his wool sweater. High-end 3D animated feature film still, soft bounce light, expressive posing.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "He stares intensely at the book, his lip trembling slightly."
+            },
+            {
+              "at": 2,
+              "action": "He speaks the line with a low, resonant, trembling voice."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "stares at book",
+            "speaks"
+          ]
+        }
+      },
+      {
+        "purpose": "Final visual confirmation of the truth",
+        "action": "The camera focuses tightly on the final phrase of the log entry.",
+        "framing": "EXTREME_CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 5,
+        "characterIds": [],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "ownerCharacterId": "char-e71e80cde4",
+              "state": "open",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "EXTREME_CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "macro lens, top-down",
+            "angle": "straight down"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "An extreme close-up of the logbook page. The camera is static, focusing sharply on the final handwritten ink phrase: 'Turning back toward the point.' The ink is slightly smudged in one spot, and the yellowed paper has a soft, tactile quality. The golden morning light creates a warm, glowing atmosphere around the text. High-end 3D animated feature film still, simplified geometry, saturated local color.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The camera holds on the specific words 'Turning back toward the point'."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "focus on text"
+          ]
+        }
+      }
+    ],
+    "budget": 47,
+    "maxShot": 10
+  }
+}
