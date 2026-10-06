@@ -46,7 +46,7 @@ export function editModel(g: Graph, opts: { quality?: boolean }): [string, numbe
 /** A rectangle in pixels of the picture it is cut from. */
 export interface CropPx { x: number; y: number; width: number; height: number }
 
-export interface EditInput { prompt: string; negative?: string; references: string[]; width?: number; height?: number; seed?: number; steps?: number; cfg?: number; denoise?: number; filenamePrefix?: string; /** no Lightning LoRA: 24 steps, cfg 4 — for pictures of a character */ quality?: boolean; /** cut image 1 to this rectangle before it is scaled (a close-up from a full figure) */ crop1?: CropPx }
+export interface EditInput { prompt: string; negative?: string; references: string[]; width?: number; height?: number; seed?: number; steps?: number; cfg?: number; denoise?: number; filenamePrefix?: string; /** no Lightning LoRA: 24 steps, cfg 4 — for pictures of a character */ quality?: boolean; /** cut image 1 to this rectangle before it is scaled (a close-up from a full figure) */ crop1?: CropPx; /** a rectangle per reference (index = image number − 1), the same cut for any image; `crop1` wins for image 1 */ crops?: Array<CropPx | undefined> }
 
 /** Edit-2511 takes up to three reference pictures (image1 = the main subject or scene, image2/3 = extra identities
  *  or costume sheets). The output size follows image1 unless width/height are given. */
@@ -59,10 +59,11 @@ export function qwenEdit(i: EditInput): Graph {
     const id = `img${k + 1}`;
     g[id] = { class_type: 'LoadImage', inputs: { image: ref } };
     let src = id;
-    if (k === 0 && i.crop1) {
-      const c = i.crop1;
-      g['img1c'] = { class_type: 'ImageCrop', inputs: { image: [id, 0], width: Math.max(16, Math.round(c.width)), height: Math.max(16, Math.round(c.height)), x: Math.max(0, Math.round(c.x)), y: Math.max(0, Math.round(c.y)) } };
-      src = 'img1c';
+    const cut = k === 0 && i.crop1 ? i.crop1 : i.crops?.[k];
+    if (cut) {
+      const c = cut;
+      g[`img${k + 1}c`] = { class_type: 'ImageCrop', inputs: { image: [id, 0], width: Math.max(16, Math.round(c.width)), height: Math.max(16, Math.round(c.height)), x: Math.max(0, Math.round(c.x)), y: Math.max(0, Math.round(c.y)) } };
+      src = `img${k + 1}c`;
     }
     // the editor works at ~1 megapixel per reference; scale each so the long side is 1328
     // resolution_steps became a required input in ComfyUI 0.38 (found by the first real reference-conditioned job)

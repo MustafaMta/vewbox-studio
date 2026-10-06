@@ -1,0 +1,61 @@
+{
+  "inputs": {
+    "plate": "D:\\volexar-studio\\volexar-studio\\var\\library\\image\\2026\\10\\gen-02b5d1949e4d7c60a384.a1.png",
+    "canonical": "D:\\volexar-studio\\volexar-studio\\var\\library\\image\\2026\\10\\gen-45ec75f1d454ec2f36d9.a1.png",
+    "framing": "MEDIUM_CLOSE_UP",
+    "plateSize": {
+      "width": 1344,
+      "height": 768
+    },
+    "canonSize": {
+      "width": 928,
+      "height": 1664
+    },
+    "momentOld": "Clara holds the warm tulip glass in both hands and smiles as she speaks to Abu Haidar, who stands off-screen across the counter; after her words she takes a small sip",
+    "moment": "Clara holds the warm tulip glass in both hands and smiles as she speaks; after her words she takes a small sip"
+  },
+  "VC3-s353358090": {
+    "arm": "VC",
+    "seed": 353358090,
+    "crops": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 928,
+        "height": 749
+      },
+      {
+        "x": 336,
+        "y": 230,
+        "width": 672,
+        "height": 384
+      }
+    ],
+    "engineMs": 25422,
+    "wallMs": 28387,
+    "sface": 0.8005,
+    "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Camera: a medium close-up: head and chest fill most of the frame; the place is a soft background. The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing. Setting: exterior: A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall (place identity v2). time of day: morning. Moment: Clara holds the warm tulip glass in both hands and smiles as she speaks; after her words she takes a small sip. Light: warm morning sun, soft glow on face. Single still frame, sharp, no text, no watermark. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs. Continuity: the person of image 2 is center, facing right, faces screen right, looks at Abu Haidar (off-screen), holds tulip glass. Props: tulip glass (half-full) in her hands. Light: warm morning sun, soft glow on face. The same moment as the previous shot, seen from a new angle; it showed: Props: brass samovar (pouring) right end of counter; tulip glass (filling with amber liquid) center counter. Light: warm morning sun, saturated colours. Use the reference pictures: image 1 is the person stylized 3D animated character, a woman of about 32; Slim build; face: Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks; clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth; Shoulder-length auburn hair tied back in a low ponytail; Green eyes; Fair skin; wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots; a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest, framed as this shot frames them — keep the face, hair, skin and wardrobe exactly; image 2 is the place right behind them (keep its architecture, materials, colours and light, soft in the background); exactly one person is in the picture, the person of image 1, and nobody else."
+  },
+  "VC3-s353358091": {
+    "arm": "VC",
+    "seed": 353358091,
+    "crops": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 928,
+        "height": 749
+      },
+      {
+        "x": 336,
+        "y": 230,
+        "width": 672,
+        "height": 384
+      }
+    ],
+    "engineMs": 7481,
+    "wallMs": 7907,
+    "sface": 0.7357,
+    "prompt": "high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Camera: a medium close-up: head and chest fill most of the frame; the place is a soft background. The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing. Setting: exterior: A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall (place identity v2). time of day: morning. Moment: Clara holds the warm tulip glass in both hands and smiles as she speaks; after her words she takes a small sip. Light: warm morning sun, soft glow on face. Single still frame, sharp, no text, no watermark. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs. Continuity: the person of image 2 is center, facing right, faces screen right, looks at Abu Haidar (off-screen), holds tulip glass. Props: tulip glass (half-full) in her hands. Light: warm morning sun, soft glow on face. The same moment as the previous shot, seen from a new angle; it showed: Props: brass samovar (pouring) right end of counter; tulip glass (filling with amber liquid) center counter. Light: warm morning sun, saturated colours. Use the reference pictures: image 1 is the person stylized 3D animated character, a woman of about 32; Slim build; face: Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks; clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth; Shoulder-length auburn hair tied back in a low ponytail; Green eyes; Fair skin; wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots; a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest, framed as this shot frames them — keep the face, hair, skin and wardrobe exactly; image 2 is the place right behind them (keep its architecture, materials, colours and light, soft in the background); exactly one person is in the picture, the person of image 1, and nobody else."
+  }
+}
