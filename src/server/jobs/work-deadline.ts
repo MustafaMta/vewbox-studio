@@ -6,7 +6,7 @@ import { llmSpeed, resolveProvider } from '../providers/llm';
 import { planOutputTokens, sceneBudget } from '../story/engine';
 import { planShotsWorkMs } from './deadlines';
 
-/** A shot-plan prompt as the planner sends it, at most (the measured prompts were 3.4–4.1K tokens, MODEL-EVAL §6/§7). */
+/** A shot-plan prompt as the planner sends it, at most (the measured prompts were 3.4–4.1K tokens, MODEL-EVAL §6/§9). */
 const PLAN_PROMPT_TOKENS = 4500;
 
 /** The work of planning these scenes: per scene the answer tokens of the most shots it may take and the number of
