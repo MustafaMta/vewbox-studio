@@ -207,8 +207,29 @@ no stated licence).
 - profile frames are not edited: head yaw from the Face Landmarker's transformation matrix, full strength up to 30°, none from 42° (frontal shots measured −23…+8°, 3/4 views 20–35°, near-profiles 30–70° — corrected near-profiles lost their smile); the edit fades in/out over 4 frames;
 - occlusion gate: frames where a hand (MediaPipe Hand Landmarker; a held cup sits inside its outline) covers ≥ 4 % of the regenerated region, or the original lower face / the model's change is an outlier against the clip's own median, are left uncorrected (±2 frames, faded) — calibrated on the acceptance takes' tea sips.
 
-Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
-outside Git).
+**Measured on the RTX 5090** (2026-10-06, H3 unloaded by the LIPSYNC lease): load 46 s; VRAM peak 11.0 GB allocated /
+16.9 GB reserved; ≈ 0.5 s of model time per frame at 1344×768 (a 9.4 s take: 117 s; 5.2 s: 61 s) plus ≈ 5 s tracking
+and 3–6 s compositing/encoding; frame count exact on every take (226/226, 192/192, 158/158, 124/124).
+
+**Evaluation on the acceptance production "Tea at Mutanabbi" (CARTOON, 11 H3 speaking takes, v1 = gates without the
+yaw rule)** — evidence `var/evidence/lipsync-v1/` (media outside Git): `original/` and `v1/` (asr Tier-1 mouth check
+and SFace), `out/v1/<take>.mp4|.json|<take>/` (corrected takes, reports, frame sheets), `look/v1/` (before/after zooms),
+`compare-v1.json`.
+- Identity kept: SFace to the canonical image 0.586–0.732 before → 0.604–0.720 after (|Δ| ≤ 0.02 on frontal and 3/4
+  takes); against a frame of the original take 0.649–0.901 → 0.649–0.900. No seam visible at 1344×768; eyes, brows,
+  hair and the background are untouched by construction.
+- Mouth follows the authoritative line better where H3 was off: Tier-1 correlation 0.09 → 0.73 (take 07d2, H3 kept
+  talking after the line), 0.36 → 0.71 (66df), 0.26 → 0.75 (d1a8); talking-in-silence takes −0.52…−0.29 → −0.41…−0.08
+  (mostly occluded by the cup, so few frames corrected). Already-good take (shot 2): 0.63 → 0.60 — no gain.
+- **Expression and performance are NOT kept on cartoon faces**: the regenerated lower face is driven by the audio, so
+  the stylised performance is flattened — mouth activity while speaking −17…−35 % on every corrected take, wide cartoon
+  grins in pauses become closed-mouth smiles (take d1a8 frames 90–100), wide open vowels become smaller "realistic"
+  mouths (take e983). Near-profile frames lost the smile and smudged (shot 1) — fixed by the yaw gate.
+- Occlusion: the tea sips (hand + glass over the mouth) were left untouched by the gate (takes 07d2, 66df, e983);
+  a sip DURING the line (07d2, "lip-sync over a sip") remains — a staging defect the corrector cannot fix.
+- **Verdict CARTOON: no-go** (the producer's rule: no change of expression). The capability keeps `styles: ['REALISTIC']`
+  only, and the acceptance check `performance-kept` (activity while speaking may drop ≤ 20 %) rejects a flattened
+  correction on any style. Anime and realistic: see below as they are measured.
 
 ## Music
 
