@@ -589,8 +589,11 @@ export function timelineDigest(t: AudioTimeline) {
  *  where the cut plays the recorded line. */
 export const LIPSYNC_SHIFT = { inSyncFrames: 1, maxShiftFrames: 6 } as const;
 export function lipSyncShiftSamples(t: Pick<Take, 'params'>): number {
-  const ls = (t.params as { lipSync?: { lagFrames?: unknown; against?: unknown } } | undefined)?.lipSync;
+  const ls = (t.params as { lipSync?: { lagFrames?: unknown; against?: unknown; offsetRepair?: unknown; verdict?: unknown } } | undefined)?.lipSync;
   const lag = typeof ls?.lagFrames === 'number' ? Math.round(ls.lagFrames) : 0;
   if (ls?.against !== 'RECORDED') return 0;
+  // only a lag the judge trusted as the one problem (offsetRepair): a FAIL's lag (the mouth did not follow the audio at
+  // all, r 0.02 on Tea 1.3 take 12) is no measurement of an offset — moving the line by it is a guess (2026-10-06)
+  if (ls.offsetRepair === false || ls.verdict === 'FAIL') return 0;
   return Math.abs(lag) > LIPSYNC_SHIFT.inSyncFrames && Math.abs(lag) <= LIPSYNC_SHIFT.maxShiftFrames ? lag * SAMPLES_PER_FRAME : 0;
 }

@@ -69,5 +69,8 @@ describe('lip-sync repair by the sound', () => {
     expect(lipSyncShiftSamples(t(9))).toBe(0);
     expect(lipSyncShiftSamples(t(3, 'TAKE_AUDIO'))).toBe(0);
     expect(lipSyncShiftSamples({ params: {} })).toBe(0);
+    // a FAIL's lag (the mouth did not follow the audio) is no offset: nothing is moved
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -2, against: 'RECORDED', verdict: 'FAIL', offsetRepair: false } } })).toBe(0);
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -3, against: 'RECORDED', verdict: 'REVIEW', offsetRepair: true } } })).toBe(-3 * SAMPLES_PER_FRAME);
   });
 });
