@@ -1,5 +1,7 @@
+# ComfyUI's typed tree inside the model store (docs/MODELS-STORAGE.md; docker/models/layout.json places the manifest's
+# ComfyUI folders under comfyui/). The image's own /opt/comfyui/models stays empty: no weights in the image.
 vewbox:
-  base_path: /models
+  base_path: /models/comfyui
   checkpoints: checkpoints
   diffusion_models: diffusion_models
   unet: diffusion_models
