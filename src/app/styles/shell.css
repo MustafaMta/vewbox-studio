@@ -74,6 +74,12 @@
   .nav-state-dot { inline-size: 6px; block-size: 6px; border-radius: var(--r-pill); background: var(--text-3); }
   .nav-state[data-tone='running'] .nav-state-dot { background: var(--text-1); animation: pulse 1.6s ease-in-out infinite; }
   .nav-state[data-tone='failed'] .nav-state-dot { background: var(--bad); }
+  /* the engine credit (MiniMax H3 Community License §IV.2): one quiet line under the footer, never hidden */
+  .nav-credit { display: flex; align-items: center; min-block-size: 28px; margin: 4px 8px 0; padding-inline: 10px; border-radius: var(--r-sm); font-size: 12px; line-height: 16px; color: var(--text-3); text-decoration: none; transition: color var(--dur-1) var(--ease-out); }
+  .nav-credit strong { font-weight: 500; color: var(--text-2); }
+  .nav-credit:hover, .nav-credit:hover strong { color: var(--text-1); }
+  .nav-credit-short { display: none; font-family: var(--font-mono); font-weight: 500; color: var(--text-2); }
+  @media (pointer: coarse) { .nav-credit { min-block-size: 44px; } }
 
   /* the collapsed sidebar's tooltip (Sidebar.tsx): fixed, so the scrolling sidebar never clips it (§5.20) */
   .rail-tip { position: fixed; z-index: var(--z-toast); translate: 0 -50%; max-inline-size: 18rem; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-xs); background: var(--surface-3); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-1); white-space: nowrap; animation: shell-fade var(--dur-1) var(--ease-out); }
@@ -97,6 +103,9 @@
       & .nav-item .nav-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
       & .nav-count { display: none; }
       & .nav-dot { display: block; }
+      & .nav-credit { justify-content: center; inline-size: 40px; margin-inline: 12px; padding: 0; }
+      & .nav-credit-long { display: none; }
+      & .nav-credit-short { display: inline; }
       /* the group label becomes a short divider */
       & .nav-group-label { inline-size: 24px; block-size: 1px; margin: 12px auto; padding: 0; background: var(--line-strong); }
       & .nav-group-label > span { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -142,6 +151,13 @@
   .server-bar-text { flex: 1; min-inline-size: 0; }
   .server-bar-what { font-weight: 500; }
   .server-bar-retry { flex: none; }
+  /* the terms line (TermsBar.tsx): the same shape, the waiting accent */
+  .terms-bar { display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 4px var(--pad); background: var(--surface-1); font-size: 13px; line-height: 18px; color: var(--text-1); box-shadow: inset 3px 0 0 var(--wait); }
+  .terms-bar-text { flex: 1; min-inline-size: 0; margin: 0; }
+  .terms-bar-what { font-weight: 500; }
+  .terms-bar-more { color: var(--text-2); }
+  .terms-bar-go { flex: none; }
+  @media (max-width: 639px) { .terms-bar-more { display: none; } }
   .shell-column[data-server='down'] > .shell-main { opacity: 0.7; }
   .last-known { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-3); }
   @media (min-width: 1024px) { .shell-column[data-server='down'] { --sticky-top: var(--server-bar-h, 40px); } }

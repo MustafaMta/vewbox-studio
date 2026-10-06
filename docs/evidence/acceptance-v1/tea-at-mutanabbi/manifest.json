@@ -4,11 +4,11 @@
   "title": "Tea at Mutanabbi",
   "kind": "SHORT",
   "language": "EN",
-  "stage": "FINAL_CUT"
+  "stage": "COMPLETE"
  },
  "generatedBy": "docs/evidence/acceptance-v1/driver/bundle.mjs",
- "updatedAt": "2026-10-05T19:03:51.621Z",
- "lastStage": "power-off checkpoint: cut 4 assembled (take 9 selected), gate in progress",
+ "updatedAt": "2026-10-05T23:30:37.484Z",
+ "lastStage": "2026-10-06 audio-first re-assembly (cut 5), cut approved, export 1080p H.264 + en subtitles",
  "files": {
   "production.json": "story, scenes and the shot plan (prompts, staging, boundaries) as stored",
   "characters.json": "cast with canonical image records, file sha256 and proxies",
@@ -29,8 +29,8 @@
   "locations": 1,
   "shots": 3,
   "takes": 12,
-  "jobs": 32,
-  "cuts": 3,
-  "exports": 0
+  "jobs": 35,
+  "cuts": 5,
+  "exports": 4
  }
 }

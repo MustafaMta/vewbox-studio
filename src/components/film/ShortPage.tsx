@@ -11,6 +11,7 @@ import { PanelCard, SectionHead, Skeleton } from '@/components/ui/kit';
 import { IconChevronLeft, IconDownload, IconPlay } from '@/components/ui/icons';
 import { runtime } from '@/components/home/model';
 import { InlinePlayer, type PlayerHandle } from '@/components/players/InlinePlayer';
+import { enginesOf } from '@/server/media/disclosure';
 import { creditsOf, filmPage, productionTabHref, type Credit, type ExportItem, type FilmPage, type StripScene, type StripShot } from './model';
 
 /** A SHORT'S TITLE PAGE (docs/DESIGN-SYSTEM-V5.md §8.5 under docs/design/VISUAL-STANDARD-V5.1.md) — the film presented
@@ -226,7 +227,8 @@ function Credits({ p }: { p: Production }) {
   const pipeline = useProductionPipeline(p.id);
   const org = useLive<OrgSummary>('/api/studio/org?view=summary');
   const credits: Credit[] | null = useMemo(() => (pipeline.data && org.data ? creditsOf(p, state, pipeline.data, org.data.departments) : null), [p, state, pipeline.data, org.data]);
-  if (credits && credits.length === 0) return null;
+  const engines = useMemo(() => enginesOf(p, state.assets), [p, state.assets]);
+  if (credits && credits.length === 0 && engines.length === 0) return null;
   if (!credits && (pipeline.error || org.error)) return null;
   return (
     <section className="film-section" aria-labelledby="film-credits-h" aria-busy={credits ? undefined : true}>
@@ -241,6 +243,14 @@ function Credits({ p }: { p: Production }) {
               <dd className="t-body film-credit-made">{c.made}</dd>
             </div>
           ))}
+          {/* the AI engines the film is really made with (src/server/media/disclosure.ts — the same list its exports carry) */}
+          {engines.length > 0 && (
+            <div className="film-credit">
+              <dt className="t-label">Made with AI</dt>
+              <dd className="t-credit film-credit-name" data-clips><Link href="/settings#licences">Video by MiniMax H3</Link></dd>
+              <dd className="t-body film-credit-made">{engines.join(' · ')}</dd>
+            </div>
+          )}
         </dl>
       ) : (
         <div className="film-credits" aria-hidden>

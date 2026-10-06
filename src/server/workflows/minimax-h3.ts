@@ -107,7 +107,7 @@ export function minimaxH3Video(i: H3Input): Graph {
   model = ['6', 0];
   const guides: H3Guide[] = [];
   if (useRef) {
-    const inputs: Record<string, unknown> = { clip: ['2', 0], vae: ['3', 0], audio_vae: ['4', 0], prompt: i.prompt, width: w, height: h, length, ref_image_size: i.refImageSize ?? 'match' };
+    const inputs: Record<string, unknown> = { clip: ['2', 0], vae: ['3', 0], audio_vae: ['4', 0], prompt: i.prompt, width: w, height: h, length, ref_image_size: i.refImageSize ?? CAP.refs.imageSizing?.mode ?? 'match' };
     // the reference slots are ComfyUI v3 "autogrow" groups: the API key is the group and the slot joined by a dot
     // (`ref_images.ref_image_0`), which the executor folds back into the nested dict the node reads. Connection order
     // is the tokenizer's order: the k-th connected picture is <Picture k+1> in the prompt.

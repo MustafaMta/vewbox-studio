@@ -17,7 +17,7 @@ import { IconUpload } from '@/components/ui/icons';
 import { useToast } from '@/components/ui/toast';
 import { EmptyLine, PageHead, Row, Rows, Section } from '@/components/studio/parts';
 import { FilesSkeleton } from './FilesSkeleton';
-import { clip, groups as groupFiles, kindCounts, originWords, ownership, size, type FileItem, type KindFilter, type OwnerFilter, type OwnerGroup, type OwnerKind } from './model';
+import { clip, groups as groupFiles, kindCounts, listed, originWords, ownership, size, type FileItem, type KindFilter, type OwnerFilter, type OwnerGroup, type OwnerKind } from './model';
 
 /** FILES (docs/DESIGN-SYSTEM-V5.md §8.13) — every picture, clip, sound and subtitle the studio holds, grouped by whom
  *  it belongs to — characters, locations, productions — each in its own shape: a character's pictures as standing
@@ -46,7 +46,7 @@ export function FilesPage() {
   const own = useMemo(() => ownership(state, jobs), [state, jobs]);
   const grouped = useMemo(() => groupFiles(state, own, { q, kind, owner }), [state, own, q, kind, owner]);
   const counts = useMemo(() => kindCounts(state), [state]);
-  const ownerCounts = useMemo(() => { const c: Record<OwnerKind, number> = { character: 0, location: 0, production: 0, other: 0 }; for (const a of state.assets) c[(own.get(a.id)?.kind ?? 'other')] += 1; return c; }, [state, own]);
+  const ownerCounts = useMemo(() => { const c: Record<OwnerKind, number> = { character: 0, location: 0, production: 0, other: 0 }; for (const a of listed(state.assets)) c[(own.get(a.id)?.kind ?? 'other')] += 1; return c; }, [state, own]);
   const openId = sp.get('asset');
   const open = openId ? state.assets.find((a) => a.id === openId) ?? null : null;
   const setOpen = (id: string | null) => router.replace(id ? `${pathname}?asset=${encodeURIComponent(id)}` : pathname, { scroll: false });
@@ -72,7 +72,7 @@ export function FilesPage() {
         <FilterChips label="Kind" value={kind === 'ALL' ? [] : [kind]} onChange={(v) => setKind((v[0] as KindFilter | undefined) ?? 'ALL')} options={(['IMAGE', 'VIDEO', 'AUDIO', 'SUBTITLE'] as const).filter((k) => counts[k] > 0).map((k) => ({ value: k, label: KIND_LABEL[k], count: counts[k] }))} />
         <FilterChips label="Owner" value={owner === 'all' ? [] : [owner]} onChange={(v) => setOwner((v[0] as OwnerFilter | undefined) ?? 'all')} options={OWNER_SECTIONS.filter((s) => ownerCounts[s.kind] > 0).map((s) => ({ value: s.kind, label: s.title, count: ownerCounts[s.kind] }))} />
       </div>
-      <p className="t-meta fl-count" role="status">{q || kind !== 'ALL' || owner !== 'all' ? `${total} of ${state.assets.length} files` : `${state.assets.length} files`}</p>
+      <p className="t-meta fl-count" role="status">{q || kind !== 'ALL' || owner !== 'all' ? `${total} of ${counts.ALL} files` : `${counts.ALL} files`}</p>
       {state.assets.length === 0 ? <EmptyLine action={upload}>The studio holds no files yet. Files appear here as the studio makes them, or when you upload one.</EmptyLine>
         : shown.length === 0 ? <EmptyLine action={<Button size="sm" onClick={() => { setQ(''); setKind('ALL'); setOwner('all'); }}>Clear the search and filters</Button>}>No file matches.</EmptyLine>
           : shown.map((s) => (

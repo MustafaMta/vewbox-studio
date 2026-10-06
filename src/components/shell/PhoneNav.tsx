@@ -73,6 +73,7 @@ export function BottomNav() {
             </button>
           </li>
           <li className="sheet-state"><StudioStateItem onNavigate={close} className="nav-item sheet-item" /></li>
+          <li><Link href="/settings#licences" className="nav-credit" onClick={close}><span className="nav-credit-long">Video by <strong>MiniMax H3</strong> · licences</span></Link> {/* v4-lint: allow engine — the MiniMax H3 Community License §IV.2 asks for the name in the interface */}</li>
         </ul>
       </ShellDialog>
     </nav>

@@ -168,12 +168,71 @@ export function judgeContainer(p: Probe, opts: { fps: number; expectAudio: boole
   return { name: 'container-valid', ok: problems.length === 0, value: `${p.videoCodec ?? '?'} ${p.pixFmt ?? '?'} ${p.fps?.toFixed(2) ?? '?'} fps${p.hasAudio ? ` + ${p.audioCodec}` : ''}`, detail: problems.length ? problems.join('; ') : undefined };
 }
 
+// ------------------------------------------------------------------------------------------------ colour continuity
+
+/** COLOUR CONTINUITY ACROSS A JOIN (research T5(d), decided 2026-10-05 and built 2026-10-06; final directive §24
+ *  "stable lighting"): the mean luma and chroma (8-bit Y, U, V) of the first new frames of a take against the last
+ *  frames the audience sees of the shot before it. Chained generations drift in white balance and grade (the community's
+ *  ColorMatch nodes exist for this); a cut on the same moment should keep the light and the grade too, within a wider
+ *  margin since the framing changes. FLAG ONLY — never auto-graded, never a rejection. START thresholds. */
+export const COLOUR_QA = {
+  /** frames compared on each side of the join */
+  frames: { CONTINUATION: 12, CUT: 24 },
+  /** largest |ΔU| or |ΔV| (8-bit levels) before the join is flagged */
+  chroma: { CONTINUATION: 4, CUT: 8 },
+  /** largest |ΔY| (8-bit levels) */
+  luma: { CONTINUATION: 12, CUT: 25 },
+  basis: 'START (research T5(d), G12): calibrate on real H3 joins',
+} as const;
+
+const CW = 64, CH = 36;
+export interface ColourMeans { y: number; u: number; v: number; frames: number }
+
+/** Every frame of a file at 64×36, planar 8-bit YUV 4:4:4. */
+export async function colourFrames(file: string): Promise<Uint8Array[]> {
+  const { execFile } = await import('node:child_process');
+  const stdout = await new Promise<Buffer>((resolve, reject) => execFile('ffmpeg', ['-v', 'error', '-i', file, '-an', '-vf', `scale=${CW}:${CH}:flags=area,format=yuv444p`, '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 512 * 1024 * 1024 }, (e, out) => (e ? reject(e) : resolve(out))));
+  const size = CW * CH * 3; const out: Uint8Array[] = [];
+  for (let o = 0; o + size <= stdout.byteLength; o += size) out.push(new Uint8Array(stdout.buffer, stdout.byteOffset + o, size));
+  return out;
+}
+
+/** The mean Y, U, V of a run of planar 4:4:4 frames. */
+export function colourMeansOf(frames: Uint8Array[]): ColourMeans {
+  const plane = CW * CH; let y = 0, u = 0, v = 0;
+  for (const f of frames) { for (let i = 0; i < plane; i++) { y += f[i]; u += f[plane + i]; v += f[2 * plane + i]; } }
+  const n = Math.max(1, frames.length * plane);
+  return { y: y / n, u: u / n, v: v / n, frames: frames.length };
+}
+
+/** The join's colour against the shot before it. */
+export function judgeColourMatch(before: ColourMeans, after: ColourMeans, relation: 'CONTINUATION' | 'CUT'): QaCheck {
+  const dy = after.y - before.y, du = after.u - before.u, dv = after.v - before.v;
+  const chroma = Math.max(Math.abs(du), Math.abs(dv));
+  const ok = chroma <= COLOUR_QA.chroma[relation] && Math.abs(dy) <= COLOUR_QA.luma[relation];
+  const f = (x: number) => `${x >= 0 ? '+' : ''}${x.toFixed(1)}`;
+  return { name: 'colour-continuity', ok, value: Number(chroma.toFixed(2)), threshold: `|ΔU|,|ΔV| ≤ ${COLOUR_QA.chroma[relation]}, |ΔY| ≤ ${COLOUR_QA.luma[relation]} (${relation === 'CONTINUATION' ? 'continuous' : 'cut on the same moment'})`, detail: `against the end of the shot before: ΔY ${f(dy)}, ΔU ${f(du)}, ΔV ${f(dv)} over ${before.frames}/${after.frames} frames${ok ? '' : ' — the light or the grade shifts at the join (review; never graded automatically)'}` };
+}
+
+/** The colour of the last `n` frames the cut shows of the previous take (its window ending at `endFrame`, else its file
+ *  end) against this take's first `n` new frames (after `head`). */
+export async function colourJoin(previousFile: string, file: string, opts: { previousEndFrame?: number; head: number; relation: 'CONTINUATION' | 'CUT' }): Promise<QaCheck> {
+  const n = COLOUR_QA.frames[opts.relation];
+  const [prev, cur] = await Promise.all([colourFrames(previousFile), colourFrames(file)]);
+  const end = Math.min(prev.length, opts.previousEndFrame ?? prev.length);
+  return judgeColourMatch(colourMeansOf(prev.slice(Math.max(0, end - n), end)), colourMeansOf(cur.slice(opts.head, opts.head + n)), opts.relation);
+}
+
 /** The model-free continuity checks of one take file. `head`: frames repeating the previous shot (a continuation);
- *  `plannedCuts`: seconds from the take's start; `script`/`heard`: for the repeated-speech check. */
-export async function continuityChecks(file: string, opts: { fps: number; head: number; plannedCuts: number[]; script?: string[]; heard?: string }): Promise<QaCheck[]> {
+ *  `plannedCuts`: seconds from the take's start; `script`/`heard`: for the repeated-speech check; `colour`: the shot
+ *  before it in the same scene (its file, where its window ends), for the colour join. */
+export async function continuityChecks(file: string, opts: { fps: number; head: number; plannedCuts: number[]; script?: string[]; heard?: string; colour?: { previousFile: string; previousEndFrame?: number; relation: 'CONTINUATION' | 'CUT' } }): Promise<QaCheck[]> {
   const frames = await greyFrames(file);
   const s = frameSeries(frames, opts.fps);
   const checks = [judgeFades(s, opts.head), judgeDuplicates(s, opts.head), judgeCuts(s, opts.plannedCuts, opts.head)];
   if (opts.script?.length && opts.heard !== undefined) checks.push(judgeRepeatedSpeech(opts.script, opts.heard));
+  if (opts.colour) {
+    try { checks.push(await colourJoin(opts.colour.previousFile, file, { previousEndFrame: opts.colour.previousEndFrame, head: opts.head, relation: opts.colour.relation })); } catch (e) { checks.push({ name: 'colour-continuity', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` }); }
+  }
   return checks;
 }

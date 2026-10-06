@@ -1,0 +1,96 @@
+﻿node.exe : [gpu-hold] ASR granted after 0.1 s: powershell -NoProfile -ExecutionPolicy Bypass -File 
+docs/evidence/acceptance-v1/driver/cut-check.ps1 var/library/video/2026/10/gen-9b08798b5c7751b37974.a1.mp4 
+docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck 144 264
+At D:\tools\node\pnpm.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/node_modules/corepack/dist/pnpm. ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([gpu-hold] ASR ...recheck 144 264:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+== probe
+stream|index=0|codec_name=h264|codec_type=video|width=1920|height=1080|r_frame_rate=24/1|duration=19.000000|nb_frames=456
+stream|index=1|codec_name=aac|codec_type=audio|sample_rate=48000|channels=2|r_frame_rate=0/0|duration=19.000000|nb_frames=892
+format|duration=19.000000|size=14508857
+var/library/video/2026/10/gen-9b08798b5c7751b37974.a1.mp4 duration=19 frames@2=38
+== black / freeze (video)
+== silence (audio, -45 dB, 0.3 s)
+silence_start: 0
+silence_end: 0.451062 | silence_duration: 0.451062
+silence_start: 4.837333
+silence_end: 5.436896 | silence_duration: 0.599562
+silence_start: 10.989729
+silence_end: 11.438104 | silence_duration: 0.448375
+silence_start: 17.142312
+silence_end: 17.7855 | silence_duration: 0.643188
+silence_start: 18.130271
+silence_end: 18.692833 | silence_duration: 0.562562
+== loudness (EBU R128 summary)
+I:         -22.5 LUFS
+LRA:        16.4 LU
+Peak:       -7.2 dBFS
+== short-term loudness every 0.5 s (M, momentary 400 ms)
+0.0s:-120.691  0.5s:-24.302  1.0s:-22.076  1.5s:-27.827  2.0s:-20.084  2.5s:-21.164  3.0s:-25.227  3.5s:-21.875  4.0s:-19.618  4.5s:-21.774  5.0s:-49.634  5.5s:-52.811  6.0s:-48.990  6.5s:-28.625  7.0s:-40.942  7.5s:-33.841  8.0s:-42.102  8.5s:-45.526  9.0s:-42.166  9.5s:-39.087  10.0s:-41.422  10.5s:-44.983  11.0s:-50.126  11.5s:-19.577  12.0s:-22.668  12.5s:-23.348  13.0s:-23.567  13.5s:-22.767  14.0s:-24.412  14.5s:-21.628  15.0s:-26.047  15.5s:-21.612  16.0s:-23.011  16.5s:-22.903  17.0s:-23.726  17.5s:-73.641  18.0s:-49.612  18.5s:-69.068
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:20 char:5
++     $j = [int]$j; $a = $j - 6; $b = $j + 5
++     ~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:20 char:19
++     $j = [int]$j; $a = $j - 6; $b = $j + 5
++                   ~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+[Parsed_select_0 @ 00000185592b0bc0] [Eval @ 000000415b1fdc40] Undefined constant or missing '(' in ',1442645)'
+[Parsed_select_0 @ 00000185592b0bc0] Error while parsing expression 'between(n,,144 2645)'
+[AVFilterGraph @ 000001855931ebc0] Error initializing filters
+Error opening output file docs\evidence\acceptance-v1\tea-at-mutanabbi\recheck\gen-9b08798b5c7751b37974.a1-join144 
+264-frames-144 2645.jpg.
+Error opening output files: Invalid argument
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:24 char:63
++ ... mpeg -loglevel error -y -i $f -vf "select='between(n\,$($j-12)\,$($j+ ...
++                                                             ~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+[Parsed_select_0 @ 0000016292311f80] [Eval @ 000000585ddfda50] Undefined constant or missing '(' in ',14426410)'
+[Parsed_select_0 @ 0000016292311f80] Error while parsing expression 'between(n,,144 26410)'
+[AVFilterGraph @ 00000162941b3140] Error initializing filters
+Error opening output file C:\Users\MTA\AppData\Local\Temp\cc-a.mp4.
+Error opening output files: Invalid argument
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:25 char:63
++ ... mpeg -loglevel error -y -i $f -vf "select='between(n\,$($j-11)\,$($j+ ...
++                                                             ~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+[Parsed_select_0 @ 00000230cadc3b00] [Eval @ 000000c412bfdc20] Undefined constant or missing '(' in ',14426411)'
+[Parsed_select_0 @ 00000230cadc3b00] Error while parsing expression 'between(n,,144 26411)'
+[AVFilterGraph @ 00000230cadc09c0] Error initializing filters
+Error opening output file C:\Users\MTA\AppData\Local\Temp\cc-b.mp4.
+Error opening output files: Invalid argument
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:27 char:5
++     $k = $j - 12; $pairs = @(); foreach ($v in $ps) { $pairs += ('{0} ...
++     ~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+Cannot convert value "144 264" to type "System.Int32". Error: "Input string was not in a correct format."
+At D:\volexar-studio\volexar-studio\docs\evidence\acceptance-v1\driver\cut-check.ps1:28 char:73
++ ...  frame $j : PSNR frame k -> k+1 (dB); the join pair is $($j-1)->$j";  ...
++                                                              ~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], RuntimeException
+    + FullyQualifiedErrorId : InvalidCastFromStringToInteger
+ 
+== join at frame 144 264 : PSNR frame k -> k+1 (dB); the join pair is ->144 264
+->1:25.79  1->2:25.96  2->3:24.72  3->4:24.74  4->5:25.69  5->6:26.33  6->7:25.25  7->8:25.21  8->9:25.86  9->10:26.41  10->11:24.99  11->12:12.30  12->13:45.38  13->14:49.20  14->15:49.10  15->16:49.70  16->17:44.83  17->18:45.86  18->19:39.79  19->20:38.62  20->21:33.79  21->22:32.98  22->23:33.67
+== ASR words
+excuse me is this the famous tea everyone talks about oh that is wonderful thank you so much it really is the best tea in Baghdad
+0.05-0.83 excuse | 0.83-1.23 me | 1.23-1.75 is | 1.75-2.01 this | 2.01-2.23 the | 2.23-2.69 famous | 2.69-3.03 tea | 3.03-3.53 everyone | 3.53-3.99 talks | 3.99-4.43 about | 4.43-5.91 oh | 10.80-12.00 that | 12.00-12.32 is | 12.32-12.78 wonderful | 12.78-13.54 thank | 13.54-13.80 you | 13.80-14.04 so | 14.04-14.44 much | 14.44-14.90 it | 14.90-15.18 really | 15.18-15.52 is | 15.52-15.66 the | 15.66-15.88 best | 15.88-16.14 tea | 16.14-16.42 in | 16.42-16.96 Baghdad
+[gpu-hold] ASR released after 3.7 s (exit 0)

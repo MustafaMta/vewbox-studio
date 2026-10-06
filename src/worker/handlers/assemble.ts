@@ -10,9 +10,14 @@ import { commands, readState, type CommandSpec } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { assetFile, assetFromStored } from '@/server/media';
 import { jobOutputs, outputId } from '@/server/jobs/outputs';
-import { thumbnail, tmpDir } from '@/server/media/ffmpeg';
+import { thumbnail, tmpDir as makeTmpDir } from '@/server/media/ffmpeg';
+import { creditLines, disclosureOf } from '@/server/media/disclosure';
+import { referenceFilesReadiness } from '@/server/production/readiness';
+
+/** How long an export's end-credit card stays on screen. */
+const CREDIT_SECONDS = 4;
 import { measureSongCopies } from '@/server/media/song-copies';
-import { assemble as assembleCut, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport, type JoinMetric } from '@/server/media/assembly';
+import { assemble as assembleCut, cuesInLanguage, buildMixPlan, buildTimeline, dialogueCues, exportSize, lyricCues, mergeBilingual, toSrt, toVtt, validateExport, type JoinMetric } from '@/server/media/assembly';
 import { takeLagAgainstMaster } from '@/server/media/sync';
 import { enqueue, recordMetric } from '@/server/jobs/queue';
 import { listQaReports, recordHandoff, recordQaReport } from '@/server/org/runs';
@@ -25,7 +30,18 @@ import { establishFromApprovedCut, saveAudioTimeline, worldOfProduction } from '
  *  each shot's own sound the clock of a film; the picture conforms to it; the mix plays every source once, under the
  *  pinned World Bible's audio policy; every join is measured and a continuation join that jumps fails its take. */
 
-async function render(ctx: Parameters<Handler>[0], opts: { productionId: string; format: 'mp4-h264' | 'mp4-h265' | 'mov-prores'; resolution: '720' | '1080' | '2160'; subtitles: 'none' | 'ar' | 'en' | 'both'; kind: 'cut' | 'export' }) {
+type RenderOpts = { productionId: string; format: 'mp4-h264' | 'mp4-h265' | 'mov-prores'; resolution: '720' | '1080' | '2160'; subtitles: 'none' | 'ar' | 'en' | 'both'; kind: 'cut' | 'export'; credits?: boolean };
+
+/** A render whose work folders (the finished file before it is adopted: gigabytes for a long film) are removed when it
+ *  fails or is stopped — the library never sees them, and the disk does not keep them either. */
+async function render(ctx: Parameters<Handler>[0], opts: RenderOpts) {
+  const dirs: string[] = [];
+  try { return await renderInto(ctx, opts, dirs); }
+  catch (e) { for (const d of dirs) await fsp.rm(d, { recursive: true, force: true }).catch(() => {}); throw e; }
+}
+
+async function renderInto(ctx: Parameters<Handler>[0], opts: RenderOpts, dirs: string[]) {
+  const tmpDir = async (prefix: string) => { const d = await makeTmpDir(prefix); dirs.push(d); return d; };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === opts.productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
@@ -91,6 +107,15 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
     await ctx.event('info', 'mix plan', { clock: tl.audio.clock, policy: tl.audio.policy, world: { revision: world.revision.number, pinned: world.pinned }, tracks: mix.tracks.map((t) => ({ kind: t.kind, source: t.sourceAssetId, startSample: t.startSample, durationSamples: t.durationSamples, gain: t.gain, muted: t.muted ?? false, ducked: t.automation?.spans.length ?? 0, policy: t.policy })), targetLufs: mix.targetLufs, notes: mix.notes });
     return { mix, files };
   });
+  // EVERY SOURCE FILE IS ON DISK before anything is rendered: a chosen take or a recorded line whose file is gone is
+  // refused at once, naming the shots (MISSING_REFERENCE, not retried) — it used to fail deep inside ffmpeg as a
+  // PROVIDER error and be retried unchanged
+  {
+    const all = [...tl.items.map((it) => ({ assetId: it.take.id, what: `the chosen take of shot ${it.sceneNumber}.${it.shot.number}`, file: assetFile(it.take) })), ...mix.tracks.filter((t) => !t.muted).map((t) => ({ assetId: t.sourceAssetId, what: `${t.kind.toLowerCase().replace(/_/g, ' ')} source`, file: files[t.sourceAssetId] }))];
+    const needs = all.filter((n, i) => all.findIndex((m) => m.assetId === n.assetId) === i); // a take's own sound is the same file
+    const r = await referenceFilesReadiness(needs, (id) => needs.find((n) => n.assetId === id)?.file);
+    if (!r.ok) throw Object.assign(new StudioError('INVALID', `“${p.title}” cannot be ${opts.kind === 'cut' ? 'assembled' : 'exported'}: ${r.detail}. Restore the files or choose other takes.`, { missing: r.missing }), { failureClass: 'MISSING_REFERENCE', retryable: false });
+  }
   // SUBTITLE CUES (the Subtitle Specialist's step)
   const dir = await tmpDir('subs');
   const srtPath = path.join(dir, 'subs.srt');
@@ -101,17 +126,33 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
     if (cues.length) await fsp.writeFile(srtPath, toSrt(cues), 'utf8');
     return { cuesAr, cuesEn, cues };
   });
+  // SUBTITLES ASKED FOR IN A LANGUAGE THE FILM HAS NO TEXT IN are refused BEFORE the render (acceptance 2026-10-05,
+  // open item 4): an English film exported with Arabic subtitles used to render with nothing burned and be recorded as
+  // "subtitles: burned". 'both' needs both languages.
+  if (opts.kind === 'export' && opts.subtitles !== 'none') {
+    const missing = (opts.subtitles === 'both' ? (['ar', 'en'] as const) : [opts.subtitles]).filter((l) => !(l === 'ar' ? cuesAr : cuesEn).length);
+    if (missing.length) {
+      await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
+      const name = (l: 'ar' | 'en') => (l === 'ar' ? 'Arabic' : 'English');
+      const has = cuesEn.length ? 'English' : cuesAr.length ? 'Arabic' : undefined;
+      throw Object.assign(new StudioError('INVALID', `“${p.title}” has no ${missing.map(name).join(' or ')} subtitle text${has ? `; its lines are in ${has} — export with ${has} subtitles or none` : ' (no dialogue or lyrics to subtitle) — export without subtitles'}.`, { subtitles: opts.subtitles, cues: { ar: cuesAr.length, en: cuesEn.length } }), { failureClass: 'INVALID_INPUT', retryable: false });
+    }
+  }
+  // THE AI DISCLOSURE (MiniMax H3 AUP) in the container metadata of every cut and export, and the optional end-credit
+  // card of an export, both listing the engines the film is really made with (src/server/media/disclosure.ts)
+  const disclosure = disclosureOf(p, state.assets, mix.tracks.map((t) => t.sourceAssetId));
+  const credits = opts.kind === 'export' && opts.credits ? { lines: creditLines(p, disclosure), seconds: CREDIT_SECONDS } : undefined;
   const outDir = await tmpDir(opts.kind);
   const ext = opts.format === 'mov-prores' ? 'mov' : 'mp4';
   const outFile = path.join(outDir, `${opts.kind}.${ext}`);
   const t0 = Date.now();
   const cut = { productionId: p.id, shots: timeline.items.length, width: size.width, height: size.height, fps: 24, mix, files, subtitles: { srt: cues.length ? srtPath : undefined, burn: opts.kind === 'export' ? opts.subtitles : ('none' as const) }, codec: opts.format === 'mp4-h265' ? ('h265' as const) : opts.format === 'mov-prores' ? ('prores' as const) : ('h264' as const), outFile };
-  const result = await ctx.tool('media.assemble', () => assembleCut(p, timeline, { width: cut.width, height: cut.height, fps: cut.fps, mix, files, subtitles: cut.subtitles, codec: cut.codec, outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) }), { label: opts.kind, input: cut });
+  const result = await ctx.tool('media.assemble', () => assembleCut(p, timeline, { disclosure, title: p.title, credits, width: cut.width, height: cut.height, fps: cut.fps, mix, files, subtitles: cut.subtitles, codec: cut.codec, outFile, onProgress: (m) => ctx.progress('POSTPROCESSING', { phase: 'rendering', message: m, percent: null }) }), { label: opts.kind, input: cut });
   await ctx.checkpoint();
   // FILE VALIDATION (the Technical Media Inspector's step): the finished file is inspected, not trusted — lengths,
   // rate, size, timestamps, black stretches — and the report is recorded whether it passes or not
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the finished file' });
-  const check = { file: outFile, expect: { width: size.width, height: size.height, fps: 24, durationSeconds: timeline.total, subtitlesBurned: opts.kind === 'export' && opts.subtitles !== 'none' } };
+  const check = { file: outFile, expect: { width: size.width, height: size.height, fps: 24, durationSeconds: timeline.total + (credits?.seconds ?? 0), subtitlesBurned: opts.kind === 'export' && opts.subtitles !== 'none', subtitles: opts.kind === 'export' && opts.subtitles !== 'none' ? { requested: opts.subtitles, cues: cues.length, languageOk: cuesInLanguage(cues, opts.subtitles), burned: result.subtitlesBurned } : undefined, codec: cut.codec, disclosure: disclosure.comment } };
   const validation = await step(ctx, 'technical-media-inspector', `file-validation: ${opts.kind} of “${p.title}”`, async (tool) => {
     const v = await tool('media.validate_export', () => validateExport(check.file, check.expect), { input: check });
     await ctx.event(v.ok ? 'info' : 'error', `${opts.kind} validation ${v.ok ? 'passed' : 'FAILED'}`, { checks: v.checks });
@@ -150,7 +191,7 @@ async function render(ctx: Parameters<Handler>[0], opts: { productionId: string;
   const digest = timelineDigest(timeline.audio);
   const assets: Array<Omit<Asset, 'createdAt'>> = [
     assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id }),
-    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis, relation: it.relation, join: it.join })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
+    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis, relation: it.relation, join: it.join })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, disclosure, credits: credits ? { seconds: credits.seconds, engines: disclosure.engines } : undefined, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
   ];
   // sidecar subtitle files
   const sidecars: string[] = [];
@@ -215,7 +256,7 @@ export const assemble: Handler = async (ctx) => {
 };
 
 export const exportCut: Handler = async (ctx) => {
-  const { productionId, format, resolution, subtitles } = ctx.job.payload as { productionId: string; format: 'mp4-h264' | 'mp4-h265' | 'mov-prores'; resolution: '720' | '1080' | '2160'; subtitles: 'none' | 'ar' | 'en' | 'both' };
+  const { productionId, format, resolution, subtitles, credits } = ctx.job.payload as { productionId: string; format: 'mp4-h264' | 'mp4-h265' | 'mov-prores'; resolution: '720' | '1080' | '2160'; subtitles: 'none' | 'ar' | 'en' | 'both'; credits?: boolean };
   // the second human gate (the Quality Director's step): only an approved cut is exported
   await step(ctx, 'quality-director', `cut-gate: production ${productionId}`, () => requireApproval(productionId, 'EDIT'));
   // ESTABLISHED PLACES (the World Continuity step): the approved cut's places become established frames of the World
@@ -234,7 +275,7 @@ export const exportCut: Handler = async (ctx) => {
     await ctx.event('info', 'the export was already recorded by an earlier attempt of this job; nothing is rendered again', { exportAssetId: done.id });
     return { exportAssetId: done.id, durationSeconds: done.durationSeconds, establishedFrames: established.added, resumedFromCommit: true };
   }
-  const r = await render(ctx, { productionId, format, resolution, subtitles, kind: 'export' });
+  const r = await render(ctx, { productionId, format, resolution, subtitles, credits, kind: 'export' });
   const asset = r.assets.find((a) => a.id === r.videoId);
   await commitRender(ctx, r, [{ name: 'recordExport', args: [productionId, { id: outputId(ctx.job.id, 'export-record', 'export'), assetId: r.videoId, format, resolution, subtitles, jobId: ctx.job.id, durationSeconds: r.durationSeconds, bytes: asset?.bytes }] }, { name: 'markStepDone', args: [productionId, 'FINAL_CUT'] }]);
   await recordHandoff({ id: outputId(ctx.job.id, 'handoff:export', 'handoff'), productionId, stage: 'EXPORT', producerDepartment: 'POST', artifactIds: [r.videoId, ...r.sidecars], outputVersions: { export: r.videoId, format, resolution, establishedFrames: established.added }, validation: { ok: r.validation.ok, checks: r.validation.checks.map((c) => ({ name: c.name, ok: c.ok, detail: c.detail })) }, jobId: ctx.job.id });

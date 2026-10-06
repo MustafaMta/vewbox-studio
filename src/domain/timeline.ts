@@ -91,6 +91,46 @@ export const JOIN_CROSSFADE_FRAMES = 3;
 export const BED = { gain: 0.35, ducked: 0.12, rampSamples: 9600 } as const;
 /** a cue at or below this effective gain is a bed, not a competing voice */
 export const VOICE_AUDIBLE_GAIN = 0.2;
+/** How a speaking shot's recorded lines are joined into the soundtrack its take is conditioned on (the audio guide at
+ *  the first new frame; src/server/media/ffmpeg.ts joinSpeech): silence before the first line, between lines, after. */
+export const JOIN_SPEECH = { leadIn: 0.4, gap: 0.35, tail: 0.3 } as const;
+/** the take's own sound is muted this much beyond each recorded line that replaces its speech (MiniMax H3 mirrors the
+ *  anchored recording to within about a frame: its edges must not leak around the authoritative line) */
+export const REPLACED_SPEECH_PAD_SAMPLES = 2 * (48000 / 24);
+
+/** WHERE EACH RECORDED LINE WAS ANCHORED in a take (seconds on the take's own clock), when the take was generated to
+ *  the shot's CURRENT recordings: the joined soundtrack it was conditioned on names its line recordings in order, and
+ *  every one is still the line's recording. The take records it (`anchoredFrom`); takes made before that record are
+ *  read from the joined track's line list with the join rule (JOIN_SPEECH). Undefined when the take was not anchored
+ *  on these recordings (a line re-recorded since, a take that spoke natively). Measured on real takes (acceptance
+ *  2026-10-06, Tea at Mutanabbi 1.1 and 1.3): H3's speech follows the anchored recording word by word, 0.38–0.40 s in
+ *  on a 0.4 s lead-in, while the transcriber's word times were off by up to 0.5 s. */
+export function anchoredLineStarts(sh: Pick<Shot, 'dialogue'>, t: Pick<Take, 'soundtrack' | 'trimStartFrames'>, byId: (id?: string) => Asset | undefined): Map<string, number> | undefined {
+  const st = t.soundtrack;
+  if (st?.kind !== 'DIALOGUE' || !st.lines.length) return undefined;
+  const lines = sh.dialogue.filter((d) => d.audioAssetId);
+  const recorded = st.lines.filter((l) => typeof l.anchoredFrom === 'number');
+  if (recorded.length === st.lines.length) {
+    // recorded on the take: valid while each line still plays the recording the take was made with
+    const out = new Map<string, number>();
+    for (const l of recorded) { const d = lines.find((x) => x.id === l.lineId); if (!d || (l.audioAssetId && l.audioAssetId !== d.audioAssetId)) return undefined; out.set(l.lineId, l.anchoredFrom!); }
+    return out;
+  }
+  const joined = byId(st.assetId);
+  const lineAssets = (joined?.provenance as { lineAssets?: unknown } | undefined)?.lineAssets;
+  if (!Array.isArray(lineAssets) || !lineAssets.length) return undefined;
+  const head = (t.trimStartFrames ?? 0) / CLOCK_FPS;
+  const out = new Map<string, number>();
+  let at = head + JOIN_SPEECH.leadIn;
+  for (const id of lineAssets) {
+    const d = lines.find((x) => x.audioAssetId === id);
+    const a = byId(typeof id === 'string' ? id : undefined);
+    if (!d || !a?.durationSeconds) return undefined;
+    out.set(d.id, at);
+    at += a.durationSeconds + JOIN_SPEECH.gap;
+  }
+  return out;
+}
 
 /** What a sound is. MASTER_MUSIC: a song's full mix (music and vocals). MUSIC: its instrumental stem. LEAD_VOCAL /
  *  BACKING_VOCAL: its vocal stems. GENERATED_VIDEO_AUDIO: a MiniMax take's own sound (speech, room, foley). */
@@ -311,12 +351,17 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
     const sungAlong = t.soundtrack?.kind === 'SONG';
     const lines = sh.dialogue.filter((d) => usableAudio(byId(d.audioAssetId)));
     const speechCheck = t.qa?.checks.find((c) => c.name === 'script-spoken');
+    // AUDIO-FIRST (final directive §15: one authoritative spoken performance): a take generated to the shot's current
+    // recordings mirrors them on its mouths; the cut plays the recordings there, never MiniMax's re-voicing of them
+    const anchored = lines.length ? anchoredLineStarts(sh, t, byId) : undefined;
+    const allAnchored = Boolean(anchored && lines.every((d) => anchored.has(d.id)));
     let mode: 'KEEP' | 'REPLACE' | 'UNDER_SILENT' | 'NONE' = 'KEEP';
     if (!hasAudio) mode = lines.length && !musicVideo ? 'UNDER_SILENT' : 'NONE';
     else if (musicVideo || sh.dialogue.length === 0) mode = 'KEEP';
     else if (policy.dialogue === 'MODEL_VOICE') mode = 'KEEP';
     else if (policy.dialogue === 'RECORDED_VOICE') mode = lines.length ? 'REPLACE' : 'KEEP';
-    else mode = lines.length && speechCheck?.ok !== true ? 'REPLACE' : 'KEEP';
+    else mode = lines.length && (allAnchored || speechCheck?.ok !== true) ? 'REPLACE' : 'KEEP';
+    const why = policy.dialogue === 'AUTO' ? (allAnchored ? 'the take was generated to it (audio-first)' : 'its speech check did not pass') : 'policy: recorded voice';
     if (policy.dialogue === 'RECORDED_VOICE' && hasAudio && sh.dialogue.length && !lines.length) notes.push(`shot ${sh.id}: no recorded lines to play; the take's own speech stays`);
     // recorded lines: at the place the take speaks them (its placed windows, take-relative), else one after another
     const lineCues: AudioCue[] = [];
@@ -327,20 +372,22 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
         const la = byId(d.audioAssetId)!;
         const dur = secS(la.durationSeconds ?? d.durationSeconds ?? 2);
         const w = placed.find((x) => x.lineId === d.id);
-        let start = Math.max(shotStart, (w && w.from >= head ? shotStart + secS(w.from - head) : cursor) + lipSyncShiftSamples(t));
+        // where the take was conditioned on the recording (its mouths follow it there), else where it was heard
+        const at = anchored?.get(d.id) ?? (w && w.from >= head ? w.from : undefined);
+        let start = Math.max(shotStart, (at !== undefined && at >= head ? shotStart + secS(at - head) : cursor) + lipSyncShiftSamples(t));
         const before = lineCues.at(-1);
         if (before && start < before.startSample + before.durationSamples) { start = before.startSample + before.durationSamples + secS(0.1); notes.push(`shot ${sh.id}: line ${d.id} would overlap the line before it; moved after it`); }
         let durationSamples = dur;
         if (start + durationSamples > shotEnd) { durationSamples = Math.max(0, shotEnd - start); notes.push(`shot ${sh.id}: line ${d.id} runs past the shot's end; cut there`); }
         if (durationSamples <= 0) { notes.push(`shot ${sh.id}: line ${d.id} has no room in the shot; not played`); continue; }
-        lineCues.push(edge({ id: `line-${d.id}`, kind: 'DIALOGUE', sourceAssetId: la.id, lineage: `line:${d.id}`, startSample: start, durationSamples, sourceOffsetSamples: 0, gain: 1, voice: true, shotId: sh.id, lineId: d.id, characterId: d.characterId, policy: mode === 'REPLACE' ? `the character's recorded line replaces the take's speech (${policy.dialogue === 'AUTO' ? 'its speech check did not pass' : 'policy: recorded voice'})` : 'recorded line under a take without its own sound' }));
+        lineCues.push(edge({ id: `line-${d.id}`, kind: 'DIALOGUE', sourceAssetId: la.id, lineage: `line:${d.id}`, startSample: start, durationSamples, sourceOffsetSamples: 0, gain: 1, voice: true, shotId: sh.id, lineId: d.id, characterId: d.characterId, policy: mode === 'REPLACE' ? `the character's recorded line replaces the take's speech (${why})` : 'recorded line under a take without its own sound' }));
         cursor = start + durationSamples + secS(0.25);
       }
     }
     if (hasAudio) {
       const durationSamples = S(Math.min(s.frames, s.availableFrames));
       const c = edge({ id: `take-${t.id}`, kind: 'GENERATED_VIDEO_AUDIO', sourceAssetId: s.assetId, lineage: musicVideo && sungAlong ? `song:${songOk!.id}` : `take:${t.id}`, startSample: shotStart, durationSamples, sourceOffsetSamples: S(s.sourceStartFrame), gain: musicVideo ? 0 : 1, muted: musicVideo || undefined, voice: sh.dialogue.length > 0 || sungAlong, shotId: sh.id, policy: musicVideo ? 'music video: the song master is the soundtrack; the take sang along to it' : mode === 'REPLACE' ? 'the take\'s room and movement; muted under the recorded lines that replace its speech' : t.soundtrack?.kind === 'DIALOGUE' ? 'the take speaks its lines (MiniMax H3, speech checked)' : 'native MiniMax sound' });
-      if (mode === 'REPLACE' && lineCues.length) c.automation = { rampSamples: secS(0.02), spans: lineCues.map((l) => ({ from: l.startSample - shotStart, to: l.startSample + l.durationSamples - shotStart, gain: 0 })) };
+      if (mode === 'REPLACE' && lineCues.length) c.automation = { rampSamples: secS(0.02), spans: mergeSpans(lineCues.map((l) => ({ from: Math.max(0, l.startSample - shotStart - REPLACED_SPEECH_PAD_SAMPLES), to: Math.min(durationSamples, l.startSample + l.durationSamples - shotStart + REPLACED_SPEECH_PAD_SAMPLES), gain: 0 })), 0) };
       cues.push(c); takeCue.set(s.shotId, c);
     }
     cues.push(...lineCues);
