@@ -36,6 +36,13 @@ def main() -> int:
     out = os.path.join(a.out, a.variant)
     os.makedirs(out, exist_ok=True)
     print(subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,noheader"], capture_output=True, text=True).stdout.strip(), "before load", flush=True)
+    # where the weights come from (the model store's load proof): the /models mount and each weight file
+    proof = {"mounts": [ln.strip() for ln in open("/proc/mounts") if " /models " in ln], "weights": {}}
+    for k, p in {"unet": cr.UNET_CKPT, "whisper": cr.WHISPER_CKPT, "vae": os.path.join(cr.VAE_DIR, "diffusion_pytorch_model.safetensors"), "yunet": cr.YUNET_PATH, "sface": cr.SFACE_PATH, "face_landmarker": cr.LANDMARKER_PATH, "hand_landmarker": cr.HAND_LANDMARKER_PATH}.items():
+        proof["weights"][k] = {"path": p, "bytes": os.path.getsize(p) if os.path.isfile(p) else None}
+    with open(os.path.join(out, "_load-proof.json"), "w") as f:
+        json.dump(proof, f, indent=1)
+    print("load proof", json.dumps(proof), flush=True)
     c = cr.Corrector()
     rc = 0
     for it in items:

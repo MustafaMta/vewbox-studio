@@ -508,3 +508,183 @@ thing): (V-a) Ref2VA base, no LoRA, 20 steps (expected ≈ 5× sampling time); (
 (V-e) video VAE fp16 decode (5.2 GB download); (V-f) pruned bf16 DiT (40.2 GB download, weight streaming; RAM headroom now
 ≈ 78.5 GiB). V-a…V-c need no download. Measures: identity (SFace per frame), lip-sync/script heard back, motion and
 in-take cuts by eye, card/RAM peak, latency. This needs the coordinator's VIDEO slot (31.9 GB card, ≈ 41 GiB RAM).
+
+### 8.4 Configuration benchmark (2026-10-06) and the quality tiers
+
+Harness `scripts/model-eval-h3-config.ts` (evidence `docs/evidence/model-eval-2026-10/h3-config/`: `results.json`, graphs;
+sheets and 640-px proxies gitignored; originals `var/model-eval/h3-config/`). Two real shots of The Static Sky,
+conditioned exactly as the take handler conditions them (`resolveShotPack` → `bindingOf` → `h3ReferencePrompt` →
+`minimaxH3Video`: canonical image + plate + drawn opening frame as pictures, the opening frame anchored at 0): **SPK** =
+scene 1 shot 2 (Elias, MEDIUM_CLOSE_UP, one English line; §5's V1) and **SIL** = scene 1 shot 1 (WIDE, silent). Seed
+970007, 5 s = 124 frames at 1344×768, Ref2VA, first attempts only, every run under `gpu-hold VIDEO`. SFace sampled at
+4 fps against the canonical image (START threshold 0.363); comfyui container RAM from `docker stats` in a 78.5 GiB VM.
+
+| Arm | Change from shipping | Engine | Card | RAM | SPK SFace median (frames < 0.363) | SPK picture, by eye | SIL SFace median |
+|---|---|---|---|---|---|---|---|
+| T | — (turbo 4-step LoRA v0.1, simple, match) | 110 s / 85 s | 31.9 GB | 46.1 GiB | 0.33 (11/20), drift 0.79 | 3 in-take cuts (wide → wrench close-up → face → over-the-shoulder); beard comes and goes, reads as another man at the end | 0.65 (1/21); one continuous push-in to a face close-up |
+| **A** | **no LoRA, 20 steps** (template default) | **350 s / 348 s** | 31.7 GB | 46.0 GiB | **0.69 (0/21)**, drift 0.23 | opening frame held 2 frames, then **one continuous MCU** to the end (as planned); cap appears late | 0.52 (0/12 with a face); continuous push-in, holds the wide longer, ends on the radio |
+| B | turbo + scheduler beta | 123 s / 85 s | 28.6–31.2 GB | 46.0 GiB | 0.38 (8/19) | **broken**: blown-out, smeared, ghosting frames; same cuts as T | 0.54 (3/21) |
+| C | turbo + ref_image_size max | 91 s / 88 s | 31.4–31.6 GB | 46.1 GiB | 0.39 (10/20) | as T, frame for frame | 0.67 (0/21) |
+| D | A + ref_image_size max | 422 s | 28.6 GB | 46.0 GiB | 0.63 (0/21) | as A | — |
+| E | A + scheduler beta | 371 s | 31.6 GB | 46.1 GiB | 0.28 (11/21) | cuts inside the take to a three-quarter and a back view | — |
+
+Mouth activity (energy windows, START values): every arm is flagged at least once (MOUTH_MOVING_WHILE_SILENT on T, A,
+B, D; none on C and E) — not a lip-sync verdict; the real-UI takes are. The line heard back (large-v3, the take gate's `judgeHeard`): "Obsolescence.
+Always obsolescence." verbatim on all six SPK arms — CER 0, coverage 1, PASS. The tier does not change the speech.
+
+**Decision (merged as dea25145):** the local engine has two **quality tiers** as capability data
+(`src/domain/video-capability.ts` `tiers`): **final** — the default for every take — is arm A (the base model, 20 steps,
+`simple`, `match`); **draft** is the turbo LoRA, made only when the producer asks and recorded as `params.quality:
+'draft'`. Reasons: on the speaking shot the final tier is the only configuration that kept the planned framing as one
+shot and the face on model (0.69 vs 0.33), at the same card and RAM; the silent shot is mixed (both tiers move the
+camera; turbo kept the face larger). Cost: ≈ 3.2× engine time (350 s vs 110 s for 5 s); the run deadline now follows the
+tier and the length (`h3RunTimeoutMs`, 90–180 min). B (beta under turbo) breaks the picture; C and D change nothing
+measurable; E is worse — none is adopted. The ref-image `max` and beta notes of the r2v template do not hold on this
+material. Licence: unchanged by the tier — the same MiniMax H3 Community License weights (§8.1: territory limit on
+Outputs, "MiniMax H3" shown in the UI, AUP); the turbo LoRAs of the draft tier are apache-2.0 (lightx2v). Next
+measurements owed: long (10–15 s) final clips (the deadline estimate scales frames^1.5, unmeasured), the
+continuation (V4-style) on the final tier, and the real-UI Tea retakes.
+
+## 9. Image upgrade outcome (2026-10-06): the image stack is frozen
+
+The producer's production-stack directive (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md) froze the image
+stack before the candidate arms ran: **Qwen-Image-2512** generates, **Qwen-Image-Edit-2511** edits and keeps
+consistency, and Edit-2511 also takes the "character from a picture" role from FLUX.2 [klein] 4B (klein stays only behind
+`CANONICAL_REFERENCE_ENGINE=klein` until the Qwen route is proven in the UI). JoyAI-Image-Edit stays an
+already-downloaded fallback, with no benchmark arms run (weights verified on the store, graph builder and tests in the
+repo). The 27–30B-class search found no commercially usable model in that class more practical than the Qwen pair
+(Cosmos3-Super 64.6B: T2I only, 8×H100 class, arena below 2512; HunyuanImage 3.0 83B MoE: territory-excluding licence,
+no local ComfyUI runtime) — research references only. Qwen-Image-2512 **bf16** is being fetched as the frozen model's
+full precision; it becomes the final image tier only if a focused A/B on three canonical characters shows a visible
+gain over fp8 (§10.3).
+
+Measured today on the incumbents (harness `--tag upgrade`, first attempts, `docs/evidence/model-eval-2026-10/images-upgrade/`):
+canonical T2I 13/13 whole figures by the framing check and by eye (2512 quality 42–43 s, Lightning 6–10 s warm; card
+28.9–30.3 GB; comfyui RAM 29.1–29.9 GiB); plates 6/6 usable (27 s quality, 6–7 s Lightning); posters 4/4 cast right,
+the English title 2/2 (32–45 s); location views 0/6 changed the view (Edit-2511 quality 50 s and Lightning 8–32 s both
+returned the master's composition — as in §2.3); placement E1 (5 drawn before the freeze): Lightning C1 2/2 (SFace
+0.88, 0.82), quality C1 s970007 **the person missing** (only the kite drawn), quality C1 s970008 the plate replaced by a new
+street (SFace 0.55), Lightning C2 s970007 usable (SFace 0.54, anime face).
+
+## 10. Promotion records (production-stack directive §23, 2026-10-06)
+
+Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; ComfyUI reads them under
+`/models/comfyui/<folder>/`). VRAM = nvidia-smi card peak at 250 ms; RAM = the comfyui container (docker stats).
+
+### 10.1 Qwen-Image-2512 — image generation (characters, locations, plates, frames, posters, key art)
+
+| Field | Record |
+|---|---|
+| Checkpoint | `diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors` (Comfy-Org/Qwen-Image_ComfyUI, 20 430 679 144 B, sha256 `5dc80554…876b`); encoder `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` (9.38 GB); VAE `vae/qwen_image_vae.safetensors`; draft LoRA `loras/Qwen-Image-2512-Lightning-8steps-V1.0-bf16` |
+| Params | 20B MMDiT + Qwen2.5-VL-7B encoder |
+| Precision | fp8 e4m3fn DiT, fp8 scaled encoder (bf16 candidate: §10.3) |
+| Licence | Apache-2.0 (model card; commercial use allowed) |
+| VRAM / RAM | 28.9–30.3 GB card; 29.1–29.9 GiB container RAM (2026-10-06) |
+| Speed | canonical 928×1664 quality (30 steps, cfg 4) 42–43 s warm; plate 1344×768 quality 27 s; poster 896×1344 32–45 s; Lightning 8-step 6–10 s |
+| First attempt | canonical 13/13 today + 6/6 and 9/9 stress (§2.1–2.2); plates 6/6; posters 4/4 (English title 2/2) |
+| Quality | whole figures with margin, one-sided details on the correct side, cel-shaded anime and feature-animation cartoon only in quality mode (Lightning draws cartoon semi-real — never for a Cartoon canonical); Arabic titles stay typeset |
+| Why it holds the role | the strongest commercially usable open T2I on the arena (999; only NC Qwen-2.1 and FLUX.2 [dev] are level or above); no first-attempt failure in 38 canonical/stress/plate/poster pictures |
+
+### 10.2 Qwen-Image-Edit-2511 — editing and consistency, and the character from a picture
+
+| Field | Record |
+|---|---|
+| Checkpoint | `diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors` (Comfy-Org/Qwen-Image-Edit_ComfyUI, 20 533 762 817 B, sha256 `c9fdc158…a4e`); same encoder and VAE as 2512; draft LoRA `loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` |
+| Params | 20B MMDiT + Qwen2.5-VL-7B encoder; up to 3 reference pictures |
+| Precision | fp8 mixed (sensitive layers kept in bf16) |
+| Licence | Apache-2.0 (model card; commercial use allowed) |
+| VRAM / RAM | 30.0–32.0 GB card (the IMAGE lease estimate 30 400 is its typical peak); 30.4–31.3 GiB container RAM |
+| Speed | quality (24 steps, cfg 4) 50 s for a 1344×768 edit, 82–102 s with two references, 101–120 s for the Image Reference redraw at 928×1664; Lightning 4-step 7–32 s |
+| First attempt | Image Reference whole figure 7/10 (§2.6; 17/24 in the earlier A/B) — the handler redraws once without the face crop on a framing failure; placement in a plate 8/12 (§2.5) and 3/5 today; location views 0/12 (unsupported: never advertise a reverse angle or a time-of-day re-light from the master) |
+| Quality | likeness good on all five uploads (one rounder new face, ic4 s1); quality mode can drop the person or replace the plate in placement (Lightning was steadier there, 5/6) |
+| Why it holds the role | the strongest commercially usable open editor on the arena (1021; HunyuanImage 3.0 Instruct and Qwen-2.1 above it are territory-limited or NC); replaces FLUX.2 [klein] 4B for the character from a picture by the producer's directive (one engine family for generation and editing; FLUX no longer a production dependency). Promotion proof owed: one real-UI "from a picture" character (acceptance engineer) |
+
+### 10.3 Qwen-Image-2512 bf16 — candidate final image tier
+
+40 861 031 488 B, sha256 `cbf55390…e075`, Apache-2.0, fetching into the store (group `eval-qwen-image-2512-bf16`). Rule: a
+focused A/B on the three canonical characters (C1 cartoon, C2 anime, C3 realistic; the same prompts and seed as §2.1)
+against fp8; promoted as the final image tier only on a visible gain at full size, otherwise recorded and fp8 stays.
+
+## 11. Planning LLM: production model and promotion record (2026-10-06, model-upgrade directive §§3, 9; production-stack directive)
+
+Planning-LLM engineer, 2026-10-06. Every GPU call ran under the studio's lease (`scripts/gpu-hold.ts LLM <mb>`, background
+priority after the lease change), with the `llm` service started only for a batch and the model unloaded (`keep_alive 0`)
+at the end of each batch. The engine's own calls ran against the copy database `vewbox_llm`, never `vewbox`. Evidence:
+`docs/evidence/model-eval-2026-10/llm-suite/` (requests, answers, per-attempt tokens/stop reasons/reasoning, card and RAM
+peaks); harness `scripts/model-eval-llm-suite.ts`, comparison `scripts/model-eval-llm-report.ts`.
+
+### 11.1 Promotion record — `qwen3.6:27b-q8_0` is the local story model
+
+| Field | Value |
+|---|---|
+| Model / checkpoint | Qwen3.6-27B (Alibaba Qwen, April 2026), Ollama tag `qwen3.6:27b-q8_0` (digest `cd0210c667bf`), on the D: store (`<VEWBOX_MODELS_ROOT>/llm/ollama`) |
+| Parameters / architecture | 27.8 B dense (`ollama show`: architecture `qwen35`); hybrid attention — 16 of 64 layers attend, the rest Gated DeltaNet, so the KV cache is small; vision projector `qwen3vl_merger` loaded with it |
+| Precision | Q8_0 (29 GB on disk); KV cache q8_0, flash attention, num_ctx 16384 (unchanged) |
+| Licence | Apache-2.0 (Hugging Face card `Qwen/Qwen3.6-27B`; the licence text in the Ollama manifest). Incumbent, for the record: Gemma 4 31B — the Hugging Face card `google/gemma-4-31b-it` states "License: apache-2.0" and also links the Gemma Terms of Use (commercial use allowed under Google's prohibited-use policy); both statements recorded as found |
+| VRAM | loaded 28.4 GB (`ollama ps`: 66/66 layers, 100 % GPU); card 31,499 MiB loaded, **31,708 MiB writing** of 32,607 — the whole card. Lease estimate 31500 MB (`LOCAL_LLM_VRAM_MB`) |
+| RAM | `llm` container ≤ 13.8 GiB, Docker VM used ≤ 17.3 GiB during a call (78.5 GiB VM) |
+| Speed (thinking off) | develop (11 scenes, 3,402 answer tokens) 138 s = 24.7 tok/s; short JSON 3.6 s. `LOCAL_LLM_SPEED` 25 tok/s, 15 s prompt per part (feeds the PLAN_SHOTS work deadline) |
+| First-attempt success | measured with thinking truly off: 1/1 (episode development valid on the first call; Gemma needed a repair on the same input). The full round was stopped by the production-stack directive before the remaining tasks ran — the real-UI test is the next measurement |
+| Quality result | the development answer is coherent and follows the World Bible (Elias will not go on the water, the radio needs meteors, Ruth's entry "Turning back to the point", the logbook sealed since the inquiry); it adds a sensible second place (the street) and the episode's beats in order. **Continuity slip:** the new character "Ingrid" is written **"Ingres"** in three scenes' exit states — a name error the planner must not carry into shots (the script writer resolves names against the cast; watch for it in the real-UI run) |
+| Why it replaced Gemma 4 31B | the producer's production-stack directive (2026-10-06) names the Qwen 27B as the production brain; Qwen3.6-27B is the current release of that line (no new download). Its card beats Gemma 4 31B on every shared row (MMLU-Pro 86.2 vs 85.2, GPQA 87.8 vs 84.3, C-Eval 91.4 vs 82.6), it runs at Q8 against Gemma's QAT Q4, and on the one like-for-like task measured it was valid without a repair |
+| Fallbacks | `gemma4:31b-it-qat` stays installed as the emergency fallback (`OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat`, lease 21500); `qwen3:14b` preview only. If a real-UI stall recurs: the same model at Q6_K (≈ 22 GB). Ollama's library has no q6_K tag for `qwen3.6:27b` (it lists q4_K_M 17 GB, q8_0, nvfp4, mxfp8, bf16), so the Q6_K comes from a Hugging Face GGUF (`ollama pull hf.co/<publisher>/Qwen3.6-27B-GGUF:Q6_K`; publisher and licence checked at download time); the in-library step down is `qwen3.6:27b-q4_K_M`. **Not downloaded** until a stall happens in real use |
+
+**The switch** (done by the coordinator after the real-UI test): in the live `.env`,
+`OPENAI_COMPATIBLE_MODEL=qwen3.6:27b-q8_0` (the line now reads `gemma4:31b-it-qat`; removing it gives the same, it is the
+code default), then restart the worker and the web server. Nothing else changes: num_ctx 16384, KV q8_0, thinking off.
+
+### 11.2 What the measurements found in the app (fixed)
+
+1. **Thinking was never off.** Ollama 0.35.1's OpenAI-compatible endpoint ignores a top-level `think`; both Gemma 4 and
+   Qwen3.6 have "thinking: default true". Measured on the same 120-token JSON request: qwen3.6 with `think: false` —
+   71 s, 1,200 tokens, 4,621 reasoning characters, the answer cut; with `reasoning_effort: "none"` — 3.6 s, 114 tokens,
+   0 reasoning (native `/api/chat` `think: false`: 0 for both models). Gemma's recorded answers ran 0.6–2 characters per
+   token where JSON runs 3–4: in production it reasoned and spent max_tokens on it — the likely root of the 2026-10-05
+   Arabic shot-plan truncation. Fix: `reasoning_effort: "none"` on every local call (ddd32d2f), a warning when a local
+   answer still carries reasoning.
+2. **Explicit reasoning, opt-in** (18070a07): `LlmOptions.reasoning` + `reasoningTokens` (default 4096 on top of the
+   answer budget, inside the context's room; the call's deadline includes it). Off unless a stage asks. Not yet measured
+   whether reasoning-ON is materially better on the same inputs (the comparison round was stopped); the reference arm
+   with reasoning on (Gemma, below) exists.
+3. **Long local answers stream** (c6ec1492): Node's fetch gave up after 300 s waiting for headers; the deadline is now
+   5 min + 0.25 s per budgeted token.
+4. **PLAN_SHOTS deadline scales with the work** (15277fa6): target scenes × their most answer tokens × parts, at the
+   model's measured speed, ×2 + 10 min, 60 min … 8 h (an 11-scene 8-minute episode on Qwen3.6 ≈ 3.7 h of deadline).
+5. **The VRAM edge fails fast** (this commit): Qwen3.6 Q8 fills the card; once (14:3x, 32.0 of 32.6 GB, 0–2 % GPU
+   utilisation — Windows had paged the weights to shared memory) a call crawled for 15 minutes without an error. A stream
+   with no token for 240 s, or fewer than 90 tokens in 90 s once writing, is now aborted as `LocalModelStalled`
+   (`UNAVAILABLE`, failure class **RESOURCE_EXHAUSTION**, retryable), and the model is unloaded so the retry loads it onto a
+   card with room. Recurring stalls in real use → the Q6_K build of the same model (§11.1, Fallbacks).
+6. Docker: the `llm`/`llm-pull` containers trust the extra root (EXTRA_CA_FILE, Norton) at run time (13e1332b).
+
+### 11.3 The benchmark as far as it ran
+
+Same inputs for every model: a synthetic show around "The Static Sky" with a planted World Bible (Elias's LEFT palm
+bandaged, he never goes on the water, the radio only hears the Mariner while meteors fall, two open storylines); an
+8-minute episode 2 "The Harbour Office" from a fixed brief → `developStory` (scene breakdown) → **fixed** breakdown →
+`writeScript` (11 scenes in one call) → **fixed** script → `planShotsDraft` + `fitDurations` for all 11 scenes in order,
+each continuing from the last shot of the one before (as PLAN_SHOTS does); the Continuity Writer's record of episode 1;
+the next-episode proposal inside the show; a two-singer music video's singing plan; two character designs; the §3
+English scene and the §6 Iraqi Arabic scene. Fixtures frozen from Gemma's run 1.
+
+**Gemma 4 31B, thinking ON (the accidental production mode — reference arm):**
+
+| Task | Valid without repair | Time | Notes |
+|---|---|---|---|
+| develop (11 scenes) | 0/1 (1 repair: a lighting enum) | 201 s | 420 s planned of 480; World Bible respected |
+| script (11 scenes, 41 beats, 18 lines) | 1/1 | 97 s | good, terse dialogue; "Ruth Moore" speaks from the radio (not a cast member) |
+| shot plans, 11 scenes | 10/11, 0 cut | median 170 s/scene (2 parts each), 34.5 min | 89 shots, 474 s, every line once; 0 continuous boundaries; 1/30 screen-direction flips; bandage side named once (left, correct); the direction look repeated in 57/89 prompts although the studio prepends it |
+| continuity record | 1/1 | 31 s | left palm correct, both open storylines kept |
+| next episode | 0/1 (1 repair) | 112 s | picks up the logbook, Elias stays ashore; invents a harbour master "Arthur" |
+| singing plan / designs / §3 / §6 | 4/5 | 25–216 s | §6 Arabic plan valid, 0 truncations |
+
+Card ≈ 21.8 GB; 50–56 tok/s writing. (Some card peaks in the evidence read 32.0 GB: other families' engines were
+resident during those calls before the machine-wide lease — not Gemma's footprint.)
+
+**Qwen3.6-27B, thinking OFF:** development valid on the first call (above). The rest of the round was stopped by the
+directive; the real-UI planning run is the proof.
+
+**Scoring rubric** (for the real-UI run and any later comparison; 0–5 each, read by hand): story craft (structure, scene
+purpose, dialogue), World Bible fidelity (the planted facts), shot-plan craft (timed beats, motivated framing, concrete
+name-free prompts, the prefix not repeated), continuity across scenes (names, wardrobe, props, 180°, time of day),
+Arabic (dialect, spelling) — plus the mechanical counts the report prints.

@@ -43,8 +43,8 @@ import { IMAGE_VRAM_MB } from '@/server/gpu/estimates';
  *  Character identity (docs/CONTRACTS-IDENTITY-PACK.md v2): one character = ONE canonical front full-body image,
  *  drawn by CHARACTER_APPEARANCE — from the English identity line (style first; Qwen-Image-2512 in quality mode), or
  *  from the producer's uploaded picture, which is read first (MediaPipe face box, a Qwen3.5-4B description that writes
- *  the identity line) and redrawn into the production's style (FLUX.2 [klein] 4B; Qwen-Image-Edit-2511 as the
- *  rollback, `referenceEngine`). A picture whose figure is not
+ *  the identity line) and redrawn into the production's style (Qwen-Image-Edit-2511 since the stack directive of
+ *  2026-10-06; FLUX.2 [klein] 4B only with `CANONICAL_REFERENCE_ENGINE=klein`, `referenceEngine`). A picture whose figure is not
  *  whole in the frame is redrawn once (the first becomes RAW), then left for the producer with the reason. The image is
  *  a DRAFT until the producer approves it; it is the primary image everywhere, including the reference of every shot.
  *  CHARACTER_REFS draws optional SECONDARY material on request, one pass from that image. Evidence and the A/B behind
@@ -260,17 +260,18 @@ const CANONICAL_ENGINE = { DESCRIPTION: 'Qwen-Image-2512 (30 steps, cfg 4)', REF
 const FRAMING_OK = 'full body in frame: head and feet inside the picture with margin';
 const KLEIN_NODES = ['ReferenceLatent', 'Flux2Scheduler', 'EmptyFlux2LatentImage', 'CFGGuider', 'SamplerCustomAdvanced', 'ConditioningZeroOut'];
 
-/** Which engine redraws the producer's picture: FLUX.2 [klein] 4B (the default since the A/B and its confirmation:
- *  a whole figure 24/24 against Edit-2511's 17/24, docs/research/FLUX-VS-QWEN.md, docs/evidence/flux-vs-qwen/
- *  confirmation) or Qwen-Image-Edit-2511 — kept for one release as the rollback (`CANONICAL_REFERENCE_ENGINE=qwen`), and
- *  used when klein's weights or nodes are not in ComfyUI, with the reason. */
+/** Which engine redraws the producer's picture. Qwen-Image-Edit-2511 — the production editor since the producer's
+ *  stack directive (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md: "takes over the 'character from a picture'
+ *  role from FLUX.2 klein"; FLUX is no longer a production dependency) — unless `CANONICAL_REFERENCE_ENGINE=klein` asks
+ *  for FLUX.2 [klein] 4B explicitly (kept until the Qwen route is proven in the UI, then removed) and klein's weights
+ *  and nodes are in ComfyUI; otherwise Qwen with the reason. */
 export async function referenceEngine(): Promise<{ engine: 'KLEIN' | 'QWEN'; note?: string }> {
-  if ((process.env.CANONICAL_REFERENCE_ENGINE ?? '').toLowerCase() === 'qwen') return { engine: 'QWEN', note: 'CANONICAL_REFERENCE_ENGINE=qwen: the picture is redrawn by Qwen-Image-Edit-2511' };
+  if ((process.env.CANONICAL_REFERENCE_ENGINE ?? '').toLowerCase() !== 'klein') return { engine: 'QWEN' };
   const [dit, te, vae] = await Promise.all(['diffusion_models', 'text_encoders', 'vae'].map((f) => comfy.listModels(f).catch(() => [] as string[])));
   const missing = [...(dit.includes(MODELS.kleinDit) ? [] : [MODELS.kleinDit]), ...(te.includes(MODELS.kleinTe) ? [] : [MODELS.kleinTe]), ...(vae.includes(MODELS.kleinVae) ? [] : [MODELS.kleinVae])];
   const nodes = missing.length ? [] : (await comfy.hasNodes(KLEIN_NODES).catch(() => ({ missing: KLEIN_NODES }))).missing;
-  if (missing.length || nodes.length) return { engine: 'QWEN', note: `FLUX.2 [klein] 4B is not available in ComfyUI (missing ${[...missing, ...nodes].join(', ')}): the picture is redrawn by Qwen-Image-Edit-2511` };
-  return { engine: 'KLEIN' };
+  if (missing.length || nodes.length) return { engine: 'QWEN', note: `CANONICAL_REFERENCE_ENGINE=klein, but FLUX.2 [klein] 4B is not available in ComfyUI (missing ${[...missing, ...nodes].join(', ')}): the picture is redrawn by Qwen-Image-Edit-2511` };
+  return { engine: 'KLEIN', note: 'CANONICAL_REFERENCE_ENGINE=klein: the picture is redrawn by FLUX.2 [klein] 4B (non-default, evaluation only)' };
 }
 
 /** The framing check of a drawn picture: the whole figure, head to feet, with margin (src/server/media/figure-check.ts;

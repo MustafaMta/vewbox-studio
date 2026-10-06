@@ -31,8 +31,9 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2) and its optional secondary material
     { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
     { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
+    // the non-default klein redraw (CANONICAL_REFERENCE_ENGINE=klein) until the Qwen route is proven in the UI
     { name: 'flux2-klein.canonical-reference', graph: kleinReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
-    // the rollback of the Image Reference redraw for one release (CANONICAL_REFERENCE_ENGINE=qwen)
+    // the Image Reference redraw (character from a picture): Qwen-Image-Edit-2511, the default since 2026-10-06
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },
@@ -84,7 +85,7 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model
-  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.6 / Qwen3: Apache-2.0; Gemma 4: Apache-2.0 with the Gemma Terms of Use linked)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

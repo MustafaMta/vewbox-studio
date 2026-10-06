@@ -138,7 +138,12 @@ def area(b: Box) -> float:
 
 
 RIVAL_MARGIN = 0.05  # a face is the speaker only if it resembles the speaker this much more than any other character
-FRONTAL_LO, FRONTAL_HI = 0.12, 0.22  # frontalness below LO: not edited (a profile); above HI: full strength. START, from the acceptance takes: a 3/4 view measures 0.15-0.38 and aligns well (2026-10-06)
+# How frontal the face is, 1 − |yaw|/90 (yaw from the Face Landmarker's transformation matrix): full strength up to
+# 30° of yaw, nothing from 42° (a profile), linear between. START, measured 2026-10-06 on the acceptance takes: frontal
+# shots −23…+8°, 3/4 views 20–35° (they align and correct well), near-profiles 30–70° (the mouth flattens and the
+# smile is lost: never corrected). The 2-D mesh measure (`frontalness`) is NOT used for this: on stylised faces the mesh
+# stays frontal-looking in profile.
+FRONTAL_LO, FRONTAL_HI = 1 - 42 / 90, 1 - 30 / 90
 STRENGTH_RAMP = 4  # frames over which the edit fades in / out around profile frames and lost runs
 
 
@@ -195,6 +200,22 @@ def frontalness(xy478: np.ndarray) -> float:
     return min(dl, dr) / hi if hi > 1e-6 else 0.0
 
 
+def yaw_degrees(matrix: np.ndarray) -> float:
+    """Head yaw (rotation about the vertical axis, degrees; 0 = facing the camera) from the Face Landmarker's 4×4
+    facial transformation matrix."""
+    r = np.asarray(matrix, dtype=np.float64)[:3, :3]
+    return float(np.degrees(np.arctan2(r[0, 2], r[2, 2])))
+
+
+def frontal_from_yaw(yaw: float | None, mesh_frontalness: float | None = None) -> float | None:
+    """1 − |yaw|/90; without a yaw, a conservative stand-in from the 2-D measure (never full strength)."""
+    if yaw is not None:
+        return max(0.0, 1.0 - abs(yaw) / 90.0)
+    if mesh_frontalness is None:
+        return None
+    return (FRONTAL_LO + FRONTAL_HI) / 2 if mesh_frontalness >= 0.22 else 0.0
+
+
 def edit_strength(edit: Sequence[bool], frontal: Sequence[float | None], lo: float = FRONTAL_LO, hi: float = FRONTAL_HI, ramp: int = STRENGTH_RAMP) -> np.ndarray:
     """Per frame, how much of the regenerated mouth is blended in (0..1): 0 where the frame is not edited or the face is
     in profile (frontalness ≤ lo), 1 when frontal (≥ hi), linear between; then eroded and ramped over `ramp` frames so
@@ -219,6 +240,93 @@ def edit_strength(edit: Sequence[bool], frontal: Sequence[float | None], lo: flo
         for i in range(n):
             for j in range(max(0, i - ramp), min(n, i + ramp + 1)):
                 out[i] = min(out[i], s[j] + abs(i - j) / (ramp + 1))
+        s = out
+    return np.clip(s, 0.0, 1.0)
+
+
+# ------------------------------------------------------------------------------------------------ occlusion gate
+# A hand, a cup or a glass in front of the mouth: LatentSync paints a mouth over it (seen on the acceptance take where
+# Clara sips her tea). Two signals, both robust to speech (the lips move every frame, an occluder changes far more):
+# (1) BEFORE generation, on the original aligned crops: how far each frame's lower face departs from the clip's own
+#     per-pixel median lower face; (2) AFTER generation: how much the model changed the region in that frame. A frame
+#     is OCCLUDED when either is an outlier against the clip's own median. START values, calibrated 2026-10-06.
+OCCLUSION_FACTOR = 2.2  # an outlier is above FACTOR × the clip's median …
+OCCLUSION_FLOOR = 10.0  # … and above median + FLOOR (luma-ish units, 0–255)
+OCCLUSION_DILATE = 2  # frames either side of an occluded run are also left alone (the occluder enters and leaves)
+
+
+def region_deviation(crops: np.ndarray, region: np.ndarray, size: int = 128) -> np.ndarray:
+    """Per frame, the mean absolute difference (0–255, over the colour channels) between the frame's `region` and the
+    clip's per-pixel median of that region. `crops`: (n, H, W, 3) uint8 aligned faces; `region`: (H, W) bool."""
+    import cv2  # type: ignore
+
+    n = len(crops)
+    if n == 0:
+        return np.zeros(0)
+    small = np.stack([cv2.resize(c, (size, size), interpolation=cv2.INTER_AREA) for c in crops]).astype(np.float32)
+    reg = cv2.resize(region.astype(np.uint8), (size, size), interpolation=cv2.INTER_NEAREST).astype(bool)
+    if not reg.any():
+        return np.zeros(n)
+    med = np.median(small, axis=0)
+    d = np.abs(small - med[None]).mean(axis=3)
+    return d[:, reg].mean(axis=1)
+
+
+def outliers(scores: np.ndarray, factor: float = OCCLUSION_FACTOR, floor: float = OCCLUSION_FLOOR, valid: np.ndarray | None = None) -> np.ndarray:
+    """Frames whose score is above max(factor × median, median + floor); the median over `valid` frames only."""
+    s = np.asarray(scores, dtype=np.float64)
+    v = np.ones(len(s), dtype=bool) if valid is None else np.asarray(valid, dtype=bool)
+    if not v.any():
+        return np.zeros(len(s), dtype=bool)
+    med = float(np.median(s[v]))
+    return v & (s > max(factor * med, med + floor))
+
+
+HAND_OVERLAP_MIN = 0.04  # a hand whose outline covers this share of the regenerated region occludes the mouth
+
+
+def hand_overlap(hands: Sequence[np.ndarray], affine: np.ndarray, region: np.ndarray, crop_size: tuple[int, int], resolution: int) -> float:
+    """The share of the regenerated region (`region`, resolution² bool, in the aligned crop) covered by the convex
+    outline of any hand. `hands`: (21, 2) landmark arrays in FRAME pixels; `affine`: 2×3 frame → aligned crop of size
+    `crop_size` (w, h), which is then resized to resolution². A held cup sits inside the hand's outline, so a hand
+    landmarker catches the common occluders (MediaPipe Hand Landmarker, Apache-2.0)."""
+    import cv2  # type: ignore
+
+    if not hands or not region.any():
+        return 0.0
+    sx, sy = resolution / crop_size[0], resolution / crop_size[1]
+    canvas = np.zeros((resolution, resolution), np.uint8)
+    a = np.asarray(affine, dtype=np.float64)
+    for h in hands:
+        p = np.asarray(h, dtype=np.float64)[:, :2]
+        q = p @ a[:, :2].T + a[:, 2]
+        q[:, 0] *= sx
+        q[:, 1] *= sy
+        hull = cv2.convexHull(np.round(q).astype(np.int32))
+        cv2.fillConvexPoly(canvas, hull, 1)
+    return float((canvas.astype(bool) & region).sum() / region.sum())
+
+
+def dilate(flags: np.ndarray, k: int = OCCLUSION_DILATE) -> np.ndarray:
+    f = np.asarray(flags, dtype=bool)
+    out = f.copy()
+    for i in np.flatnonzero(f):
+        out[max(0, i - k): i + k + 1] = True
+    return out
+
+
+def suppress(strength: np.ndarray, flags: np.ndarray, ramp: int = STRENGTH_RAMP) -> np.ndarray:
+    """Strength 0 on the flagged frames, faded back in over `ramp` frames either side (the edit never pops)."""
+    s = np.asarray(strength, dtype=np.float64).copy()
+    f = np.asarray(flags, dtype=bool)
+    s[f] = 0.0
+    if ramp > 0:
+        out = s.copy()
+        zero = np.flatnonzero(f)
+        for i in range(len(s)):
+            if zero.size:
+                dist = int(np.min(np.abs(zero - i)))
+                out[i] = min(out[i], dist / (ramp + 1))
         s = out
     return np.clip(s, 0.0, 1.0)
 

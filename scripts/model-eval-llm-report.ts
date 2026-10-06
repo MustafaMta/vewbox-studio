@@ -1,4 +1,4 @@
-/* PLANNING-LLM BENCHMARK REPORT (docs/research/MODEL-EVAL-2026-10.md §7): reads every model's evidence written by
+/* PLANNING-LLM BENCHMARK REPORT (docs/research/MODEL-EVAL-2026-10.md §9): reads every model's evidence written by
  * scripts/model-eval-llm-suite.ts (docs/evidence/model-eval-2026-10/llm-suite/<model>/) and prints one comparison:
  * reliability (first calls valid, repairs, re-asks, cut answers, errors), speed (answer tokens per second, time per
  * task), memory (card peak, Docker VM RAM peak) and the episode's mechanical continuity checks over all 11 scenes:
@@ -32,7 +32,10 @@ function kinds(c: Call) {
 }
 
 async function main() {
-  const models = (await fs.readdir(BASE, { withFileTypes: true })).filter((d) => d.isDirectory() && d.name !== 'fixtures').map((d) => d.name);
+  const tops = (await fs.readdir(BASE, { withFileTypes: true })).filter((d) => d.isDirectory() && d.name !== 'fixtures').map((d) => d.name);
+  // a model's reasoning-ON arm lives in <model>/reasoning-on/
+  const models: string[] = [];
+  for (const m of tops) { models.push(m); if (await fs.stat(path.join(BASE, m, 'reasoning-on', 'summary.json')).then(() => true, () => false)) models.push(path.join(m, 'reasoning-on')); }
   const canonElias = 'Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)';
   const out: Record<string, unknown> = {};
   for (const m of models) {

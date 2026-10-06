@@ -26,8 +26,8 @@ The worker never loads both H3 variants at once (the GPU lease switches families
 | Purpose | Model | Files | Licence |
 |---|---|---|---|
 | The canonical character image from text; plates from nothing | Qwen-Image-2512 | `qwen_image_2512_fp8_e4m3fn` (20.4 GB), `qwen_2.5_vl_7b_fp8_scaled` encoder (9.4 GB), `qwen_image_vae`; Lightning 8-step LoRA for drafts and plates | Apache-2.0 |
-| The canonical image from the producer's picture (Image Reference) | FLUX.2 [klein] 4B distilled (4 steps, cfg 1; docs/research/FLUX-VS-QWEN.md, confirmation in docs/evidence/flux-vs-qwen/confirmation) | `diffusion_models/flux-2-klein-4b.safetensors` (7 751 105 712 B, sha256 `ec3d4e73…a343`), `text_encoders/qwen_3_4b.safetensors` (8 044 982 048 B, `6c671498…c5a`), `vae/flux2-vae.safetensors` (336 211 292 B, `868fe7b3…8f3`); Comfy-Org/flux2-klein-4B rev `5f526678`, group `images-flux2-klein` | Apache-2.0 |
-| Location views, storyboard frames (edit from up to 3 references); optional secondary material (one reference: the canonical image); the Image Reference rollback (`CANONICAL_REFERENCE_ENGINE=qwen`, one release) | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), same encoder/VAE, Lightning 4-step LoRA (849 608 296 B, sha256 `22226e8d…904f`) | Apache-2.0 |
+| The canonical image from the producer's picture (Image Reference) — **non-default since 2026-10-06** (production stack directive: Qwen-Image-Edit-2511 takes the role; `CANONICAL_REFERENCE_ENGINE=klein` only) | FLUX.2 [klein] 4B distilled (4 steps, cfg 1; docs/research/FLUX-VS-QWEN.md) | `diffusion_models/flux-2-klein-4b.safetensors` (7 751 105 712 B, sha256 `ec3d4e73…a343`), `text_encoders/qwen_3_4b.safetensors` (8 044 982 048 B, `6c671498…c5a`), `vae/flux2-vae.safetensors` (336 211 292 B, `868fe7b3…8f3`); Comfy-Org/flux2-klein-4B rev `5f526678`, group `images-flux2-klein` (no longer in the default `MODEL_GROUPS`; to be removed after the UI-proven Qwen route) | Apache-2.0 |
+| Location views, storyboard frames (edit from up to 3 references); optional secondary material (one reference: the canonical image); **the canonical image from the producer's picture (Image Reference), the default since 2026-10-06** | Qwen-Image-Edit-2511 | `qwen_image_edit_2511_fp8mixed` (20.5 GB), same encoder/VAE, Lightning 4-step LoRA (849 608 296 B, sha256 `22226e8d…904f`) | Apache-2.0 |
 | Reading the producer's picture (Image Reference): the description the identity line is written from | Qwen3.5-4B in core `TextGenerate` (`CLIPLoader` → `TextGenerate`, greedy) | `text_encoders/qwen3.5_4b_bf16.safetensors` (9 319 828 320 B, sha256 `9fb3ae42…0841`, Comfy-Org/Qwen3.5 rev `5d50a225`), group `images-vlm` | Apache-2.0 |
 | Face box of the producer's picture (the face crop given to the redraw; upload validation) | MediaPipe BlazeFace + Face Landmarker (Comfy-Org/mediapipe), core `MediaPipeFaceLandmarker` | `detection/mediapipe_face_fp32.safetensors` (5.4 MB) | Apache-2.0 |
 
@@ -43,8 +43,8 @@ Evidence, A/B and per-image notes: `docs/evidence/image-v2/REPORT.md`.
 |---|---|---|---|---|
 | Auto / Manual | `qwen-image.canonical` (`qwenCanonicalImage`) | **quality**: no Lightning, 30 steps, cfg 4, euler/simple, shift 3.1, negative with the style's "not this medium" words | the prompt: medium first → whole-figure framing → English identity line → style direction → avoid list | 928×1664; 42 s engine warm (≈ 6–9 s with the Lightning draft `qwen-image.canonical-draft`) |
 | Image Reference — read | `qwen3.5.reference-read` (`referenceReadGraph`) | MediaPipe (`detector_variant` both, min confidence 0.5) + Qwen3.5-4B (sampling off, thinking off, ≤ 900 tokens) in one prompt; once per picture: a creation from a picture reads it before the design (D15: the design gets the apparent age, sex and visible clothing), the reading is stored on the picture (`provenance.reading`) and the redraw uses it | the validated upload | see REPORT §4 |
-| Image Reference — redraw | `flux2-klein.canonical-reference` (`kleinReferenceCanonical` + `kleinReferencePrompt`) | FLUX.2 [klein] 4B distilled: 4 steps, cfg 1, zeroed negative, `Flux2Scheduler`, euler; the prompt names only what the person has (no generic "glasses, facial hair" list: klein reads words literally) and no negations | the upload (≈1 MP) → `ReferenceLatent`, then its face (one detected face → square crop with 25 % margin, chin-safe, cut in the graph, 1024²) chained after it; the retry leaves the face out | 3.7 s / 2.5 s engine (face / upload only), card ≈ 22 GB (FLUX-VS-QWEN.md §5) |
-| Image Reference — rollback | `qwen-image.canonical-reference` (`qwenReferenceCanonical`), `CANONICAL_REFERENCE_ENGINE=qwen` or klein's weights missing | Edit-2511 **quality**: 24 steps, cfg 4 | image1 = the upload, image2 = its face | 102 s / 66 s engine; whole figure 17/24 in the A/B |
+| Image Reference — klein (non-default, ``CANONICAL_REFERENCE_ENGINE=klein``) | `flux2-klein.canonical-reference` (`kleinReferenceCanonical` + `kleinReferencePrompt`) | FLUX.2 [klein] 4B distilled: 4 steps, cfg 1, zeroed negative, `Flux2Scheduler`, euler; the prompt names only what the person has (no generic "glasses, facial hair" list: klein reads words literally) and no negations | the upload (≈1 MP) → `ReferenceLatent`, then its face (one detected face → square crop with 25 % margin, chin-safe, cut in the graph, 1024²) chained after it; the retry leaves the face out | 3.7 s / 2.5 s engine (face / upload only), card ≈ 22 GB (FLUX-VS-QWEN.md §5) |
+| Image Reference — redraw (default) | `qwen-image.canonical-reference` (`qwenReferenceCanonical` + `referenceCanonicalPrompt`) | Edit-2511 **quality**: 24 steps, cfg 4, the style's negative | image1 = the upload (≈1 MP), image2 = its face (cut in the graph, 1024²); the retry after a framing failure leaves the face out | 101–120 s engine, card 30.4 GB; whole figure 7/10 first attempts in MODEL-EVAL §2.6 (17/24 in the earlier A/B) — the framing retry covers the rest |
 
 - **Identity line** (`canonicalIdentityLine`, or `identityLineFromDescription` for a picture): English, style first, then
   sex and age ("a man of about 70"), build, face, hair, eyes, skin, every garment with its colour, distinguishing details,
@@ -204,10 +204,32 @@ no stated licence).
 - native frame rate (H3: 24 fps; upstream re-encodes to 25), same frame count, the take's own audio copied;
 - only the regenerated region (mask.png's lower face, eroded and feathered) is blended into the ORIGINAL frame:
   eyes, brows, hair, the other characters and the background are bit-identical before encoding;
-- profile frames (frontalness < 0.12; a 3/4 view measures 0.15–0.38 and aligns well) are not edited; the edit fades in/out over 4 frames.
+- profile frames are not edited: head yaw from the Face Landmarker's transformation matrix, full strength up to 30°, none from 42° (frontal shots measured −23…+8°, 3/4 views 20–35°, near-profiles 30–70° — corrected near-profiles lost their smile); the edit fades in/out over 4 frames;
+- occlusion gate: frames where a hand (MediaPipe Hand Landmarker; a held cup sits inside its outline) covers ≥ 4 % of the regenerated region, or the original lower face / the model's change is an outlier against the clip's own median, are left uncorrected (±2 frames, faded) — calibrated on the acceptance takes' tea sips.
 
-Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
-outside Git).
+**Measured on the RTX 5090** (2026-10-06, H3 unloaded by the LIPSYNC lease): load 46 s; VRAM peak 11.0 GB allocated /
+16.9 GB reserved; ≈ 0.5 s of model time per frame at 1344×768 (a 9.4 s take: 117 s; 5.2 s: 61 s) plus ≈ 5 s tracking
+and 3–6 s compositing/encoding; frame count exact on every take (226/226, 192/192, 158/158, 124/124).
+
+**Evaluation on the acceptance production "Tea at Mutanabbi" (CARTOON, 11 H3 speaking takes, v1 = gates without the
+yaw rule)** — evidence `var/evidence/lipsync-v1/` (media outside Git): `original/` and `v1/` (asr Tier-1 mouth check
+and SFace), `out/v1/<take>.mp4|.json|<take>/` (corrected takes, reports, frame sheets), `look/v1/` (before/after zooms),
+`compare-v1.json`.
+- Identity kept: SFace to the canonical image 0.586–0.732 before → 0.604–0.720 after (|Δ| ≤ 0.02 on frontal and 3/4
+  takes); against a frame of the original take 0.649–0.901 → 0.649–0.900. No seam visible at 1344×768; eyes, brows,
+  hair and the background are untouched by construction.
+- Mouth follows the authoritative line better where H3 was off: Tier-1 correlation 0.09 → 0.73 (take 07d2, H3 kept
+  talking after the line), 0.36 → 0.71 (66df), 0.26 → 0.75 (d1a8); talking-in-silence takes −0.52…−0.29 → −0.41…−0.08
+  (mostly occluded by the cup, so few frames corrected). Already-good take (shot 2): 0.63 → 0.60 — no gain.
+- **Expression and performance are NOT kept on cartoon faces**: the regenerated lower face is driven by the audio, so
+  the stylised performance is flattened — mouth activity while speaking −17…−35 % on every corrected take, wide cartoon
+  grins in pauses become closed-mouth smiles (take d1a8 frames 90–100), wide open vowels become smaller "realistic"
+  mouths (take e983). Near-profile frames lost the smile and smudged (shot 1) — fixed by the yaw gate.
+- Occlusion: the tea sips (hand + glass over the mouth) were left untouched by the gate (takes 07d2, 66df, e983);
+  a sip DURING the line (07d2, "lip-sync over a sip") remains — a staging defect the corrector cannot fix.
+- **Verdict CARTOON: no-go** (the producer's rule: no change of expression). The capability keeps `styles: ['REALISTIC']`
+  only, and the acceptance check `performance-kept` (activity while speaking may drop ≤ 20 %) rejects a flattened
+  correction on any style. Anime and realistic: see below as they are measured.
 
 ## Music
 

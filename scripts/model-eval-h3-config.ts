@@ -5,7 +5,7 @@
  *   SPK = the speaking shot of §5 (V1: Elias, one English line, the drawn opening frame anchored at 0);
  *   SIL = the first silent shot with a person of the same production.
  * Arms: T (shipping: turbo 4 steps, simple, match) · A (no LoRA, 20 steps — the template default) · B (scheduler beta) ·
- * C (ref_image_size max) · X (`--best k=v,…`: the winners combined, e.g. turbo=false,scheduler=beta,ref=max).
+ * C (ref_image_size max) · D (A + ref max) · E (A + beta) · X (`--best k=v,…`: the winners combined, e.g. turbo=false,scheduler=beta,ref=max).
  *
  *   generate (VIDEO lease):  scripts/gpu-hold.ts VIDEO 31900 -- pnpm exec tsx … scripts/model-eval-h3-config.ts gen SPK-T SPK-A …
  *   qa (CPU, any time):      … scripts/model-eval-h3-config.ts qa      (SFace per character, mouth activity on SPK)
@@ -19,6 +19,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
+import { installHoldGuard, track, settled, cancelOurs, assertIdle } from './lib/comfy-hold-guard';
 
 const live = process.env.DATABASE_URL ?? '';
 if (!/\/vewbox(\?|$)/.test(live)) { console.error('DATABASE_URL does not name the vewbox database'); process.exit(2); }
@@ -43,6 +44,10 @@ const ARMS: Record<string, { what: string; cfg: ArmConfig }> = {
   A: { what: 'no LoRA, 20 steps (the official template default)', cfg: { turbo: false } },
   B: { what: 'turbo, scheduler beta (r2v template note)', cfg: { turbo: true, scheduler: 'beta' } },
   C: { what: 'turbo, ref_image_size max (2048-px short edge references)', cfg: { turbo: true, refImageSize: 'max' } },
+  // the final tier (A) with each refinement: beta under the turbo LoRA broke the picture (SPK-B smear and blow-out), which
+  // says nothing about the base model the template note is about; ref max was neutral-to-positive under turbo
+  D: { what: 'final (no LoRA, 20 steps) + ref_image_size max', cfg: { turbo: false, steps: 20, refImageSize: 'max' } },
+  E: { what: 'final (no LoRA, 20 steps) + scheduler beta', cfg: { turbo: false, steps: 20, scheduler: 'beta' } },
 };
 /** --best turbo=false,scheduler=beta,ref=max,steps=20 */
 function bestConfig(spec: string): ArmConfig {
@@ -154,7 +159,9 @@ async function main() {
   // ---------------------------------------------------------------------------------------------- generate
   const wanted = argv.slice(1).filter((a) => /^(SPK|SIL)-[A-Z]$/.test(a));
   const dry = argv.includes('--dry');
+  installHoldGuard();
   const h = await comfy.health(); if (!h.ok) throw new Error('ComfyUI is not reachable');
+  if (!dry) await assertIdle();
   const vram = new VramMeter(); const ram = new RamMeter(); vram.start(); ram.start();
   const deadline = Date.now() + Number(opt('limit-min', '0')) * 60_000;
   for (const id of wanted) {
@@ -177,7 +184,7 @@ async function main() {
       const firstFrame = pack.opening.kind === 'FRAME' ? await comfy.uploadInput(fileOf(pack.opening.assetId)) : undefined;
       const graph = minimaxH3Video({ prompt, width: info.width, height: info.height, seconds, seed: SEED, referenceImages: refs, firstFrame, filenamePrefix: `vewbox/eval/h3cfg-${id}`, ...a.cfg });
       submitted = true;
-      const r = await comfy.run(graph, { timeoutMs: 90 * 60_000 });
+      const r = await comfy.run(graph, { timeoutMs: 90 * 60_000, onSubmitted: track }); settled(r.promptId);
       const out = comfy.firstOutput(r.outputs, 'video') ?? comfy.firstOutput(r.outputs, 'gifs') ?? comfy.firstOutput(r.outputs, 'images');
       if (!out) throw new Error('no output');
       const file = path.join(OUT, `${id}.mp4`);
@@ -188,6 +195,7 @@ async function main() {
       results[id] = { arm, what: a.what, config: a.cfg, shot: { key: k, scene: scene?.number, number: sh.number, framing: sh.framing, characters: sh.characterIds }, line: sh.dialogue[0]?.text ?? '', seed: SEED, seconds, expectedFrames: h3FrameCount(seconds), engineMs: r.engineMs, wallMs: Date.now() - t0, vramPeakMiB: vram.peak(t0), ramPeakMiB: ram.peak(t0), output: pr, prompt, pictures: pack.pictures.map((x, i) => `<Picture ${i + 1}> ${x.role} ${x.assetId}`), opening: pack.opening.kind, workflowVersion: r.workflowVersion, file: path.relative(ROOT, file), at: new Date().toISOString() };
       console.log(`${pr.frames} frames, audio ${pr.audio ? 'yes' : 'NONE'}, engine ${Math.round((r.engineMs ?? 0) / 1000)} s, wall ${Math.round((Date.now() - t0) / 1000)} s, VRAM ${vram.peak(t0)} MiB, RAM ${ram.peak(t0)} MiB`);
     } catch (e) {
+      await cancelOurs('item failed'); // a timed-out prompt must not keep running after this item
       results[id] = { arm, what: a.what, submitted, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: vram.peak(t0), ramPeakMiB: ram.peak(t0), at: new Date().toISOString() };
       console.log(`${submitted ? 'ENGINE ERROR' : 'HARNESS ERROR (not an attempt)'} ${(e as Error).message}`);
     }
@@ -197,4 +205,4 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch(async (e) => { console.error(e); await cancelOurs('error'); process.exit(1); });

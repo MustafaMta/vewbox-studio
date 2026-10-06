@@ -1,0 +1,92 @@
+{
+  "model": "qwen3.6:27b-q8_0",
+  "numCtx": "16384 (default)",
+  "keepAlive": "2m (default)",
+  "callTimeoutMs": 3600000,
+  "calls": [
+    {
+      "task": "ep-develop",
+      "run": 1,
+      "model": "qwen3.6:27b-q8_0",
+      "ms": 138267,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 3402,
+      "tokPerS": 24.7,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "11995:Develop this episode from the producer's brief.\nTitle: The Harbour Office\nBrief: \"\"\"Episode 2. The morning after the signal, Elias and Najm go to the Kerran Point harbour office to see the Mariner's s",
+          "ms": 137839,
+          "status": 200,
+          "maxTokens": 8000,
+          "head": "{\n  \"logline\": \"Elias and Najm confront the harbour master’s refusal to release a sealed logbook from the 1987 storm, only to discover a critical discrepancy in",
+          "tail": "t the workbench.\",\n      \"exitState\": \"Najm unrolls a nautical chart and places a marker on the bearing point. Fade out.\",\n      \"targetSeconds\": 20\n    }\n  ]\n}",
+          "requestChars": 12211,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "reasoningChars": 0,
+          "promptTokens": 2749,
+          "completionTokens": 3402,
+          "tokPerS": 24.7
+        }
+      ],
+      "vramBeforeMiB": 2028,
+      "vramPeakMiB": 30717,
+      "ram": {
+        "containerGiB": 13.76,
+        "vmUsedGiB": 17.28
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "qwen3.6:27b-q8_0",
+            "model": "qwen3.6:27b-q8_0",
+            "size": 28389450710,
+            "digest": "cd0210c667bffa98ad702668d05fda1f340bcbb0a2c769bd389670d19ad1441b",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen35",
+              "families": [
+                "qwen35"
+              ],
+              "parameter_size": "27.8B",
+              "quantization_level": "Q8_0"
+            },
+            "expires_at": "2026-10-06T13:59:59.407213648Z",
+            "size_vram": 28389450710,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T13:57:59.772Z",
+      "checks": {
+        "scenes": 11,
+        "expectedScenes": 11,
+        "totalSeconds": 400,
+        "targetSeconds": 480,
+        "withinTenPercent": false,
+        "newCharacters": [
+          "Ingrid Dahl"
+        ],
+        "newLocations": [
+          "Kerran Point Harbour Office",
+          "Kerran Point Street"
+        ],
+        "unresolvedNames": [],
+        "regularsPresent": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "synopsisWords": 183
+      }
+    }
+  ]
+}

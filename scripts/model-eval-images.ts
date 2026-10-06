@@ -25,6 +25,7 @@ import path from 'node:path';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as comfy from '@/server/providers/comfy';
+import { installHoldGuard, track, settled, cancelOurs, assertIdle } from './lib/comfy-hold-guard';
 import { MODELS, JOYAI_FILES, joyaiEdit, seed32, snap, qwenCanonicalImage, qwenEdit, qwenTextToImage, kleinReferenceCanonical, qwenReferenceCanonical, referenceReadGraph, canonicalPrompt, kleinReferencePrompt, referenceCanonicalPrompt, canonicalIdentityLine, identityLineFromDescription, negativeFor, parseCharacterDescription, parseFaceBoxes, faceCropRect, CANONICAL_FRAME, CANONICAL_OUTPUT, STYLE_MEDIUM, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, vlmOutput, type Graph, type PxRect, type CharacterDescription } from '@/server/workflows';
 import { locationPrompt } from '@/server/story/prompts';
 import { styleDirection } from '@/server/story/style';
@@ -184,7 +185,6 @@ class VramMeter {
   stop() { this.proc?.kill(); }
 }
 const meter = new VramMeter();
-const exists = (f: string) => fs.access(f).then(() => true, () => false);
 async function saveOutput(r: comfy.ComfyRunResult, file: string) {
   const out = comfy.firstOutput(r.outputs, 'images');
   if (!out) throw new Error('no image output');
@@ -211,10 +211,11 @@ const ARM_MODEL: Record<string, string> = { '2512q': MODELS.qwenDit, '2512d': MO
 
 async function main() {
   console.log(`phases ${PHASES.join(',')}; arms ${[...ARMS].join(',')}; seeds ${SEEDS.join(',')}${ONLY ? `; only ${ONLY}` : ''} (argv: ${argv.join(' ')})`);
+  installHoldGuard();
   const h = await comfy.health();
   if (!h.ok) throw new Error('ComfyUI is not reachable');
-  const q = await fetch(`${process.env.COMFYUI_URL ?? 'http://127.0.0.1:8188'}/queue`).then((r) => r.json() as Promise<{ queue_running: unknown[]; queue_pending: unknown[] }>);
-  if (q.queue_running.length + q.queue_pending.length) throw new Error('ComfyUI is busy; this evaluation needs the card to itself');
+  // the lease was granted but ComfyUI may still finish someone else's prompt: wait up to 5 min for it to go idle, then give up
+  for (let k = 0; ; k++) { try { await assertIdle(); break; } catch (e) { if (k >= 30) throw e; if (k === 0) console.log(`waiting for ComfyUI to go idle: ${(e as Error).message}`); await new Promise((r) => setTimeout(r, 10_000)); } }
   await fs.mkdir(OUT, { recursive: true }); await fs.mkdir(EVID, { recursive: true });
   const resultsFile = path.join(EVID, 'results.json');
   const results: Record<string, Result> = await fs.readFile(resultsFile, 'utf8').then((t) => JSON.parse(t) as Record<string, Result>, () => ({}));
@@ -332,7 +333,7 @@ async function main() {
     const abs = await uploadPath(file);
     const up = await upload(abs);
     const t0 = Date.now();
-    const r = await comfy.run(referenceReadGraph({ image: up, describe: true }), { timeoutMs: 20 * 60_000 });
+    const r = await comfy.run(referenceReadGraph({ image: up, describe: true }), { timeoutMs: 20 * 60_000, onSubmitted: track }); settled(r.promptId);
     const boxes = parseFaceBoxes(comfy.textOutput(r.outputs, REFERENCE_FACE_OUTPUTS.bboxes));
     const text = comfy.textOutput(r.outputs, vlmOutput(REFERENCE_DESCRIBE_KEY)) ?? '';
     const description = parseCharacterDescription(text);
@@ -374,7 +375,7 @@ async function main() {
     try {
       const graph = await it.build();
       submitted = true;
-      const r = await comfy.run(graph, { timeoutMs: 30 * 60_000 });
+      const r = await comfy.run(graph, { timeoutMs: 30 * 60_000, onSubmitted: track }); settled(r.promptId);
       const file = path.join(OUT, `${it.id}.png`);
       await saveOutput(r, file);
       const px = path.join(EVID, `${it.id}.jpg`);
@@ -413,4 +414,4 @@ async function main() {
   console.log('done');
 }
 
-main().catch((e) => { meter.stop(); ram.stop(); console.error(e); process.exit(1); });
+main().catch(async (e) => { meter.stop(); ram.stop(); console.error(e); await cancelOurs('error'); process.exit(1); });
