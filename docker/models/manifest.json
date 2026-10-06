@@ -193,6 +193,31 @@
       ]
     },
     {
+      "name": "sfx-moss-soundeffect",
+      "purpose": "MOSS-SoundEffect (OpenMOSS, 8 B MossTTSDelay, Apache-2.0 per the HF card) for ambience, crowds, footsteps, doors and cinematic effects (PRODUCTION-STACK-DIRECTIVE 2026-10-06, Music Video and narrative sections). Same architecture and modelling code as MOSS-TTS v1.5 and the SAME audio tokenizer (tts/bench/moss-audio-tokenizer, group eval-voice-moss): served by the tts-bench-moss image with an ambient_sound prompt. Python modelling code is loaded with trust_remote_code from this pinned revision. Not in the default MODEL_GROUPS: --groups sfx-moss-soundeffect. 15.58 GB.",
+      "files": [
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "__init__.py", "folder": "sfx/moss-soundeffect", "bytes": 0, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "added_tokens.json", "folder": "sfx/moss-soundeffect", "bytes": 704, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "chat_template.jinja", "folder": "sfx/moss-soundeffect", "bytes": 352, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "config.json", "folder": "sfx/moss-soundeffect", "bytes": 2275, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "configuration_moss_tts.py", "folder": "sfx/moss-soundeffect", "bytes": 5584, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "inference_utils.py", "folder": "sfx/moss-soundeffect", "bytes": 5092, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "merges.txt", "folder": "sfx/moss-soundeffect", "bytes": 1671853, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "model-00001-of-00004.safetensors", "folder": "sfx/moss-soundeffect", "bytes": 4983138608, "sha256": "b0419c2b297a29d68a16ccd3f18f6317332263b056ba912adfa34eec6bc5fd22", "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "model-00002-of-00004.safetensors", "folder": "sfx/moss-soundeffect", "bytes": 4915961640, "sha256": "d188c9d2e699636704569e4af7b66acf1feb6a35e9de78e73c8fe2edba8c1a09", "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "model-00003-of-00004.safetensors", "folder": "sfx/moss-soundeffect", "bytes": 4974673472, "sha256": "fc023862c4f8cbecf47fb30cdfe58a8f22298019680de5bffae926ac25ad137f", "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "model-00004-of-00004.safetensors", "folder": "sfx/moss-soundeffect", "bytes": 1837264680, "sha256": "9dcd2be961b4c4111af035bdb0b214e2093bac9f796e4be71ed8942a459a1d22", "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "model.safetensors.index.json", "folder": "sfx/moss-soundeffect", "bytes": 38448, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "modeling_moss_tts.py", "folder": "sfx/moss-soundeffect", "bytes": 24827, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "processing_moss_tts.py", "folder": "sfx/moss-soundeffect", "bytes": 34492, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "processor_config.json", "folder": "sfx/moss-soundeffect", "bytes": 145, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "special_tokens_map.json", "folder": "sfx/moss-soundeffect", "bytes": 631, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "tokenizer.json", "folder": "sfx/moss-soundeffect", "bytes": 11422691, "sha256": "cb3c8fa82993d515469c2800cc455bff4aaa3c4fed9da1f2b0c0668c304f335a", "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "tokenizer_config.json", "folder": "sfx/moss-soundeffect", "bytes": 5501, "license": "Apache-2.0" },
+        { "repo": "OpenMOSS-Team/MOSS-SoundEffect", "revision": "1cc77ff2357c8aa8f95fd0c6512cf3cf65860d6e", "file": "vocab.json", "folder": "sfx/moss-soundeffect", "bytes": 2776833, "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "qa-align",
       "purpose": "Script forced alignment in the asr service (POST /align, docker/asr/align.py; docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md §B.2): wav2vec2 CTC emissions + a numpy re-implementation of WhisperX's trellis/backtrack (BSD-2, not the whisperx package). EN facebook/wav2vec2-base-960h (~0.38 GB), AR jonatasgrosman/wav2vec2-large-xlsr-53-arabic (~1.26 GB). Licences ◐ (Apache-2.0 per search summaries only). Revision, bytes and sha256 pinned from the first workstation fetch (2026-10-06). align.py needs config.json, vocab.json, preprocessor_config.json and pytorch_model.bin (or model.safetensors). MMS / ctc-forced-aligner weights are CC-BY-NC and are NOT used. Not in the default MODEL_GROUPS: MODEL_GROUPS=qa-align.",
       "files": [
