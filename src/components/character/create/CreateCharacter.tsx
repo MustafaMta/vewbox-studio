@@ -20,7 +20,7 @@ import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
 import { CreateCharacterSkeletonFor } from './CreateCharacterSkeleton';
-import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate, pictureChangeRestrictions } from './preflight';
+import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate, pictureChangeRestrictions, retryPayloadOf } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
 const STARTS: readonly Start[] = ['describe', 'sheet', 'picture'];
@@ -192,15 +192,22 @@ export function CreateCharacter() {
   };
 
   /** A relaunch of a creation that made nothing carries the recording again (it was never uploaded: no character). */
-  const relaunchWithRecording = () => lastPayload?.voice?.mode === 'AUTOMATIC' && Boolean(recording);
+  const relaunchWithRecording = () => retryPayloadOf(lastPayload, parent)?.voice?.mode === 'AUTOMATIC' && Boolean(recording);
+  /** Try again: the same request again (also on a page reopened on a failed creation: the parent job's own request) */
+  const relaunch = async () => {
+    const payload = retryPayloadOf(lastPayload, parent);
+    if (!payload) { toast.bad('The request of this creation is not known to this page: start again from the brief.'); reset(); return; }
+    await launch(payload, relaunchWithRecording());
+  };
 
   /** One recovery per failed step: the design step re-runs the whole chain (the brief is kept); a later step re-runs
    *  only its own job for the record that exists, and the row then follows that job. */
   const retryStep = async (step: CreateStepName) => {
     try {
-      if (step === 'design' || !characterId) { if (lastPayload) await launch(lastPayload, relaunchWithRecording()); return; }
+      if (step === 'design' || !characterId) { await relaunch(); return; }
+      const sent = retryPayloadOf(lastPayload, parent);
       const job = step === 'image' ? await startJob('CHARACTER_APPEARANCE', { characterId })
-        : await startVoiceBuild(startJob, { characterId, mode: lastPayload?.voice?.referenceSampleId ? 'REFERENCE' : 'AUTOMATIC', referenceSampleId: lastPayload?.voice?.referenceSampleId });
+        : await startVoiceBuild(startJob, { characterId, mode: sent?.voice?.referenceSampleId ? 'REFERENCE' : 'AUTOMATIC', referenceSampleId: sent?.voice?.referenceSampleId });
       say(job);
       setRetries((r) => ({ ...r, [step]: job.id }));
     } catch (e) { toast.bad(`${'Could not start'}: ${isStudioError(e) ? e.message : (e as Error).message}`); }
@@ -269,7 +276,7 @@ export function CreateCharacter() {
                   <Link href={profileHref} className="btn btn-primary"><IconOpen aria-hidden />Open the profile</Link>
                 </> : <>
                   <span className="t-body">Nothing was created; your brief is kept.</span>
-                  <span className="char-form-acts"><Button variant="quiet" onClick={reset}>Back to the brief</Button><Button variant="secondary" icon={<IconRetry />} onClick={() => { if (lastPayload) void launch(lastPayload, relaunchWithRecording()); else reset(); }}>Try again</Button></span>
+                  <span className="char-form-acts"><Button variant="quiet" onClick={reset}>Back to the brief</Button><Button variant="secondary" icon={<IconRetry />} onClick={() => void relaunch()}>Try again</Button></span>
                 </>}
               </div>
             )}

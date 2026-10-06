@@ -1,6 +1,6 @@
 import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
-import { CREATE_STEPS, STEP_JOB, createResultOf, type CreateStepName } from '../contract';
+import { CREATE_STEPS, STEP_JOB, createResultOf, type CreateCharacterPayload, type CreateStepName } from '../contract';
 import type { EngineStatus } from '@/studio/api';
 
 /** PREFLIGHT — everything checked in the browser before a job is queued, and the pure derivation of the creation
@@ -183,4 +183,12 @@ export function creationSettled(parent: Job | undefined, steps: StepView[]): boo
   if (!parent) return false;
   if (isActiveStatus(parent.status)) return false;
   return steps.every((s) => s.state !== 'current');
+}
+
+/** WHAT "TRY AGAIN" RE-RUNS (acceptance 2026-10-06: the step's Try again did nothing): the request this page sent, or —
+ *  when the page was reopened on a running or failed creation, and holds no request of its own — the parent
+ *  CREATE_CHARACTER job's own payload. Null only when neither exists (the page then says so and offers the brief). */
+export function retryPayloadOf(sent: CreateCharacterPayload | null, parent: Pick<Job, 'type' | 'payload'> | undefined): CreateCharacterPayload | null {
+  if (sent) return sent;
+  return parent?.type === 'CREATE_CHARACTER' && parent.payload && typeof parent.payload === 'object' ? (parent.payload as CreateCharacterPayload) : null;
 }

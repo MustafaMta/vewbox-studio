@@ -154,6 +154,11 @@ describe('watchdog: the store is attached before Docker starts', () => {
     expect(kinds(planWatchdog({ ...up, modelStore: { attached: false, stranded: ['vewbox-comfyui-1'] } }, { fix: true }))).toEqual(['ok', 'attach-models', 'start-stranded', 'ok']);
     expect(kinds(planWatchdog({ ...up, modelStore: { attached: true, stranded: ['vewbox-comfyui-1'] } }, { fix: false }))).toEqual(['ok', 'warn:MODELS_STRANDED', 'ok']);
   });
+  it('a container on old storage (tombstone, foreign volume, C:) is reported, with or without --fix, never acted on', () => {
+    const s = { ...up, modelStore: { attached: true, stranded: [], mountProblems: ['vewbox-llm-1: /root/.ollama comes from retired volume vewbox_ollama (tombstone: a stale compose file), not the store'] } };
+    expect(kinds(planWatchdog(s, { fix: true }))).toEqual(['ok', 'warn:MODEL_MOUNTS', 'ok']);
+    expect(kinds(planWatchdog(s, { fix: false }))).toEqual(['ok', 'warn:MODEL_MOUNTS', 'ok']);
+  });
   it('stranded = a service meant to run whose start failed on a store volume; a container stopped on purpose is not', () => {
     const cfg = { root: ROOT };
     expect(strandedContainers([

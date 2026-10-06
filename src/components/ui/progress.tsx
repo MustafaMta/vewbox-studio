@@ -71,13 +71,32 @@ const entryOf = (code: string): ErrorEntry | undefined => (ERROR_COPY as Record<
 /** The StudioError code → plain words and the one recovery action. An unknown code is
  *  "The step failed." with Retry. The engine's own message never becomes the words: it is `detail`, for Details. */
 export function useErrorCopy() {
-  return (err?: JobError | { code: string; message?: string } | null): ErrorCopy => {
-    const code = err?.code ?? 'UNKNOWN';
-    const k = entryOf(code);
-    const detail = err?.message?.trim() || undefined;
-    if (!k) return { code, title: 'The step failed.', hint: 'The studio could not finish this step. What was finished before it is kept.', detail, fix: { label: 'Try again', kind: 'retry' } };
-    return { code, title: T(k.title), hint: T(k.hint), detail, fix: { label: T(k.fix), kind: k.kind } };
-  };
+  return (err?: JobError | { code: string; message?: string; details?: Record<string, unknown> } | null, opts: { engine?: string } = {}): ErrorCopy => errorCopyOf(err, opts);
+}
+
+/** A connection that never reached the engine (refused, reset, timed out, "fetch failed"): the engine is offline or
+ *  restarting — never "it ran, but what came back did not pass the checks". */
+const UNREACHABLE = /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EHOSTUNREACH|ENOTFOUND|socket hang up|unreachable|not reachable|connect(ion)? (refused|reset|timed out)|other side closed|UND_ERR/i;
+
+/** THE WORDS OF A FAILURE (acceptance 2026-10-06: an unreachable story engine read as "returned nothing usable"): the
+ *  recorded failure class decides before the code — INFRASTRUCTURE or an unreachable engine is offline or restarting,
+ *  RESOURCE_EXHAUSTION is the card being full, and only a real check failure says the result did not pass. Pure. */
+export function errorCopyOf(err?: { code: string; message?: string; details?: Record<string, unknown> } | null, opts: { engine?: string } = {}): ErrorCopy {
+  const code = err?.code ?? 'UNKNOWN';
+  const detail = err?.message?.trim() || undefined;
+  // the class recorded with the failure; a step that carries the class as its code (a child's outcome) counts too
+  const failureClass = typeof err?.details?.failureClass === 'string' ? err.details.failureClass : ['INFRASTRUCTURE', 'RESOURCE_EXHAUSTION'].includes(code) ? code : undefined;
+  const engine = opts.engine ? `The ${opts.engine} engine` : 'The engine';
+  const transient = code === 'PROVIDER' || code === 'UNAVAILABLE' || code === 'UNKNOWN' || code === 'INFRASTRUCTURE';
+  if (transient && (failureClass === 'INFRASTRUCTURE' || (detail && UNREACHABLE.test(detail)))) {
+    return { code, title: `${engine} is offline or restarting.`, hint: 'Nothing came back from it, so nothing was checked or kept from this step. Try again in a moment; the engine room shows whether it is running.', detail, fix: { label: 'Try again', kind: 'retry' } };
+  }
+  if (failureClass === 'RESOURCE_EXHAUSTION') {
+    return { code, title: 'The graphics card was full.', hint: 'Another engine was holding its memory, so this step could not run. It frees itself between jobs: try again in a moment.', detail, fix: { label: 'Try again', kind: 'retry' } };
+  }
+  const k = entryOf(code);
+  if (!k) return { code, title: 'The step failed.', hint: 'The studio could not finish this step. What was finished before it is kept.', detail, fix: { label: 'Try again', kind: 'retry' } };
+  return { code, title: T(k.title), hint: T(k.hint), detail, fix: { label: T(k.fix), kind: k.kind } };
 }
 
 /** The one recovery control for a failure: Retry (your handler), Settings → Engines (a link), the job's page, or

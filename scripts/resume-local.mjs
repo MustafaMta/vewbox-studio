@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { GATES, NEEDS, judgeDocker, judgeGpu, parseDockerInfo, parseNvidiaSmi, parseWslConfig, resumePlan, verifyModels } from './lib/resume-checks.mjs';
-import { ENGINE_WSL_DIR, MARKER, judgeCacheEnv, judgeModelMounts, judgeWslMount, loadLayout, readStoreEnv, storeConfig, wslMountArgs } from './lib/models-store.mjs';
+import { ENGINE_WSL_DIR, MARKER, TOMBSTONE_NAME, judgeCacheEnv, judgeModelMounts, judgeTombstones, judgeWslMount, loadLayout, readStoreEnv, storeConfig, tombstoneDevice, wslMountArgs } from './lib/models-store.mjs';
 
 const args = process.argv.slice(2);
 const GO = args.includes('--go');
@@ -147,17 +147,27 @@ const STEPS = [
       try { const j = JSON.parse(asr.body); caps = j.capabilities ? `; asr capabilities: ${Object.entries(j.capabilities).map(([k, v]) => `${k}=${capability(v)}`).join(', ')}` : ''; } catch { /* older service */ }
       return { ok: true, detail: out.join('; ') + caps };
     } },
-  { id: 'mounts', name: 'Every running service loads its weights from the store (no named model volume, nothing on C:)', cmd: `docker inspect <running ${PROJECT} containers> + docker volume inspect <their volumes>`,
+  { id: 'mounts', name: 'Every container (running or stopped) loads its weights from the store: no retired or other named model volume, nothing on C:', cmd: 'docker inspect <every container> + docker volume inspect <their volumes>',
     go: async () => {
-      const ids = run('docker', ['ps', '-q', '--filter', `label=com.docker.compose.project=${PROJECT}`]).out.split(/\s+/).filter(Boolean);
-      if (!ids.length) return { ok: false, detail: 'no running containers' };
+      // every container, of every project and ad-hoc `docker run`s: a stopped one would come back on its old mounts
+      const ids = run('docker', ['ps', '-aq']).out.split(/\s+/).filter(Boolean);
+      if (!ids.length) return { ok: false, detail: 'no containers' };
       const containers = JSON.parse(run('docker', ['inspect', ...ids]).out || '[]');
       const names = [...new Set(containers.flatMap((c) => (c.Mounts ?? []).filter((m) => m.Type === 'volume').map((m) => m.Name)))];
       const volumes = names.length ? JSON.parse(run('docker', ['volume', 'inspect', ...names]).out || '[]') : [];
       const m = judgeModelMounts(containers, volumes, STORE.root);
       const env = containers.flatMap((c) => judgeCacheEnv(c).problems.map((p) => `${String(c.Name).replace(/^\//, '')}: ${p}`));
       const users = [...new Set(m.rows.map((r) => r.container))];
-      return { ok: m.ok && !env.length, detail: m.ok && !env.length ? `${users.length} services mount models, all from ${STORE.root}: ${users.join(', ')}` : [...m.problems, ...env].join('; ') };
+      return { ok: m.ok && !env.length, detail: m.ok && !env.length ? `${users.length} containers mount models, all from ${STORE.root}: ${users.join(', ')}` : [...m.problems, ...env].join('; ') };
+    } },
+  { id: 'tombstones', name: 'The retired volume names are tombstones (a stale compose file cannot start a service on old storage)', /* model-paths: allow */ cmd: `docker volume inspect vewbox_models vewbox_ollama  (device ${tombstoneDevice(STORE.root)}, which must not exist)`,
+    go: async () => {
+      const vols = ['vewbox_models', 'vewbox_ollama'] /* model-paths: allow */.flatMap((n) => { const r = run('docker', ['volume', 'inspect', n]); try { return r.ok ? JSON.parse(r.out) : []; } catch { return []; } });
+      const t = judgeTombstones(vols, STORE.root);
+      // the tombstone's target must never exist, or the tombstone would mount it
+      const exists = run('docker', ['run', '--rm', '-v', `${ENGINE_WSL_DIR}:/w:ro`, 'alpine', 'test', '-e', `/w/${STORE.name}/${TOMBSTONE_NAME}`]).ok;
+      const problems = [...t.problems, ...(exists ? [`${tombstoneDevice(STORE.root)} exists: remove it, a tombstone must point at nothing`] : [])];
+      return { ok: problems.length === 0, detail: problems.length ? problems.join('; ') : `${t.rows.map((r) => `${r.name} ${r.state}`).join(', ')}`, warn: t.warnings.join('; ') || undefined };
     } },
   { id: 'app', name: 'The studio answers (web /api/health, the worker)', cmd: START_APP ? 'pnpm dev (detached) + pnpm worker (detached), then GET /api/health' : 'GET /api/health (start `pnpm dev` and `pnpm worker` yourself, or pass --start-app)',
     go: async () => {

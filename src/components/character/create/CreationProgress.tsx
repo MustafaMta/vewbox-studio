@@ -37,7 +37,7 @@ export function CreationProgress({ parent, steps, characterId, referenceSrc, onC
     let detail: ReactNode = s.state === 'current' ? `${s.message ?? 'In progress'}${stepText}` : s.state === 'skipped' ? (s.step === 'voice' ? 'No voice yet — make one on the profile’s Voice tab.' : s.reason || 'skipped') : undefined;
     let action: ReactNode;
     if (s.state === 'failed') {
-      const copy = copyOf(s.error);
+      const copy = copyOf(s.error, { engine: s.step === 'design' ? 'story' : s.step === 'image' ? 'picture' : s.step === 'voice' ? 'voice' : undefined });
       detail = <>{copy.title}{copy.hint ? ` — ${copy.hint}` : ''}</>;
       const retry = <Button size="sm" variant="secondary" icon={<IconRetry />} onClick={() => onRetryStep(s.step)}>{s.step === 'image' ? 'Draw again' : 'Retry'}</Button>;
       const custom = {

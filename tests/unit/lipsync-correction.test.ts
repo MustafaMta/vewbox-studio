@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIPSYNC_LATENTSYNC_16, judgeCorrection, planCorrection, type CorrectionMeasures, type LipsyncCapability } from '@/domain/lipsync-correction';
+import { LIPSYNC_LATENTSYNC_16, judgeCorrection, lipsyncRepairOffer, planCorrection, type CorrectionMeasures, type LipsyncCapability } from '@/domain/lipsync-correction';
 import type { Take } from '@/domain/types';
 
 /** THE LIP-SYNC CORRECTION RULES (src/domain/lipsync-correction.ts): only a flagged, confirmed take of an enabled style
@@ -51,6 +51,16 @@ describe('planCorrection', () => {
   });
 });
 
+describe('lipsyncRepairOffer (the "Repair lip-sync" action)', () => {
+  it('offered on an eligible realistic take, flagged when its own check failed; refused with the reason otherwise', () => {
+    expect(lipsyncRepairOffer(prod(), shot, take(), realistic)).toEqual({ available: true, flagged: true, reasons: [] });
+    expect(lipsyncRepairOffer(prod(), shot, take({ params: { lipSync: { verdict: 'PASS' } } }), realistic)).toMatchObject({ available: true, flagged: false });
+    const cartoon = lipsyncRepairOffer(prod('CARTOON'), shot, take(), realistic);
+    expect(cartoon.available).toBe(false);
+    expect(cartoon.reasons.join(' ')).toMatch(/cartoon/);
+  });
+});
+
 describe('judgeCorrection', () => {
   const good: CorrectionMeasures = { frames: { original: 192, corrected: 192 }, corr: { before: 0.2, after: 0.45 }, canonical: { before: 0.66, after: 0.65 }, selfIdentity: { before: 0.9, after: 0.88 }, fullStrengthShare: 0.95, faceHeightPx: 230 };
   it('accepts a correction that keeps the face and makes the mouth follow the audio', () => {
@@ -67,5 +77,9 @@ describe('judgeCorrection', () => {
     expect(judgeCorrection({ ...good, faceHeightPx: 90 }, realistic).problems.join(' ')).toMatch(/90 px/);
     expect(judgeCorrection({ ...good, corr: { before: null, after: 0.3 } }, realistic).accepted).toBe(false);
     expect(judgeCorrection({ ...good, selfIdentity: { before: null, after: null } }, realistic).accepted).toBe(false);
+  });
+  it('a flattened mouth performance is a problem (measured on cartoon faces: −17…−35 % activity while speaking)', () => {
+    expect(judgeCorrection({ ...good, activityInside: { before: 1.87, after: 1.38 } }, realistic).problems.join(' ')).toMatch(/flattened.*−26 %/);
+    expect(judgeCorrection({ ...good, activityInside: { before: 0.74, after: 0.66 } }, realistic).accepted).toBe(true);
   });
 });

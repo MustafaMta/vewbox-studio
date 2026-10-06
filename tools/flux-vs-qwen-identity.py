@@ -8,7 +8,7 @@ Run in a throwaway Python container (nothing is installed in the services); the 
 
   docker run --rm --dns 1.1.1.1 --entrypoint sh -v fvq-pylibs:/pylibs vewbox/models:dev \
     -c "pip install -q --target /pylibs onnxruntime==1.22.1 opencv-python-headless==4.12.0.88 numpy==2.2.6"
-  docker run --rm --entrypoint python -e PYTHONPATH=/pylibs -v fvq-pylibs:/pylibs:ro -v vewbox_models:/models:ro \
+  docker run --rm --entrypoint python -e PYTHONPATH=/pylibs -v fvq-pylibs:/pylibs:ro -v vewbox_models_store:/models:ro \
     -v D:/volexar-studio/volexar-studio/var/flux-vs-qwen:/data -v <worktree>/tools:/tools:ro \
     -v <worktree>/docs/evidence/flux-vs-qwen:/out vewbox/models:dev /tools/flux-vs-qwen-identity.py
 

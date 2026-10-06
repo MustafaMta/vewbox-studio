@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useUrlPanel } from '@/components/shell/useUrlPanel';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { Job, JobEvent } from '@/domain/jobs';
 import { api } from '@/studio/api';
@@ -106,16 +106,13 @@ function GateCard({ d, card, priority }: { d: Decision; card: CardModel; priorit
 
 function History() {
   const { jobs, jobsReady, state } = useStudio();
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-  const openId = sp.get('job');
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [limit, setLimit] = useState(12);
   const counts = useMemo(() => historyCounts(jobs), [jobs]);
   const list = useMemo(() => history(jobs, filter), [jobs, filter]);
+  // the drawer opens from the page's state at once; the address is mirrored, never navigated (src/components/shell/useUrlPanel.ts)
+  const [openId, setOpen] = useUrlPanel('job');
   const open = openId ? jobs.find((j) => j.id === openId) ?? null : null;
-  const setOpen = (id: string | null) => router.replace(id ? `${pathname}?job=${encodeURIComponent(id)}` : pathname, { scroll: false });
   // a link to one job (from an agent's runs, or the old /jobs?job=) lands on the history with the job open
   useEffect(() => { if (openId) document.getElementById('history')?.scrollIntoView({ block: 'start' }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (

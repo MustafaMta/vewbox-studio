@@ -76,7 +76,7 @@ async function plan(backupDir: string) {
     files: { library: { root: path.relative(process.cwd(), LIBRARY), count: library.length, bytes: library.reduce((a, f) => a + f.bytes, 0), entries: library }, logs },
     scratchVolumes: volumes,
     retained: {
-      docker: ['vewbox_models (model weights)', 'vewbox_ollama (LLM weights)', 'vewbox_pgdata (the database; rows cleaned, volume kept)', 'vewbox_nvjit (compiler cache)', 'vewbox_workertmp (empty)', 'volexar-studio_models (not this compose project — untouched)'],
+      docker: ['vewbox_models_store / vewbox_ollama_store (the model store, D:\\models\\vewbox-models.vhdx: every weight; never touched)','vewbox_pgdata (the database; rows cleaned, volume kept)', 'vewbox_nvjit (compiler cache)', 'vewbox_workertmp (empty)', 'volexar-studio_models (not this compose project — untouched)'],
       host: ['the repository and its Git history (docs/evidence included)', '.env / .env.local (credentials)', 'var/backups (earlier backups)', 'tests/fixtures', 'the sample-studio code and its bundled media (no longer seeded on first start)'],
     },
   };

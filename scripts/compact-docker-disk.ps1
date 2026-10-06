@@ -16,6 +16,9 @@
 #>
 param([switch]$DryRun, [string]$Repo = (Split-Path -Parent $PSScriptRoot), [string]$Vhdx = (Join-Path $env:LOCALAPPDATA 'Docker\wsl\disk\docker_data.vhdx'))
 $ErrorActionPreference = 'Continue'
+# the whole run is kept in var\models-store\compact-<time>.log, readable from the normal session afterwards
+$logDir = Join-Path $Repo 'var\models-store'; New-Item -ItemType Directory -Force $logDir | Out-Null
+try { Start-Transcript -Path (Join-Path $logDir ("compact-{0}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))) | Out-Null } catch { }
 function Say($m) { Write-Host ("[compact {0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $m) }
 function Fail($m) { Write-Host ("[compact] STOPPED: {0}" -f $m) -ForegroundColor Red; Write-Host '[compact] Nothing was deleted. Docker is not restarted by this script: return to the normal session and run docker-watchdog --start-docker.'; exit 1 }
 function SizeGB($p) { [math]::Round((Get-Item -LiteralPath $p).Length / 1GB, 2) }

@@ -1,0 +1,16 @@
+{
+    "align":  [
+                  {
+                      "label":  "rec",
+                      "language":  "en",
+                      "file":  "var/library/audio/2026/10/gen-4bc0398484f98c617ed5.a2.wav",
+                      "text":  "It smells of cardamom and woodsmoke."
+                  },
+                  {
+                      "label":  "h3",
+                      "language":  "en",
+                      "file":  "docs/evidence/acceptance-v1/g13-face-reference/s1A/take.wav",
+                      "text":  "It smells of cardamom and woodsmoke."
+                  }
+              ]
+}

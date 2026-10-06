@@ -1,0 +1,1567 @@
+[
+ {
+  "id": "job-ace4285f0f",
+  "type": "CHARACTER_APPEARANCE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:25:10.847+00",
+  "startedAt": "2026-10-05 16:25:11.918+00",
+  "finishedAt": "2026-10-05 16:26:11.803+00",
+  "payload": {
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 59877,
+   "seed": 1547498800,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "runId": "run-ad16519bfd",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "DRAFT",
+   "agentId": "character-designer",
+   "message": "Abu Haidar: canonical image drawn — awaiting your approval",
+   "version": 1,
+   "lookFrom": "DESCRIPTION",
+   "rejected": [],
+   "identityLine": "Identity: stylized 3D animated character, a man of about 58; build: Slightly plump with a soft belly and rounded shoulders; face: Round and friendly with prominent apple-cheeks and deep laughter lines around the eyes; Salt-and-pepper hair, thinning at the top and cropped short on the sides; Small, twinkling dark brown eyes; Golden-brown, sun-kissed skin; wearing an ankle-length white cotton dishdasha, a red-and-white checked keffiyeh draped loosely over his own right shoulder, and brown leather sandals; a pair of small gold-rimmed reading glasses hanging from a black cord around his neck.",
+   "workflowVersion": "5ab9b1fdab562470",
+   "canonicalAssetId": "gen-70bd991ea7a1f918e0df"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:26:11.823+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-d12320434e",
+  "type": "CHARACTER_APPEARANCE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:40:09.302+00",
+  "startedAt": "2026-10-05 16:40:10.473+00",
+  "finishedAt": "2026-10-05 16:41:09.915+00",
+  "payload": {
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 59433,
+   "seed": 695193644,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "runId": "run-09877082f4",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "DRAFT",
+   "agentId": "character-designer",
+   "message": "Clara Hughes: canonical image drawn — awaiting your approval",
+   "version": 1,
+   "lookFrom": "DESCRIPTION",
+   "rejected": [],
+   "identityLine": "Identity: stylized 3D animated character, a woman of about 32; Slim build; face: Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks; clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth; Shoulder-length auburn hair tied back in a low ponytail; Green eyes; Fair skin; wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots; a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.",
+   "workflowVersion": "5ab9b1fdab562470",
+   "canonicalAssetId": "gen-45ec75f1d454ec2f36d9"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:41:09.919+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-27d713507c",
+  "type": "VOICE_BUILD",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:47:35.107+00",
+  "startedAt": "2026-10-05 16:47:35.871+00",
+  "finishedAt": "2026-10-05 16:49:30.243+00",
+  "payload": {
+   "mode": "AUTOMATIC",
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 114364,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "Hello, my name is Clara Hughes, and this is my voice.",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-2530b610fb",
+   "design": {
+    "chosen": 3,
+    "ranking": [
+     3,
+     2,
+     1
+    ],
+    "designId": "vd-33df22a68c",
+    "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+    "candidates": [
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.35,
+      "seed": 1462281475,
+      "index": 1,
+      "passed": true,
+      "sha256": "88a1a5fe92aeb353b02a1d3db02454ae1f610f97b8b7aa7b68768f2aee4da21b",
+      "assetId": "gen-55e84e6d98",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 10.88,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.35,
+       "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -3.87,
+       "clippedSamples": 0,
+       "durationSeconds": 10.88
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.7814,
+        "engine": "indextts",
+        "assetId": "gen-18c680ac3a",
+        "coverage": 1,
+        "durationSeconds": 5.828
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8387,
+        "engine": "indextts",
+        "assetId": "gen-cd131008a6",
+        "coverage": 1,
+        "durationSeconds": 4.505
+       }
+      ],
+      "nativeAssetId": "gen-aee7816d32",
+      "similarityMean": 0.81,
+      "durationSeconds": 10.88
+     },
+     {
+      "cer": 0.0414,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.48,
+      "seed": 1462281476,
+      "index": 2,
+      "passed": true,
+      "sha256": "2216cbfc8f8d5f716a6369cad88181d34994d83907749812c0fe64da1154a11e",
+      "assetId": "gen-0b53f3ae97",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 0.9,
+      "duration": 8.48,
+      "measured": {
+       "cer": 0.0414,
+       "lufs": -20.48,
+       "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 0.9,
+       "truePeakDbtp": -1,
+       "clippedSamples": 0,
+       "durationSeconds": 8.48
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.8319,
+        "engine": "indextts",
+        "assetId": "gen-c16b83d792",
+        "coverage": 1,
+        "durationSeconds": 4.992
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8235,
+        "engine": "indextts",
+        "assetId": "gen-2d80f28e27",
+        "coverage": 1,
+        "durationSeconds": 3.75
+       }
+      ],
+      "nativeAssetId": "gen-3a815a622a",
+      "similarityMean": 0.8277,
+      "durationSeconds": 8.48
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.11,
+      "seed": 1462281477,
+      "index": 3,
+      "passed": true,
+      "sha256": "72ee6112f8fdb0416eaeef6cd7814bb64507f34b364de6dc761e6e1cba6e3076",
+      "assetId": "gen-b23150ec5e",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 8.8,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.11,
+       "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -5.59,
+       "clippedSamples": 0,
+       "durationSeconds": 8.8
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.8462,
+        "engine": "indextts",
+        "assetId": "gen-2cb814fc8a",
+        "coverage": 1,
+        "durationSeconds": 5.55
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8399,
+        "engine": "indextts",
+        "assetId": "gen-e33c4af7bf",
+        "coverage": 1,
+        "durationSeconds": 4.389
+       }
+      ],
+      "nativeAssetId": "gen-967ca0731c",
+      "similarityMean": 0.8431,
+      "durationSeconds": 8.8
+     }
+    ]
+   },
+   "engine": "indextts",
+   "labels": [
+    "Studio-designed synthetic voice — not a real person",
+    "naturalness not yet judged by a listener"
+   ],
+   "agentId": "voice-casting",
+   "identity": {
+    "mode": "AUTOMATIC",
+    "model": "indextts",
+    "origin": "DESIGNED",
+    "params": {
+     "seed": 2101694182,
+     "speed": 1,
+     "emotionAlpha": 1
+    },
+    "status": "ACTIVE",
+    "designId": "vd-33df22a68c",
+    "provider": "LOCAL_TTS",
+    "dialectStatus": "NOT_APPLICABLE",
+    "referenceAssetId": "gen-b23150ec5e"
+   },
+   "evaluation": {
+    "cer": 0,
+    "lufs": -20.35,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:49:30.012Z",
+    "truePeakDbtp": -5.25,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.7824
+   },
+   "proofSampleId": "voice-ed7bd26e8f",
+   "reviewReasons": [],
+   "sampleAssetId": "gen-8f095c0eab",
+   "awaitingReview": false
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:47:35.893+00",
+    "level": "info",
+    "message": "automatic voice: a voice designed from the profile"
+   },
+   {
+    "at": "2026-10-05 16:48:15.425+00",
+    "level": "info",
+    "message": "voice designed"
+   },
+   {
+    "at": "2026-10-05 16:49:08.659+00",
+    "level": "info",
+    "message": "voice design measured"
+   },
+   {
+    "at": "2026-10-05 16:49:08.757+00",
+    "level": "info",
+    "message": "reference chosen"
+   },
+   {
+    "at": "2026-10-05 16:49:30.246+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-db18982abe",
+  "type": "VOICE_PREVIEW",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:50:14.77+00",
+  "startedAt": "2026-10-05 16:50:15.658+00",
+  "finishedAt": "2026-10-05 16:50:33.043+00",
+  "payload": {
+   "text": "Excuse me, is this the famous tea everyone talks about?",
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 17381,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "Excuse me, is this the famous tea everyone talks about?",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-4ce3c78422",
+   "engine": "indextts",
+   "agentId": "voice-casting",
+   "assetId": "gen-338b70cc1c",
+   "measured": {
+    "lufs": -21.38,
+    "clipped": 0,
+    "truePeakDbtp": -6.41,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.6158
+   },
+   "awaitingReview": false,
+   "durationSeconds": 4.469841
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:50:14.779+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:50:33.045+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-d21ce20a09",
+  "type": "VOICE_BUILD",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:52:41.844+00",
+  "startedAt": "2026-10-05 16:52:43.198+00",
+  "payload": {
+   "mode": "AUTOMATIC",
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 82419,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "هلا بيك. اني اسمي أبو حيدر وهذا صوتي.",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-79b4106f7c",
+   "design": {
+    "chosen": 3,
+    "ranking": [
+     3,
+     2,
+     1
+    ],
+    "designId": "vd-2faf0bde89",
+    "rankedBy": "gates passed first, then the Iraqi probe lines’ mean letter coverage (spaces ignored), then their mean CER (Iraqi A/B screening)",
+    "candidates": [
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -19.97,
+      "seed": 2089452140,
+      "index": 1,
+      "passed": true,
+      "sha256": "96e034e5f2ec19ae3d05a502ae3b4bc80ba2f19a0cfc1f087c2021bda456ba5d",
+      "assetId": "gen-f7c1d8677f",
+      "cerMean": 0.049,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 8.16,
+      "measured": {
+       "cer": 0,
+       "lufs": -19.97,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -2.18,
+       "clippedSamples": 0,
+       "durationSeconds": 8.16
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكو. هسه وصلت من الشغل.",
+        "cosine": 0.6962,
+        "engine": "habibi",
+        "assetId": "gen-1aa7324f02",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.019
+       },
+       {
+        "cer": 0.0357,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "يلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7431,
+        "engine": "habibi",
+        "assetId": "gen-84ea797fdf",
+        "coverage": 0.8333,
+        "letterCoverage": 0.9565,
+        "durationSeconds": 3.264
+       },
+       {
+        "cer": 0.0571,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "الفايحار هواية. انطيني شويه مي بارد.",
+        "cosine": 0.7624,
+        "engine": "habibi",
+        "assetId": "gen-1bbb801b21",
+        "coverage": 0.7143,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 4.053
+       },
+       {
+        "cer": 0.1034,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باشر الصبح نقاعد وياكم بالغهوة.",
+        "cosine": 0.6733,
+        "engine": "habibi",
+        "assetId": "gen-49875c9797",
+        "coverage": 0.4,
+        "letterCoverage": 0.92,
+        "durationSeconds": 3.317
+       }
+      ],
+      "nativeAssetId": "gen-997f9d5b24",
+      "similarityMean": 0.7188,
+      "durationSeconds": 8.16,
+      "letterCoverageMean": 0.9605
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.02,
+      "seed": 2089452141,
+      "index": 2,
+      "passed": true,
+      "sha256": "2cce699112209466ce4b52a475773d8b41ccdba488da71cf349a59358cd6c2d9",
+      "assetId": "gen-2e58290ca5",
+      "cerMean": 0.033,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 7.84,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.02,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -3.83,
+       "clippedSamples": 0,
+       "durationSeconds": 7.84
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكو. هسه وصلت من الشغل.",
+        "cosine": 0.6688,
+        "engine": "habibi",
+        "assetId": "gen-f89bdcb6a9",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 2.837
+       },
+       {
+        "cer": 0,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7042,
+        "engine": "habibi",
+        "assetId": "gen-9fbc824ac4",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.061
+       },
+       {
+        "cer": 0.0286,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "الفاي حار هواية، انطيني شوية مي بارد.",
+        "cosine": 0.8071,
+        "engine": "habibi",
+        "assetId": "gen-2b96488248",
+        "coverage": 0.8571,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 3.808
+       },
+       {
+        "cer": 0.1034,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باشر الصبح ننعد وياكم بالغهوة.",
+        "cosine": 0.7805,
+        "engine": "habibi",
+        "assetId": "gen-37bdca3cfa",
+        "coverage": 0.4,
+        "letterCoverage": 0.88,
+        "durationSeconds": 3.115
+       }
+      ],
+      "nativeAssetId": "gen-81d2fe2bd1",
+      "similarityMean": 0.7402,
+      "durationSeconds": 7.84,
+      "letterCoverageMean": 0.9614
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -19.95,
+      "seed": 2089452142,
+      "index": 3,
+      "passed": true,
+      "sha256": "bbf73599a4bbb1c0d8b79e35c69b074e020b0666346f27310469e505ddb26563",
+      "assetId": "gen-4ff84d698b",
+      "cerMean": 0.034,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 9.76,
+      "measured": {
+       "cer": 0,
+       "lufs": -19.95,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -2.57,
+       "clippedSamples": 0,
+       "durationSeconds": 9.76
+      },
+      "previews": [
+       {
+        "cer": 0.0385,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكوت. هسه وصلت من الشغل.",
+        "cosine": 0.6946,
+        "engine": "habibi",
+        "assetId": "gen-7d765a2397",
+        "coverage": 0.8333,
+        "letterCoverage": 1,
+        "durationSeconds": 3.584
+       },
+       {
+        "cer": 0,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7679,
+        "engine": "habibi",
+        "assetId": "gen-26795fbdd8",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.872
+       },
+       {
+        "cer": 0.0286,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "ألفاي حار هواية. أنطيني شوية مي بارد.",
+        "cosine": 0.8132,
+        "engine": "habibi",
+        "assetId": "gen-a0f6e02db0",
+        "coverage": 0.8571,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 4.811
+       },
+       {
+        "cer": 0.069,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باسر الصبح. نقعد وياكم بالغهوة.",
+        "cosine": 0.7874,
+        "engine": "habibi",
+        "assetId": "gen-5ec5285e2c",
+        "coverage": 0.6,
+        "letterCoverage": 0.92,
+        "durationSeconds": 3.947
+       }
+      ],
+      "nativeAssetId": "gen-5363a96fcc",
+      "similarityMean": 0.7658,
+      "durationSeconds": 9.76,
+      "letterCoverageMean": 0.9714
+     }
+    ]
+   },
+   "engine": "habibi",
+   "labels": [
+    "Studio-designed synthetic voice — not a real person",
+    "Iraqi dialect not yet verified by a native listener",
+    "naturalness not yet judged by a listener"
+   ],
+   "agentId": "voice-casting",
+   "identity": {
+    "mode": "AUTOMATIC",
+    "model": "habibi",
+    "origin": "DESIGNED",
+    "params": {
+     "seed": 178769622,
+     "speed": 0.9,
+     "emotionAlpha": 1
+    },
+    "status": "REVIEW",
+    "designId": "vd-2faf0bde89",
+    "provider": "LOCAL_TTS",
+    "dialectStatus": "UNVERIFIED",
+    "fallbackModel": "indextts",
+    "referenceAssetId": "gen-4ff84d698b"
+   },
+   "evaluation": {
+    "cer": 0,
+    "lufs": -19.97,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:54:05.395Z",
+    "truePeakDbtp": -0.99,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.8224
+   },
+   "proofSampleId": "voice-3074ccdb34",
+   "reviewReasons": [
+    "designed Arabic seed on the Iraqi engine: an experiment, its dialect is unverified"
+   ],
+   "sampleAssetId": "gen-3c2d25886a",
+   "awaitingReview": true
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:52:43.244+00",
+    "level": "info",
+    "message": "automatic voice: a designed Arabic seed for the Iraqi engine (experiment)"
+   },
+   {
+    "at": "2026-10-05 16:53:21.048+00",
+    "level": "info",
+    "message": "voice designed"
+   },
+   {
+    "at": "2026-10-05 16:53:58.03+00",
+    "level": "info",
+    "message": "voice design measured"
+   },
+   {
+    "at": "2026-10-05 16:53:58.175+00",
+    "level": "info",
+    "message": "reference chosen"
+   },
+   {
+    "at": "2026-10-05 16:54:05.626+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-0509c0003d",
+  "type": "VOICE_PREVIEW",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:54:43.423+00",
+  "startedAt": "2026-10-05 16:54:43.838+00",
+  "payload": {
+   "text": "هلا بيج عيني، هذا أطيب چاي ببغداد. تفضلي اگعدي.",
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 7607,
+   "check": {
+    "ok": false,
+    "cer": 0.06818181818181818,
+    "wer": 0.4444444444444444,
+    "heard": "هلا بيجعيني. هذا أطيب آي ببغداد. تفضلي إعدي.",
+    "status": "REVIEW",
+    "reasons": [
+     "چ not confirmable by ASR: «چاي» heard «آي» — a listener decides"
+    ],
+    "coverage": 0.7777777777777778
+   },
+   "runId": "run-1c9aed8427",
+   "engine": "habibi",
+   "agentId": "voice-casting",
+   "assetId": "gen-84ca7c276a",
+   "measured": {
+    "lufs": -18.25,
+    "clipped": 0,
+    "truePeakDbtp": -1,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.7717
+   },
+   "awaitingReview": true,
+   "durationSeconds": 6.037333
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:54:43.43+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:54:51.463+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-26080ec3d4",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:57:21.437+00",
+  "startedAt": "2026-10-05 16:57:21.859+00",
+  "finishedAt": "2026-10-05 16:58:06.792+00",
+  "payload": {
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 44920,
+   "refs": 2,
+   "runId": "run-8a238cba96",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:57:21.452+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:58:06.794+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-25e1bf1cfd",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:59:09.817+00",
+  "startedAt": "2026-10-05 16:59:10.267+00",
+  "finishedAt": "2026-10-05 17:00:07.325+00",
+  "payload": {
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 57046,
+   "refs": 2,
+   "runId": "run-3803c99a09",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:59:09.825+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 17:00:07.328+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-a0f34bd389",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 17:03:19.335+00",
+  "startedAt": "2026-10-05 17:03:19.881+00",
+  "finishedAt": "2026-10-05 17:04:49.474+00",
+  "payload": {
+   "force": true,
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 89587,
+   "refs": 3,
+   "runId": "run-474aa47cb7",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 17:03:19.344+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 17:04:49.477+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-0b7b3ac633",
+  "type": "GENERATE_TAKE",
+  "status": "AWAITING_REVIEW",
+  "attempts": 2,
+  "createdAt": "2026-10-06 11:30:05.016+00",
+  "startedAt": "2026-10-06 11:30:06.155+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-5f04d7325e",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "result": {
+   "ms": 1143061,
+   "qaOk": true,
+   "flags": [
+    "lip-sync",
+    "no-duplicate-frames"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-3d611df0fb",
+   "takeId": "take-4bc0398484f91e4ad6d4",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-4bc0398484f9b2f6bcae",
+   "backend": "local",
+   "verdict": "REVIEW",
+   "requestId": "2fd4ff6c-a36a-5ccb-aa80-b34dd0d67efd",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 594708,
+   "awaitingReview": true,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 11:30:05.041+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 11:30:06.376+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1 at the story's approval; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 11:30:06.399+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 11:30:06.417+00",
+    "level": "info",
+    "message": "production context 402d81d53d6c4cdf: 1 character(s), Tea stall, Mutanabbi Street, transition"
+   },
+   {
+    "at": "2026-10-06 11:30:06.421+00",
+    "level": "info",
+    "message": "scene state (transition): morning; 1 present, 0 prop(s); environment from scene"
+   },
+   {
+    "at": "2026-10-06 11:30:06.432+00",
+    "level": "info",
+    "message": "reference files: 2 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 11:53:59.03+00",
+    "level": "warn",
+    "message": "attempt 1 lost: its worker (DESKTOP-2OJMDQJ-29756) stopped responding — no heartbeat for 90 s (WORKER_LOST); attempt 2 took the job over"
+   },
+   {
+    "at": "2026-10-06 11:53:59.079+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 11:53:59.094+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 11:53:59.105+00",
+    "level": "info",
+    "message": "production context 402d81d53d6c4cdf: 1 character(s), Tea stall, Mutanabbi Street, transition"
+   },
+   {
+    "at": "2026-10-06 11:53:59.108+00",
+    "level": "info",
+    "message": "scene state (transition): morning; 1 present, 0 prop(s); environment from scene"
+   },
+   {
+    "at": "2026-10-06 11:53:59.116+00",
+    "level": "info",
+    "message": "reference files: 2 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 12:00:59.18+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 3 s planned → 5 s"
+   },
+   {
+    "at": "2026-10-06 12:00:59.189+00",
+    "level": "info",
+    "message": "dialogue recorded as the shot's soundtrack"
+   },
+   {
+    "at": "2026-10-06 12:00:59.583+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.472 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 12:00:59.92+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 12:00:59.982+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 12:12:28.332+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 12:13:02.099+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-b04bb9f713",
+  "type": "GENERATE_TAKE",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-06 12:22:58.374+00",
+  "startedAt": "2026-10-06 12:22:58.996+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-5f04d7325e",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "result": {
+   "ms": 678905,
+   "qaOk": true,
+   "flags": [
+    "lip-sync",
+    "no-duplicate-frames"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-4173f797e4",
+   "takeId": "take-390e0ca7bcc67f815d0a",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-390e0ca7bcc64a023f3e",
+   "backend": "local",
+   "verdict": "REVIEW",
+   "requestId": "6d16b4f7-f88f-52da-b5b3-cb8d71103731",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 516197,
+   "awaitingReview": true,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 12:22:58.462+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 12:22:59.19+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 12:23:00.142+00",
+    "level": "info",
+    "message": "Clara Hughes: face reference derived from the canonical image (face 209 px tall in 928x1664; crop 459 px enlarged to 768)"
+   },
+   {
+    "at": "2026-10-06 12:23:00.152+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 12:23:00.168+00",
+    "level": "info",
+    "message": "production context 3749d936c59c65ce: 1 character(s), Tea stall, Mutanabbi Street, transition"
+   },
+   {
+    "at": "2026-10-06 12:23:00.171+00",
+    "level": "info",
+    "message": "scene state (transition): morning; 1 present, 0 prop(s); environment from scene"
+   },
+   {
+    "at": "2026-10-06 12:23:00.181+00",
+    "level": "info",
+    "message": "reference files: 4 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 12:23:00.322+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 3 s planned → 5 s"
+   },
+   {
+    "at": "2026-10-06 12:23:00.325+00",
+    "level": "info",
+    "message": "dialogue reused as the shot's soundtrack (joined track reused too)"
+   },
+   {
+    "at": "2026-10-06 12:23:00.566+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.472 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 12:23:00.604+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 12:23:00.615+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 12:33:24.552+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 12:34:17.973+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-88d193431a",
+  "type": "GENERATE_TAKE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 12:34:31.066+00",
+  "startedAt": "2026-10-06 12:34:31.149+00",
+  "finishedAt": "2026-10-06 12:42:37.267+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-6d7ea7e16a",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "result": {
+   "ms": 486109,
+   "qaOk": true,
+   "flags": [],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-f6e09e7842",
+   "takeId": "take-b01ef5ab32b01de15db6",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-b01ef5ab32b00cc6da5a",
+   "backend": "local",
+   "verdict": "ACCEPT",
+   "requestId": "cca5e056-c0b0-5915-97e3-0055d0e74770",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 415292,
+   "awaitingReview": false,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 12:34:31.084+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 12:34:31.261+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 12:34:31.282+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 12:34:31.296+00",
+    "level": "info",
+    "message": "production context 052c4aa473d67ed6: 1 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 12:34:31.299+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 1 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 12:34:31.308+00",
+    "level": "info",
+    "message": "reference files: 2 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 12:34:31.347+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 12:34:31.357+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 12:42:37.271+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-291f3c6b33",
+  "type": "GENERATE_TAKE",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-06 12:42:48.22+00",
+  "startedAt": "2026-10-06 12:42:49.07+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-6d7ea7e16a",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "result": {
+   "ms": 1343168,
+   "qaOk": true,
+   "flags": [
+    "identity-similarity"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-f2bc2300c6",
+   "takeId": "take-730673b5f87b87deee38",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-730673b5f87b8319d6ba",
+   "backend": "local",
+   "verdict": "REVIEW",
+   "requestId": "4497c629-9423-5670-b152-e0953e4c91b1",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 819291,
+   "awaitingReview": true,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 12:42:48.238+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 12:42:49.181+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 12:42:49.205+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 12:42:49.218+00",
+    "level": "info",
+    "message": "production context 052c4aa473d67ed6: 1 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 12:42:49.22+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 1 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 12:42:49.228+00",
+    "level": "info",
+    "message": "reference files: 3 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 12:42:49.262+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 12:42:49.271+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 13:05:12.25+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-21b81897dc",
+  "type": "GENERATE_TAKE",
+  "status": "AWAITING_REVIEW",
+  "attempts": 3,
+  "createdAt": "2026-10-06 13:05:22.367+00",
+  "startedAt": "2026-10-06 13:05:23.567+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-3bca94463a",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "error": {
+   "code": "UNAVAILABLE",
+   "details": {
+    "failureClass": "INFRASTRUCTURE"
+   },
+   "message": "The local MiniMax H3 engine (ComfyUI) is not reachable. Start the comfyui service or set MINIMAX_API_KEY for the hosted API.",
+   "retryable": true
+  },
+  "result": {
+   "ms": 1184529,
+   "qaOk": true,
+   "flags": [
+    "lip-sync",
+    "no-duplicate-frames"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-78c9c21f48",
+   "takeId": "take-1ea4284469f692a71a57",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-1ea4284469f6988ebbe6",
+   "backend": "local",
+   "verdict": "REVIEW",
+   "requestId": "fd896a9c-75e2-5323-892a-41c637fa6d6c",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 1028900,
+   "awaitingReview": true,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 13:05:22.469+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 13:05:23.703+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 13:05:23.721+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 13:05:23.734+00",
+    "level": "info",
+    "message": "production context 46686dc51e96b599: 2 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 13:05:23.738+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 2 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 13:05:23.745+00",
+    "level": "info",
+    "message": "reference files: 3 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 13:28:36.104+00",
+    "level": "warn",
+    "message": "attempt 1 lost: its worker (DESKTOP-2OJMDQJ-38580) stopped responding — no heartbeat for 90 s (WORKER_LOST); attempt 2 took the job over"
+   },
+   {
+    "at": "2026-10-06 13:28:36.28+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 13:28:36.296+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 13:28:36.306+00",
+    "level": "info",
+    "message": "production context 46686dc51e96b599: 2 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 13:28:36.308+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 2 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 13:28:36.315+00",
+    "level": "info",
+    "message": "reference files: 3 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 13:30:57.657+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 3 s planned → 4 s"
+   },
+   {
+    "at": "2026-10-06 13:30:57.674+00",
+    "level": "info",
+    "message": "dialogue recorded as the shot's soundtrack"
+   },
+   {
+    "at": "2026-10-06 13:30:57.982+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.959 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 13:30:58.015+00",
+    "level": "info",
+    "message": "identity rule: 2 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 13:30:58.025+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 13:34:45.48+00",
+    "level": "warn",
+    "message": "attempt 2 failed; retrying"
+   },
+   {
+    "at": "2026-10-06 13:35:51.367+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 13:35:51.383+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 13:35:51.394+00",
+    "level": "info",
+    "message": "production context 0c39ae44f0602f74: 2 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 13:35:51.397+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 2 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 13:35:51.418+00",
+    "level": "info",
+    "message": "reference files: 4 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 13:35:51.542+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 3 s planned → 4 s"
+   },
+   {
+    "at": "2026-10-06 13:35:51.546+00",
+    "level": "info",
+    "message": "dialogue reused as the shot's soundtrack"
+   },
+   {
+    "at": "2026-10-06 13:35:51.771+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.959 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 13:35:51.801+00",
+    "level": "info",
+    "message": "identity rule: 2 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 13:35:51.811+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 13:53:11.919+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 13:55:35.779+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-ca471014f5",
+  "type": "GENERATE_TAKE",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-06 13:55:47.734+00",
+  "startedAt": "2026-10-06 13:55:47.789+00",
+  "payload": {
+   "seed": 424242,
+   "shotId": "shot-3bca94463a",
+   "quality": "final",
+   "productionId": "short-cdd6fc3cd0"
+  },
+  "result": {
+   "ms": 1535209,
+   "qaOk": true,
+   "flags": [
+    "lip-sync",
+    "identity-similarity",
+    "no-duplicate-frames"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-08b5768f9f",
+   "takeId": "take-a49fe76142ade346fd11",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-a49fe76142ad31a9933a",
+   "backend": "local",
+   "verdict": "REVIEW",
+   "requestId": "33154d95-1f58-5e3b-89b6-beec4e0d0396",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 1503202,
+   "awaitingReview": true,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 13:55:47.774+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 13:55:47.94+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 13:55:48.927+00",
+    "level": "info",
+    "message": "Abu Haidar: face reference derived from the canonical image (face 314 px tall in 928x1664; crop 690 px enlarged to 768)"
+   },
+   {
+    "at": "2026-10-06 13:55:48.938+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 13:55:48.957+00",
+    "level": "info",
+    "message": "production context 0c39ae44f0602f74: 2 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-06 13:55:48.963+00",
+    "level": "info",
+    "message": "scene state (cut): morning; 2 present, 0 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-06 13:55:48.975+00",
+    "level": "info",
+    "message": "reference files: 5 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 13:55:49.43+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 3 s planned → 4 s"
+   },
+   {
+    "at": "2026-10-06 13:55:49.441+00",
+    "level": "info",
+    "message": "dialogue reused as the shot's soundtrack (joined track reused too)"
+   },
+   {
+    "at": "2026-10-06 13:55:49.876+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.959 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 13:55:49.918+00",
+    "level": "info",
+    "message": "identity rule: 2 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 13:55:49.935+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 14:21:00.105+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 14:21:23.012+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ }
+]
