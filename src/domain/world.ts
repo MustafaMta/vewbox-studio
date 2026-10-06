@@ -266,8 +266,12 @@ const plateUsable = (pl: WorldPlate, assets: Asset[]) => { const a = assets.find
  *  day (what the audience already saw, by id); the drawn STATE plate for that time of day; an ESTABLISHED frame at
  *  another time of day (the prompt carries the light); the MASTER plate; a VIEW. Among equals, the same framing
  *  class as the shot, then the oldest (a locked place's canon). E9 (MINIMAX-CONTINUITY §3.10) may change the order. */
-export function choosePlate(loc: WorldLocation, want: { timeOfDay?: TimeOfDay; framing?: Framing }, assets: Asset[]): { plate: WorldPlate; why: string; alternates: string[] } | undefined {
-  const live = loc.plates.filter((p) => plateUsable(p, assets));
+export function choosePlate(loc: WorldLocation, want: { timeOfDay?: TimeOfDay; framing?: Framing; characterIds?: string[] }, assets: Asset[], peopleOf?: (pl: WorldPlate) => string[] | undefined): { plate: WorldPlate; why: string; alternates: string[] } | undefined {
+  // AN ESTABLISHED FRAME SHOWS THE PEOPLE OF ITS SHOT (acceptance 2026-10-06, Tea at Mutanabbi 1.3 take 10: the frame
+  // of the two-shot became the place's reference for a shot of Clara alone, and MiniMax drew Abu Haidar from it for
+  // 3 s): it is the place's reference only for a shot that shows everyone in it; otherwise the drawn plates stand
+  const fits = (p: WorldPlate) => { if (p.role !== 'ESTABLISHED' || !want.characterIds) return true; const people = peopleOf?.(p); return !people || people.every((id) => want.characterIds!.includes(id)); };
+  const live = loc.plates.filter((p) => plateUsable(p, assets) && fits(p));
   const pick = (xs: WorldPlate[]) => xs.find((p) => p.framing && framingClass(p.framing) === framingClass(want.framing)) ?? xs[0];
   const tod = (want.timeOfDay ?? '').toLowerCase().replace('_', ' ');
   const tiers: Array<[WorldPlate[], string]> = [
@@ -282,6 +286,15 @@ export function choosePlate(loc: WorldLocation, want: { timeOfDay?: TimeOfDay; f
     if (plate) return { plate, why, alternates: live.filter((p) => p.assetId !== plate.assetId).map((p) => p.assetId) };
   }
   return undefined;
+}
+
+/** The people an ESTABLISHED frame shows: the characters of the shot it was taken from (undefined when that shot is
+ *  not known — the frame then stays eligible, as before). */
+export function platePeople(state: Pick<StudioState, 'productions'>, pl: WorldPlate): string[] | undefined {
+  const src = pl.source as { kind?: string; productionId?: string; shotId?: string } | undefined;
+  if (pl.role !== 'ESTABLISHED' || !src?.shotId) return undefined;
+  const p = state.productions.find((x) => x.id === src.productionId) ?? state.productions.find((x) => x.shots.some((s) => s.id === src.shotId));
+  return p?.shots.find((s) => s.id === src.shotId)?.characterIds;
 }
 
 /** The place's identity as pinned: the stored one when it is the revision's, else the revision's version and line
@@ -309,7 +322,7 @@ export function overlayWorld(state: StudioState, bible: WorldBible, p: Productio
   if (scene?.locationId && !wl) conflicts.push(`the scene's place ${scene.locationId} is not in the World Bible revision ${rev.number}; its current plates are used`);
   if (wl && scene) {
     const live = state.locations.find((l) => l.id === wl.locationId);
-    const choice = choosePlate(wl, { timeOfDay: scene.timeOfDay, framing: sh.framing }, state.assets);
+    const choice = choosePlate(wl, { timeOfDay: scene.timeOfDay, framing: sh.framing, characterIds: sh.characterIds }, state.assets, (pl) => platePeople(state, pl));
     if (!live) conflicts.push(`${wl.name} is no longer in the studio`);
     else if (choice) {
       const master = wl.plates.find((x) => x.role === 'MASTER' && plateUsable(x, state.assets))?.assetId;
