@@ -20,7 +20,7 @@ import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
 import { CreateCharacterSkeletonFor } from './CreateCharacterSkeleton';
-import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate, pictureChangeRestrictions, retryPayloadOf } from './preflight';
+import { checkBrief, createdCharacterId, creationSettled, creationSteps, describeVoicePayload, describeVoiceMode, engineGate, persistedDraft, pictureChangeRestrictions, retryPayloadOf } from './preflight';
 
 type Start = 'describe' | 'sheet' | 'picture';
 const STARTS: readonly Start[] = ['describe', 'sheet', 'picture'];
@@ -86,7 +86,6 @@ export function CreateCharacter() {
     else if (d.jobId) writeDraft({ ...d, jobId: undefined, referenceAssetId: undefined });
     setHydrated(true);
   }, [sp, asked]);
-  useEffect(() => { if (hydrated) writeDraft({ start, header, describe, sheet, jobId: parentId ?? undefined, referenceAssetId: draft.current.referenceAssetId }); }, [hydrated, start, header, describe, sheet, parentId]);
   // when a show is chosen, its look and language are the defaults
   useEffect(() => { if (forShow) setHeader((h) => ({ ...h, style: forShow.style, language: forShow.language, dialect: forShow.dialect ?? h.dialect })); }, [forShow]);
 
@@ -115,6 +114,9 @@ export function CreateCharacter() {
   const imageDone = steps.find((s) => s.step === 'image')?.state === 'done';
   const ready = settled && Boolean(created) && imageDone && Boolean(created && primaryImageOf(created));
   const running = Boolean(parentId) && !ready;
+  // remembered in this tab while the creation runs; once it is finished only the start and the settings (the next visit
+  // in this tab is a new character, src/components/character/create/preflight.ts persistedDraft)
+  useEffect(() => { if (hydrated) writeDraft(persistedDraft({ start, header, describe, sheet, jobId: parentId ?? undefined, referenceAssetId: draft.current.referenceAssetId }, ready)); }, [hydrated, start, header, describe, sheet, parentId, ready]);
   const referenceSrc = assetById(state, picture.asset?.id ?? draft.current.referenceAssetId)?.src;
 
   // the recording chosen on the Describe start is checked as soon as the character exists (the voice-reference
@@ -215,6 +217,8 @@ export function CreateCharacter() {
   const writeMyself = () => { setSheet((s) => ({ ...s, name: lastPayload?.name ?? describe.name, look: lastPayload?.brief ?? describe.brief })); reset(); setStart('sheet'); };
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
   const reset = () => { setParentId(null); setFetched(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
+  /** A new character from an empty form (the finished one stays in the studio; its profile has it). */
+  const startNew = () => { reset(); setDescribe({ name: '', brief: '', voiceMode: 'NONE' }); setPicture({ name: '', role: '', keep: 'FACE', note: '' }); setSheet(EMPTY_SHEET); setRecording(null); setLastPayload(null); writeDraft({ start, header }); window.scrollTo({ top: 0 }); };
   const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok('Deleted.'); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const drawAgain = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); say(job); setRetries((r) => ({ ...r, image: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 
@@ -284,7 +288,7 @@ export function CreateCharacter() {
         </div>
       )}
 
-      {ready && created && <ReadyCard c={created} profileHref={profileHref} onAnotherLook={() => void drawAgain()} onDiscard={discard} anotherLookDisabled={gateReason ?? undefined} />}
+      {ready && created && <ReadyCard c={created} profileHref={profileHref} onAnotherLook={() => void drawAgain()} onDiscard={discard} onNew={startNew} anotherLookDisabled={gateReason ?? undefined} />}
     </div>
   );
 }

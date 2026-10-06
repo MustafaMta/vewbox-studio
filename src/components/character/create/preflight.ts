@@ -192,3 +192,11 @@ export function retryPayloadOf(sent: CreateCharacterPayload | null, parent: Pick
   if (sent) return sent;
   return parent?.type === 'CREATE_CHARACTER' && parent.payload && typeof parent.payload === 'object' ? (parent.payload as CreateCharacterPayload) : null;
 }
+/** WHAT THE NEW-CHARACTER PAGE REMEMBERS IN THIS TAB (acceptance 2026-10-06: the same tab came back to the FINISHED
+ *  character, "Draw again / Discard", with no way to start another). While a creation runs, everything — the brief, the
+ *  sheet and the running job — so a reload finds it; once it is finished (the character exists with its figure), only
+ *  the start and the settings: the next visit is a new character. */
+export function persistedDraft<D extends { start?: unknown; header?: unknown; jobId?: string; referenceAssetId?: string }>(d: D, finished: boolean): Partial<D> {
+  if (!finished) return d;
+  return { start: d.start, header: d.header } as Partial<D>;
+}

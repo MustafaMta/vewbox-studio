@@ -5,7 +5,7 @@ import type { Character } from '@/domain/types';
 import { useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
 import { Button, StateWord, useConfirm } from '@/components/ui/kit';
-import { IconArrowRight, IconDelete, IconGenerate } from '@/components/ui/icons';
+import { IconArrowRight, IconDelete, IconGenerate, IconPlus } from '@/components/ui/icons';
 import { Frame } from '@/components/media/Frame';
 import { VoicePlayer } from '../VoicePlayer';
 import { identityStatus } from '../identity';
@@ -15,7 +15,7 @@ import { figureOf, nameLang, voiceTrackOf } from '../parts';
 /** READY — the chain is done and the last word is the producer's: the figure, the name and role, the voice to hear
  *  when one was built, and the figure's state. One primary hands over to the profile, where the figure is approved.
  *  Draw again redraws the figure only; Discard deletes the record (with a confirm). */
-export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLookDisabled }: { c: Character; profileHref: string; onAnotherLook: () => void; onDiscard: () => void; anotherLookDisabled?: string }) {
+export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, onNew, anotherLookDisabled }: { c: Character; profileHref: string; onAnotherLook: () => void; onDiscard: () => void; /** a new character from an empty form; this one stays */ onNew?: () => void; anotherLookDisabled?: string }) {
   const { state } = useStudio();
   const confirm = useConfirm();
   const figure = figureOf(state, c);
@@ -36,6 +36,7 @@ export function ReadyCard({ c, profileHref, onAnotherLook, onDiscard, anotherLoo
           <Button variant="secondary" icon={<IconGenerate />} onClick={onAnotherLook} disabled={Boolean(anotherLookDisabled)} title={anotherLookDisabled}>Draw again</Button>
           <Button variant="quiet" icon={<IconDelete />} onClick={() => void discard()}>Discard</Button>
         </div>
+        {onNew && <div className="char-form-acts pc-ready-new"><span className="t-body">{c.name} is kept in the studio.</span><Button variant="secondary" icon={<IconPlus />} onClick={onNew}>Start a new character</Button></div>}
       </div>
     </section>
   );
