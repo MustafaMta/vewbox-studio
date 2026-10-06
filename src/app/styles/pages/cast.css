@@ -168,6 +168,20 @@
   .loc-add { display: flex; gap: 8px; margin-block-start: 12px; }
   .loc-add .input { flex: 1; min-inline-size: 0; }
   .loc-upload { margin-block-end: 16px; }
+  /* the Location Bible (LocationBible.tsx): the fixed facts and the light, in two columns; the established frames */
+  .loc-bible { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+  .loc-bible-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .loc-bible-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .loc-bible-sub { margin: 8px 0 0; }
+  .loc-bible-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+  .loc-bible-times > .t-label, .loc-bible-times > p, .loc-bible-times > .loc-add { grid-column: 1 / -1; }
+  .loc-bible-times .loc-add .select { flex: 1; min-inline-size: 0; max-inline-size: 320px; }
+  .loc-bible-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+  .loc-bible-foot > .t-meta { margin-inline-end: auto; }
+  .loc-bible-est { display: flex; flex-direction: column; gap: 12px; margin-block-start: 24px; }
+  .loc-bible-est h3 { margin: 0; }
+  @media (max-width: 1023px) { .loc-bible-grid3 { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 767px) { .loc-bible-grid, .loc-bible-times { grid-template-columns: minmax(0, 1fr); } .loc-bible { padding: 16px; } }
   .loc-tile-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-start: 8px; }
 
   /* --------------------------------------------------------------------------------------- the skeletons' sizes */

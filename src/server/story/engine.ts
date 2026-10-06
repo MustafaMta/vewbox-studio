@@ -16,6 +16,8 @@ import { agentPrompt } from '../org/skills';
 import type { PictureFacts } from '../workflows/canonical-image';
 import { intentDirective } from './development/intent';
 import { TIMELINE_RULES } from './development/timeline';
+import { keepBriefLook } from './brief-look';
+import { log } from '../log';
 
 /** The accepted Auto Idea's development intent (audience, tone, hook, ending) as fixed instructions for every later
  *  story call of that production — developing, scripting and planning never rewrite what the producer accepted. */
@@ -214,7 +216,11 @@ Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, 
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
   opts.onResult?.(r.result);
-  return r.data;
+  // the look the brief names is kept (acceptance 2026-10-05, item 11: the "grey moustache" was dropped): a feature no
+  // look field mentions is carried over in the producer's own words, first among the distinguishing details
+  const kept = keepBriefLook(req.brief, r.data);
+  if (kept.carried.length) log.info({ carried: kept.carried, name: kept.design.name }, 'character design: look features of the brief carried over');
+  return kept.design;
 }
 
 /** The orchestrator's second line in a REFERENCE design brief (D15): what the vision model saw in the producer's
