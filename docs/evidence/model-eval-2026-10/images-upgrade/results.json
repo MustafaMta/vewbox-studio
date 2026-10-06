@@ -1007,5 +1007,233 @@
     },
     "workflowVersion": "f58e17599d885cb4",
     "at": "2026-10-05T23:14:47.821Z"
+  },
+  "t2i/C1-kite-maker-2512bf-s970007": {
+    "id": "t2i/C1-kite-maker-2512bf-s970007",
+    "phase": "t2i",
+    "style": "CARTOON",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970007,
+    "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C1-kite-maker-2512bf-s970007.png",
+    "proxy": "t2i\\C1-kite-maker-2512bf-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 97514,
+    "wallMs": 100669,
+    "vramBeforeMiB": null,
+    "vramPeakMiB": 31664,
+    "ramPeakMiB": 49992,
+    "coldLoad": true,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.19101123595505617,
+        "y": 0.04375,
+        "w": 0.601123595505618,
+        "h": 0.9140625
+      },
+      "margins": {
+        "top": 0.04375,
+        "bottom": 0.0421875,
+        "left": 0.19101123595505617,
+        "right": 0.20786516853932585
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:06:04.635Z"
+  },
+  "t2i/C1-kite-maker-2512bf-s970008": {
+    "id": "t2i/C1-kite-maker-2512bf-s970008",
+    "phase": "t2i",
+    "style": "CARTOON",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970008,
+    "prompt": "3D animated feature-film character design, stylized CG render, not a photograph: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: stylized 3D animated character, a man of about 70; thin build; face: kind deep-set eyes, white stubble; short white hair; dark brown eyes; weathered olive skin; wearing a patchwork waistcoat of large coloured squares over a grey ankle-length dishdasha (a loose robe reaching down to the ankles); brown leather sandals; red kite string wound on his right wrist. Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile. high-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, live-action, real person, realistic skin pores",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C1-kite-maker-2512bf-s970008.png",
+    "proxy": "t2i\\C1-kite-maker-2512bf-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 43187,
+    "wallMs": 44143,
+    "vramBeforeMiB": 28784,
+    "vramPeakMiB": 31696,
+    "ramPeakMiB": 49992,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.21067415730337077,
+        "y": 0.0578125,
+        "w": 0.5674157303370787,
+        "h": 0.89375
+      },
+      "margins": {
+        "top": 0.0578125,
+        "bottom": 0.0484375,
+        "left": 0.21067415730337077,
+        "right": 0.22191011235955055
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:06:48.780Z"
+  },
+  "t2i/C2-courier-girl-2512bf-s970007": {
+    "id": "t2i/C2-courier-girl-2512bf-s970007",
+    "phase": "t2i",
+    "style": "ANIME",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970007,
+    "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C2-courier-girl-2512bf-s970007.png",
+    "proxy": "t2i\\C2-courier-girl-2512bf-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 44206,
+    "wallMs": 45029,
+    "vramBeforeMiB": 28848,
+    "vramPeakMiB": 31664,
+    "ramPeakMiB": 49961,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.25,
+        "y": 0.0765625,
+        "w": 0.49719101123595505,
+        "h": 0.88125
+      },
+      "margins": {
+        "top": 0.0765625,
+        "bottom": 0.0421875,
+        "left": 0.25,
+        "right": 0.25280898876404495
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:07:33.811Z"
+  },
+  "t2i/C2-courier-girl-2512bf-s970008": {
+    "id": "t2i/C2-courier-girl-2512bf-s970008",
+    "phase": "t2i",
+    "style": "ANIME",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970008,
+    "prompt": "Japanese anime character design, drawn like a modern Japanese TV anime: large expressive anime eyes with highlights, small simple nose and mouth, thin clean line art, cel shading with hard-edged two-tone shadows, flat colours, not a photograph, not 3D: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: Japanese anime character, a teenage girl of about 17; slim build; small pointed chin face; short black bob hair; amber eyes; fair skin; wearing a yellow rain jacket, navy shorts over black leggings, red sneakers; messenger bag strap across her left shoulder. Anime construction: clean line weight, simplified nose and mouth, detailed eyes and hair clusters, flat colour fills with hard-edged shadow shapes, costume rendered in flat tones with a few fabric folds, consistent head-to-body ratio. premium 2D anime film still, clean confident line art, cel shading with two-tone shadows and specular highlights, painted backgrounds with soft gouache texture, expressive eyes with layered highlights, dramatic rim light, hand-drawn feel, cinematic widescreen composition. Every frame stays 2D anime: no 3D CG look, no photoreal skin, no western cartoon proportions, no muddy gradients, no smeared or melting line work, no duplicated faces.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, photograph, photorealistic, 3D render, CG, realistic skin texture, real person",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C2-courier-girl-2512bf-s970008.png",
+    "proxy": "t2i\\C2-courier-girl-2512bf-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 43083,
+    "wallMs": 43856,
+    "vramBeforeMiB": 28752,
+    "vramPeakMiB": 31632,
+    "ramPeakMiB": 49910,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2303370786516854,
+        "y": 0.0625,
+        "w": 0.5168539325842697,
+        "h": 0.890625
+      },
+      "margins": {
+        "top": 0.0625,
+        "bottom": 0.046875,
+        "left": 0.2303370786516854,
+        "right": 0.25280898876404495
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:08:17.669Z"
+  },
+  "t2i/C3-pharmacist-2512bf-s970007": {
+    "id": "t2i/C3-pharmacist-2512bf-s970007",
+    "phase": "t2i",
+    "style": "REALISTIC",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970007,
+    "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C3-pharmacist-2512bf-s970007.png",
+    "proxy": "t2i\\C3-pharmacist-2512bf-s970007.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 43568,
+    "wallMs": 44384,
+    "vramBeforeMiB": 29040,
+    "vramPeakMiB": 31664,
+    "ramPeakMiB": 49910,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.26685393258426965,
+        "y": 0.071875,
+        "w": 0.4747191011235955,
+        "h": 0.9
+      },
+      "margins": {
+        "top": 0.071875,
+        "bottom": 0.028125,
+        "left": 0.26685393258426965,
+        "right": 0.25842696629213485
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:09:02.055Z"
+  },
+  "t2i/C3-pharmacist-2512bf-s970008": {
+    "id": "t2i/C3-pharmacist-2512bf-s970008",
+    "phase": "t2i",
+    "style": "REALISTIC",
+    "arm": "2512bf",
+    "family": "qwenbf",
+    "seed": 970008,
+    "prompt": "Photorealistic full-length studio photograph of a real person, 50 mm lens: one character, full-body front view facing the camera, the whole figure from the top of the head to the soles of the feet inside the picture with clear margin above the head and below the feet, standing in a relaxed neutral pose, arms relaxed at the sides, neutral expression, plain neutral mid-grey studio background, even soft studio light, no props, no text. Identity: photorealistic real person, a woman of about 34; petite build; oval face; greying hair in a low bun; dark brown eyes; olive skin; wearing a white coat over a burgundy blouse, black trousers, black flat shoes; thin gold glasses; a name badge on the left chest; a steel watch on the left wrist. Real human proportions and faces with asymmetry and texture, wardrobe with realistic fabric behaviour and wear, hair with flyaways, make-up invisible, jewellery and accessories small and specific. cinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.",
+    "negative": "text, lettering, watermark, logo, brand mark, trademark, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head, cropped feet, illustration, cartoon, anime, 3D render, CG, painting, plastic skin",
+    "file": "var\\model-eval\\images-upgrade\\t2i\\C3-pharmacist-2512bf-s970008.png",
+    "proxy": "t2i\\C3-pharmacist-2512bf-s970008.jpg",
+    "width": 928,
+    "height": 1664,
+    "engineMs": 42800,
+    "wallMs": 43599,
+    "vramBeforeMiB": 29008,
+    "vramPeakMiB": 31536,
+    "ramPeakMiB": 49910,
+    "coldLoad": false,
+    "framing": {
+      "ok": true,
+      "box": {
+        "x": 0.2640449438202247,
+        "y": 0.09375,
+        "w": 0.4691011235955056,
+        "h": 0.859375
+      },
+      "margins": {
+        "top": 0.09375,
+        "bottom": 0.046875,
+        "left": 0.2640449438202247,
+        "right": 0.26685393258426965
+      },
+      "reasons": []
+    },
+    "workflowVersion": "925e2df36133bbce",
+    "at": "2026-10-06T17:09:45.656Z"
   }
 }
