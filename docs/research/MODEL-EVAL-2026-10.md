@@ -67,6 +67,8 @@ studio's framing check on every canonical-frame picture, card peak from nvidia-s
 order in `sheets.json`, every graph). Arms: **2512q** (shipping canonical: no LoRA, 30 steps, cfg 4), **2512d**
 (Lightning 8-step draft), **klein** (FLUX.2 klein 4B from text, 4 steps), **qi21** (Qwen-Image-2.1, evaluation),
 **edit-q/edit-d** (Edit-2511 quality 24 steps / Lightning 4), **edit-ref** (Edit-2511 Image Reference rollback).
+Script removed 2026-10-06 (`scripts/model-eval-images.ts`, also the §7.3 harness; the image stack is frozen, §9);
+recoverable from git history at `df74b50c`.
 
 **Harness errors, not attempts.** Pass 1 drew 12 E1 edits before their plate and canonical image existed (the ids were
 sorted alphabetically) and looked for three A/B uploads in the wrong folder: 24 items failed with ENOENT before any
@@ -443,6 +445,7 @@ realistic person C4 placed together in the realistic plate) — SFace cosine per
 START threshold 0.363) and the comfyui container's RAM (docker stats) beside the card's VRAM. Every GPU batch ran
 under `scripts/gpu-hold.ts IMAGE 30400`, ≤ 18 min per hold. The incumbents were re-run on this machine (the first run's
 originals are not on this workstation), so every arm is measured on the same day, install and inputs.
+Script removed 2026-10-06; recoverable from git history at `df74b50c`.
 
 ## 8. MiniMax H3 local: configuration and licence audit (2026-10-06, research only, no GPU)
 
@@ -598,6 +601,9 @@ Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; C
 | First attempt | Image Reference whole figure 7/10 (§2.6; 17/24 in the earlier A/B) — the handler redraws once without the face crop on a framing failure; placement in a plate 8/12 (§2.5) and 3/5 today; location views 0/12 (unsupported: never advertise a reverse angle or a time-of-day re-light from the master) |
 | Quality | likeness good on all five uploads (one rounder new face, ic4 s1); quality mode can drop the person or replace the plate in placement (Lightning was steadier there, 5/6) |
 | Why it holds the role | the strongest commercially usable open editor on the arena (1021; HunyuanImage 3.0 Instruct and Qwen-2.1 above it are territory-limited or NC); replaces FLUX.2 [klein] 4B for the character from a picture by the producer's directive (one engine family for generation and editing; FLUX no longer a production dependency). Promotion proof owed: one real-UI "from a picture" character (acceptance engineer) |
+
+The close-shot opening-frame proof (`scripts/frame-close-eval.ts`, results `docs/evidence/model-eval-2026-10/frame-close/results.json`):
+script removed 2026-10-06; recoverable from git history at `df74b50c`.
 
 ### 10.3 Qwen-Image-2512 bf16 — candidate final image tier
 

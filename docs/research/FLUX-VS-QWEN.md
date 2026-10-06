@@ -11,6 +11,8 @@ running server and its source, public arena numbers), then a GPU A/B straight th
 six characters, seeds, prompts and three stand-in uploads of `tools/canonical-image-gpu.ts`
 (`docs/evidence/image-v2/REPORT.md`), two seeds each. Driver: `tools/flux-vs-qwen-gpu.ts`; identity metrics:
 `tools/flux-vs-qwen-identity.py`; evidence: `docs/evidence/flux-vs-qwen/`. **The shipping pipeline was not changed.**
+The three tools named here (`tools/canonical-image-gpu.ts`, `tools/flux-vs-qwen-gpu.ts`, `tools/flux-vs-qwen-identity.py`)
+were removed 2026-10-06 (the A/B is decided, §0); recoverable from git history at `df74b50c`.
 
 ## 0. Decision in one paragraph
 
