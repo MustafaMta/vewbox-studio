@@ -13,6 +13,7 @@ import { alignLyrics } from '@/server/media/lyrics';
 import * as comfy from '@/server/providers/comfy';
 import * as minimax from '@/server/providers/minimax';
 import { aceStepSong, minimaxMusic3Song } from '@/server/workflows';
+import { ACE_VARIANTS, type AceVariant } from '@/server/workflows/music';
 import { joinLyrics, splitLyrics } from '@/domain/lyrics';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -32,6 +33,18 @@ async function pickLocalEngine(): Promise<Exclude<Engine, 'minimax-api'>> {
   if (models.some((m) => m.startsWith('acestep'))) return 'ace-step';
   if (models.some((m) => m.startsWith('minimax_music3'))) return 'minimax-music3';
   throw new StudioError('NOT_CONFIGURED', 'No music weights are downloaded yet (see docker/models: music-ace-step).');
+}
+
+/** Which ACE-Step XL variant this machine can run: XL-SFT with the 5Hz LM 4B (the production song generator) when both
+ *  files are in ComfyUI's folders, else XL turbo — named as a fallback, never silently (the job warns and the song's
+ *  provenance records it). MUSIC_ACE_VARIANT forces one (`xl-turbo` for a quick draft). Pure, tested. */
+export function chooseAceVariant(diffusionModels: string[], textEncoders: string[], want: 'auto' | AceVariant = 'auto'): { variant: AceVariant; fallback?: string } {
+  const sft = diffusionModels.includes(ACE_VARIANTS['xl-sft'].dit) && textEncoders.includes(ACE_VARIANTS['xl-sft'].lm);
+  if (want === 'xl-turbo') return { variant: 'xl-turbo' };
+  if (sft) return { variant: 'xl-sft' };
+  const missing = [ACE_VARIANTS['xl-sft'].dit, ACE_VARIANTS['xl-sft'].lm].filter((f) => !diffusionModels.includes(f) && !textEncoders.includes(f));
+  if (want === 'xl-sft') throw new StudioError('NOT_CONFIGURED', `MUSIC_ACE_VARIANT=xl-sft but ComfyUI does not have ${missing.join(' and ')} (manifest group music-ace-step-xl)`);
+  return { variant: 'xl-turbo', fallback: `ACE-Step XL-SFT is not installed (${missing.join(', ')} missing: manifest group music-ace-step-xl); made with XL turbo instead` };
 }
 
 async function pickEngine(): Promise<Engine> {
@@ -78,14 +91,21 @@ async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullabl
   // the song's seed and prompt key are the job's (audit H8, step 7): every attempt builds the same graph, and a restarted
   // attempt re-attaches to the composition it already asked for instead of composing a second one
   const seed = stableSeed(ctx.job.id, `song:${engine}`);
-  const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, seed }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en', seed });
-  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { promptKey: `:song:${engine}`, timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
+  // ACE-Step: XL-SFT + the 5Hz LM 4B by default; a fallback to turbo is said, not hidden
+  let ace: { variant: AceVariant; fallback?: string } | undefined;
+  if (engine === 'ace-step') {
+    const [dms, tes] = await Promise.all([comfy.listModels('diffusion_models').catch(() => [] as string[]), comfy.listModels('text_encoders').catch(() => [] as string[])]);
+    ace = chooseAceVariant(dms, tes, env().MUSIC_ACE_VARIANT);
+    if (ace.fallback) await ctx.event('warn', ace.fallback, { variant: ace.variant });
+  }
+  const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, seed }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en', seed, variant: ace!.variant });
+  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { promptKey: `:song:${engine}${ace ? `:${ace.variant}` : ''}`, timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'audio');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no audio.');
   const dir = await tmpDir('song');
   const file = path.join(dir, out.filename);
   await fsp.writeFile(file, await comfy.view(out));
-  return finishSong(ctx, { p: a.p, file, model: engine === 'minimax-music3' ? 'MiniMax-Music3 (local int8)' : 'ACE-Step 1.5 XL turbo', requestId: run.promptId, workflowVersion: run.workflowVersion, engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, t0: a.t0, dir });
+  return finishSong(ctx, { p: a.p, file, model: engine === 'minimax-music3' ? 'MiniMax-Music3 (local int8)' : `${ACE_VARIANTS[ace!.variant].label}${ace!.fallback ? ' (fallback: XL-SFT not installed)' : ''}`, requestId: run.promptId, workflowVersion: run.workflowVersion, engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, t0: a.t0, dir });
 }
 
 async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnType<typeof readState>>['state']['productions'][number]; file: string; model: string; requestId?: string; workflowVersion?: string; engine: Engine; caption: string; lyrics: string; seconds: number; t0: number; dir: string }) {
