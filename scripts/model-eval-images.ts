@@ -25,7 +25,7 @@ import path from 'node:path';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as comfy from '@/server/providers/comfy';
-import { installHoldGuard, track, settled, cancelOurs } from './lib/comfy-hold-guard';
+import { installHoldGuard, track, settled, cancelOurs, assertIdle } from './lib/comfy-hold-guard';
 import { MODELS, JOYAI_FILES, joyaiEdit, seed32, snap, qwenCanonicalImage, qwenEdit, qwenTextToImage, kleinReferenceCanonical, qwenReferenceCanonical, referenceReadGraph, canonicalPrompt, kleinReferencePrompt, referenceCanonicalPrompt, canonicalIdentityLine, identityLineFromDescription, negativeFor, parseCharacterDescription, parseFaceBoxes, faceCropRect, CANONICAL_FRAME, CANONICAL_OUTPUT, STYLE_MEDIUM, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, vlmOutput, type Graph, type PxRect, type CharacterDescription } from '@/server/workflows';
 import { locationPrompt } from '@/server/story/prompts';
 import { styleDirection } from '@/server/story/style';
@@ -214,8 +214,8 @@ async function main() {
   installHoldGuard();
   const h = await comfy.health();
   if (!h.ok) throw new Error('ComfyUI is not reachable');
-  const q = await fetch(`${process.env.COMFYUI_URL ?? 'http://127.0.0.1:8188'}/queue`).then((r) => r.json() as Promise<{ queue_running: unknown[]; queue_pending: unknown[] }>);
-  if (q.queue_running.length + q.queue_pending.length) throw new Error('ComfyUI is busy; this evaluation needs the card to itself');
+  // the lease was granted but ComfyUI may still finish someone else's prompt: wait up to 5 min for it to go idle, then give up
+  for (let k = 0; ; k++) { try { await assertIdle(); break; } catch (e) { if (k >= 30) throw e; if (k === 0) console.log(`waiting for ComfyUI to go idle: ${(e as Error).message}`); await new Promise((r) => setTimeout(r, 10_000)); } }
   await fs.mkdir(OUT, { recursive: true }); await fs.mkdir(EVID, { recursive: true });
   const resultsFile = path.join(EVID, 'results.json');
   const results: Record<string, Result> = await fs.readFile(resultsFile, 'utf8').then((t) => JSON.parse(t) as Record<string, Result>, () => ({}));
