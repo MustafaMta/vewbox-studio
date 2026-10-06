@@ -152,7 +152,10 @@
   .server-bar-what { font-weight: 500; }
   .server-bar-retry { flex: none; }
   /* the terms line (TermsBar.tsx): the same shape, the waiting accent */
-  .terms-bar { display: flex; align-items: center; gap: 12px; min-block-size: 40px; padding: 4px var(--pad); background: var(--surface-1); font-size: 13px; line-height: 18px; color: var(--text-1); box-shadow: inset 3px 0 0 var(--wait); }
+  /* fixed at the foot of the content column (above the phone's bottom bar), never in the flow: it arrives with the
+     snapshot, after the first paint, and must not move the page (QA S1: it shifted /production by 40 px) */
+  .terms-bar { position: fixed; z-index: var(--z-nowbar); inset-inline: var(--shell-nav-w) 0; inset-block-end: var(--bottom-nav, 0px); display: flex; align-items: center; gap: 12px; min-block-size: 48px; padding: 6px var(--pad); background: var(--surface-1); border-block-start: 1px solid var(--line-strong); font-size: 13px; line-height: 18px; color: var(--text-1); box-shadow: inset 3px 0 0 var(--wait); }
+  .shell-column:has(.terms-bar) .shell-main { padding-block-end: 56px; } /* the end of the page stays reachable above it */
   .terms-bar-text { flex: 1; min-inline-size: 0; margin: 0; }
   .terms-bar-what { font-weight: 500; }
   .terms-bar-more { color: var(--text-2); }

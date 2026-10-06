@@ -32,12 +32,15 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
   const reasonId = useId();
   const enabled = options.filter((o) => !o.disabled);
   const current = options.some((o) => o.value === value && !o.disabled) ? value : enabled[0]?.value;
-  const reasons = options.filter((o) => o.disabled && o.reason);
+  // a reason shared by several disabled options is said ONCE (QA S5: the first shot's two joins printed it twice);
+  // each disabled option points at its reason's one line
+  const reasons = options.filter((o) => o.disabled && o.reason).filter((o, i, all) => typeof o.reason !== 'string' || all.findIndex((x) => x.reason === o.reason) === i);
+  const reasonOf = (o: ChoiceOption<T>) => { const r = reasons.find((x) => x === o || (typeof o.reason === 'string' && x.reason === o.reason)); return r ? `${reasonId}-${r.value}` : undefined; };
   const group = (
     <div role="radiogroup" aria-label={label} id={id} className={cls('seg', size === 'sm' && 'text-xs', !reasons.length && className)} onKeyDown={onKey}>
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" data-value={o.value} aria-checked={value === o.value} tabIndex={o.value === current ? 0 : -1} disabled={o.disabled}
-          aria-describedby={o.disabled && o.reason ? `${reasonId}-${o.value}` : undefined} onClick={() => onChange(o.value)}>
+          aria-describedby={o.disabled && o.reason ? reasonOf(o) : undefined} onClick={() => onChange(o.value)}>
           {o.icon}{o.label}
         </button>
       ))}
