@@ -43,8 +43,8 @@ x-app-env: &app-env
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm:11434/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-ollama}
-  # the local story model: Gemma 4 31B since the controlled test (docs/research/MODEL-EVAL-2026-10.md §3); qwen3:14b stays selectable
-  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-gemma4:31b-it-qat}
+  # the local story model: Qwen3.6-27B Q8_0 since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md §9); gemma4:31b-it-qat is the fallback
+  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3.6:27b-q8_0}
   # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
   OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -303,8 +303,9 @@ services:
         ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"
 
   # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume
-  # (llm-pull). Models available: gemma4:31b-it-qat (the default since 2026-10-05; 19.1 GB loaded at 16K, card peak
-  # 21.4 GB, 100 % GPU — measured, docs/research/MODEL-EVAL-2026-10.md §3) and qwen3:14b (10.6 GB loaded, card 11.5 GB);
+  # (llm-pull). Models available: qwen3.6:27b-q8_0 (the production model since 2026-10-06; 28.4 GB loaded at 16K, 66/66
+  # layers, card ≈ 31.5 GB of 32.6 — the whole card; docs/research/MODEL-EVAL-2026-10.md §9), gemma4:31b-it-qat (the
+  # emergency fallback; 19.1 GB loaded, card 21.4 GB, §3) and qwen3:14b (preview; 10.6 GB, card 11.5 GB);
   # OPENAI_COMPATIBLE_MODEL chooses. Flash attention with a q8_0 KV cache halves the cache; OLLAMA_CONTEXT_LENGTH is the
   # server default and what the app sends as num_ctx. Ollama offloads layers to the CPU when a model and its cache
   # exceed the card.
@@ -354,7 +355,7 @@ services:
     dns: *dns
     profiles: ["models"]
     environment:
-      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3:14b,gemma4:31b-it-qat}
+      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3.6:27b-q8_0,gemma4:31b-it-qat}
       OLLAMA_HOST: 127.0.0.1:11435
       SSL_CERT_DIR: /etc/ssl/certs:/run/secrets # the extra root, as for `llm`
       OLLAMA_MODELS: /root/.ollama/models

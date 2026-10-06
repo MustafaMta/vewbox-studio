@@ -85,7 +85,7 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model
-  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.6 / Qwen3: Apache-2.0; Gemma 4: Apache-2.0 with the Gemma Terms of Use linked)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

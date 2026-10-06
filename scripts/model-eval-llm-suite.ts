@@ -1,5 +1,5 @@
 /* PLANNING-LLM BENCHMARK (docs/directives/MODEL-UPGRADE-DIRECTIVE-2026-10-06.md §3, §9; results in
- * docs/research/MODEL-EVAL-2026-10.md §7): the studio's OWN planning calls, run through the story engine
+ * docs/research/MODEL-EVAL-2026-10.md §9): the studio's OWN planning calls, run through the story engine
  * (src/server/story/engine.ts → src/server/providers/llm.ts, the app's request: num_ctx, keep_alive, think off, its
  * max_tokens, its repair rounds, its truncation handling and scene splitting) against the local Ollama, with the SAME
  * inputs for every candidate model.
@@ -10,6 +10,7 @@
  *     [--scenes 1-4]      ep-plan: only these scenes of the fixed episode (resumes from the saved earlier scenes)
  *     [--freeze]          write a missing fixture from this run's answer (done once, from the incumbent's run 1)
  *     [--out <sub>]       evidence under llm-suite/<model>/<sub>/
+ *     [--reasoning]       the reasoning-ON arm (thinking on, DEFAULT_REASONING_TOKENS on top of each budget)
  *
  * THE INPUTS (fixed, identical per model):
  *  - a synthetic SHOW built in memory around the copy database's "The Static Sky" (its cast and workshop): season 1,
@@ -30,7 +31,7 @@
  * Every POST to /chat/completions is one attempt (repairs and re-asks are further attempts); attempt #1 is recorded on
  * its own (`firstAttemptValid`: valid on the first POST). Per call: latency, prompt/answer tokens, stop reasons, answer
  * tokens per second, the card's peak (nvidia-smi 250 ms), the llm container's RAM and the Docker VM's used RAM
- * (sampled every ≈ 3 s), Ollama's own report of the loaded model. Quality is read and scored by hand (rubric in §7);
+ * (sampled every ≈ 3 s), Ollama's own report of the loaded model. Quality is read and scored by hand (rubric in §9);
  * this script computes the mechanical checks only. The engine's local path takes the GPU lease, which writes
  * resource_leases: DATABASE_URL is pointed at the copy `vewbox_llm`, never the live database. */
 import fs from 'node:fs/promises';
@@ -56,6 +57,8 @@ process.env.DATABASE_URL = live.replace(/\/vewbox(\?|$)/, '/vewbox_llm$1');
 process.env.LLM_PROVIDER = 'openai-compatible';
 process.env.OPENAI_COMPATIBLE_MODEL = MODEL;
 process.env.MINIMAX_API_KEY = ''; process.env.ANTHROPIC_API_KEY = '';
+// --reasoning: every call thinks first (the reasoning-ON arm; LLM_LOCAL_REASONING, src/server/providers/llm.ts)
+if (flag('reasoning')) process.env.LLM_LOCAL_REASONING = 'on';
 
 const ROOT = process.cwd();
 const BASE = path.join(ROOT, 'docs/evidence/model-eval-2026-10/llm-suite');
