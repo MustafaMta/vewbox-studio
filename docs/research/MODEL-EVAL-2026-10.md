@@ -164,7 +164,7 @@ reference klein 10/10, E1 placement 8/12, views 0/6.
 ## 3. Language model: qwen3:14b vs gemma4:31b-it-qat
 
 `llm` service alone (ComfyUI freed): Ollama 0.35.1, both models present (gemma4 QAT Q4_0 17.56 GB, qwen3:14b Q4_K_M
-8.64 GB on disk), idle 0.65 GB RAM. Harness `scripts/model-eval-llm.ts`: the story engine's own calls
+8.64 GB on disk), idle 0.65 GB RAM. Harness `scripts/model-eval-llm.ts` (script removed 2026-10-06; recoverable from git history at `df74b50c`): the story engine's own calls
 (`developStory`, `writeScript`, `planShotsDraft` with the shaping and the cast-vs-actions check, an Iraqi `writeScript`
 + `planShotsDraft` of the same scene with the cast speaking Baghdadi, `designCharacter` in Arabic) on The Static Sky
 read from the **copy** database `vewbox_modeleval` (the local path takes the GPU lease, which writes
@@ -242,7 +242,7 @@ not fold numbers). **Real failures 2/20: both one-word lines** — «Nothing.» 
 (IndexTTS appends a garbled syllable to a one-word line). Mean −18.3 LUFS, peak ≤ −0.99 dBTP, median 2.1 s per line
 (RTF 0.65). Emotion (calm vs angry E1/E2) is a listening item.
 
-**ASR A/B for Arabic** (`scripts/asr-ab-iraqi.py` + `scripts/asr-ab-score.ts`, `…/2026-10-run1/asr-ab/`): the same
+**ASR A/B for Arabic** (`scripts/asr-ab-iraqi.py` + `scripts/asr-ab-score.ts`, `…/2026-10-run1/asr-ab/`; scripts removed 2026-10-06, recoverable from git history at `df74b50c`): the same
 107 Habibi WAVs transcribed by large-v3 and by the dialect fine-tune (faster-whisper, `language=ar`, beam 5, one-off
 container of the `asr` image; 37 s / 40 s for all 107), scored with the studio's own fold and take-gate verdict:
 
@@ -369,7 +369,7 @@ word loses its final intonation).
 **Fix:** `prepareLineText` (IndexTTS, one Latin word) prepends "That is all I have to say."; `speakLine` transcribes
 the take, finds the line's word as the last thing heard, cuts at the latest quiet 10 ms before it (keeping 40 ms of the
 pause and the WAV's provenance chunk, 12 ms fade-in); a take whose word is not found is spoken again alone (and judged
-by the line check). Evidence `docs/evidence/model-eval-2026-10/voice-en/one-word/` (`scripts/one-word-eval.ts`,
+by the line check). Evidence `docs/evidence/model-eval-2026-10/voice-en/one-word/` (`scripts/one-word-eval.ts`, script removed 2026-10-06 and recoverable from git history at `df74b50c`;
 large-v3):
 
 | | Nothing. | Now? | Yes. | Run! | Why? | Okay. | Clean |
@@ -635,7 +635,8 @@ Planning-LLM engineer, 2026-10-06. Every GPU call ran under the studio's lease (
 priority after the lease change), with the `llm` service started only for a batch and the model unloaded (`keep_alive 0`)
 at the end of each batch. The engine's own calls ran against the copy database `vewbox_llm`, never `vewbox`. Evidence:
 `docs/evidence/model-eval-2026-10/llm-suite/` (requests, answers, per-attempt tokens/stop reasons/reasoning, card and RAM
-peaks); harness `scripts/model-eval-llm-suite.ts`, comparison `scripts/model-eval-llm-report.ts`.
+peaks); harness `scripts/model-eval-llm-suite.ts`, comparison `scripts/model-eval-llm-report.ts`. Both scripts removed
+2026-10-06; recoverable from git history at `df74b50c`.
 
 ### 11.1 Promotion record — `qwen3.6:27b-q8_0` is the local story model
 

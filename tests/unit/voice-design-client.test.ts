@@ -5,8 +5,8 @@ import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 /** THE VOICE-DESIGN CLIENT against a faked service: answers are validated (shape, sha256 of every file, header/body
- *  agreement), files land where asked, and every failure becomes the studio's own error class. The real service is
- *  exercised by scripts/voice-design-eval.ts (docs/evidence/voice-design/). */
+ *  agreement), files land where asked, and every failure becomes the studio's own error class. The real service was
+ *  evaluated by scripts/voice-design-eval.ts (removed 2026-10-06; recoverable from git history at df74b50c). */
 
 process.env.DATABASE_URL ??= 'postgres://test@127.0.0.1:5432/test';
 process.env.TTS_DESIGN_URL = 'http://design.test:8022';
