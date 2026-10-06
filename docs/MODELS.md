@@ -167,6 +167,47 @@ capability, whether it can run and why not; a missing module or weight never sto
 VRAM/CPU cost: **not measured** (no GPU in the session that built this). The QA endpoints are CPU-only by design so they
 can run beside H3; `/align` uses the card when one is visible (`ALIGN_DEVICE=cpu` forces CPU) and is dropped by `/unload`.
 
+## Lip-sync corrector (`lipsync` service, opt-in)
+
+Directive 2026-10-06 §16; research `docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md` §C.3. Native MiniMax H3
+performance is the default; the corrector runs only for ONE take the producer confirmed after a failed lip-sync review
+(job `CORRECT_LIPSYNC`, `src/worker/handlers/lipsync.ts`; rules and thresholds as data in
+`src/domain/lipsync-correction.ts`). It redraws the mouth region of the existing take to the authoritative audio and
+records the result as a NEW take (`derivedFrom`) beside the original, accepted or rejected with before/after numbers.
+It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (port 8040, no VRAM while idle,
+weights dropped after every request unless `LIPSYNC_KEEP_LOADED=1`). GPU family `LIPSYNC`: ComfyUI (H3) and every other
+engine unload before it loads.
+
+| Part | What | Licence (read at the primary source, 2026-10-06) | Where |
+|---|---|---|---|
+| LatentSync code | github `bytedance/LatentSync` @ `a229c39` (1.6, 2025-06-20), fetched by the image build | Apache-2.0 ✔ (LICENSE) | `/opt/latentsync` in the image |
+| LatentSync 1.6 U-Net | `ByteDance/LatentSync-1.6` rev `c42c7e6c…`, `latentsync_unet.pt` 5 072 222 488 B | **CreativeML Open RAIL++-M** ✔ (model card `license: openrail++`; the research note's "Apache-2.0 ◐" was wrong). Commercial use allowed, royalty-free; the Attachment A use restrictions (no unlawful use, defamation or harassment, false information to harm, PII for harm, discrimination, exploitation of minors, medical advice, law-enforcement profiling…) bind the studio and **must be passed downstream in any Vewbox terms of use**, with a copy of the licence; the licensor claims no rights in outputs. Re-lipping the studio's own fictional characters is within it | group `lipsync-latentsync-1.6` → `/models/lipsync/latentsync-1.6/` |
+| Whisper tiny (audio features) | `whisper/tiny.pt` from the same repo, 75 572 083 B, sha256 `65147644…22b9` — byte-identical to OpenAI's release (its download URL carries this hash) | MIT ✔ (openai/whisper LICENSE, © 2022 OpenAI) | same group → `.../whisper/` |
+| VAE | `stabilityai/sd-vae-ft-mse` rev `31f26fde…`, safetensors 334 643 276 B | MIT ✔ (card) | same group → `/models/lipsync/sd-vae-ft-mse/` |
+| Face detection / choice | YuNet 2023mar + SFace 2021dec | MIT ✔ / Apache-2.0 ✔ | group `qa-identity` (shared with asr) |
+| Face landmarks (alignment) | MediaPipe Face Landmarker `face_landmarker.task` | Apache-2.0 | `/models/qa/` (fetched by the asr service) |
+| Evaluation only | `stable_syncnet.pt` (1.6 GB) | OpenRAIL++-M | group `lipsync-eval-syncnet`; not used by the pipeline |
+
+**Not used:** InsightFace (`buffalo_l`, used by upstream 1.6 for detection + 106 landmarks — non-commercial packs; the
+package is not installed and `latentsync/utils/face_detector.py` is replaced by a stub), the repo's `auxiliary/` files
+(`sfd_face.pth`, `syncnet_v2.model`, VGG16, I3D, KonIQ, ViT-g: unstated or third-party licences), `face-alignment`,
+`decord` (no Python 3.12 wheel; a stub), DeepCache, gradio. MuseTalk 1.5 stays parked (its BiSeNet / DWPose weights have
+no stated licence).
+
+**How the Vewbox build differs from upstream inference** (`docker/lipsync/corrector.py`, `face_track.py`):
+- faces: YuNet boxes → the speaker chosen by SFace against the speaker's canonical image AND against the other cast
+  members (a face is the speaker only if it resembles the speaker more than every other character — measured on the
+  acceptance two-shot, where the listener scored 0.3+ against the speaker's picture while the speaker was in profile);
+  MediaPipe's 478-point mesh on a crop → LatentSync 1.5's own 478→68 table → the three alignment points (eyebrow centres,
+  nose), smoothed with 1.5's `laplacianSmooth`; the 1.6 Procrustes transform ported to numpy;
+- native frame rate (H3: 24 fps; upstream re-encodes to 25), same frame count, the take's own audio copied;
+- only the regenerated region (mask.png's lower face, eroded and feathered) is blended into the ORIGINAL frame:
+  eyes, brows, hair, the other characters and the background are bit-identical before encoding;
+- profile frames (frontalness < 0.35) are not edited; the edit fades in/out over 4 frames.
+
+Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
+outside Git).
+
 ## Music
 
 | Engine | Where | Licence | Notes |
