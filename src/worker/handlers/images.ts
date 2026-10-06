@@ -13,7 +13,7 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe } from '@/server/media';
-import { tmpDir } from '@/server/media/ffmpeg';
+import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
 import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/server/media/image-check';
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
 import { faceBoxFromReading } from '@/server/media/presentation';
@@ -23,9 +23,9 @@ import {
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
-  type CropPx,
+  type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, locationPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, locationPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -628,8 +628,39 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
     return undefined;
   }
   if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+  // A ONE-PERSON CLOSE SHOT IS CUT TO ITS FRAMING (acceptance 2026-10-06, Tea 1.3): composed from the person, the edit
+  // model still draws about a medium shot; the frame is cropped around the drawn face to the planned framing's extent
+  // and scaled back to the take size — or kept as drawn (no face, or the crop would be too soft)
+  if (!wrong && composition === 'PEOPLE' && people.length === 1) kept = await framedToShot(ctx, kept!, sh, { width: info.width, height: info.height }, `frame:${sh.id}:${which}:framed`, label);
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
+}
+
+/** Cut a drawn one-person frame to the shot's framing around its face (MediaPipe face box, `framingCropFromFace`) and
+ *  scale it (lanczos) to the take size, as a DERIVED asset that records the crop; the drawn frame is returned unchanged
+ *  when no face is found, when the frame is already as close, or when the crop would fall below the quality floor. */
+async function framedToShot(ctx: HandlerContext, drawn: Drawn, sh: Shot, size: { width: number; height: number }, key: string, label: string): Promise<Drawn> {
+  const reused = await reuseDrawn(ctx, key);
+  if (reused) return reused;
+  const a = (await readState()).state.assets.find((x) => x.id === drawn.id);
+  if (!usableImage(a) || !a.width || !a.height) return drawn;
+  const run = await runGraph(ctx, faceCheck({ image: await comfy.uploadInput(assetFile(a)), numFaces: 3 }), { key: `${key}:face`, label: `${label}: finding the face`, tool: 'image.describe_reference' });
+  const faces = parseFaceBoxes(comfy.textOutput(run.outputs, FACE_CHECK_OUTPUTS.bboxes));
+  const face = faces[0];
+  const crop = face ? framingCropFromFace(sh.framing, face, { width: a.width, height: a.height }) : undefined;
+  if (!crop) {
+    await ctx.event('info', `${label}: kept as drawn (${!face ? 'no face found' : 'the frame is already at its framing, or the crop would be below the quality floor'})`, { assetId: drawn.id, face, framing: sh.framing });
+    return drawn;
+  }
+  const dir = await tmpDir('frame');
+  try {
+    const out = path.join(dir, `${drawn.id}-framed.png`);
+    await ffmpeg(['-y', '-v', 'error', '-i', assetFile(a), '-vf', `crop=${crop.width}:${crop.height}:${crop.x}:${crop.y},scale=${size.width}:${size.height}:flags=lanczos`, '-frames:v', '1', out]);
+    const { id, stored } = await jobOutputs(ctx.job).adopt(`image:${key}`, out, { expectKind: 'IMAGE' });
+    await command('addAsset', [assetFromStored(id, stored, { label: `${a.label} (cut to ${sh.framing.toLowerCase().replace(/_/g, ' ')})`, tags: [...(a.tags ?? []), 'framed'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { ...(a.provenance ?? {}), from: drawn.id, framingCrop: { framing: sh.framing, crop, face, drawnSize: { width: a.width, height: a.height }, scaledTo: size, filter: 'lanczos' } } })], 'worker');
+    await ctx.event('info', `${label}: cut to the planned ${sh.framing.toLowerCase().replace(/_/g, ' ')} around the face (${crop.width}×${crop.height} of ${a.width}×${a.height}), scaled to ${size.width}×${size.height}`, { assetId: id, from: drawn.id, crop });
+    return { ...drawn, id, file: stored.absPath, width: stored.probe?.width, height: stored.probe?.height };
+  } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
 }
 
 export { peopleExpected };

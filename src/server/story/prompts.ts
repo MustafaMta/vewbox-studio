@@ -477,6 +477,29 @@ export function plateCropFor(framing: Framing, plate: { width: number; height: n
   const y = Math.round(Math.min(plate.height - height, Math.max(0, center.y * plate.height - height / 2)));
   return { x, y, width, height };
 }
+/** A one-person framing's extent, in face heights: the frame's height, and where the top of the face sits (a fraction
+ *  of the frame's height from the top). */
+export const FACE_FRAMING: Partial<Record<Framing, { faces: number; top: number }>> = { MEDIUM: { faces: 4.6, top: 0.1 }, MEDIUM_CLOSE_UP: { faces: 3.0, top: 0.14 }, CLOSE_UP: { faces: 1.9, top: 0.12 }, EXTREME_CLOSE_UP: { faces: 1.3, top: 0.05 } };
+/** The smallest crop kept, as a share of the drawn frame's width (below it the upscale is too soft: the frame is kept
+ *  uncropped). */
+export const FRAMING_CROP_FLOOR = 0.6;
+/** The part of a drawn one-person frame that shows the planned framing, at the frame's own aspect, placed by the face
+ *  box (pixels): the face centred across, its top at the framing's height. Undefined when the framing has no face extent,
+ *  when the frame is already as close (the crop would be the whole picture or more), or when the crop would fall
+ *  below `FRAMING_CROP_FLOOR` of the width. Pure. */
+export function framingCropFromFace(framing: Framing, face: { x: number; y: number; width: number; height: number }, image: { width: number; height: number }): { x: number; y: number; width: number; height: number } | undefined {
+  const f = FACE_FRAMING[framing];
+  if (!f || !(face.height > 0) || !(image.width > 0) || !(image.height > 0)) return undefined;
+  const aspect = image.width / image.height;
+  let height = face.height * f.faces;
+  let width = height * aspect;
+  if (width >= image.width * 0.97) return undefined;
+  if (width < image.width * FRAMING_CROP_FLOOR) return undefined;
+  width = Math.round(width); height = Math.round(width / aspect);
+  const x = Math.round(Math.min(image.width - width, Math.max(0, face.x + face.width / 2 - width / 2)));
+  const y = Math.round(Math.min(image.height - height, Math.max(0, face.y - f.top * height)));
+  return { x, y, width, height };
+}
 /** How much of a canonical full-body figure (head at the top) a framing shows, from the top. */
 export const PERSON_CROP_SHARE: Partial<Record<Framing, number>> = { MEDIUM: 0.55, MEDIUM_CLOSE_UP: 0.45, CLOSE_UP: 0.3, EXTREME_CLOSE_UP: 0.2, TWO_SHOT: 0.55, OVER_THE_SHOULDER: 0.5 };
 /** The top part of a canonical full-body image a framing shows (the full width). Pure. */
