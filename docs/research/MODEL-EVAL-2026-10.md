@@ -605,6 +605,23 @@ Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; C
 focused A/B on the three canonical characters (C1 cartoon, C2 anime, C3 realistic; the same prompts and seed as §2.1)
 against fp8; promoted as the final image tier only on a visible gain at full size, otherwise recorded and fp8 stays.
 
+**Result (2026-10-06, first attempts, the same prompts and seeds 970007/970008 as the fp8 pictures of §9; evidence
+`docs/evidence/model-eval-2026-10/images-upgrade/results.json`, `t2i/*-2512bf-*`): NOT PROMOTED — fp8 stays.**
+
+| | fp8_e4m3fn (shipping) | bf16 (candidate) |
+|---|---|---|
+| Whole figure (framing check / eye) | 6/6 / 6/6 | 6/6 / 6/6 |
+| Engine, warm | 42–43 s | 43–44 s (98 s with the first, cold load of 40.9 GB) |
+| Card peak | 28.9–30.3 GB | 31.5–31.7 GB (partially loaded) |
+| comfyui RAM | 29.1–29.9 GiB | **48.7–48.8 GiB** |
+
+At full size, the two precisions draw the same picture for the same seed: composition, pose, wardrobe, colours and
+one-sided details match. Face crops at 500×560 px show no visible gain in detail, skin, hair or line work for the cartoon,
+anime or realistic character (the only differences are a slightly warmer skin tone on C1 and one specular highlight on
+C2's hair, in either direction). bf16 buys nothing visible, costs about 19 GiB more host RAM and a 1.5 GB fuller card, and
+is slower when cold. The file (`diffusion_models/qwen_image_2512_bf16.safetensors`, 40.86 GB, verified) can be deleted
+from the store; the manifest group `eval-qwen-image-2512-bf16` stays outside the default groups as the record.
+
 ## 11. Planning LLM: production model and promotion record (2026-10-06, model-upgrade directive §§3, 9; production-stack directive)
 
 Planning-LLM engineer, 2026-10-06. Every GPU call ran under the studio's lease (`scripts/gpu-hold.ts LLM <mb>`, background
